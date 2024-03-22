@@ -232,7 +232,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     /* select the flow_gh */
     const int dir = (p->flowflags & FLOW_PKT_TOCLIENT) == 0;
 
-    int proto = IP_GET_IPPROTO(p);
+    int proto = PacketGetIPProto(p);
     if (proto == IPPROTO_TCP) {
         DetectPort *list = de_ctx->flow_gh[dir].tcp;
         SCLogDebug("tcp toserver %p, tcp toclient %p: going to use %p", de_ctx->flow_gh[1].tcp,
@@ -513,7 +513,7 @@ static inline void DetectRunGetRuleGroup(
         bool use_flow_sgh = false;
         /* Get the stored sgh from the flow (if any). Make sure we're not using
          * the sgh for icmp error packets part of the same stream. */
-        if (IP_GET_IPPROTO(p) == pflow->proto) { /* filter out icmp */
+        if (PacketGetIPProto(p) == pflow->proto) { /* filter out icmp */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
             if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
                 sgh = pflow->sgh_toserver;
@@ -617,7 +617,7 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
         return false;
     }
 
-    if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
+    if (DetectProtoContainsProto(&s->proto, PacketGetIPProto(p)) == 0) {
         SCLogDebug("proto didn't match");
         return false;
     }

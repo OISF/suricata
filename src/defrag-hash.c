@@ -134,7 +134,7 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
         dt->id = (int32_t)IPV6_EXTHDR_GET_FH_ID(p);
         dt->af = AF_INET6;
     }
-    dt->proto = IP_GET_IPPROTO(p);
+    dt->proto = PacketGetIPProto(p);
     memcpy(&dt->vlan_id[0], &p->vlan_id[0], sizeof(dt->vlan_id));
     dt->policy = DefragGetOsPolicy(p);
     dt->host_timeout = DefragPolicyGetHostTimeout(p);
@@ -443,7 +443,7 @@ static inline uint32_t DefragHashGetKey(Packet *p)
 #define CMP_DEFRAGTRACKER(d1, d2, id)                                                              \
     (((CMP_ADDR(&(d1)->src_addr, &(d2)->src) && CMP_ADDR(&(d1)->dst_addr, &(d2)->dst)) ||          \
              (CMP_ADDR(&(d1)->src_addr, &(d2)->dst) && CMP_ADDR(&(d1)->dst_addr, &(d2)->src))) &&  \
-            (d1)->proto == IP_GET_IPPROTO(d2) && (d1)->id == (id) &&                               \
+            (d1)->proto == PacketGetIPProto(d2) && (d1)->id == (id) &&                             \
             (d1)->vlan_id[0] == (d2)->vlan_id[0] && (d1)->vlan_id[1] == (d2)->vlan_id[1] &&        \
             (d1)->vlan_id[2] == (d2)->vlan_id[2])
 
