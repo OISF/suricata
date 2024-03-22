@@ -212,9 +212,6 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
         protoptr = proto;
     }
 
-    /* Not sure if this mutex is needed around calls to syslog. */
-    SCMutexLock(&ast->file_ctx->fp_mutex);
-
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -232,13 +229,15 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
             action = "[wDrop] ";
         }
 
+        /* Not sure if this mutex is needed around calls to syslog. */
+        SCMutexLock(&ast->file_ctx->fp_mutex);
         syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                 PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                 " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->s->gid,
                 pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                 protoptr,  srcip, p->sp, dstip, p->dp);
+        SCMutexUnlock(&ast->file_ctx->fp_mutex);
     }
-    SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }
@@ -270,8 +269,6 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
         protoptr = proto;
     }
 
-    SCMutexLock(&ast->file_ctx->fp_mutex);
-
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -289,15 +286,15 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
             action = "[wDrop] ";
         }
 
+        SCMutexLock(&ast->file_ctx->fp_mutex);
         syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                 "" PRIu32 "] %s [Classification: %s] [Priority: %"
                 "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                 action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
                 pa->s->prio, protoptr, srcip, p->sp,
                 dstip, p->dp);
-
+        SCMutexUnlock(&ast->file_ctx->fp_mutex);
     }
-    SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }
@@ -319,8 +316,6 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
-
-    SCMutexLock(&ast->file_ctx->fp_mutex);
 
     char temp_buf_hdr[512];
     char temp_buf_pkt[65] = "";
@@ -357,9 +352,10 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
         }
         strlcat(alert, temp_buf_tail, sizeof(alert));
 
+        SCMutexLock(&ast->file_ctx->fp_mutex);
         syslog(alert_syslog_level, "%s", alert);
+        SCMutexUnlock(&ast->file_ctx->fp_mutex);
     }
-    SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
 }
