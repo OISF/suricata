@@ -62,3 +62,5 @@ Example::
     alert http any any -> any any (msg:"Example"; content:"somestring"; http_uri; \
          base64_decode:bytes 8, offset 1, relative; \
          base64_data; content:"test"; sid:10001; rev:1;)
+
+.. note:: ``base64_data`` cannot be used with ``fast_pattern`` and will result in a rule load error.
