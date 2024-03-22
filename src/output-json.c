@@ -472,12 +472,12 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
 
     switch (dir) {
         case LOG_DIR_PACKET:
-            if (PKT_IS_IPV4(p)) {
+            if (PacketIsIPv4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
                         srcip, sizeof(srcip));
                 PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
                         dstip, sizeof(dstip));
-            } else if (PKT_IS_IPV6(p)) {
+            } else if (PacketIsIPv6(p)) {
                 PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
                         srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
@@ -492,12 +492,12 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case LOG_DIR_FLOW:
         case LOG_DIR_FLOW_TOSERVER:
             if ((PKT_IS_TOSERVER(p))) {
-                if (PKT_IS_IPV4(p)) {
+                if (PacketIsIPv4(p)) {
                     PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
                             dstip, sizeof(dstip));
-                } else if (PKT_IS_IPV6(p)) {
+                } else if (PacketIsIPv6(p)) {
                     PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
@@ -506,12 +506,12 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
                 sp = p->sp;
                 dp = p->dp;
             } else {
-                if (PKT_IS_IPV4(p)) {
+                if (PacketIsIPv4(p)) {
                     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
                             dstip, sizeof(dstip));
-                } else if (PKT_IS_IPV6(p)) {
+                } else if (PacketIsIPv6(p)) {
                     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
@@ -523,12 +523,12 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
             break;
         case LOG_DIR_FLOW_TOCLIENT:
             if ((PKT_IS_TOCLIENT(p))) {
-                if (PKT_IS_IPV4(p)) {
+                if (PacketIsIPv4(p)) {
                     PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
                             dstip, sizeof(dstip));
-                } else if (PKT_IS_IPV6(p)) {
+                } else if (PacketIsIPv6(p)) {
                     PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
@@ -537,12 +537,12 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
                 sp = p->sp;
                 dp = p->dp;
             } else {
-                if (PKT_IS_IPV4(p)) {
+                if (PacketIsIPv4(p)) {
                     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
                             dstip, sizeof(dstip));
-                } else if (PKT_IS_IPV6(p)) {
+                } else if (PacketIsIPv6(p)) {
                     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
                             srcip, sizeof(srcip));
                     PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),

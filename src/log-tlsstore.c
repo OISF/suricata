@@ -259,7 +259,7 @@ static int LogTlsStoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                              Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     LogTlsStoreLogThread *aft = (LogTlsStoreLogThread *)thread_data;
-    int ipproto = (PKT_IS_IPV4(p)) ? AF_INET : AF_INET6;
+    int ipproto = (PacketIsIPv4(p)) ? AF_INET : AF_INET6;
 
     SSLState *ssl_state = (SSLState *)state;
     if (unlikely(ssl_state == NULL)) {

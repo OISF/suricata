@@ -690,6 +690,16 @@ static inline uint8_t PacketGetIPProto(const Packet *p)
     }
 }
 
+static inline bool PacketIsIPv4(const Packet *p)
+{
+    return PKT_IS_IPV4(p);
+}
+
+static inline bool PacketIsIPv6(const Packet *p)
+{
+    return PKT_IS_IPV6(p);
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {

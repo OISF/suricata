@@ -149,9 +149,9 @@ uint8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 {
     uint8_t rep = 0;
 
-    if (PKT_IS_IPV4(p))
+    if (PacketIsIPv4(p))
         rep = SRepCIDRGetIPv4IPRep(cidr_ctx, (uint8_t *)GET_IPV4_SRC_ADDR_PTR(p), cat);
-    else if (PKT_IS_IPV6(p))
+    else if (PacketIsIPv6(p))
         rep = SRepCIDRGetIPv6IPRep(cidr_ctx, (uint8_t *)GET_IPV6_SRC_ADDR(p), cat);
 
     return rep;
@@ -161,9 +161,9 @@ uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 {
     uint8_t rep = 0;
 
-    if (PKT_IS_IPV4(p))
+    if (PacketIsIPv4(p))
         rep = SRepCIDRGetIPv4IPRep(cidr_ctx, (uint8_t *)GET_IPV4_DST_ADDR_PTR(p), cat);
-    else if (PKT_IS_IPV6(p))
+    else if (PacketIsIPv6(p))
         rep = SRepCIDRGetIPv6IPRep(cidr_ctx, (uint8_t *)GET_IPV6_DST_ADDR(p), cat);
 
     return rep;

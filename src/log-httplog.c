@@ -492,9 +492,9 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, v
     }
 
     int r = 0;
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         r = LogHttpLogIPWrapper(tv, thread_data, p, f, (HtpState *)state, (htp_tx_t *)tx, tx_id, AF_INET);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         r = LogHttpLogIPWrapper(tv, thread_data, p, f, (HtpState *)state, (htp_tx_t *)tx, tx_id, AF_INET6);
     }
 

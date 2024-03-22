@@ -109,10 +109,10 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     } else {
