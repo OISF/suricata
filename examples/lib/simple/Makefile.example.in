@@ -9,7 +9,8 @@ CPPFLAGS +=    "-D__SCFILENAME__=\"$(*F)\""
 
 SRCS :=	main.c \
 	runmode.c \
-	source.c
+	source.c \
+	output.c
 
 OBJS :=	$(SRCS:.c=.o)
 

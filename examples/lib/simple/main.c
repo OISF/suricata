@@ -19,10 +19,12 @@
 
 #include "source.h"
 #include "runmode.h"
+#include "output.h"
 
 #include "tm-threads-common.h"
 #include "util-debug.h"
 #include "suricata-plugin.h"
+#include "conf-yaml-loader.h"
 
 static void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int decode_slot)
 {
@@ -43,6 +45,9 @@ int main(int argc, char **argv)
         .GetDefaultMode = DefaultRunMode,
     };
     SCPluginRegisterCapture(&capture_plugin);
+
+    /* Register our custom EVE file type. */
+    RegisterOutput();
 
     /* Parse command line options. This is optional, you could
      * directly configure Suricata through the Conf API. */
@@ -68,6 +73,15 @@ int main(int argc, char **argv)
      * may be programmatically configuration Suricata. */
     if (SCLoadYamlConfig() != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
+    }
+
+    /* Load in a custom outputs configuration section that uses our
+     * custom EVE file type. */
+    char output_filename[PATH_MAX];
+    snprintf(output_filename, sizeof(output_filename), "%s/%s", get_current_dir_name(),
+            "outputs.yaml");
+    if (ConfYamlHandleInclude(ConfGetRootNode(), output_filename) != 0) {
+        FatalError("Failed to load outputs.yaml");
     }
 
     SuricataInit();
