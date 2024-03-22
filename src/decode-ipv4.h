@@ -170,14 +170,10 @@ enum IPV4OptionFlags {
 };
 
 /* helper structure with parsed ipv4 info */
-typedef struct IPV4Vars_
-{
-    int32_t comp_csum;     /* checksum computed over the ipv4 packet */
-
+typedef struct IPV4Vars_ {
     uint16_t opt_cnt;
     uint16_t opts_set;
 } IPV4Vars;
-
 
 void DecodeIPV4RegisterTests(void);
 
