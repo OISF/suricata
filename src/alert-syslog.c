@@ -204,10 +204,11 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 
     char proto[16] = "";
     const char *protoptr;
-    if (SCProtoNameValid(IPV4_GET_IPPROTO(p))) {
-        protoptr = known_proto[IPV4_GET_IPPROTO(p)];
+    const uint8_t ipproto = IPV4_GET_IPPROTO(p);
+    if (SCProtoNameValid(ipproto)) {
+        protoptr = known_proto[ipproto];
     } else {
-        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu8, ipproto);
         protoptr = proto;
     }
 
@@ -259,10 +260,11 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
 
     char proto[16] = "";
     const char *protoptr;
-    if (SCProtoNameValid(IPV6_GET_L4PROTO(p))) {
-        protoptr = known_proto[IPV6_GET_L4PROTO(p)];
+    const uint8_t ipproto = IPV6_GET_L4PROTO(p);
+    if (SCProtoNameValid(ipproto)) {
+        protoptr = known_proto[ipproto];
     } else {
-        snprintf(proto, sizeof(proto), "PROTO:03%" PRIu32, IPV6_GET_L4PROTO(p));
+        snprintf(proto, sizeof(proto), "PROTO:03%" PRIu8, ipproto);
         protoptr = proto;
     }
 
