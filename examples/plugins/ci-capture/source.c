@@ -59,7 +59,7 @@ static TmEcode ReceiveLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    TmSlot *s = (TmSlot *)slot;
+    TmSlot *s = ((TmSlot *)slot)->slot_next;
 
     /* Notify we are running and processing packets. */
     TmThreadsSetFlag(tv, THV_RUNNING);
