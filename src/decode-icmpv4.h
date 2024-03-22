@@ -221,11 +221,11 @@ typedef struct ICMPV4Timestamp_ {
     uint32_t tx_ts;
 } __attribute__((__packed__)) ICMPV4Timestamp;
 
-#define CLEAR_ICMPV4_PACKET(p) do { \
-    (p)->level4_comp_csum = -1;     \
-    PACKET_CLEAR_L4VARS((p));       \
-    (p)->icmpv4h = NULL;            \
-} while(0)
+#define CLEAR_ICMPV4_PACKET(p)                                                                     \
+    do {                                                                                           \
+        PACKET_CLEAR_L4VARS((p));                                                                  \
+        (p)->icmpv4h = NULL;                                                                       \
+    } while (0)
 
 #define ICMPV4_HEADER_PKT_OFFSET 8
 
