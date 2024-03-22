@@ -328,9 +328,9 @@ static int LuaCallbackFlowHasAlerts(lua_State *luastate)
 static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Packet *p)
 {
     int ipver = 0;
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         ipver = 4;
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         ipver = 6;
     }
     lua_pushinteger(luastate, ipver);
@@ -338,10 +338,10 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
         return 1;
 
     char srcip[46] = "", dstip[46] = "";
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     }

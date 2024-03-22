@@ -93,9 +93,9 @@ int DefragPolicyGetHostTimeout(Packet *p)
 {
     int timeout = 0;
 
-    if (PKT_IS_IPV4(p))
+    if (PacketIsIPv4(p))
         timeout = DefragPolicyGetIPv4HostTimeout((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
-    else if (PKT_IS_IPV6(p))
+    else if (PacketIsIPv6(p))
         timeout = DefragPolicyGetIPv6HostTimeout((uint8_t *)GET_IPV6_DST_ADDR(p));
 
     if (timeout <= 0)

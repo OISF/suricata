@@ -88,7 +88,7 @@ static int DecodeCHDLCTest01 (void)
 
     DecodeCHDLC(&tv, &dtv, p, raw, sizeof(raw));
 
-    FAIL_IF_NOT(PKT_IS_IPV4(p));
+    FAIL_IF_NOT(PacketIsIPv4(p));
     FAIL_IF_NOT(PKT_IS_TCP(p));
     FAIL_IF_NOT(p->dp == 80);
 

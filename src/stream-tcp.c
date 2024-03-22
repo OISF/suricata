@@ -940,7 +940,7 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
  */
 void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 {
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
@@ -950,7 +950,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
         else
             stream->os_policy = OS_POLICY_DEFAULT;
 
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         /* Get the OS policy based on destination IP address, as destination
            OS will decide how to react on the anomalies of newly received
            packets */
@@ -5679,13 +5679,13 @@ static inline int StreamTcpValidateChecksum(Packet *p)
         return ret;
 
     if (p->level4_comp_csum == -1) {
-        if (PKT_IS_IPV4(p)) {
+        if (PacketIsIPv4(p)) {
             p->level4_comp_csum = TCPChecksum(p->ip4h->s_ip_addrs,
                                               (uint16_t *)p->tcph,
                                               (p->payload_len +
                                                   TCP_GET_HLEN(p)),
                                               p->tcph->th_sum);
-        } else if (PKT_IS_IPV6(p)) {
+        } else if (PacketIsIPv6(p)) {
             p->level4_comp_csum = TCPV6Checksum(p->ip6h->s_ip6_addrs,
                                                 (uint16_t *)p->tcph,
                                                 (p->payload_len +

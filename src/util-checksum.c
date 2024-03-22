@@ -28,7 +28,7 @@
 
 int ReCalculateChecksum(Packet *p)
 {
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         if (PKT_IS_TCP(p)) {
             /* TCP */
             p->tcph->th_sum = 0;
@@ -43,7 +43,7 @@ int ReCalculateChecksum(Packet *p)
         p->ip4h->ip_csum = 0;
         p->ip4h->ip_csum = IPV4Checksum((uint16_t *)p->ip4h,
                 IPV4_GET_RAW_HLEN(p->ip4h), 0);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         /* just TCP for IPV6 */
         if (PKT_IS_TCP(p)) {
             p->tcph->th_sum = 0;

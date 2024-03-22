@@ -100,8 +100,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (p->ip6h == NULL) {
-            // DETECT_PROTO_IPV6 does not prefilter
+        if (!PacketIsIPv6(p)) {
             return NULL;
         }
         uint32_t hlen = IPV6_HEADER_LEN + IPV6_GET_EXTHDRS_LEN(p);
