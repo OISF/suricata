@@ -153,12 +153,12 @@ void FlowInit(Flow *f, const Packet *p)
     f->vlan_idx = p->vlan_idx;
     f->livedev = p->livedev;
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
         FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
         f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_IPTTL((p));
         f->flags |= FLOW_IPV4;
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
         FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
         f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));

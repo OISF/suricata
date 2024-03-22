@@ -96,9 +96,9 @@ static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         /* fake pkt */
     }
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         /* ipv4 pkt */
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         /* ipv6 pkt */
     } else {
         SCLogDebug("packet is of not IPv4 or IPv6");
