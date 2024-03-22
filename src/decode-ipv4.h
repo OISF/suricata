@@ -148,11 +148,11 @@ typedef struct IPV4Hdr_
 #define IPV4_GET_IPPROTO(p) \
     IPV4_GET_RAW_IPPROTO((p)->ip4h)
 
-#define CLEAR_IPV4_PACKET(p) do { \
-    (p)->ip4h = NULL; \
-    (p)->level3_comp_csum = -1; \
-    memset(&p->ip4vars, 0x00, sizeof(p->ip4vars)); \
-} while (0)
+#define CLEAR_IPV4_PACKET(p)                                                                       \
+    do {                                                                                           \
+        (p)->ip4h = NULL;                                                                          \
+        memset(&p->ip4vars, 0x00, sizeof(p->ip4vars));                                             \
+    } while (0)
 
 enum IPV4OptionFlags {
     IPV4_OPT_FLAG_EOL = 0,

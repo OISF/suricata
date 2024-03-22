@@ -182,12 +182,11 @@ typedef struct ICMPV6Vars_ {
 
 } ICMPV6Vars;
 
-
-#define CLEAR_ICMPV6_PACKET(p) do { \
-    (p)->level4_comp_csum = -1;     \
-    PACKET_CLEAR_L4VARS((p));       \
-    (p)->icmpv6h = NULL;            \
-} while(0)
+#define CLEAR_ICMPV6_PACKET(p)                                                                     \
+    do {                                                                                           \
+        PACKET_CLEAR_L4VARS((p));                                                                  \
+        (p)->icmpv6h = NULL;                                                                       \
+    } while (0)
 
 void DecodeICMPV6RegisterTests(void);
 
