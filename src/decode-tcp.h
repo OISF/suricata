@@ -168,11 +168,11 @@ typedef struct TCPVars_
     TCPOpt tfo;         /* tcp fast open */
 } TCPVars;
 
-#define CLEAR_TCP_PACKET(p) {   \
-    (p)->level4_comp_csum = -1; \
-    PACKET_CLEAR_L4VARS((p));   \
-    (p)->tcph = NULL;           \
-}
+#define CLEAR_TCP_PACKET(p)                                                                        \
+    {                                                                                              \
+        PACKET_CLEAR_L4VARS((p));                                                                  \
+        (p)->tcph = NULL;                                                                          \
+    }
 
 void DecodeTCPRegisterTests(void);
 

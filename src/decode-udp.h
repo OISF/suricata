@@ -46,10 +46,10 @@ typedef struct UDPHdr_
 	uint16_t uh_sum;    /* checksum */
 } UDPHdr;
 
-#define CLEAR_UDP_PACKET(p) do {    \
-    (p)->level4_comp_csum = -1;     \
-    (p)->udph = NULL;               \
-} while (0)
+#define CLEAR_UDP_PACKET(p)                                                                        \
+    do {                                                                                           \
+        (p)->udph = NULL;                                                                          \
+    } while (0)
 
 void DecodeUDPV4RegisterTests(void);
 
