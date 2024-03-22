@@ -116,7 +116,7 @@ typedef struct FlowHashKey6_ {
 uint32_t FlowGetIpPairProtoHash(const Packet *p)
 {
     uint32_t hash = 0;
-    if (p->ip4h != NULL) {
+    if (PacketIsIPv4(p)) {
         FlowHashKey4 fhk = {
             .pad[0] = 0,
         };
@@ -137,7 +137,7 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
-    } else if (p->ip6h != NULL) {
+    } else if (PacketIsIPv6(p)) {
         FlowHashKey6 fhk = {
             .pad[0] = 0,
         };
@@ -191,7 +191,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
 {
     uint32_t hash = 0;
 
-    if (p->ip4h != NULL) {
+    if (PacketIsIPv4(p)) {
         if (p->tcph != NULL || p->udph != NULL) {
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
@@ -257,7 +257,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
 
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
         }
-    } else if (p->ip6h != NULL) {
+    } else if (PacketIsIPv6(p)) {
         FlowHashKey6 fhk = { .pad[0] = 0 };
         if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             fhk.src[0] = p->src.addr_data32[0];
