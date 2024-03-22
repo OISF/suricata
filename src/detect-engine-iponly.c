@@ -1049,11 +1049,11 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
             if (bitarray & 0x01) {
                 const Signature *s = de_ctx->sig_array[io_ctx->sig_mapping[u * 8 + i]];
 
-                if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+                if ((s->proto.flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
                     SCLogDebug("ip version didn't match");
                     continue;
                 }
-                if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+                if ((s->proto.flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
                     SCLogDebug("ip version didn't match");
                     continue;
                 }

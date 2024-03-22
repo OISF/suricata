@@ -98,7 +98,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     /**
      * To match a ipv4 packet with a "id" rule
      */
-    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {
+    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 
@@ -225,7 +225,7 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {
+    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p)) {
         return;
     }
 

@@ -364,9 +364,9 @@ static bool AlertSyslogCondition(ThreadVars *tv, void *thread_data, const Packet
 
 static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         return AlertSyslogIPv4(tv, p, thread_data);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         return AlertSyslogIPv6(tv, p, thread_data);
     } else if (p->events.cnt > 0) {
         return AlertSyslogDecoderEvent(tv, p, thread_data);

@@ -114,9 +114,9 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         frag = IPV4_GET_IPOFFSET(p);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         if (IPV6_EXTHDR_ISSET_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
         } else {
@@ -268,9 +268,9 @@ PrefilterPacketFragOffsetMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const 
 
     uint16_t frag;
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         frag = IPV4_GET_IPOFFSET(p);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         if (IPV6_EXTHDR_ISSET_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
         } else {
