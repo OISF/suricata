@@ -315,25 +315,35 @@ int NapatechSetPortmap(int port, int peer)
 int NapatechGetAdapter(uint8_t port)
 {
     static int port_adapter_map[MAX_PORTS] = { -1 };
-    int status;
-    NtInfo_t h_info; /* Info handle */
-    NtInfoStream_t h_info_stream; /* Info stream handle */
 
-    if (unlikely(port_adapter_map[port] == -1)) {
-        if ((status = NT_InfoOpen(&h_info_stream, "ExampleInfo")) != NT_SUCCESS) {
+    if (unlikely(port_adapter_map[0] == -1)) {
+        int status;
+        NtInfoStream_t h_info_stream; /* Info stream handle */
+
+        if ((status = NT_InfoOpen(&h_info_stream, "NapatechGetAdapter")) != NT_SUCCESS) {
             NAPATECH_ERROR(status);
+            FatalError("Unable to NT_InfoOpen");
             return -1;
         }
-        /* Read the system info */
-        h_info.cmd = NT_INFO_CMD_READ_PORT_V9;
-        h_info.u.port_v9.portNo = (uint8_t) port;
-        if ((status = NT_InfoRead(h_info_stream, &h_info)) != NT_SUCCESS) {
-            /* Get the status code as text */
-            NAPATECH_ERROR(status);
-            NT_InfoClose(h_info_stream);
-            return -1;
+        for (size_t i = 0; i < MAX_PORTS; ++i) {
+            NtInfo_t h_info; /* Info handle */
+            /* Read the system info */
+            h_info.cmd = NT_INFO_CMD_READ_PORT_V9;
+            h_info.u.port_v9.portNo = (uint8_t)i;
+            if ((status = NT_InfoRead(h_info_stream, &h_info)) == NT_SUCCESS) {
+                port_adapter_map[i] = h_info.u.port_v9.data.adapterNo;
+            } else {
+                if (status != NT_ERROR_PORT_OUT_OF_RANGE) {
+                    /* Get the status code as text */
+                    NAPATECH_ERROR(status);
+                }
+                port_adapter_map[i] = -1;
+            }
         }
-        port_adapter_map[port] = h_info.u.port_v9.data.adapterNo;
+        NT_InfoClose(h_info_stream);
+    }
+    if (port_adapter_map[port] == -1) {
+        FatalError("Adapter that holds port %u is unknown", port);
     }
     return port_adapter_map[port];
 }
@@ -711,6 +721,13 @@ static void NapatechReleasePacket(struct Packet_ *p)
      * before releasing the Napatech buffer back to NTService.
      */
 #ifdef NAPATECH_ENABLE_BYPASS
+    /*
+     * https://supportportal.napatech.com/index.php?/selfhelp/view-article/how-to-configure-txport-in-inline-mode/340
+     * If the descriptor is Dyn3, TxPortPos=28 should be used, which is the color_lo field in Dyn3.
+     */
+    p->ntpv.dyn3->color_lo =
+            inline_port_map[p->ntpv.dyn3->rxPort + p->ntpv.nt_packet_buf->portOffset] -
+            p->ntpv.nt_packet_buf->portOffset;
     if (is_inline && PacketCheckAction(p, ACTION_DROP)) {
         p->ntpv.dyn3->wireLength = 0;
     }
@@ -958,9 +975,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 #ifdef NAPATECH_ENABLE_BYPASS
         p->ntpv.dyn3 = _NT_NET_GET_PKT_DESCR_PTR_DYN3(packet_buffer);
         p->BypassPacketsFlow = (NapatechIsBypassSupported() ? NapatechBypassCallback : NULL);
-        NT_NET_SET_PKT_TXPORT(packet_buffer, inline_port_map[p->ntpv.dyn3->rxPort]);
-        p->ntpv.flow_stream = flow_stream[NapatechGetAdapter(p->ntpv.dyn3->rxPort)];
-
+        p->ntpv.flow_stream =
+                flow_stream[NapatechGetAdapter(p->ntpv.dyn3->rxPort + packet_buffer->portOffset)];
 #endif
 
         p->ReleasePacket = NapatechReleasePacket;
@@ -973,6 +989,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
         if (unlikely(TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK)) {
             SCReturnInt(TM_ECODE_FAILED);
         }
