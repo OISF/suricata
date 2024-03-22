@@ -195,8 +195,8 @@ fn parse_byteextract(input: &str) -> IResult<&str, SCDetectByteExtractData, Rule
                     return Err(make_error("endianess already set".to_string()));
                 }
                 byte_extract.endian = match get_endian_value(name) {
-                    Ok(val) => val,
-                    Err(_) => {
+                    Some(val) => val,
+                    None => {
                         return Err(make_error(format!("invalid endian value: {}", val)));
                     }
                 };
@@ -217,9 +217,12 @@ fn parse_byteextract(input: &str) -> IResult<&str, SCDetectByteExtractData, Rule
                 if 0 == (byte_extract.flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
                     return Err(make_error("string must be set first".to_string()));
                 }
+                if 0 != (byte_extract.flags & DETECT_BYTE_EXTRACT_FLAG_BASE) {
+                    return Err(make_error("base already set".to_string()));
+                }
                 byte_extract.base = match get_string_value(name) {
-                    Ok(val) => val,
-                    Err(_) => {
+                    Some(val) => val,
+                    None => {
                         return Err(make_error(format!("invalid string value: {}", val)));
                     }
                 };
