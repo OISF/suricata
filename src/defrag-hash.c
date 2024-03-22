@@ -127,7 +127,7 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     COPY_ADDRESS(&p->src, &dt->src_addr);
     COPY_ADDRESS(&p->dst, &dt->dst_addr);
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         dt->id = (int32_t)IPV4_GET_IPID(p);
         dt->af = AF_INET;
     } else {
@@ -450,7 +450,7 @@ static inline uint32_t DefragHashGetKey(Packet *p)
 static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 {
     uint32_t id;
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         id = (uint32_t)IPV4_GET_IPID(p);
     } else {
         id = IPV6_EXTHDR_GET_FH_ID(p);
