@@ -1057,7 +1057,7 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
                     SCLogDebug("ip version didn't match");
                     continue;
                 }
-                if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
+                if (DetectProtoContainsProto(&s->proto, PacketGetIPProto(p)) == 0) {
                     SCLogDebug("proto didn't match");
                     continue;
                 }
