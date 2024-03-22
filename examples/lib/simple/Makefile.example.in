@@ -1,12 +1,25 @@
 LIBSURICATA_CONFIG ?=	@CONFIGURE_PREFIX@/bin/libsuricata-config
 
-SURICATA_LIBS =		`$(LIBSURICATA_CONFIG) --libs`
+SURICATA_LIBS =		`$(LIBSURICATA_CONFIG) --libs --static`
 SURICATA_CFLAGS :=	`$(LIBSURICATA_CONFIG) --cflags`
+
+# Currently the Suricata logging system requires this to be even for
+# plugins.
+CPPFLAGS +=    "-D__SCFILENAME__=\"$(*F)\""
+
+SRCS :=	main.c \
+	runmode.c \
+	source.c
+
+OBJS :=	$(SRCS:.c=.o)
 
 all: simple
 
-simple: main.c
-	$(CC) -o $@ $^ $(CFLAGS) $(SURICATA_CFLAGS) $(SURICATA_LIBS)
+simple: $(OBJS)
+	$(CC) -o $@ $^ $(CPPFLAGS) $(CFLAGS) $(SURICATA_CFLAGS) $(SURICATA_LIBS)
+
+%.o: %.c
+	$(CC) -c -o $@ $^ $(CPPFLAGS) $(CFLAGS) $(SURICATA_CFLAGS)
 
 clean:
 	rm -f simple

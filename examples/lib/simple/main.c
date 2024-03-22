@@ -17,9 +17,32 @@
 
 #include "suricata.h"
 
+#include "source.h"
+#include "runmode.h"
+
+#include "tm-threads-common.h"
+#include "util-debug.h"
+#include "suricata-plugin.h"
+
+static void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int decode_slot)
+{
+    SCLogNotice("...");
+    RegisterCaptureModes(plugin_slot);
+    RegisterCapturePluginReceive(receive_slot);
+    RegisterCapturePluginDecode(decode_slot);
+}
+
 int main(int argc, char **argv)
 {
     SuricataPreInit(argv[0]);
+
+    /* Register our custom capture method as a plugin. */
+    SCCapturePlugin capture_plugin = {
+        .name = (char *)"ci-capture",
+        .Init = InitCapturePlugin,
+        .GetDefaultMode = DefaultRunMode,
+    };
+    SCPluginRegisterCapture(&capture_plugin);
 
     /* Parse command line options. This is optional, you could
      * directly configure Suricata through the Conf API. */

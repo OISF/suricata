@@ -2,6 +2,9 @@ bin_PROGRAMS = simple
 
 simple_SOURCES = main.c
 
+# Sources for the capture and runmode.
+simple_SOURCES += source.c runmode.c
+
 AM_CPPFLAGS = -I$(top_srcdir)/src
 
 simple_LDFLAGS = $(all_libraries) $(SECLDFLAGS)
