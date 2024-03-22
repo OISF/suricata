@@ -170,7 +170,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 {
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 
-    if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
+    if (!de || !PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->ip4vars.opts_set & de->ipopt) {

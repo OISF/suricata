@@ -253,8 +253,7 @@ static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    if (PKT_IS_IPV4(p))
-    {
+    if (PacketIsIPv4(p)) {
         if (geoipdata->flags & ( GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG ))
         {
             if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p)))

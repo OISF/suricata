@@ -748,7 +748,7 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAlertLogThread *aft = thread_data;
 
-    if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
+    if (PacketIsIPv4(p) || PacketIsIPv6(p)) {
         return AlertJson(tv, aft, p);
     } else if (p->alerts.cnt > 0) {
         return AlertJsonDecoderEvent(tv, aft, p);
