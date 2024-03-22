@@ -98,12 +98,16 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         FatalError("RunmodeAutoFpCreatePickupQueuesString failed");
     }
 
+    void *aconf = NULL;
+
     if ((nlive <= 1) && (live_dev != NULL)) {
         SCLogDebug("live_dev %s", live_dev);
 
-        void *aconf = ConfigParser(live_dev);
-        if (aconf == NULL) {
-            FatalError("Failed to allocate config for %s", live_dev);
+        if (ConfigParser) {
+            aconf = ConfigParser(live_dev);
+            if (aconf == NULL) {
+                FatalError("Failed to allocate config for %s", live_dev);
+            }
         }
 
         int threads_count = ModThreadsCount(aconf);
@@ -150,9 +154,11 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             }
             SCLogDebug("dev %s", dev);
 
-            void *aconf = ConfigParser(dev);
-            if (aconf == NULL) {
-                FatalError("Multidev: Failed to allocate config for %s (%d)", dev, lthread);
+            if (ConfigParser) {
+                aconf = ConfigParser(dev);
+                if (aconf == NULL) {
+                    FatalError("Multidev: Failed to allocate config for %s (%d)", dev, lthread);
+                }
             }
 
             int threads_count = ModThreadsCount(aconf);
@@ -323,17 +329,21 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
         const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
-    void *aconf;
+    void *aconf = NULL;
     int ldev;
 
     for (ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev_c = NULL;
         if ((nlive <= 1) && (live_dev != NULL)) {
-            aconf = ConfigParser(live_dev);
+            if (ConfigParser) {
+                aconf = ConfigParser(live_dev);
+            }
             live_dev_c = live_dev;
         } else {
             live_dev_c = LiveGetDeviceName(ldev);
-            aconf = ConfigParser(live_dev_c);
+            if (ConfigParser) {
+                aconf = ConfigParser(live_dev_c);
+            }
         }
         RunModeSetLiveCaptureWorkersForDevice(ModThreadsCount,
                 recv_mod_name,
@@ -355,18 +365,22 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
 {
     int nlive = LiveGetDeviceCount();
     const char *live_dev_c = NULL;
-    void *aconf;
+    void *aconf = NULL;
 
     if (nlive > 1) {
         FatalError("Can't use the 'single' runmode with multiple devices");
     }
 
     if (live_dev != NULL) {
-        aconf = ConfigParser(live_dev);
+        if (ConfigParser) {
+            aconf = ConfigParser(live_dev);
+        }
         live_dev_c = live_dev;
     } else {
         live_dev_c = LiveGetDeviceName(0);
-        aconf = ConfigParser(live_dev_c);
+        if (ConfigParser) {
+            aconf = ConfigParser(live_dev_c);
+        }
     }
 
     return RunModeSetLiveCaptureWorkersForDevice(
