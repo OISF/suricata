@@ -3307,6 +3307,135 @@
                 },
                 "version": {
                     "type": "string"
+                },
+                "sdp": {
+                    "type": "object",
+                    "description": "SDP message body",
+                    "optional": true,
+                    "properties": {
+                        "v": {
+                            "type": "integer",
+                            "description": "SDP protocol version"
+                        },
+                        "o": {
+                            "type": "string",
+                            "description": "Owner of the session"
+                        },
+                        "s": {
+                            "type": "string",
+                            "description": "Session name"
+                        },
+                        "i": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Textual information about the session"
+                        },
+                        "u": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "A pointer to additional information about the session"
+                        },
+                        "e": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Email address for the person responsible for the conference"
+                        },
+                        "p": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Phone number for the person responsible for the conference"
+                        },
+                        "c": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Connection data"
+                        },
+                        "b": {
+                            "type": "array",
+                            "optional": true,
+                            "description": "Proposed bandwidths to be used by the session or media",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "t": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Start and stop times for a session"
+                        },
+                        "r": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Specify repeat times for a session"
+                        },
+                        "z": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Timezone to specify adjustments for times and offsets from the base time"
+                        },
+                        "k": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                        },
+                        "a": {
+                            "type": "array",
+                            "optional": true,
+                            "description": "A list of attributes to extend SDP",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string",
+                                "description": "Attribute's name and value"
+                            }
+                        },
+                        "m": {
+                            "type": "array",
+                            "description": "A list of media descriptions for a session",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "m": {
+                                        "type": "string",
+                                        "description": "Media description"
+                                    },
+                                    "i": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Media information primarily intended for labelling media streams"
+                                    },
+                                    "b": {
+                                        "type": "array",
+                                        "optional": true,
+                                        "description": "A list of bandwidth proposed for a media",
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "c": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Connection data per media description"
+                                    },
+                                    "a": {
+                                        "type": "array",
+                                        "description": "A list of attributes specified for a media description",
+                                        "optional": true,
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "string",
+                                            "description": "Attribute's name and value"
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

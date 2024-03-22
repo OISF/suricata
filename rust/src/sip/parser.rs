@@ -17,10 +17,11 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
+use crate::sdp::parser::{sdp_parse_message, SdpMessage};
 use nom7::bytes::streaming::{tag, take, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
 use nom7::character::{is_alphabetic, is_alphanumeric, is_digit, is_space};
-use nom7::combinator::map_res;
+use nom7::combinator::{map_res, opt};
 use nom7::sequence::delimited;
 use nom7::{Err, IResult, Needed};
 use std;
@@ -43,6 +44,7 @@ pub struct Request {
     pub headers_len: u16,
     pub body_offset: u16,
     pub body_len: u16,
+    pub body: Option<SdpMessage>,
 }
 
 #[derive(Debug)]
@@ -55,6 +57,7 @@ pub struct Response {
     pub headers_len: u16,
     pub body_offset: u16,
     pub body_len: u16,
+    pub body: Option<SdpMessage>,
 }
 
 /**
@@ -106,8 +109,9 @@ pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
     let headers_len = hi.len() - phi.len();
     let (bi, _) = crlf(phi)?;
     let body_offset = oi.len() - bi.len();
+    let (i, body) = opt(sdp_parse_message)(bi)?;
     Ok((
-        bi,
+        i,
         Request {
             method: method.into(),
             path: path.into(),
@@ -118,6 +122,7 @@ pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
             headers_len: headers_len as u16,
             body_offset: body_offset as u16,
             body_len: bi.len() as u16,
+            body,
         },
     ))
 }
@@ -134,8 +139,9 @@ pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
     let headers_len = hi.len() - phi.len();
     let (bi, _) = crlf(phi)?;
     let body_offset = oi.len() - bi.len();
+    let (i, body) = opt(sdp_parse_message)(bi)?;
     Ok((
-        bi,
+        i,
         Response {
             version,
             code: code.into(),
@@ -145,6 +151,7 @@ pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
             headers_len: headers_len as u16,
             body_offset: body_offset as u16,
             body_len: bi.len() as u16,
+            body,
         },
     ))
 }
