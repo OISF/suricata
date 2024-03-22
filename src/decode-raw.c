@@ -113,12 +113,7 @@ static int DecodeRawTest01 (void)
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
-    if (p->ip6h == NULL) {
-        printf("expected a valid ipv6 header but it was NULL: ");
-        FlowShutdown();
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF_NOT(PacketIsIPv6(p));
 
     PacketRecycle(p);
     FlowShutdown();
@@ -159,13 +154,7 @@ static int DecodeRawTest02 (void)
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
-    if (p->ip4h == NULL) {
-        printf("expected a valid ipv4 header but it was NULL: ");
-        PacketRecycle(p);
-        FlowShutdown();
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF_NOT(PacketIsIPv4(p));
 
     PacketRecycle(p);
     FlowShutdown();

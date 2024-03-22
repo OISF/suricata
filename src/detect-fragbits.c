@@ -142,7 +142,7 @@ FragBitsMatch(const uint8_t pbits, const uint8_t modifier,
 static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    if (!ctx || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
+    if (!ctx || !PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     uint8_t fragbits = 0;
@@ -321,7 +321,7 @@ PrefilterPacketFragBitsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
         return;
 
     uint8_t fragbits = 0;

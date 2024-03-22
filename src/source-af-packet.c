@@ -2197,7 +2197,7 @@ static int AFPBypassCallback(Packet *p)
     if (PacketIsTunnel(p)) {
         return 0;
     }
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         SCLogDebug("add an IPv4");
         if (p->afp_v.v4_map_fd == -1) {
             return 0;
@@ -2254,8 +2254,7 @@ static int AFPBypassCallback(Packet *p)
         return AFPSetFlowStorage(p, p->afp_v.v4_map_fd, keys[0], keys[1], AF_INET);
     }
     /* For IPv6 case we don't handle extended header in eBPF */
-    if (PKT_IS_IPV6(p) &&
-        ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
+    if (PacketIsIPv6(p) && ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         int i;
         if (p->afp_v.v6_map_fd == -1) {
             return 0;
@@ -2352,7 +2351,7 @@ static int AFPXDPBypassCallback(Packet *p)
     if (PacketIsTunnel(p)) {
         return 0;
     }
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         struct flowv4_keys *keys[2];
         keys[0]= SCCalloc(1, sizeof(struct flowv4_keys));
         if (keys[0] == NULL) {
@@ -2409,8 +2408,7 @@ static int AFPXDPBypassCallback(Packet *p)
         return AFPSetFlowStorage(p, p->afp_v.v4_map_fd, keys[0], keys[1], AF_INET);
     }
     /* For IPv6 case we don't handle extended header in eBPF */
-    if (PKT_IS_IPV6(p) &&
-        ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
+    if (PacketIsIPv6(p) && ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         SCLogDebug("add an IPv6");
         if (p->afp_v.v6_map_fd == -1) {
             return 0;

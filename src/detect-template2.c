@@ -83,9 +83,9 @@ static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     /* TODO replace this */
     uint8_t ptemplate2;
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         ptemplate2 = IPV4_GET_IPTTL(p);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         ptemplate2 = IPV6_GET_HLIM(p);
     } else {
         SCLogDebug("Packet is of not IPv4 or IPv6");
@@ -143,9 +143,9 @@ PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const v
 
     uint8_t ptemplate2;
 /* TODO update */
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         ptemplate2 = IPV4_GET_IPTTL(p);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         ptemplate2 = IPV6_GET_HLIM(p);
     } else {
         SCLogDebug("Packet is of not IPv4 or IPv6");

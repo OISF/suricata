@@ -417,7 +417,7 @@ static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip6h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv6(p) || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -597,7 +597,7 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip6h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv6(p) || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -775,8 +775,9 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip6h == NULL || p->icmpv6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p) ||
-        (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
+    if (!PacketIsIPv6(p) || p->icmpv6h == NULL || p->proto != IPPROTO_ICMPV6 ||
+            PKT_IS_PSEUDOPKT(p) ||
+            (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
         return 0;
     }
 
