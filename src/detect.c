@@ -223,7 +223,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     if (p->proto == 0 && p->events.cnt > 0) {
         SCReturnPtr(de_ctx->decoder_event_sgh, "SigGroupHead");
     } else if (p->proto == 0) {
-        if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
+        if (!(PacketIsIPv4(p) || PacketIsIPv6(p))) {
             /* not IP, so nothing to do */
             SCReturnPtr(NULL, "SigGroupHead");
         }
@@ -608,11 +608,11 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
         }
     }
 
-    if ((s_proto_flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+    if ((s_proto_flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
         SCLogDebug("ip version didn't match");
         return false;
     }
-    if ((s_proto_flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+    if ((s_proto_flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
         SCLogDebug("ip version didn't match");
         return false;
     }
@@ -649,20 +649,20 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
 
     /* check the destination address */
     if (!(sflags & SIG_FLAG_DST_ANY)) {
-        if (PKT_IS_IPV4(p)) {
+        if (PacketIsIPv4(p)) {
             if (DetectAddressMatchIPv4(s->addr_dst_match4, s->addr_dst_match4_cnt, &p->dst) == 0)
                 return false;
-        } else if (PKT_IS_IPV6(p)) {
+        } else if (PacketIsIPv6(p)) {
             if (DetectAddressMatchIPv6(s->addr_dst_match6, s->addr_dst_match6_cnt, &p->dst) == 0)
                 return false;
         }
     }
     /* check the source address */
     if (!(sflags & SIG_FLAG_SRC_ANY)) {
-        if (PKT_IS_IPV4(p)) {
+        if (PacketIsIPv4(p)) {
             if (DetectAddressMatchIPv4(s->addr_src_match4, s->addr_src_match4_cnt, &p->src) == 0)
                 return false;
-        } else if (PKT_IS_IPV6(p)) {
+        } else if (PacketIsIPv6(p)) {
             if (DetectAddressMatchIPv6(s->addr_src_match6, s->addr_src_match6_cnt, &p->src) == 0)
                 return false;
         }

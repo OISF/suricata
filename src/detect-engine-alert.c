@@ -77,7 +77,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     const DetectThresholdData *td = NULL;
     const SigMatchData *smd;
 
-    if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
+    if (!(PacketIsIPv4(p) || PacketIsIPv6(p))) {
         SCReturnInt(1);
     }
 

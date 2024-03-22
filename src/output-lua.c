@@ -175,7 +175,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
     char timebuf[64];
     CreateTimeString(p->ts, timebuf, sizeof(timebuf));
 
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+    if (!(PacketIsIPv4(p)) && !(PacketIsIPv6(p))) {
         /* decoder event */
         goto not_supported;
     }
@@ -237,7 +237,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     char timebuf[64];
 
-    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p)))) {
+    if ((!(PacketIsIPv4(p))) && (!(PacketIsIPv6(p)))) {
         goto not_supported;
     }
 
@@ -281,7 +281,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     SCEnter();
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
 
-    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p))))
+    if ((!(PacketIsIPv4(p))) && (!(PacketIsIPv6(p))))
         return 0;
 
     BUG_ON(ff->flags & FILE_LOGGED);

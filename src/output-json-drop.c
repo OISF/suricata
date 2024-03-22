@@ -107,13 +107,13 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     jb_open_object(js, "drop");
 
     uint16_t proto = 0;
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         jb_set_uint(js, "len", IPV4_GET_IPLEN(p));
         jb_set_uint(js, "tos", IPV4_GET_IPTOS(p));
         jb_set_uint(js, "ttl", IPV4_GET_IPTTL(p));
         jb_set_uint(js, "ipid", IPV4_GET_IPID(p));
         proto = IPV4_GET_IPPROTO(p);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         jb_set_uint(js, "len", IPV6_GET_PLEN(p));
         jb_set_uint(js, "tc", IPV6_GET_CLASS(p));
         jb_set_uint(js, "hoplimit", IPV6_GET_HLIM(p));
