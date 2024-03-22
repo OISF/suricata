@@ -63,26 +63,26 @@ pub enum ByteBase {
     BaseHex = 16,
 }
 
-fn get_string_value(value: &str) -> Result<ByteBase, ()> {
+fn get_string_value(value: &str) -> Option<ByteBase> {
     let res = match value {
-        "hex" => ByteBase::BaseHex,
-        "oct" => ByteBase::BaseOct,
-        "dec" => ByteBase::BaseDec,
-        _ => return Err(()),
+        "hex" => Some(ByteBase::BaseHex),
+        "oct" => Some(ByteBase::BaseOct),
+        "dec" => Some(ByteBase::BaseDec),
+        _ => None,
     };
 
-    Ok(res)
+    res
 }
 
-fn get_endian_value(value: &str) -> Result<ByteEndian, ()> {
+fn get_endian_value(value: &str) -> Option<ByteEndian> {
     let res = match value {
-        "big" => ByteEndian::BigEndian,
-        "little" => ByteEndian::LittleEndian,
-        "dce" => ByteEndian::EndianDCE,
-        _ => return Err(()),
+        "big" => Some(ByteEndian::BigEndian),
+        "little" => Some(ByteEndian::LittleEndian),
+        "dce" => Some(ByteEndian::EndianDCE),
+        _ => None,
     };
 
-    Ok(res)
+    res
 }
 
 #[cfg(test)]
