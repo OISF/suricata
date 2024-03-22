@@ -120,10 +120,10 @@ static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (PKT_IS_IPV4(p)) {
+        if (PacketIsIPv4(p)) {
             /* Suricata stores the IPv4 at the beginning of the field */
             InspectionBufferSetup(det_ctx, list_id, buffer, p->src.address.address_un_data8, 4);
-        } else if (PKT_IS_IPV6(p)) {
+        } else if (PacketIsIPv6(p)) {
             InspectionBufferSetup(det_ctx, list_id, buffer, p->src.address.address_un_data8, 16);
         } else {
             return NULL;
@@ -144,10 +144,10 @@ static InspectionBuffer *GetDataDst(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (PKT_IS_IPV4(p)) {
+        if (PacketIsIPv4(p)) {
             /* Suricata stores the IPv4 at the beginning of the field */
             InspectionBufferSetup(det_ctx, list_id, buffer, p->dst.address.address_un_data8, 4);
-        } else if (PKT_IS_IPV6(p)) {
+        } else if (PacketIsIPv6(p)) {
             InspectionBufferSetup(det_ctx, list_id, buffer, p->dst.address.address_un_data8, 16);
         } else {
             return NULL;

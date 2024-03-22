@@ -929,10 +929,9 @@ DefragGetOsPolicy(Packet *p)
 {
     int policy = -1;
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         policy = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
-    }
-    else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         policy = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
     }
 
@@ -1011,17 +1010,15 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     DefragTracker *tracker;
     int af;
 
-    if (PKT_IS_IPV4(p)) {
+    if (PacketIsIPv4(p)) {
         af = AF_INET;
         more_frags = IPV4_GET_MF(p);
         frag_offset = IPV4_GET_IPOFFSET(p);
-    }
-    else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         af = AF_INET6;
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
-    }
-    else {
+    } else {
         return NULL;
     }
 
