@@ -27,10 +27,9 @@ Output types::
 
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
-      # Enable GeoIP on source ip and destination ip
-      # Enter full path of GeoLite City database to enrich eve-log with geoip
-      # Disable geoip enrichment by commenting geoip-city-database
-      #geoip-city-database: /usr/share/GeoIP/GeoLite2-City.mmdb
+      # Enable GeoIP on source ip and destination ip, default is disabled
+      # Make sure that you have set geoip-database path
+      #geoip-enrichment: yes
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off
