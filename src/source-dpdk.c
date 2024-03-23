@@ -414,7 +414,7 @@ static TmEcode ReceiveDPDKLoopInit(ThreadVars *tv, DPDKThreadVars *ptv)
 
 static inline void LoopHandleTimeoutOnIdle(ThreadVars *tv)
 {
-    static uint64_t last_timeout_msec = 0;
+    static thread_local uint64_t last_timeout_msec = 0;
     SCTime_t t = DPDKSetTimevalReal(&machine_start_time);
     uint64_t msecs = SCTIME_MSECS(t);
     if (msecs > last_timeout_msec + 100) {
@@ -429,7 +429,7 @@ static inline void LoopHandleTimeoutOnIdle(ThreadVars *tv)
  */
 static inline bool RXPacketCountHeuristic(ThreadVars *tv, DPDKThreadVars *ptv, uint16_t nb_rx)
 {
-    static uint32_t zero_pkt_polls_cnt = 0;
+    static thread_local uint32_t zero_pkt_polls_cnt = 0;
 
     if (nb_rx > 0) {
         zero_pkt_polls_cnt = 0;
@@ -508,7 +508,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
 
 static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
 {
-    static bool segmented_mbufs_warned = false;
+    static thread_local bool segmented_mbufs_warned = false;
     if (!segmented_mbufs_warned && !rte_pktmbuf_is_contiguous(mbuf)) {
         char warn_s[] = "Segmented mbufs detected! Redmine Ticket #6012 "
                         "Check your configuration or report the issue";
@@ -551,7 +551,7 @@ static void HandleShutdown(DPDKThreadVars *ptv)
 
 static void PeriodicDPDKDumpCounters(DPDKThreadVars *ptv)
 {
-    static time_t last_dump = 0;
+    static thread_local time_t last_dump = 0;
     time_t current_time = DPDKGetSeconds();
     /* Trigger one dump of stats every second */
     if (current_time != last_dump) {
