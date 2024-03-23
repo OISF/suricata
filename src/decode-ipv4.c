@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -559,39 +559,33 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 #endif /* DEBUG */
 
+    const uint8_t *data = pkt + IPV4_GET_HLEN(p);
+    const uint16_t data_len = IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p);
+
     /* check what next decoder to invoke */
     switch (IPV4_GET_IPPROTO(p)) {
         case IPPROTO_TCP:
-            DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeTCP(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_UDP:
-            DecodeUDP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeUDP(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_ICMP:
-            DecodeICMPV4(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                         IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeICMPV4(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_GRE:
-            DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeGRE(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_SCTP:
-            DecodeSCTP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeSCTP(tv, dtv, p, data, data_len);
             break;
-
         case IPPROTO_ESP:
-            DecodeESP(tv, dtv, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
+            DecodeESP(tv, dtv, p, data, data_len);
             break;
-
         case IPPROTO_IPV6:
             {
                 /* spawn off tunnel packet */
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                        IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
-                        DECODE_TUNNEL_IPV6);
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, data, data_len, DECODE_TUNNEL_IPV6);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                     PacketEnqueueNoLock(&tv->decode_pq,tp);
@@ -602,8 +596,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
             if(p->ppph != NULL && SCNtohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
-                DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                          IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p));
+                DecodeTCP(tv, dtv, p, data, data_len);
             }
             break;
         case IPPROTO_ICMPV6:
