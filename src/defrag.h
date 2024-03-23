@@ -106,6 +106,7 @@ typedef struct DefragTracker_ {
     Address src_addr; /**< Source address for this tracker. */
     Address dst_addr; /**< Destination address for this tracker. */
 
+    int datalink;           /**< datalink for reassembled packet, set by first fragment */
     SCTime_t timeout;       /**< When this tracker will timeout. */
     uint32_t host_timeout;  /**< Host timeout, statically assigned from the yaml */
 
