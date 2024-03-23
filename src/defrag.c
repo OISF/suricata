@@ -430,6 +430,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
     rp->flags |= PKT_REBUILT_FRAGMENT;
+    rp->datalink = tracker->datalink;
 
     uint16_t unfragmentable_len = 0;
     int fragmentable_offset = 0;
@@ -861,6 +862,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 #ifdef DEBUG
     new->pcap_cnt = pcap_cnt;
 #endif
+    if (new->offset == 0) {
+        tracker->datalink = p->datalink;
+    }
 
     IP_FRAGMENTS_RB_INSERT(&tracker->fragment_tree, new);
 

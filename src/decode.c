@@ -468,7 +468,6 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     }
     p->recursion_level = parent->recursion_level; /* NOT incremented */
     p->ts = parent->ts;
-    p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     memcpy(&p->vlan_id[0], &parent->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = parent->vlan_idx;
