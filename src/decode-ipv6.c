@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -588,34 +588,37 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
     }
 #endif /* DEBUG */
 
+    const uint8_t *data = pkt + IPV6_HEADER_LEN;
+    const uint16_t data_len = IPV6_GET_PLEN(p);
+
     /* now process the Ext headers and/or the L4 Layer */
     switch(IPV6_GET_NH(p)) {
         case IPPROTO_TCP:
             IPV6_SET_L4PROTO (p, IPPROTO_TCP);
-            DecodeTCP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeTCP(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_UDP:
             IPV6_SET_L4PROTO (p, IPPROTO_UDP);
-            DecodeUDP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeUDP(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_ICMPV6:
             IPV6_SET_L4PROTO (p, IPPROTO_ICMPV6);
-            DecodeICMPV6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeICMPV6(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_SCTP:
             IPV6_SET_L4PROTO (p, IPPROTO_SCTP);
-            DecodeSCTP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeSCTP(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_IPIP:
             IPV6_SET_L4PROTO(p, IPPROTO_IPIP);
-            DecodeIPv4inIPv6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeIPv4inIPv6(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_IPV6:
-            DecodeIP6inIP6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeIP6inIP6(tv, dtv, p, data, data_len);
             return TM_ECODE_OK;
         case IPPROTO_GRE:
             IPV6_SET_L4PROTO(p, IPPROTO_GRE);
-            DecodeGRE(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeGRE(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
@@ -627,7 +630,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
         case IPPROTO_MH:
         case IPPROTO_HIP:
         case IPPROTO_SHIM6:
-            DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
+            DecodeIPV6ExtHdrs(tv, dtv, p, data, data_len);
             break;
         case IPPROTO_ICMP:
             ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
