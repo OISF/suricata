@@ -87,7 +87,7 @@ void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address,
 
 #define GeoIPSetString(js, entry_data, key) { \
     if (entry_data.has_data && entry_data.utf8_string != NULL) { \
-        jb_set_string(js, key, entry_data.utf8_string); \
+        jb_set_string_from_bytes(js, key, (const uint8_t *) entry_data.utf8_string, entry_data.data_size); \
     } \
 } 
 
