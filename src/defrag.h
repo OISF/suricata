@@ -105,6 +105,7 @@ typedef struct DefragTracker_ {
     Address dst_addr; /**< Destination address for this tracker. */
 
     struct timeval timeout; /**< When this tracker will timeout. */
+    int datalink;           /**< datalink for reassembled packet, set by first fragment */
     uint32_t host_timeout;  /**< Host timeout, statically assigned from the yaml */
 
     /** use cnt, reference counter */
