@@ -85,17 +85,11 @@ static int mmdb_status = MMDB_FILE_OPEN_ERROR;
 
 void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key);
 
-inline void GeoIPSetString(JsonBuilder *js, MMDB_entry_data_s *entry_data, const char *key)
-{
-    char *str = NULL;
-    if (entry_data->has_data && entry_data->utf8_string != NULL) {
-        str = SCStrndup((char *)entry_data->utf8_string, entry_data->data_size);
-        jb_set_string(js, key, str);
-    }
-    if (str != NULL) {
-        SCFree(str);
-    }
-}
+#define GeoIPSetString(js, entry_data, key) { \
+    if (entry_data.has_data && entry_data.utf8_string != NULL) { \
+        jb_set_string(js, key, entry_data.utf8_string); \
+    } \
+} 
 
 void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key)
 {
@@ -121,24 +115,24 @@ void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address,
     jb_open_object(js, "geo");
 
     if (MMDB_get_value(&result.entry, &entry_data, "continent", "code", NULL) == MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "continent_code");
+        GeoIPSetString(js, entry_data, "continent_code");
     }
     if (MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL) == MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "country_iso_code");
+        GeoIPSetString(js, entry_data, "country_iso_code");
     }
     if (MMDB_get_value(&result.entry, &entry_data, "city", "names", "en", NULL) == MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "city_name");
+        GeoIPSetString(js, entry_data, "city_name");
     }
     if (MMDB_get_value(&result.entry, &entry_data, "country", "names", "en", NULL) ==
             MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "country_name");
+        GeoIPSetString(js, entry_data, "country_name");
     }
     if (MMDB_get_value(&result.entry, &entry_data, "continent", "names", "en", NULL) ==
             MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "continent_name");
+        GeoIPSetString(js, entry_data, "continent_name");
     }
     if (MMDB_get_value(&result.entry, &entry_data, "location", "time_zone", NULL) == MMDB_SUCCESS) {
-        GeoIPSetString(js, &entry_data, "timezone");
+        GeoIPSetString(js, entry_data, "timezone");
     }
 
     /* Create location object */
@@ -1185,18 +1179,26 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
 #ifdef HAVE_GEOIP
-        const char *geoip_db_s = ConfNodeLookupChildValue(conf, "geoip-city-database");
-        if (geoip_db_s == NULL) {
-            mmdb_status = MMDB_FILE_OPEN_ERROR;
+        const ConfNode *geoip_enrichment = ConfNodeLookupChild(conf, "geoip-enrichment");
+        if (geoip_enrichment && geoip_enrichment->val && ConfValIsFalse(geoip_enrichment->val)) {
+            SCLogConfig("GeoIP enrichment is disabled.");
         } else {
-            /* Attempt to open MaxMind DB and save file handle if successful */
-            int status = MMDB_open(geoip_db_s, MMDB_MODE_MMAP, &mmdb);
-            mmdb_status = status;
-            if (mmdb_status == MMDB_SUCCESS) {
-                SCLogNotice("Open GeoLite2 database successfully, path %s", geoip_db_s);
+            const char *geoip_db_s = NULL;
+            
+            SCLogConfig("GeoIP enrichment is enabled.");
+            (void)ConfGet("geoip-database", &geoip_db_s);
+            if (geoip_db_s == NULL) {
+                mmdb_status = MMDB_FILE_OPEN_ERROR;
             } else {
-                SCLogWarning("Failed to open GeoLite2 database, path %s, error message %s",
-                        geoip_db_s, MMDB_strerror(mmdb_status));
+                /* Attempt to open MaxMind DB and save file handle if successful */
+                int status = MMDB_open(geoip_db_s, MMDB_MODE_MMAP, &mmdb);
+                mmdb_status = status;
+                if (mmdb_status == MMDB_SUCCESS) {
+                    SCLogNotice("Open GeoLite2 database successfully, path %s", geoip_db_s);
+                } else {
+                    SCLogWarning("Failed to open GeoLite2 database, path %s, error message %s",
+                            geoip_db_s, MMDB_strerror(mmdb_status));
+                }
             }
         }
 #endif /* HAVE_GEOIP */
