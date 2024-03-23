@@ -1189,6 +1189,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             (void)ConfGet("geoip-database", &geoip_db_s);
             if (geoip_db_s == NULL) {
                 mmdb_status = MMDB_FILE_OPEN_ERROR;
+                SCLogWarning("Set geoip-database path if you wish to enable geoip-enrichment");
             } else {
                 /* Attempt to open MaxMind DB and save file handle if successful */
                 int status = MMDB_open(geoip_db_s, MMDB_MODE_MMAP, &mmdb);
