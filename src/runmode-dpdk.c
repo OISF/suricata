@@ -1596,8 +1596,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (iconf->workers_sync == NULL) {
         FatalError("Failed to allocate memory for workers_sync");
     }
-    SC_ATOMIC_RESET(iconf->workers_sync->worker_checked_in);
-    iconf->workers_sync->worker_cnt = iconf->threads;
+    pthread_barrier_init(iconf->workers_sync, NULL, iconf->threads);
 
     // initialize LiveDev DPDK values
     LiveDevice *ldev_instance = LiveGetDevice(iface);

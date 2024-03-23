@@ -134,7 +134,7 @@ typedef struct DPDKThreadVars_ {
     int32_t port_socket_id;
     struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
-    DPDKWorkerSync *workers_sync;
+    pthread_barrier_t *workers_sync;
 } DPDKThreadVars;
 
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *, const void *, void **);
@@ -530,13 +530,12 @@ static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
 static void HandleShutdown(DPDKThreadVars *ptv)
 {
     SCLogDebug("Stopping Suricata!");
-    SC_ATOMIC_ADD(ptv->workers_sync->worker_checked_in, 1);
-    while (SC_ATOMIC_GET(ptv->workers_sync->worker_checked_in) < ptv->workers_sync->worker_cnt) {
-        rte_delay_us(10);
+    // wait for all workers to finish packet processing
+    int r = pthread_barrier_wait(ptv->workers_sync);
+    if (r != PTHREAD_BARRIER_SERIAL_THREAD && r != 0) {
+        SCLogWarning("failed to synchronize workers: %s", strerror(-r));
     }
     if (ptv->queue_id == 0) {
-        rte_delay_us(20); // wait for all threads to get out of the sync loop
-        SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
@@ -813,6 +812,7 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
         DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
 
         if (ptv->workers_sync) {
+            pthread_barrier_destroy(ptv->workers_sync);
             SCFree(ptv->workers_sync);
         }
     }
