@@ -85,11 +85,13 @@ static int mmdb_status = MMDB_FILE_OPEN_ERROR;
 
 void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key);
 
-#define GeoIPSetString(js, entry_data, key) { \
-    if (entry_data.has_data && entry_data.utf8_string != NULL) { \
-        jb_set_string_from_bytes(js, key, (const uint8_t *) entry_data.utf8_string, entry_data.data_size); \
-    } \
-} 
+#define GeoIPSetString(js, entry_data, key)                                                        \
+    {                                                                                              \
+        if (entry_data.has_data && entry_data.utf8_string != NULL) {                               \
+            jb_set_string_from_bytes(                                                              \
+                    js, key, (const uint8_t *)entry_data.utf8_string, entry_data.data_size);       \
+        }                                                                                          \
+    }
 
 void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key)
 {
