@@ -568,7 +568,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
-    ptv->slot = (TmSlot *)slot;
+    ptv->slot = ((TmSlot *)slot)->slot_next;
     TmEcode ret = ReceiveDPDKLoopInit(tv, ptv);
     if (ret != TM_ECODE_OK) {
         SCReturnInt(ret);
