@@ -143,6 +143,11 @@ uint64_t FlowGetMemuse(void)
     return memusecopy;
 }
 
+enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void)
+{
+    return flow_config.memcap_policy;
+}
+
 void FlowCleanupAppLayer(Flow *f)
 {
     if (f == NULL || f->proto == 0)

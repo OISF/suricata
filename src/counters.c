@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -102,6 +102,9 @@ bool stats_decoder_events = true;
 const char *stats_decoder_events_prefix = "decoder.event";
 /**< add stream events as stats? disabled by default */
 bool stats_stream_events = false;
+
+/** add zero valued counters for exception policies stats? disabled by default */
+bool stats_eps_zero_counters = false;
 
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
@@ -293,6 +296,11 @@ static void StatsInitCtxPreOutput(void)
             prefix = "decoder.event";
         }
         stats_decoder_events_prefix = prefix;
+
+        ret = ConfGetChildValueBool(stats, "eps-zero-valued-counters", &b);
+        if (ret) {
+            stats_eps_zero_counters = (b == 1);
+        }
     }
     SCReturn;
 }

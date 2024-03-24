@@ -1043,7 +1043,8 @@
                                 "additionalProperties": false
                             },
                             "sshfp": {
-                                "description": "A Secure Shell fingerprint, used to verify the system’s authenticity",
+                                "description":
+                                        "A Secure Shell fingerprint, used to verify the system’s authenticity",
                                 "type": "object",
                                 "properties": {
                                     "fingerprint": {
@@ -1136,7 +1137,7 @@
                         },
                         "authorities": {
                             "$ref": "#/$defs/dns.authorities"
-			}
+                        }
                     },
                     "additionalProperties": false
                 },
@@ -1215,7 +1216,8 @@
                             }
                         },
                         "SSHFP": {
-                            "description": "A Secure Shell fingerprint is used to verify the system’s authenticity",
+                            "description":
+                                    "A Secure Shell fingerprint is used to verify the system’s authenticity",
                             "type": "array",
                             "minItems": 1,
                             "items": {
@@ -3733,7 +3735,8 @@
                     }
                 },
                 "memcap_pressure": {
-                    "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http",
+                    "description":
+                            "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http",
                     "type": "integer"
                 },
                 "memcap_pressure_max": {
@@ -3750,8 +3753,14 @@
                         "error": {
                             "type": "object",
                             "properties": {
+                                "exception_policy": {
+                                    "description":
+                                            "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
+                                },
                                 "bittorrent-dht": {
-                                    "description": "Errors encountered parsing BitTorrent DHT protocol",
+                                    "description":
+                                            "Errors encountered parsing BitTorrent DHT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_tcp": {
@@ -3815,11 +3824,13 @@
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_tcp": {
-                                    "description": "Errors encountered parsing Kerberos v5/TCP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_udp": {
-                                    "description": "Errors encountered parsing Kerberos v5/UDP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "modbus": {
@@ -4901,6 +4912,11 @@
                         "max_frag_hits": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "description":
+                                    "How many times defrag memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "ipv4": {
                             "type": "object",
                             "properties": {
@@ -5036,6 +5052,11 @@
                         },
                         "memcap": {
                             "type": "integer"
+                        },
+                        "memcap_exception_policy": {
+                            "description":
+                                    "How many times flow memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
                         },
                         "memuse": {
                             "type": "integer"
@@ -5328,6 +5349,11 @@
                         "midstream_pickups": {
                             "type": "integer"
                         },
+                        "midstream_exception_policy": {
+                            "description":
+                                    "How many times midstream exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "no_flow": {
                             "type": "integer"
                         },
@@ -5345,6 +5371,11 @@
                         },
                         "pseudo_failed": {
                             "type": "integer"
+                        },
+                        "reassembly_exception_policy": {
+                            "description":
+                                    "How many times reassembly memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
                         },
                         "reassembly_gap": {
                             "type": "integer"
@@ -5375,6 +5406,11 @@
                         },
                         "ssn_memcap_drop": {
                             "type": "integer"
+                        },
+                        "ssn_memcap_exception_policy": {
+                            "description":
+                                    "How many times session memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
                         },
                         "stream_depth_reached": {
                             "type": "integer"
@@ -5675,6 +5711,11 @@
                 "internal": {
                     "description": "Number of internal parser errors",
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "description":
+                            "How many times app-layer error exception policy was applied, and which one",
+                    "$ref": "#/$defs/exceptionPolicy"
                 }
             },
             "additionalProperties": false
@@ -5715,6 +5756,35 @@
                             ]
                         }
                     ]
+                }
+            }
+        },
+        "exceptionPolicy": {
+            "type": "object",
+            "properties": {
+                "drop_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "drop_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "bypass": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reject": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         }
