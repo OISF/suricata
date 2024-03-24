@@ -1,0 +1,38 @@
+%YAML 1.1
+---
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      append: false
+      filename: eve.json
+      level: Info
+      types:
+        - stats:
+            totals: yes
+dpdk:
+  eal-params:
+    proc-type: primary
+    vdev: net_null0
+    no-huge:
+    m: 256
+
+  interfaces:
+    - interface: net_null0 # PCIe address of the NIC port
+      threads: auto
+      mempool-size: 511
+      mempool-cache-size: auto
+      rx-descriptors: 16
+      tx-descriptors: 16
+      copy-mode: none
+      copy-iface: none # or PCIe address of the second interface
+
+threading:
+  set-cpu-affinity: yes
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive"
