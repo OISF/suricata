@@ -2677,7 +2677,7 @@ int DetectParsePcreExec(DetectParseRegex *parse_regex, pcre2_match_data **match,
     *match = pcre2_match_data_create_from_pattern(parse_regex->regex, NULL);
     if (*match)
         return pcre2_match(parse_regex->regex, (PCRE2_SPTR8)str, strlen(str), options, start_offset,
-                *match, NULL);
+                *match, parse_regex->context);
     return -1;
 }
 
@@ -2733,6 +2733,15 @@ bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect
                 parse_str, en, errbuffer);
         return false;
     }
+    detect_parse->context = pcre2_match_context_create(NULL);
+    if (detect_parse->context == NULL) {
+        SCLogError("pcre2 could not create match context");
+        pcre2_code_free(detect_parse->regex);
+        detect_parse->regex = NULL;
+        return false;
+    }
+    pcre2_set_match_limit(detect_parse->context, SC_MATCH_LIMIT_DEFAULT);
+    pcre2_set_recursion_limit(detect_parse->context, SC_MATCH_LIMIT_RECURSION_DEFAULT);
     DetectParseRegexAddToFreeList(detect_parse);
 
     return true;
