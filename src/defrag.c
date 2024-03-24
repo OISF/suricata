@@ -308,12 +308,12 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 goto error_remove_tracker;
 
             hlen = frag->hlen;
-            ip_hdr_offset = frag->ip_hdr_offset;
+            ip_hdr_offset = tracker->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
              * first packet.  All fragment offsets are relative to
              * this. */
-            fragmentable_offset = frag->ip_hdr_offset + frag->hlen;
+            fragmentable_offset = tracker->ip_hdr_offset + frag->hlen;
             fragmentable_len = frag->data_len;
         }
         else {
@@ -456,7 +456,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
                 frag->data_len) == -1)
                 goto error_remove_tracker;
-            ip_hdr_offset = frag->ip_hdr_offset;
+            ip_hdr_offset = tracker->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
              * first packet.  All fragment offsets are relative to
@@ -487,7 +487,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         }
     }
 
-    rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
+    rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + tracker->ip_hdr_offset);
     DEBUG_VALIDATE_BUG_ON(unfragmentable_len > UINT16_MAX - fragmentable_len);
     rp->ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
     /* if we have no unfragmentable part, so no ext hdrs before the frag
@@ -856,13 +856,13 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     new->offset = frag_offset + ltrim;
     new->data_offset = data_offset;
     new->data_len = data_len - ltrim;
-    new->ip_hdr_offset = ip_hdr_offset;
     new->frag_hdr_offset = frag_hdr_offset;
     new->more_frags = more_frags;
 #ifdef DEBUG
     new->pcap_cnt = pcap_cnt;
 #endif
     if (new->offset == 0) {
+        tracker->ip_hdr_offset = ip_hdr_offset;
         tracker->datalink = p->datalink;
     }
 
