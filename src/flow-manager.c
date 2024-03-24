@@ -654,8 +654,8 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
     fc->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", t);
     fc->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", t);
 
-    fc->memcap_pressure = StatsRegisterCounter("memcap_pressure", t);
-    fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap_pressure_max", t);
+    fc->memcap_pressure = StatsRegisterCounter("memcap.pressure", t);
+    fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap.pressure_max", t);
 }
 
 static void FlowCountersUpdate(
