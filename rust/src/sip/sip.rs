@@ -24,6 +24,7 @@ use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
 use std;
+use std::collections::VecDeque;
 use std::ffi::CString;
 
 // app-layer-frame-documentation tag start: FrameType enum
@@ -48,7 +49,7 @@ pub enum SIPEvent {
 #[derive(Default)]
 pub struct SIPState {
     state_data: AppLayerStateData,
-    transactions: Vec<SIPTransaction>,
+    transactions: VecDeque<SIPTransaction>,
     tx_id: u64,
     request_frame: Option<Frame>,
     response_frame: Option<Frame>,
@@ -106,7 +107,7 @@ impl SIPState {
     }
 
     fn set_event(&mut self, event: SIPEvent) {
-        if let Some(tx) = self.transactions.last_mut() {
+        if let Some(tx) = self.transactions.back_mut() {
             tx.tx_data.set_event(event as u8);
         }
     }
@@ -117,7 +118,7 @@ impl SIPState {
         if let Ok((_, req_line)) = sip_take_line(input) {
             tx.request_line = req_line;
         }
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     // app-layer-frame-documentation tag start: parse_request
@@ -209,7 +210,7 @@ impl SIPState {
         if let Ok((_, resp_line)) = sip_take_line(input) {
             tx.response_line = resp_line;
         }
-        self.transactions.push(tx);
+        self.transactions.push_back(tx);
     }
 
     fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
