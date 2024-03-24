@@ -2497,7 +2497,14 @@ bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         return false;
     }
-
+    if (detect_parse->study != NULL) {
+        detect_parse->study->match_limit = SC_MATCH_LIMIT_DEFAULT;
+        detect_parse->study->flags |= PCRE_EXTRA_MATCH_LIMIT;
+#ifndef NO_PCRE_MATCH_RLIMIT
+        detect_parse->study->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
+        detect_parse->study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+#endif /* NO_PCRE_MATCH_RLIMIT */
+    }
 
     DetectParseRegexAddToFreeList(detect_parse);
 
