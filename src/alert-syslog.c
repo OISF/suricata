@@ -204,7 +204,8 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 
     char proto[16] = "";
     const char *protoptr;
-    const uint8_t ipproto = IPV4_GET_IPPROTO(p);
+    const IPV4Hdr *ipv4h = PacketGetIPv4(p);
+    const uint8_t ipproto = IPV4_GET_RAW_IPPROTO(ipv4h);
     if (SCProtoNameValid(ipproto)) {
         protoptr = known_proto[ipproto];
     } else {

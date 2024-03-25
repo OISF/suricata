@@ -172,7 +172,7 @@ static int DetectTtlTestSig1(void)
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
     ip4h.ip_ttl = 15;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
