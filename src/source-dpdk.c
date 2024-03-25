@@ -494,7 +494,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
             if ((ol_flags & RTE_MBUF_F_RX_IP_CKSUM_MASK) == RTE_MBUF_F_RX_IP_CKSUM_BAD) {
                 SCLogDebug("HW detected BAD IP checksum");
                 // chsum recalc will not be triggered but rule keyword check will be
-                p->level3_comp_csum = 0;
+                p->l3.comp_csum = 0;
             }
             if ((ol_flags & RTE_MBUF_F_RX_L4_CKSUM_MASK) == RTE_MBUF_F_RX_L4_CKSUM_BAD) {
                 SCLogDebug("HW detected BAD L4 chsum");

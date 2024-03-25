@@ -239,21 +239,21 @@ static int DetectIPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip4h == NULL || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
         return cd->valid;
     }
 
-    if (p->level3_comp_csum == -1)
-        p->level3_comp_csum = IPV4Checksum((uint16_t *)p->ip4h,
-                                           IPV4_GET_HLEN(p),
-                                           p->ip4h->ip_csum);
+    if (p->l3.comp_csum == -1) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        p->l3.comp_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), ip4h->ip_csum);
+    }
 
-    if (p->level3_comp_csum == 0 && cd->valid == 1)
+    if (p->l3.comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level3_comp_csum != 0 && cd->valid == 0)
+    else if (p->l3.comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -327,20 +327,18 @@ static int DetectTCPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip4h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
-        p->level4_comp_csum = TCPChecksum(p->ip4h->s_ip_addrs,
-                                          (uint16_t *)p->tcph,
-                                          (p->payload_len +
-                                              TCP_GET_HLEN(p)),
-                                          p->tcph->th_sum);
-
+    if (p->level4_comp_csum == -1) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        p->level4_comp_csum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph,
+                (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
+    }
     if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
     else if (p->level4_comp_csum != 0 && cd->valid == 0)
@@ -507,20 +505,19 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip4h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) || p->udph->uh_sum == 0)
+    if (!PacketIsIPv4(p) || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) ||
+            p->udph->uh_sum == 0)
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
-        p->level4_comp_csum = UDPV4Checksum(p->ip4h->s_ip_addrs,
-                                            (uint16_t *)p->udph,
-                                            (p->payload_len +
-                                                UDP_HEADER_LEN),
-                                            p->udph->uh_sum);
-
+    if (p->level4_comp_csum == -1) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        p->level4_comp_csum = UDPV4Checksum(ip4h->s_ip_addrs, (uint16_t *)p->udph,
+                (p->payload_len + UDP_HEADER_LEN), p->udph->uh_sum);
+    }
     if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
     else if (p->level4_comp_csum != 0 && cd->valid == 0)
@@ -687,18 +684,18 @@ static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (p->ip4h == NULL || p->icmpv4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || p->icmpv4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
-        p->level4_comp_csum = ICMPV4CalculateChecksum((uint16_t *)p->icmpv4h,
-                                                      SCNtohs(IPV4_GET_RAW_IPLEN(p->ip4h)) -
-                                                      IPV4_GET_RAW_HLEN(p->ip4h) * 4);
-
+    if (p->level4_comp_csum == -1) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        p->level4_comp_csum = ICMPV4CalculateChecksum(
+                (uint16_t *)p->icmpv4h, IPV4_GET_RAW_IPLEN(ip4h) - IPV4_GET_RAW_HLEN(ip4h));
+    }
     if (p->level4_comp_csum == p->icmpv4h->checksum && cd->valid == 1)
         return 1;
     else if (p->level4_comp_csum != p->icmpv4h->checksum && cd->valid == 0)

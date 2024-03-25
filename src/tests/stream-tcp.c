@@ -25,6 +25,7 @@
 #include "../util-streaming-buffer.h"
 #include "../util-print.h"
 #include "../util-unittest.h"
+#include "../util-unittest-helper.h"
 
 #define SET_ISN(stream, setseq)                                                                    \
     (stream)->isn = (setseq);                                                                      \
@@ -1138,7 +1139,7 @@ static int StreamTcpTest14(void)
     p->tcph = &tcph;
     p->dst.family = AF_INET;
     p->dst.address.address_un_data32[0] = addr.s_addr;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
     p->payload = payload;
@@ -1528,7 +1529,7 @@ static int StreamTcpTest15(void)
     p->tcph = &tcph;
     p->dst.family = AF_INET;
     p->dst.address.address_un_data32[0] = addr.s_addr;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
     p->payload = payload;
@@ -1690,7 +1691,7 @@ static int StreamTcpTest16(void)
     p->tcph = &tcph;
     p->dst.family = AF_INET;
     p->dst.address.address_un_data32[0] = addr.s_addr;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
     p->payload = payload;
@@ -1853,7 +1854,7 @@ static int StreamTcpTest17(void)
     p->tcph = &tcph;
     p->dst.family = AF_INET;
     p->dst.address.address_un_data32[0] = addr.s_addr;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, sizeof(payload)); /*AAA*/
     p->payload = payload;
@@ -1992,7 +1993,7 @@ static int StreamTcpTest18(void)
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     p->dst.family = AF_INET;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     addr.s_addr = inet_addr("192.168.1.1");
     p->dst.address.address_un_data32[0] = addr.s_addr;
     StreamTcpSetOSPolicy(&stream, p);
@@ -2039,7 +2040,7 @@ static int StreamTcpTest19(void)
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     p->dst.family = AF_INET;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     addr.s_addr = inet_addr("192.168.0.30");
     p->dst.address.address_un_data32[0] = addr.s_addr;
     StreamTcpSetOSPolicy(&stream, p);
@@ -2089,7 +2090,7 @@ static int StreamTcpTest20(void)
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     p->dst.family = AF_INET;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     addr.s_addr = inet_addr("192.168.0.1");
     p->dst.address.address_un_data32[0] = addr.s_addr;
     StreamTcpSetOSPolicy(&stream, p);
@@ -2139,7 +2140,7 @@ static int StreamTcpTest21(void)
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     p->dst.family = AF_INET;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     addr.s_addr = inet_addr("192.168.1.30");
     p->dst.address.address_un_data32[0] = addr.s_addr;
     StreamTcpSetOSPolicy(&stream, p);
@@ -2189,7 +2190,7 @@ static int StreamTcpTest22(void)
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     p->dst.family = AF_INET;
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     addr.s_addr = inet_addr("123.231.2.1");
     p->dst.address.address_un_data32[0] = addr.s_addr;
     StreamTcpSetOSPolicy(&stream, p);

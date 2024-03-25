@@ -100,8 +100,9 @@ static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    if (tosd->tos == IPV4_GET_IPTOS(p)) {
-        SCLogDebug("tos match found for %d\n", tosd->tos);
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
+    if (tosd->tos == IPV4_GET_RAW_IPTOS(ip4h)) {
+        SCLogDebug("tos match found for %d", tosd->tos);
         result = 1;
     }
 
@@ -328,7 +329,7 @@ static int DetectTosTest12(void)
     if (p == NULL)
         goto end;
 
-    IPV4_SET_RAW_IPTOS(p->ip4h, 10);
+    p->l3.hdrs.ip4h->ip_tos = 10;
 
     const char *sigs[4];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; tos: 10 ; sid:1;)";
