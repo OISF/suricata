@@ -64,6 +64,7 @@ void PacketInit(Packet *p)
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
     PACKET_RESET_CHECKSUMS(p);
+    p->l3.comp_csum = -1;
     p->livedev = NULL;
 }
 
@@ -114,12 +115,8 @@ void PacketReinit(Packet *p)
         p->pktvar = NULL;
     }
     p->ethh = NULL;
-    if (p->ip4h != NULL) {
-        CLEAR_IPV4_PACKET(p);
-    }
-    if (p->ip6h != NULL) {
-        CLEAR_IPV6_PACKET(p);
-    }
+    PacketClearL3(p);
+    p->l3.comp_csum = -1;
     if (p->tcph != NULL) {
         CLEAR_TCP_PACKET(p);
     }

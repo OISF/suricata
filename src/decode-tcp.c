@@ -394,8 +394,7 @@ static int TCPGetWscaleTest01(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->ip4h = &ip4h;
-
+    UTHSetIPV4Hdr(p, &ip4h);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
@@ -441,7 +440,7 @@ static int TCPGetWscaleTest02(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
@@ -486,7 +485,7 @@ static int TCPGetWscaleTest03(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
@@ -535,7 +534,7 @@ static int TCPGetSackTest01(void)
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));

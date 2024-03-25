@@ -132,22 +132,22 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
             }
         }
         /* set the ip header */
-        p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
+        IPV4Hdr *ip4h = PacketSetIPV4(p, GET_PKT_DATA(p));
         /* version 4 and length 20 bytes for the tcp header */
-        p->ip4h->ip_verhl = 0x45;
-        p->ip4h->ip_tos = 0;
-        p->ip4h->ip_len = htons(40);
-        p->ip4h->ip_id = 0;
-        p->ip4h->ip_off = 0;
-        p->ip4h->ip_ttl = 64;
-        p->ip4h->ip_proto = IPPROTO_TCP;
+        ip4h->ip_verhl = 0x45;
+        ip4h->ip_tos = 0;
+        ip4h->ip_len = htons(40);
+        ip4h->ip_id = 0;
+        ip4h->ip_off = 0;
+        ip4h->ip_ttl = 64;
+        ip4h->ip_proto = IPPROTO_TCP;
         //p->ip4h->ip_csum =
         if (direction == 0) {
-            p->ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
-            p->ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
+            ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
+            ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
         } else {
-            p->ip4h->s_ip_src.s_addr = f->dst.addr_data32[0];
-            p->ip4h->s_ip_dst.s_addr = f->src.addr_data32[0];
+            ip4h->s_ip_src.s_addr = f->dst.addr_data32[0];
+            ip4h->s_ip_dst.s_addr = f->src.addr_data32[0];
         }
 
         /* set the tcp header */
@@ -233,12 +233,11 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
     }
 
     if (FLOW_IS_IPV4(f)) {
-        p->tcph->th_sum = TCPChecksum(p->ip4h->s_ip_addrs,
-                                               (uint16_t *)p->tcph, 20, 0);
+        IPV4Hdr *ip4h = p->l3.hdrs.ip4h;
+        p->tcph->th_sum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph, 20, 0);
         /* calc ipv4 csum as we may log it and barnyard might reject
          * a wrong checksum */
-        p->ip4h->ip_csum = IPV4Checksum((uint16_t *)p->ip4h,
-                IPV4_GET_RAW_HLEN(p->ip4h), 0);
+        ip4h->ip_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), 0);
     } else if (FLOW_IS_IPV6(f)) {
         p->tcph->th_sum = TCPChecksum(p->ip6h->s_ip6_addrs,
                                               (uint16_t *)p->tcph, 20, 0);
