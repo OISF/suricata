@@ -1522,13 +1522,11 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
-    IPV6Hdr ip6h;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&ip6h, 0, sizeof(IPV6Hdr));
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6 + 14, sizeof(raw_ipv6) - 14);
