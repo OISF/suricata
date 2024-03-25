@@ -1082,12 +1082,6 @@ static int JsonGenericDirFlowLogger(ThreadVars *tv, void *thread_data, const Pac
     return JsonGenericLogger(tv, thread_data, p, f, state, tx, tx_id, LOG_DIR_FLOW);
 }
 
-static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
-{
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
-    return OutputJsonLogInitSub(conf, parent_ctx);
-}
-
 static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RDP);
@@ -1305,7 +1299,7 @@ void OutputRegisterLoggers(void)
     if (ConfGetNode("app-layer.protocols.bittorrent-dht") != NULL) {
         /* Register as an eve sub-module. */
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonBitTorrentDHTLog",
-                "eve-log.bittorrent-dht", OutputBitTorrentDHTLogInitSub, ALPROTO_BITTORRENT_DHT,
+                "eve-log.bittorrent-dht", OutputJsonLogInitSub, ALPROTO_BITTORRENT_DHT,
                 JsonGenericDirPacketLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     }
 }
