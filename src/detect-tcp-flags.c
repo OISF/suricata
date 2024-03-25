@@ -37,6 +37,7 @@
 
 #include "detect-tcp-flags.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 #include "util-debug.h"
 
@@ -669,7 +670,7 @@ static int FlagsTestParse03 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
@@ -723,7 +724,7 @@ static int FlagsTestParse04 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN;
 
@@ -778,7 +779,7 @@ static int FlagsTestParse05 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
@@ -833,7 +834,7 @@ static int FlagsTestParse06 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
@@ -887,7 +888,7 @@ static int FlagsTestParse07 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN|TH_RST;
 
@@ -942,7 +943,7 @@ static int FlagsTestParse08 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN|TH_RST;
 
@@ -996,7 +997,7 @@ static int FlagsTestParse09 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN|TH_RST;
 
@@ -1050,7 +1051,7 @@ static int FlagsTestParse10 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN|TH_RST;
 
@@ -1104,7 +1105,7 @@ static int FlagsTestParse11 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN|TH_RST|TH_URG;
 
@@ -1159,7 +1160,7 @@ static int FlagsTestParse12 (void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_SYN;
 
@@ -1245,7 +1246,7 @@ static int FlagsTestParse15(void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ECN | TH_CWR | TH_SYN | TH_RST;
 
@@ -1297,7 +1298,7 @@ static int FlagsTestParse16(void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ECN | TH_SYN | TH_RST;
 
@@ -1352,7 +1353,7 @@ static int FlagsTestParse17(void)
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p->ip4h = &ipv4h;
+    UTHSetIPV4Hdr(p, &ipv4h);
     p->tcph = &tcph;
     p->tcph->th_flags = TH_ECN | TH_SYN | TH_RST;
 

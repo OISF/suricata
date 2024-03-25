@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,11 +93,12 @@ typedef struct IPV4Hdr_
 #define s_ip_addrs                        ip4_hdrun1.ip_addrs
 
 #define IPV4_GET_RAW_VER(ip4h)            (((ip4h)->ip_verhl & 0xf0) >> 4)
-#define IPV4_GET_RAW_HLEN(ip4h)           ((ip4h)->ip_verhl & 0x0f)
+#define IPV4_GET_RAW_HLEN(ip4h)           (uint8_t)(((ip4h)->ip_verhl & (uint8_t)0x0f) << (uint8_t)2)
 #define IPV4_GET_RAW_IPTOS(ip4h)          ((ip4h)->ip_tos)
-#define IPV4_GET_RAW_IPLEN(ip4h)          ((ip4h)->ip_len)
-#define IPV4_GET_RAW_IPID(ip4h)           ((ip4h)->ip_id)
-#define IPV4_GET_RAW_IPOFFSET(ip4h)       ((ip4h)->ip_off)
+#define IPV4_GET_RAW_IPLEN(ip4h)          (SCNtohs((ip4h)->ip_len))
+#define IPV4_GET_RAW_IPID(ip4h)           (SCNtohs((ip4h)->ip_id))
+#define IPV4_GET_RAW_IPOFFSET(ip4h)       SCNtohs((ip4h)->ip_off)
+#define IPV4_GET_RAW_FRAGOFFSET(ip4h)     (IPV4_GET_RAW_IPOFFSET((ip4h)) & 0x1fff)
 #define IPV4_GET_RAW_IPTTL(ip4h)          ((ip4h)->ip_ttl)
 #define IPV4_GET_RAW_IPPROTO(ip4h)        ((ip4h)->ip_proto)
 #define IPV4_GET_RAW_IPSRC(ip4h)          ((ip4h)->s_ip_src)
@@ -108,51 +109,9 @@ typedef struct IPV4Hdr_
 /** return the raw (directly from the header) dst ip as uint32_t */
 #define IPV4_GET_RAW_IPDST_U32(ip4h)      (uint32_t)((ip4h)->s_ip_dst.s_addr)
 
-/* we need to change them as well as get them */
-#define IPV4_SET_RAW_VER(ip4h, value)     ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0x0f) | (value << 4)))
-#define IPV4_SET_RAW_HLEN(ip4h, value)    ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0xf0) | (value & 0x0f)))
-#define IPV4_SET_RAW_IPTOS(ip4h, value)   ((ip4h)->ip_tos = value)
-#define IPV4_SET_RAW_IPLEN(ip4h, value)   ((ip4h)->ip_len = value)
-#define IPV4_SET_RAW_IPPROTO(ip4h, value) ((ip4h)->ip_proto = value)
-
-/* ONLY call these functions after making sure that:
- * 1. p->ip4h is set
- * 2. p->ip4h is valid (len is correct)
- */
-#define IPV4_GET_VER(p) \
-    IPV4_GET_RAW_VER((p)->ip4h)
-#define IPV4_GET_HLEN(p) ((uint8_t)(IPV4_GET_RAW_HLEN((p)->ip4h) << 2))
-#define IPV4_GET_IPTOS(p) \
-    IPV4_GET_RAW_IPTOS((p)->ip4h)
-#define IPV4_GET_IPLEN(p) \
-    (SCNtohs(IPV4_GET_RAW_IPLEN((p)->ip4h)))
-#define IPV4_GET_IPID(p) \
-    (SCNtohs(IPV4_GET_RAW_IPID((p)->ip4h)))
-/* _IPV4_GET_IPOFFSET: get the content of the offset header field in host order */
-#define _IPV4_GET_IPOFFSET(p) \
-    (SCNtohs(IPV4_GET_RAW_IPOFFSET((p)->ip4h)))
-/* IPV4_GET_IPOFFSET: get the final offset */
-#define IPV4_GET_IPOFFSET(p) \
-    (_IPV4_GET_IPOFFSET(p) & 0x1fff)
-/* IPV4_GET_RF: get the RF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
-#define IPV4_GET_RF(p) \
-    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)
-/* IPV4_GET_DF: get the DF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
-#define IPV4_GET_DF(p) \
-    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)
-/* IPV4_GET_MF: get the MF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
-#define IPV4_GET_MF(p) \
-    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)
-#define IPV4_GET_IPTTL(p) \
-     IPV4_GET_RAW_IPTTL(p->ip4h)
-#define IPV4_GET_IPPROTO(p) \
-    IPV4_GET_RAW_IPPROTO((p)->ip4h)
-
-#define CLEAR_IPV4_PACKET(p)                                                                       \
-    do {                                                                                           \
-        (p)->ip4h = NULL;                                                                          \
-        memset(&p->ip4vars, 0x00, sizeof(p->ip4vars));                                             \
-    } while (0)
+#define IPV4_GET_RAW_FLAG_MF(ip4h) ((IPV4_GET_RAW_IPOFFSET((ip4h)) & 0x2000) != 0)
+#define IPV4_GET_RAW_FLAG_DF(ip4h) ((IPV4_GET_RAW_IPOFFSET((ip4h)) & 0x4000) != 0)
+#define IPV4_GET_RAW_FLAG_RF(ip4h) ((IPV4_GET_RAW_IPOFFSET((ip4h)) & 0x8000) != 0)
 
 enum IPV4OptionFlags {
     IPV4_OPT_FLAG_EOL = 0,

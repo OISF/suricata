@@ -88,7 +88,8 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     uint8_t pttl;
     if (PacketIsIPv4(p)) {
-        pttl = IPV4_GET_IPTTL(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        pttl = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
         pttl = IPV6_GET_HLIM(p);
     } else {
@@ -146,7 +147,8 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
 
     uint8_t pttl;
     if (PacketIsIPv4(p)) {
-        pttl = IPV4_GET_IPTTL(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        pttl = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
         pttl = IPV6_GET_HLIM(p);
     } else {

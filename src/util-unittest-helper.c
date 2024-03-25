@@ -123,6 +123,10 @@ int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size)
 
 #endif
 #ifdef UNITTESTS
+void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h)
+{
+    PacketSetIPV4(p, (uint8_t *)ip4h);
+}
 
 /**
  *  \brief return the uint32_t for a ipv4 address string
@@ -271,14 +275,14 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     if (ipproto == IPPROTO_TCP || ipproto == IPPROTO_UDP || ipproto == IPPROTO_SCTP)
         p->dp = dport;
 
-    p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
-    if (p->ip4h == NULL)
+    IPV4Hdr *ip4h = PacketSetIPV4(p, GET_PKT_DATA(p));
+    if (ip4h == NULL)
         goto error;
 
-    p->ip4h->s_ip_src.s_addr = p->src.addr_data32[0];
-    p->ip4h->s_ip_dst.s_addr = p->dst.addr_data32[0];
-    p->ip4h->ip_proto = ipproto;
-    p->ip4h->ip_verhl = sizeof(IPV4Hdr);
+    ip4h->s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h->s_ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h->ip_proto = ipproto;
+    ip4h->ip_verhl = sizeof(IPV4Hdr);
     p->proto = ipproto;
 
     int hdr_offset = sizeof(IPV4Hdr);

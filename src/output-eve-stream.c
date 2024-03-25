@@ -322,10 +322,11 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     jb_open_object(js, "packet");
 
     if (PacketIsIPv4(p)) {
-        jb_set_uint(js, "len", IPV4_GET_IPLEN(p));
-        jb_set_uint(js, "tos", IPV4_GET_IPTOS(p));
-        jb_set_uint(js, "ttl", IPV4_GET_IPTTL(p));
-        jb_set_uint(js, "ipid", IPV4_GET_IPID(p));
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        jb_set_uint(js, "len", IPV4_GET_RAW_IPLEN(ip4h));
+        jb_set_uint(js, "tos", IPV4_GET_RAW_IPTOS(ip4h));
+        jb_set_uint(js, "ttl", IPV4_GET_RAW_IPTTL(ip4h));
+        jb_set_uint(js, "ipid", IPV4_GET_RAW_IPID(ip4h));
     } else if (PacketIsIPv6(p)) {
         jb_set_uint(js, "len", IPV6_GET_PLEN(p));
         jb_set_uint(js, "tc", IPV6_GET_CLASS(p));

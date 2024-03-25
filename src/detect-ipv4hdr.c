@@ -100,22 +100,21 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (p->ip4h == NULL) {
+        if (!PacketIsIPv4(p)) {
             // DETECT_PROTO_IPV4 does not prefilter
             return NULL;
         }
-        uint32_t hlen = IPV4_GET_HLEN(p);
-        if (((uint8_t *)p->ip4h + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
-            SCLogDebug("data out of range: %p > %p",
-                    ((uint8_t *)p->ip4h + (ptrdiff_t)hlen),
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        uint32_t hlen = IPV4_GET_RAW_HLEN(ip4h);
+        if (((uint8_t *)ip4h + (ptrdiff_t)hlen) >
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)ip4h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             return NULL;
         }
 
         const uint32_t data_len = hlen;
-        const uint8_t *data = (const uint8_t *)p->ip4h;
+        const uint8_t *data = (const uint8_t *)ip4h;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
