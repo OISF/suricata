@@ -147,11 +147,12 @@ static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
 
     uint8_t fragbits = 0;
     const DetectFragBitsData *de = (const DetectFragBitsData *)ctx;
-    if(IPV4_GET_MF(p))
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
+    if (IPV4_GET_RAW_FLAG_MF(ip4h))
         fragbits |= FRAGBITS_HAVE_MF;
-    if(IPV4_GET_DF(p))
+    if (IPV4_GET_RAW_FLAG_DF(ip4h))
         fragbits |= FRAGBITS_HAVE_DF;
-    if(IPV4_GET_RF(p))
+    if (IPV4_GET_RAW_FLAG_RF(ip4h))
         fragbits |= FRAGBITS_HAVE_RF;
 
     return FragBitsMatch(fragbits, de->modifier, de->fragbits);
@@ -325,11 +326,12 @@ PrefilterPacketFragBitsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
         return;
 
     uint8_t fragbits = 0;
-    if (IPV4_GET_MF(p))
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
+    if (IPV4_GET_RAW_FLAG_MF(ip4h))
         fragbits |= FRAGBITS_HAVE_MF;
-    if (IPV4_GET_DF(p))
+    if (IPV4_GET_RAW_FLAG_DF(ip4h))
         fragbits |= FRAGBITS_HAVE_DF;
-    if (IPV4_GET_RF(p))
+    if (IPV4_GET_RAW_FLAG_RF(ip4h))
         fragbits |= FRAGBITS_HAVE_RF;
 
     if (FragBitsMatch(fragbits, ctx->v1.u8[0], ctx->v1.u8[1]))

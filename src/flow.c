@@ -453,7 +453,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         FlowUpdateEthernet(tv, dtv, f, p->ethh, true);
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
-            FlowUpdateTtlTS(f, p, IPV4_GET_IPTTL(p));
+            const IPV4Hdr *ip4h = PacketGetIPv4(p);
+            FlowUpdateTtlTS(f, p, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
             FlowUpdateTtlTS(f, p, IPV6_GET_HLIM(p));
         }
@@ -475,7 +476,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         FlowUpdateEthernet(tv, dtv, f, p->ethh, false);
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
-            FlowUpdateTtlTC(f, p, IPV4_GET_IPTTL(p));
+            const IPV4Hdr *ip4h = PacketGetIPv4(p);
+            FlowUpdateTtlTC(f, p, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
             FlowUpdateTtlTC(f, p, IPV6_GET_HLIM(p));
         }

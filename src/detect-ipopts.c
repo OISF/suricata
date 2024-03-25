@@ -31,6 +31,7 @@
 
 #include "detect-ipopts.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -162,7 +163,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!de || !PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    return (p->ip4vars.opts_set & de->ipopt) == de->ipopt;
+    return (p->l3.vars.ip4.opts_set & de->ipopt) == de->ipopt;
 }
 
 /**
@@ -292,8 +293,8 @@ static int IpOptsTestParse03 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p->ip4h = &ip4h;
-    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
+    UTHSetIPV4Hdr(p, &ip4h);
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_RR;
 
     DetectIpOptsData *de = DetectIpOptsParse("rr");
     FAIL_IF_NULL(de);
@@ -326,8 +327,8 @@ static int IpOptsTestParse04 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p->ip4h = &ip4h;
-    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
+    UTHSetIPV4Hdr(p, &ip4h);
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_RR;
 
     DetectIpOptsData *de = DetectIpOptsParse("lsrr");
     FAIL_IF_NULL(de);

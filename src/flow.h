@@ -189,18 +189,20 @@ typedef struct AppLayerParserState_ AppLayerParserState;
  *
  * We set the rest of the struct to 0 so we can
  * prevent using memset. */
-#define FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, a) do {             \
-        (a)->addr_data32[0] = (uint32_t)(p)->ip4h->s_ip_src.s_addr; \
-        (a)->addr_data32[1] = 0;                                  \
-        (a)->addr_data32[2] = 0;                                  \
-        (a)->addr_data32[3] = 0;                                  \
+#define FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(ip4h, a)                                                \
+    do {                                                                                           \
+        (a)->addr_data32[0] = (uint32_t)(ip4h)->s_ip_src.s_addr;                                   \
+        (a)->addr_data32[1] = 0;                                                                   \
+        (a)->addr_data32[2] = 0;                                                                   \
+        (a)->addr_data32[3] = 0;                                                                   \
     } while (0)
 
-#define FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, a) do {             \
-        (a)->addr_data32[0] = (uint32_t)(p)->ip4h->s_ip_dst.s_addr; \
-        (a)->addr_data32[1] = 0;                                  \
-        (a)->addr_data32[2] = 0;                                  \
-        (a)->addr_data32[3] = 0;                                  \
+#define FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(ip4h, a)                                                \
+    do {                                                                                           \
+        (a)->addr_data32[0] = (uint32_t)(ip4h)->s_ip_dst.s_addr;                                   \
+        (a)->addr_data32[1] = 0;                                                                   \
+        (a)->addr_data32[2] = 0;                                                                   \
+        (a)->addr_data32[3] = 0;                                                                   \
     } while (0)
 
 /* Set the IPv6 addressesinto the Addrs of the Packet.

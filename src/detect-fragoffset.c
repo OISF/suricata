@@ -115,7 +115,8 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
         return 0;
 
     if (PacketIsIPv4(p)) {
-        frag = IPV4_GET_IPOFFSET(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        frag = IPV4_GET_RAW_FRAGOFFSET(ip4h);
     } else if (PacketIsIPv6(p)) {
         if (IPV6_EXTHDR_ISSET_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
@@ -269,7 +270,8 @@ PrefilterPacketFragOffsetMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const 
     uint16_t frag;
 
     if (PacketIsIPv4(p)) {
-        frag = IPV4_GET_IPOFFSET(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        frag = IPV4_GET_RAW_FRAGOFFSET(ip4h);
     } else if (PacketIsIPv6(p)) {
         if (IPV6_EXTHDR_ISSET_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
@@ -407,7 +409,7 @@ static int DetectFragOffsetMatchTest01 (void)
     ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     ip4h.ip_off = 0x2222;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
