@@ -154,9 +154,10 @@ void FlowInit(Flow *f, const Packet *p)
     f->livedev = p->livedev;
 
     if (PacketIsIPv4(p)) {
-        FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
-        FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
-        f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_IPTTL((p));
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(ip4h, &f->src);
+        FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(ip4h, &f->dst);
+        f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_RAW_IPTTL(ip4h);
         f->flags |= FLOW_IPV4;
     } else if (PacketIsIPv6(p)) {
         FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
