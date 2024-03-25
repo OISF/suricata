@@ -1371,11 +1371,12 @@ static inline uint32_t SetUniquePortPoints(
             unique_list[p->port] = RANGE_PORT;
         }
         size_list++;
-    } else if ((unique_list[p->port] == SINGLE_PORT) && (p->port != p->port2)) {
-        if (unique_list[p->port + 1] == UNDEFINED_PORT) {
+    } else if (((unique_list[p->port] == SINGLE_PORT) && (p->port != p->port2)) ||
+               ((unique_list[p->port] == RANGE_PORT) && (p->port == p->port2))) {
+        if ((p->port != UINT16_MAX) && (unique_list[p->port + 1] == UNDEFINED_PORT)) {
+            unique_list[p->port + 1] = RANGE_PORT;
             size_list++;
         }
-        unique_list[p->port + 1] = RANGE_PORT;
     }
 
     /* Treat right boundary as single point to avoid creating unneeded
