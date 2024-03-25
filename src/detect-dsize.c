@@ -594,7 +594,6 @@ static int DetectDsizeIcmpv6Test01(void)
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
 
-    IPV6Hdr ip6h;
     ThreadVars tv;
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -602,13 +601,11 @@ static int DetectDsizeIcmpv6Test01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&ip6h, 0, sizeof(IPV6Hdr));
     memset(&th_v, 0, sizeof(ThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
-    p->ip6h = &ip6h;
 
     DecodeIPV6(&tv, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6));
 
