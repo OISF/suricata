@@ -102,7 +102,8 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    if (id_d->id == IPV4_GET_IPID(p)) {
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
+    if (id_d->id == IPV4_GET_RAW_IPID(ip4h)) {
         SCLogDebug("IPV4 Proto and matched with ip_id: %u.\n",
                     id_d->id);
         return 1;
@@ -232,8 +233,8 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (IPV4_GET_IPID(p) == ctx->v1.u16[0])
-    {
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
+    if (ctx->v1.u16[0] == IPV4_GET_RAW_IPID(ip4h)) {
         SCLogDebug("packet matches IP id %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -356,13 +357,13 @@ static int DetectIdTestMatch01(void)
     FAIL_IF_NULL(p[2]);
 
     /* TCP IP id = 1234 */
-    p[0]->ip4h->ip_id = htons(1234);
+    p[0]->l3.hdrs.ip4h->ip_id = htons(1234);
 
     /* UDP IP id = 5678 */
-    p[1]->ip4h->ip_id = htons(5678);
+    p[1]->l3.hdrs.ip4h->ip_id = htons(5678);
 
     /* UDP IP id = 91011 */
-    p[2]->ip4h->ip_id = htons(5101);
+    p[2]->l3.hdrs.ip4h->ip_id = htons(5101);
 
     const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";

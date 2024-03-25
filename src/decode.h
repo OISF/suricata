@@ -98,6 +98,7 @@ enum PktSrcEnum {
 #include "decode-vlan.h"
 #include "decode-mpls.h"
 
+#include "util-validate.h"
 
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
@@ -140,20 +141,22 @@ typedef struct Address_ {
  *
  * We set the rest of the struct to 0 so we can
  * prevent using memset. */
-#define SET_IPV4_SRC_ADDR(p, a) do {                              \
-        (a)->family = AF_INET;                                    \
-        (a)->addr_data32[0] = (uint32_t)(p)->ip4h->s_ip_src.s_addr; \
-        (a)->addr_data32[1] = 0;                                  \
-        (a)->addr_data32[2] = 0;                                  \
-        (a)->addr_data32[3] = 0;                                  \
+#define SET_IPV4_SRC_ADDR(ip4h, a)                                                                 \
+    do {                                                                                           \
+        (a)->family = AF_INET;                                                                     \
+        (a)->addr_data32[0] = (uint32_t)(ip4h)->s_ip_src.s_addr;                                   \
+        (a)->addr_data32[1] = 0;                                                                   \
+        (a)->addr_data32[2] = 0;                                                                   \
+        (a)->addr_data32[3] = 0;                                                                   \
     } while (0)
 
-#define SET_IPV4_DST_ADDR(p, a) do {                              \
-        (a)->family = AF_INET;                                    \
-        (a)->addr_data32[0] = (uint32_t)(p)->ip4h->s_ip_dst.s_addr; \
-        (a)->addr_data32[1] = 0;                                  \
-        (a)->addr_data32[2] = 0;                                  \
-        (a)->addr_data32[3] = 0;                                  \
+#define SET_IPV4_DST_ADDR(ip4h, a)                                                                 \
+    do {                                                                                           \
+        (a)->family = AF_INET;                                                                     \
+        (a)->addr_data32[0] = (uint32_t)(ip4h)->s_ip_dst.s_addr;                                   \
+        (a)->addr_data32[1] = 0;                                                                   \
+        (a)->addr_data32[2] = 0;                                                                   \
+        (a)->addr_data32[3] = 0;                                                                   \
     } while (0)
 
 /* Set the IPv6 addresses into the Addrs of the Packet.
@@ -242,7 +245,6 @@ typedef uint16_t Port;
  *We determine the ip version. */
 #define IP_GET_RAW_VER(pkt) ((((pkt)[0] & 0xf0) >> 4))
 
-#define PKT_IS_IPV4(p)      (((p)->ip4h != NULL))
 #define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
 #define PKT_IS_TCP(p)       (((p)->tcph != NULL))
 #define PKT_IS_UDP(p)       (((p)->udph != NULL))
@@ -250,8 +252,6 @@ typedef uint16_t Port;
 #define PKT_IS_ICMPV6(p)    (((p)->icmpv6h != NULL))
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
-
-#define IPH_IS_VALID(p) (PKT_IS_IPV4((p)) || PKT_IS_IPV6((p)))
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
@@ -411,6 +411,24 @@ enum PacketTunnelType {
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
+enum PacketL3Types {
+    PACKET_L3_UNKNOWN = 0,
+    PACKET_L3_IPV4,
+};
+
+struct PacketL3 {
+    enum PacketL3Types type;
+    /* Checksum for IP packets. */
+    int32_t comp_csum;
+    union Hdrs {
+        IPV4Hdr *ip4h;
+    } hdrs;
+    /* IPv4 and IPv6 are mutually exclusive */
+    union {
+        IPV4Vars ip4;
+    } vars;
+};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -531,23 +549,16 @@ typedef struct Packet_
     /* header pointers */
     EthernetHdr *ethh;
 
-    /* Checksum for IP packets. */
-    int32_t level3_comp_csum;
     /* Check sum for TCP, UDP or ICMP packets */
     int32_t level4_comp_csum;
 
-    IPV4Hdr *ip4h;
-
+    struct PacketL3 l3;
     IPV6Hdr *ip6h;
-
-    /* IPv4 and IPv6 are mutually exclusive */
-    union {
-        IPV4Vars ip4vars;
-        struct {
-            IPV6Vars ip6vars;
-            IPV6ExtHdrs ip6eh;
-        };
+    struct {
+        IPV6Vars ip6vars;
+        IPV6ExtHdrs ip6eh;
     };
+
     /* Can only be one of TCP, UDP, ICMP at any given time */
     union {
         TCPVars tcpvars;
@@ -658,6 +669,8 @@ typedef struct Packet_
     uint8_t pkt_data[];
 } Packet;
 
+static inline bool PacketIsIPv4(const Packet *p);
+
 /** highest mtu of the interfaces we monitor */
 #define DEFAULT_MTU 1500
 #define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
@@ -668,24 +681,52 @@ typedef struct Packet_
 extern uint32_t default_packet_size;
 #define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
 
+static inline bool PacketIsIPv4(const Packet *p)
+{
+    return p->l3.type == PACKET_L3_IPV4;
+}
+
+static inline const IPV4Hdr *PacketGetIPv4(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(!PacketIsIPv4(p));
+    return p->l3.hdrs.ip4h;
+}
+
+static inline IPV4Hdr *PacketSetIPV4(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l3.type != PACKET_L3_UNKNOWN);
+    p->l3.type = PACKET_L3_IPV4;
+    p->l3.hdrs.ip4h = (IPV4Hdr *)buf;
+    return p->l3.hdrs.ip4h;
+}
+
 /* Retrieve proto regardless of IP version */
 static inline uint8_t PacketGetIPProto(const Packet *p)
 {
     if (p->proto != 0) {
         return p->proto;
     }
-    if (PKT_IS_IPV4(p)) {
-        return IPV4_GET_IPPROTO(p);
+    if (PacketIsIPv4(p)) {
+        const IPV4Hdr *hdr = PacketGetIPv4(p);
+        return IPV4_GET_RAW_IPPROTO(hdr);
     } else if (PKT_IS_IPV6(p)) {
         return IPV6_GET_L4PROTO(p);
-    } else {
-        return 0;
     }
+    return 0;
 }
 
-static inline bool PacketIsIPv4(const Packet *p)
+static inline uint8_t PacketGetIPv4IPProto(const Packet *p)
 {
-    return PKT_IS_IPV4(p);
+    if (PacketGetIPv4(p)) {
+        const IPV4Hdr *hdr = PacketGetIPv4(p);
+        return IPV4_GET_RAW_IPPROTO(hdr);
+    }
+    return 0;
+}
+
+static inline void PacketClearL3(Packet *p)
+{
+    memset(&p->l3, 0, sizeof(p->l3));
 }
 
 static inline bool PacketIsIPv6(const Packet *p)
@@ -791,9 +832,9 @@ void CaptureStatsSetup(ThreadVars *tv);
 /**
  *  \brief reset these to -1(indicates that the packet is fresh from the queue)
  */
-#define PACKET_RESET_CHECKSUMS(p) do { \
-        (p)->level3_comp_csum = -1;   \
-        (p)->level4_comp_csum = -1;   \
+#define PACKET_RESET_CHECKSUMS(p)                                                                  \
+    do {                                                                                           \
+        (p)->level4_comp_csum = -1;                                                                \
     } while (0)
 
 /* if p uses extended data, free them */

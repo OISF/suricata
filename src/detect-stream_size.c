@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -391,7 +392,7 @@ static int DetectStreamSizeParseTest04 (void)
     ssn.client = client;
     f.protoctx = &ssn;
     p->flow = &f;
-    p->ip4h = &ip4h;
+    UTHSetIPV4Hdr(p, &ip4h);
     sm.ctx = (SigMatchCtx*)sd;
 
     if (!DetectStreamSizeMatch(&dtx, p, &s, sm.ctx))
