@@ -288,6 +288,9 @@ typedef struct FlowCnf_
     uint32_t hash_size;
     uint32_t prealloc;
 
+    /* Controls if non-expired flows are re-used in low memory conditions. */
+    bool force_reuse;
+
     uint32_t timeout_new;
     uint32_t timeout_est;
 
