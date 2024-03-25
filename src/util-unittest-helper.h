@@ -36,6 +36,8 @@ Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp,
 int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
 #endif
 #ifdef UNITTESTS
+void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h);
+
 uint32_t UTHSetIPv4Address(const char *);
 
 Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);

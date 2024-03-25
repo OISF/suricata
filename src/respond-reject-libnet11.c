@@ -339,6 +339,7 @@ cleanup:
 
 int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
+    const IPV4Hdr *ip4h = PacketGetIPv4(p);
     Libnet11Packet lpacket;
     int result;
 
@@ -347,7 +348,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    const uint16_t iplen = IPV4_GET_IPLEN(p);
+    const uint16_t iplen = IPV4_GET_RAW_IPLEN(ip4h);
     if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + LIBNET_IPV4_H + 8) {
         lpacket.len = MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, (LIBNET_IPV4_H + iplen));
     } else {
@@ -375,14 +376,13 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_icmpv4_unreach(
-                    ICMP_DEST_UNREACH,        /* type */
-                    ICMP_HOST_ANO,            /* code */
-                    0,                        /* checksum */
-                    (uint8_t *)p->ip4h,       /* payload */
-                    lpacket.dsize,            /* payload length */
-                    c,                        /* libnet context */
-                    0)) < 0)                  /* libnet ptag */
+    if ((libnet_build_icmpv4_unreach(ICMP_DEST_UNREACH, /* type */
+                ICMP_HOST_ANO,                          /* code */
+                0,                                      /* checksum */
+                (uint8_t *)ip4h,                        /* payload */
+                lpacket.dsize,                          /* payload length */
+                c,                                      /* libnet context */
+                0)) < 0)                                /* libnet ptag */
     {
         SCLogError("libnet_build_icmpv4_unreach %s", libnet_geterror(c));
         goto cleanup;

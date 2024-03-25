@@ -5680,11 +5680,9 @@ static inline int StreamTcpValidateChecksum(Packet *p)
 
     if (p->level4_comp_csum == -1) {
         if (PacketIsIPv4(p)) {
-            p->level4_comp_csum = TCPChecksum(p->ip4h->s_ip_addrs,
-                                              (uint16_t *)p->tcph,
-                                              (p->payload_len +
-                                                  TCP_GET_HLEN(p)),
-                                              p->tcph->th_sum);
+            const IPV4Hdr *ip4h = PacketGetIPv4(p);
+            p->level4_comp_csum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph,
+                    (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
         } else if (PacketIsIPv6(p)) {
             p->level4_comp_csum = TCPV6Checksum(p->ip6h->s_ip6_addrs,
                                                 (uint16_t *)p->tcph,
@@ -6730,21 +6728,21 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
             }
         }
         /* set the ip header */
-        np->ip4h = (IPV4Hdr *)GET_PKT_DATA(np);
+        IPV4Hdr *ip4h = PacketSetIPV4(np, GET_PKT_DATA(np));
         /* version 4 and length 20 bytes for the tcp header */
-        np->ip4h->ip_verhl = 0x45;
-        np->ip4h->ip_tos = 0;
-        np->ip4h->ip_len = htons(40);
-        np->ip4h->ip_id = 0;
-        np->ip4h->ip_off = 0;
-        np->ip4h->ip_ttl = 64;
-        np->ip4h->ip_proto = IPPROTO_TCP;
+        ip4h->ip_verhl = 0x45;
+        ip4h->ip_tos = 0;
+        ip4h->ip_len = htons(40);
+        ip4h->ip_id = 0;
+        ip4h->ip_off = 0;
+        ip4h->ip_ttl = 64;
+        ip4h->ip_proto = IPPROTO_TCP;
         if (dir == 0) {
-            np->ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
-            np->ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
+            ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
+            ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
         } else {
-            np->ip4h->s_ip_src.s_addr = f->dst.addr_data32[0];
-            np->ip4h->s_ip_dst.s_addr = f->src.addr_data32[0];
+            ip4h->s_ip_src.s_addr = f->dst.addr_data32[0];
+            ip4h->s_ip_dst.s_addr = f->src.addr_data32[0];
         }
 
         /* set the tcp header */
