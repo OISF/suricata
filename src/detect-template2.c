@@ -84,7 +84,8 @@ static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
     /* TODO replace this */
     uint8_t ptemplate2;
     if (PacketIsIPv4(p)) {
-        ptemplate2 = IPV4_GET_IPTTL(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        ptemplate2 = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
         ptemplate2 = IPV6_GET_HLIM(p);
     } else {
@@ -144,7 +145,8 @@ PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const v
     uint8_t ptemplate2;
 /* TODO update */
     if (PacketIsIPv4(p)) {
-        ptemplate2 = IPV4_GET_IPTTL(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        ptemplate2 = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
         ptemplate2 = IPV6_GET_HLIM(p);
     } else {

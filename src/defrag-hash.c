@@ -24,6 +24,7 @@
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
+#include "util-validate.h"
 
 /** defrag tracker hash table */
 DefragTrackerHashRow *defragtracker_hash;
@@ -128,9 +129,11 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     COPY_ADDRESS(&p->dst, &dt->dst_addr);
 
     if (PacketIsIPv4(p)) {
-        dt->id = (int32_t)IPV4_GET_IPID(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        dt->id = (int32_t)IPV4_GET_RAW_IPID(ip4h);
         dt->af = AF_INET;
     } else {
+        DEBUG_VALIDATE_BUG_ON(!PacketIsIPv6(p));
         dt->id = (int32_t)IPV6_EXTHDR_GET_FH_ID(p);
         dt->af = AF_INET6;
     }
@@ -390,7 +393,8 @@ static inline uint32_t DefragHashGetKey(Packet *p)
 {
     uint32_t key;
 
-    if (p->ip4h != NULL) {
+    if (PacketIsIPv4(p)) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
         DefragHashKey4 dhk = { .pad[0] = 0 };
         if (p->src.addr_data32[0] > p->dst.addr_data32[0]) {
             dhk.src = p->src.addr_data32[0];
@@ -399,13 +403,13 @@ static inline uint32_t DefragHashGetKey(Packet *p)
             dhk.src = p->dst.addr_data32[0];
             dhk.dst = p->src.addr_data32[0];
         }
-        dhk.id = (uint32_t)IPV4_GET_IPID(p);
+        dhk.id = (uint32_t)IPV4_GET_RAW_IPID(ip4h);
         memcpy(&dhk.vlan_id[0], &p->vlan_id[0], sizeof(dhk.vlan_id));
 
         uint32_t hash =
                 hashword(dhk.u32, sizeof(dhk.u32) / sizeof(uint32_t), defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
-    } else if (p->ip6h != NULL) {
+    } else if (PacketIsIPv6(p)) {
         DefragHashKey6 dhk = { .pad[0] = 0 };
         if (DefragHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             dhk.src[0] = p->src.addr_data32[0];
@@ -451,7 +455,8 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 {
     uint32_t id;
     if (PacketIsIPv4(p)) {
-        id = (uint32_t)IPV4_GET_IPID(p);
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        id = (uint32_t)IPV4_GET_RAW_IPID(ip4h);
     } else {
         id = IPV6_EXTHDR_GET_FH_ID(p);
     }
