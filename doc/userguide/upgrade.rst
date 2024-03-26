@@ -50,6 +50,8 @@ Major changes
 - ``SIP_PORTS`` variable has been introduced in suricata.yaml
 - Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``
   for the ``stats`` event.
+- New transform ``from_base64`` that base64 decodes a buffer and passes the
+  decoded buffer.
 
 Upgrading 6.0 to 7.0
 --------------------

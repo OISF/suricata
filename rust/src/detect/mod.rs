@@ -22,6 +22,7 @@ pub mod error;
 pub mod iprep;
 pub mod parser;
 pub mod stream_size;
+pub mod transform_base64;
 pub mod uint;
 pub mod uri;
 pub mod requires;
