@@ -113,7 +113,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState
         SCReturnStruct(APP_LAYER_OK);
     }
 
-    int res = rs_tftp_request(state, input, input_len);
+    int64_t res = rs_tftp_request(state, input, input_len);
     if (res < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
     }
