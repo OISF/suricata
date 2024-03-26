@@ -206,18 +206,20 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 /* Set the IPv6 addressesinto the Addrs of the Packet.
  * Make sure p->ip6h is initialized and validated. */
-#define FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, a) do {   \
-        (a)->addr_data32[0] = (p)->ip6h->s_ip6_src[0];  \
-        (a)->addr_data32[1] = (p)->ip6h->s_ip6_src[1];  \
-        (a)->addr_data32[2] = (p)->ip6h->s_ip6_src[2];  \
-        (a)->addr_data32[3] = (p)->ip6h->s_ip6_src[3];  \
+#define FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(ip6h, a)                                                \
+    do {                                                                                           \
+        (a)->addr_data32[0] = (ip6h)->s_ip6_src[0];                                                \
+        (a)->addr_data32[1] = (ip6h)->s_ip6_src[1];                                                \
+        (a)->addr_data32[2] = (ip6h)->s_ip6_src[2];                                                \
+        (a)->addr_data32[3] = (ip6h)->s_ip6_src[3];                                                \
     } while (0)
 
-#define FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, a) do {   \
-        (a)->addr_data32[0] = (p)->ip6h->s_ip6_dst[0];  \
-        (a)->addr_data32[1] = (p)->ip6h->s_ip6_dst[1];  \
-        (a)->addr_data32[2] = (p)->ip6h->s_ip6_dst[2];  \
-        (a)->addr_data32[3] = (p)->ip6h->s_ip6_dst[3];  \
+#define FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(ip6h, a)                                                \
+    do {                                                                                           \
+        (a)->addr_data32[0] = (ip6h)->s_ip6_dst[0];                                                \
+        (a)->addr_data32[1] = (ip6h)->s_ip6_dst[1];                                                \
+        (a)->addr_data32[2] = (ip6h)->s_ip6_dst[2];                                                \
+        (a)->addr_data32[3] = (ip6h)->s_ip6_dst[3];                                                \
     } while (0)
 
 /* pkt flow flags */

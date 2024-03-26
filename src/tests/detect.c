@@ -2170,7 +2170,7 @@ static int SigTest28TCPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
@@ -2183,7 +2183,7 @@ static int SigTest28TCPV6Keyword(void)
     }
 
     PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
     p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
@@ -2296,7 +2296,7 @@ static int SigTest29NegativeTCPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
@@ -2309,7 +2309,7 @@ static int SigTest29NegativeTCPV6Keyword(void)
     }
 
     PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
     p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
@@ -2633,21 +2633,21 @@ static int SigTest32UDPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
-    p1->payload_len = IPV6_GET_PLEN((p1)) - UDP_HEADER_LEN;
+    p1->payload_len = IPV6_GET_RAW_PLEN(PacketGetIPv6(p1)) - UDP_HEADER_LEN;
     p1->proto = IPPROTO_UDP;
 
     PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
     p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
-    p2->payload_len = IPV6_GET_PLEN((p2)) - UDP_HEADER_LEN;
+    p2->payload_len = IPV6_GET_RAW_PLEN(PacketGetIPv6(p2)) - UDP_HEADER_LEN;
     p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2732,21 +2732,21 @@ static int SigTest33NegativeUDPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
-    p1->payload_len = IPV6_GET_PLEN((p1)) - UDP_HEADER_LEN;
+    p1->payload_len = IPV6_GET_RAW_PLEN(PacketGetIPv6(p1)) - UDP_HEADER_LEN;
     p1->proto = IPPROTO_UDP;
 
     PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
     p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
-    p2->payload_len = IPV6_GET_PLEN((p2)) - UDP_HEADER_LEN;
+    p2->payload_len = IPV6_GET_RAW_PLEN(PacketGetIPv6(p2)) - UDP_HEADER_LEN;
     p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
