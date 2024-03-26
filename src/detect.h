@@ -240,6 +240,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_NOALERT                BIT_U32(4)  /**< no alert flag is set */
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_BOTHDIR                BIT_U32(7) /**< signature needs both directions to match */
 
 // vacancy
 
@@ -291,6 +292,8 @@ typedef struct DetectPort_ {
     BIT_U32(8) /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 #define SIG_FLAG_INIT_JA3                   BIT_U32(10) /**< signature has ja3 keyword */
+#define SIG_FLAG_INIT_BIDIR_TOCLIENT        BIT_U32(11) /**< signature now takes keywords toclient */
+#define SIG_FLAG_INIT_BIDIR_TOSERVER        BIT_U32(12) /**< signature now takes keywords toserver */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -523,6 +526,8 @@ typedef struct SignatureInitDataBuffer_ {
                      set up. */
     bool multi_capable; /**< true if we can have multiple instances of this buffer, so e.g. for
                            http.uri. */
+    bool only_tc;       /**< true if we can only used toclient. */
+    bool only_ts;       /**< true if we can only used toserver. */
     /* sig match list */
     SigMatch *head;
     SigMatch *tail;

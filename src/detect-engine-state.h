@@ -89,8 +89,17 @@ typedef struct DetectEngineStateDirection_ {
     /* coccinelle: DetectEngineStateDirection:flags:DETECT_ENGINE_STATE_FLAG_ */
 } DetectEngineStateDirection;
 
+#define DETECT_ENGINE_STATE_DIRECTIONS 3
+
+enum {
+    DETECT_ENGINE_STATE_DIRECTION_TOSERVER = 0,
+    DETECT_ENGINE_STATE_DIRECTION_TOCLIENT = 1,
+    DETECT_ENGINE_STATE_DIRECTION_BOTHDIR = 2,
+};
+
 typedef struct DetectEngineState_ {
-    DetectEngineStateDirection dir_state[2];
+    // to server, to client, and bidirectional
+    DetectEngineStateDirection dir_state[DETECT_ENGINE_STATE_DIRECTIONS];
 } DetectEngineState;
 
 /**
