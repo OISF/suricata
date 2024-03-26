@@ -91,7 +91,8 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
         pttl = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
-        pttl = IPV6_GET_HLIM(p);
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        pttl = IPV6_GET_RAW_HLIM(ip6h);
     } else {
         SCLogDebug("Packet is not IPv4 or IPv6");
         return 0;
@@ -150,7 +151,8 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
         pttl = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
-        pttl = IPV6_GET_HLIM(p);
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        pttl = IPV6_GET_RAW_HLIM(ip6h);
     } else {
         SCLogDebug("Packet is not IPv4 or IPv6");
         return;
