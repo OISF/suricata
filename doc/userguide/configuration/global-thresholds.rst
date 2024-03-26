@@ -20,7 +20,7 @@ Syntax:
 ::
 
   threshold gen_id <gid>, sig_id <sid>, type <threshold|limit|both>, \
-    track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
+    track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>
 
 rate_filter
 ~~~~~~~~~~~
@@ -55,6 +55,7 @@ done per IP-address. The Host table is used for storage. When using by_rule
 it's done globally for the rule.
 Option by_both used to track per IP pair of source and destination. Packets
 going to opposite directions between same addresses tracked as the same pair.
+The by_flow option tracks the rule matches in the flow.
 
 count
 ^^^^^

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,11 +54,19 @@ enum DetectKeywordId {
     DETECT_FLOW,
     /* end prefilter sort */
 
+    /* values used in util-var.c go here, to avoid int overflows
+     * TODO update var logic to use a larger type, see #6855. */
     DETECT_THRESHOLD,
-    DETECT_METADATA,
-    DETECT_REFERENCE,
-    DETECT_TAG,
-    DETECT_MSG,
+    DETECT_FLOWBITS,
+    DETECT_FLOWVAR,
+    DETECT_FLOWVAR_POSTMATCH,
+    DETECT_FLOWINT,
+    DETECT_HOSTBITS,
+    DETECT_XBITS,
+    DETECT_PKTVAR,
+    /* end util-var.c logic */
+
+    /* content inspection */
     DETECT_CONTENT,
     DETECT_URICONTENT,
     DETECT_PCRE,
@@ -75,6 +83,20 @@ enum DetectKeywordId {
     DETECT_BYTETEST,
     DETECT_BYTEJUMP,
     DETECT_BYTEMATH,
+    DETECT_BYTE_EXTRACT,
+    DETECT_DATASET,
+    DETECT_DATAREP,
+    DETECT_BASE64_DECODE,
+    DETECT_BASE64_DATA,
+    DETECT_BSIZE,
+    DETECT_ASN1,
+    DETECT_LUA,
+    /* end of content inspection */
+
+    DETECT_METADATA,
+    DETECT_REFERENCE,
+    DETECT_TAG,
+    DETECT_MSG,
     DETECT_SAMEIP,
     DETECT_GEOIP,
     DETECT_IPPROTO,
@@ -82,13 +104,7 @@ enum DetectKeywordId {
     DETECT_ISDATAAT,
     DETECT_ID,
     DETECT_RPC,
-    DETECT_FLOWVAR,
-    DETECT_FLOWVAR_POSTMATCH,
-    DETECT_FLOWINT,
-    DETECT_PKTVAR,
     DETECT_NOALERT,
-    DETECT_FLOWBITS,
-    DETECT_HOSTBITS,
     DETECT_IPV4_CSUM,
     DETECT_TCPV4_CSUM,
     DETECT_TCPV6_CSUM,
@@ -98,14 +114,10 @@ enum DetectKeywordId {
     DETECT_ICMPV6_CSUM,
     DETECT_STREAM_SIZE,
     DETECT_DETECTION_FILTER,
-    DETECT_DATASET,
-    DETECT_DATAREP,
 
     DETECT_DECODE_EVENT,
     DETECT_GID,
     DETECT_MARK,
-
-    DETECT_BSIZE,
 
     DETECT_FRAME,
 
@@ -181,7 +193,6 @@ enum DetectKeywordId {
     DETECT_AL_SSH_HASSH_SERVER_STRING,
     DETECT_AL_SSL_VERSION,
     DETECT_AL_SSL_STATE,
-    DETECT_BYTE_EXTRACT,
     DETECT_FILE_DATA,
     DETECT_PKT_DATA,
     DETECT_AL_APP_LAYER_EVENT,
@@ -205,8 +216,6 @@ enum DetectKeywordId {
     DETECT_SMB_NTLMSSP_DOMAIN,
     DETECT_SMB_VERSION,
 
-    DETECT_ASN1,
-
     DETECT_ENGINE_EVENT,
     DETECT_STREAM_EVENT,
 
@@ -225,7 +234,6 @@ enum DetectKeywordId {
     DETECT_FILESIZE,
 
     DETECT_L3PROTO,
-    DETECT_LUA,
     DETECT_IPREP,
 
     DETECT_AL_DNS_QUERY,
@@ -257,10 +265,6 @@ enum DetectKeywordId {
     DETECT_AL_DNP3FUNC,
     DETECT_AL_DNP3IND,
     DETECT_AL_DNP3OBJ,
-
-    DETECT_XBITS,
-    DETECT_BASE64_DECODE,
-    DETECT_BASE64_DATA,
 
     DETECT_AL_KRB5_ERRCODE,
     DETECT_AL_KRB5_MSGTYPE,
