@@ -134,7 +134,7 @@ typedef struct DPDKThreadVars_ {
     int32_t port_socket_id;
     struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
-    DPDKWorkerSync *workers_sync;
+    pthread_barrier_t *workers_sync;
 } DPDKThreadVars;
 
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *, const void *, void **);
@@ -414,7 +414,7 @@ static TmEcode ReceiveDPDKLoopInit(ThreadVars *tv, DPDKThreadVars *ptv)
 
 static inline void LoopHandleTimeoutOnIdle(ThreadVars *tv)
 {
-    static uint64_t last_timeout_msec = 0;
+    static thread_local uint64_t last_timeout_msec = 0;
     SCTime_t t = DPDKSetTimevalReal(&machine_start_time);
     uint64_t msecs = SCTIME_MSECS(t);
     if (msecs > last_timeout_msec + 100) {
@@ -429,7 +429,7 @@ static inline void LoopHandleTimeoutOnIdle(ThreadVars *tv)
  */
 static inline bool RXPacketCountHeuristic(ThreadVars *tv, DPDKThreadVars *ptv, uint16_t nb_rx)
 {
-    static uint32_t zero_pkt_polls_cnt = 0;
+    static thread_local uint32_t zero_pkt_polls_cnt = 0;
 
     if (nb_rx > 0) {
         zero_pkt_polls_cnt = 0;
@@ -508,7 +508,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
 
 static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
 {
-    static bool segmented_mbufs_warned = false;
+    static thread_local bool segmented_mbufs_warned = false;
     if (!segmented_mbufs_warned && !rte_pktmbuf_is_contiguous(mbuf)) {
         char warn_s[] = "Segmented mbufs detected! Redmine Ticket #6012 "
                         "Check your configuration or report the issue";
@@ -530,13 +530,12 @@ static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
 static void HandleShutdown(DPDKThreadVars *ptv)
 {
     SCLogDebug("Stopping Suricata!");
-    SC_ATOMIC_ADD(ptv->workers_sync->worker_checked_in, 1);
-    while (SC_ATOMIC_GET(ptv->workers_sync->worker_checked_in) < ptv->workers_sync->worker_cnt) {
-        rte_delay_us(10);
+    // wait for all workers to finish packet processing
+    int r = pthread_barrier_wait(ptv->workers_sync);
+    if (r != PTHREAD_BARRIER_SERIAL_THREAD && r != 0) {
+        SCLogWarning("failed to synchronize workers: %s", strerror(-r));
     }
     if (ptv->queue_id == 0) {
-        rte_delay_us(20); // wait for all threads to get out of the sync loop
-        SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
@@ -552,7 +551,7 @@ static void HandleShutdown(DPDKThreadVars *ptv)
 
 static void PeriodicDPDKDumpCounters(DPDKThreadVars *ptv)
 {
-    static time_t last_dump = 0;
+    static thread_local time_t last_dump = 0;
     time_t current_time = DPDKGetSeconds();
     /* Trigger one dump of stats every second */
     if (current_time != last_dump) {
@@ -568,7 +567,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
-    ptv->slot = (TmSlot *)slot;
+    ptv->slot = ((TmSlot *)slot)->slot_next;
     TmEcode ret = ReceiveDPDKLoopInit(tv, ptv);
     if (ret != TM_ECODE_OK) {
         SCReturnInt(ret);
@@ -813,6 +812,7 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
         DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
 
         if (ptv->workers_sync) {
+            pthread_barrier_destroy(ptv->workers_sync);
             SCFree(ptv->workers_sync);
         }
     }
