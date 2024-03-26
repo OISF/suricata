@@ -115,10 +115,11 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         jb_set_uint(js, "ipid", IPV4_GET_RAW_IPID(ip4h));
         proto = IPV4_GET_RAW_IPPROTO(ip4h);
     } else if (PacketIsIPv6(p)) {
-        jb_set_uint(js, "len", IPV6_GET_PLEN(p));
-        jb_set_uint(js, "tc", IPV6_GET_CLASS(p));
-        jb_set_uint(js, "hoplimit", IPV6_GET_HLIM(p));
-        jb_set_uint(js, "flowlbl", IPV6_GET_FLOW(p));
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        jb_set_uint(js, "len", IPV6_GET_RAW_PLEN(ip6h));
+        jb_set_uint(js, "tc", IPV6_GET_RAW_CLASS(ip6h));
+        jb_set_uint(js, "hoplimit", IPV6_GET_RAW_HLIM(ip6h));
+        jb_set_uint(js, "flowlbl", IPV6_GET_RAW_FLOW(ip6h));
         proto = IPV6_GET_L4PROTO(p);
     }
     switch (proto) {

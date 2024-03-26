@@ -421,10 +421,12 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         }
     }
 
+    const IPV6Hdr *oip6h = PacketGetIPv6(p);
+
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
-            IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
+    rp = PacketDefragPktSetup(
+            p, (const uint8_t *)oip6h, IPV6_GET_RAW_PLEN(oip6h) + sizeof(IPV6Hdr), 0);
     if (rp == NULL) {
         goto error_remove_tracker;
     }
@@ -502,15 +504,15 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         prev_offset = frag->offset;
     }
 
-    rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + tracker->ip_hdr_offset);
+    IPV6Hdr *ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + tracker->ip_hdr_offset);
     DEBUG_VALIDATE_BUG_ON(unfragmentable_len > UINT16_MAX - fragmentable_len);
-    rp->ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
+    ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
     /* if we have no unfragmentable part, so no ext hdrs before the frag
      * header, we need to update the ipv6 headers next header field. This
      * points to the frag header, and we will make it point to the layer
      * directly after the frag header. */
     if (unfragmentable_len == 0)
-        rp->ip6h->s_ip6_nxt = next_hdr;
+        ip6h->s_ip6_nxt = next_hdr;
     SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) +
             unfragmentable_len + fragmentable_len);
 
@@ -552,7 +554,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     Packet *r = NULL;
     uint16_t ltrim = 0;
 
-    uint8_t more_frags;
+    bool more_frags;
     uint16_t frag_offset;
 
     /* IPv4 header length - IPv4 only. */
@@ -605,13 +607,14 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         }
     }
     else if (tracker->af == AF_INET6) {
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
-        data_offset = p->ip6eh.fh_data_offset;
-        data_len = p->ip6eh.fh_data_len;
+        data_offset = p->l3.vars.ip6.eh.fh_data_offset;
+        data_len = p->l3.vars.ip6.eh.fh_data_len;
         frag_end = frag_offset + data_len;
-        ip_hdr_offset = (uint16_t)((uint8_t *)p->ip6h - GET_PKT_DATA(p));
-        frag_hdr_offset = p->ip6eh.fh_header_offset;
+        ip_hdr_offset = (uint16_t)((uint8_t *)ip6h - GET_PKT_DATA(p));
+        frag_hdr_offset = p->l3.vars.ip6.eh.fh_header_offset;
 
         SCLogDebug("mf %s frag_offset %u data_offset %u, data_len %u, "
                 "frag_end %u, ip_hdr_offset %u, frag_hdr_offset %u",
@@ -627,7 +630,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
              * relative to the buffer start */
 
             /* store offset and FH 'next' value for updating frag buffer below */
-            ip6_nh_set_offset = p->ip6eh.fh_prev_hdr_offset;
+            ip6_nh_set_offset = p->l3.vars.ip6.eh.fh_prev_hdr_offset;
             ip6_nh_set_value = IPV6_EXTHDR_GET_FH_NH(p);
             SCLogDebug("offset %d, value %u", ip6_nh_set_offset, ip6_nh_set_value);
         }
@@ -938,8 +941,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
-                if (DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
-                            IPV6_GET_PLEN(r) + IPV6_HEADER_LEN) != TM_ECODE_OK) {
+                const uint32_t len = GET_PKT_LEN(r) - (uint32_t)tracker->ip_hdr_offset;
+                DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+                if (DecodeIPV6(tv, dtv, r, GET_PKT_DATA(r) + tracker->ip_hdr_offset,
+                            (uint16_t)len) != TM_ECODE_OK) {
                     r->root = NULL;
                     TmqhOutputPacketpool(tv, r);
                     r = NULL;
@@ -1291,8 +1296,8 @@ static Packet *BuildIpv6TestPacket(
     /* copy content_len crap, we need full length */
     PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr));
 
-    p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
-    IPV6_SET_RAW_VER(p->ip6h, 6);
+    IPV6Hdr *ip6p = PacketSetIPV6(p, GET_PKT_DATA(p));
+    IPV6_SET_RAW_VER(ip6p, 6);
     /* Fragmentation header. */
     IPV6FragHdr *fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
     fh->ip6fh_nxt = proto;
@@ -1309,17 +1314,17 @@ static Packet *BuildIpv6TestPacket(
     SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);
     SCFree(pcontent);
 
-    p->ip6h->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
+    ip6p->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
 
-    SET_IPV6_SRC_ADDR(p, &p->src);
-    SET_IPV6_DST_ADDR(p, &p->dst);
+    SET_IPV6_SRC_ADDR(ip6p, &p->src);
+    SET_IPV6_DST_ADDR(ip6p, &p->dst);
 
     /* Self test. */
-    if (IPV6_GET_VER(p) != 6)
+    if (IPV6_GET_RAW_VER(ip6p) != 6)
         goto error;
-    if (IPV6_GET_NH(p) != 44)
+    if (IPV6_GET_RAW_NH(ip6p) != 44)
         goto error;
-    if (IPV6_GET_PLEN(p) != sizeof(IPV6FragHdr) + content_len)
+    if (IPV6_GET_RAW_PLEN(ip6p) != sizeof(IPV6FragHdr) + content_len)
         goto error;
 
     return p;
@@ -1361,8 +1366,8 @@ static Packet *BuildIpv6TestPacketWithContent(
     /* copy content_len crap, we need full length */
     PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr));
 
-    p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
-    IPV6_SET_RAW_VER(p->ip6h, 6);
+    IPV6Hdr *ip6p = PacketSetIPV6(p, GET_PKT_DATA(p));
+    IPV6_SET_RAW_VER(ip6p, 6);
     /* Fragmentation header. */
     IPV6FragHdr *fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
     fh->ip6fh_nxt = proto;
@@ -1374,17 +1379,17 @@ static Packet *BuildIpv6TestPacketWithContent(
     PacketCopyDataOffset(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr), content, content_len);
     SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);
 
-    p->ip6h->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
+    ip6p->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
 
-    SET_IPV6_SRC_ADDR(p, &p->src);
-    SET_IPV6_DST_ADDR(p, &p->dst);
+    SET_IPV6_SRC_ADDR(ip6p, &p->src);
+    SET_IPV6_DST_ADDR(ip6p, &p->dst);
 
     /* Self test. */
-    if (IPV6_GET_VER(p) != 6)
+    if (IPV6_GET_RAW_VER(ip6p) != 6)
         goto error;
-    if (IPV6_GET_NH(p) != 44)
+    if (IPV6_GET_RAW_NH(ip6p) != 44)
         goto error;
-    if (IPV6_GET_PLEN(p) != sizeof(IPV6FragHdr) + content_len)
+    if (IPV6_GET_RAW_PLEN(ip6p) != sizeof(IPV6FragHdr) + content_len)
         goto error;
 
     return p;
@@ -1532,7 +1537,8 @@ static int DefragInOrderSimpleIpv6Test(void)
     reassembled = Defrag(&tv, &dtv, p3);
     FAIL_IF_NULL(reassembled);
 
-    FAIL_IF(IPV6_GET_PLEN(reassembled) != 19);
+    const IPV6Hdr *ip6h = PacketGetIPv6(reassembled);
+    FAIL_IF(IPV6_GET_RAW_PLEN(ip6h) != 19);
 
     /* 40 bytes in we should find 8 bytes of A. */
     for (int i = 40; i < 40 + 8; i++) {
@@ -1833,7 +1839,7 @@ static int DefragDoSturgesNovakIpv6Test(int policy, uint8_t *expected, size_t ex
     FAIL_IF_NULL(reassembled);
     FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 40, expected, expected_len) != 0);
 
-    FAIL_IF(IPV6_GET_PLEN(reassembled) != 192);
+    FAIL_IF(IPV6_GET_RAW_PLEN(PacketGetIPv6(reassembled)) != 192);
 
     SCFree(reassembled);
 
@@ -2655,7 +2661,7 @@ static int DefragMfIpv6Test(void)
 
     /* For IPv6 the expected length is just the length of the payload
      * of 2 fragments, so 16. */
-    FAIL_IF(IPV6_GET_PLEN(p) != 16);
+    FAIL_IF(IPV6_GET_RAW_PLEN(PacketGetIPv6(p)) != 16);
 
     /* Verify the payload of the IPv4 packet. */
     uint8_t expected_payload[] = "AAAAAAAABBBBBBBB";

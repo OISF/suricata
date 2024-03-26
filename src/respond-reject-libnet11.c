@@ -481,6 +481,7 @@ cleanup:
 #ifdef HAVE_LIBNET_ICMPV6_UNREACH
 int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
+    const IPV6Hdr *ip6h = PacketGetIPv6(p);
     Libnet11Packet lpacket;
     int result;
 
@@ -489,7 +490,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    const uint16_t iplen = IPV6_GET_PLEN(p);
+    const uint16_t iplen = IPV6_GET_RAW_PLEN(ip6h);
     if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + IPV6_HEADER_LEN + 8) {
         lpacket.len = IPV6_HEADER_LEN + MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, iplen);
     } else {
@@ -517,14 +518,13 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_icmpv6_unreach(
-                    ICMP6_DST_UNREACH,        /* type */
-                    ICMP6_DST_UNREACH_ADMIN,  /* code */
-                    0,                        /* checksum */
-                    (uint8_t *)p->ip6h,       /* payload */
-                    lpacket.dsize,            /* payload length */
-                    c,                        /* libnet context */
-                    0)) < 0)                  /* libnet ptag */
+    if ((libnet_build_icmpv6_unreach(ICMP6_DST_UNREACH, /* type */
+                ICMP6_DST_UNREACH_ADMIN,                /* code */
+                0,                                      /* checksum */
+                (uint8_t *)ip6h,                        /* payload */
+                lpacket.dsize,                          /* payload length */
+                c,                                      /* libnet context */
+                0)) < 0)                                /* libnet ptag */
     {
         SCLogError("libnet_build_icmpv6_unreach %s", libnet_geterror(c));
         goto cleanup;

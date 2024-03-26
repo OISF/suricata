@@ -128,6 +128,11 @@ void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h)
     PacketSetIPV4(p, (uint8_t *)ip4h);
 }
 
+void UTHSetIPV6Hdr(Packet *p, IPV6Hdr *ip6h)
+{
+    PacketSetIPV6(p, (uint8_t *)ip6h);
+}
+
 /**
  *  \brief return the uint32_t for a ipv4 address string
  *
@@ -177,12 +182,12 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->payload_len = payload_len;
     p->proto = ipproto;
 
-    p->ip6h = SCMalloc(sizeof(IPV6Hdr));
-    if (p->ip6h == NULL)
+    IPV6Hdr *ip6h = SCCalloc(1, sizeof(IPV6Hdr));
+    if (ip6h == NULL)
         goto error;
-    memset(p->ip6h, 0, sizeof(IPV6Hdr));
-    p->ip6h->s_ip6_nxt = ipproto;
-    p->ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
+    ip6h->s_ip6_nxt = ipproto;
+    ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
+    UTHSetIPV6Hdr(p, ip6h);
 
     if (inet_pton(AF_INET6, src, &in) != 1)
         goto error;
@@ -191,10 +196,10 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->src.addr_data32[2] = in[2];
     p->src.addr_data32[3] = in[3];
     p->sp = sport;
-    p->ip6h->s_ip6_src[0] = in[0];
-    p->ip6h->s_ip6_src[1] = in[1];
-    p->ip6h->s_ip6_src[2] = in[2];
-    p->ip6h->s_ip6_src[3] = in[3];
+    ip6h->s_ip6_src[0] = in[0];
+    ip6h->s_ip6_src[1] = in[1];
+    ip6h->s_ip6_src[2] = in[2];
+    ip6h->s_ip6_src[3] = in[3];
 
     if (inet_pton(AF_INET6, dst, &in) != 1)
         goto error;
@@ -203,10 +208,10 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->dst.addr_data32[2] = in[2];
     p->dst.addr_data32[3] = in[3];
     p->dp = dport;
-    p->ip6h->s_ip6_dst[0] = in[0];
-    p->ip6h->s_ip6_dst[1] = in[1];
-    p->ip6h->s_ip6_dst[2] = in[2];
-    p->ip6h->s_ip6_dst[3] = in[3];
+    ip6h->s_ip6_dst[0] = in[0];
+    ip6h->s_ip6_dst[1] = in[1];
+    ip6h->s_ip6_dst[2] = in[2];
+    ip6h->s_ip6_dst[3] = in[3];
 
     p->tcph = SCMalloc(sizeof(TCPHdr));
     if (p->tcph == NULL)
@@ -220,8 +225,8 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
 
 error:
     if (p != NULL) {
-        if (p->ip6h != NULL) {
-            SCFree(p->ip6h);
+        if (ip6h != NULL) {
+            SCFree(ip6h);
         }
         if (p->tcph != NULL) {
             SCFree(p->tcph);
