@@ -146,3 +146,41 @@ management and worker CPU set.
         - worker-cpu-set:
             cpu: [ 2,4,6,8 ]
     ...
+
+Interrupt (power-saving) mode
+-----------------------------
+
+The DPDK is traditionally recognized for its polling mode operation. 
+In this mode, CPU cores are continuously querying for packets from 
+the Network Interface Card (NIC). While this approach offers benefits like 
+reduced latency and improved performance, it might not be the most efficient 
+in scenarios with sporadic or low traffic. 
+The constant polling can lead to unnecessary CPU consumption. 
+To address this, DPDK offers an `interrupt` mode.
+
+The obvious advantage that interrupt mode brings is power efficiency. 
+So far in our tests, we haven't observed a decrease in performance. Suricata's
+performance has actually seen a slight improvement.
+The (IPS runmode) users should be aware that interrupts can 
+introduce non-deterministic latency. However, the latency should never be 
+higher than in other (e.g. AF_PACKET/AF_XDP/...) capture methods. 
+
+Interrupt mode in DPDK can be configured on a per-interface basis. 
+This allows for a hybrid setup where some workers operate in polling mode, 
+while others utilize the interrupt mode. 
+The configuration for the interrupt mode can be found and modified in the 
+DPDK section of the suricata.yaml file.
+
+Below is a sample configuration that demonstrates how to enable the interrupt mode for a specific interface:
+
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      interfaces:
+        - interface: 0000:3b:00.0
+          interrupt-mode: true
+          threads: 4
