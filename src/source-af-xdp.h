@@ -64,6 +64,5 @@ void TmModuleReceiveAFXDPRegister(void);
 void TmModuleDecodeAFXDPRegister(void);
 
 TmEcode AFXDPQueueProtectionInit(void);
-void AFXDPMutexClean(void);
 
 #endif /* SURICATA_SOURCE_AFXDP_H */

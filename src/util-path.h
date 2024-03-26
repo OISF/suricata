@@ -51,13 +51,10 @@ int PathIsAbsolute(const char *);
 int PathIsRelative(const char *);
 int PathMerge(char *out_buf, size_t buf_size, const char *const dir, const char *const fname);
 char *PathMergeAlloc(const char *const dir, const char *const fname);
-int PathJoin(char *out_buf, size_t buf_len, const char *const dir, const char *const fname);
 int SCDefaultMkDir(const char *path);
 int SCCreateDirectoryTree(const char *path, const bool final);
 bool SCPathExists(const char *path);
 bool SCIsRegularDirectory(const struct dirent *const dir_entry);
-bool SCIsRegularFile(const struct dirent *const dir_entry);
-char *SCRealPath(const char *path, char *resolved_path);
 const char *SCBasename(const char *path);
 bool SCPathContainsTraversal(const char *path);
 

@@ -184,22 +184,6 @@ TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputFlowLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
 void OutputFlowShutdown(void)
 {
     OutputFlowLogger *logger = list;

@@ -97,11 +97,6 @@ uint64_t HostGetMemuse(void)
     return memuse;
 }
 
-uint32_t HostSpareQueueGetSize(void)
-{
-    return HostQueueLen(&host_spare_q);
-}
-
 void HostMoveToSpare(Host *h)
 {
     HostEnqueue(&host_spare_q, h);

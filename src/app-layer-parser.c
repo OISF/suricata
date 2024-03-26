@@ -420,12 +420,6 @@ void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto)
-{
-    SCEnter();
-    SCReturnUInt(alp_ctx.ctxs[protomap][alproto].option_flags);
-}
-
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
         void *(*StateAlloc)(void *, AppProto), void (*StateFree)(void *))
 {
@@ -862,11 +856,6 @@ AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstat
 
     SCReturnPtr(pstate->decoder_events,
                 "AppLayerDecoderEvents *");
-}
-
-void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents)
-{
-    pstate->decoder_events = devents;
 }
 
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto,
@@ -1824,27 +1813,6 @@ static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, co
 
     SCReturn;
 }
-
-#ifdef DEBUG
-void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
-{
-    SCEnter();
-
-    if (pstate == NULL)
-        SCReturn;
-
-    AppLayerParserState *p = pstate;
-    SCLogDebug("AppLayerParser parser state information for parser state p(%p). "
-               "p->inspect_id[0](%"PRIu64"), "
-               "p->inspect_id[1](%"PRIu64"), "
-               "p->log_id(%"PRIu64"), "
-               "p->decoder_events(%p).",
-               pstate, p->inspect_id[0], p->inspect_id[1], p->log_id,
-               p->decoder_events);
-
-    SCReturn;
-}
-#endif
 
 /***** Unittests *****/
 

@@ -38,7 +38,6 @@ void *IPPairGetStorageById(IPPair *h, IPPairStorageId id);
 int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr);
 void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id);
 
-void IPPairFreeStorageById(IPPair *h, IPPairStorageId id);
 void IPPairFreeStorage(IPPair *h);
 
 void RegisterIPPairStorageTests(void);

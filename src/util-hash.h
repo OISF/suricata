@@ -48,7 +48,6 @@ typedef struct HashTable_ {
 /* prototypes */
 HashTable* HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashTableFree(HashTable *);
-void HashTablePrint(HashTable *);
 int HashTableAdd(HashTable *, void *, uint16_t);
 int HashTableRemove(HashTable *, void *, uint16_t);
 void *HashTableLookup(HashTable *, void *, uint16_t);

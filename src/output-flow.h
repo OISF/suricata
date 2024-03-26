@@ -40,6 +40,5 @@ void OutputFlowShutdown(void);
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f);
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data);
 
 #endif /* SURICATA_OUTPUT_FLOW_H */

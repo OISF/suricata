@@ -29,9 +29,6 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void);
 /* Processors online: */
 uint16_t UtilCpuGetNumProcessorsOnline(void);
 
-/* Only on Solaris */
-uint16_t UtilCpuGetNumProcessorsMax(void);
-
 void UtilCpuPrintSummary(void);
 
 uint64_t UtilCpuGetTicks(void);

@@ -548,11 +548,6 @@ static int file_logger_count = 0;
 static int filedata_logger_count = 0;
 static LoggerId logger_bits[ALPROTO_MAX];
 
-int RunModeOutputFileEnabled(void)
-{
-    return file_logger_count > 0;
-}
-
 int RunModeOutputFiledataEnabled(void)
 {
     return filedata_logger_count > 0;

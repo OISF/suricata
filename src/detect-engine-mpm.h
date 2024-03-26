@@ -45,10 +45,8 @@ void PatternMatchThreadPrepare(MpmThreadCtx *, uint16_t type);
 
 void PatternMatchDestroy(MpmCtx *, uint16_t);
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
-void PatternMatchThreadPrint(MpmThreadCtx *, uint16_t);
 
 int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
-void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);

@@ -36,9 +36,7 @@ unsigned int LiveDevStorageSize(void);
 
 void *LiveDevGetStorageById(LiveDevice *d, LiveDevStorageId id);
 int LiveDevSetStorageById(LiveDevice *d, LiveDevStorageId id, void *ptr);
-void *LiveDevAllocStorageById(LiveDevice *d, LiveDevStorageId id);
 
-void LiveDevFreeStorageById(LiveDevice *d, LiveDevStorageId id);
 void LiveDevFreeStorage(LiveDevice *d);
 
 LiveDevStorageId LiveDevStorageRegister(const char *name, const unsigned int size,

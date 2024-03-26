@@ -105,7 +105,6 @@ SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *,
 bool SCRadixAddKeyIPV4String(const char *, SCRadixTree *, void *);
 bool SCRadixAddKeyIPV6String(const char *, SCRadixTree *, void *);
 
-void SCRadixRemoveKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
 void SCRadixRemoveKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t);
 void SCRadixRemoveKeyIPV4(uint8_t *, SCRadixTree *);
 void SCRadixRemoveKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);

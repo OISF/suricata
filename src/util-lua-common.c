@@ -89,19 +89,6 @@ void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
  *
  *  If value is NULL, string "(null")" will be put on the stack.
  */
-void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
-{
-    lua_pushstring(luastate, key);
-    lua_pushstring(luastate, value ? value : "(null)");
-    lua_settable(luastate, -3);
-}
-
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
-{
-    lua_pushstring(luastate, key);
-    LuaPushStringBuffer(luastate, value, len);
-    lua_settable(luastate, -3);
-}
 
 /** \internal
  *  \brief fill lua stack with payload

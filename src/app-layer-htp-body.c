@@ -91,28 +91,6 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
  * \param body pointer to the HtpBody holding the list
  * \retval none
  */
-void HtpBodyPrint(HtpBody *body)
-{
-    if (SCLogDebugEnabled()||1) {
-        SCEnter();
-
-        if (body->first == NULL)
-            return;
-
-        HtpBodyChunk *cur = NULL;
-        SCLogDebug("--- Start body chunks at %p ---", body);
-        printf("--- Start body chunks at %p ---\n", body);
-        for (cur = body->first; cur != NULL; cur = cur->next) {
-            const uint8_t *data = NULL;
-            uint32_t data_len = 0;
-            StreamingBufferSegmentGetData(body->sb, &cur->sbseg, &data, &data_len);
-            SCLogDebug("Body %p; data %p, len %"PRIu32, body, data, data_len);
-            printf("Body %p; data %p, len %"PRIu32"\n", body, data, data_len);
-            PrintRawDataFp(stdout, data, data_len);
-        }
-        SCLogDebug("--- End body chunks at %p ---", body);
-    }
-}
 
 /**
  * \brief Free the information held in the request body

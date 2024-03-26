@@ -26,8 +26,5 @@
 
 uint32_t HostTimeoutHash(SCTime_t ts);
 
-uint32_t HostGetSpareCount(void);
-uint32_t HostGetActiveCount(void);
-
 #endif
 

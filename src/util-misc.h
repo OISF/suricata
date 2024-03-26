@@ -41,7 +41,6 @@
 
 /* size string parsing API */
 
-int ParseSizeStringU8(const char *, uint8_t *);
 int ParseSizeStringU16(const char *, uint16_t *);
 int ParseSizeStringU32(const char *, uint32_t *);
 int ParseSizeStringU64(const char *, uint64_t *);

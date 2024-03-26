@@ -878,11 +878,6 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
     mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
 }
 
-void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
-{
-    SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16" defunct", mpm_thread_ctx, mpm_matcher);
-    //mpm_table[mpm_matcher].PrintThreadCtx(mpm_thread_ctx);
-}
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);

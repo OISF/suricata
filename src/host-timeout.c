@@ -32,16 +32,6 @@
 
 #include "reputation.h"
 
-uint32_t HostGetSpareCount(void)
-{
-    return HostSpareQueueGetSize();
-}
-
-uint32_t HostGetActiveCount(void)
-{
-    return SC_ATOMIC_GET(host_counter);
-}
-
 /** \internal
  *  \brief See if we can really discard this host. Check use_cnt reference.
  *

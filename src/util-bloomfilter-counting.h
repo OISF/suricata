@@ -36,7 +36,6 @@ typedef struct BloomFilterCounting_ {
 /* prototypes */
 BloomFilterCounting *BloomFilterCountingInit(uint32_t, uint8_t, uint8_t, uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t));
 void BloomFilterCountingFree(BloomFilterCounting *);
-void BloomFilterCountingPrint(BloomFilterCounting *);
 int BloomFilterCountingAdd(BloomFilterCounting *, const void *, uint16_t);
 int BloomFilterCountingRemove(BloomFilterCounting *, const void *, uint16_t);
 int BloomFilterCountingTest(BloomFilterCounting *, const void *, uint16_t);

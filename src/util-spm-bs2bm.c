@@ -54,29 +54,6 @@ void Bs2BmBadchars(const uint8_t *needle, uint16_t needle_len, uint8_t *badchars
 }
 
 /**
- * \brief Array setup function for Bs2BmNocase of bad characters index (not found at the needle)
- *
- * \param needle pointer to the pattern we ar searching for
- * \param needle_len length limit of the needle
- * \param badchars pointer to an empty array of bachars. The array prepared contains
- *                 characters that can't be inside the needle_len. So the skips can be
- *                 faster
- */
-void Bs2BmBadcharsNocase(const uint8_t *needle, uint16_t needle_len, uint8_t *badchars)
-{
-    uint32_t i;
-    for (i = 0; i < ALPHABET_SIZE; i++)
-        badchars[i] = 1;
-
-    /* set to 0 the values where index as ascii is present
-     * because they are not badchars
-     */
-    for (i = 0; i < needle_len; i++) {
-        badchars[u8_tolower(needle[i])] = 0;
-    }
-}
-
-/**
  * \brief Basic search with a bad characters array. The array badchars contains
  *        flags at character's ascii index that can't be inside the needle. So the skips can be
  *        faster

@@ -130,13 +130,3 @@ DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q)
     DQLOCK_UNLOCK(q);
     return dt;
 }
-
-uint32_t DefragTrackerQueueLen(DefragTrackerQueue *q)
-{
-    uint32_t len;
-    DQLOCK_LOCK(q);
-    len = q->len;
-    DQLOCK_UNLOCK(q);
-    return len;
-}
-

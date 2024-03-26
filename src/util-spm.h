@@ -90,8 +90,8 @@ uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
                  const uint8_t *haystack, uint32_t haystack_len);
 
 /** Default algorithm to use: Boyer Moore */
-uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
-uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
+uint8_t *Bs2bmSearch(
+        const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
 

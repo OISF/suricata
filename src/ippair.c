@@ -95,11 +95,6 @@ uint64_t IPPairGetMemuse(void)
     return memusecopy;
 }
 
-uint32_t IPPairSpareQueueGetSize(void)
-{
-    return IPPairQueueLen(&ippair_spare_q);
-}
-
 void IPPairMoveToSpare(IPPair *h)
 {
     IPPairEnqueue(&ippair_spare_q, h);
@@ -517,11 +512,6 @@ void IPPairRelease(IPPair *h)
 {
     (void) IPPairDecrUsecnt(h);
     SCMutexUnlock(&h->m);
-}
-
-void IPPairLock(IPPair *h)
-{
-    SCMutexLock(&h->m);
 }
 
 void IPPairUnlock(IPPair *h)

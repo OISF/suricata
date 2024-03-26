@@ -111,14 +111,6 @@ void HashListTableFree(HashListTable *ht)
     SCFree(ht);
 }
 
-void HashListTablePrint(HashListTable *ht)
-{
-    printf("\n----------- Hash Table Stats ------------\n");
-    printf("Buckets:               %" PRIu32 "\n", ht->array_size);
-    printf("Hash function pointer: %p\n", ht->Hash);
-    printf("-----------------------------------------\n");
-}
-
 int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen)
 {
     if (ht == NULL || data == NULL)

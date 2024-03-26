@@ -345,7 +345,6 @@ int StringParseInt32(int32_t *res, int base, size_t len, const char *str);
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int StringParseInt16(int16_t *res, int base, size_t len, const char *str);
 
 /**
  * Extract signed integer value from a string as int8_t strictly.

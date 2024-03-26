@@ -66,27 +66,6 @@ void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, const uint8_t *buf, ui
     }
 }
 
-void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
-{
-#define BUFFER_LENGTH 2048
-    char nbuf[BUFFER_LENGTH] = "";
-    uint32_t offset = 0;
-
-    for (uint32_t u = 0; u < buflen; u++) {
-        if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
-            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
-                             "\\%c", buf[u]);
-        } else if (isprint(buf[u])) {
-            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
-                             "%c", buf[u]);
-        } else {
-            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
-                            "\\\\x%02X", buf[u]);
-        }
-    }
-    fprintf(fp, "%s", nbuf);
-}
-
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
 #define BUFFER_LENGTH 2048
