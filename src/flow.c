@@ -456,7 +456,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
             FlowUpdateTtlTS(f, p, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
-            FlowUpdateTtlTS(f, p, IPV6_GET_HLIM(p));
+            const IPV6Hdr *ip6h = PacketGetIPv6(p);
+            FlowUpdateTtlTS(f, p, IPV6_GET_RAW_HLIM(ip6h));
         }
     } else {
         f->tosrcpktcnt++;
@@ -479,7 +480,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
             FlowUpdateTtlTC(f, p, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
-            FlowUpdateTtlTC(f, p, IPV6_GET_HLIM(p));
+            const IPV6Hdr *ip6h = PacketGetIPv6(p);
+            FlowUpdateTtlTC(f, p, IPV6_GET_RAW_HLIM(ip6h));
         }
     }
 

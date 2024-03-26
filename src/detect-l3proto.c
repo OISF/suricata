@@ -192,7 +192,7 @@ static int DetectL3protoTestSig2(void)
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
     p->proto = IPPROTO_TCP;
-    p->ip6h = &ip6h;
+    UTHSetIPV6Hdr(p, &ip6h);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -252,7 +252,7 @@ static int DetectL3protoTestSig3(void)
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
     p->proto = IPPROTO_TCP;
-    p->ip6h = &ip6h;
+    UTHSetIPV6Hdr(p, &ip6h);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);

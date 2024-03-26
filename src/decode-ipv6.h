@@ -69,31 +69,11 @@ typedef struct IPV6Hdr_
 #define IPV6_SET_RAW_VER(ip6h, value)   ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
 #define IPV6_SET_RAW_NH(ip6h, value)    ((ip6h)->s_ip6_nxt = (value))
 
-#define IPV6_SET_L4PROTO(p,proto)       (p)->ip6vars.l4proto = (proto)
-#define IPV6_SET_EXTHDRS_LEN(p,len)     (p)->ip6vars.exthdrs_len = (len)
+#define IPV6_SET_L4PROTO(p, proto)   (p)->l3.vars.ip6.v.l4proto = (proto)
+#define IPV6_SET_EXTHDRS_LEN(p, len) (p)->l3.vars.ip6.v.exthdrs_len = (len)
 
-
-/* ONLY call these functions after making sure that:
- * 1. p->ip6h is set
- * 2. p->ip6h is valid (len is correct)
- */
-#define IPV6_GET_VER(p) \
-    IPV6_GET_RAW_VER((p)->ip6h)
-#define IPV6_GET_CLASS(p) \
-    IPV6_GET_RAW_CLASS((p)->ip6h)
-#define IPV6_GET_FLOW(p) \
-    IPV6_GET_RAW_FLOW((p)->ip6h)
-#define IPV6_GET_NH(p) \
-    (IPV6_GET_RAW_NH((p)->ip6h))
-#define IPV6_GET_PLEN(p) \
-    IPV6_GET_RAW_PLEN((p)->ip6h)
-#define IPV6_GET_HLIM(p) \
-    (IPV6_GET_RAW_HLIM((p)->ip6h))
-
-#define IPV6_GET_L4PROTO(p) \
-    ((p)->ip6vars.l4proto)
-#define IPV6_GET_EXTHDRS_LEN(p) \
-    ((p)->ip6vars.exthdrs_len)
+#define IPV6_GET_L4PROTO(p)     ((p)->l3.vars.ip6.v.l4proto)
+#define IPV6_GET_EXTHDRS_LEN(p) ((p)->l3.vars.ip6.v.exthdrs_len)
 
 /** \brief get the highest proto/next header field we know */
 //#define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ?
@@ -108,13 +88,6 @@ typedef struct IPV6Vars_
     uint16_t exthdrs_len;  /**< length of the exthdrs */
 } IPV6Vars;
 
-#define CLEAR_IPV6_PACKET(p) do { \
-    (p)->ip6h = NULL; \
-    (p)->ip6vars.l4proto = 0; \
-    (p)->ip6vars.exthdrs_len = 0; \
-    memset(&(p)->ip6eh, 0x00, sizeof((p)->ip6eh)); \
-} while (0)
-
 /* Fragment header */
 typedef struct IPV6FragHdr_
 {
@@ -124,10 +97,10 @@ typedef struct IPV6FragHdr_
     uint32_t ip6fh_ident;           /* identification */
 } __attribute__((__packed__)) IPV6FragHdr;
 
-#define IPV6_EXTHDR_GET_FH_NH(p)            (p)->ip6eh.fh_nh
-#define IPV6_EXTHDR_GET_FH_OFFSET(p)        (p)->ip6eh.fh_offset
-#define IPV6_EXTHDR_GET_FH_FLAG(p)          (p)->ip6eh.fh_more_frags_set
-#define IPV6_EXTHDR_GET_FH_ID(p)            (p)->ip6eh.fh_id
+#define IPV6_EXTHDR_GET_FH_NH(p)     (p)->l3.vars.ip6.eh.fh_nh
+#define IPV6_EXTHDR_GET_FH_OFFSET(p) (p)->l3.vars.ip6.eh.fh_offset
+#define IPV6_EXTHDR_GET_FH_FLAG(p)   (p)->l3.vars.ip6.eh.fh_more_frags_set
+#define IPV6_EXTHDR_GET_FH_ID(p)     (p)->l3.vars.ip6.eh.fh_id
 
 /* rfc 1826 */
 typedef struct IPV6AuthHdr_
@@ -235,10 +208,10 @@ typedef struct IPV6ExtHdrs_
 
 } IPV6ExtHdrs;
 
-#define IPV6_EXTHDR_SET_FH(p)       (p)->ip6eh.fh_set = true
-#define IPV6_EXTHDR_ISSET_FH(p)     (p)->ip6eh.fh_set
-#define IPV6_EXTHDR_SET_RH(p)       (p)->ip6eh.rh_set = true
-#define IPV6_EXTHDR_ISSET_RH(p)     (p)->ip6eh.rh_set
+#define IPV6_EXTHDR_SET_FH(p)   (p)->l3.vars.ip6.eh.fh_set = true
+#define IPV6_EXTHDR_ISSET_FH(p) (p)->l3.vars.ip6.eh.fh_set
+#define IPV6_EXTHDR_SET_RH(p)   (p)->l3.vars.ip6.eh.rh_set = true
+#define IPV6_EXTHDR_ISSET_RH(p) (p)->l3.vars.ip6.eh.rh_set
 
 void DecodeIPV6RegisterTests(void);
 
