@@ -37,6 +37,7 @@ int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
 #endif
 #ifdef UNITTESTS
 void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h);
+void UTHSetIPV6Hdr(Packet *p, IPV6Hdr *ip6h);
 
 uint32_t UTHSetIPv4Address(const char *);
 
