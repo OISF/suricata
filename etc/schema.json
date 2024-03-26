@@ -1043,7 +1043,8 @@
                                 "additionalProperties": false
                             },
                             "sshfp": {
-                                "description": "A Secure Shell fingerprint, used to verify the system’s authenticity",
+                                "description":
+                                        "A Secure Shell fingerprint, used to verify the system’s authenticity",
                                 "type": "object",
                                 "properties": {
                                     "fingerprint": {
@@ -1136,7 +1137,7 @@
                         },
                         "authorities": {
                             "$ref": "#/$defs/dns.authorities"
-			}
+                        }
                     },
                     "additionalProperties": false
                 },
@@ -1215,7 +1216,8 @@
                             }
                         },
                         "SSHFP": {
-                            "description": "A Secure Shell fingerprint is used to verify the system’s authenticity",
+                            "description":
+                                    "A Secure Shell fingerprint is used to verify the system’s authenticity",
                             "type": "array",
                             "minItems": 1,
                             "items": {
@@ -3732,14 +3734,6 @@
                         }
                     }
                 },
-                "memcap_pressure": {
-                    "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http",
-                    "type": "integer"
-                },
-                "memcap_pressure_max": {
-                    "description": "Maximum memcap_pressure seen by the engine",
-                    "type": "integer"
-                },
                 "app_layer": {
                     "type": "object",
                     "properties": {
@@ -3751,7 +3745,8 @@
                             "type": "object",
                             "properties": {
                                 "bittorrent-dht": {
-                                    "description": "Errors encountered parsing BitTorrent DHT protocol",
+                                    "description":
+                                            "Errors encountered parsing BitTorrent DHT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_tcp": {
@@ -3815,11 +3810,13 @@
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_tcp": {
-                                    "description": "Errors encountered parsing Kerberos v5/TCP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_udp": {
-                                    "description": "Errors encountered parsing Kerberos v5/UDP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "modbus": {
@@ -5272,6 +5269,21 @@
                             "type": "integer"
                         },
                         "rows_skipped": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "memcap": {
+                    "type": "object",
+                    "properties": {
+                        "pressure": {
+                            "description":
+                                    "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http",
+                            "type": "integer"
+                        },
+                        "pressure_max": {
+                            "description": "Maximum pressure seen by the engine",
                             "type": "integer"
                         }
                     },
