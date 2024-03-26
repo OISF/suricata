@@ -1987,8 +1987,6 @@ end:
 
 static int DetectIPProtoTestSig3(void)
 {
-    int result = 0;
-
     uint8_t raw_eth[] = {
         0x01, 0x00, 0x5e, 0x00, 0x00, 0x0d, 0x00, 0x26,
         0x88, 0x61, 0x3a, 0x80, 0x08, 0x00, 0x45, 0xc0,
@@ -2001,9 +1999,8 @@ static int DetectIPProtoTestSig3(void)
         0x4a, 0xea, 0x7a, 0x8e,
     };
 
-    Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
-    if (p == NULL)
-        return 0;
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -2017,57 +2014,26 @@ static int DetectIPProtoTestSig3(void)
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF(de_ctx == NULL);
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
-                               "ip_proto:103; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
+            "ip_proto:103; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!PacketAlertCheck(p, 1)) {
-        result = 0;
-        goto end;
-    } else {
-        result = 1;
-    }
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
+    FAIL_IF(!PacketAlertCheck(p, 1));
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
-    SCFree(p);
-    return result;
-
-end:
-    if (de_ctx) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
-
-    if (det_ctx)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-
-    FlowShutdown();
-    SCFree(p);
-
-    return result;
+    PacketFree(p);
+    PASS;
 }
 
 /**
