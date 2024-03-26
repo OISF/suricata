@@ -28,7 +28,9 @@
 
 #ifdef HAVE_DPDK
 
-void iceDeviceSetRSSHashFunction(uint64_t *rss_conf);
+#include "util-dpdk.h"
+
+void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
 
 #endif /* HAVE_DPDK */
 
