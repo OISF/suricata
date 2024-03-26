@@ -472,17 +472,13 @@ static int FragBitsTestParse03 (void)
     FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
-    IPV4Hdr ipv4h;
     int ret = 0;
     DetectFragBitsData *de = NULL;
     SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&ipv4h, 0, sizeof(IPV4Hdr));
     dtv.app_tctx = AppLayerGetCtxThread(&tv);
-
-    p->ip4h = &ipv4h;
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -558,22 +554,17 @@ static int FragBitsTestParse04 (void)
     FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
-    IPV4Hdr ipv4h;
     int ret = 0;
     DetectFragBitsData *de = NULL;
     SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&ipv4h, 0, sizeof(IPV4Hdr));
     dtv.app_tctx = AppLayerGetCtxThread(&tv);
-
-    p->ip4h = &ipv4h;
 
     FlowInitConfig(FLOW_QUIET);
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
-
 
     de = DetectFragBitsParse("!D");
 
