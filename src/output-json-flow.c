@@ -281,7 +281,7 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     /* Close flow. */
     jb_close(jb);
 
-    EveAddCommonOptions(&aft->ctx->cfg, NULL, f, jb);
+    EveAddCommonOptions(&aft->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
