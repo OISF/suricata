@@ -560,20 +560,13 @@ typedef struct Packet_
 #define icmpv6vars  l4vars.icmpv6vars
 
     TCPHdr *tcph;
-
     UDPHdr *udph;
-
     SCTPHdr *sctph;
-
     ESPHdr *esph;
-
     ICMPV4Hdr *icmpv4h;
-
     ICMPV6Hdr *icmpv6h;
-
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
-
     GREHdr *greh;
 
     /* ptr to the payload of the packet
