@@ -871,7 +871,7 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
     if (strcmp(driver_name, "net_i40e") == 0)
         i40eDeviceSetRSSConf(rss_conf);
     if (strcmp(driver_name, "net_ice") == 0)
-        iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
+        iceDeviceSetRSSConf(rss_conf);
     if (strcmp(driver_name, "net_ixgbe") == 0)
         ixgbeDeviceSetRSSHashFunction(&rss_conf->rss_hf);
     if (strcmp(driver_name, "net_e1000_igb") == 0)
