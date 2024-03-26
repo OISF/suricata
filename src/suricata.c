@@ -1594,6 +1594,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
+                // coverity[forward_null : FALSE]
                 suri->pid_filename = SCStrdup(optarg);
                 if (suri->pid_filename == NULL) {
                     SCLogError("strdup failed: %s", strerror(errno));
@@ -1632,6 +1633,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
+                // coverity[forward_null : FALSE]
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     SCLogError("failed to set erf-file.file");
                     return TM_ECODE_FAILED;
@@ -1662,6 +1664,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_NAPATECH */
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
+                // coverity[forward_null : FALSE]
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
                     SCLogError("failed to set pcap-buffer-size");
                     return TM_ECODE_FAILED;
