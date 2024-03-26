@@ -178,6 +178,7 @@ int ICMPv6GetCounterpart(uint8_t type)
 int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                  const uint8_t *pkt, uint32_t len)
 {
+    const IPV6Hdr *ip6h = PacketGetIPv6(p);
     int full_hdr = 0;
     StatsIncr(tv, dtv->counter_icmpv6);
 
@@ -327,7 +328,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
-            if (IPV6_GET_HLIM(p) != 1) {
+            if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
                 ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
             }
             break;
@@ -336,7 +337,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
-            if (IPV6_GET_HLIM(p) != 1) {
+            if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
                 ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
             }
             break;
@@ -345,7 +346,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
-            if (IPV6_GET_HLIM(p) != 1) {
+            if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
                 ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
             }
             break;
@@ -1532,11 +1533,11 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6 + 14, sizeof(raw_ipv6) - 14);
     FAIL_IF_NULL(p->icmpv6h);
 
-    uint16_t icmpv6_len = IPV6_GET_RAW_PLEN(p->ip6h) -
-        ((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
+    const IPV6Hdr *ip6h = PacketGetIPv6(p);
+    uint16_t icmpv6_len = IPV6_GET_RAW_PLEN(ip6h) -
+                          ((const uint8_t *)p->icmpv6h - (const uint8_t *)ip6h - IPV6_HEADER_LEN);
     FAIL_IF(icmpv6_len != 28);
-    FAIL_IF(ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
-            (uint16_t *)p->icmpv6h, icmpv6_len) != csum);
+    FAIL_IF(ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->icmpv6h, icmpv6_len) != csum);
 
     PacketRecycle(p);
     FlowShutdown();

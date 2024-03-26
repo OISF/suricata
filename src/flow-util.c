@@ -160,9 +160,10 @@ void FlowInit(Flow *f, const Packet *p)
         f->min_ttl_toserver = f->max_ttl_toserver = IPV4_GET_RAW_IPTTL(ip4h);
         f->flags |= FLOW_IPV4;
     } else if (PacketIsIPv6(p)) {
-        FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
-        FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
-        f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_HLIM((p));
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(ip6h, &f->src);
+        FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(ip6h, &f->dst);
+        f->min_ttl_toserver = f->max_ttl_toserver = IPV6_GET_RAW_HLIM(ip6h);
         f->flags |= FLOW_IPV6;
     } else {
         SCLogDebug("neither IPv4 or IPv6, weird");
