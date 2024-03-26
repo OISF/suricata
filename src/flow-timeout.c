@@ -177,31 +177,31 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
             }
         }
         /* set the ip header */
-        p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
+        IPV6Hdr *ip6h = PacketSetIPV6(p, GET_PKT_DATA(p));
         /* version 6 */
-        p->ip6h->s_ip6_vfc = 0x60;
-        p->ip6h->s_ip6_flow = 0;
-        p->ip6h->s_ip6_nxt = IPPROTO_TCP;
-        p->ip6h->s_ip6_plen = htons(20);
-        p->ip6h->s_ip6_hlim = 64;
+        ip6h->s_ip6_vfc = 0x60;
+        ip6h->s_ip6_flow = 0;
+        ip6h->s_ip6_nxt = IPPROTO_TCP;
+        ip6h->s_ip6_plen = htons(20);
+        ip6h->s_ip6_hlim = 64;
         if (direction == 0) {
-            p->ip6h->s_ip6_src[0] = f->src.addr_data32[0];
-            p->ip6h->s_ip6_src[1] = f->src.addr_data32[1];
-            p->ip6h->s_ip6_src[2] = f->src.addr_data32[2];
-            p->ip6h->s_ip6_src[3] = f->src.addr_data32[3];
-            p->ip6h->s_ip6_dst[0] = f->dst.addr_data32[0];
-            p->ip6h->s_ip6_dst[1] = f->dst.addr_data32[1];
-            p->ip6h->s_ip6_dst[2] = f->dst.addr_data32[2];
-            p->ip6h->s_ip6_dst[3] = f->dst.addr_data32[3];
+            ip6h->s_ip6_src[0] = f->src.addr_data32[0];
+            ip6h->s_ip6_src[1] = f->src.addr_data32[1];
+            ip6h->s_ip6_src[2] = f->src.addr_data32[2];
+            ip6h->s_ip6_src[3] = f->src.addr_data32[3];
+            ip6h->s_ip6_dst[0] = f->dst.addr_data32[0];
+            ip6h->s_ip6_dst[1] = f->dst.addr_data32[1];
+            ip6h->s_ip6_dst[2] = f->dst.addr_data32[2];
+            ip6h->s_ip6_dst[3] = f->dst.addr_data32[3];
         } else {
-            p->ip6h->s_ip6_src[0] = f->dst.addr_data32[0];
-            p->ip6h->s_ip6_src[1] = f->dst.addr_data32[1];
-            p->ip6h->s_ip6_src[2] = f->dst.addr_data32[2];
-            p->ip6h->s_ip6_src[3] = f->dst.addr_data32[3];
-            p->ip6h->s_ip6_dst[0] = f->src.addr_data32[0];
-            p->ip6h->s_ip6_dst[1] = f->src.addr_data32[1];
-            p->ip6h->s_ip6_dst[2] = f->src.addr_data32[2];
-            p->ip6h->s_ip6_dst[3] = f->src.addr_data32[3];
+            ip6h->s_ip6_src[0] = f->dst.addr_data32[0];
+            ip6h->s_ip6_src[1] = f->dst.addr_data32[1];
+            ip6h->s_ip6_src[2] = f->dst.addr_data32[2];
+            ip6h->s_ip6_src[3] = f->dst.addr_data32[3];
+            ip6h->s_ip6_dst[0] = f->src.addr_data32[0];
+            ip6h->s_ip6_dst[1] = f->src.addr_data32[1];
+            ip6h->s_ip6_dst[2] = f->src.addr_data32[2];
+            ip6h->s_ip6_dst[3] = f->src.addr_data32[3];
         }
 
         /* set the tcp header */
@@ -239,8 +239,8 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
          * a wrong checksum */
         ip4h->ip_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), 0);
     } else if (FLOW_IS_IPV6(f)) {
-        p->tcph->th_sum = TCPChecksum(p->ip6h->s_ip6_addrs,
-                                              (uint16_t *)p->tcph, 20, 0);
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        p->tcph->th_sum = TCPChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph, 20, 0);
     }
 
     p->ts = TimeGet();

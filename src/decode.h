@@ -159,22 +159,23 @@ typedef struct Address_ {
         (a)->addr_data32[3] = 0;                                                                   \
     } while (0)
 
-/* Set the IPv6 addresses into the Addrs of the Packet.
- * Make sure p->ip6h is initialized and validated. */
-#define SET_IPV6_SRC_ADDR(p, a) do {                    \
-        (a)->family = AF_INET6;                         \
-        (a)->addr_data32[0] = (p)->ip6h->s_ip6_src[0];  \
-        (a)->addr_data32[1] = (p)->ip6h->s_ip6_src[1];  \
-        (a)->addr_data32[2] = (p)->ip6h->s_ip6_src[2];  \
-        (a)->addr_data32[3] = (p)->ip6h->s_ip6_src[3];  \
+/* Set the IPv6 addresses into the Addrs of the Packet. */
+#define SET_IPV6_SRC_ADDR(ip6h, a)                                                                 \
+    do {                                                                                           \
+        (a)->family = AF_INET6;                                                                    \
+        (a)->addr_data32[0] = (ip6h)->s_ip6_src[0];                                                \
+        (a)->addr_data32[1] = (ip6h)->s_ip6_src[1];                                                \
+        (a)->addr_data32[2] = (ip6h)->s_ip6_src[2];                                                \
+        (a)->addr_data32[3] = (ip6h)->s_ip6_src[3];                                                \
     } while (0)
 
-#define SET_IPV6_DST_ADDR(p, a) do {                    \
-        (a)->family = AF_INET6;                         \
-        (a)->addr_data32[0] = (p)->ip6h->s_ip6_dst[0];  \
-        (a)->addr_data32[1] = (p)->ip6h->s_ip6_dst[1];  \
-        (a)->addr_data32[2] = (p)->ip6h->s_ip6_dst[2];  \
-        (a)->addr_data32[3] = (p)->ip6h->s_ip6_dst[3];  \
+#define SET_IPV6_DST_ADDR(ip6h, a)                                                                 \
+    do {                                                                                           \
+        (a)->family = AF_INET6;                                                                    \
+        (a)->addr_data32[0] = (ip6h)->s_ip6_dst[0];                                                \
+        (a)->addr_data32[1] = (ip6h)->s_ip6_dst[1];                                                \
+        (a)->addr_data32[2] = (ip6h)->s_ip6_dst[2];                                                \
+        (a)->addr_data32[3] = (ip6h)->s_ip6_dst[3];                                                \
     } while (0)
 
 /* Set the TCP ports into the Ports of the Packet.
@@ -245,7 +246,6 @@ typedef uint16_t Port;
  *We determine the ip version. */
 #define IP_GET_RAW_VER(pkt) ((((pkt)[0] & 0xf0) >> 4))
 
-#define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
 #define PKT_IS_TCP(p)       (((p)->tcph != NULL))
 #define PKT_IS_UDP(p)       (((p)->udph != NULL))
 #define PKT_IS_ICMPV4(p)    (((p)->icmpv4h != NULL))
@@ -414,6 +414,7 @@ struct PacketQueue_;
 enum PacketL3Types {
     PACKET_L3_UNKNOWN = 0,
     PACKET_L3_IPV4,
+    PACKET_L3_IPV6,
 };
 
 struct PacketL3 {
@@ -422,10 +423,15 @@ struct PacketL3 {
     int32_t comp_csum;
     union Hdrs {
         IPV4Hdr *ip4h;
+        IPV6Hdr *ip6h;
     } hdrs;
     /* IPv4 and IPv6 are mutually exclusive */
     union {
         IPV4Vars ip4;
+        struct {
+            IPV6Vars v;
+            IPV6ExtHdrs eh;
+        } ip6;
     } vars;
 };
 
@@ -553,11 +559,6 @@ typedef struct Packet_
     int32_t level4_comp_csum;
 
     struct PacketL3 l3;
-    IPV6Hdr *ip6h;
-    struct {
-        IPV6Vars ip6vars;
-        IPV6ExtHdrs ip6eh;
-    };
 
     /* Can only be one of TCP, UDP, ICMP at any given time */
     union {
@@ -670,6 +671,7 @@ typedef struct Packet_
 } Packet;
 
 static inline bool PacketIsIPv4(const Packet *p);
+static inline bool PacketIsIPv6(const Packet *p);
 
 /** highest mtu of the interfaces we monitor */
 #define DEFAULT_MTU 1500
@@ -709,7 +711,7 @@ static inline uint8_t PacketGetIPProto(const Packet *p)
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *hdr = PacketGetIPv4(p);
         return IPV4_GET_RAW_IPPROTO(hdr);
-    } else if (PKT_IS_IPV6(p)) {
+    } else if (PacketIsIPv6(p)) {
         return IPV6_GET_L4PROTO(p);
     }
     return 0;
@@ -724,14 +726,28 @@ static inline uint8_t PacketGetIPv4IPProto(const Packet *p)
     return 0;
 }
 
-static inline void PacketClearL3(Packet *p)
+static inline const IPV6Hdr *PacketGetIPv6(const Packet *p)
 {
-    memset(&p->l3, 0, sizeof(p->l3));
+    DEBUG_VALIDATE_BUG_ON(!PacketIsIPv6(p));
+    return p->l3.hdrs.ip6h;
+}
+
+static inline IPV6Hdr *PacketSetIPV6(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l3.type != PACKET_L3_UNKNOWN);
+    p->l3.type = PACKET_L3_IPV6;
+    p->l3.hdrs.ip6h = (IPV6Hdr *)buf;
+    return p->l3.hdrs.ip6h;
 }
 
 static inline bool PacketIsIPv6(const Packet *p)
 {
-    return PKT_IS_IPV6(p);
+    return p->l3.type == PACKET_L3_IPV6;
+}
+
+static inline void PacketClearL3(Packet *p)
+{
+    memset(&p->l3, 0, sizeof(p->l3));
 }
 
 /** \brief Structure to hold thread specific data for all decode modules */
