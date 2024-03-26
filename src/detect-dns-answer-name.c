@@ -50,8 +50,9 @@ static int DetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
     return 0;
 }
 
-static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx, uint8_t flags,
-        const DetectEngineTransforms *transforms, void *txv, uint32_t index, int list_id)
+static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
+        uint32_t index)
 {
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, index);
     if (buffer == NULL) {
@@ -74,74 +75,6 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx, uint8_t flags
     return buffer;
 }
 
-static uint8_t DetectEngineInspectCb(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    for (uint32_t i = 0;; i++) {
-        InspectionBuffer *buffer = GetBuffer(det_ctx, flags, transforms, txv, i, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL) {
-            break;
-        }
-
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-    }
-
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-static void PrefilterTx(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
-        void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpm *ctx = (const PrefilterMpm *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    for (uint32_t i = 0;; i++) {
-        InspectionBuffer *buffer = GetBuffer(det_ctx, flags, ctx->transforms, txv, i, list_id);
-        if (buffer == NULL) {
-            break;
-        }
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-    }
-}
-
-static void PrefilterMpmFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpm *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL) {
-        return -1;
-    }
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTx, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFree, mpm_reg->pname);
-}
-
 void DetectDnsAnswerNameRegister(void)
 {
     static const char *keyword = "dns.answer.name";
@@ -154,16 +87,9 @@ void DetectDnsAnswerNameRegister(void)
 
     /* Register in the TO_SERVER direction, even though this is not
        normal, it could be provided as part of a request. */
-    DetectAppLayerInspectEngineRegister(
-            keyword, ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectCb, NULL);
-    DetectAppLayerMpmRegister(
-            keyword, SIG_FLAG_TOSERVER, 2, PrefilterMpmRegister, NULL, ALPROTO_DNS, 1);
-
+    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, GetBuffer, 2, 1);
     /* Register in the TO_CLIENT direction. */
-    DetectAppLayerInspectEngineRegister(
-            keyword, ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectCb, NULL);
-    DetectAppLayerMpmRegister(
-            keyword, SIG_FLAG_TOCLIENT, 2, PrefilterMpmRegister, NULL, ALPROTO_DNS, 1);
+    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0, GetBuffer, 2, 1);
 
     DetectBufferTypeSetDescriptionByName(keyword, "dns answer name");
     DetectBufferTypeSupportsMultiInstance(keyword);

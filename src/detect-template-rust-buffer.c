@@ -41,14 +41,39 @@
 #include "detect-engine-build.h"
 #include "rust.h"
 
-static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *, const char *);
-static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 #ifdef UNITTESTS
 static void DetectTemplateRustBufferRegisterTests(void);
 #endif
 static int g_template_rust_id = 0;
+
+static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    s->init_data->list = g_template_rust_id;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (!buffer->initialized) {
+        uint32_t data_len = 0;
+        const uint8_t *data = NULL;
+        if (flags & STREAM_TOSERVER) {
+            rs_template_get_request_buffer(txv, &data, &data_len);
+        } else {
+            rs_template_get_response_buffer(txv, &data, &data_len);
+        }
+        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
 
 void DetectTemplateRustBufferRegister(void)
 {
@@ -68,50 +93,13 @@ void DetectTemplateRustBufferRegister(void)
 
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectTemplateRustBuffer, NULL);
+            DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerInspectEngineRegister("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectTemplateRustBuffer, NULL);
+            DetectEngineInspectBufferGeneric, GetData);
 
     g_template_rust_id = DetectBufferTypeGetByName("template_buffer");
 
     SCLogNotice("Template application layer detect registered.");
-}
-
-static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
-{
-    s->init_data->list = g_template_rust_id;
-
-    if (DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0)
-        return -1;
-
-    return 0;
-}
-
-static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    uint8_t ret = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-
-    if (flags & STREAM_TOSERVER) {
-        rs_template_get_request_buffer(txv, &data, &data_len);
-    } else if (flags & STREAM_TOCLIENT) {
-        rs_template_get_response_buffer(txv, &data, &data_len);
-    }
-
-    if (data != NULL) {
-        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            ret = DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-    }
-
-    SCLogNotice("Returning %u.", ret);
-    return ret;
 }
 
 #ifdef UNITTESTS

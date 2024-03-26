@@ -42,11 +42,6 @@ static void DetectQuicCyuStringRegisterTests(void);
 #define BUFFER_DESC  "QUIC CYU String"
 static int g_buffer_id = 0;
 
-struct QuicStringGetDataArgs {
-    uint32_t local_id; /**< used as index into thread inspect array */
-    void *txv;
-};
-
 static int DetectQuicCyuStringSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
@@ -59,13 +54,12 @@ static int DetectQuicCyuStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
 }
 
 static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, struct QuicStringGetDataArgs *cbdata,
-        int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
+        int list_id, uint32_t local_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer =
-            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
     if (buffer->initialized)
@@ -73,7 +67,7 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_quic_tx_get_cyu_string(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+    if (rs_quic_tx_get_cyu_string(txv, local_id, &data, &data_len) == 0) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
@@ -81,93 +75,6 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
     InspectionBufferSetupMulti(buffer, transforms, data, data_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static uint8_t DetectEngineInspectQuicString(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    uint32_t local_id = 0;
-
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    while (1) {
-        struct QuicStringGetDataArgs cbdata = {
-            local_id,
-            txv,
-        };
-        InspectionBuffer *buffer =
-                QuicStringGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-/** \brief QuicString Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxQuicString(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmListId *ctx = (const PrefilterMpmListId *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    uint32_t local_id = 0;
-    while (1) {
-        // loop until we get a NULL
-
-        struct QuicStringGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer = QuicStringGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-
-        local_id++;
-    }
-}
-
-static void PrefilterMpmListIdFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmListIdRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxQuicString, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmListIdFree, mpm_reg->pname);
 }
 
 void DetectQuicCyuStringRegister(void)
@@ -183,11 +90,8 @@ void DetectQuicCyuStringRegister(void)
     sigmatch_table[DETECT_AL_QUIC_CYU_STRING].RegisterTests = DetectQuicCyuStringRegisterTests;
 #endif
 
-    DetectAppLayerMpmRegister(
-            BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterMpmListIdRegister, NULL, ALPROTO_QUIC, 1);
-
-    DetectAppLayerInspectEngineRegister(
-            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, DetectEngineInspectQuicString, NULL);
+    DetectAppLayerMultiRegister(
+            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, QuicStringGetData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
