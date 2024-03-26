@@ -23,7 +23,9 @@ use crate::common::rust_string_to_c;
 use nom7::Err;
 use std;
 use std::os::raw::c_char;
+use std::fmt;
 use x509_parser::prelude::*;
+use crate::x509::GeneralName;
 mod time;
 mod log;
 
@@ -45,6 +47,18 @@ pub enum X509DecodeError {
 }
 
 pub struct X509(X509Certificate<'static>);
+
+pub struct SCGeneralName<'a>(&'a GeneralName<'a>);
+
+impl<'a> fmt::Display for SCGeneralName<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut fin_str = format!("{}", self.0);
+        fin_str = fin_str[8..].to_string();
+        let fin_str_len = fin_str.len() - 1;
+        fin_str = fin_str[..fin_str_len].to_string();
+        write!(f, "{}", fin_str)
+    }
+}
 
 /// Attempt to parse a X.509 from input, and return a pointer to the parsed object if successful.
 ///
@@ -77,6 +91,40 @@ pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
     let x509 = cast_pointer! {ptr, X509};
     let subject = x509.0.tbs_certificate.subject.to_string();
     rust_string_to_c(subject)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_x509_get_subjectaltname_len(ptr: *const X509) -> u8 {
+    if ptr.is_null() {
+        return 0;
+    }
+    let x509 = cast_pointer! {ptr, X509};
+    let mut sans_values = Vec::new();
+    let san_list = x509.0.tbs_certificate.subject_alternative_name().unwrap();
+    if let Some(sans) = san_list {
+        sans_values = sans.value.general_names.clone();
+//        for san in &sans_values {
+//            println!("SAN: {:?}", san);
+//        }
+    }
+    sans_values.len() as u8
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_x509_get_subjectaltname_at(ptr: *const X509, idx: u8) -> *mut c_char {
+    if ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let x509 = cast_pointer! {ptr, X509};
+    let mut sans_values = Vec::new();
+    let san_list = x509.0.tbs_certificate.subject_alternative_name().unwrap();
+    if let Some(sans) = san_list {
+        sans_values = sans.value.general_names.clone();
+    }
+    let general_name = &sans_values[idx as usize];
+    let dns_name = SCGeneralName(general_name);
+//    println!("SAN: {:?}", dns_name.to_string());
+    rust_string_to_c(dns_name.to_string())
 }
 
 #[no_mangle]
