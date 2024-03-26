@@ -287,6 +287,8 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
         }                                                                                          \
     } while (0)
 
+static void SSLStateCertSANFree(SSLStateConnp *connp);
+
 static void *SSLGetTx(void *state, uint64_t tx_id)
 {
     SSLState *ssl_state = (SSLState *)state;
@@ -541,6 +543,15 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
         }
         connp->cert0_issuerdn = str;
 
+        connp->cert0_sans_len = rs_x509_get_subjectaltname_len(x509);
+        char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
+        if (sans == NULL) {
+            goto error;
+        }
+        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
+            sans[i] = rs_x509_get_subjectaltname_at(x509, i);
+        }
+        connp->cert0_sans = sans;
         str = rs_x509_get_serial(x509);
         if (str == NULL) {
             err_code = ERR_INVALID_SERIAL;
@@ -579,6 +590,8 @@ error:
         TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
     if (x509 != NULL)
         rs_x509_free(x509);
+
+    SSLStateCertSANFree(connp);
     return -1;
 
 invalid_cert:
@@ -2659,6 +2672,16 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     return (void *)ssl_state;
 }
 
+static void SSLStateCertSANFree(SSLStateConnp *connp)
+{
+    if (connp->cert0_sans) {
+        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
+            rs_cstring_free(connp->cert0_sans[i]);
+        }
+        SCFree(connp->cert0_sans);
+    }
+}
+
 /**
  * \internal
  * \brief Function to free the SSL state memory.
@@ -2706,6 +2729,9 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.ja3_hash);
     if (ssl_state->server_connp.hs_buffer)
         SCFree(ssl_state->server_connp.hs_buffer);
+
+    SSLStateCertSANFree(&ssl_state->server_connp);
+    SSLStateCertSANFree(&ssl_state->client_connp);
 
     AppLayerDecoderEventsFreeEvents(&ssl_state->tx_data.events);
 
