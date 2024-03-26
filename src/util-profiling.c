@@ -1208,15 +1208,16 @@ int SCProfileRuleStart(Packet *p)
         p->flags |= PKT_PROFILE;
         return 1;
     }
-#else
+#endif
+    if (p->flags & PKT_PROFILE) {
+        return 1;
+    }
+
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
-    if (sample % rate == 0) {
+    if ((sample % rate) == 0) {
         p->flags |= PKT_PROFILE;
         return 1;
     }
-#endif
-    if (p->flags & PKT_PROFILE)
-        return 1;
     return 0;
 }
 
@@ -1450,17 +1451,20 @@ void SCProfilingInit(void)
 /* see if we want to profile rules for this packet */
 int SCProfileRuleStart(Packet *p)
 {
+    /* Move first so we'll always finish even if dynamically disabled */
+    if (p->flags & PKT_PROFILE)
+        return 1;
+
     if (!SC_ATOMIC_GET(profiling_rules_active)) {
         return 0;
     }
+
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
     if ((sample & rate) == 0) {
         p->flags |= PKT_PROFILE;
         return 1;
     }
 
-    if (p->flags & PKT_PROFILE)
-        return 1;
     return 0;
 }
 
