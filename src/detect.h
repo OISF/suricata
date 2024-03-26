@@ -49,6 +49,9 @@
  *  classtype. */
 #define DETECT_DEFAULT_PRIO 3
 
+// tx_id value to use when there is no transaction
+#define PACKET_ALERT_NOTX UINT64_MAX
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
