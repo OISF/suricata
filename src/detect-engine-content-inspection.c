@@ -543,19 +543,17 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_BYTE_EXTRACT) {
 
-        const DetectByteExtractData *bed = (const DetectByteExtractData *)smd->ctx;
+        const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)smd->ctx;
         uint8_t endian = bed->endian;
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
-            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE &&
-            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
+        if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) && endian == EndianDCE &&
+                flags & (DETECT_CI_FLAGS_DCE_LE | DETECT_CI_FLAGS_DCE_BE)) {
 
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
-                       DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
+            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ? LittleEndian : BigEndian);
         }
 
         if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer, buffer_len,

@@ -41,7 +41,7 @@ bool DetectByteRetrieveSMVar(const char *arg, const Signature *s, DetectByteInde
 {
     SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(arg, s);
     if (bed_sm != NULL) {
-        *index = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        *index = ((SCDetectByteExtractData *)bed_sm->ctx)->local_id;
         return true;
     }
 

@@ -146,7 +146,7 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathDa
             }
         }
     } else {
-        ByteMathEndian bme = endian;
+        ByteEndian bme = endian;
         int endianness = (bme == BigEndian) ? BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, nbytes, ptr);
         if (extbytes != nbytes) {

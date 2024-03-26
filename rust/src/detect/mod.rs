@@ -17,14 +17,15 @@
 
 //! Module for rule parsing.
 
+pub mod byte_extract;
 pub mod byte_math;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod requires;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
-pub mod requires;
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -40,6 +41,47 @@ pub trait EnumString<T> {
 
     /// Get an enum variant from parsing a string.
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+// endian <big|little|dce>
+pub enum ByteEndian {
+    _EndianNone = 0,
+    BigEndian = 1,
+    LittleEndian = 2,
+    EndianDCE = 3,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ByteBase {
+    _BaseNone = 0,
+    BaseOct = 8,
+    BaseDec = 10,
+    BaseHex = 16,
+}
+
+fn get_string_value(value: &str) -> Option<ByteBase> {
+    let res = match value {
+        "hex" => Some(ByteBase::BaseHex),
+        "oct" => Some(ByteBase::BaseOct),
+        "dec" => Some(ByteBase::BaseDec),
+        _ => None,
+    };
+
+    res
+}
+
+fn get_endian_value(value: &str) -> Option<ByteEndian> {
+    let res = match value {
+        "big" => Some(ByteEndian::BigEndian),
+        "little" => Some(ByteEndian::LittleEndian),
+        "dce" => Some(ByteEndian::EndianDCE),
+        _ => None,
+    };
+
+    res
 }
 
 #[cfg(test)]
