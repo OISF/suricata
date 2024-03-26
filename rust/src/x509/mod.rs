@@ -23,7 +23,9 @@ use crate::common::rust_string_to_c;
 use nom7::Err;
 use std;
 use std::os::raw::c_char;
+use std::fmt;
 use x509_parser::prelude::*;
+use crate::x509::GeneralName;
 mod time;
 mod log;
 
@@ -45,6 +47,19 @@ pub enum X509DecodeError {
 }
 
 pub struct X509(X509Certificate<'static>);
+
+pub struct SCGeneralName<'a>(&'a GeneralName<'a>);
+
+impl<'a> fmt::Display for SCGeneralName<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            GeneralName::DNSName(s) => write!(f, "{}", s),
+            GeneralName::URI(s) => write!(f, "{}", s),
+            GeneralName::IPAddress(s) => write!(f, "{:?}", s),
+            _ => write!(f, "{}", self.0)
+        }
+    }
+}
 
 /// Attempt to parse a X.509 from input, and return a pointer to the parsed object if successful.
 ///
@@ -77,6 +92,34 @@ pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
     let x509 = cast_pointer! {ptr, X509};
     let subject = x509.0.tbs_certificate.subject.to_string();
     rust_string_to_c(subject)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_x509_get_subjectaltname_len(ptr: *const X509) -> u16 {
+    if ptr.is_null() {
+        return 0;
+    }
+    let x509 = cast_pointer! {ptr, X509};
+    let san_list = x509.0.tbs_certificate.subject_alternative_name();
+    if let Ok(Some(sans)) = san_list {
+        return sans.value.general_names.len() as u16;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_x509_get_subjectaltname_at(ptr: *const X509, idx: u16) -> *mut c_char {
+    if ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let x509 = cast_pointer! {ptr, X509};
+    let san_list = x509.0.tbs_certificate.subject_alternative_name().unwrap();
+    if let Some(sans) = san_list {
+        let general_name = &sans.value.general_names[idx as usize];
+        let dns_name = SCGeneralName(&general_name);
+        return rust_string_to_c(dns_name.to_string());
+    }
+    return std::ptr::null_mut();
 }
 
 #[no_mangle]
