@@ -291,6 +291,8 @@ void FlowSwap(Flow *f)
     FlowSwapFlags(f);
     FlowSwapFileFlags(f);
 
+    SWAP_VARS(FlowThreadId, f->thread_id[0], f->thread_id[1]);
+
     if (f->proto == IPPROTO_TCP) {
         TcpStreamFlowSwap(f);
     }
