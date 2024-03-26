@@ -5684,11 +5684,9 @@ static inline int StreamTcpValidateChecksum(Packet *p)
             p->level4_comp_csum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph,
                     (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
         } else if (PacketIsIPv6(p)) {
-            p->level4_comp_csum = TCPV6Checksum(p->ip6h->s_ip6_addrs,
-                                                (uint16_t *)p->tcph,
-                                                (p->payload_len +
-                                                    TCP_GET_HLEN(p)),
-                                                p->tcph->th_sum);
+            const IPV6Hdr *ip6h = PacketGetIPv6(p);
+            p->level4_comp_csum = TCPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph,
+                    (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
         }
     }
 
@@ -6772,31 +6770,31 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
             }
         }
         /* set the ip header */
-        np->ip6h = (IPV6Hdr *)GET_PKT_DATA(np);
+        IPV6Hdr *ip6h = PacketSetIPV6(np, GET_PKT_DATA(np));
         /* version 6 */
-        np->ip6h->s_ip6_vfc = 0x60;
-        np->ip6h->s_ip6_flow = 0;
-        np->ip6h->s_ip6_nxt = IPPROTO_TCP;
-        np->ip6h->s_ip6_plen = htons(20);
-        np->ip6h->s_ip6_hlim = 64;
+        ip6h->s_ip6_vfc = 0x60;
+        ip6h->s_ip6_flow = 0;
+        ip6h->s_ip6_nxt = IPPROTO_TCP;
+        ip6h->s_ip6_plen = htons(20);
+        ip6h->s_ip6_hlim = 64;
         if (dir == 0) {
-            np->ip6h->s_ip6_src[0] = f->src.addr_data32[0];
-            np->ip6h->s_ip6_src[1] = f->src.addr_data32[1];
-            np->ip6h->s_ip6_src[2] = f->src.addr_data32[2];
-            np->ip6h->s_ip6_src[3] = f->src.addr_data32[3];
-            np->ip6h->s_ip6_dst[0] = f->dst.addr_data32[0];
-            np->ip6h->s_ip6_dst[1] = f->dst.addr_data32[1];
-            np->ip6h->s_ip6_dst[2] = f->dst.addr_data32[2];
-            np->ip6h->s_ip6_dst[3] = f->dst.addr_data32[3];
+            ip6h->s_ip6_src[0] = f->src.addr_data32[0];
+            ip6h->s_ip6_src[1] = f->src.addr_data32[1];
+            ip6h->s_ip6_src[2] = f->src.addr_data32[2];
+            ip6h->s_ip6_src[3] = f->src.addr_data32[3];
+            ip6h->s_ip6_dst[0] = f->dst.addr_data32[0];
+            ip6h->s_ip6_dst[1] = f->dst.addr_data32[1];
+            ip6h->s_ip6_dst[2] = f->dst.addr_data32[2];
+            ip6h->s_ip6_dst[3] = f->dst.addr_data32[3];
         } else {
-            np->ip6h->s_ip6_src[0] = f->dst.addr_data32[0];
-            np->ip6h->s_ip6_src[1] = f->dst.addr_data32[1];
-            np->ip6h->s_ip6_src[2] = f->dst.addr_data32[2];
-            np->ip6h->s_ip6_src[3] = f->dst.addr_data32[3];
-            np->ip6h->s_ip6_dst[0] = f->src.addr_data32[0];
-            np->ip6h->s_ip6_dst[1] = f->src.addr_data32[1];
-            np->ip6h->s_ip6_dst[2] = f->src.addr_data32[2];
-            np->ip6h->s_ip6_dst[3] = f->src.addr_data32[3];
+            ip6h->s_ip6_src[0] = f->dst.addr_data32[0];
+            ip6h->s_ip6_src[1] = f->dst.addr_data32[1];
+            ip6h->s_ip6_src[2] = f->dst.addr_data32[2];
+            ip6h->s_ip6_src[3] = f->dst.addr_data32[3];
+            ip6h->s_ip6_dst[0] = f->src.addr_data32[0];
+            ip6h->s_ip6_dst[1] = f->src.addr_data32[1];
+            ip6h->s_ip6_dst[2] = f->src.addr_data32[2];
+            ip6h->s_ip6_dst[3] = f->src.addr_data32[3];
         }
 
         /* set the tcp header */

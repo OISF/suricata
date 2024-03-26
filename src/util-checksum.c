@@ -44,15 +44,15 @@ int ReCalculateChecksum(Packet *p)
         ip4h->ip_csum = 0;
         ip4h->ip_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), 0);
     } else if (PacketIsIPv6(p)) {
-        /* just TCP for IPV6 */
+        IPV6Hdr *ip6h = p->l3.hdrs.ip6h;
         if (PKT_IS_TCP(p)) {
             p->tcph->th_sum = 0;
-            p->tcph->th_sum = TCPV6Checksum(p->ip6h->s_ip6_addrs,
-                    (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
+            p->tcph->th_sum = TCPV6Checksum(
+                    ip6h->s_ip6_addrs, (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
         } else if (PKT_IS_UDP(p)) {
             p->udph->uh_sum = 0;
-            p->udph->uh_sum = UDPV6Checksum(p->ip6h->s_ip6_addrs,
-                    (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN), 0);
+            p->udph->uh_sum = UDPV6Checksum(
+                    ip6h->s_ip6_addrs, (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN), 0);
         }
     }
 

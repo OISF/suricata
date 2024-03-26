@@ -422,12 +422,11 @@ static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
-        p->level4_comp_csum = TCPV6Checksum(p->ip6h->s_ip6_addrs,
-                                            (uint16_t *)p->tcph,
-                                            (p->payload_len +
-                                                TCP_GET_HLEN(p)),
-                                            p->tcph->th_sum);
+    if (p->level4_comp_csum == -1) {
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        p->level4_comp_csum = TCPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph,
+                (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
+    }
 
     if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
@@ -601,13 +600,11 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
-        p->level4_comp_csum = UDPV6Checksum(p->ip6h->s_ip6_addrs,
-                                            (uint16_t *)p->udph,
-                                            (p->payload_len +
-                                                UDP_HEADER_LEN),
-                                            p->udph->uh_sum);
-
+    if (p->level4_comp_csum == -1) {
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        p->level4_comp_csum = UDPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->udph,
+                (p->payload_len + UDP_HEADER_LEN), p->udph->uh_sum);
+    }
     if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
     else if (p->level4_comp_csum != 0 && cd->valid == 0)
@@ -783,11 +780,11 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
     }
 
     if (p->level4_comp_csum == -1) {
-        uint16_t len = IPV6_GET_RAW_PLEN(p->ip6h) -
-                       (uint16_t)((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
-        p->level4_comp_csum = ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
-                                                      (uint16_t *)p->icmpv6h,
-                                                      len);
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        uint16_t len = IPV6_GET_RAW_PLEN(ip6h) -
+                       (uint16_t)((uint8_t *)p->icmpv6h - (uint8_t *)ip6h - IPV6_HEADER_LEN);
+        p->level4_comp_csum =
+                ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->icmpv6h, len);
     }
 
     if (p->level4_comp_csum == p->icmpv6h->csum && cd->valid == 1)
