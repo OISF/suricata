@@ -300,6 +300,13 @@ void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *
     uint16_t update_flags = FileFlowFlagsToFlags(txd->file_flags, direction);
     DEBUG_VALIDATE_BUG_ON(
             (file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
+    // May happen with keyword filestore:both,flow :
+    // There may be one opened unclosed file in one direction without filestore
+    // As such it has file->flags & FILE_NOSTORE
+    // But a new file in the other direction may trigger filestore:both,flow
+    // And thus set txd->file_flags & FILE_STORE
+    if (file->flags & FILE_NOSTORE)
+        update_flags &= ~FILE_STORE;
     if (file->flags & FILE_STORE)
         update_flags &= ~FILE_NOSTORE;
 
