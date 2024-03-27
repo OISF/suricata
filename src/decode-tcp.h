@@ -90,16 +90,14 @@
 /** macro for getting the second timestamp from the packet in host order. */
 #define TCP_GET_TSECR(p)                    ((p)->tcpvars.ts_ecr)
 
-#define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.ws.type == TCP_OPT_WS)
+#define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.wscale_set)
 #define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
 #define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
 #define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss_set)
 #define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo_set)
 
 /** macro for getting the wscale from the packet. */
-#define TCP_GET_WSCALE(p)                    (TCP_HAS_WSCALE((p)) ? \
-                                                (((*(uint8_t *)(p)->tcpvars.ws.data) <= TCP_WSCALE_MAX) ? \
-                                                  (*(uint8_t *)((p)->tcpvars.ws.data)) : 0) : 0)
+#define TCP_GET_WSCALE(p) (p)->tcpvars.wscale
 
 #define TCP_GET_SACKOK(p)                    (p)->tcpvars.sack_ok
 #define TCP_GET_SACK_PTR(p)                  TCP_HAS_SACK((p)) ? (p)->tcpvars.sack.data : NULL
@@ -160,12 +158,13 @@ typedef struct TCPVars_
     bool sack_ok;
     bool mss_set;
     bool tfo_set;
+    uint8_t wscale_set : 1;
+    uint8_t wscale : 4;
     uint16_t mss;       /**< MSS value in host byte order */
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
     uint16_t stream_pkt_flags;
     TCPOpt sack;
-    TCPOpt ws;
 } TCPVars;
 
 #define CLEAR_TCP_PACKET(p)                                                                        \
