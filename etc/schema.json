@@ -179,6 +179,90 @@
                 "type": "number"
             }
         },
+        "geoip_src": {
+            "type": "object",
+            "properties": {
+                "ip":{
+                    "type": "string"
+                },
+                "geo": {
+                    "type": "object",
+                    "properties": {
+                        "continent_code": {
+                            "type": "string"
+                        },
+                        "country_iso_code": {
+                            "type": "string"
+                        },
+                        "city_name": {
+                            "type": "string"
+                        },
+                        "country_name": {
+                            "type": "string"
+                        },
+                        "continent_name": {
+                            "type": "string"
+                        },
+                        "timezone": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "object",
+                            "properties": {
+                                "latitude": {
+                                    "type": "number"
+                                },
+                                "longitude": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "geoip_dst": {
+            "type": "object",
+            "properties": {
+                "ip":{
+                    "type": "string"
+                },
+                "geo": {
+                    "type": "object",
+                    "properties": {
+                        "continent_code": {
+                            "type": "string"
+                        },
+                        "country_iso_code": {
+                            "type": "string"
+                        },
+                        "city_name": {
+                            "type": "string"
+                        },
+                        "country_name": {
+                            "type": "string"
+                        },
+                        "continent_name": {
+                            "type": "string"
+                        },
+                        "timezone": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "object",
+                            "properties": {
+                                "latitude": {
+                                    "type": "number"
+                                },
+                                "longitude": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "alert": {
             "type": "object",
             "properties": {
