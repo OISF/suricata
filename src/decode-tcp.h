@@ -160,10 +160,10 @@ typedef struct TCPVars_
     bool tfo_set;
     uint8_t wscale_set : 1;
     uint8_t wscale : 4;
-    uint16_t mss;       /**< MSS value in host byte order */
+    uint16_t mss; /**< MSS value in host byte order */
+    uint16_t stream_pkt_flags;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
-    uint16_t stream_pkt_flags;
     TCPOpt sack;
 } TCPVars;
 
