@@ -74,9 +74,10 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
-                p->icmpv4vars.emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_tcph->th_dport);
+                TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
+                p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
+                p->icmpv4vars.emb_ports_set = true;
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
@@ -84,11 +85,10 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                             p->icmpv4vars.emb_dport);
             } else if (len >= IPV4_HEADER_LEN + 4) {
                 /* only access th_sport and th_dport */
-                TCPHdr *emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
-
-                p->icmpv4vars.emb_tcph = NULL;
+                TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
                 p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
                 p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
+                p->icmpv4vars.emb_ports_set = true;
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP partial header sport: "
                            "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
@@ -103,9 +103,10 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
             break;
         case IPPROTO_UDP:
             if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
-                p->icmpv4vars.emb_udph = (UDPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_udph->uh_sport);
-                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_udph->uh_dport);
+                UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV4_HEADER_LEN);
+                p->icmpv4vars.emb_sport = SCNtohs(emb_udph->uh_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(emb_udph->uh_dport);
+                p->icmpv4vars.emb_ports_set = true;
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
@@ -120,8 +121,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
             break;
         case IPPROTO_ICMP:
-            if (len >= IPV4_HEADER_LEN + ICMPV4_HEADER_LEN ) {
-                p->icmpv4vars.emb_icmpv4h = (ICMPV4Hdr*)(partial_packet + IPV4_HEADER_LEN);
+            if (len >= IPV4_HEADER_LEN + ICMPV4_HEADER_LEN) {
                 p->icmpv4vars.emb_sport = 0;
                 p->icmpv4vars.emb_dport = 0;
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_ICMP;
