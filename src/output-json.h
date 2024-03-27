@@ -50,6 +50,7 @@ typedef struct JsonAddrInfo_ {
     Port sp;
     Port dp;
     char proto[JSON_PROTO_LEN];
+    bool log_port;
 } JsonAddrInfo;
 
 extern const JsonAddrInfo json_addr_info_zero;
@@ -116,5 +117,6 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
+void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key, uint8_t *val, bool is_array);
 
 #endif /* SURICATA_OUTPUT_JSON_H */

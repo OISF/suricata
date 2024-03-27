@@ -575,8 +575,10 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case IPPROTO_SCTP:
             addr->sp = sp;
             addr->dp = dp;
+            addr->log_port = true;
             break;
         default:
+            addr->log_port = false;
             break;
     }
 
@@ -714,8 +716,7 @@ void CreateEveFlowId(JsonBuilder *js, const Flow *f)
     }
 }
 
-static inline void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key,
-                                   uint8_t *val, bool is_array)
+void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key, uint8_t *val, bool is_array)
 {
     char eth_addr[19];
     (void) snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -839,11 +840,21 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         JsonAddrInfoInit(p, dir, &addr_info);
         addr = &addr_info;
     }
-    jb_set_string(js, "src_ip", addr->src_ip);
-    jb_set_uint(js, "src_port", addr->sp);
-    jb_set_string(js, "dest_ip", addr->dst_ip);
-    jb_set_uint(js, "dest_port", addr->dp);
-    jb_set_string(js, "proto", addr->proto);
+    if (strlen(addr->src_ip) > 0) {
+        jb_set_string(js, "src_ip", addr->src_ip);
+    }
+    if (addr->log_port) {
+        jb_set_uint(js, "src_port", addr->sp);
+    }
+    if (strlen(addr->src_ip) > 0) {
+        jb_set_string(js, "dest_ip", addr->dst_ip);
+    }
+    if (addr->log_port) {
+        jb_set_uint(js, "dest_port", addr->dp);
+    }
+    if (strlen(addr->proto) > 0) {
+        jb_set_string(js, "proto", addr->proto);
+    }
 
     /* icmp */
     switch (p->proto) {

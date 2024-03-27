@@ -90,6 +90,7 @@
 #include "output-json-frame.h"
 #include "output-json-bittorrent-dht.h"
 #include "output-filestore.h"
+#include "output-json-arp.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1127,6 +1128,8 @@ void OutputRegisterLoggers(void)
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
     JsonBitTorrentDHTLogRegister();
+    /* ARP JSON logger */
+    JsonArpLogRegister();
 }
 
 static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {

@@ -266,6 +266,20 @@ enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
 
+ARP
+~~~
+
+ARP records are logged as one entry for the request, and one entry for
+the response.
+
+YAML::
+
+        - arp:
+            enabled: no
+
+The logger is disabled by default since ARP can generate a large
+number of events.
+
 Drops
 ~~~~~
 

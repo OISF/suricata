@@ -873,5 +873,11 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_REASSEMBLY_INSERT_INVALID,
     },
 
+    /* ARP EVENTS */
+    {
+            "decoder.arp.pkt_too_small",
+            ARP_PKT_TOO_SMALL,
+    },
+
     { NULL, 0 },
 };

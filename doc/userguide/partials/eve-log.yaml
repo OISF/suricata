@@ -165,6 +165,8 @@ outputs:
         # BitTorrent DHT logging.
         - bittorrent-dht
         - ssh
+        - arp:
+            enabled: no
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats

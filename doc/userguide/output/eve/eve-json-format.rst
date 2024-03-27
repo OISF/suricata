@@ -3002,3 +3002,47 @@ Example of DHCP log entry (extended logging enabled):
     "client_id":"54:ee:75:51:e0:66",
     "dns_servers":["192.168.1.50","192.168.1.49"]
   }
+
+Event type: ARP
+-----------------
+
+Fields
+~~~~~~
+
+* "hw_type": network link protocol type
+* "proto_type": internetwork protocol for which the request is intended
+* "opcode": operation that the sender is performing (e.g. request, response)  
+* "src_mac": source MAC address
+* "src_ip": source IP address
+* "dest_mac": destination MAC address
+* "dest_ip": destination IP address
+
+Examples
+~~~~~~~~
+
+Example of ARP logging: request and response
+
+::
+
+  "arp": {
+    "hw_type": "ethernet",
+    "proto_type": "ipv4",
+    "opcode": "request",
+    "src_mac": "00:1a:6b:6c:0c:cc",
+    "src_ip": "10.10.10.2",
+    "dest_mac": "00:00:00:00:00:00",
+    "dest_ip": "10.10.10.1"
+  }
+
+::
+
+  "arp": {
+    "hw_type": "ethernet",
+    "proto_type": "ipv4",
+    "opcode": "reply",
+    "src_mac": "00:1a:6b:6c:0c:cc",
+    "src_ip": "10.10.10.2",
+    "dest_mac": "00:1d:09:f0:92:ab",
+    "dest_ip": "10.10.10.1"
+  }
+

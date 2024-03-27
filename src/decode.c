@@ -61,6 +61,7 @@
 #include "decode-geneve.h"
 #include "decode-erspan.h"
 #include "decode-teredo.h"
+#include "decode-arp.h"
 
 #include "util-hash.h"
 #include "util-hash-string.h"
@@ -121,6 +122,8 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
             return DecodeNSH(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_ARP:
+            return DecodeARP(tv, dtv, p, pkt, len);
         default:
             SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
