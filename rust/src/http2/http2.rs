@@ -208,7 +208,7 @@ impl HTTP2Transaction {
         let mut authority = None;
         let mut host = None;
         for block in blocks {
-            if block.name == b"content-encoding" {
+            if block.name.as_ref() == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);

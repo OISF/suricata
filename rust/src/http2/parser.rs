@@ -30,6 +30,7 @@ use nom7::sequence::tuple;
 use nom7::{Err, IResult};
 use std::fmt;
 use std::str::FromStr;
+use std::rc::Rc;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
@@ -295,8 +296,8 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
     };
     if !name.is_empty() {
         return Some(HTTP2FrameHeaderBlock {
-            name: name.as_bytes().to_vec(),
-            value: value.as_bytes().to_vec(),
+            name: Rc::new(name.as_bytes().to_vec()),
+            value: Rc::new(value.as_bytes().to_vec()),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
             sizeupdate: 0,
         });
@@ -304,23 +305,23 @@ fn http2_frame_header_static(n: u64, dyn_headers: &HTTP2DynTable) -> Option<HTTP
         //use dynamic table
         if n == 0 {
             return Some(HTTP2FrameHeaderBlock {
-                name: Vec::new(),
-                value: Vec::new(),
+                name: Rc::new(Vec::new()),
+                value: Rc::new(Vec::new()),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0,
                 sizeupdate: 0,
             });
         } else if dyn_headers.table.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
             return Some(HTTP2FrameHeaderBlock {
-                name: Vec::new(),
-                value: Vec::new(),
+                name: Rc::new(Vec::new()),
+                value: Rc::new(Vec::new()),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
                 sizeupdate: 0,
             });
         } else {
             let indyn = dyn_headers.table.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
             let headcopy = HTTP2FrameHeaderBlock {
-                name: dyn_headers.table[indyn].name.to_vec(),
-                value: dyn_headers.table[indyn].value.to_vec(),
+                name: dyn_headers.table[indyn].name.clone(),
+                value: dyn_headers.table[indyn].value.clone(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
                 sizeupdate: 0,
             };
@@ -348,8 +349,10 @@ impl fmt::Display for HTTP2HeaderDecodeStatus {
 
 #[derive(Clone, Debug)]
 pub struct HTTP2FrameHeaderBlock {
-    pub name: Vec<u8>,
-    pub value: Vec<u8>,
+    // Use Rc reference counted so that indexed headers do not get copied.
+    // Otherwise, this leads to quadratic complexity in memory occupation.
+    pub name: Rc<Vec<u8>>,
+    pub value: Rc<Vec<u8>>,
     pub error: HTTP2HeaderDecodeStatus,
     pub sizeupdate: u64,
 }
@@ -391,7 +394,7 @@ fn http2_parse_headers_block_literal_common<'a>(
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     let (i3, name, error) = if index == 0 {
         match http2_parse_headers_block_string(input) {
-            Ok((r, n)) => Ok((r, n, HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess)),
+            Ok((r, n)) => Ok((r, Rc::new(n), HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess)),
             Err(e) => Err(e),
         }
     } else {
@@ -403,7 +406,7 @@ fn http2_parse_headers_block_literal_common<'a>(
             )),
             None => Ok((
                 input,
-                Vec::new(),
+                Rc::new(Vec::new()),
                 HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
             )),
         }
@@ -413,7 +416,7 @@ fn http2_parse_headers_block_literal_common<'a>(
         i4,
         HTTP2FrameHeaderBlock {
             name,
-            value,
+            value: Rc::new(value),
             error,
             sizeupdate: 0,
         },
@@ -435,8 +438,8 @@ fn http2_parse_headers_block_literal_incindex<'a>(
     match r {
         Ok((r, head)) => {
             let headcopy = HTTP2FrameHeaderBlock {
-                name: head.name.to_vec(),
-                value: head.value.to_vec(),
+                name: head.name.clone(),
+                value: head.value.clone(),
                 error: head.error,
                 sizeupdate: 0,
             };
@@ -556,8 +559,8 @@ fn http2_parse_headers_block_dynamic_size<'a>(
     return Ok((
         i3,
         HTTP2FrameHeaderBlock {
-            name: Vec::new(),
-            value: Vec::new(),
+            name: Rc::new(Vec::new()),
+            value: Rc::new(Vec::new()),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
             sizeupdate: maxsize2,
         },
@@ -614,8 +617,8 @@ fn http2_parse_headers_blocks<'a>(
                 // if we error from http2_parse_var_uint, we keep the first parsed headers
                 if err.code == ErrorKind::LengthValue {
                     blocks.push(HTTP2FrameHeaderBlock {
-                        name: Vec::new(),
-                        value: Vec::new(),
+                        name: Rc::new(Vec::new()),
+                        value: Rc::new(Vec::new()),
                         error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
                         sizeupdate: 0,
                     });
@@ -769,8 +772,8 @@ mod tests {
         match r0 {
             Ok((remainder, hd)) => {
                 // Check the first message.
-                assert_eq!(hd.name, ":method".as_bytes().to_vec());
-                assert_eq!(hd.value, "GET".as_bytes().to_vec());
+                assert_eq!(hd.name, ":method".as_bytes().to_vec().into());
+                assert_eq!(hd.value, "GET".as_bytes().to_vec().into());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
             }
@@ -786,8 +789,8 @@ mod tests {
         match r1 {
             Ok((remainder, hd)) => {
                 // Check the first message.
-                assert_eq!(hd.name, "accept".as_bytes().to_vec());
-                assert_eq!(hd.value, "*/*".as_bytes().to_vec());
+                assert_eq!(hd.name, "accept".as_bytes().to_vec().into());
+                assert_eq!(hd.value, "*/*".as_bytes().to_vec().into());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
                 assert_eq!(dynh.table.len(), 1);
@@ -806,8 +809,8 @@ mod tests {
         match result {
             Ok((remainder, hd)) => {
                 // Check the first message.
-                assert_eq!(hd.name, ":authority".as_bytes().to_vec());
-                assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec());
+                assert_eq!(hd.name, ":authority".as_bytes().to_vec().into());
+                assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec().into());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
                 assert_eq!(dynh.table.len(), 2);
@@ -824,8 +827,8 @@ mod tests {
         match r3 {
             Ok((remainder, hd)) => {
                 // same as before
-                assert_eq!(hd.name, ":authority".as_bytes().to_vec());
-                assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec());
+                assert_eq!(hd.name, ":authority".as_bytes().to_vec().into());
+                assert_eq!(hd.value, "localhost:3000".as_bytes().to_vec().into());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
                 assert_eq!(dynh.table.len(), 2);
@@ -860,8 +863,8 @@ mod tests {
         match r2 {
             Ok((remainder, hd)) => {
                 // Check the first message.
-                assert_eq!(hd.name, ":path".as_bytes().to_vec());
-                assert_eq!(hd.value, "/doc/manual/html/index.html".as_bytes().to_vec());
+                assert_eq!(hd.name, ":path".as_bytes().to_vec().into());
+                assert_eq!(hd.value, "/doc/manual/html/index.html".as_bytes().to_vec().into());
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
                 assert_eq!(dynh.table.len(), 2);
