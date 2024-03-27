@@ -94,7 +94,7 @@
 #define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
 #define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
 #define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss_set)
-#define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo.type == TCP_OPT_TFO)
+#define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo_set)
 
 /** macro for getting the wscale from the packet. */
 #define TCP_GET_WSCALE(p)                    (TCP_HAS_WSCALE((p)) ? \
@@ -159,13 +159,13 @@ typedef struct TCPVars_
     bool ts_set;
     bool sack_ok;
     bool mss_set;
+    bool tfo_set;
     uint16_t mss;       /**< MSS value in host byte order */
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
     uint16_t stream_pkt_flags;
     TCPOpt sack;
     TCPOpt ws;
-    TCPOpt tfo;         /* tcp fast open */
 } TCPVars;
 
 #define CLEAR_TCP_PACKET(p)                                                                        \
