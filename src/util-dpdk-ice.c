@@ -35,7 +35,7 @@
 
 #ifdef HAVE_DPDK
 
-void iceDeviceSetRSSHashFunction(uint64_t *rss_hf)
+static void iceDeviceSetRSSHashFunction(uint64_t *rss_hf)
 {
 #if RTE_VERSION < RTE_VERSION_NUM(20, 0, 0, 0)
     *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
@@ -43,6 +43,16 @@ void iceDeviceSetRSSHashFunction(uint64_t *rss_hf)
 #else
     *rss_hf = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER |
               RTE_ETH_RSS_IPV6 | RTE_ETH_RSS_FRAG_IPV6 | RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
+#endif
+}
+
+void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf)
+{
+    iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
+#if RTE_VERSION < RTE_VERSION_NUM(23, 11, 0, 0)
+    rss_conf->rss_key_len = 40;
+#else
+    rss_conf->rss_key_len = 52;
 #endif
 }
 
