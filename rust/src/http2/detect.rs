@@ -23,6 +23,7 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use std::ffi::CStr;
 use std::mem::transmute;
 use std::str::FromStr;
+use std::rc::Rc;
 
 fn http2_tx_has_frametype(
     tx: &mut HTTP2Transaction, direction: u8, value: u8,
@@ -489,7 +490,7 @@ fn http2_frames_get_header_firstvalue<'a>(
     for i in 0..frames.len() {
         if let Some(blocks) = http2_header_blocks(&frames[i]) {
             for block in blocks.iter() {
-                if block.name == name.as_bytes() {
+                if block.name.as_ref() == name.as_bytes() {
                     return Ok(&block.value);
                 }
             }
@@ -512,7 +513,7 @@ fn http2_frames_get_header_value<'a>(
     for i in 0..frames.len() {
         if let Some(blocks) = http2_header_blocks(&frames[i]) {
             for block in blocks.iter() {
-                if block.name == name.as_bytes() {
+                if block.name.as_ref() == name.as_bytes() {
                     if found == 0 {
                         single = Ok(&block.value);
                         found = 1;
@@ -899,8 +900,8 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
     };
     let mut blocks = Vec::new();
     let b = parser::HTTP2FrameHeaderBlock {
-        name: name.to_vec(),
-        value: input.to_vec(),
+        name: Rc::new(name.to_vec()),
+        value: Rc::new(input.to_vec()),
         error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
         sizeupdate: 0,
     };
@@ -1153,15 +1154,15 @@ mod tests {
         };
         let mut blocks = Vec::new();
         let b = parser::HTTP2FrameHeaderBlock {
-            name: "Host".as_bytes().to_vec(),
-            value: "abc.com".as_bytes().to_vec(),
+            name: "Host".as_bytes().to_vec().into(),
+            value: "abc.com".as_bytes().to_vec().into(),
             error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
             sizeupdate: 0,
         };
         blocks.push(b);
         let b2 = parser::HTTP2FrameHeaderBlock {
-            name: "Host".as_bytes().to_vec(),
-            value: "efg.net".as_bytes().to_vec(),
+            name: "Host".as_bytes().to_vec().into(),
+            value: "efg.net".as_bytes().to_vec().into(),
             error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
             sizeupdate: 0,
         };
