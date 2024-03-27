@@ -1149,7 +1149,7 @@ static int StreamTcpPacketStateNone(
             ssn->client.last_ts = 0;
         }
 
-        if (TCP_GET_SACKOK(p) == 1) {
+        if (TCP_GET_SACKOK(p)) {
             ssn->flags |= STREAMTCP_FLAG_SACKOK;
             SCLogDebug("ssn %p: SYN/ACK with SACK permitted, assuming "
                     "SACK permitted for both sides", ssn);
@@ -1201,7 +1201,7 @@ static int StreamTcpPacketStateNone(
             ssn->server.wscale = TCP_GET_WSCALE(p);
         }
 
-        if (TCP_GET_SACKOK(p) == 1) {
+        if (TCP_GET_SACKOK(p)) {
             ssn->flags |= STREAMTCP_FLAG_CLIENT_SACKOK;
             SCLogDebug("ssn %p: SACK permitted on SYN packet", ssn);
         }
@@ -1333,7 +1333,7 @@ static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q)
     q->ack = TCP_GET_ACK(p);
     q->pkt_ts = SCTIME_SECS(p->ts);
 
-    if (TCP_GET_SACKOK(p) == 1)
+    if (TCP_GET_SACKOK(p))
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
 
     if (TCP_HAS_WSCALE(p)) {
@@ -1594,7 +1594,7 @@ static void TcpStateQueueInitFromPktSyn(const Packet *p, TcpStateQueue *q)
     q->win = TCP_GET_WINDOW(p);
     q->pkt_ts = SCTIME_SECS(p->ts);
 
-    if (TCP_GET_SACKOK(p) == 1) {
+    if (TCP_GET_SACKOK(p)) {
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
     }
     if (TCP_HAS_WSCALE(p)) {
@@ -1626,7 +1626,7 @@ static void TcpStateQueueInitFromPktSynAck(const Packet *p, TcpStateQueue *q)
     q->win = TCP_GET_WINDOW(p);
     q->pkt_ts = SCTIME_SECS(p->ts);
 
-    if (TCP_GET_SACKOK(p) == 1) {
+    if (TCP_GET_SACKOK(p)) {
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
     }
     if (TCP_HAS_WSCALE(p)) {
@@ -1882,7 +1882,7 @@ static int StreamTcpPacketStateSynSent(
             ssn->server.wscale = 0;
         }
 
-        if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) && TCP_GET_SACKOK(p) == 1) {
+        if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) && TCP_GET_SACKOK(p)) {
             ssn->flags |= STREAMTCP_FLAG_SACKOK;
             SCLogDebug("ssn %p: SACK permitted for 4WHS session", ssn);
         }
@@ -1980,7 +1980,7 @@ static int StreamTcpPacketStateSynSent(
                 ssn->server.wscale = 0;
             }
 
-            if (TCP_GET_SACKOK(p) == 1) {
+            if (TCP_GET_SACKOK(p)) {
                 ssn->flags |= STREAMTCP_FLAG_CLIENT_SACKOK;
             } else {
                 ssn->flags &= ~STREAMTCP_FLAG_CLIENT_SACKOK;
