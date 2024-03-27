@@ -84,6 +84,8 @@ pub mod filetracker;
 pub mod kerberos;
 pub mod detect;
 
+pub mod ja4;
+
 #[cfg(feature = "lua")]
 pub mod lua;
 
