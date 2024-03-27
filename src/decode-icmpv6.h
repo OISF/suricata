@@ -156,9 +156,6 @@ typedef struct ICMPV6Vars_ {
     uint16_t  seq;
     uint32_t mtu;
 
-    /** Pointers to the embedded packet headers */
-    IPV6Hdr *emb_ipv6h;
-
     uint8_t emb_ip6_proto_next;
 
     bool emb_ports_set;
@@ -166,6 +163,8 @@ typedef struct ICMPV6Vars_ {
     uint16_t emb_sport;
     uint16_t emb_dport;
 
+    /** Pointers to the embedded packet headers */
+    IPV6Hdr *emb_ipv6h;
 } ICMPV6Vars;
 
 #define CLEAR_ICMPV6_PACKET(p)                                                                     \
