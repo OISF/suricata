@@ -86,9 +86,10 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     switch (icmp6_ip6h->s_ip6_nxt) {
         case IPPROTO_TCP:
             if (len >= IPV6_HEADER_LEN + TCP_HEADER_LEN ) {
-                p->icmpv6vars.emb_tcph = (TCPHdr*)(partial_packet + IPV6_HEADER_LEN);
-                p->icmpv6vars.emb_sport = p->icmpv6vars.emb_tcph->th_sport;
-                p->icmpv6vars.emb_dport = p->icmpv6vars.emb_tcph->th_dport;
+                TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV6_HEADER_LEN);
+                p->icmpv6vars.emb_sport = emb_tcph->th_sport;
+                p->icmpv6vars.emb_dport = emb_tcph->th_dport;
+                p->icmpv6vars.emb_ports_set = true;
 
                 SCLogDebug("ICMPV6->IPV6->TCP header sport: "
                            "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
@@ -103,9 +104,10 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
             break;
         case IPPROTO_UDP:
             if (len >= IPV6_HEADER_LEN + UDP_HEADER_LEN ) {
-                p->icmpv6vars.emb_udph = (UDPHdr*)(partial_packet + IPV6_HEADER_LEN);
-                p->icmpv6vars.emb_sport = p->icmpv6vars.emb_udph->uh_sport;
-                p->icmpv6vars.emb_dport = p->icmpv6vars.emb_udph->uh_dport;
+                UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV6_HEADER_LEN);
+                p->icmpv6vars.emb_sport = emb_udph->uh_sport;
+                p->icmpv6vars.emb_dport = emb_udph->uh_dport;
+                p->icmpv6vars.emb_ports_set = true;
 
                 SCLogDebug("ICMPV6->IPV6->UDP header sport: "
                            "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
@@ -119,7 +121,6 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 
             break;
         case IPPROTO_ICMPV6:
-            p->icmpv6vars.emb_icmpv6h = (ICMPV6Hdr*)(partial_packet + IPV6_HEADER_LEN);
             p->icmpv6vars.emb_sport = 0;
             p->icmpv6vars.emb_dport = 0;
 
