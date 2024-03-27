@@ -189,12 +189,10 @@ typedef struct ICMPV4Vars_
 
     /** Pointers to the embedded packet headers */
     IPV4Hdr *emb_ipv4h;
-    TCPHdr *emb_tcph;
-    UDPHdr *emb_udph;
-    ICMPV4Hdr *emb_icmpv4h;
 
     uint8_t emb_ip4_proto;
 
+    bool emb_ports_set;
     /** TCP/UDP ports */
     uint16_t emb_sport;
     uint16_t emb_dport;
@@ -245,13 +243,7 @@ typedef struct ICMPV4Timestamp_ {
 /** macro for icmpv4 embedded "protocol" access */
 #define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip4_proto
 /** macro for icmpv4 embedded "ipv4h" header access */
-#define ICMPV4_GET_EMB_IPV4(p)     (p)->icmpv4vars.emb_ipv4h
-/** macro for icmpv4 embedded "tcph" header access */
-#define ICMPV4_GET_EMB_TCP(p)      (p)->icmpv4vars.emb_tcph
-/** macro for icmpv4 embedded "udph" header access */
-#define ICMPV4_GET_EMB_UDP(p)      (p)->icmpv4vars.emb_udph
-/** macro for icmpv4 embedded "icmpv4h" header access */
-#define ICMPV4_GET_EMB_ICMPV4H(p)  (p)->icmpv4vars.emb_icmpv4h
+#define ICMPV4_GET_EMB_IPV4(p) (p)->icmpv4vars.emb_ipv4h
 /** macro for icmpv4 header length */
 #define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->icmpv4vars.hlen
 
@@ -260,13 +252,10 @@ typedef struct ICMPV4Timestamp_ {
  *
  *  \warning use only _after_ the decoder has processed the packet
  */
-#define ICMPV4_DEST_UNREACH_IS_VALID(p) ( \
-    (!((p)->flags & PKT_IS_INVALID)) && \
-    ((p)->icmpv4h != NULL) && \
-    (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && \
-    (ICMPV4_GET_EMB_IPV4((p)) != NULL) && \
-    ((ICMPV4_GET_EMB_TCP((p)) != NULL) || \
-     (ICMPV4_GET_EMB_UDP((p)) != NULL)))
+#define ICMPV4_DEST_UNREACH_IS_VALID(p)                                                            \
+    ((!((p)->flags & PKT_IS_INVALID)) && ((p)->icmpv4h != NULL) &&                                 \
+            (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && (ICMPV4_GET_EMB_IPV4((p)) != NULL) &&   \
+            (p)->icmpv4vars.emb_ports_set)
 
 /**
  *  marco for checking if a ICMP packet is an error message or an
