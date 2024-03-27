@@ -157,7 +157,10 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
             goto error;
         }
 
-        sscanf(token, "%2" SCNu8, &var);
+        if (sscanf(token, "%2" SCNu8, &var) != 1) {
+            SCLogError("incorrect input format; token %s should be uint8", token);
+            goto error;
+        }
         input[i++] = var;
 
         token = strtok_r(NULL, delims, &save);
