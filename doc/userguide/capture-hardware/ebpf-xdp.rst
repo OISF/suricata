@@ -302,6 +302,56 @@ be blind on packets on port 443 with the correct pattern.
 If you are not using VLAN tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you also have to set
 the VLAN_TRACKING define to 0 in ``xdp_filter.c``.
 
+Setup XDP Syncookie
+-------------------
+
+XDP Syncookie allows Suricata with AF_PACKET IDS mode to prevent host from SYN flooding attack
+via iptables SYNPROXY module with XDP acceleration.
+
+More information about XDP Syncookie and performance result:
+
+- `ACCELERATING SYNPROXY WITH XDP <https://netdevconf.info/0x15/slides/30/Netdev%200x15%20Accelerating%20synproxy%20with%20XDP.pdf>`__
+
+Linux kernel 6.2 or newer are required to use this feature.
+
+Copy the resulting XDP Syncookie program as needed::
+
+ cp ebpf/xdp_synproxy_kern.bpf /usr/libexec/suricata/ebpf/
+
+Setup af-packet section/interface in ``suricata.yaml``.
+
+::
+
+  - interface: eth3
+    threads: auto
+    cluster-id: 97
+    cluster-type: cluster_flow
+    defrag: yes
+    # Xdp mode, "soft" for skb based version, "driver" for network card based
+    # and "hw" for card supporting eBPF.
+    xdp-mode: driver
+    xdp-syncookie-file:  /usr/libexec/suricata/ebpf/xdp_synproxy_kern.bpf
+    use-mmap: yes
+    ring-size: 200000
+
+
+Example setup on host::
+
+ sysctl -w net.ipv4.tcp_syncookies=2
+ sysctl -w net.ipv4.tcp_timestamps=1
+ sysctl -w net.netfilter.nf_conntrack_tcp_loose=0
+ iptables -t raw -I PREROUTING -i eth3 -p tcp -m tcp --syn --dport 80 -j CT --notrack
+ iptables -A INPUT -i eth3 -p tcp -m tcp --dport 80 -m state --state INVALID,UNTRACKED -j SYNPROXY --sack-perm --timestamp --wscale 7 --mss 1460
+ iptables -A INPUT -i eth3 -m state --state INVALID -j DROP
+
+Find program id with bpftool::
+
+ bpftool prog show name syncookie_xdp
+
+Use xdp_synproxy program to add ports XDP Syncookie protection::
+
+ xdp_synproxy --prog <program id> --ports 80
+
 Intel NIC setup
 ~~~~~~~~~~~~~~~
 
