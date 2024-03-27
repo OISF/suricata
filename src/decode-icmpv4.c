@@ -71,12 +71,6 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     /** We need to fill icmpv4vars */
     p->icmpv4vars.emb_ipv4h = icmp4_ip4h;
 
-    /** Get the IP address from the contained packet */
-    p->icmpv4vars.emb_ip4_src = IPV4_GET_RAW_IPSRC(icmp4_ip4h);
-    p->icmpv4vars.emb_ip4_dst = IPV4_GET_RAW_IPDST(icmp4_ip4h);
-
-    p->icmpv4vars.emb_ip4_hlen = (uint8_t)(IPV4_GET_RAW_HLEN(icmp4_ip4h) << 2);
-
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
@@ -137,15 +131,6 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
             break;
     }
-
-    /* debug print */
-#ifdef DEBUG
-    char s[16], d[16];
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
-    SCLogDebug("ICMPv4 embedding IPV4 %s->%s - PROTO: %" PRIu32 " ID: %" PRIu32 "", s, d,
-            IPV4_GET_RAW_IPPROTO(icmp4_ip4h), IPV4_GET_RAW_IPID(icmp4_ip4h));
-#endif
 
     return 0;
 }
@@ -533,10 +518,11 @@ static int DecodeICMPV4test03(void)
     }
 
     /* check the src,dst IPs contained inside */
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
     char s[16], d[16];
-
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    PrintInet(AF_INET, &src_ip, s, sizeof(s));
+    PrintInet(AF_INET, &dst_ip, d, sizeof(d));
 
     /* ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass */
     if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "209.85.227.147") == 0) {
@@ -607,10 +593,11 @@ static int DecodeICMPV4test04(void)
     }
 
     // check the src,dst IPs contained inside
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
     char s[16], d[16];
-
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    PrintInet(AF_INET, &src_ip, s, sizeof(s));
+    PrintInet(AF_INET, &dst_ip, d, sizeof(d));
 
     // ICMPv4 embedding IPV4 192.168.1.13->88.96.22.41
     if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "88.96.22.41") == 0) {
@@ -676,10 +663,11 @@ static int DecodeICMPV4test05(void)
     }
 
     // check the src,dst IPs contained inside
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
     char s[16], d[16];
-
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
-    PrintInet(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    PrintInet(AF_INET, &src_ip, s, sizeof(s));
+    PrintInet(AF_INET, &dst_ip, d, sizeof(d));
 
     // ICMPv4 embedding IPV4 192.168.2.5->61.35.161.35
     if (strcmp(s, "192.168.2.5") == 0 && strcmp(d, "61.35.161.35") == 0) {
