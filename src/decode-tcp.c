@@ -89,10 +89,16 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     if (olen != TCP_OPT_WS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.ws.type != 0) {
+                        if (p->tcpvars.wscale_set != 0) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            SET_OPTS(p->tcpvars.ws, tcp_opts[tcp_opt_cnt]);
+                            p->tcpvars.wscale_set = 1;
+                            const uint8_t wscale = *(tcp_opts[tcp_opt_cnt].data);
+                            if (wscale <= TCP_WSCALE_MAX) {
+                                p->tcpvars.wscale = wscale;
+                            } else {
+                                p->tcpvars.wscale = 0;
+                            }
                         }
                     }
                     break;
