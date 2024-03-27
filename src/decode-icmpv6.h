@@ -162,9 +162,6 @@ typedef struct ICMPV6Vars_ {
     /** Pointers to the embedded packet headers */
     IPV6Hdr *emb_ipv6h;
 
-    /** IPv6 src and dst address */
-    uint32_t emb_ip6_src[4];
-    uint32_t emb_ip6_dst[4];
     uint8_t emb_ip6_proto_next;
 
     bool emb_ports_set;
