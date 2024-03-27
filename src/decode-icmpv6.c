@@ -68,18 +68,6 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 
     /** We need to fill icmpv6vars */
     p->icmpv6vars.emb_ipv6h = icmp6_ip6h;
-
-    /** Get the IP6 address */
-    p->icmpv6vars.emb_ip6_src[0] = icmp6_ip6h->s_ip6_src[0];
-    p->icmpv6vars.emb_ip6_src[1] = icmp6_ip6h->s_ip6_src[1];
-    p->icmpv6vars.emb_ip6_src[2] = icmp6_ip6h->s_ip6_src[2];
-    p->icmpv6vars.emb_ip6_src[3] = icmp6_ip6h->s_ip6_src[3];
-
-    p->icmpv6vars.emb_ip6_dst[0] = icmp6_ip6h->s_ip6_dst[0];
-    p->icmpv6vars.emb_ip6_dst[1] = icmp6_ip6h->s_ip6_dst[1];
-    p->icmpv6vars.emb_ip6_dst[2] = icmp6_ip6h->s_ip6_dst[2];
-    p->icmpv6vars.emb_ip6_dst[3] = icmp6_ip6h->s_ip6_dst[3];
-
     /** Get protocol and ports inside the embedded ipv6 packet and set the pointers */
     p->icmpv6vars.emb_ip6_proto_next = icmp6_ip6h->s_ip6_nxt;
 
@@ -132,8 +120,8 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     /* debug print */
 #ifdef DEBUG
     char s[46], d[46];
-    PrintInet(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_src, s, sizeof(s));
-    PrintInet(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_dst, d, sizeof(d));
+    PrintInet(AF_INET6, (const void *)ICMPV6_GET_EMB_IPV6(p)->s_ip6_src, s, sizeof(s));
+    PrintInet(AF_INET6, (const void *)ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst, d, sizeof(d));
     SCLogDebug("ICMPv6 embedding IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: "
                "%" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32,
                s, d, IPV6_GET_RAW_CLASS(icmp6_ip6h), IPV6_GET_RAW_FLOW(icmp6_ip6h),
@@ -627,10 +615,9 @@ static int ICMPV6ParamProbTest01(void)
         ICMPV6_GET_EMB_PROTO(p) != IPPROTO_ICMPV6);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
-    uint32_t i=0;
-    for (i = 0; i < 4; i++) {
-        FAIL_IF(p->icmpv6vars.emb_ip6_src[i] != ipv6src[i] ||
-            p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
+                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     PacketRecycle(p);
@@ -683,10 +670,9 @@ static int ICMPV6PktTooBigTest01(void)
     FAIL_IF(ICMPV6_GET_TYPE(p) != 2 || ICMPV6_GET_CODE(p) != 0 );
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
-    uint32_t i=0;
-    for (i = 0; i < 4; i++) {
-        FAIL_IF(p->icmpv6vars.emb_ip6_src[i] != ipv6src[i] ||
-            p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
+                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
@@ -741,10 +727,9 @@ static int ICMPV6TimeExceedTest01(void)
         ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
-    uint32_t i=0;
-    for (i = 0; i < 4; i++) {
-        FAIL_IF(p->icmpv6vars.emb_ip6_src[i] != ipv6src[i] ||
-            p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
+                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
@@ -799,10 +784,9 @@ static int ICMPV6DestUnreachTest01(void)
         ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
-    uint32_t i=0;
-    for (i = 0; i < 4; i++) {
-        FAIL_IF(p->icmpv6vars.emb_ip6_src[i] != ipv6src[i] ||
-            p->icmpv6vars.emb_ip6_dst[i] != ipv6dst[i]);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
+                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     PacketRecycle(p);
