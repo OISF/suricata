@@ -193,10 +193,6 @@ typedef struct ICMPV4Vars_
     UDPHdr *emb_udph;
     ICMPV4Hdr *emb_icmpv4h;
 
-    /** IPv4 src and dst address */
-    struct in_addr emb_ip4_src;
-    struct in_addr emb_ip4_dst;
-    uint8_t emb_ip4_hlen;
     uint8_t emb_ip4_proto;
 
     /** TCP/UDP ports */
