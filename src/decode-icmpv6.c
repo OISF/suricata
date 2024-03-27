@@ -249,7 +249,6 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
                     return TM_ECODE_FAILED;
                 }
-                p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
                 DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
                         (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
