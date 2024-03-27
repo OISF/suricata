@@ -61,6 +61,7 @@
 #include "app-layer-quic.h"
 #include "app-layer-rdp.h"
 #include "app-layer-http2.h"
+#include "app-layer-imap.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
@@ -1772,21 +1773,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterRdpParsers();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
-
-    /** IMAP */
-    AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "imap")) {
-        if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_IMAP,
-                                  "1|20|capability", 12, 0, STREAM_TOSERVER) < 0)
-        {
-            SCLogInfo("imap proto registration failure");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
-                  "imap");
-    }
-
+    RegisterIMAPParsers();
     ValidateParsers();
     return;
 }
