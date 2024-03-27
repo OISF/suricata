@@ -113,9 +113,7 @@
 
 /** If message is Error */
 /** macro for icmpv6 "unused" access */
-#define ICMPV6_GET_UNUSED(p)       (p)->icmpv6h->icmpv6b.icmpv6e.unused
-/** macro for icmpv6 "error_ptr" access */
-#define ICMPV6_GET_ERROR_PTR(p)    (p)->icmpv6h->icmpv6b.icmpv6e.error_ptr
+#define ICMPV6_GET_UNUSED(p) (p)->icmpv6h->icmpv6b.icmpv6e.unused
 /** macro for icmpv6 "mtu" accessibility */
 // ICMPv6 has MTU only for type too big
 #define ICMPV6_HAS_MTU(p)          ((p)->icmpv6h->type == ICMP6_PACKET_TOO_BIG)
@@ -156,8 +154,7 @@ typedef struct ICMPV6Vars_ {
     /* checksum of the icmpv6 packet */
     uint16_t  id;
     uint16_t  seq;
-    uint32_t  mtu;
-    uint32_t  error_ptr;
+    uint32_t mtu;
 
     /** Pointers to the embedded packet headers */
     IPV6Hdr *emb_ipv6h;
