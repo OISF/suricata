@@ -93,7 +93,7 @@
 #define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.ws.type == TCP_OPT_WS)
 #define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
 #define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
-#define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss.type == TCP_OPT_MSS)
+#define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss_set)
 #define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo.type == TCP_OPT_TFO)
 
 /** macro for getting the wscale from the packet. */
@@ -104,7 +104,7 @@
 #define TCP_GET_SACKOK(p)                    (p)->tcpvars.sack_ok
 #define TCP_GET_SACK_PTR(p)                  TCP_HAS_SACK((p)) ? (p)->tcpvars.sack.data : NULL
 #define TCP_GET_SACK_CNT(p)                  (TCP_HAS_SACK((p)) ? (((p)->tcpvars.sack.len - 2) / 8) : 0)
-#define TCP_GET_MSS(p)                       SCNtohs(*(uint16_t *)((p)->tcpvars.mss.data))
+#define TCP_GET_MSS(p)                       (p)->tcpvars.mss
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
 #define TCP_GET_X2(p)                        TCP_GET_RAW_X2((p)->tcph)
@@ -158,12 +158,13 @@ typedef struct TCPVars_
     bool ao_option_present;
     bool ts_set;
     bool sack_ok;
+    bool mss_set;
+    uint16_t mss;       /**< MSS value in host byte order */
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
     uint16_t stream_pkt_flags;
     TCPOpt sack;
     TCPOpt ws;
-    TCPOpt mss;
     TCPOpt tfo;         /* tcp fast open */
 } TCPVars;
 

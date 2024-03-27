@@ -100,10 +100,11 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     if (olen != TCP_OPT_MSS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.mss.type != 0) {
+                        if (p->tcpvars.mss_set) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            SET_OPTS(p->tcpvars.mss, tcp_opts[tcp_opt_cnt]);
+                            p->tcpvars.mss_set = true;
+                            p->tcpvars.mss = SCNtohs(*(uint16_t *)(tcp_opts[tcp_opt_cnt].data));
                         }
                     }
                     break;
