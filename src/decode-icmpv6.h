@@ -125,13 +125,7 @@
 /** macro for icmpv6 embedded "protocol" access */
 #define ICMPV6_GET_EMB_PROTO(p)    (p)->icmpv6vars.emb_ip6_proto_next
 /** macro for icmpv6 embedded "ipv6h" header access */
-#define ICMPV6_GET_EMB_IPV6(p)     (p)->icmpv6vars.emb_ipv6h
-/** macro for icmpv6 embedded "tcph" header access */
-#define ICMPV6_GET_EMB_TCP(p)      (p)->icmpv6vars.emb_tcph
-/** macro for icmpv6 embedded "udph" header access */
-#define ICMPV6_GET_EMB_UDP(p)      (p)->icmpv6vars.emb_udph
-/** macro for icmpv6 embedded "icmpv6h" header access */
-#define ICMPV6_GET_EMB_icmpv6h(p)  (p)->icmpv6vars.emb_icmpv6h
+#define ICMPV6_GET_EMB_IPV6(p) (p)->icmpv6vars.emb_ipv6h
 
 typedef struct ICMPV6Info_
 {
@@ -167,15 +161,13 @@ typedef struct ICMPV6Vars_ {
 
     /** Pointers to the embedded packet headers */
     IPV6Hdr *emb_ipv6h;
-    TCPHdr *emb_tcph;
-    UDPHdr *emb_udph;
-    ICMPV6Hdr *emb_icmpv6h;
 
     /** IPv6 src and dst address */
     uint32_t emb_ip6_src[4];
     uint32_t emb_ip6_dst[4];
     uint8_t emb_ip6_proto_next;
 
+    bool emb_ports_set;
     /** TCP/UDP ports */
     uint16_t emb_sport;
     uint16_t emb_dport;
