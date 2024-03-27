@@ -91,7 +91,7 @@
 #define TCP_GET_TSECR(p)                    ((p)->tcpvars.ts_ecr)
 
 #define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.wscale_set)
-#define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
+#define TCP_HAS_SACK(p)                     (p)->tcpvars.sack_set
 #define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
 #define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss_set)
 #define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo_set)
@@ -100,8 +100,8 @@
 #define TCP_GET_WSCALE(p) (p)->tcpvars.wscale
 
 #define TCP_GET_SACKOK(p)                    (p)->tcpvars.sack_ok
-#define TCP_GET_SACK_PTR(p)                  TCP_HAS_SACK((p)) ? (p)->tcpvars.sack.data : NULL
-#define TCP_GET_SACK_CNT(p)                  (TCP_HAS_SACK((p)) ? (((p)->tcpvars.sack.len - 2) / 8) : 0)
+#define TCP_GET_SACK_PTR(p)                  ((uint8_t *)(p)->tcph) + (p)->tcpvars.sack_offset
+#define TCP_GET_SACK_CNT(p)                  (p)->tcpvars.sack_cnt
 #define TCP_GET_MSS(p)                       (p)->tcpvars.mss
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
@@ -164,7 +164,9 @@ typedef struct TCPVars_
     uint16_t stream_pkt_flags;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
-    TCPOpt sack;
+    bool sack_set;
+    uint8_t sack_cnt;     /**< number of sack records */
+    uint16_t sack_offset; /**< offset relative to tcp header start */
 } TCPVars;
 
 #define CLEAR_TCP_PACKET(p)                                                                        \
