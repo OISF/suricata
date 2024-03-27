@@ -149,10 +149,14 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.sack.type != 0) {
+                        if (p->tcpvars.sack_set) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            SET_OPTS(p->tcpvars.sack, tcp_opts[tcp_opt_cnt]);
+                            ptrdiff_t diff = tcp_opts[tcp_opt_cnt].data - (uint8_t *)p->tcph;
+                            DEBUG_VALIDATE_BUG_ON(diff > UINT16_MAX);
+                            p->tcpvars.sack_set = true;
+                            p->tcpvars.sack_cnt = (olen - 2) / 8;
+                            p->tcpvars.sack_offset = (uint16_t)diff;
                         }
                     }
                     break;
@@ -518,7 +522,6 @@ end:
 
 static int TCPGetSackTest01(void)
 {
-    int retval = 0;
     static uint8_t raw_tcp[] = {
         0x00, 0x50, 0x06, 0xa6, 0xfa, 0x87, 0x0b, 0xf5,
         0xf1, 0x59, 0x02, 0xe0, 0xa0, 0x10, 0x3e, 0xbc,
@@ -529,12 +532,11 @@ static int TCPGetSackTest01(void)
         0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
         0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
+
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -546,39 +548,22 @@ static int TCPGetSackTest01(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
 
-    if (p->tcph == NULL) {
-        printf("tcp packet decode failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p->tcph);
 
-    if (!TCP_HAS_SACK(p)) {
-        printf("tcp packet sack not decoded: ");
-        goto end;
-    }
+    FAIL_IF(!TCP_HAS_SACK(p));
 
     int sack = TCP_GET_SACK_CNT(p);
-    if (sack != 2) {
-        printf("expected 2 sack records, got %u: ", TCP_GET_SACK_CNT(p));
-        goto end;
-    }
+    FAIL_IF(sack != 2);
 
     const uint8_t *sackptr = TCP_GET_SACK_PTR(p);
-    if (sackptr == NULL) {
-        printf("no sack data: ");
-        goto end;
-    }
+    FAIL_IF_NULL(sackptr);
 
-    if (memcmp(sackptr, raw_tcp_sack, 16) != 0) {
-        printf("malformed sack data: ");
-        goto end;
-    }
+    FAIL_IF(memcmp(sackptr, raw_tcp_sack, 16) != 0);
 
-    retval = 1;
-end:
     PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
-    return retval;
+    PASS;
 }
 #endif /* UNITTESTS */
 
