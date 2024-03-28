@@ -1172,6 +1172,13 @@
                                 "type": "string"
                             }
                         },
+                        "NS": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "NULL": {
                             "type": "array",
                             "minItems": 1,
