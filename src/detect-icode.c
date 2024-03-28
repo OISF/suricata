@@ -91,7 +91,7 @@ static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
 
     uint8_t picode;
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         picode = ICMPV4_GET_CODE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         picode = ICMPV6_GET_CODE(p);
@@ -156,7 +156,7 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
     }
 
     uint8_t picode;
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         picode = ICMPV4_GET_CODE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         picode = ICMPV6_GET_CODE(p);

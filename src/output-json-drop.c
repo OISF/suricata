@@ -144,10 +144,10 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             }
             break;
         case IPPROTO_ICMP:
-            if (PKT_IS_ICMPV4(p)) {
+            if (PacketIsICMPv4(p)) {
                 jb_set_uint(js, "icmp_id", ICMPV4_GET_ID(p));
                 jb_set_uint(js, "icmp_seq", ICMPV4_GET_SEQ(p));
-            } else if(PKT_IS_ICMPV6(p)) {
+            } else if (PKT_IS_ICMPV6(p)) {
                 jb_set_uint(js, "icmp_id", ICMPV6_GET_ID(p));
                 jb_set_uint(js, "icmp_seq", ICMPV6_GET_SEQ(p));
             }
