@@ -443,13 +443,11 @@ impl HTTP2Transaction {
                         AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                     }
                 }
-            } else {
-                if let Ok(mut dtx) = dns_parse_request(&self.doh_data_buf[dir.index()]) {
-                    dtx.id = 1;
-                    self.dns_request_tx = Some(dtx);
-                    unsafe {
-                        AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
-                    }
+            } else if let Ok(mut dtx) = dns_parse_request(&self.doh_data_buf[dir.index()]) {
+                dtx.id = 1;
+                self.dns_request_tx = Some(dtx);
+                unsafe {
+                    AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                 }
             }
         }
