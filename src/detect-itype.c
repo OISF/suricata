@@ -88,7 +88,7 @@ static int DetectITypeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
 
     uint8_t pitype;
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         pitype = ICMPV4_GET_TYPE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         pitype = ICMPV6_GET_TYPE(p);
@@ -172,7 +172,7 @@ static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
     }
 
     uint8_t pitype;
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         pitype = ICMPV4_GET_TYPE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         pitype = ICMPV6_GET_TYPE(p);
