@@ -560,7 +560,7 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
         }
     }
 
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p)) {
             return 0;
         }
