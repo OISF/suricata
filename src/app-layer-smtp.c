@@ -524,7 +524,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
         /* Open file if necessary */
         if (state->body_begin) {
-
+#ifdef DEBUG
             if (SCLogDebugEnabled()) {
                 SCLogDebug("Opening file...%u bytes", len);
                 printf("File - ");
@@ -533,7 +533,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 }
                 printf("\n");
             }
-
+#endif
             /* Set storage flag if applicable since only the first file in the
              * flow seems to be processed by the 'filestore' detector */
             if (files->head != NULL && (files->head->flags & FILE_STORE)) {
