@@ -1348,6 +1348,9 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_FTP, ftp_get_event_info);
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_FTP, ftp_get_event_info_by_id);
 
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTP);
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTPDATA);
+
         sbcfg.buf_size = 4096;
         sbcfg.Calloc = FTPCalloc;
         sbcfg.Realloc = FTPRealloc;

@@ -447,6 +447,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
                 SCLogError!("Invalid value for template.max-tx");
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
         SCLogNotice!("Rust template parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for TEMPLATE.");

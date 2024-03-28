@@ -190,6 +190,7 @@ void RegisterTFTPParsers(void)
                                               TFTPProbingParser);
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
     } else {
         SCLogDebug("Protocol detector and parser disabled for TFTP.");
         return;

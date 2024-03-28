@@ -28,7 +28,7 @@ use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,R
 use asn1_rs::FromDer;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction};
+use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction, IPPROTO_TCP, IPPROTO_UDP};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -616,6 +616,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for KRB5/UDP.");
     }
@@ -633,6 +634,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for KRB5/TCP.");
     }

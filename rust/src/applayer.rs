@@ -487,6 +487,7 @@ extern {
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerParserRegisterLogger(pproto: u8, alproto: AppProto);
 }
 
 #[repr(C)]

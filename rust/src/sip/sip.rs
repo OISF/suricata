@@ -19,7 +19,7 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto, ALPROTO_UNKNOWN};
+use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
@@ -569,6 +569,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         if register_pattern_probe(core::IPPROTO_UDP) < 0 {
             return;
         }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for UDP SIP.");
     }
@@ -590,6 +591,7 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         if register_pattern_probe(core::IPPROTO_TCP) < 0 {
             return;
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for TCP SIP.");
     }
