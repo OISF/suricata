@@ -534,7 +534,7 @@ static inline void DetectRunGetRuleGroup(
 
             /* HACK: prevent the wrong sgh (or NULL) from being stored in the
              * flow's sgh pointers */
-            if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
+            if (PacketIsICMPv4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
                 ; /* no-op */
             } else {
                 /* store the found sgh (or NULL) in the flow to save us

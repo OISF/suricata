@@ -95,7 +95,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    if (!PKT_IS_ICMPV4(p)) {
+    if (!PacketIsICMPv4(p)) {
         SCReturnPtr(NULL, "InspectionBuffer");
     }
 
