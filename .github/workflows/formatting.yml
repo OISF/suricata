@@ -21,9 +21,9 @@ jobs:
 
   # Checking for correct formatting of branch for C code changes
   check-formatting:
-    name: Formatting Check (clang 9)
-    runs-on: ubuntu-20.04
-    container: ubuntu:20.04
+    name: Formatting Check (clang 14)
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
     continue-on-error: false
     steps:
 
@@ -43,6 +43,8 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                cbindgen \
+                clang-format-14 \
                 git \
                 libtool \
                 libpcap-dev \
@@ -58,21 +60,14 @@ jobs:
                 libnfnetlink0 \
                 libhiredis-dev \
                 libjansson-dev \
-                libpython2.7 \
                 make \
-                python \
                 rustc \
+                python-is-python3 \
+                python3 \
                 software-properties-common \
                 wget \
                 zlib1g \
                 zlib1g-dev
-      - name: Install packages for clang-format 9
-        run: |
-          # no need to install full clang
-          apt-get install -y clang-format-9
-      - name: Install cbindgen
-        run: cargo install --force --debug --version 0.24.3 cbindgen
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       # Checking out the branch is not as simple as "checking out".
       #
       # In case master has any new commits since we branched off, github will

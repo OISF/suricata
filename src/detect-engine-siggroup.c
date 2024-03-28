@@ -64,7 +64,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
         sghid->match_array = NULL;
     }
     if (sghid->sig_array != NULL) {
-        SCFree(sghid->sig_array);
+        SCFreeAligned(sghid->sig_array);
         sghid->sig_array = NULL;
     }
     if (sghid->app_mpms != NULL) {
@@ -94,9 +94,12 @@ static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
     memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
 
     /* initialize the signature bitarray */
-    sghid->sig_size = size;
-    if ( (sghid->sig_array = SCMalloc(sghid->sig_size)) == NULL)
+    size = sghid->sig_size = size + 16 - (size % 16);
+    void *ptr = SCMallocAligned(sghid->sig_size, 16);
+    if (ptr == NULL)
         goto error;
+    memset(ptr, 0, size);
+    sghid->sig_array = ptr;
 
     memset(sghid->sig_array, 0, sghid->sig_size);
 
@@ -380,6 +383,24 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
     return 0;
 }
 
+#ifdef __SSE2__
+#include <emmintrin.h>
+static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
+{
+#define BYTES 16
+    const uint8_t *srcptr = src;
+    uint8_t *dstptr = dst;
+    for (uint32_t i = 0; i < size; i += 16) {
+        __m128i s = _mm_load_si128((const __m128i *)srcptr);
+        __m128i d = _mm_load_si128((const __m128i *)dstptr);
+        d = _mm_or_si128(s, d);
+        _mm_store_si128((__m128i *)dstptr, d);
+        srcptr += BYTES;
+        dstptr += BYTES;
+    }
+}
+#endif
+
 /**
  * \brief Copies the bitarray holding the sids from the source SigGroupHead to
  *        the destination SigGroupHead.
@@ -393,8 +414,6 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
  */
 int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHead **dst)
 {
-    uint32_t idx = 0;
-
     if (src == NULL || de_ctx == NULL)
         return 0;
 
@@ -403,11 +422,15 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
         if (*dst == NULL)
             goto error;
     }
+    DEBUG_VALIDATE_BUG_ON(src->init->sig_size != (*dst)->init->sig_size);
 
+#ifdef __SSE2__
+    MergeBitarrays(src->init->sig_array, (*dst)->init->sig_array, src->init->sig_size);
+#else
     /* do the copy */
-    for (idx = 0; idx < src->init->sig_size; idx++)
+    for (uint32_t idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
-
+#endif
     if (src->init->whitelist)
         (*dst)->init->whitelist = MAX((*dst)->init->whitelist, src->init->whitelist);
 
@@ -416,6 +439,24 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
 error:
     return -1;
 }
+
+#ifdef HAVE_POPCNT64
+#include <x86intrin.h>
+static uint32_t Popcnt(const uint8_t *array, const uint32_t size)
+{
+    /* input needs to be a multiple of 8 for u64 casts to work */
+    DEBUG_VALIDATE_BUG_ON(size < 8);
+    DEBUG_VALIDATE_BUG_ON(size % 8);
+
+    uint32_t cnt = 0;
+    uint64_t *ptr = (uint64_t *)array;
+    for (uint64_t idx = 0; idx < size; idx += 8) {
+        cnt += _popcnt64(*ptr);
+        ptr++;
+    }
+    return cnt;
+}
+#endif
 
 /**
  * \brief Updates the SigGroupHead->sig_cnt with the total count of all the
@@ -427,15 +468,39 @@ error:
  */
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
-    uint32_t sig;
-
-    sgh->init->sig_cnt = 0;
-    for (sig = 0; sig < max_idx + 1; sig++) {
+#ifdef HAVE_POPCNT64
+    sgh->init->sig_cnt = Popcnt(sgh->init->sig_array, sgh->init->sig_size);
+#else
+    uint32_t cnt = 0;
+    for (uint32_t sig = 0; sig < max_idx + 1; sig++) {
         if (sgh->init->sig_array[sig / 8] & (1 << (sig % 8)))
-            sgh->init->sig_cnt++;
+            cnt++;
     }
-
+    sgh->init->sig_cnt = cnt;
+#endif
     return;
+}
+
+/**
+ * \brief Finds if two Signature Group Heads are the same.
+ *
+ * \param sgha First SGH to be compared
+ * \param sghb Secornd SGH to be compared
+ *
+ * \return true if they're a match, false otherwise
+ */
+bool SigGroupHeadEqual(const SigGroupHead *sgha, const SigGroupHead *sghb)
+{
+    if (sgha == NULL || sghb == NULL)
+        return false;
+
+    if (sgha->init->sig_size != sghb->init->sig_size)
+        return false;
+
+    if (SCMemcmp(sgha->init->sig_array, sghb->init->sig_array, sgha->init->sig_size) != 0)
+        return false;
+
+    return true;
 }
 
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,

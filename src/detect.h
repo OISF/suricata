@@ -226,6 +226,7 @@ typedef struct DetectPort_ {
 
     struct DetectPort_ *prev;
     struct DetectPort_ *next;
+    struct DetectPort_ *last; /* Pointer to the last node in the list */
 } DetectPort;
 
 /* Signature flags */

@@ -64,7 +64,7 @@ static bool DetectPortIsValidRange(char *, uint16_t *);
  *
  * \retval dp newly created DetectPort on success; or NULL in case of error.
  */
-static DetectPort *DetectPortInit(void)
+DetectPort *DetectPortInit(void)
 {
     DetectPort *dp = SCCalloc(1, sizeof(DetectPort));
     if (unlikely(dp == NULL))

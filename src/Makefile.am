@@ -506,6 +506,7 @@ noinst_HEADERS = \
 	tm-threads-common.h \
 	tm-threads.h \
 	tree.h \
+	interval-tree.h \
 	unix-manager.h \
 	util-action.h \
 	util-affinity.h \
@@ -622,6 +623,7 @@ noinst_HEADERS = \
 	util-validate.h \
 	util-var.h \
 	util-var-name.h \
+	util-port-interval-tree.h \
 	win32-misc.h \
 	win32-service.h \
 	win32-syscall.h \
@@ -1227,6 +1229,7 @@ libsuricata_c_a_SOURCES = \
 	util-unittest-helper.c \
 	util-var.c \
 	util-var-name.c \
+	util-port-interval-tree.c \
 	win32-misc.c \
 	win32-service.c \
 	win32-syscall.c

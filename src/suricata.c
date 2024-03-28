@@ -768,6 +768,9 @@ static void PrintBuildInfo(void)
 #if defined(SC_ADDRESS_SANITIZER)
     strlcat(features, "ASAN ", sizeof(features));
 #endif
+#if defined(HAVE_POPCNT64)
+    strlcat(features, "POPCNT64 ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -784,6 +787,9 @@ static void PrintBuildInfo(void)
 #endif
 #if defined(__SSE3__)
     strlcat(features, "SSE_3 ", sizeof(features));
+#endif
+#if defined(__SSE2__)
+    strlcat(features, "SSE_2 ", sizeof(features));
 #endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
