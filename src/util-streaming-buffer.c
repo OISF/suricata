@@ -1064,7 +1064,15 @@ void StreamingBufferSlideToOffset(
     DEBUG_VALIDATE_BUG_ON(sb->region.stream_offset < offset);
 }
 
-#define DATA_FITS(sb, len) ((sb)->region.buf_offset + (len) <= (sb)->region.buf_size)
+static int DataFits(const StreamingBuffer *sb, const uint32_t len)
+{
+    uint64_t buf_offset64 = sb->region.buf_offset;
+    uint64_t len64 = len;
+    if (len64 + buf_offset64 > UINT32_MAX) {
+        return -1;
+    }
+    return sb->region.buf_offset + len <= sb->region.buf_size;
+}
 
 int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len)
@@ -1076,7 +1084,11 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
             return -1;
     }
 
-    if (!DATA_FITS(sb, data_len)) {
+    int r = DataFits(sb, data_len);
+    if (r < 0) {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return -1;
+    } else if (r == 0) {
         if (sb->region.buf_size == 0) {
             if (GrowToSize(sb, cfg, data_len) != SC_OK)
                 return -1;
@@ -1085,7 +1097,7 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
                 return -1;
         }
     }
-    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
+    DEBUG_VALIDATE_BUG_ON(DataFits(sb, data_len) != 1);
 
     memcpy(sb->region.buf + sb->region.buf_offset, data, data_len);
     seg->stream_offset = sb->region.stream_offset + sb->region.buf_offset;
@@ -1111,7 +1123,11 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfi
             return -1;
     }
 
-    if (!DATA_FITS(sb, data_len)) {
+    int r = DataFits(sb, data_len);
+    if (r < 0) {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return -1;
+    } else if (r == 0) {
         if (sb->region.buf_size == 0) {
             if (GrowToSize(sb, cfg, data_len) != SC_OK)
                 return -1;
@@ -1120,7 +1136,7 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfi
                 return -1;
         }
     }
-    DEBUG_VALIDATE_BUG_ON(!DATA_FITS(sb, data_len));
+    DEBUG_VALIDATE_BUG_ON(DataFits(sb, data_len) != 1);
 
     memcpy(sb->region.buf + sb->region.buf_offset, data, data_len);
     uint32_t rel_offset = sb->region.buf_offset;
@@ -1133,7 +1149,15 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfi
     }
 }
 
-#define DATA_FITS_AT_OFFSET(region, len, offset) ((offset) + (len) <= (region)->buf_size)
+static int DataFitsAtOffset(
+        const StreamingBufferRegion *region, const uint32_t len, const uint32_t offset)
+{
+    const uint64_t offset64 = offset;
+    const uint64_t len64 = len;
+    if (offset64 + len64 > UINT32_MAX)
+        return -1;
+    return (offset + len <= region->buf_size);
+}
 
 #if defined(DEBUG) || defined(DEBUG_VALIDATION)
 static void Validate(const StreamingBuffer *sb)
@@ -1477,8 +1501,6 @@ static StreamingBufferRegion *BufferInsertAtRegion(StreamingBuffer *sb,
 int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len, uint64_t offset)
 {
-    int r;
-
     DEBUG_VALIDATE_BUG_ON(seg == NULL);
     DEBUG_VALIDATE_BUG_ON(offset < sb->region.stream_offset);
     if (offset < sb->region.stream_offset) {
@@ -1496,11 +1518,15 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
             region == &sb->region ? "main" : "aux", region);
 
     uint32_t rel_offset = offset - region->stream_offset;
-    if (!DATA_FITS_AT_OFFSET(region, data_len, rel_offset)) {
+    int r = DataFitsAtOffset(region, data_len, rel_offset);
+    if (r < 0) {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return SC_ELIMIT;
+    } else if (r == 0) {
         if ((r = GrowToSize(sb, cfg, (rel_offset + data_len))) != SC_OK)
             return r;
     }
-    DEBUG_VALIDATE_BUG_ON(!DATA_FITS_AT_OFFSET(region, data_len, rel_offset));
+    DEBUG_VALIDATE_BUG_ON(DataFitsAtOffset(region, data_len, rel_offset) != 1);
 
     SCLogDebug("offset %" PRIu64 " data_len %u, rel_offset %u into region offset %" PRIu64
                ", buf_offset %u, buf_size %u",
@@ -2320,6 +2346,22 @@ static int StreamingBufferTest10(void)
     PASS;
 }
 
+static int StreamingBufferTest11(void)
+{
+    StreamingBufferConfig cfg = { 24, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, NULL, NULL, NULL };
+    StreamingBuffer *sb = StreamingBufferInit(&cfg);
+    FAIL_IF(sb == NULL);
+
+    StreamingBufferSegment seg1;
+    FAIL_IF(StreamingBufferAppend(sb, &cfg, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
+    StreamingBufferSegment seg2;
+    unsigned int data_len = 0xffffffff;
+    FAIL_IF(StreamingBufferAppend(sb, &cfg, &seg2, (const uint8_t *)"unused", data_len) != -1);
+    FAIL_IF(StreamingBufferInsertAt(
+                    sb, &cfg, &seg2, (const uint8_t *)"abcdefghij", data_len, 100000) != SC_ELIMIT);
+    StreamingBufferFree(sb, &cfg);
+    PASS;
+}
 #endif
 
 void StreamingBufferRegisterTests(void)
@@ -2333,5 +2375,6 @@ void StreamingBufferRegisterTests(void)
     UtRegisterTest("StreamingBufferTest08", StreamingBufferTest08);
     UtRegisterTest("StreamingBufferTest09", StreamingBufferTest09);
     UtRegisterTest("StreamingBufferTest10", StreamingBufferTest10);
+    UtRegisterTest("StreamingBufferTest11 Bug 6903", StreamingBufferTest11);
 #endif
 }
