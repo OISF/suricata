@@ -99,7 +99,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
                 SCLogDebug("Packet has no id field");
                 return false;
         }
-    } else if (PKT_IS_ICMPV6(p)) {
+    } else if (PacketIsICMPv6(p)) {
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
