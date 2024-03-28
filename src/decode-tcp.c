@@ -381,19 +381,16 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 /** \test Get the wscale of 2 */
 static int TCPGetWscaleTest01(void)
 {
-    int retval = 0;
     static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
                                 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -404,38 +401,27 @@ static int TCPGetWscaleTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-
-    if (p->tcph == NULL) {
-        printf("tcp packet decode failed: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PKT_IS_TCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
-    if (wscale != 2) {
-        printf("wscale %"PRIu8", expected 2: ", wscale);
-        goto end;
-    }
+    FAIL_IF(wscale != 2);
 
-    retval = 1;
-end:
     PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
-    return retval;
+    PASS;
 }
 
 /** \test Get the wscale of 15, so see if return 0 properly */
 static int TCPGetWscaleTest02(void)
 {
-    int retval = 0;
     static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
                                 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -450,41 +436,29 @@ static int TCPGetWscaleTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-
-    if (p->tcph == NULL) {
-        printf("tcp packet decode failed: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PKT_IS_TCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
-    if (wscale != 0) {
-        printf("wscale %"PRIu8", expected 0: ", wscale);
-        goto end;
-    }
+    FAIL_IF(wscale != 0);
 
-    retval = 1;
-end:
     PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
-    return retval;
+    PASS;
 }
 
 /** \test Get the wscale, but it's missing, so see if return 0 properly */
 static int TCPGetWscaleTest03(void)
 {
-    int retval = 0;
     static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x59,
                                 0xdd, 0xa3, 0x6f, 0xf8, 0x80, 0x10, 0x05, 0xb4,
                                 0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
                                 0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -495,24 +469,15 @@ static int TCPGetWscaleTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-
-    if (p->tcph == NULL) {
-        printf("tcp packet decode failed: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PKT_IS_TCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
-    if (wscale != 0) {
-        printf("wscale %"PRIu8", expected 0: ", wscale);
-        goto end;
-    }
+    FAIL_IF(wscale != 0);
 
-    retval = 1;
-end:
     PacketRecycle(p);
     FlowShutdown();
     SCFree(p);
-    return retval;
+    PASS;
 }
 
 static int TCPGetSackTest01(void)
