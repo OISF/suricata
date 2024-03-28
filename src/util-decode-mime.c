@@ -1093,6 +1093,8 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
 static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state)
 {
+    DEBUG_VALIDATE_BUG_ON(len > DATA_CHUNK_SIZE);
+
     int ret = MIME_DEC_OK;
     uint8_t *remainPtr, *tok;
     uint32_t tokLen;
