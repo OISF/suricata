@@ -186,7 +186,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                          "DST IP:            %s\n"
                          "PROTO:             %" PRIu32 "\n",
                          srcip, dstip, p->proto);
-    if (PacketIsTCP(p) || PKT_IS_UDP(p)) {
+    if (PacketIsTCP(p) || PacketIsUDP(p)) {
         MemBufferWriteString(aft->buffer, "SRC PORT:          %" PRIu32 "\n"
                              "DST PORT:          %" PRIu32 "\n",
                              p->sp, p->dp);

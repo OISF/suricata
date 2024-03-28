@@ -103,7 +103,7 @@ static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             return 0;
         }
         rpcmsg += 4;
-    } else if (PKT_IS_UDP(p)) {
+    } else if (PacketIsUDP(p)) {
         /* if Rpc msg too small */
         if (p->payload_len < 24) {
             SCLogDebug("UDP packet to small for the rpc msg (%u)", p->payload_len);

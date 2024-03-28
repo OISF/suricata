@@ -218,11 +218,11 @@ static int DecodeVXLANtest01 (void)
     FlowInitConfig(FLOW_QUIET);
 
     DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
-    FAIL_IF_NOT(PKT_IS_UDP(p));
+    FAIL_IF_NOT(PacketIsUDP(p));
     FAIL_IF(tv.decode_pq.top == NULL);
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
-    FAIL_IF_NOT(PKT_IS_UDP(tp));
+    FAIL_IF_NOT(PacketIsUDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
     FlowShutdown();
@@ -257,7 +257,7 @@ static int DecodeVXLANtest02 (void)
     FlowInitConfig(FLOW_QUIET);
 
     DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
-    FAIL_IF_NOT(PKT_IS_UDP(p));
+    FAIL_IF_NOT(PacketIsUDP(p));
     FAIL_IF(tv.decode_pq.top != NULL);
 
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S); /* reset */
