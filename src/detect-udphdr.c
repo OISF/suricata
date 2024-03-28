@@ -99,7 +99,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (!PKT_IS_UDP(p)) {
+        if (!PacketIsUDP(p)) {
             return NULL;
         }
         if (((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN) >
