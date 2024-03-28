@@ -192,7 +192,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
     uint32_t hash = 0;
 
     if (PacketIsIPv4(p)) {
-        if (p->tcph != NULL || p->udph != NULL) {
+        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
             int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);

@@ -305,11 +305,11 @@ static int DecodeGeneveTest01(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
-    FAIL_IF(p->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(p));
     FAIL_IF(tv.decode_pq.top == NULL);
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
-    FAIL_IF(tp->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(tp));
     FAIL_IF_NOT(tp->sp == 546);
 
     FlowShutdown();
@@ -347,11 +347,11 @@ static int DecodeGeneveTest02(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
-    FAIL_IF(p->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(p));
     FAIL_IF(tv.decode_pq.top == NULL);
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
-    FAIL_IF(tp->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
     FlowShutdown();
@@ -394,11 +394,11 @@ static int DecodeGeneveTest03(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
-    FAIL_IF(p->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(p));
     FAIL_IF(tv.decode_pq.top == NULL);
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
-    FAIL_IF(tp->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
     FlowShutdown();
@@ -438,7 +438,7 @@ static int DecodeGeneveTest04(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
-    FAIL_IF(p->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(p));
     FAIL_IF(tv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
 
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S); /* Reset Geneve port list for future calls */
@@ -478,7 +478,7 @@ static int DecodeGeneveTest05(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
-    FAIL_IF(p->udph == NULL);
+    FAIL_IF_NOT(PKT_IS_UDP(p));
     FAIL_IF(tv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
 
     FlowShutdown();
