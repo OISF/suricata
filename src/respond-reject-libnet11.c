@@ -282,7 +282,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (!PKT_IS_TCP(p))
+    if (!PacketIsTCP(p))
         return 1;
 
     libnet_t *c = GetCtx(p, LIBNET_RAW4);
@@ -425,7 +425,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (!PKT_IS_TCP(p))
+    if (!PacketIsTCP(p))
         return 1;
 
     libnet_t *c = GetCtx(p, LIBNET_RAW6);

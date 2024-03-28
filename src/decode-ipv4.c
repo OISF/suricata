@@ -1294,24 +1294,24 @@ static int DecodeIPV4DefragTest01(void)
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     FAIL_IF_NULL(tp);
     FAIL_IF(tp->recursion_level != p->recursion_level);
     FAIL_IF_NOT(PacketIsIPv4(tp));
-    FAIL_IF_NOT(PKT_IS_TCP(tp));
+    FAIL_IF_NOT(PacketIsTCP(tp));
     FAIL_IF(GET_PKT_LEN(tp) != sizeof(tunnel_pkt));
     FAIL_IF(memcmp(GET_PKT_DATA(tp), tunnel_pkt, sizeof(tunnel_pkt)) != 0);
     PacketRecycle(tp);
@@ -1390,25 +1390,25 @@ static int DecodeIPV4DefragTest02(void)
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     p->recursion_level = 3;
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     FAIL_IF_NULL(tp);
     FAIL_IF(tp->recursion_level != p->recursion_level);
     FAIL_IF_NOT(PacketIsIPv4(tp));
-    FAIL_IF_NOT(PKT_IS_TCP(tp));
+    FAIL_IF_NOT(PacketIsTCP(tp));
     FAIL_IF(GET_PKT_LEN(tp) != sizeof(tunnel_pkt));
     FAIL_IF(memcmp(GET_PKT_DATA(tp), tunnel_pkt, sizeof(tunnel_pkt)) != 0);
     PacketRecycle(tp);
@@ -1481,26 +1481,26 @@ static int DecodeIPV4DefragTest03(void)
     PacketCopyData(p, pkt, sizeof(pkt));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF_NOT(PKT_IS_TCP(p));
+    FAIL_IF_NOT(PacketIsTCP(p));
     FAIL_IF(!(p->flags & PKT_WANTS_FLOW));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
     PacketRecycle(p);
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
-    FAIL_IF(PKT_IS_TCP(p));
+    FAIL_IF(PacketIsTCP(p));
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     FAIL_IF_NULL(tp);
@@ -1508,7 +1508,7 @@ static int DecodeIPV4DefragTest03(void)
     FAIL_IF(tp->flow_hash != p->flow_hash);
     FAIL_IF(tp->recursion_level != p->recursion_level);
     FAIL_IF_NOT(PacketIsIPv4(tp));
-    FAIL_IF_NOT(PKT_IS_TCP(tp));
+    FAIL_IF_NOT(PacketIsTCP(tp));
     FAIL_IF(GET_PKT_LEN(tp) != sizeof(tunnel_pkt));
     FAIL_IF(memcmp(GET_PKT_DATA(tp), tunnel_pkt, sizeof(tunnel_pkt)) != 0);
     PacketRecycle(tp);

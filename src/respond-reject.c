@@ -74,13 +74,13 @@ static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data)
     }
 
     if (PacketIsIPv4(p)) {
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             (void)RejectSendIPv4TCP(tv, p, data);
         } else {
             (void)RejectSendIPv4ICMP(tv, p, data);
         }
     } else if (PacketIsIPv6(p)) {
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             (void)RejectSendIPv6TCP(tv, p, data);
         } else {
             (void)RejectSendIPv6ICMP(tv, p, data);
