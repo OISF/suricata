@@ -682,7 +682,7 @@ static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv4(p) || p->icmpv4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || !PKT_IS_ICMPV4(p) || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
