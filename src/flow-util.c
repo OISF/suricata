@@ -170,10 +170,10 @@ void FlowInit(Flow *f, const Packet *p)
         DEBUG_VALIDATE_BUG_ON(1);
     }
 
-    if (p->tcph != NULL) { /* XXX MACRO */
+    if (PKT_IS_TCP(p)) {
         SET_TCP_SRC_PORT(p,&f->sp);
         SET_TCP_DST_PORT(p,&f->dp);
-    } else if (p->udph != NULL) { /* XXX MACRO */
+    } else if (PKT_IS_UDP(p)) {
         SET_UDP_SRC_PORT(p,&f->sp);
         SET_UDP_DST_PORT(p,&f->dp);
     } else if (p->icmpv4h != NULL) {
