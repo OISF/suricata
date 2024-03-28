@@ -61,6 +61,13 @@ impl Direction {
     pub fn is_to_client(&self) -> bool {
 	matches!(self, Self::ToClient)
     }
+
+    pub fn index(&self) -> usize {
+        match self {
+            Self::ToClient => 0,
+            _ => 1,
+        }
+    }
 }
 
 impl Default for Direction {
