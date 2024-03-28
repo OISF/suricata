@@ -305,7 +305,7 @@ static int PfringBypassCallback(Packet *p)
     hw_filtering_rule r;
 
     /* Only bypass TCP and UDP */
-    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+    if (!(PacketIsTCP(p) || PKT_IS_UDP(p))) {
         return 0;
     }
 

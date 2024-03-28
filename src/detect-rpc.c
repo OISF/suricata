@@ -96,7 +96,7 @@ static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     const DetectRpcData *rd = (const DetectRpcData *)ctx;
     char *rpcmsg = (char *)p->payload;
 
-    if (PKT_IS_TCP(p)) {
+    if (PacketIsTCP(p)) {
         /* if Rpc msg too small */
         if (p->payload_len < 28) {
             SCLogDebug("TCP packet to small for the rpc msg (%u)", p->payload_len);

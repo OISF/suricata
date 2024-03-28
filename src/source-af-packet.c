@@ -2181,7 +2181,7 @@ static int AFPBypassCallback(Packet *p)
 {
     SCLogDebug("Calling af_packet callback function");
     /* Only bypass TCP and UDP */
-    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+    if (!(PacketIsTCP(p) || PKT_IS_UDP(p))) {
         return 0;
     }
 
@@ -2335,7 +2335,7 @@ static int AFPXDPBypassCallback(Packet *p)
 {
     SCLogDebug("Calling af_packet callback function");
     /* Only bypass TCP and UDP */
-    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+    if (!(PacketIsTCP(p) || PKT_IS_UDP(p))) {
         return 0;
     }
 
