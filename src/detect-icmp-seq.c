@@ -79,7 +79,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
     if (PKT_IS_PSEUDOPKT(p))
         return false;
 
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:

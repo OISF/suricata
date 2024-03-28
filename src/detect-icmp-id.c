@@ -79,7 +79,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
         return false;
 
     uint16_t pid;
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
