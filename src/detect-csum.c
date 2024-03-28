@@ -507,7 +507,7 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv4(p) || !PKT_IS_UDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) ||
+    if (!PacketIsIPv4(p) || !PacketIsUDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) ||
             p->udph->uh_sum == 0)
         return 0;
 
@@ -597,7 +597,7 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv6(p) || !PKT_IS_UDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv6(p) || !PacketIsUDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
