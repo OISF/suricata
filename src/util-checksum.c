@@ -35,7 +35,7 @@ int ReCalculateChecksum(Packet *p)
             p->tcph->th_sum = 0;
             p->tcph->th_sum = TCPChecksum(
                     ip4h->s_ip_addrs, (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
-        } else if (PKT_IS_UDP(p)) {
+        } else if (PacketIsUDP(p)) {
             p->udph->uh_sum = 0;
             p->udph->uh_sum = UDPV4Checksum(
                     ip4h->s_ip_addrs, (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN), 0);
@@ -49,7 +49,7 @@ int ReCalculateChecksum(Packet *p)
             p->tcph->th_sum = 0;
             p->tcph->th_sum = TCPV6Checksum(
                     ip6h->s_ip6_addrs, (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
-        } else if (PKT_IS_UDP(p)) {
+        } else if (PacketIsUDP(p)) {
             p->udph->uh_sum = 0;
             p->udph->uh_sum = UDPV6Checksum(
                     ip6h->s_ip6_addrs, (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN), 0);

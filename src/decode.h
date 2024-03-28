@@ -764,6 +764,11 @@ static inline bool PacketIsTCP(const Packet *p)
     return PKT_IS_TCP(p);
 }
 
+static inline bool PacketIsUDP(const Packet *p)
+{
+    return PKT_IS_UDP(p);
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
