@@ -151,9 +151,8 @@ PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
-        (p->tcph != NULL) && (TCP_GET_SEQ(p) == ctx->v1.u32[0]))
-    {
+    if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PKT_IS_TCP(p) &&
+            (TCP_GET_SEQ(p) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP seq %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
