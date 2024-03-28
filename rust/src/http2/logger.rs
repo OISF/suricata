@@ -19,7 +19,8 @@ use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 enum HeaderName {
@@ -35,10 +36,20 @@ fn log_http2_headers<'a>(
     blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
     common: &mut HashMap<HeaderName, &'a Vec<u8>>,
 ) -> Result<(), JsonError> {
+    let mut logged_headers = HashSet::new();
     for block in blocks {
-        js.start_object()?;
+        // delay js.start_object() because we skip suplicate headers
         match block.error {
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
+                if Rc::strong_count(&block.name) > 2 {
+                    // more than one reference in headers table + current headers
+                    let ptr = Rc::as_ptr(&block.name) as usize;
+                    if !logged_headers.insert(ptr) {
+                        // only log once
+                        continue;
+                    }
+                }
+                js.start_object()?;
                 js.set_string_from_bytes("name", &block.name)?;
                 js.set_string_from_bytes("value", &block.value)?;
                 if let Ok(name) = std::str::from_utf8(&block.name) {
@@ -66,9 +77,11 @@ fn log_http2_headers<'a>(
                 }
             }
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate => {
+                js.start_object()?;
                 js.set_uint("table_size_update", block.sizeupdate)?;
             }
             _ => {
+                js.start_object()?;
                 js.set_string("error", &block.error.to_string())?;
             }
         }
