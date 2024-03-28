@@ -99,7 +99,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
                 SCLogDebug("Packet has no seq field");
                 return false;
         }
-    } else if (PKT_IS_ICMPV6(p)) {
+    } else if (PacketIsICMPv6(p)) {
 
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
