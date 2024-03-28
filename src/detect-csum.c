@@ -328,7 +328,7 @@ static int DetectTCPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv4(p) || !PKT_IS_TCP(p) || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p) || !PacketIsTCP(p) || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -417,7 +417,7 @@ static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv6(p) || !PKT_IS_TCP(p) || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv6(p) || !PacketIsTCP(p) || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {

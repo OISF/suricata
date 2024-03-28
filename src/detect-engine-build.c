@@ -422,7 +422,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
 
-    if (!(PKT_IS_PSEUDOPKT(p)) && PKT_IS_TCP(p)) {
+    if (!(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p)) {
         if ((p->tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
             (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
         }

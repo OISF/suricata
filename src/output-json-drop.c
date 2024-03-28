@@ -124,7 +124,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     }
     switch (proto) {
         case IPPROTO_TCP:
-            if (PKT_IS_TCP(p)) {
+            if (PacketIsTCP(p)) {
                 jb_set_uint(js, "tcpseq", TCP_GET_SEQ(p));
                 jb_set_uint(js, "tcpack", TCP_GET_ACK(p));
                 jb_set_uint(js, "tcpwin", TCP_GET_WINDOW(p));
