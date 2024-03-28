@@ -1078,6 +1078,7 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(seg == NULL);
+    DEBUG_VALIDATE_BUG_ON(data_len > BIT_U32(27)); // 128MiB is excessive already
 
     if (sb->region.buf == NULL) {
         if (InitBuffer(sb, cfg) == -1)
@@ -1118,6 +1119,8 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
 int StreamingBufferAppendNoTrack(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         const uint8_t *data, uint32_t data_len)
 {
+    DEBUG_VALIDATE_BUG_ON(data_len > BIT_U32(27)); // 128MiB is excessive already
+
     if (sb->region.buf == NULL) {
         if (InitBuffer(sb, cfg) == -1)
             return -1;
@@ -1502,6 +1505,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len, uint64_t offset)
 {
     DEBUG_VALIDATE_BUG_ON(seg == NULL);
+    DEBUG_VALIDATE_BUG_ON(data_len > BIT_U32(27)); // 128MiB is excessive already
     DEBUG_VALIDATE_BUG_ON(offset < sb->region.stream_offset);
     if (offset < sb->region.stream_offset) {
         return SC_EINVAL;
