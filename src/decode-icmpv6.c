@@ -606,8 +606,7 @@ static int ICMPV6ParamProbTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF(p->icmpv6h == NULL);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     /* ICMPv6 not processed at all? */
     FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0 ||
@@ -660,8 +659,7 @@ static int ICMPV6PktTooBigTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF(p->icmpv6h == NULL);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6
      * (IPPROTO_NONE) */
@@ -717,8 +715,7 @@ static int ICMPV6TimeExceedTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6 (IPPROTO_NONE) */
     FAIL_IF(ICMPV6_GET_TYPE(p) != 3 || ICMPV6_GET_CODE(p) != 0 ||
@@ -774,8 +771,7 @@ static int ICMPV6DestUnreachTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6 (IPPROTO_NONE) */
     FAIL_IF(ICMPV6_GET_TYPE(p) != 1 || ICMPV6_GET_CODE(p) != 0 ||
@@ -819,8 +815,7 @@ static int ICMPV6EchoReqTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     SCLogDebug("ID: %u seq: %u", ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
@@ -864,8 +859,7 @@ static int ICMPV6EchoRepTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     SCLogDebug("type: %u code %u ID: %u seq: %u", ICMPV6_GET_TYPE(p),
                ICMPV6_GET_CODE(p),ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
@@ -916,8 +910,7 @@ static int ICMPV6ParamProbTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
     FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0);
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER));
 
@@ -958,8 +951,7 @@ static int ICMPV6PktTooBigTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
-
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
     PacketRecycle(p);
@@ -1515,7 +1507,7 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6 + 14, sizeof(raw_ipv6) - 14);
-    FAIL_IF_NULL(p->icmpv6h);
+    FAIL_IF(!PKT_IS_ICMPV6(p));
 
     const IPV6Hdr *ip6h = PacketGetIPv6(p);
     uint16_t icmpv6_len = IPV6_GET_RAW_PLEN(ip6h) -
