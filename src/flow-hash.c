@@ -192,7 +192,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
     uint32_t hash = 0;
 
     if (PacketIsIPv4(p)) {
-        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+        if (PacketIsTCP(p) || PKT_IS_UDP(p)) {
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
             int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
@@ -550,7 +550,7 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
     /* if we're in emergency mode, don't try to create a flow for a TCP
      * that is not a TCP SYN packet. */
     if (emerg) {
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             if (((p->tcph->th_flags & (TH_SYN | TH_ACK | TH_RST | TH_FIN)) == TH_SYN) ||
                     !stream_config.midstream) {
                 ;

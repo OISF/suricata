@@ -87,7 +87,7 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 {
     const DetectWindowData *wd = (const DetectWindowData *)ctx;
 
-    if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
+    if (!(PacketIsTCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 
