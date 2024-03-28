@@ -650,7 +650,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     /* if we are using alerted logging and if packet is first one with alert in flow
      * then we need to dump in the pcap the stream acked by the packet */
     if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional != LOGMODE_COND_ALL)) {
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             /* dump fake packets for all segments we have on acked by packet */
 #ifdef HAVE_LIBLZ4
             PcapLogDumpSegments(td, comp, p);

@@ -401,7 +401,7 @@ static int TCPGetWscaleTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-    FAIL_IF_NOT(PKT_IS_TCP(p));
+    FAIL_IF_NOT(PacketIsTCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 2);
@@ -436,7 +436,7 @@ static int TCPGetWscaleTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-    FAIL_IF_NOT(PKT_IS_TCP(p));
+    FAIL_IF_NOT(PacketIsTCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 0);
@@ -469,7 +469,7 @@ static int TCPGetWscaleTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
-    FAIL_IF_NOT(PKT_IS_TCP(p));
+    FAIL_IF_NOT(PacketIsTCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 0);

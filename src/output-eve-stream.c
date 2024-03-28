@@ -334,7 +334,7 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         jb_set_uint(js, "hoplimit", IPV6_GET_RAW_HLIM(ip6h));
         jb_set_uint(js, "flowlbl", IPV6_GET_RAW_FLOW(ip6h));
     }
-    if (PKT_IS_TCP(p)) {
+    if (PacketIsTCP(p)) {
         jb_set_uint(js, "tcpseq", TCP_GET_SEQ(p));
         jb_set_uint(js, "tcpack", TCP_GET_ACK(p));
         jb_set_uint(js, "tcpwin", TCP_GET_WINDOW(p));

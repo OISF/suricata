@@ -487,7 +487,7 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, v
 {
     SCEnter();
 
-    if (!(PKT_IS_TCP(p))) {
+    if (!(PacketIsTCP(p))) {
         SCReturnInt(TM_ECODE_OK);
     }
 

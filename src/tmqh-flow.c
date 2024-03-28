@@ -282,8 +282,8 @@ static void TmqhOutputFlowFTPHash(ThreadVars *tv, Packet *p)
 
     if (p->flags & PKT_WANTS_FLOW) {
         uint32_t hash = p->flow_hash;
-        if (PKT_IS_TCP(p) && ((p->sp >= 1024 && p->dp >= 1024) || p->dp == 21 || p->sp == 21 ||
-                                     p->dp == 20 || p->sp == 20)) {
+        if (PacketIsTCP(p) && ((p->sp >= 1024 && p->dp >= 1024) || p->dp == 21 || p->sp == 21 ||
+                                      p->dp == 20 || p->sp == 20)) {
             hash = FlowGetIpPairProtoHash(p);
         }
         qid = hash % ctx->size;

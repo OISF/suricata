@@ -430,7 +430,7 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
 
     SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
-    DEBUG_VALIDATE_BUG_ON(!(p->flow && PKT_IS_TCP(p)));
+    DEBUG_VALIDATE_BUG_ON(!(p->flow && PacketIsTCP(p)));
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
     /* handle TCP and app layer */
@@ -583,7 +583,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* handle TCP and app layer */
     if (p->flow) {
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_cnt,
                     PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
