@@ -88,7 +88,7 @@ static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
     const DetectAckData *data = (const DetectAckData *)ctx;
 
     /* This is only needed on TCP packets */
-    if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
+    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 
@@ -156,7 +156,7 @@ PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PKT_IS_TCP(p) &&
+    if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p) &&
             (TCP_GET_ACK(p) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP ack %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);

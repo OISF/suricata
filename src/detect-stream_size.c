@@ -121,7 +121,7 @@ static int DetectStreamSizeMatch(
 
     const DetectStreamSizeData *sd = (const DetectStreamSizeData *)ctx;
 
-    if (!(PKT_IS_TCP(p)))
+    if (!(PacketIsTCP(p)))
         return 0;
     if (p->flow == NULL || p->flow->protoctx == NULL)
         return 0;
@@ -170,7 +170,7 @@ void DetectStreamSizeFree(DetectEngineCtx *de_ctx, void *ptr)
 static void PrefilterPacketStreamsizeMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p))
+    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p))
         return;
 
     if (p->flow == NULL || p->flow->protoctx == NULL)

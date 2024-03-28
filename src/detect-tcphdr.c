@@ -101,7 +101,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (!PKT_IS_TCP(p)) {
+        if (!PacketIsTCP(p)) {
             // may happen when DecodeTCPPacket fails
             // for instance with invalid header length
             return NULL;
