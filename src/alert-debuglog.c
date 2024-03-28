@@ -186,11 +186,11 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                          "DST IP:            %s\n"
                          "PROTO:             %" PRIu32 "\n",
                          srcip, dstip, p->proto);
-    if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+    if (PacketIsTCP(p) || PKT_IS_UDP(p)) {
         MemBufferWriteString(aft->buffer, "SRC PORT:          %" PRIu32 "\n"
                              "DST PORT:          %" PRIu32 "\n",
                              p->sp, p->dp);
-        if (PKT_IS_TCP(p)) {
+        if (PacketIsTCP(p)) {
             MemBufferWriteString(aft->buffer, "TCP SEQ:           %"PRIu32"\n"
                                  "TCP ACK:           %"PRIu32"\n",
                                  TCP_GET_SEQ(p), TCP_GET_ACK(p));
@@ -286,8 +286,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
             /* This is an app layer or stream alert */
             int ret;
             uint8_t flag;
-            if (!(PKT_IS_TCP(p)) || p->flow == NULL ||
-                    p->flow->protoctx == NULL) {
+            if (!(PacketIsTCP(p)) || p->flow == NULL || p->flow->protoctx == NULL) {
                 return TM_ECODE_OK;
             }
             /* IDS mode reverse the data */

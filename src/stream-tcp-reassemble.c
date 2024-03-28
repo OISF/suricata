@@ -1954,7 +1954,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 {
     SCEnter();
 
-    DEBUG_VALIDATE_BUG_ON(!PKT_IS_TCP(p));
+    DEBUG_VALIDATE_BUG_ON(!PacketIsTCP(p));
 
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);

@@ -759,6 +759,11 @@ static inline void PacketClearL4(Packet *p)
     memset(&p->l4, 0, sizeof(p->l4));
 }
 
+static inline bool PacketIsTCP(const Packet *p)
+{
+    return PKT_IS_TCP(p);
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
