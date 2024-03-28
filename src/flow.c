@@ -328,7 +328,7 @@ int FlowGetPacketDirection(const Flow *f, const Packet *p)
  */
 static inline int FlowUpdateSeenFlag(const Packet *p)
 {
-    if (PKT_IS_ICMPV4(p)) {
+    if (PacketIsICMPv4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p)) {
             return 0;
         }
