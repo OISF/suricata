@@ -151,9 +151,9 @@ pub struct HTTP2Transaction {
     pub req_line: Vec<u8>,
     pub resp_line: Vec<u8>,
 
-    is_doh_response: bool,
+    is_doh_data: [bool; 2],
     // dns response buffer
-    pub doh_response_buf: Vec<u8>,
+    pub doh_data_buf: [Vec<u8>; 2],
     pub dns_request_tx: Option<DNSTransaction>,
     pub dns_response_tx: Option<DNSTransaction>,
 }
@@ -187,8 +187,8 @@ impl HTTP2Transaction {
             escaped: Vec::with_capacity(16),
             req_line: Vec::new(),
             resp_line: Vec::new(),
-            is_doh_response: false,
-            doh_response_buf: Vec::new(),
+            is_doh_data: [false; 2],
+            doh_data_buf: Default::default(),
             dns_request_tx: None,
             dns_response_tx: None,
         }
@@ -235,7 +235,7 @@ impl HTTP2Transaction {
                 }
             } else if block.name == b"content-type" {
                 if block.value == b"application/dns-message" {
-                    self.is_doh_response = true;
+                    self.is_doh_data[dir.index()] = true;
                 }
             } else if block.name == b":path" {
                 path = Some(&block.value);
@@ -260,7 +260,7 @@ impl HTTP2Transaction {
                 }
             }
         }
-        if doh && unsafe {ALPROTO_DOH2} != ALPROTO_UNKNOWN {
+        if doh && unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             if let Some(p) = path {
                 if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
                     return Some(dns_req);
@@ -345,11 +345,11 @@ impl HTTP2Transaction {
                 &xid,
             );
         };
-        if unsafe {ALPROTO_DOH2} != ALPROTO_UNKNOWN {
+        if unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             // we store DNS response, and process it when complete
-            if self.is_doh_response && self.doh_response_buf.len() < 0xFFFF {
+            if self.is_doh_data[dir.index()] && self.doh_data_buf[dir.index()].len() < 0xFFFF {
                 // a DNS message is U16_MAX
-                self.doh_response_buf.extend_from_slice(decompressed);
+                self.doh_data_buf[dir.index()].extend_from_slice(decompressed);
             }
         }
         return Ok(());
@@ -431,6 +431,28 @@ impl HTTP2Transaction {
             _ => {}
         }
         return r;
+    }
+
+    fn handle_dns_data(&mut self, over: bool, dir: Direction, flow: *const Flow) {
+        if !self.doh_data_buf[dir.index()].is_empty() && over {
+            if dir.is_to_client() {
+                if let Ok(mut dtx) = dns_parse_response(&self.doh_data_buf[dir.index()]) {
+                    dtx.id = 1;
+                    self.dns_response_tx = Some(dtx);
+                    unsafe {
+                        AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                    }
+                }
+            } else {
+                if let Ok(mut dtx) = dns_parse_request(&self.doh_data_buf[dir.index()]) {
+                    dtx.id = 1;
+                    self.dns_request_tx = Some(dtx);
+                    unsafe {
+                        AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1165,20 +1187,7 @@ impl HTTP2State {
                                         flow,
                                     ) {
                                         Ok(_) => {
-                                            if !tx_same.doh_response_buf.is_empty() && over {
-                                                if let Ok(mut dtx) =
-                                                    dns_parse_response(&tx_same.doh_response_buf)
-                                                {
-                                                    dtx.id = 1;
-                                                    tx_same.dns_response_tx = Some(dtx);
-                                                    unsafe {
-                                                        AppLayerForceProtocolChange(
-                                                            flow,
-                                                            ALPROTO_DOH2,
-                                                        );
-                                                    }
-                                                }
-                                            }
+                                            tx_same.handle_dns_data(over, dir, flow);
                                         }
                                         _ => {
                                             self.set_event(HTTP2Event::FailedDecompression);
