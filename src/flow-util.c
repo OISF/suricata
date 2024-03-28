@@ -180,7 +180,7 @@ void FlowInit(Flow *f, const Packet *p)
         f->icmp_s.type = p->icmp_s.type;
         f->icmp_s.code = p->icmp_s.code;
         FlowSetICMPv4CounterPart(f);
-    } else if (p->icmpv6h != NULL) {
+    } else if (PKT_IS_ICMPV6(p)) {
         f->icmp_s.type = p->icmp_s.type;
         f->icmp_s.code = p->icmp_s.code;
         FlowSetICMPv6CounterPart(f);
