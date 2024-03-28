@@ -176,7 +176,7 @@ void FlowInit(Flow *f, const Packet *p)
     } else if (PKT_IS_UDP(p)) {
         SET_UDP_SRC_PORT(p,&f->sp);
         SET_UDP_DST_PORT(p,&f->dp);
-    } else if (p->icmpv4h != NULL) {
+    } else if (PKT_IS_ICMPV4(p)) {
         f->icmp_s.type = p->icmp_s.type;
         f->icmp_s.code = p->icmp_s.code;
         FlowSetICMPv4CounterPart(f);
