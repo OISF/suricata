@@ -157,6 +157,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
     int i = 0;
     while (b->input != NULL) {
         SCLogDebug("chunk %p %d", b, i);
+        (void)i;
         Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         FAIL_IF_NULL(p);
         p->flow = &f;
