@@ -774,6 +774,11 @@ static inline bool PacketIsICMPv4(const Packet *p)
     return PKT_IS_ICMPV4(p);
 }
 
+static inline bool PacketIsICMPv6(const Packet *p)
+{
+    return PKT_IS_ICMPV6(p);
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {

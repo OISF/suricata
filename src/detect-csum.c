@@ -775,7 +775,7 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv6(p) || !PKT_IS_ICMPV6(p) || p->proto != IPPROTO_ICMPV6 ||
+    if (!PacketIsIPv6(p) || !PacketIsICMPv6(p) || p->proto != IPPROTO_ICMPV6 ||
             PKT_IS_PSEUDOPKT(p) ||
             (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
         return 0;
