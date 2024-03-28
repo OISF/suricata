@@ -173,7 +173,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
             goto end_fwrite_fpmeta;
         if (fprintf(fpmeta, "PROTO:             %" PRIu32 "\n", p->proto) < 0)
             goto end_fwrite_fpmeta;
-        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+        if (PacketIsTCP(p) || PKT_IS_UDP(p)) {
             if (fprintf(fpmeta, "SRC PORT:          %" PRIu16 "\n", sp) < 0)
                 goto end_fwrite_fpmeta;
             if (fprintf(fpmeta, "DST PORT:          %" PRIu16 "\n", dp) < 0)
@@ -233,7 +233,7 @@ static bool LogTlsStoreCondition(
         return false;
     }
 
-    if (!(PKT_IS_TCP(p))) {
+    if (!(PacketIsTCP(p))) {
         return false;
     }
 
