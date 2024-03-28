@@ -64,7 +64,7 @@ void DetectICMPv6mtuRegister(void)
 // returns 0 on no mtu, and 1 if mtu
 static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
 {
-    if (!(PKT_IS_ICMPV6(p)) || PKT_IS_PSEUDOPKT(p))
+    if (!(PacketIsICMPv6(p)) || PKT_IS_PSEUDOPKT(p))
         return 0;
     if (ICMPV6_GET_CODE(p) != 0)
         return 0;
