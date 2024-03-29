@@ -1341,8 +1341,8 @@ error:
 }
 
 #define UNDEFINED_PORT 0
-#define RANGE_PORT  1
-#define SINGLE_PORT 2
+#define RANGE_PORT     1
+#define SINGLE_PORT    2
 
 typedef struct UniquePortPoint_ {
     uint16_t port; /* value of the port */
