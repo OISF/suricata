@@ -428,6 +428,7 @@ struct PacketL3 {
 enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
     PACKET_L4_SCTP,
+    PACKET_L4_GRE,
 };
 
 struct PacketL4 {
@@ -436,6 +437,7 @@ struct PacketL4 {
     uint16_t csum;
     union L4Hdrs {
         SCTPHdr *sctph;
+        GREHdr *greh;
     } hdrs;
 };
 
@@ -580,7 +582,6 @@ typedef struct Packet_
     PPPHdr *ppph;
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
-    GREHdr *greh;
 
     /* ptr to the payload of the packet
      * with it's length. */
@@ -793,6 +794,25 @@ static inline const SCTPHdr *PacketGetSCTP(const Packet *p)
 static inline bool PacketIsSCTP(const Packet *p)
 {
     return p->l4.type == PACKET_L4_SCTP;
+}
+
+static inline GREHdr *PacketSetGRE(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_GRE;
+    p->l4.hdrs.greh = (GREHdr *)buf;
+    return p->l4.hdrs.greh;
+}
+
+static inline const GREHdr *PacketGetGRE(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_GRE);
+    return p->l4.hdrs.greh;
+}
+
+static inline bool PacketIsGRE(const Packet *p)
+{
+    return p->l4.type == PACKET_L4_GRE;
 }
 
 /** \brief Structure to hold thread specific data for all decode modules */

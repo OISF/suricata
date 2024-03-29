@@ -133,7 +133,6 @@ void PacketReinit(Packet *p)
     p->ppph = NULL;
     p->pppoesh = NULL;
     p->pppoedh = NULL;
-    p->greh = NULL;
     p->payload = NULL;
     p->payload_len = 0;
     p->BypassPacketsFlow = NULL;
