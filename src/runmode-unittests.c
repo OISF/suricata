@@ -110,6 +110,7 @@
 #include "decode-chdlc.h"
 #include "decode-geneve.h"
 #include "decode-nsh.h"
+#include "decode-pppoe.h"
 #include "decode-raw.h"
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
