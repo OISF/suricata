@@ -402,12 +402,14 @@ struct PacketQueue_;
 enum PacketL2Types {
     PACKET_L2_UNKNOWN = 0,
     PACKET_L2_ETHERNET,
+    PACKET_L2_PPP,
 };
 
 struct PacketL2 {
     enum PacketL2Types type;
     union L2Hdrs {
         EthernetHdr *ethh;
+        PPPHdr *ppph;
     } hdrs;
 };
 
@@ -591,7 +593,6 @@ typedef struct Packet_
 
     TCPHdr *tcph;
     UDPHdr *udph;
-    PPPHdr *ppph;
 
     /* ptr to the payload of the packet
      * with it's length. */
@@ -780,6 +781,25 @@ static inline const EthernetHdr *PacketGetEthernet(const Packet *p)
 static inline bool PacketIsEthernet(const Packet *p)
 {
     return p->l2.type == PACKET_L2_ETHERNET;
+}
+
+static inline PPPHdr *PacketSetPPP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l2.type != PACKET_L2_UNKNOWN);
+    p->l2.type = PACKET_L2_PPP;
+    p->l2.hdrs.ppph = (PPPHdr *)buf;
+    return p->l2.hdrs.ppph;
+}
+
+static inline const PPPHdr *PacketGetPPP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l2.type != PACKET_L2_PPP);
+    return p->l2.hdrs.ppph;
+}
+
+static inline bool PacketIsPPP(const Packet *p)
+{
+    return p->l2.type == PACKET_L2_PPP;
 }
 
 static inline void PacketClearL3(Packet *p)

@@ -56,17 +56,16 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    p->ppph = (PPPHdr *)pkt;
+    PPPHdr *ppph = PacketSetPPP(p, pkt);
 
-    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "",
-        p, pkt, SCNtohs(p->ppph->protocol), len);
+    SCLogDebug(
+            "p %p pkt %p PPP protocol %04x Len: %" PRIu32 "", p, pkt, SCNtohs(ppph->protocol), len);
 
-    switch (SCNtohs(p->ppph->protocol))
-    {
+    switch (SCNtohs(ppph->protocol)) {
         case PPP_VJ_UCOMP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
                 ENGINE_SET_INVALID_EVENT(p,PPPVJU_PKT_TOO_SMALL);
-                p->ppph = NULL;
+                PacketClearL4(p);
                 return TM_ECODE_FAILED;
             }
 
@@ -84,7 +83,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case PPP_IP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
                 ENGINE_SET_INVALID_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
-                p->ppph = NULL;
+                PacketClearL4(p);
                 return TM_ECODE_FAILED;
             }
             if (unlikely(len > PPP_HEADER_LEN + USHRT_MAX)) {
@@ -97,7 +96,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case PPP_IPV6:
             if (unlikely(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))) {
                 ENGINE_SET_INVALID_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
-                p->ppph = NULL;
+                PacketClearL4(p);
                 return TM_ECODE_FAILED;
             }
             if (unlikely(len > PPP_HEADER_LEN + USHRT_MAX)) {
@@ -138,11 +137,10 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return TM_ECODE_OK;
 
         default:
-            SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->ppph->protocol));
+            SCLogDebug("unknown PPP protocol: %" PRIx32 "", SCNtohs(ppph->protocol));
             ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
             return TM_ECODE_OK;
     }
-
 }
 
 /* TESTS BELOW */
@@ -238,10 +236,7 @@ static int DecodePPPtest03 (void)
 
     FlowShutdown();
 
-    if(p->ppph == NULL) {
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF_NOT(PacketIsPPP(p));
 
     if(ENGINE_ISSET_EVENT(p,PPP_PKT_TOO_SMALL))  {
         SCFree(p);
@@ -296,10 +291,7 @@ static int DecodePPPtest04 (void)
 
     FlowShutdown();
 
-    if(p->ppph == NULL) {
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF_NOT(PacketIsPPP(p));
 
     if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
         SCFree(p);
