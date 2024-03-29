@@ -543,15 +543,13 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
 
         connp->cert0_sans_len = rs_x509_get_subjectaltname_len(x509);
         char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
-        for (uint8_t i = 0; i < connp->cert0_sans_len; i++) {
+        if (sans == NULL) {
+            goto error;
+        }
+        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
             sans[i] = rs_x509_get_subjectaltname_at(x509, i);
         }
         connp->cert0_sans = sans;
-#if 0
-        for (uint8_t i = 0; i < connp->cert0_sans_len; i++) {
-            printf("C SAN: %s\n", sans[i]);
-        }
-#endif
         str = rs_x509_get_serial(x509);
         if (str == NULL) {
             err_code = ERR_INVALID_SERIAL;
@@ -590,7 +588,7 @@ error:
         TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
     if (x509 != NULL)
         rs_x509_free(x509);
-    if (connp->cert0_sans != NULL) // STODO all individual str ptrs to be freed here?
+    if (connp->cert0_sans != NULL)
         SCFree(connp->cert0_sans);
     return -1;
 
@@ -1540,6 +1538,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             rc = SSLv3ParseHandshakeTypeCertificate(ssl_state,
                     direction ? &ssl_state->server_connp : &ssl_state->client_connp, initial_input,
                     input_len);
+            DEBUG_VALIDATE_BUG_ON(ssl_state->client_connp.cert0_sans_len != 0);
             if (rc < 0)
                 return rc;
             break;
@@ -2700,8 +2699,8 @@ static void SSLStateFree(void *p)
         rs_cstring_free(ssl_state->server_connp.cert0_subject);
     if (ssl_state->server_connp.cert0_issuerdn)
         rs_cstring_free(ssl_state->server_connp.cert0_issuerdn);
-    if (ssl_state->server_connp.cert0_sans) { // STODO client?
-        for (uint8_t i = 0; i < ssl_state->server_connp.cert0_sans_len; i++) {
+    if (ssl_state->server_connp.cert0_sans) {
+        for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_len; i++) {
             rs_cstring_free(ssl_state->server_connp.cert0_sans[i]);
         }
         SCFree(ssl_state->server_connp.cert0_sans);
@@ -2725,6 +2724,12 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.ja3_hash);
     if (ssl_state->server_connp.hs_buffer)
         SCFree(ssl_state->server_connp.hs_buffer);
+    if (ssl_state->client_connp.cert0_sans) {
+        for (uint16_t i = 0; i < ssl_state->client_connp.cert0_sans_len; i++) {
+            rs_cstring_free(ssl_state->client_connp.cert0_sans[i]);
+        }
+        SCFree(ssl_state->client_connp.cert0_sans);
+    }
 
     AppLayerDecoderEventsFreeEvents(&ssl_state->tx_data.events);
 

@@ -114,7 +114,7 @@ pub unsafe extern "C" fn rs_x509_get_subjectaltname_at(ptr: *const X509, idx: u1
     let san_list = x509.0.tbs_certificate.subject_alternative_name().unwrap();
     if let Some(sans) = san_list {
         let general_name = &sans.value.general_names[idx as usize];
-        let dns_name = SCGeneralName(&general_name);
+        let dns_name = SCGeneralName(general_name);
         return rust_string_to_c(dns_name.to_string());
     }
     return std::ptr::null_mut();
