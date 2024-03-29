@@ -50,16 +50,12 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint1
         return -1;
     }
 
-    p->sctph = (SCTPHdr *)pkt;
-
-    SET_SCTP_SRC_PORT(p,&p->sp);
-    SET_SCTP_DST_PORT(p,&p->dp);
-
+    SCTPHdr *sctph = PacketSetSCTP(p, pkt);
+    p->sp = SCNtohs(sctph->sh_sport);
+    p->dp = SCNtohs(sctph->sh_dport);
     p->payload = (uint8_t *)pkt + sizeof(SCTPHdr);
     p->payload_len = len - sizeof(SCTPHdr);
-
     p->proto = IPPROTO_SCTP;
-
     return 0;
 }
 
@@ -69,14 +65,11 @@ int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_sctp);
 
     if (unlikely(DecodeSCTPPacket(tv, p,pkt,len) < 0)) {
-        CLEAR_SCTP_PACKET(p);
+        PacketClearL4(p);
         return TM_ECODE_FAILED;
     }
 
-#ifdef DEBUG
-    SCLogDebug("SCTP sp: %" PRIu32 " -> dp: %" PRIu32,
-        SCTP_GET_SRC_PORT(p), SCTP_GET_DST_PORT(p));
-#endif
+    SCLogDebug("SCTP sp: %u -> dp: %u", p->sp, p->dp);
 
     FlowSetupPacket(p);
 
