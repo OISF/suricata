@@ -121,7 +121,6 @@ void PacketReinit(Packet *p)
     if (p->udph != NULL) {
         CLEAR_UDP_PACKET(p);
     }
-    p->pppoesh = NULL;
     p->pppoedh = NULL;
     p->payload = NULL;
     p->payload_len = 0;
