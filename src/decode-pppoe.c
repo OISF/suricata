@@ -134,17 +134,19 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    p->pppoesh = (PPPOESessionHdr *)pkt;
+    PPPOESessionHdr *pppoesh = (PPPOESessionHdr *)pkt;
 
-    SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
-           PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  SCNtohs(p->pppoesh->session_id),  SCNtohs(p->pppoesh->pppoe_length));
+    SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32
+               " LENGTH %" PRIu32 "",
+            PPPOE_SESSION_GET_VERSION(pppoesh), PPPOE_SESSION_GET_TYPE(pppoesh),
+            pppoesh->pppoe_code, SCNtohs(pppoesh->session_id), SCNtohs(pppoesh->pppoe_length));
 
     /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
-    if (SCNtohs(p->pppoesh->pppoe_length) > 0) {
+    if (SCNtohs(pppoesh->pppoe_length) > 0) {
         /* decode contained PPP packet */
 
         uint8_t pppoesh_len;
-        uint16_t ppp_protocol = SCNtohs(p->pppoesh->protocol);
+        uint16_t ppp_protocol = SCNtohs(pppoesh->protocol);
 
         /* According to RFC1661-2, if the least significant bit of the most significant octet is
          * set, we're dealing with a single-octet protocol field */
