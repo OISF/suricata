@@ -62,13 +62,12 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         return TM_ECODE_FAILED;
     }
 
-    p->greh = (GREHdr *)pkt;
+    GREHdr *greh = PacketSetGRE(p, pkt);
 
-    SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x",
-        p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
+    SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x", p, pkt, GRE_GET_PROTO(greh),
+            len, GRE_GET_VERSION(greh));
 
-    switch (GRE_GET_VERSION(p->greh))
-    {
+    switch (GRE_GET_VERSION(greh)) {
         case GRE_VERSION_0:
 
             /* GRE version 0 doesn't support the fields below RFC 1701 */
@@ -80,25 +79,25 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
              *       further into it.
              */
 
-            if (GRE_FLAG_ISSET_RECUR(p->greh)) {
+            if (GRE_FLAG_ISSET_RECUR(greh)) {
                 ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_RECUR);
                 return TM_ECODE_OK;
             }
 
-            if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
+            if (GREV1_FLAG_ISSET_FLAGS(greh)) {
                 ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_FLAGS);
                 return TM_ECODE_OK;
             }
 
             /* Adjust header length based on content */
 
-            if (GRE_FLAG_ISSET_KY(p->greh))
+            if (GRE_FLAG_ISSET_KY(greh))
                 header_len += GRE_KEY_LEN;
 
-            if (GRE_FLAG_ISSET_SQ(p->greh))
+            if (GRE_FLAG_ISSET_SQ(greh))
                 header_len += GRE_SEQ_LEN;
 
-            if (GRE_FLAG_ISSET_CHKSUM(p->greh) || GRE_FLAG_ISSET_ROUTE(p->greh))
+            if (GRE_FLAG_ISSET_CHKSUM(greh) || GRE_FLAG_ISSET_ROUTE(greh))
                 header_len += GRE_CHKSUM_LEN + GRE_OFFSET_LEN;
 
             if (header_len > len)   {
@@ -106,8 +105,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                 return TM_ECODE_OK;
             }
 
-            if (GRE_FLAG_ISSET_ROUTE(p->greh))
-            {
+            if (GRE_FLAG_ISSET_ROUTE(greh)) {
                 while (1)
                 {
                     if ((header_len + GRE_SRE_HDR_LEN) > len) {
@@ -144,37 +142,37 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
              *       further into it.
              */
 
-            if (GRE_FLAG_ISSET_CHKSUM(p->greh))    {
+            if (GRE_FLAG_ISSET_CHKSUM(greh)) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_CHKSUM);
                 return TM_ECODE_OK;
             }
 
-            if (GRE_FLAG_ISSET_ROUTE(p->greh)) {
+            if (GRE_FLAG_ISSET_ROUTE(greh)) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_ROUTE);
                 return TM_ECODE_OK;
             }
 
-            if (GRE_FLAG_ISSET_SSR(p->greh))   {
+            if (GRE_FLAG_ISSET_SSR(greh)) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_SSR);
                 return TM_ECODE_OK;
             }
 
-            if (GRE_FLAG_ISSET_RECUR(p->greh)) {
+            if (GRE_FLAG_ISSET_RECUR(greh)) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_RECUR);
                 return TM_ECODE_OK;
             }
 
-            if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
+            if (GREV1_FLAG_ISSET_FLAGS(greh)) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_FLAGS);
                 return TM_ECODE_OK;
             }
 
-            if (GRE_GET_PROTO(p->greh) != GRE_PROTO_PPP)  {
+            if (GRE_GET_PROTO(greh) != GRE_PROTO_PPP) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_WRONG_PROTOCOL);
                 return TM_ECODE_OK;
             }
 
-            if (!(GRE_FLAG_ISSET_KY(p->greh))) {
+            if (!(GRE_FLAG_ISSET_KY(greh))) {
                 ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_NO_KEY);
                 return TM_ECODE_OK;
             }
@@ -185,10 +183,10 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
             /* Adjust header length based on content */
 
-            if (GRE_FLAG_ISSET_SQ(p->greh))
+            if (GRE_FLAG_ISSET_SQ(greh))
                 header_len += GRE_SEQ_LEN;
 
-            if (GREV1_FLAG_ISSET_ACK(p->greh))
+            if (GREV1_FLAG_ISSET_ACK(greh))
                 header_len += GREV1_ACK_LEN;
 
             if (header_len > len)   {
@@ -202,8 +200,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             return TM_ECODE_OK;
     }
 
-    switch (GRE_GET_PROTO(p->greh))
-    {
+    switch (GRE_GET_PROTO(greh)) {
         case ETHERNET_TYPE_IP:
         {
             Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
@@ -257,11 +254,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             // Type I:  0|0|0|0|0|00000|000000000|00000
             // Type II: 0|0|0|1|0|00000|000000000|00000
             //                Seq
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len,
-                    GRE_FLAG_ISSET_SQ(p->greh) == 0 ?
-                            DECODE_TUNNEL_ERSPANI :
-                            DECODE_TUNNEL_ERSPANII);
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len,
+                    GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
                 PacketEnqueueNoLock(&tv->decode_pq,tp);
@@ -377,7 +371,7 @@ static int DecodeGREtest03 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
-    FAIL_IF_NULL(p->greh);
+    FAIL_IF_NOT(PacketIsGRE(p));
 
     SCFree(p);
     PASS;
