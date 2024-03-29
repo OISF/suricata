@@ -79,7 +79,7 @@
                 } else if ((p)->proto == IPPROTO_ICMP) {                                           \
                     BUG_ON((p)->icmpv4h == NULL);                                                  \
                 } else if ((p)->proto == IPPROTO_SCTP) {                                           \
-                    BUG_ON((p)->sctph == NULL);                                                    \
+                    BUG_ON(PacketGetSCTP((p)) == NULL);                                            \
                 } else if ((p)->proto == IPPROTO_ICMPV6) {                                         \
                     BUG_ON((p)->icmpv6h == NULL);                                                  \
                 }                                                                                  \
