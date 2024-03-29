@@ -59,28 +59,27 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
+    PPPOEDiscoveryHdr *pppoedh = (PPPOEDiscoveryHdr *)pkt;
 
     /* parse the PPPOE code */
-    switch (p->pppoedh->pppoe_code)
-    {
-        case  PPPOE_CODE_PADI:
+    switch (pppoedh->pppoe_code) {
+        case PPPOE_CODE_PADI:
             break;
-        case  PPPOE_CODE_PADO:
+        case PPPOE_CODE_PADO:
             break;
-        case  PPPOE_CODE_PADR:
+        case PPPOE_CODE_PADR:
             break;
         case PPPOE_CODE_PADS:
             break;
         case PPPOE_CODE_PADT:
             break;
         default:
-            SCLogDebug("unknown PPPOE code: 0x%0"PRIX8"", p->pppoedh->pppoe_code);
+            SCLogDebug("unknown PPPOE code: 0x%0" PRIX8 "", pppoedh->pppoe_code);
             ENGINE_SET_INVALID_EVENT(p, PPPOE_WRONG_CODE);
             return TM_ECODE_OK;
     }
 
-    uint32_t pppoe_length = SCNtohs(p->pppoedh->pppoe_length);
+    uint32_t pppoe_length = SCNtohs(pppoedh->pppoe_length);
     uint32_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
 
     SCLogDebug("pppoe_length %"PRIu32", packet_length %"PRIu32"",
@@ -318,7 +317,6 @@ static int DecodePPPOEtest02 (void)
  */
 static int DecodePPPOEtest03 (void)
 {
-
     /* example PADO packet taken from RFC2516 */
     uint8_t raw_pppoe[] = {
         0x11, 0x07, 0x00, 0x00, 0x00, 0x20, 0x01, 0x01,
@@ -336,8 +334,8 @@ static int DecodePPPOEtest03 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
-    FAIL_IF_NULL(p->pppoedh);
+    int r = DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
+    FAIL_IF_NOT(r == TM_ECODE_OK);
 
     SCFree(p);
     PASS;
