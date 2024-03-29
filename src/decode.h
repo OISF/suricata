@@ -197,17 +197,6 @@ typedef struct Address_ {
         SET_PORT(UDP_GET_DST_PORT((pkt)), *(prt)); \
     } while (0)
 
-/* Set the SCTP ports into the Ports of the Packet.
- * Make sure p->sctph is initialized and validated. */
-#define SET_SCTP_SRC_PORT(pkt, prt) do {            \
-        SET_PORT(SCTP_GET_SRC_PORT((pkt)), *(prt)); \
-    } while (0)
-
-#define SET_SCTP_DST_PORT(pkt, prt) do {            \
-        SET_PORT(SCTP_GET_DST_PORT((pkt)), *(prt)); \
-    } while (0)
-
-
 #define GET_IPV4_SRC_ADDR_U32(p) ((p)->src.addr_data32[0])
 #define GET_IPV4_DST_ADDR_U32(p) ((p)->dst.addr_data32[0])
 #define GET_IPV4_SRC_ADDR_PTR(p) ((p)->src.addr_data32)
@@ -436,9 +425,18 @@ struct PacketL3 {
     } vars;
 };
 
+enum PacketL4Types {
+    PACKET_L4_UNKNOWN = 0,
+    PACKET_L4_SCTP,
+};
+
 struct PacketL4 {
+    enum PacketL4Types type;
     bool csum_set;
     uint16_t csum;
+    union L4Hdrs {
+        SCTPHdr *sctph;
+    } hdrs;
 };
 
 /* sizes of the members:
@@ -576,7 +574,6 @@ typedef struct Packet_
 
     TCPHdr *tcph;
     UDPHdr *udph;
-    SCTPHdr *sctph;
     ESPHdr *esph;
     ICMPV4Hdr *icmpv4h;
     ICMPV6Hdr *icmpv6h;
@@ -777,6 +774,25 @@ static inline bool PacketIsICMPv4(const Packet *p)
 static inline bool PacketIsICMPv6(const Packet *p)
 {
     return PKT_IS_ICMPV6(p);
+}
+
+static inline SCTPHdr *PacketSetSCTP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_SCTP;
+    p->l4.hdrs.sctph = (SCTPHdr *)buf;
+    return p->l4.hdrs.sctph;
+}
+
+static inline const SCTPHdr *PacketGetSCTP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_SCTP);
+    return p->l4.hdrs.sctph;
+}
+
+static inline bool PacketIsSCTP(const Packet *p)
+{
+    return p->l4.type == PACKET_L4_SCTP;
 }
 
 /** \brief Structure to hold thread specific data for all decode modules */
