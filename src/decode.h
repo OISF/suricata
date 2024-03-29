@@ -86,7 +86,6 @@ enum PktSrcEnum {
 #include "decode-ethernet.h"
 #include "decode-gre.h"
 #include "decode-ppp.h"
-#include "decode-pppoe.h"
 #include "decode-ipv4.h"
 #include "decode-ipv6.h"
 #include "decode-icmpv4.h"
@@ -583,7 +582,6 @@ typedef struct Packet_
     TCPHdr *tcph;
     UDPHdr *udph;
     PPPHdr *ppph;
-    PPPOEDiscoveryHdr *pppoedh;
 
     /* ptr to the payload of the packet
      * with it's length. */
