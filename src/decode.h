@@ -583,7 +583,6 @@ typedef struct Packet_
     TCPHdr *tcph;
     UDPHdr *udph;
     PPPHdr *ppph;
-    PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
 
     /* ptr to the payload of the packet
