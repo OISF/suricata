@@ -184,9 +184,9 @@ void FlowInit(Flow *f, const Packet *p)
         f->icmp_s.type = p->icmp_s.type;
         f->icmp_s.code = p->icmp_s.code;
         FlowSetICMPv6CounterPart(f);
-    } else if (p->sctph != NULL) { /* XXX MACRO */
-        SET_SCTP_SRC_PORT(p,&f->sp);
-        SET_SCTP_DST_PORT(p,&f->dp);
+    } else if (PacketIsSCTP(p)) {
+        f->sp = p->sp;
+        f->dp = p->dp;
     } else if (p->esph != NULL) {
         f->esp.spi = ESP_GET_SPI(p);
     } else {
