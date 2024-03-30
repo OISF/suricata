@@ -693,15 +693,16 @@ static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
         return cd->valid;
     }
 
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
     if (!p->l4.csum_set) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
         p->l4.csum = ICMPV4CalculateChecksum(
-                (uint16_t *)p->icmpv4h, IPV4_GET_RAW_IPLEN(ip4h) - IPV4_GET_RAW_HLEN(ip4h));
+                (uint16_t *)icmpv4h, IPV4_GET_RAW_IPLEN(ip4h) - IPV4_GET_RAW_HLEN(ip4h));
         p->l4.csum_set = true;
     }
-    if (p->l4.csum == p->icmpv4h->checksum && cd->valid == 1)
+    if (p->l4.csum == icmpv4h->checksum && cd->valid == 1)
         return 1;
-    else if (p->l4.csum != p->icmpv4h->checksum && cd->valid == 0)
+    else if (p->l4.csum != icmpv4h->checksum && cd->valid == 0)
         return 1;
     else
         return 0;

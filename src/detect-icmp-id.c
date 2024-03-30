@@ -80,7 +80,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
 
     uint16_t pid;
     if (PacketIsICMPv4(p)) {
-        switch (ICMPV4_GET_TYPE(p)){
+        switch (p->icmp_s.type) {
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
             case ICMP_TIMESTAMP:
@@ -407,7 +407,7 @@ static int DetectIcmpIdMatchTest01 (void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
-    p->icmpv4vars.id = htons(21781);
+    p->l4.vars.icmpv4.id = htons(21781);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
