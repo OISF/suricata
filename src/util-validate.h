@@ -77,7 +77,7 @@
                 } else if ((p)->proto == IPPROTO_UDP) {                                            \
                     BUG_ON((p)->udph == NULL);                                                     \
                 } else if ((p)->proto == IPPROTO_ICMP) {                                           \
-                    BUG_ON((p)->icmpv4h == NULL);                                                  \
+                    BUG_ON(PacketGetICMPv4((p)) == NULL);                                          \
                 } else if ((p)->proto == IPPROTO_SCTP) {                                           \
                     BUG_ON(PacketGetSCTP((p)) == NULL);                                            \
                 } else if ((p)->proto == IPPROTO_ICMPV6) {                                         \

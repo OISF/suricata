@@ -69,62 +69,62 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     }
 
     /** We need to fill icmpv4vars */
-    p->icmpv4vars.emb_ipv4h = icmp4_ip4h;
+    p->l4.vars.icmpv4.emb_ipv4h = icmp4_ip4h;
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
                 TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
-                p->icmpv4vars.emb_ports_set = true;
-                p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
+                p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_tcph->th_sport);
+                p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_tcph->th_dport);
+                p->l4.vars.icmpv4.emb_ports_set = true;
+                p->l4.vars.icmpv4.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
-                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
-                            p->icmpv4vars.emb_dport);
+                           "%" PRIu16 " dport %" PRIu16 "",
+                        p->l4.vars.icmpv4.emb_sport, p->l4.vars.icmpv4.emb_dport);
             } else if (len >= IPV4_HEADER_LEN + 4) {
                 /* only access th_sport and th_dport */
                 TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
-                p->icmpv4vars.emb_ports_set = true;
-                p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
+                p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_tcph->th_sport);
+                p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_tcph->th_dport);
+                p->l4.vars.icmpv4.emb_ports_set = true;
+                p->l4.vars.icmpv4.emb_ip4_proto = IPPROTO_TCP;
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP partial header sport: "
-                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
-                            p->icmpv4vars.emb_dport);
+                           "%" PRIu16 " dport %" PRIu16 "",
+                        p->l4.vars.icmpv4.emb_sport, p->l4.vars.icmpv4.emb_dport);
             } else {
                 SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->TCP "
                            "header Didn't fit in the packet!");
-                p->icmpv4vars.emb_sport = 0;
-                p->icmpv4vars.emb_dport = 0;
+                p->l4.vars.icmpv4.emb_sport = 0;
+                p->l4.vars.icmpv4.emb_dport = 0;
             }
 
             break;
         case IPPROTO_UDP:
             if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
                 UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = SCNtohs(emb_udph->uh_sport);
-                p->icmpv4vars.emb_dport = SCNtohs(emb_udph->uh_dport);
-                p->icmpv4vars.emb_ports_set = true;
-                p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
+                p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_udph->uh_sport);
+                p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_udph->uh_dport);
+                p->l4.vars.icmpv4.emb_ports_set = true;
+                p->l4.vars.icmpv4.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
-                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
-                            p->icmpv4vars.emb_dport);
+                           "%" PRIu16 " dport %" PRIu16 "",
+                        p->l4.vars.icmpv4.emb_sport, p->l4.vars.icmpv4.emb_dport);
             } else {
                 SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->UDP "
                            "header Didn't fit in the packet!");
-                p->icmpv4vars.emb_sport = 0;
-                p->icmpv4vars.emb_dport = 0;
+                p->l4.vars.icmpv4.emb_sport = 0;
+                p->l4.vars.icmpv4.emb_dport = 0;
             }
 
             break;
         case IPPROTO_ICMP:
             if (len >= IPV4_HEADER_LEN + ICMPV4_HEADER_LEN) {
-                p->icmpv4vars.emb_sport = 0;
-                p->icmpv4vars.emb_dport = 0;
-                p->icmpv4vars.emb_ip4_proto = IPPROTO_ICMP;
+                p->l4.vars.icmpv4.emb_sport = 0;
+                p->l4.vars.icmpv4.emb_dport = 0;
+                p->l4.vars.icmpv4.emb_ip4_proto = IPPROTO_ICMP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->ICMP header");
             }
@@ -147,34 +147,33 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
         return TM_ECODE_FAILED;
     }
 
-    p->icmpv4h = (ICMPV4Hdr *)pkt;
+    ICMPV4Hdr *icmpv4h = PacketSetICMPv4(p, pkt);
 
-    SCLogDebug("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv4h->type, p->icmpv4h->code);
+    SCLogDebug("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "", icmpv4h->type, icmpv4h->code);
 
     p->proto = IPPROTO_ICMP;
-    p->icmp_s.type = p->icmpv4h->type;
-    p->icmp_s.code = p->icmpv4h->code;
+    const uint8_t type = p->icmp_s.type = icmpv4h->type;
+    const uint8_t code = p->icmp_s.code = icmpv4h->code;
 
-    int ctype = ICMPv4GetCounterpart(p->icmp_s.type);
+    int ctype = ICMPv4GetCounterpart(type);
     if (ctype != -1) {
         p->icmp_d.type = (uint8_t)ctype;
     }
 
-    ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
-    p->icmpv4vars.hlen = ICMPV4_HEADER_LEN;
+    ICMPV4ExtHdr *icmp4eh = (ICMPV4ExtHdr *)icmpv4h;
+    p->l4.vars.icmpv4.hlen = ICMPV4_HEADER_LEN;
 
-    switch (p->icmpv4h->type)
-    {
+    switch (type) {
         case ICMP_ECHOREPLY:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_DEST_UNREACH:
-            if (p->icmpv4h->code > NR_ICMP_UNREACH) {
+            if (code > NR_ICMP_UNREACH) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 /* parse IP header plus 64 bytes */
@@ -189,7 +188,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             break;
 
         case ICMP_SOURCE_QUENCH:
-            if (p->icmpv4h->code!=0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
@@ -204,7 +203,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             break;
 
         case ICMP_REDIRECT:
-            if (p->icmpv4h->code>ICMP_REDIR_HOSTTOS) {
+            if (code > ICMP_REDIR_HOSTTOS) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
@@ -219,15 +218,15 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             break;
 
         case ICMP_ECHO:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_TIME_EXCEEDED:
-            if (p->icmpv4h->code>ICMP_EXC_FRAGTIME) {
+            if (code > ICMP_EXC_FRAGTIME) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
@@ -242,7 +241,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             break;
 
         case ICMP_PARAMETERPROB:
-            if (p->icmpv4h->code!=0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
@@ -257,45 +256,45 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             break;
 
         case ICMP_TIMESTAMP:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
 
             if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
                 ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
             } else {
-                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
+                p->l4.vars.icmpv4.hlen += sizeof(ICMPV4Timestamp);
             }
             break;
 
         case ICMP_TIMESTAMPREPLY:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
 
             if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
                 ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
             } else {
-                p->icmpv4vars.hlen += sizeof(ICMPV4Timestamp);
+                p->l4.vars.icmpv4.hlen += sizeof(ICMPV4Timestamp);
             }
             break;
 
         case ICMP_INFO_REQUEST:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_INFO_REPLY:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
@@ -308,34 +307,33 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             if (len < (advert_len + ICMPV4_HEADER_LEN)) {
                 ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
             } else {
-                p->icmpv4vars.hlen += advert_len;
+                p->l4.vars.icmpv4.hlen += advert_len;
             }
         } break;
 
         case ICMP_ADDRESS:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_ADDRESSREPLY:
-            p->icmpv4vars.id=icmp4eh->id;
-            p->icmpv4vars.seq=icmp4eh->seq;
-            if (p->icmpv4h->code!=0) {
+            p->l4.vars.icmpv4.id = icmp4eh->id;
+            p->l4.vars.icmpv4.seq = icmp4eh->seq;
+            if (code != 0) {
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         default:
-            ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
-
+            ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_TYPE);
     }
 
-    p->payload = (uint8_t *)pkt + p->icmpv4vars.hlen;
-    DEBUG_VALIDATE_BUG_ON(len - p->icmpv4vars.hlen > UINT16_MAX);
-    p->payload_len = (uint16_t)(len - p->icmpv4vars.hlen);
+    p->payload = (uint8_t *)pkt + p->l4.vars.icmpv4.hlen;
+    DEBUG_VALIDATE_BUG_ON(len - p->l4.vars.icmpv4.hlen > UINT16_MAX);
+    p->payload_len = (uint16_t)(len - p->l4.vars.icmpv4.hlen);
 
     FlowSetupPacket(p);
     return TM_ECODE_OK;
@@ -374,11 +372,9 @@ static int DecodeICMPV4test01(void)
         0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
         0xab };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
     IPV4Hdr ip4h;
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -398,16 +394,17 @@ static int DecodeICMPV4test01(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL!=p->icmpv4h) {
-        if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {
-            ret = 1;
-        }
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
+
+    FAIL_IF_NOT(icmpv4h->type == 8);
+    FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
     SCFree(p);
-    return ret;
+    PASS;
 }
 
 /** DecodeICMPV4test02
@@ -425,11 +422,9 @@ static int DecodeICMPV4test02(void)
         0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
     IPV4Hdr ip4h;
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -448,16 +443,17 @@ static int DecodeICMPV4test02(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL!=p->icmpv4h) {
-        if (p->icmpv4h->type==0 && p->icmpv4h->code==0) {
-            ret = 1;
-        }
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
+
+    FAIL_IF_NOT(icmpv4h->type == 0);
+    FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
     SCFree(p);
-    return ret;
+    PASS;
 }
 
 /** DecodeICMPV4test03
@@ -473,11 +469,9 @@ static int DecodeICMPV4test03(void)
         0xd1, 0x55, 0xe3, 0x93, 0x8b, 0x12, 0x82, 0xaa,
         0x00, 0x28, 0x7c, 0xdd };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
     IPV4Hdr ip4h;
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -496,26 +490,18 @@ static int DecodeICMPV4test03(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL == p->icmpv4h) {
-	    printf("NULL == p->icmpv4h: ");
-        goto end;
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
 
     /* check it's type 11 code 0 */
-    if (p->icmpv4h->type != 11 || p->icmpv4h->code != 0) {
-	    printf("p->icmpv4h->type %u, p->icmpv4h->code %u: ",
-			    p->icmpv4h->type, p->icmpv4h->code);
-        goto end;
-    }
+    FAIL_IF_NOT(icmpv4h->type == 11);
+    FAIL_IF_NOT(icmpv4h->code == 0);
 
     /* check it's source port 35602 to port 33450 */
-    if (p->icmpv4vars.emb_sport != 35602 ||
-            p->icmpv4vars.emb_dport != 33450) {
-	    printf("p->icmpv4vars.emb_sport %u, p->icmpv4vars.emb_dport %u: ",
-			    p->icmpv4vars.emb_sport, p->icmpv4vars.emb_dport);
-        goto end;
-    }
+    FAIL_IF(p->l4.vars.icmpv4.emb_sport != 35602);
+    FAIL_IF(p->l4.vars.icmpv4.emb_dport != 33450);
 
     /* check the src,dst IPs contained inside */
     uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
@@ -525,17 +511,12 @@ static int DecodeICMPV4test03(void)
     PrintInet(AF_INET, &dst_ip, d, sizeof(d));
 
     /* ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass */
-    if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "209.85.227.147") == 0) {
-        ret = 1;
-    }
-    else {
-	    printf("s %s, d %s: ", s, d);
-    }
+    FAIL_IF_NOT(strcmp(s, "192.168.1.13") == 0);
+    FAIL_IF_NOT(strcmp(d, "209.85.227.147") == 0);
 
-end:
     FlowShutdown();
     SCFree(p);
-    return ret;
+    PASS;
 }
 
 /** DecodeICMPV4test04
@@ -576,19 +557,17 @@ static int DecodeICMPV4test04(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL == p->icmpv4h) {
-        goto end;
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
 
     /* check the type,code pair is correct - type 3, code 10 */
-    if (p->icmpv4h->type != 3 || p->icmpv4h->code != 10) {
-        goto end;
-    }
+    FAIL_IF_NOT(icmpv4h->type == 3);
+    FAIL_IF_NOT(icmpv4h->code == 10);
 
     /* check it's src port 45322 to dst port 50 */
-    if (p->icmpv4vars.emb_sport != 45322 ||
-            p->icmpv4vars.emb_dport != 50) {
+    if (p->l4.vars.icmpv4.emb_sport != 45322 || p->l4.vars.icmpv4.emb_dport != 50) {
         goto end;
     }
 
@@ -646,19 +625,17 @@ static int DecodeICMPV4test05(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL == p->icmpv4h) {
-        goto end;
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
 
     /* check the type,code pair is correct - type 11, code 0 */
-    if (p->icmpv4h->type != 11 || p->icmpv4h->code != 0) {
-        goto end;
-    }
+    FAIL_IF_NOT(icmpv4h->type == 11);
+    FAIL_IF_NOT(icmpv4h->code == 0);
 
     /* check it's src port 1048 to dst port 80 */
-    if (p->icmpv4vars.emb_sport != 1048 ||
-            p->icmpv4vars.emb_dport != 80) {
+    if (p->l4.vars.icmpv4.emb_sport != 1048 || p->l4.vars.icmpv4.emb_dport != 80) {
         goto end;
     }
 
@@ -773,11 +750,9 @@ static int DecodeICMPV4test08(void)
         0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
     IPV4Hdr ip4h;
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
@@ -796,16 +771,17 @@ static int DecodeICMPV4test08(void)
     UTHSetIPV4Hdr(p, &ip4h);
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    if (NULL!=p->icmpv4h) {
-        if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {
-            ret = 1;
-        }
-    }
+    const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
+    FAIL_IF_NULL(icmpv4h);
+
+    FAIL_IF_NOT(icmpv4h->type == 8);
+    FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
     SCFree(p);
-    return ret;
+    PASS;
 }
 #endif /* UNITTESTS */
 
