@@ -1056,9 +1056,10 @@ static int SigGroupHeadTest06(void)
 
     Packet *p = UTHBuildPacketSrcDst(NULL, 0, IPPROTO_ICMP, "192.168.1.1", "1.2.3.4");
     FAIL_IF_NULL(p);
+    FAIL_IF_NOT(PacketIsICMPv4(p));
 
-    p->icmpv4h->type = 5;
-    p->icmpv4h->code = 1;
+    p->l4.hdrs.icmpv4h->type = 5;
+    p->l4.hdrs.icmpv4h->code = 1;
 
     /* originally ip's were
     p.src.addr_data32[0] = 0xe08102d3;
