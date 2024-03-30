@@ -80,7 +80,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
         return false;
 
     if (PacketIsICMPv4(p)) {
-        switch (ICMPV4_GET_TYPE(p)){
+        switch (p->icmp_s.type) {
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
             case ICMP_TIMESTAMP:

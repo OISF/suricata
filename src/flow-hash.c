@@ -226,9 +226,9 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.addrs[1-ai] = psrc;
             fhk.addrs[ai] = pdst;
 
-            const int pi = (p->icmpv4vars.emb_sport > p->icmpv4vars.emb_dport);
-            fhk.ports[1-pi] = p->icmpv4vars.emb_sport;
-            fhk.ports[pi] = p->icmpv4vars.emb_dport;
+            const int pi = (p->l4.vars.icmpv4.emb_sport > p->l4.vars.icmpv4.emb_dport);
+            fhk.ports[1 - pi] = p->l4.vars.icmpv4.emb_sport;
+            fhk.ports[pi] = p->l4.vars.icmpv4.emb_dport;
 
             fhk.proto = ICMPV4_GET_EMB_PROTO(p);
             fhk.recur = p->recursion_level;
@@ -470,7 +470,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
          * response to the clients traffic */
         if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                 (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
-                f->sp == p->icmpv4vars.emb_sport && f->dp == p->icmpv4vars.emb_dport &&
+                f->sp == p->l4.vars.icmpv4.emb_sport && f->dp == p->l4.vars.icmpv4.emb_dport &&
                 f->proto == ICMPV4_GET_EMB_PROTO(p) && f->recursion_level == p->recursion_level &&
                 CmpVlanIds(f->vlan_id, p->vlan_id) &&
                 (f->livedev == p->livedev || g_livedev_mask == 0)) {
@@ -480,7 +480,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
          * a packet from the server. */
         } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                    (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
-                   f->dp == p->icmpv4vars.emb_sport && f->sp == p->icmpv4vars.emb_dport &&
+                   f->dp == p->l4.vars.icmpv4.emb_sport && f->sp == p->l4.vars.icmpv4.emb_dport &&
                    f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                    f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&
                    (f->livedev == p->livedev || g_livedev_mask == 0)) {
@@ -562,7 +562,7 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
     }
 
     if (PacketIsICMPv4(p)) {
-        if (ICMPV4_IS_ERROR_MSG(p)) {
+        if (ICMPV4_IS_ERROR_MSG(p->icmp_s.type)) {
             return 0;
         }
     }

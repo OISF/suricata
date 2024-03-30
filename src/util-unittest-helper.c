@@ -310,13 +310,14 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             p->tcph->th_dport = htons(dport);
             hdr_offset += sizeof(TCPHdr);
             break;
-        case IPPROTO_ICMP:
-            p->icmpv4h = (ICMPV4Hdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
-            if (p->icmpv4h == NULL)
+        case IPPROTO_ICMP: {
+            ICMPV4Hdr *icmpv4h = PacketSetICMPv4(p, (GET_PKT_DATA(p) + sizeof(IPV4Hdr)));
+            if (icmpv4h == NULL)
                 goto error;
 
             hdr_offset += sizeof(ICMPV4Hdr);
             break;
+        }
         default:
             break;
         /* TODO: Add more protocols */
