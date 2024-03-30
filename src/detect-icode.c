@@ -92,7 +92,7 @@ static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {
-        picode = ICMPV4_GET_CODE(p);
+        picode = p->icmp_s.code;
     } else if (PacketIsICMPv6(p)) {
         const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
         picode = ICMPV6_GET_CODE(icmpv6h);
@@ -158,7 +158,7 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {
-        picode = ICMPV4_GET_CODE(p);
+        picode = p->icmp_s.code;
     } else if (PacketIsICMPv6(p)) {
         const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
         picode = ICMPV6_GET_CODE(icmpv6h);
@@ -335,17 +335,16 @@ static int DetectICodeParseTest09(void)
  */
 static int DetectICodeMatchTest01(void)
 {
-
-    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
-
-    p->icmpv4h->code = 10;
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
+    FAIL_IF_NULL(p);
+    FAIL_IF_NOT(PacketIsICMPv4(p));
+    p->icmp_s.code = p->l4.hdrs.icmpv4h->code = 10;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
