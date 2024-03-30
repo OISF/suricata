@@ -514,7 +514,8 @@ static inline int FlowCompareESP(Flow *f, const Packet *p)
 
     return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
            f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&
-           f->esp.spi == ESP_GET_SPI(p) && (f->livedev == p->livedev || g_livedev_mask == 0);
+           f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
+           (f->livedev == p->livedev || g_livedev_mask == 0);
 }
 
 void FlowSetupPacket(Packet *p)
@@ -527,7 +528,7 @@ static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
-    } else if (p->proto == IPPROTO_ESP) {
+    } else if (PacketIsESP(p)) {
         return FlowCompareESP(f, p);
     } else {
         return CmpFlowPacket(f, p);
