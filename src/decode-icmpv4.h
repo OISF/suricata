@@ -234,18 +234,18 @@ typedef struct ICMPV4Timestamp_ {
 /* If message is informational */
 
 /** macro for icmpv4 "id" access */
-#define ICMPV4_GET_ID(p)        ((p)->icmpv4vars.id)
+#define ICMPV4_GET_ID(p) ((p)->l4.vars.icmpv4.id)
 /** macro for icmpv4 "seq" access */
-#define ICMPV4_GET_SEQ(p)       ((p)->icmpv4vars.seq)
+#define ICMPV4_GET_SEQ(p) ((p)->l4.vars.icmpv4.seq)
 
 /* If message is Error */
 
 /** macro for icmpv4 embedded "protocol" access */
-#define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip4_proto
+#define ICMPV4_GET_EMB_PROTO(p) (p)->l4.vars.icmpv4.emb_ip4_proto
 /** macro for icmpv4 embedded "ipv4h" header access */
-#define ICMPV4_GET_EMB_IPV4(p) (p)->icmpv4vars.emb_ipv4h
+#define ICMPV4_GET_EMB_IPV4(p) (p)->l4.vars.icmpv4.emb_ipv4h
 /** macro for icmpv4 header length */
-#define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->icmpv4vars.hlen
+#define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->l4.vars.icmpv4.hlen
 
 /** macro for checking if a ICMP DEST UNREACH packet is valid for use
  *  in other parts of the engine, such as the flow engine. 
@@ -253,9 +253,9 @@ typedef struct ICMPV4Timestamp_ {
  *  \warning use only _after_ the decoder has processed the packet
  */
 #define ICMPV4_DEST_UNREACH_IS_VALID(p)                                                            \
-    ((!((p)->flags & PKT_IS_INVALID)) && ((p)->icmpv4h != NULL) &&                                 \
-            (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && (ICMPV4_GET_EMB_IPV4((p)) != NULL) &&   \
-            (p)->icmpv4vars.emb_ports_set)
+    ((!((p)->flags & PKT_IS_INVALID)) && PacketIsICMPv4((p)) &&                                    \
+            ((p)->icmp_s.type == ICMP_DEST_UNREACH) && (ICMPV4_GET_EMB_IPV4((p)) != NULL) &&       \
+            (p)->l4.vars.icmpv4.emb_ports_set)
 
 /**
  *  marco for checking if a ICMP packet is an error message or an
@@ -266,11 +266,9 @@ typedef struct ICMPV4Timestamp_ {
  *        stage so we can to a bit check instead of the more expensive
  *        check below.
  */
-#define ICMPV4_IS_ERROR_MSG(p) (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH || \
-        ICMPV4_GET_TYPE((p)) == ICMP_SOURCE_QUENCH || \
-        ICMPV4_GET_TYPE((p)) == ICMP_REDIRECT || \
-        ICMPV4_GET_TYPE((p)) == ICMP_TIME_EXCEEDED || \
-        ICMPV4_GET_TYPE((p)) == ICMP_PARAMETERPROB)
+#define ICMPV4_IS_ERROR_MSG(type)                                                                  \
+    ((type) == ICMP_DEST_UNREACH || (type) == ICMP_SOURCE_QUENCH || (type) == ICMP_REDIRECT ||     \
+            (type) == ICMP_TIME_EXCEEDED || (type) == ICMP_PARAMETERPROB)
 
 void DecodeICMPV4RegisterTests(void);
 
