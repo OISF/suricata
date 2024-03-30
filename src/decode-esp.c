@@ -42,7 +42,7 @@ static int DecodeESPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16
         return -1;
     }
 
-    p->esph = (ESPHdr *)pkt;
+    (void)PacketSetESP(p, pkt);
 
     p->payload = (uint8_t *)pkt + sizeof(ESPHdr);
     p->payload_len = len - sizeof(ESPHdr);
@@ -71,11 +71,12 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         return TM_ECODE_FAILED;
     }
     if (unlikely(DecodeESPPacket(tv, p, pkt, len) < 0)) {
-        CLEAR_ESP_PACKET(p);
+        PacketClearL4(p);
         return TM_ECODE_FAILED;
     }
 
-    SCLogDebug("ESP spi: %" PRIu32 " sequence: %" PRIu32, ESP_GET_SPI(p), ESP_GET_SEQUENCE(p));
+    SCLogDebug("ESP spi: %" PRIu32 " sequence: %" PRIu32, ESP_GET_SPI(PacketGetESP(p)),
+            ESP_GET_SEQUENCE(PacketGetESP(p)));
 
     FlowSetupPacket(p);
 
@@ -105,8 +106,8 @@ static int DecodeESPTest01(void)
 
     FAIL_IF(p->proto != IPPROTO_ESP);
     FAIL_IF(p->payload_len != sizeof(raw_esp) - ESP_HEADER_LEN);
-    FAIL_IF(ESP_GET_SPI(p) != 0x7b);
-    FAIL_IF(ESP_GET_SEQUENCE(p) != 0x08);
+    FAIL_IF(ESP_GET_SPI(PacketGetESP(p)) != 0x7b);
+    FAIL_IF(ESP_GET_SEQUENCE(PacketGetESP(p)) != 0x08);
 
     SCFree(p);
 
@@ -133,8 +134,8 @@ static int DecodeESPTest02(void)
     FAIL_IF(p->proto != IPPROTO_ESP);
     FAIL_IF(p->payload_len != sizeof(raw_esp) - ESP_HEADER_LEN);
     FAIL_IF(memcmp(p->payload, raw_esp + ESP_HEADER_LEN, p->payload_len) != 0);
-    FAIL_IF(ESP_GET_SPI(p) != 0x7b);
-    FAIL_IF(ESP_GET_SEQUENCE(p) != 0x08);
+    FAIL_IF(ESP_GET_SPI(PacketGetESP(p)) != 0x7b);
+    FAIL_IF(ESP_GET_SEQUENCE(PacketGetESP(p)) != 0x08);
 
     SCFree(p);
 
