@@ -121,9 +121,6 @@ void PacketReinit(Packet *p)
     if (p->udph != NULL) {
         CLEAR_UDP_PACKET(p);
     }
-    if (p->esph != NULL) {
-        CLEAR_ESP_PACKET(p);
-    }
     if (p->icmpv4h != NULL) {
         CLEAR_ICMPV4_PACKET(p);
     }
