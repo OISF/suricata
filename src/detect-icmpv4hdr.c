@@ -101,16 +101,17 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
+        const ICMPV4Hdr *icmpv4h = PacketGetICMPv4(p);
         uint16_t hlen = ICMPV4_GET_HLEN_ICMPV4H(p);
-        if (((uint8_t *)p->icmpv4h + (ptrdiff_t)hlen) >
+        if (((uint8_t *)icmpv4h + (ptrdiff_t)hlen) >
                 ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
-            SCLogDebug("data out of range: %p > %p", ((uint8_t *)p->icmpv4h + (ptrdiff_t)hlen),
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)icmpv4h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             SCReturnPtr(NULL, "InspectionBuffer");
         }
 
         const uint32_t data_len = hlen;
-        const uint8_t *data = (const uint8_t *)p->icmpv4h;
+        const uint8_t *data = (const uint8_t *)icmpv4h;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

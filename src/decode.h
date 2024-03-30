@@ -427,6 +427,7 @@ struct PacketL3 {
 
 enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
+    PACKET_L4_ICMPV4,
     PACKET_L4_ICMPV6,
     PACKET_L4_SCTP,
     PACKET_L4_GRE,
@@ -438,12 +439,14 @@ struct PacketL4 {
     bool csum_set;
     uint16_t csum;
     union L4Hdrs {
+        ICMPV4Hdr *icmpv4h;
         ICMPV6Hdr *icmpv6h;
         SCTPHdr *sctph;
         GREHdr *greh;
         ESPHdr *esph;
     } hdrs;
     union L4Vars {
+        ICMPV4Vars icmpv4;
         ICMPV6Vars icmpv6;
     } vars;
 };
@@ -574,14 +577,11 @@ typedef struct Packet_
     /* Can only be one of TCP, UDP, ICMP at any given time */
     union {
         TCPVars tcpvars;
-        ICMPV4Vars icmpv4vars;
     } l4vars;
-#define tcpvars     l4vars.tcpvars
-#define icmpv4vars  l4vars.icmpv4vars
+#define tcpvars l4vars.tcpvars
 
     TCPHdr *tcph;
     UDPHdr *udph;
-    ICMPV4Hdr *icmpv4h;
     PPPHdr *ppph;
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
@@ -770,9 +770,23 @@ static inline bool PacketIsUDP(const Packet *p)
     return PKT_IS_UDP(p);
 }
 
+static inline ICMPV4Hdr *PacketSetICMPv4(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_ICMPV4;
+    p->l4.hdrs.icmpv4h = (ICMPV4Hdr *)buf;
+    return p->l4.hdrs.icmpv4h;
+}
+
+static inline const ICMPV4Hdr *PacketGetICMPv4(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_ICMPV4);
+    return p->l4.hdrs.icmpv4h;
+}
+
 static inline bool PacketIsICMPv4(const Packet *p)
 {
-    return PKT_IS_ICMPV4(p);
+    return p->l4.type == PACKET_L4_ICMPV4;
 }
 
 static inline ICMPV6Hdr *PacketSetICMPv6(Packet *p, const uint8_t *buf)
