@@ -25,26 +25,16 @@
 /** \brief size of the ESP header */
 #define ESP_HEADER_LEN 8
 
-#define ESP_GET_RAW_SPI(esph)      SCNtohl((esph)->spi)
-#define ESP_GET_RAW_SEQUENCE(esph) SCNtohl((esph)->sequence)
-
 /** \brief Get the spi field off a packet */
-#define ESP_GET_SPI(p) ESP_GET_RAW_SPI(p->esph)
-
+#define ESP_GET_SPI(esph) SCNtohl((esph)->spi)
 /** \brief Get the sequence field off a packet */
-#define ESP_GET_SEQUENCE(p) ESP_GET_RAW_SEQUENCE(p->esph)
+#define ESP_GET_SEQUENCE(esph) SCNtohl((esph)->sequence)
 
 /** \brief ESP Header */
 typedef struct ESPHdr_ {
     uint32_t spi;      /** < ESP Security Parameters Index */
     uint32_t sequence; /** < ESP sequence number */
 } __attribute__((__packed__)) ESPHdr;
-
-#define CLEAR_ESP_PACKET(p)                                                                        \
-    {                                                                                              \
-        (p)->esph = NULL;                                                                          \
-    }                                                                                              \
-    while (0)
 
 void DecodeESPRegisterTests(void);
 
