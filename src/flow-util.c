@@ -187,8 +187,8 @@ void FlowInit(Flow *f, const Packet *p)
     } else if (PacketIsSCTP(p)) {
         f->sp = p->sp;
         f->dp = p->dp;
-    } else if (p->esph != NULL) {
-        f->esp.spi = ESP_GET_SPI(p);
+    } else if (PacketIsESP(p)) {
+        f->esp.spi = ESP_GET_SPI(PacketGetESP(p));
     } else {
         /* nothing to do for this IP proto. */
         SCLogDebug("no special setup for IP proto %u", p->proto);

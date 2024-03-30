@@ -430,6 +430,7 @@ enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
     PACKET_L4_SCTP,
     PACKET_L4_GRE,
+    PACKET_L4_ESP,
 };
 
 struct PacketL4 {
@@ -439,6 +440,7 @@ struct PacketL4 {
     union L4Hdrs {
         SCTPHdr *sctph;
         GREHdr *greh;
+        ESPHdr *esph;
     } hdrs;
 };
 
@@ -577,7 +579,6 @@ typedef struct Packet_
 
     TCPHdr *tcph;
     UDPHdr *udph;
-    ESPHdr *esph;
     ICMPV4Hdr *icmpv4h;
     ICMPV6Hdr *icmpv6h;
     PPPOESessionHdr *pppoesh;
@@ -813,6 +814,25 @@ static inline const GREHdr *PacketGetGRE(const Packet *p)
 static inline bool PacketIsGRE(const Packet *p)
 {
     return p->l4.type == PACKET_L4_GRE;
+}
+
+static inline ESPHdr *PacketSetESP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_ESP;
+    p->l4.hdrs.esph = (ESPHdr *)buf;
+    return p->l4.hdrs.esph;
+}
+
+static inline const ESPHdr *PacketGetESP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_ESP);
+    return p->l4.hdrs.esph;
+}
+
+static inline bool PacketIsESP(const Packet *p)
+{
+    return p->l4.type == PACKET_L4_ESP;
 }
 
 /** \brief Structure to hold thread specific data for all decode modules */
