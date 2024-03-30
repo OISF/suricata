@@ -997,6 +997,10 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             /* decoder event */
+            if (state->parser_state & SMTP_PARSER_STATE_PIPELINING_SERVER) {
+                // reset data mode if we had entered it prematurely
+                state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+            }
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
