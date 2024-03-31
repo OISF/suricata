@@ -262,12 +262,14 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     if (inet_pton(AF_INET, src, &in) != 1)
         goto error;
     p->src.addr_data32[0] = in.s_addr;
-    p->sp = sport;
+    if (ipproto == IPPROTO_TCP || ipproto == IPPROTO_UDP || ipproto == IPPROTO_SCTP)
+        p->sp = sport;
 
     if (inet_pton(AF_INET, dst, &in) != 1)
         goto error;
     p->dst.addr_data32[0] = in.s_addr;
-    p->dp = dport;
+    if (ipproto == IPPROTO_TCP || ipproto == IPPROTO_UDP || ipproto == IPPROTO_SCTP)
+        p->dp = dport;
 
     p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     if (p->ip4h == NULL)
