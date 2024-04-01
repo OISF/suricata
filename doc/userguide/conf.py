@@ -19,6 +19,10 @@ import re
 import subprocess
 import datetime
 
+# Set 'today'. This will be used as the man page date. If an empty
+# string todays date will be used.
+today = os.environ.get('RELEASE_DATE', '')
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 # If extensions (or modules to document with autodoc) are in another directory,
