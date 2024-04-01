@@ -854,9 +854,9 @@ pcap-file:
 
 # Configure the app-layer parsers.
 #
-# The error-policy setting applies to all app-layer parsers. Values can be
-# "drop-flow", "pass-flow", "bypass", "drop-packet", "pass-packet", "reject" or
-# "ignore" (the default).
+# The exception policy error-policy setting applies to all app-layer parsers.
+#  Values can be "drop-flow", "pass-flow", "bypass", "drop-packet", "pass-packet",
+#  "reject" or "ignore" (the default).
 #
 # The protocol's section details each protocol.
 #
@@ -1380,8 +1380,8 @@ host-os-policy:
 
 # Defrag settings:
 
-# The memcap-policy value can be "drop-packet", "pass-packet", "reject" or
-# "ignore" (which is the default).
+# The exception policy memcap-policy value can be "drop-packet", "pass-packet",
+#  "reject" or "ignore" (which is the default).
 defrag:
   memcap: 32mb
   # memcap-policy: ignore
@@ -1424,8 +1424,8 @@ defrag:
 # last time seen flows.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
 # in bytes.
-# The memcap-policy can be "drop-packet", "pass-packet", "reject" or "ignore"
-# (which is the default).
+# The exception policy memcap-policy can be "drop-packet", "pass-packet",
+#  "reject" or "ignore" (which is the default).
 
 flow:
   memcap: 128mb
@@ -1508,9 +1508,9 @@ flow-timeouts:
 # stream:
 #   memcap: 64mb                # Can be specified in kb, mb, gb.  Just a
 #                               # number indicates it's in bytes.
-#   memcap-policy: ignore       # Can be "drop-flow", "pass-flow", "bypass",
-#                               # "drop-packet", "pass-packet", "reject" or
-#                               # "ignore" default is "ignore"
+#   memcap-policy: ignore       # The exception policy value can be "drop-flow",
+#                               # "pass-flow", "bypass", "drop-packet",
+#                               # "pass-packet", "reject" or "ignore" default is "ignore"
 #   checksum-validation: yes    # To validate the checksum of received
 #                               # packet. If csum validation is specified as
 #                               # "yes", then packets with invalid csum values will not
@@ -1522,9 +1522,9 @@ flow-timeouts:
 #                               # option
 #   prealloc-sessions: 2048     # 2k sessions prealloc'd per stream thread
 #   midstream: false            # don't allow midstream session pickups
-#   midstream-policy: ignore    # Can be "drop-flow", "pass-flow", "bypass",
-#                               # "drop-packet", "pass-packet", "reject" or
-#                               # "ignore" default is "ignore"
+#   midstream-policy: ignore    # The exception policy value can be "drop-flow",
+#                               # "pass-flow", "bypass", "drop-packet",
+#                               # "pass-packet", "reject" or "ignore" default is "ignore"
 #   async-oneside: false        # don't enable async stream handling
 #   inline: no                  # stream inline mode
 #   drop-invalid: yes           # in inline mode, drop packets that are invalid with regards to streaming engine
@@ -1539,9 +1539,9 @@ flow-timeouts:
 #   reassembly:
 #     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
-#     memcap-policy: ignore     # Can be "drop-flow", "pass-flow", "bypass",
-#                               # "drop-packet", "pass-packet", "reject" or
-#                               # "ignore" default is "ignore"
+#     memcap-policy: ignore     # The exception policy value can be "drop-flow",
+#                               # "pass-flow", "bypass", "drop-packet", "pass-packet",
+#                               # "reject" or "ignore" default is "ignore"
 #     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
 #                               # indicates it's in bytes.
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
