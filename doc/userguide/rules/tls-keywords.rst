@@ -121,6 +121,21 @@ Examples::
 to use the previous name, but it's recommended that rules be converted to use
 the new name.
 
+tls.subjectaltname
+------------------
+
+Match TLS/SSL Subject Alternative Name field.
+
+Examples::
+
+  tls.subjectaltname; content:"|73 75 72 69 63 61 74 61 2e 69 6f|";
+
+``tls.subjectaltname`` is a 'sticky buffer'.
+
+``tls.subjectaltname`` can be used as ``fast_pattern``.
+
+``tls.subjectaltname`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 tls_cert_notbefore
 ------------------
 
