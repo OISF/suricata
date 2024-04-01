@@ -67,7 +67,7 @@ try:
     version = os.environ.get('version', None)
     if not version:
         version = re.search(
-            "AC_INIT\(\[suricata\],\s*\[(.*)?\]\)",
+            r"AC_INIT\(\[suricata\],\s*\[(.*)?\]\)",
             open("../../configure.ac").read()).groups()[0]
     if not version:
         version = "unknown"
