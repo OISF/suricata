@@ -2515,11 +2515,25 @@ return 0;
     if test "$HAVE_GIT_CMD" != "no"; then
         if [ test -d .git ]; then
             REVISION=`git rev-parse --short HEAD`
-            DATE=`git log -1 --date=short --pretty=format:%cd`
-            REVISION="$REVISION $DATE"
+            LAST_COMMIT_DATE=`git log -1 --date=short --pretty=format:%cd`
+            REVISION="$REVISION $LAST_COMMIT_DATE"
             AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
         fi
     fi
+
+# Get the release date. If LAST_COMMIT_DATE was set in the previous
+# step, use it, otherwise parse it from the ChangeLog.
+    AC_MSG_CHECKING([for release date])
+    if test "x$LAST_COMMIT_DATE" != "x"; then
+	RELEASE_DATE=$LAST_COMMIT_DATE
+    else
+        RELEASE_DATE=`awk '/^[[0-9\.]]+ -- [[0-9]][[0-9]][[0-9]][[0-9]]-[[0-9]][[0-9]]-[[0-9]][[0-9]]/ { print $3; exit }' $srcdir/ChangeLog`
+        if test "x$RELEASE_DATE" = "x"; then
+            AC_MSG_ERROR([Failed to determine release date])
+        fi
+    fi
+    AC_MSG_RESULT([${RELEASE_DATE}])
+    AC_SUBST(RELEASE_DATE)
 
 # get MAJOR_MINOR version for embedding in configuration file.
     MAJOR_MINOR=`expr "${PACKAGE_VERSION}" : "\([[0-9]]\+\.[[0-9]]\+\).*"`
