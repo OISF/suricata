@@ -2526,6 +2526,13 @@ return 0;
         fi
     fi
 
+# Get the release date. As the date of the last commit doesn't mean
+# much in terms of release date, pull the date from Changelog.
+    AC_MSG_CHECKING([for release date])
+    RELEASE_DATE=`awk '/^[[0-9\.]]+ -- [[0-9]]{4}-[[0-9]]{2}-[[0-9]]{2}/ { print $3; exit }' $srcdir/ChangeLog`
+    AC_MSG_RESULT([${RELEASE_DATE}])
+    AC_SUBST(RELEASE_DATE)
+
 # get MAJOR_MINOR version for embedding in configuration file.
     MAJOR_MINOR=`expr "${PACKAGE_VERSION}" : "\([[0-9]]\+\.[[0-9]]\+\).*"`
 
