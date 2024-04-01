@@ -90,3 +90,4 @@ following keywords:
 * ``quic.cyu.string``
 * ``tls.certs``
 * ``tls.cert_subject``
+* ``tls.subjectaltname``
