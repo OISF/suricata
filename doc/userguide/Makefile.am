@@ -74,6 +74,7 @@ userguide.pdf: _build/latex/Suricata.pdf
 pdf: userguide.pdf
 
 _build/man: manpages/suricata.rst manpages/suricatasc.rst manpages/suricatactl.rst manpages/suricatactl-filestore.rst
+	RELEASE_DATE=$(RELEASE_DATE) \
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
