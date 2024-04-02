@@ -292,15 +292,16 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
 
     int hdr_offset = sizeof(IPV4Hdr);
     switch (ipproto) {
-        case IPPROTO_UDP:
-            p->udph = (UDPHdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
-            if (p->udph == NULL)
+        case IPPROTO_UDP: {
+            UDPHdr *udph = PacketSetUDP(p, (GET_PKT_DATA(p) + sizeof(IPV4Hdr)));
+            if (udph == NULL)
                 goto error;
 
-            p->udph->uh_sport = sport;
-            p->udph->uh_dport = dport;
+            udph->uh_sport = sport;
+            udph->uh_dport = dport;
             hdr_offset += sizeof(UDPHdr);
             break;
+        }
         case IPPROTO_TCP:
             p->tcph = (TCPHdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
             if (p->tcph == NULL)
@@ -926,14 +927,16 @@ static int CheckUTHTestPacket(Packet *p, uint8_t ipproto)
         return 0;
 
     switch(ipproto) {
-        case IPPROTO_UDP:
-            if (p->udph == NULL)
+        case IPPROTO_UDP: {
+            const UDPHdr *udph = PacketGetUDP(p);
+            if (udph == NULL)
                 return 0;
-            if (p->udph->uh_sport != sport)
+            if (udph->uh_sport != sport)
                 return 0;
-            if (p->udph->uh_dport != dport)
+            if (udph->uh_dport != dport)
                 return 0;
         break;
+        }
         case IPPROTO_TCP:
             if (p->tcph == NULL)
                 return 0;

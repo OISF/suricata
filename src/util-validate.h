@@ -75,7 +75,7 @@
                 if ((p)->proto == IPPROTO_TCP) {                                                   \
                     BUG_ON((p)->tcph == NULL);                                                     \
                 } else if ((p)->proto == IPPROTO_UDP) {                                            \
-                    BUG_ON((p)->udph == NULL);                                                     \
+                    BUG_ON(PacketGetUDP((p)) == NULL);                                             \
                 } else if ((p)->proto == IPPROTO_ICMP) {                                           \
                     BUG_ON(PacketGetICMPv4((p)) == NULL);                                          \
                 } else if ((p)->proto == IPPROTO_SCTP) {                                           \
