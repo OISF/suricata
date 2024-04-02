@@ -80,7 +80,7 @@ typedef struct Libnet11Packet_ {
     uint32_t src4, dst4;
     uint16_t sp, dp;
     uint16_t len;
-    uint8_t *smac, *dmac;
+    const uint8_t *smac, *dmac;
 } Libnet11Packet;
 
 static inline libnet_t *GetCtx(const Packet *p, int injection_type)
@@ -236,15 +236,16 @@ static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
 
 static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, enum RejectDirection dir)
 {
+    const EthernetHdr *ethh = PacketGetEthernet(p);
     switch (dir) {
         case REJECT_DIR_SRC:
-            lpacket->smac = p->ethh->eth_dst;
-            lpacket->dmac = p->ethh->eth_src;
+            lpacket->smac = ethh->eth_dst;
+            lpacket->dmac = ethh->eth_src;
             break;
         case REJECT_DIR_DST:
         default:
-            lpacket->smac = p->ethh->eth_src;
-            lpacket->dmac = p->ethh->eth_dst;
+            lpacket->smac = ethh->eth_src;
+            lpacket->dmac = ethh->eth_dst;
             break;
     }
 }

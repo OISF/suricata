@@ -384,10 +384,11 @@ static inline void FlowUpdateTtlTC(Flow *f, Packet *p, uint8_t ttl)
     f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
 }
 
-static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
-                                      Flow *f, EthernetHdr *ethh, bool toserver)
+static inline void FlowUpdateEthernet(
+        ThreadVars *tv, DecodeThreadVars *dtv, Flow *f, const Packet *p, bool toserver)
 {
-    if (ethh && MacSetFlowStorageEnabled()) {
+    if (PacketIsEthernet(p) && MacSetFlowStorageEnabled()) {
+        const EthernetHdr *ethh = PacketGetEthernet(p);
         MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
         if (ms != NULL) {
             if (toserver) {
@@ -462,7 +463,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             f->flags &= ~FLOW_PROTO_DETECT_TS_DONE;
             p->flags |= PKT_PROTO_DETECT_TS_DONE;
         }
-        FlowUpdateEthernet(tv, dtv, f, p->ethh, true);
+        FlowUpdateEthernet(tv, dtv, f, p, true);
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
@@ -486,7 +487,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             f->flags &= ~FLOW_PROTO_DETECT_TC_DONE;
             p->flags |= PKT_PROTO_DETECT_TC_DONE;
         }
-        FlowUpdateEthernet(tv, dtv, f, p->ethh, false);
+        FlowUpdateEthernet(tv, dtv, f, p, false);
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
             const IPV4Hdr *ip4h = PacketGetIPv4(p);

@@ -659,17 +659,18 @@ static void AFPWritePacket(Packet *p, int version)
         }
     }
 
-    if (p->ethh == NULL) {
+    if (!PacketIsEthernet(p)) {
         SCLogWarning("packet should have an ethernet header");
         return;
     }
 
+    const EthernetHdr *ethh = PacketGetEthernet(p);
     /* Index of the network device */
     socket_address.sll_ifindex = SC_ATOMIC_GET(p->afp_v.peer->if_idx);
     /* Address length*/
     socket_address.sll_halen = ETH_ALEN;
     /* Destination MAC */
-    memcpy(socket_address.sll_addr, p->ethh, 6);
+    memcpy(socket_address.sll_addr, ethh, 6);
 
     /* Send packet, locking the socket if necessary */
     if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
@@ -2684,7 +2685,7 @@ static void UpdateRawDataForVLANHdr(Packet *p)
         /* update the packet raw data pointer to start at the new offset */
         (void)PacketSetData(p, pstart, plen);
         /* update ethernet header pointer to point to the new start of the data */
-        p->ethh = (void *)pstart;
+        p->l2.hdrs.ethh = (void *)pstart;
     }
 }
 

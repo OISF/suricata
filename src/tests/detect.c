@@ -3073,7 +3073,7 @@ static int SigTest38(void)
     }
     SET_PKT_LEN(p1, ethlen + ipv4len + tcplen + buflen);
 
-    p1->ethh = (EthernetHdr *)raw_eth;
+    PacketSetEthernet(p1, raw_eth);
     PacketSetIPV4(p1, raw_ipv4);
     p1->tcph = (TCPHdr *)raw_tcp;
     p1->src.family = AF_INET;
@@ -3188,7 +3188,7 @@ static int SigTest39(void)
     FAIL_IF(PacketCopyDataOffset(p1, ethlen + ipv4len + tcplen, buf, buflen) == -1);
     SET_PKT_LEN(p1, ethlen + ipv4len + tcplen + buflen);
 
-    p1->ethh = (EthernetHdr *)raw_eth;
+    PacketSetEthernet(p1, raw_eth);
     PacketSetIPV4(p1, raw_ipv4);
     p1->tcph = (TCPHdr *)raw_tcp;
     p1->src.family = AF_INET;
