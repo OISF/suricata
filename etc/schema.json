@@ -4220,63 +4220,96 @@
                     "type": "object",
                     "properties": {
                         "accepted": {
+                            "description": "Number of accepted packets",
                             "type": "integer"
                         },
                         "blocked": {
+                            "description": "Number of blocked packets",
                             "type": "integer"
                         },
                         "rejected": {
+                            "description": "Number of rejected packets",
                             "type": "integer"
                         },
                         "replaced": {
+                            "description": "Number of replaced packets",
                             "type": "integer"
                         },
                         "drop_reason": {
+                            "description": "Number of dropped packets per reason",
                             "type": "object",
                             "properties": {
                                 "decode_error": {
+                                    "description":
+                                            "Number of packets dropped due to decoding errors",
                                     "type": "integer"
                                 },
                                 "defrag_error": {
+                                    "description":
+                                            "Number of packets dropped due to defragmentation errors",
                                     "type": "integer"
                                 },
                                 "defrag_memcap": {
+                                    "description":
+                                            "Number of packets dropped due to defrag memcap exception policy",
                                     "type": "integer"
                                 },
                                 "flow_memcap": {
+                                    "description":
+                                            "Number of packets dropped due to flow memcap exception policy",
                                     "type": "integer"
                                 },
                                 "flow_drop": {
+                                    "description": "Number of packets dropped due to dropped flows",
                                     "type": "integer"
                                 },
                                 "applayer_error": {
+                                    "description":
+                                            "Number of packets dropped due to global app-layer error policy",
                                     "type": "integer"
                                 },
                                 "applayer_memcap": {
+                                    "description":
+                                            "Number of packets dropped due to applayer memcap",
                                     "type": "integer"
                                 },
                                 "rules": {
+                                    "description": "Number of packets dropped due to rule actions",
                                     "type": "integer"
                                 },
                                 "threshold_detection_filter": {
+                                    "description":
+                                            "Number of packets dropped due to threshold detection filter",
                                     "type": "integer"
                                 },
                                 "stream_error": {
+                                    "description":
+                                            "Number of packets dropped due to invalid TCP stream",
                                     "type": "integer"
                                 },
                                 "stream_memcap": {
+                                    "description":
+                                            "Number of packets dropped due to stream memcap exception policy",
                                     "type": "integer"
                                 },
                                 "stream_midstream": {
+                                    "description":
+                                            "Number of packets dropped due to stream midstream exception policy",
                                     "type": "integer"
                                 },
                                 "stream_reassembly": {
+                                    "description":
+                                            "Number of packets dropped due to stream reassembly exception policy",
                                     "type": "integer"
                                 },
                                 "nfq_error": {
+                                    "description":
+                                            "Number of packets dropped due to no NFQ verdict",
                                     "type": "integer"
                                 },
                                 "tunnel_packet_drop": {
+                                    "description":
+                                            "Number of packets dropped due to inner tunnel packet being dropped",
                                     "type": "integer"
                                 }
                             },
