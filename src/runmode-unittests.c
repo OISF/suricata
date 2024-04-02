@@ -112,6 +112,7 @@
 #include "decode-raw.h"
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
+#include "decode-pppoe.h"
 
 #include "output-json-stats.h"
 

@@ -747,10 +747,11 @@ static int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
 {
     if (p != NULL) {
         /* this is a packet context, so we need to add scalar fields */
-        if (p->ethh != NULL) {
+        if (PacketIsEthernet(p)) {
+            const EthernetHdr *ethh = PacketGetEthernet(p);
             jb_open_object(js, "ether");
-            uint8_t *src = p->ethh->eth_src;
-            uint8_t *dst = p->ethh->eth_dst;
+            const uint8_t *src = ethh->eth_src;
+            const uint8_t *dst = ethh->eth_dst;
             JSONFormatAndAddMACAddr(js, "src_mac", src, false);
             JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
             jb_close(js);
