@@ -400,6 +400,18 @@ enum PacketTunnelType {
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
+enum PacketL2Types {
+    PACKET_L2_UNKNOWN = 0,
+    PACKET_L2_ETHERNET,
+};
+
+struct PacketL2 {
+    enum PacketL2Types type;
+    union L2Hdrs {
+        EthernetHdr *ethh;
+    } hdrs;
+};
+
 enum PacketL3Types {
     PACKET_L3_UNKNOWN = 0,
     PACKET_L3_IPV4,
@@ -568,9 +580,7 @@ typedef struct Packet_
     /* pkt vars */
     PktVar *pktvar;
 
-    /* header pointers */
-    EthernetHdr *ethh;
-
+    struct PacketL2 l2;
     struct PacketL3 l3;
     struct PacketL4 l4;
 
@@ -728,6 +738,11 @@ static inline uint8_t PacketGetIPv4IPProto(const Packet *p)
     return 0;
 }
 
+static inline bool PacketIsIPv6(const Packet *p)
+{
+    return p->l3.type == PACKET_L3_IPV6;
+}
+
 static inline const IPV6Hdr *PacketGetIPv6(const Packet *p)
 {
     DEBUG_VALIDATE_BUG_ON(!PacketIsIPv6(p));
@@ -742,9 +757,29 @@ static inline IPV6Hdr *PacketSetIPV6(Packet *p, const uint8_t *buf)
     return p->l3.hdrs.ip6h;
 }
 
-static inline bool PacketIsIPv6(const Packet *p)
+static inline void PacketClearL2(Packet *p)
 {
-    return p->l3.type == PACKET_L3_IPV6;
+    memset(&p->l2, 0, sizeof(p->l2));
+}
+
+/* Can be called multiple times, e.g. for DCE */
+static inline EthernetHdr *PacketSetEthernet(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l2.type != PACKET_L2_UNKNOWN && p->l2.type != PACKET_L2_ETHERNET);
+    p->l2.type = PACKET_L2_ETHERNET;
+    p->l2.hdrs.ethh = (EthernetHdr *)buf;
+    return p->l2.hdrs.ethh;
+}
+
+static inline const EthernetHdr *PacketGetEthernet(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l2.type != PACKET_L2_ETHERNET);
+    return p->l2.hdrs.ethh;
+}
+
+static inline bool PacketIsEthernet(const Packet *p)
+{
+    return p->l2.type == PACKET_L2_ETHERNET;
 }
 
 static inline void PacketClearL3(Packet *p)
