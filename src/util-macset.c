@@ -116,7 +116,8 @@ FlowStorageId MacSetGetFlowStorageID(void)
     return g_macset_storage_id;
 }
 
-static inline void MacUpdateEntry(MacSet *ms, uint8_t *addr, int side, ThreadVars *tv, uint16_t ctr)
+static inline void MacUpdateEntry(
+        MacSet *ms, const uint8_t *addr, int side, ThreadVars *tv, uint16_t ctr)
 {
     switch (ms->state[side]) {
         case EMPTY_SET:
@@ -177,8 +178,8 @@ static inline void MacUpdateEntry(MacSet *ms, uint8_t *addr, int side, ThreadVar
     }
 }
 
-void MacSetAddWithCtr(MacSet *ms, uint8_t *src_addr, uint8_t *dst_addr, ThreadVars *tv,
-                      uint16_t ctr_src, uint16_t ctr_dst)
+void MacSetAddWithCtr(MacSet *ms, const uint8_t *src_addr, const uint8_t *dst_addr, ThreadVars *tv,
+        uint16_t ctr_src, uint16_t ctr_dst)
 {
     if (ms == NULL)
         return;
@@ -186,7 +187,7 @@ void MacSetAddWithCtr(MacSet *ms, uint8_t *src_addr, uint8_t *dst_addr, ThreadVa
     MacUpdateEntry(ms, dst_addr, MAC_SET_DST, tv, ctr_dst);
 }
 
-void MacSetAdd(MacSet *ms, uint8_t *src_addr, uint8_t *dst_addr)
+void MacSetAdd(MacSet *ms, const uint8_t *src_addr, const uint8_t *dst_addr)
 {
     MacSetAddWithCtr(ms, src_addr, dst_addr, NULL, 0, 0);
 }
