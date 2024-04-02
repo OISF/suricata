@@ -507,8 +507,11 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
-    if (!PacketIsIPv4(p) || !PacketIsUDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) ||
-            p->udph->uh_sum == 0)
+    if (!PacketIsIPv4(p) || !PacketIsUDP(p) || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+        return 0;
+
+    const UDPHdr *udph = PacketGetUDP(p);
+    if (udph->uh_sum == 0)
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -517,8 +520,8 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 
     if (!p->l4.csum_set) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        p->l4.csum = UDPV4Checksum(ip4h->s_ip_addrs, (uint16_t *)p->udph,
-                (p->payload_len + UDP_HEADER_LEN), p->udph->uh_sum);
+        p->l4.csum = UDPV4Checksum(ip4h->s_ip_addrs, (uint16_t *)udph,
+                (p->payload_len + UDP_HEADER_LEN), udph->uh_sum);
         p->l4.csum_set = true;
     }
     if (p->l4.csum == 0 && cd->valid == 1)
@@ -606,8 +609,9 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 
     if (!p->l4.csum_set) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
-        p->l4.csum = UDPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->udph,
-                (p->payload_len + UDP_HEADER_LEN), p->udph->uh_sum);
+        const UDPHdr *udph = PacketGetUDP(p);
+        p->l4.csum = UDPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)udph,
+                (p->payload_len + UDP_HEADER_LEN), udph->uh_sum);
         p->l4.csum_set = true;
     }
     if (p->l4.csum == 0 && cd->valid == 1)

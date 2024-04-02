@@ -118,9 +118,6 @@ void PacketReinit(Packet *p)
     if (p->tcph != NULL) {
         CLEAR_TCP_PACKET(p);
     }
-    if (p->udph != NULL) {
-        CLEAR_UDP_PACKET(p);
-    }
     p->payload = NULL;
     p->payload_len = 0;
     p->BypassPacketsFlow = NULL;
