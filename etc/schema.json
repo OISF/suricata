@@ -4070,111 +4070,150 @@
                             "type": "object",
                             "properties": {
                                 "bittorrent-dht": {
+                                    "description":
+                                            "Number of transactions for BitTorrent DHT protocol",
                                     "type": "integer"
                                 },
                                 "dcerpc_tcp": {
+                                    "description": "Number of transactions for DCERPC/TCP protocol",
                                     "type": "integer"
                                 },
                                 "dcerpc_udp": {
+                                    "description": "Number of transactions for DCERPC/UDP protocol",
                                     "type": "integer"
                                 },
                                 "dhcp": {
+                                    "description": "Number of transactions for DHCP",
                                     "type": "integer"
                                 },
                                 "dnp3": {
+                                    "description": "Number of transactions for DNP3",
                                     "type": "integer"
                                 },
                                 "dns_tcp": {
+                                    "description": "Number of transactions for DNS/TCP protocol",
                                     "type": "integer"
                                 },
                                 "dns_udp": {
+                                    "description": "Number of transactions for DNS/UDP protocol",
                                     "type": "integer"
                                 },
                                 "enip_tcp": {
+                                    "description": "Number of transactions for ENIP/TCP",
                                     "type": "integer"
                                 },
                                 "enip_udp": {
+                                    "description": "Number of transactions for ENIP/UDP",
                                     "type": "integer"
                                 },
                                 "ftp": {
+                                    "description": "Number of transactions for FTP",
                                     "type": "integer"
                                 },
                                 "ftp-data": {
+                                    "description": "Number of transactions for FTP data protocol",
                                     "type": "integer"
                                 },
                                 "http": {
+                                    "description": "Number of transactions for HTTP",
                                     "type": "integer"
                                 },
                                 "http2": {
+                                    "description": "Number of transactions for HTTP/2",
                                     "type": "integer"
                                 },
                                 "ike": {
+                                    "description": "Number of transactions for IKE protocol",
                                     "type": "integer"
                                 },
                                 "ikev2": {
+                                    "description": "Number of transactions for IKE v2 protocol",
                                     "type": "integer"
                                 },
                                 "imap": {
+                                    "description": "Number of transactions for IMAP",
                                     "type": "integer"
                                 },
                                 "krb5_tcp": {
+                                    "description":
+                                            "Number of transactions for Kerberos v5/TCP protocol",
                                     "type": "integer"
                                 },
                                 "krb5_udp": {
+                                    "description":
+                                            "Number of transactions for Kerberos v5/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
+                                    "description": "Number of transactions for Modbus protocol",
                                     "type": "integer"
                                 },
                                 "mqtt": {
+                                    "description": "Number of transactions for MQTT protocol",
                                     "type": "integer"
                                 },
                                 "nfs_tcp": {
+                                    "description": "Number of transactions for NFS/TCP protocol",
                                     "type": "integer"
                                 },
                                 "nfs_udp": {
+                                    "description": "Number of transactions for NFS/UDP protocol",
                                     "type": "integer"
                                 },
                                 "ntp": {
+                                    "description": "Number of transactions for NTP",
                                     "type": "integer"
                                 },
                                 "pgsql": {
+                                    "description": "Number of transactions for PostgreSQL protocol",
                                     "type": "integer"
                                 },
                                 "quic": {
+                                    "description": "Number of transactions for QUIC protocol",
                                     "type": "integer"
                                 },
                                 "rdp": {
+                                    "description": "Number of transactions for RDP",
                                     "type": "integer"
                                 },
                                 "rfb": {
+                                    "description": "Number of transactions for RFB protocol",
                                     "type": "integer"
                                 },
                                 "sip_udp": {
+                                    "description": "Number of transactions for SIP/UDP protocol",
                                     "type": "integer"
                                 },
                                 "sip_tcp": {
+                                    "description": "Number of transactions for SIP/TCP protocol",
                                     "type": "integer"
                                 },
                                 "smb": {
+                                    "description": "Number of transactions for SMB protocol",
                                     "type": "integer"
                                 },
                                 "smtp": {
+                                    "description": "Number of transactions for SMTP",
                                     "type": "integer"
                                 },
                                 "snmp": {
+                                    "description": "Number of transactions for SNMP",
                                     "type": "integer"
                                 },
                                 "ssh": {
+                                    "description": "Number of transactions for SSH protocol",
                                     "type": "integer"
                                 },
                                 "telnet": {
+                                    "description": "Number of transactions for Telnet protocol",
                                     "type": "integer"
                                 },
                                 "tftp": {
+                                    "description": "Number of transactions for TFTP",
                                     "type": "integer"
                                 },
                                 "tls": {
+                                    "description": "Number of transactions for TLS protocol",
                                     "type": "integer"
                                 },
                                 "websocket": {
