@@ -112,7 +112,7 @@ void PacketReinit(Packet *p)
         PktVarFree(p->pktvar);
         p->pktvar = NULL;
     }
-    p->ethh = NULL;
+    PacketClearL2(p);
     PacketClearL3(p);
     PacketClearL4(p);
     if (p->tcph != NULL) {
