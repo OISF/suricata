@@ -49,23 +49,23 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
         return -1;
     }
 
-    p->udph = (UDPHdr *)pkt;
+    const UDPHdr *udph = PacketSetUDP(p, pkt);
 
-    if (unlikely(len < UDP_GET_LEN(p))) {
+    if (unlikely(len < UDP_GET_RAW_LEN(udph))) {
         ENGINE_SET_INVALID_EVENT(p, UDP_PKT_TOO_SMALL);
         return -1;
     }
 
-    if (unlikely(UDP_GET_LEN(p) < UDP_HEADER_LEN)) {
+    if (unlikely(UDP_GET_RAW_LEN(udph) < UDP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, UDP_LEN_INVALID);
         return -1;
     }
 
-    SET_UDP_SRC_PORT(p,&p->sp);
-    SET_UDP_DST_PORT(p,&p->dp);
+    p->sp = UDP_GET_RAW_SRC_PORT(udph);
+    p->dp = UDP_GET_RAW_DST_PORT(udph);
 
     p->payload = (uint8_t *)pkt + UDP_HEADER_LEN;
-    p->payload_len = UDP_GET_LEN(p) - UDP_HEADER_LEN;
+    p->payload_len = UDP_GET_RAW_LEN(udph) - UDP_HEADER_LEN;
 
     p->proto = IPPROTO_UDP;
 
@@ -78,12 +78,12 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_udp);
 
     if (unlikely(DecodeUDPPacket(tv, p, pkt,len) < 0)) {
-        CLEAR_UDP_PACKET(p);
+        PacketClearL4(p);
         return TM_ECODE_FAILED;
     }
 
-    SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
-        UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+    SCLogDebug("UDP sp: %u -> dp: %u - HLEN: %" PRIu32 " LEN: %" PRIu32 "", p->sp, p->dp,
+            UDP_HEADER_LEN, p->payload_len);
 
     if (DecodeTeredoEnabledForPort(p->sp, p->dp) &&
             likely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
