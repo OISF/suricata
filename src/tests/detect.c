@@ -2400,7 +2400,7 @@ static int SigTest30UDPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PacketSetIPV4(p1, raw_ipv4);
-    p1->udph = (UDPHdr *)valid_raw_udp;
+    PacketSetUDP(p1, valid_raw_udp);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2408,7 +2408,7 @@ static int SigTest30UDPV4Keyword(void)
     p1->proto = IPPROTO_UDP;
 
     PacketSetIPV4(p2, raw_ipv4);
-    p2->udph = (UDPHdr *)invalid_raw_udp;
+    PacketSetUDP(p2, invalid_raw_udp);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2504,7 +2504,7 @@ static int SigTest31NegativeUDPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PacketSetIPV4(p1, raw_ipv4);
-    p1->udph = (UDPHdr *)valid_raw_udp;
+    PacketSetUDP(p1, valid_raw_udp);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2512,7 +2512,7 @@ static int SigTest31NegativeUDPV4Keyword(void)
     p1->proto = IPPROTO_UDP;
 
     PacketSetIPV4(p2, raw_ipv4);
-    p2->udph = (UDPHdr *)invalid_raw_udp;
+    PacketSetUDP(p2, invalid_raw_udp);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2613,7 +2613,7 @@ static int SigTest32UDPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
-    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    PacketSetUDP(p1, valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2621,7 +2621,7 @@ static int SigTest32UDPV6Keyword(void)
     p1->proto = IPPROTO_UDP;
 
     PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
-    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    PacketSetUDP(p2, invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2710,7 +2710,7 @@ static int SigTest33NegativeUDPV6Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
-    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    PacketSetUDP(p1, valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2718,7 +2718,7 @@ static int SigTest33NegativeUDPV6Keyword(void)
     p1->proto = IPPROTO_UDP;
 
     PacketSetIPV6(p2, invalid_raw_ipv6 + 14);
-    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    PacketSetUDP(p2, invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;

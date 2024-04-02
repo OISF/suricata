@@ -440,6 +440,7 @@ struct PacketL3 {
 
 enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
+    PACKET_L4_UDP,
     PACKET_L4_ICMPV4,
     PACKET_L4_ICMPV6,
     PACKET_L4_SCTP,
@@ -452,6 +453,7 @@ struct PacketL4 {
     bool csum_set;
     uint16_t csum;
     union L4Hdrs {
+        UDPHdr *udph;
         ICMPV4Hdr *icmpv4h;
         ICMPV6Hdr *icmpv6h;
         SCTPHdr *sctph;
@@ -592,7 +594,6 @@ typedef struct Packet_
 #define tcpvars l4vars.tcpvars
 
     TCPHdr *tcph;
-    UDPHdr *udph;
 
     /* ptr to the payload of the packet
      * with it's length. */
@@ -817,9 +818,23 @@ static inline bool PacketIsTCP(const Packet *p)
     return PKT_IS_TCP(p);
 }
 
+static inline UDPHdr *PacketSetUDP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_UDP;
+    p->l4.hdrs.udph = (UDPHdr *)buf;
+    return p->l4.hdrs.udph;
+}
+
+static inline const UDPHdr *PacketGetUDP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UDP);
+    return p->l4.hdrs.udph;
+}
+
 static inline bool PacketIsUDP(const Packet *p)
 {
-    return PKT_IS_UDP(p);
+    return p->l4.type == PACKET_L4_UDP;
 }
 
 static inline ICMPV4Hdr *PacketSetICMPv4(Packet *p, const uint8_t *buf)
