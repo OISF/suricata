@@ -140,7 +140,8 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             break;
         case IPPROTO_UDP:
             if (PacketIsUDP(p)) {
-                jb_set_uint(js, "udplen", UDP_GET_LEN(p));
+                const UDPHdr *udph = PacketGetUDP(p);
+                jb_set_uint(js, "udplen", UDP_GET_RAW_LEN(udph));
             }
             break;
         case IPPROTO_ICMP:
