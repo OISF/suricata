@@ -91,7 +91,7 @@
 
     AC_ARG_ENABLE(python,
            AS_HELP_STRING([--enable-python], [Enable python]),
-	   [enable_python=$enableval],[enable_python=yes])
+       [enable_python=$enableval],[enable_python=yes])
     if test "x$enable_python" != "xyes"; then
         enable_python="no"
     else
@@ -105,8 +105,8 @@
             echo "   It is also required when building from git."
             echo
             enable_python="no"
-	else
-	    python_path="$HAVE_PYTHON"
+        else
+            python_path="$HAVE_PYTHON"
         fi
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
@@ -114,7 +114,7 @@
     # Get the Python major version. This is only for information
     # messages displayed during configure.
     if test "x$HAVE_PYTHON" != "xno"; then
-       pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info[[0]]);')"
+        pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info[[0]]);')"
     fi
 
     AC_PATH_PROG(HAVE_WGET, wget, "no")
@@ -248,7 +248,7 @@
 
     # If no host os was detected, try with uname
     if test -z "$host" ; then
-	    host="`uname`"
+        host="`uname`"
     fi
     echo -n "installation for $host OS... "
 
@@ -1323,11 +1323,11 @@
             CFLAGS="${STORECFLAGS}"
             if test "x$pfring_recv_chunk" != "xyes"; then
                 if test "x$enable_pfring" = "xyes"; then
-                echo
-                echo "   ERROR! --enable-pfring was passed but the library version is < 6, go get it"
-                echo "   from http://www.ntop.org/products/pf_ring/"
-                echo
-                exit 1
+                    echo
+                    echo "   ERROR! --enable-pfring was passed but the library version is < 6, go get it"
+                    echo "   from http://www.ntop.org/products/pf_ring/"
+                    echo
+                    exit 1
                 fi
             fi
             AC_COMPILE_IFELSE(
@@ -1350,11 +1350,11 @@
                 ])
         else
             if test "x$enable_pfring" = "xyes"; then
-            echo
-            echo "   ERROR! --enable-pfring was passed but the library was not found, go get it"
-            echo "   from http://www.ntop.org/products/pf_ring/"
-            echo
-            exit 1
+                echo
+                echo "   ERROR! --enable-pfring was passed but the library was not found, go get it"
+                echo "   from http://www.ntop.org/products/pf_ring/"
+                echo
+                exit 1
             fi
         fi
     ])
@@ -1490,15 +1490,15 @@
 
         have_recent_netmap="no"
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-        #include <net/netmap_user.h>
-        ],[
-        #ifndef NETMAP_API
-        #error "Outdated netmap, need one with NETMAP_API"
-        #endif
-        #if NETMAP_API < 14
-        #error "Outdated netmap, need at least API version 14"
-        #endif
-        ])], [have_recent_netmap="yes"])
+                #include <net/netmap_user.h>
+            ],[
+                #ifndef NETMAP_API
+                #error "Outdated netmap, need one with NETMAP_API"
+                #endif
+                #if NETMAP_API < 14
+                #error "Outdated netmap, need at least API version 14"
+                #endif
+            ])], [have_recent_netmap="yes"])
         if test "x$have_recent_netmap" != "xyes"; then
             echo "ERROR: outdated netmap; need at least v14"
             exit 1
@@ -1528,23 +1528,23 @@
 
     if test "$enable_suricata_update" = "yes"; then
         if test -f "$srcdir/suricata-update/setup.py"; then
-          have_suricata_update="yes"
-	fi
+            have_suricata_update="yes"
+        fi
     fi
 
     if test "$have_suricata_update" = "yes"; then
         if test "$enable_python" != "yes"; then
-	    echo ""
-	    echo "    Warning: suricata-update will not be installed as"
-	    echo "        Python is not installed."
-	    echo ""
-	    echo
-	else
+            echo ""
+            echo "    Warning: suricata-update will not be installed as"
+            echo "        Python is not installed."
+            echo ""
+            echo
+        else
             SURICATA_UPDATE_DIR="suricata-update"
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
-	fi
+        fi
     fi
 
     # Test to see if suricatactl (and suricatasc) can be installed.
@@ -1720,9 +1720,9 @@
     fi;
 
     AC_ARG_ENABLE(ebpf,
-	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
-	        [ enable_ebpf="$enableval"],
-	        [ enable_ebpf="no"])
+            AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
+            [ enable_ebpf="$enableval"],
+            [ enable_ebpf="no"])
 
     have_xdp="no"
     if test "$enable_ebpf" = "yes"; then
@@ -1764,9 +1764,9 @@
 
   # Check for DAG support.
     AC_ARG_ENABLE(dag,
-	        AS_HELP_STRING([--enable-dag],[Enable DAG capture]),
-	        [ enable_dag=$enableval ],
-	        [ enable_dag=no])
+            AS_HELP_STRING([--enable-dag],[Enable DAG capture]),
+            [ enable_dag=$enableval ],
+            [ enable_dag=no])
     AC_ARG_WITH(dag_includes,
             [  --with-dag-includes=DIR  dagapi include directory],
             [with_dag_includes="$withval"],[with_dag_includes="no"])
@@ -1776,7 +1776,7 @@
 
     if test "$enable_dag" = "yes"; then
 
-    	if test "$with_dag_includes" != "no"; then
+        if test "$with_dag_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_dag_includes}"
         fi
 
@@ -1787,7 +1787,7 @@
         AC_CHECK_HEADER(dagapi.h,DAG="yes",DAG="no")
         if test "$DAG" != "no"; then
             DAG=""
-	        AC_CHECK_LIB(dag,dag_open,,DAG="no",)
+            AC_CHECK_LIB(dag,dag_open,,DAG="no",)
         fi
 
         if test "$DAG" = "no"; then
@@ -1903,13 +1903,13 @@
 
   # liblua
     AC_ARG_ENABLE(lua,
-	        AS_HELP_STRING([--enable-lua],[Enable Lua support]),
-	        [ enable_lua="$enableval"],
-	        [ enable_lua="no"])
+            AS_HELP_STRING([--enable-lua],[Enable Lua support]),
+            [ enable_lua="$enableval"],
+            [ enable_lua="no"])
     AC_ARG_ENABLE(luajit,
-	        AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
-	        [ enable_luajit="$enableval"],
-	        [ enable_luajit="no"])
+            AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
+            [ enable_luajit="$enableval"],
+            [ enable_luajit="no"])
     if test "$enable_lua" = "yes"; then
         if test "$enable_luajit" = "yes"; then
             echo "ERROR: can't enable liblua and luajit at the same time."
@@ -1989,7 +1989,7 @@
                 enable_lua="yes"
             fi
         else
-	        echo
+            echo
                 echo "   ERROR!  liblua headers not found, go get them"
                 echo "   from http://lua.org/index.html or your distribution:"
                 echo
@@ -2052,7 +2052,7 @@
             enable_lua="yes, through luajit"
             enable_luajit="yes"
         else
-	        echo
+            echo
                 echo "   ERROR!  libluajit headers not found, go get them"
                 echo "   from http://luajit.org/index.html or your distribution:"
                 echo
@@ -2094,9 +2094,9 @@
 
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
-	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
-	        [ enable_geoip="$enableval"],
-	        [ enable_geoip="no"])
+            AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
+            [ enable_geoip="$enableval"],
+            [ enable_geoip="no"])
     AC_ARG_WITH(libmaxminddb_includes,
             [  --with-libmaxminddb-includes=DIR  libmaxminddb include directory],
             [with_libmaxminddb_includes="$withval"],[with_libmaxminddb_includes="no"])
@@ -2152,9 +2152,9 @@
 
 # libhiredis
     AC_ARG_ENABLE(hiredis,
-	        AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
-	        [ enable_hiredis="$enableval"],
-	        [ enable_hiredis="no"])
+            AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
+            [ enable_hiredis="$enableval"],
+            [ enable_hiredis="no"])
     AC_ARG_WITH(libhiredis_includes,
             [  --with-libhiredis-includes=DIR  libhiredis include directory],
             [with_libhiredis_includes="$withval"],[with_libhiredis_includes="no"])
@@ -2336,9 +2336,9 @@ fi
             echo "Rust version ${rustc_version} was found."
             echo ""
             exit 1
-	],
-	[],
-	[])
+    ],
+    [],
+    [])
     AC_MSG_RESULT(yes)
 
     RUST_FEATURES=""
@@ -2555,7 +2555,7 @@ AC_SUBST(CPPFLAGS)
 define([EXPAND_VARIABLE],
 [$2=[$]$1
 if test $prefix = 'NONE'; then
-	prefix="/usr/local"
+    prefix="/usr/local"
 fi
 while true; do
   case "[$]$2" in
