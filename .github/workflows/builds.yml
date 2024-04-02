@@ -106,6 +106,7 @@ jobs:
       # Now checkout Suricata for the bundle script.
       - name: Checking out Suricata
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
 
       - name: Fetching libhtp
         run: |
@@ -193,17 +194,6 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core epel-release
@@ -257,11 +247,19 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace
-      #- name: Setup cppclean
-      #  run: |
-      #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
-      #    cd cppclean
-      #    python3 setup.py install
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Configuring
         run: |
           ./autogen.sh
@@ -350,17 +348,6 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core epel-release
@@ -403,6 +390,19 @@ jobs:
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: rustup component add rustfmt
       - run: rustup component add clippy
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Build
         run: |
           ./autogen.sh
@@ -441,36 +441,6 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-
-      # Prebuild check for duplicate SIDs
-      - name: Check for duplicate SIDs
-        run: |
-          dups=$(sed -n 's/^alert.*sid:\([[:digit:]]*\);.*/\1/p' ./rules/*.rules|sort|uniq -d|tr '\n' ' ')
-          if [[ "${dups}" != "" ]]; then
-            echo "::error::Duplicate SIDs found:${dups}"
-            exit 1
-          fi
-
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
-      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
-        with:
-          name: cbindgen
-          path: prep
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system packages
         run: |
           yum -y install dnf-plugins-core
@@ -509,6 +479,38 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      # Prebuild check for duplicate SIDs
+      - name: Check for duplicate SIDs
+        run: |
+          dups=$(sed -n 's/^alert.*sid:\([[:digit:]]*\);.*/\1/p' ./rules/*.rules|sort|uniq -d|tr '\n' ' ')
+          if [[ "${dups}" != "" ]]; then
+            echo "::error::Duplicate SIDs found:${dups}"
+            exit 1
+          fi
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: cbindgen
+          path: prep
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configuring
         run: |
           ./autogen.sh
@@ -768,6 +770,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -865,6 +868,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -960,6 +964,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1060,6 +1065,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1150,6 +1156,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1236,6 +1243,7 @@ jobs:
                 zlib-devel
       - run: adduser suricata
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1328,6 +1336,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1402,6 +1411,7 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1531,6 +1541,7 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1630,6 +1641,7 @@ jobs:
                 exuberant-ctags \
                 dpdk-dev
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1788,6 +1800,7 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1874,6 +1887,7 @@ jobs:
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -1967,6 +1981,7 @@ jobs:
           sudo make install
 
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2071,6 +2086,7 @@ jobs:
           ldconfig
           cd $HOME
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2154,6 +2170,7 @@ jobs:
               zlib1g \
               zlib1g-dev
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2239,6 +2256,7 @@ jobs:
               zlib1g \
               zlib1g-dev
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2320,6 +2338,7 @@ jobs:
               zlib1g \
               zlib1g-dev
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2409,6 +2428,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2489,6 +2509,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2548,6 +2569,7 @@ jobs:
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: pip3 install PyYAML
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - name: Downloading prep archive
         uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
@@ -2580,7 +2602,6 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2591,6 +2612,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2636,7 +2658,6 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2647,6 +2668,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
@@ -2680,7 +2702,6 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2691,6 +2712,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
         with:
           name: prep
