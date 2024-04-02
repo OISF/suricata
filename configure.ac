@@ -2480,19 +2480,14 @@ return 0;
 
     AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
 
-# get revision
-    if test -f ./revision; then
-        REVISION=`cat ./revision`
-        AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
-    else
-        AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
-        if test "$HAVE_GIT_CMD" != "no"; then
-            if [ test -d .git ]; then
-                REVISION=`git rev-parse --short HEAD`
-                DATE=`git log -1 --date=short --pretty=format:%cd`
-                REVISION="$REVISION $DATE"
-                AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
-            fi
+# get git revision and last commit date
+    AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
+    if test "$HAVE_GIT_CMD" != "no"; then
+        if [ test -d .git ]; then
+            REVISION=`git rev-parse --short HEAD`
+            DATE=`git log -1 --date=short --pretty=format:%cd`
+            REVISION="$REVISION $DATE"
+            AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
         fi
     fi
 
