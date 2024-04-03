@@ -9,7 +9,9 @@ services/test frameworks that depend on a fully initialised Suricata .
 
 During the initialisation phase Suricata synchronises the initialisation thread with all active
 threads to ensure they are in a running state. Once synchronisation has been completed a ``READY=1``
-status notification is sent to the service manager using ``sd_notify()``.
+status notification is sent to the service manager using across the Systemd UNIX socket.
+
+The path of the UNIX socket is taken from the ``NOTIFY_SOCKET`` env var.
 
 Example
 -------
@@ -23,23 +25,11 @@ Requirements
 ------------
 This feature is only supported for distributions under the following conditions:
 
-1. Distribution contains ``libsystemd``
-2. Any distribution that runs under **systemd**
-3. Unit file configuration: ``Type=notify``
-4. Contains development files for systemd shared library
+1. Any distribution that runs under **systemd**
+2. Unit file configuration: ``Type=notify``
 
-To install development files:
-Fedora::
-
-    dnf -y install systemd-devel
-
-Ubuntu/Debian::
-
-    apt -y install systemd-dev
-
-This package shall be compile-time configured and therefore only built with distributions fulfilling
-requirements [1, 2]. For notification to the service manager the unit file must be configured as
-shown in requirement [3]. Upon all requirements being met the service manager will start and await
+For notification to the service manager the unit file must be configured as shown in requirement [2].
+Upon all requirements being met the service manager will start and await
 ``READY=1`` status from Suricata. Otherwise the service manager will treat the service unit as
 ``Type=simple`` and consider it started immediately after the main process ``ExecStart=`` has been
 forked.
@@ -50,8 +40,8 @@ To confirm the system is running under systemd::
 
     ps --no-headers -o comm 1
 
-See: https://man7.org/linux/man-pages/man3/sd_notify.3.html for a detailed description on
-``sd_notify``.
-
 See https://www.freedesktop.org/software/systemd/man/systemd.service.html for help
 writing systemd unit files.
+
+See https://www.freedesktop.org/software/systemd/man/devel/sd_notify.html#Notes for a discussion of
+the UNIX socket based notification.

@@ -621,6 +621,7 @@ noinst_HEADERS = \
 	util-streaming-buffer.h \
 	util-syslog.h \
 	util-sysfs.h \
+	util-systemd.h \
 	util-thash.h \
 	util-threshold-config.h \
 	util-time.h \
@@ -1235,6 +1236,7 @@ libsuricata_c_a_SOURCES = \
 	util-strptime.c \
 	util-syslog.c \
 	util-sysfs.c \
+	util-systemd.c \
 	util-thash.c \
 	util-threshold-config.c \
 	util-time.c \

@@ -254,6 +254,7 @@
 
     RUST_SURICATA_LIBNAME="libsuricata_rust.a"
 
+    enable_systemd="no"
     e_magic_file=""
     e_magic_file_comment="#"
     case "$host" in
@@ -281,6 +282,8 @@
             CFLAGS="${CFLAGS} -fPIC"
             RUST_LDADD="-ldl -lrt -lm"
             can_build_shared_library="yes"
+            AC_DEFINE([SYSTEMD_NOTIFY], [1], [make Suricata notify systemd on startup])
+            enable_systemd="yes"
             ;;
         *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
@@ -659,35 +662,6 @@
         AC_MSG_RESULT(no)
     fi
 
-  #systemd
-    AC_ARG_WITH(systemd_includes,
-            [  --with-systemd-includes=DIR  systemd include directory],
-            [with_systemd_includes="$withval"],[with_systemd_includes=no])
-    AC_ARG_WITH(systemd_libraries,
-            [  --with-systemd-libraries=DIR    systemd library directory],
-            [with_systemd_libraries="$withval"],[with_systemd_libraries="no"])
-
-    AC_CHECK_HEADER(systemd/sd-daemon.h, SYSTEMD="yes",SYSTEMD="no")
-    if test "$SYSTEMD" = "yes"; then
-        if test "$with_systemd_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS} -L${with_systemd_libraries}"
-        fi
-
-        if test "$with_systemd_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_systems_includes}"
-        fi
-
-        # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-        # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-        SYSTEMD=""
-        TMPLIBS="${LIBS}"
-        AC_CHECK_LIB(systemd,sd_notify,,SYSTEMD="no")
-
-        if test "$SYSTEMD" != "no"; then
-            LIBS="${TMPLIBS} -lsystemd"
-        fi
-    fi
-  
   # libhs
     enable_hyperscan="no"
 
@@ -2682,6 +2656,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
   Landlock support:                        ${enable_landlock}
+  Systemd support:                         ${enable_systemd}
 
   Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
