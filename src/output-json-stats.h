@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,9 +26,10 @@
 
 #include "output-stats.h"
 
-#define JSON_STATS_TOTALS  (1<<0)
-#define JSON_STATS_THREADS (1<<1)
-#define JSON_STATS_DELTAS  (1<<2)
+#define JSON_STATS_TOTALS    (1 << 0)
+#define JSON_STATS_THREADS   (1 << 1)
+#define JSON_STATS_DELTAS    (1 << 2)
+#define JSON_STATS_NO_ZEROES (1 << 3)
 
 json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
 TmEcode OutputEngineStatsReloadTime(json_t **jdata);

@@ -50,6 +50,8 @@ Major changes
 - ``SIP_PORTS`` variable has been introduced in suricata.yaml
 - Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``
   for the ``stats`` event.
+- Stats counters that are 0 can now be hidden from EVE logs. Default behavior
+  still logs those (see :ref:`EVE Output - Stats <eve-json-output-stats>` for configuration setting).
 
 Upgrading 6.0 to 7.0
 --------------------
