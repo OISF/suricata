@@ -423,10 +423,11 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
     }
 
     if (!(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p)) {
-        if ((p->tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
+        const TCPHdr *tcph = PacketGetTCP(p);
+        if ((tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
             (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
         }
-        if ((p->tcph->th_flags & MASK_TCP_UNUSUAL_FLAGS) != 0) {
+        if ((tcph->th_flags & MASK_TCP_UNUSUAL_FLAGS) != 0) {
             (*mask) |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
         }
     }

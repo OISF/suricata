@@ -250,8 +250,9 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 {
     SCEnter();
 
+    const TCPHdr *tcph = PacketGetTCP(p);
     const int records = TCP_GET_SACK_CNT(p);
-    const uint8_t *data = TCP_GET_SACK_PTR(p);
+    const uint8_t *data = TCP_GET_SACK_PTR(p, tcph);
 
     if (records == 0 || data == NULL)
         SCReturnInt(0);
@@ -272,18 +273,18 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
             first_re = re;
 
         SCLogDebug("%p last_ack %u, left edge %u, right edge %u pkt ACK %u", sack_rec,
-                stream->last_ack, le, re, TCP_GET_ACK(p));
+                stream->last_ack, le, re, TCP_GET_RAW_ACK(tcph));
 
         /* RFC 2883 D-SACK */
-        if (SEQ_LT(le, TCP_GET_ACK(p))) {
+        if (SEQ_LT(le, TCP_GET_RAW_ACK(tcph))) {
             SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u before ACK %u", p->pcap_cnt, le, re,
-                    TCP_GET_ACK(p));
+                    TCP_GET_RAW_ACK(tcph));
             STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
             goto next;
         } else if (record == 1) { // 2nd record
             if (SEQ_GEQ(first_le, le) && SEQ_LEQ(first_re, re)) {
                 SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u inside 2nd range %u-%u ACK %u",
-                        p->pcap_cnt, first_le, first_re, le, re, TCP_GET_ACK(p));
+                        p->pcap_cnt, first_le, first_re, le, re, TCP_GET_RAW_ACK(tcph));
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
             }
             goto next;
@@ -355,8 +356,9 @@ static struct StreamTcpSackRecord *FindOverlap(
 
 bool StreamTcpSackPacketIsOutdated(TcpStream *stream, Packet *p)
 {
+    const TCPHdr *tcph = PacketGetTCP(p);
     const int records = TCP_GET_SACK_CNT(p);
-    const uint8_t *data = TCP_GET_SACK_PTR(p);
+    const uint8_t *data = TCP_GET_SACK_PTR(p, tcph);
     if (records > 0 && data != NULL) {
         int sack_outdated = 0;
         TCPOptSackRecord rec[records], *sack_rec = rec;

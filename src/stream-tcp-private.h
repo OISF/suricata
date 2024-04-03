@@ -276,7 +276,7 @@ enum TcpState {
         } else {                                                                                   \
             SCLogDebug("setting event %d on pkt %p (%" PRIu64 ")", (e), p, (p)->pcap_cnt);         \
             ENGINE_SET_EVENT((p), (e));                                                            \
-            p->tcpvars.stream_pkt_flags |= STREAM_PKT_FLAG_EVENTSET;                               \
+            p->l4.vars.tcp.stream_pkt_flags |= STREAM_PKT_FLAG_EVENTSET;                           \
         }                                                                                          \
     }
 
@@ -321,6 +321,6 @@ typedef struct TcpSession_ {
 #define STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE      BIT_U16(11)
 #define STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK  BIT_U16(12)
 
-#define STREAM_PKT_FLAG_SET(p, f) (p)->tcpvars.stream_pkt_flags |= (f)
+#define STREAM_PKT_FLAG_SET(p, f) (p)->l4.vars.tcp.stream_pkt_flags |= (f)
 
 #endif /* SURICATA_STREAM_TCP_PRIVATE_H */

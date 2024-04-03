@@ -1571,7 +1571,7 @@ static int UriTestSig16(void)
 
     Packet *p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
     FAIL_IF_NULL(p);
-    p->tcph->th_seq = htonl(1000);
+    p->l4.hdrs.tcph->th_seq = htonl(1000);
     Flow *f = UTHBuildFlow(AF_INET, "192.168.1.5", "192.168.1.1", 41424, 80);
     FAIL_IF_NULL(f);
     f->proto = IPPROTO_TCP;
