@@ -37,10 +37,6 @@
 #endif
 #endif
 
-#if HAVE_LIBSYSTEMD
-#include <systemd/sd-daemon.h>
-#endif
-
 #include "suricata.h"
 
 #include "conf.h"
@@ -145,6 +141,9 @@
 #include "util-time.h"
 #include "util-validate.h"
 #include "util-var-name.h"
+#ifdef SYSTEMD_NOTIFY
+#include "util-systemd.h"
+#endif
 
 #ifdef WINDIVERT
 #include "decode-sll.h"
@@ -431,12 +430,9 @@ void GlobalsDestroy(void)
  */
 static void OnNotifyRunning(void)
 {
-#if HAVE_LIBSYSTEMD
-    if (sd_notify(0, "READY=1") < 0) {
+#ifdef SYSTEMD_NOTIFY
+    if (SystemDNotifyReady() < 0) {
         SCLogWarning("failed to notify systemd");
-        /* Please refer to:
-         * https://www.freedesktop.org/software/systemd/man/sd_notify.html#Return%20Value
-         * for discussion on why failure should not be considered an error */
     }
 #endif
 }

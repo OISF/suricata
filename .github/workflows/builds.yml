@@ -864,7 +864,6 @@ jobs:
                 python \
                 python3-yaml \
                 sudo \
-                systemd-devel \
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -908,7 +907,7 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
       # Check compilation against systemd
-      - run: ldd src/suricata | grep libsystemd &> /dev/null
+      - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
   # Fedora 38 build using GCC.
   fedora-38-gcc:
@@ -1061,7 +1060,6 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
-                systemd-devel \
                 which \
                 zlib-devel
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -1100,7 +1098,7 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
       # Check compilation against systemd
-      - run: ldd src/suricata | grep libsystemd &> /dev/null
+      - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
   # Fedora 39 build using GCC.
   fedora-39-gcc:
@@ -1196,7 +1194,7 @@ jobs:
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
   fedora-39-non-root:
-    name: Fedora 39 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
+    name: Fedora 39 (non-root, debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:39
     needs: [prepare-deps]
@@ -1238,7 +1236,6 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
-                systemd-devel \
                 which \
                 zlib-devel
       - run: adduser suricata
