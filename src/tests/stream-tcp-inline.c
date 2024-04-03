@@ -63,8 +63,8 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     p = UTHBuildPacketReal(                                                                        \
             (uint8_t *)(seg), (seglen), IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);              \
     FAIL_IF(p == NULL);                                                                            \
-    p->tcph->th_seq = htonl(stream->isn + (rseq));                                                 \
-    p->tcph->th_ack = htonl(31);                                                                   \
+    p->l4.hdrs.tcph->th_seq = htonl(stream->isn + (rseq));                                         \
+    p->l4.hdrs.tcph->th_ack = htonl(31);                                                           \
     FAIL_IF(StreamTcpReassembleHandleSegmentHandleData(&tv, ra_ctx, &ssn, stream, p) < 0);         \
     FAIL_IF(memcmp(p->payload, packet, MIN((packetlen), p->payload_len)) != 0);                    \
     UTHFreePacket(p);

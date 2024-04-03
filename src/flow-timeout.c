@@ -151,7 +151,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
         }
 
         /* set the tcp header */
-        p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 20);
+        PacketSetTCP(p, GET_PKT_DATA(p) + 20);
 
         SET_PKT_LEN(p, 40); /* ipv4 hdr + tcp hdr */
 
@@ -205,42 +205,43 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
         }
 
         /* set the tcp header */
-        p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 40);
+        PacketSetTCP(p, GET_PKT_DATA(p) + 40);
 
         SET_PKT_LEN(p, 60); /* ipv6 hdr + tcp hdr */
     }
 
-    p->tcph->th_offx2 = 0x50;
-    p->tcph->th_flags = 0;
-    p->tcph->th_win = 10;
-    p->tcph->th_urp = 0;
+    p->l4.hdrs.tcph->th_offx2 = 0x50;
+    p->l4.hdrs.tcph->th_flags = 0;
+    p->l4.hdrs.tcph->th_win = 10;
+    p->l4.hdrs.tcph->th_urp = 0;
 
     /* to server */
     if (orig_dir == 0) {
-        p->tcph->th_sport = htons(f->sp);
-        p->tcph->th_dport = htons(f->dp);
+        p->l4.hdrs.tcph->th_sport = htons(f->sp);
+        p->l4.hdrs.tcph->th_dport = htons(f->dp);
 
-        p->tcph->th_seq = htonl(ssn->client.next_seq);
-        p->tcph->th_ack = htonl(ssn->server.last_ack);
+        p->l4.hdrs.tcph->th_seq = htonl(ssn->client.next_seq);
+        p->l4.hdrs.tcph->th_ack = htonl(ssn->server.last_ack);
 
         /* to client */
     } else {
-        p->tcph->th_sport = htons(f->dp);
-        p->tcph->th_dport = htons(f->sp);
+        p->l4.hdrs.tcph->th_sport = htons(f->dp);
+        p->l4.hdrs.tcph->th_dport = htons(f->sp);
 
-        p->tcph->th_seq = htonl(ssn->server.next_seq);
-        p->tcph->th_ack = htonl(ssn->client.last_ack);
+        p->l4.hdrs.tcph->th_seq = htonl(ssn->server.next_seq);
+        p->l4.hdrs.tcph->th_ack = htonl(ssn->client.last_ack);
     }
 
     if (FLOW_IS_IPV4(f)) {
         IPV4Hdr *ip4h = p->l3.hdrs.ip4h;
-        p->tcph->th_sum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph, 20, 0);
+        p->l4.hdrs.tcph->th_sum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->l4.hdrs.tcph, 20, 0);
         /* calc ipv4 csum as we may log it and barnyard might reject
          * a wrong checksum */
         ip4h->ip_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), 0);
     } else if (FLOW_IS_IPV6(f)) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
-        p->tcph->th_sum = TCPChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph, 20, 0);
+        p->l4.hdrs.tcph->th_sum =
+                TCPChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->l4.hdrs.tcph, 20, 0);
     }
 
     p->ts = TimeGet();
