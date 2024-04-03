@@ -439,6 +439,7 @@ struct PacketL3 {
 
 enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
+    PACKET_L4_TCP,
     PACKET_L4_UDP,
     PACKET_L4_ICMPV4,
     PACKET_L4_ICMPV6,
@@ -452,6 +453,7 @@ struct PacketL4 {
     bool csum_set;
     uint16_t csum;
     union L4Hdrs {
+        TCPHdr *tcph;
         UDPHdr *udph;
         ICMPV4Hdr *icmpv4h;
         ICMPV6Hdr *icmpv6h;
@@ -460,6 +462,7 @@ struct PacketL4 {
         ESPHdr *esph;
     } hdrs;
     union L4Vars {
+        TCPVars tcp;
         ICMPV4Vars icmpv4;
         ICMPV6Vars icmpv6;
     } vars;
@@ -585,14 +588,6 @@ typedef struct Packet_
     struct PacketL2 l2;
     struct PacketL3 l3;
     struct PacketL4 l4;
-
-    /* Can only be one of TCP, UDP, ICMP at any given time */
-    union {
-        TCPVars tcpvars;
-    } l4vars;
-#define tcpvars l4vars.tcpvars
-
-    TCPHdr *tcph;
 
     /* ptr to the payload of the packet
      * with it's length. */
@@ -739,11 +734,6 @@ static inline uint8_t PacketGetIPv4IPProto(const Packet *p)
     return 0;
 }
 
-static inline bool PacketIsIPv6(const Packet *p)
-{
-    return p->l3.type == PACKET_L3_IPV6;
-}
-
 static inline const IPV6Hdr *PacketGetIPv6(const Packet *p)
 {
     DEBUG_VALIDATE_BUG_ON(!PacketIsIPv6(p));
@@ -756,6 +746,11 @@ static inline IPV6Hdr *PacketSetIPV6(Packet *p, const uint8_t *buf)
     p->l3.type = PACKET_L3_IPV6;
     p->l3.hdrs.ip6h = (IPV6Hdr *)buf;
     return p->l3.hdrs.ip6h;
+}
+
+static inline bool PacketIsIPv6(const Packet *p)
+{
+    return p->l3.type == PACKET_L3_IPV6;
 }
 
 static inline void PacketClearL2(Packet *p)
@@ -793,9 +788,23 @@ static inline void PacketClearL4(Packet *p)
     memset(&p->l4, 0, sizeof(p->l4));
 }
 
+static inline TCPHdr *PacketSetTCP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_TCP;
+    p->l4.hdrs.tcph = (TCPHdr *)buf;
+    return p->l4.hdrs.tcph;
+}
+
+static inline const TCPHdr *PacketGetTCP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_TCP);
+    return p->l4.hdrs.tcph;
+}
+
 static inline bool PacketIsTCP(const Packet *p)
 {
-    return PKT_IS_TCP(p);
+    return p->l4.type == PACKET_L4_TCP;
 }
 
 static inline UDPHdr *PacketSetUDP(Packet *p, const uint8_t *buf)

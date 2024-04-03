@@ -32,9 +32,9 @@ int ReCalculateChecksum(Packet *p)
         IPV4Hdr *ip4h = p->l3.hdrs.ip4h;
         if (PacketIsTCP(p)) {
             /* TCP */
-            p->tcph->th_sum = 0;
-            p->tcph->th_sum = TCPChecksum(
-                    ip4h->s_ip_addrs, (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
+            p->l4.hdrs.tcph->th_sum = 0;
+            p->l4.hdrs.tcph->th_sum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->l4.hdrs.tcph,
+                    (p->payload_len + TCP_GET_RAW_HLEN(p->l4.hdrs.tcph)), 0);
         } else if (PacketIsUDP(p)) {
             p->l4.hdrs.udph->uh_sum = 0;
             p->l4.hdrs.udph->uh_sum = UDPV4Checksum(ip4h->s_ip_addrs, (uint16_t *)p->l4.hdrs.udph,
@@ -46,9 +46,9 @@ int ReCalculateChecksum(Packet *p)
     } else if (PacketIsIPv6(p)) {
         IPV6Hdr *ip6h = p->l3.hdrs.ip6h;
         if (PacketIsTCP(p)) {
-            p->tcph->th_sum = 0;
-            p->tcph->th_sum = TCPV6Checksum(
-                    ip6h->s_ip6_addrs, (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)), 0);
+            p->l4.hdrs.tcph->th_sum = 0;
+            p->l4.hdrs.tcph->th_sum = TCPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->l4.hdrs.tcph,
+                    (p->payload_len + TCP_GET_RAW_HLEN(p->l4.hdrs.tcph)), 0);
         } else if (PacketIsUDP(p)) {
             p->l4.hdrs.udph->uh_sum = 0;
             p->l4.hdrs.udph->uh_sum = UDPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->l4.hdrs.udph,

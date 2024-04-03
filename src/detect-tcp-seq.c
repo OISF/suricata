@@ -88,7 +88,7 @@ static int DetectSeqMatch(DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    return (data->seq == TCP_GET_SEQ(p)) ? 1 : 0;
+    return (data->seq == TCP_GET_RAW_SEQ(PacketGetTCP(p))) ? 1 : 0;
 }
 
 /**
@@ -152,7 +152,7 @@ PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
         return;
 
     if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p) &&
-            (TCP_GET_SEQ(p) == ctx->v1.u32[0])) {
+            (TCP_GET_RAW_SEQ(PacketGetTCP(p)) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP seq %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -257,10 +257,10 @@ static int DetectSeqSigTest02(void)
         goto end;
 
     /* TCP w/seq=42 */
-    p[0]->tcph->th_seq = htonl(42);
+    p[0]->l4.hdrs.tcph->th_seq = htonl(42);
 
     /* TCP w/seq=100 */
-    p[1]->tcph->th_seq = htonl(100);
+    p[1]->l4.hdrs.tcph->th_seq = htonl(100);
 
     const char *sigs[2];
     sigs[0]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:41; sid:1;)";
