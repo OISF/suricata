@@ -92,7 +92,7 @@ static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    return (data->ack == TCP_GET_ACK(p)) ? 1 : 0;
+    return (data->ack == TCP_GET_RAW_ACK(PacketGetTCP(p))) ? 1 : 0;
 }
 
 /**
@@ -157,7 +157,7 @@ PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
         return;
 
     if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p) &&
-            (TCP_GET_ACK(p) == ctx->v1.u32[0])) {
+            (TCP_GET_RAW_ACK(PacketGetTCP(p)) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP ack %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -218,11 +218,11 @@ static int DetectAckSigTest01(void)
 
     /* TCP w/ack=42 */
     p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p1->tcph->th_ack = htonl(42);
+    p1->l4.hdrs.tcph->th_ack = htonl(42);
 
     /* TCP w/ack=100 */
     p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2->tcph->th_ack = htonl(100);
+    p2->l4.hdrs.tcph->th_ack = htonl(100);
 
     /* ICMP */
     p3 = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);

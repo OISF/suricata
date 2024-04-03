@@ -170,10 +170,7 @@ void FlowInit(Flow *f, const Packet *p)
         DEBUG_VALIDATE_BUG_ON(1);
     }
 
-    if (PacketIsTCP(p)) {
-        SET_TCP_SRC_PORT(p,&f->sp);
-        SET_TCP_DST_PORT(p,&f->dp);
-    } else if (PacketIsUDP(p)) {
+    if (PacketIsTCP(p) || PacketIsUDP(p)) {
         f->sp = p->sp;
         f->dp = p->dp;
     } else if (PacketIsICMPv4(p)) {

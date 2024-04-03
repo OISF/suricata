@@ -91,7 +91,8 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    if ( (!wd->negated && wd->size == TCP_GET_WINDOW(p)) || (wd->negated && wd->size != TCP_GET_WINDOW(p))) {
+    const uint16_t window = TCP_GET_RAW_WINDOW(PacketGetTCP(p));
+    if ((!wd->negated && wd->size == window) || (wd->negated && wd->size != window)) {
         return 1;
     }
 
@@ -287,10 +288,10 @@ static int DetectWindowTestPacket01 (void)
     FAIL_IF(p[0] == NULL || p[1] == NULL || p[2] == NULL);
 
     /* TCP wwindow = 40 */
-    p[0]->tcph->th_win = htons(40);
+    p[0]->l4.hdrs.tcph->th_win = htons(40);
 
     /* TCP window = 41 */
-    p[1]->tcph->th_win = htons(41);
+    p[1]->l4.hdrs.tcph->th_win = htons(41);
 
     const char *sigs[2];
     sigs[0]= "alert tcp any any -> any any (msg:\"Testing window 1\"; window:40; sid:1;)";
