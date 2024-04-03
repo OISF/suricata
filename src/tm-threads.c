@@ -161,7 +161,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
  *  is run until the flow engine kills the thread and the queue is
  *  empty.
  */
-static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
+int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 {
     TmSlot *fw_slot = tv->tm_flowworker;
     int r = TM_ECODE_OK;
@@ -363,6 +363,93 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 error:
     tv->stream_pq = NULL;
     pthread_exit((void *) -1);
+    return NULL;
+}
+
+static void *TmThreadsLib(void *td)
+{
+    ThreadVars *tv = (ThreadVars *)td;
+    TmSlot *s = tv->tm_slots;
+    TmEcode r = TM_ECODE_OK;
+    TmSlot *slot = NULL;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
+
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
+
+    PacketPoolInit();
+
+    /* check if we are setup properly */
+    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        SCLogError("TmSlot or ThreadVars badly setup: s=%p, tmqh_in=%p,"
+                   " tmqh_out=%p",
+                s, tv->tmqh_in, tv->tmqh_out);
+        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+        return NULL;
+    }
+
+    for (slot = s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotThreadInit != NULL) {
+            void *slot_data = NULL;
+            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
+            if (r != TM_ECODE_OK) {
+                if (r == TM_ECODE_DONE) {
+                    EngineDone();
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
+                    goto error;
+                } else {
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+                    goto error;
+                }
+            }
+            (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
+        }
+
+        /* if the flowworker module is the first, get the threads input queue */
+        if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
+            tv->stream_pq = tv->inq->pq;
+            tv->tm_flowworker = slot;
+            SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            if (tv->flow_queue == NULL) {
+                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+                return NULL;
+            }
+            /* setup a queue */
+        } else if (slot->tm_id == TMM_FLOWWORKER) {
+            tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
+            if (tv->stream_pq_local == NULL)
+                FatalError("failed to alloc PacketQueue");
+            SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
+            tv->stream_pq = tv->stream_pq_local;
+            tv->tm_flowworker = slot;
+            SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            if (tv->flow_queue == NULL) {
+                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+                return NULL;
+            }
+        }
+    }
+    StatsSetupPrivate(tv);
+
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
+
+    if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
+        TmThreadsSetFlag(tv, THV_PAUSED);
+        TmThreadTestThreadUnPaused(tv);
+        TmThreadsUnsetFlag(tv, THV_PAUSED);
+    }
+
+    return NULL;
+
+error:
+    tv->stream_pq = NULL;
     return NULL;
 }
 
@@ -615,6 +702,8 @@ static TmEcode TmThreadSetSlots(ThreadVars *tv, const char *name, void *(*fn_p)(
         tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "command") == 0) {
         tv->tm_func = TmThreadsManagement;
+    } else if (strcmp(name, "lib") == 0) {
+        tv->tm_func = TmThreadsLib;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -1702,6 +1791,25 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
     TmThreadAppend(tv, tv->type);
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Spawns a "fake" lib thread associated with the ThreadVars instance tv
+ *
+ * \retval TM_ECODE_OK on success and TM_ECODE_FAILED on failure
+ */
+TmEcode TmThreadLibSpawn(ThreadVars *tv)
+{
+    if (tv->tm_func == NULL) {
+        printf("ERROR: no thread function set\n");
+        return TM_ECODE_FAILED;
+    }
+
+    tv->tm_func((void *)tv);
+
+    TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
+
     return TM_ECODE_OK;
 }
 

@@ -457,6 +457,7 @@ noinst_HEADERS = \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
+	runmode-lib.h \
 	runmode-napatech.h \
 	runmode-netmap.h \
 	runmode-nflog.h \
@@ -476,6 +477,7 @@ noinst_HEADERS = \
 	source-erf-dag.h \
 	source-erf-file.h \
 	source-ipfw.h \
+	source-lib.h \
 	source-napatech.h \
 	source-netmap.h \
 	source-nflog.h \
@@ -1080,6 +1082,7 @@ libsuricata_c_a_SOURCES = \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
 	runmode-ipfw.c \
+	runmode-lib.c \
 	runmode-napatech.c \
 	runmode-netmap.c \
 	runmode-nflog.c \
@@ -1098,6 +1101,7 @@ libsuricata_c_a_SOURCES = \
 	source-erf-dag.c \
 	source-erf-file.c \
 	source-ipfw.c \
+	source-lib.c \
 	source-napatech.c \
 	source-netmap.c \
 	source-nflog.c \
