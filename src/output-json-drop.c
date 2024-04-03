@@ -125,17 +125,18 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     switch (proto) {
         case IPPROTO_TCP:
             if (PacketIsTCP(p)) {
-                jb_set_uint(js, "tcpseq", TCP_GET_SEQ(p));
-                jb_set_uint(js, "tcpack", TCP_GET_ACK(p));
-                jb_set_uint(js, "tcpwin", TCP_GET_WINDOW(p));
-                jb_set_bool(js, "syn", TCP_ISSET_FLAG_SYN(p) ? true : false);
-                jb_set_bool(js, "ack", TCP_ISSET_FLAG_ACK(p) ? true : false);
-                jb_set_bool(js, "psh", TCP_ISSET_FLAG_PUSH(p) ? true : false);
-                jb_set_bool(js, "rst", TCP_ISSET_FLAG_RST(p) ? true : false);
-                jb_set_bool(js, "urg", TCP_ISSET_FLAG_URG(p) ? true : false);
-                jb_set_bool(js, "fin", TCP_ISSET_FLAG_FIN(p) ? true : false);
-                jb_set_uint(js, "tcpres",  TCP_GET_RAW_X2(p->tcph));
-                jb_set_uint(js, "tcpurgp", TCP_GET_URG_POINTER(p));
+                const TCPHdr *tcph = PacketGetTCP(p);
+                jb_set_uint(js, "tcpseq", TCP_GET_RAW_SEQ(tcph));
+                jb_set_uint(js, "tcpack", TCP_GET_RAW_ACK(tcph));
+                jb_set_uint(js, "tcpwin", TCP_GET_RAW_WINDOW(tcph));
+                jb_set_bool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph) ? true : false);
+                jb_set_bool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph) ? true : false);
+                jb_set_bool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph) ? true : false);
+                jb_set_bool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph) ? true : false);
+                jb_set_bool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph) ? true : false);
+                jb_set_bool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph) ? true : false);
+                jb_set_uint(js, "tcpres", TCP_GET_RAW_X2(tcph));
+                jb_set_uint(js, "tcpurgp", TCP_GET_RAW_URG_POINTER(tcph));
             }
             break;
         case IPPROTO_UDP:

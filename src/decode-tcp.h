@@ -70,6 +70,7 @@
 #define TCP_WSCALE_MAX                       14
 
 #define TCP_GET_RAW_OFFSET(tcph)             (((tcph)->th_offx2 & 0xf0) >> 4)
+#define TCP_GET_RAW_HLEN(tcph)               ((uint8_t)(TCP_GET_RAW_OFFSET((tcph)) << 2))
 #define TCP_GET_RAW_X2(tcph)                 (unsigned char)((tcph)->th_offx2 & 0x0f)
 #define TCP_GET_RAW_SRC_PORT(tcph)           SCNtohs((tcph)->th_sport)
 #define TCP_GET_RAW_DST_PORT(tcph)           SCNtohs((tcph)->th_dport)
@@ -85,24 +86,24 @@
 #define TCP_GET_RAW_SUM(tcph)                SCNtohs((tcph)->th_sum)
 
 /** macro for getting the first timestamp from the packet in host order */
-#define TCP_GET_TSVAL(p)                    ((p)->tcpvars.ts_val)
+#define TCP_GET_TSVAL(p) ((p)->l4.vars.tcp.ts_val)
 
 /** macro for getting the second timestamp from the packet in host order. */
-#define TCP_GET_TSECR(p)                    ((p)->tcpvars.ts_ecr)
+#define TCP_GET_TSECR(p) ((p)->l4.vars.tcp.ts_ecr)
 
-#define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.wscale_set)
-#define TCP_HAS_SACK(p)                     (p)->tcpvars.sack_set
-#define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set)
-#define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss_set)
-#define TCP_HAS_TFO(p)                      ((p)->tcpvars.tfo_set)
+#define TCP_HAS_WSCALE(p) ((p)->l4.vars.tcp.wscale_set)
+#define TCP_HAS_SACK(p)   (p)->l4.vars.tcp.sack_set
+#define TCP_HAS_TS(p)     ((p)->l4.vars.tcp.ts_set)
+#define TCP_HAS_MSS(p)    ((p)->l4.vars.tcp.mss_set)
+#define TCP_HAS_TFO(p)    ((p)->l4.vars.tcp.tfo_set)
 
 /** macro for getting the wscale from the packet. */
-#define TCP_GET_WSCALE(p) (p)->tcpvars.wscale
+#define TCP_GET_WSCALE(p) (p)->l4.vars.tcp.wscale
 
-#define TCP_GET_SACKOK(p)                    (p)->tcpvars.sack_ok
-#define TCP_GET_SACK_PTR(p)                  ((uint8_t *)(p)->tcph) + (p)->tcpvars.sack_offset
-#define TCP_GET_SACK_CNT(p)                  (p)->tcpvars.sack_cnt
-#define TCP_GET_MSS(p)                       (p)->tcpvars.mss
+#define TCP_GET_SACKOK(p)         (p)->l4.vars.tcp.sack_ok
+#define TCP_GET_SACK_PTR(p, tcph) ((uint8_t *)(tcph)) + (p)->l4.vars.tcp.sack_offset
+#define TCP_GET_SACK_CNT(p)       (p)->l4.vars.tcp.sack_cnt
+#define TCP_GET_MSS(p)            (p)->l4.vars.tcp.mss
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
 #define TCP_GET_X2(p)                        TCP_GET_RAW_X2((p)->tcph)
@@ -115,6 +116,15 @@
 #define TCP_GET_URG_POINTER(p)               TCP_GET_RAW_URG_POINTER((p)->tcph)
 #define TCP_GET_SUM(p)                       TCP_GET_RAW_SUM((p)->tcph)
 #define TCP_GET_FLAGS(p)                     (p)->tcph->th_flags
+
+#define TCP_ISSET_FLAG_RAW_FIN(p)  ((tcph)->th_flags & TH_FIN)
+#define TCP_ISSET_FLAG_RAW_SYN(p)  ((tcph)->th_flags & TH_SYN)
+#define TCP_ISSET_FLAG_RAW_RST(p)  ((tcph)->th_flags & TH_RST)
+#define TCP_ISSET_FLAG_RAW_PUSH(p) ((tcph)->th_flags & TH_PUSH)
+#define TCP_ISSET_FLAG_RAW_ACK(p)  ((tcph)->th_flags & TH_ACK)
+#define TCP_ISSET_FLAG_RAW_URG(p)  ((tcph)->th_flags & TH_URG)
+#define TCP_ISSET_FLAG_RAW_RES2(p) ((tcph)->th_flags & TH_RES2)
+#define TCP_ISSET_FLAG_RAW_RES1(p) ((tcph)->th_flags & TH_RES1)
 
 #define TCP_ISSET_FLAG_FIN(p)                ((p)->tcph->th_flags & TH_FIN)
 #define TCP_ISSET_FLAG_SYN(p)                ((p)->tcph->th_flags & TH_SYN)
@@ -168,12 +178,6 @@ typedef struct TCPVars_
     uint8_t sack_cnt;     /**< number of sack records */
     uint16_t sack_offset; /**< offset relative to tcp header start */
 } TCPVars;
-
-#define CLEAR_TCP_PACKET(p)                                                                        \
-    {                                                                                              \
-        PACKET_CLEAR_L4VARS((p));                                                                  \
-        (p)->tcph = NULL;                                                                          \
-    }
 
 void DecodeTCPRegisterTests(void);
 
