@@ -335,45 +335,46 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         jb_set_uint(js, "flowlbl", IPV6_GET_RAW_FLOW(ip6h));
     }
     if (PacketIsTCP(p)) {
-        jb_set_uint(js, "tcpseq", TCP_GET_SEQ(p));
-        jb_set_uint(js, "tcpack", TCP_GET_ACK(p));
-        jb_set_uint(js, "tcpwin", TCP_GET_WINDOW(p));
-        jb_set_bool(js, "syn", TCP_ISSET_FLAG_SYN(p) ? true : false);
-        jb_set_bool(js, "ack", TCP_ISSET_FLAG_ACK(p) ? true : false);
-        jb_set_bool(js, "psh", TCP_ISSET_FLAG_PUSH(p) ? true : false);
-        jb_set_bool(js, "rst", TCP_ISSET_FLAG_RST(p) ? true : false);
-        jb_set_bool(js, "urg", TCP_ISSET_FLAG_URG(p) ? true : false);
-        jb_set_bool(js, "fin", TCP_ISSET_FLAG_FIN(p) ? true : false);
-        jb_set_uint(js, "tcpres", TCP_GET_RAW_X2(p->tcph));
-        jb_set_uint(js, "tcpurgp", TCP_GET_URG_POINTER(p));
+        const TCPHdr *tcph = PacketGetTCP(p);
+        jb_set_uint(js, "tcpseq", TCP_GET_RAW_SEQ(tcph));
+        jb_set_uint(js, "tcpack", TCP_GET_RAW_ACK(tcph));
+        jb_set_uint(js, "tcpwin", TCP_GET_RAW_WINDOW(tcph));
+        jb_set_bool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph) ? true : false);
+        jb_set_bool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph) ? true : false);
+        jb_set_bool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph) ? true : false);
+        jb_set_bool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph) ? true : false);
+        jb_set_bool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph) ? true : false);
+        jb_set_bool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph) ? true : false);
+        jb_set_uint(js, "tcpres", TCP_GET_RAW_X2(tcph));
+        jb_set_uint(js, "tcpurgp", TCP_GET_RAW_URG_POINTER(tcph));
 
         jb_open_array(js, "flags");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_RETRANSMISSION)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_RETRANSMISSION)
             jb_append_string(js, "retransmission");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION)
             jb_append_string(js, "spurious_retransmission");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVE)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVE)
             jb_append_string(js, "keepalive");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVEACK)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVEACK)
             jb_append_string(js, "keepalive_ack");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_WINDOWUPDATE)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_WINDOWUPDATE)
             jb_append_string(js, "window_update");
 
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET)
             jb_append_string(js, "event_set");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE)
             jb_append_string(js, "state_update");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_DUP_ACK)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_DUP_ACK)
             jb_append_string(js, "dup_ack");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_DSACK)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_DSACK)
             jb_append_string(js, "dsack");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_ACK_UNSEEN_DATA)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_ACK_UNSEEN_DATA)
             jb_append_string(js, "ack_unseen_data");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_PORT_REUSE)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_PORT_REUSE)
             jb_append_string(js, "tcp_port_reuse");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE)
             jb_append_string(js, "zero_window_probe");
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK)
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK)
             jb_append_string(js, "zero_window_probe_ack");
         jb_close(js);
     }
@@ -385,7 +386,7 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         const char *tcp_state = StreamTcpStateAsString(ssn->state);
         if (tcp_state != NULL)
             jb_set_string(js, "state", tcp_state);
-        if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE) {
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE) {
             const char *tcp_pstate = StreamTcpStateAsString(ssn->pstate);
             if (tcp_pstate != NULL)
                 jb_set_string(js, "pstate", tcp_pstate);
@@ -401,7 +402,7 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
     jb_close(js);
 
-    if (p->tcpvars.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET) {
+    if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET) {
         jb_open_array(js, "events");
         for (int i = 0; i < p->events.cnt; i++) {
             uint8_t event_code = p->events.events[i];
@@ -447,7 +448,7 @@ static bool EveStreamLogCondition(ThreadVars *tv, void *data, const Packet *p)
 
     return (p->proto == IPPROTO_TCP &&
             (ctx->trigger_flags == 0xffff ||
-                    (p->tcpvars.stream_pkt_flags & ctx->trigger_flags) != 0));
+                    (p->l4.vars.tcp.stream_pkt_flags & ctx->trigger_flags) != 0));
 }
 
 void EveStreamLogRegister(void)
