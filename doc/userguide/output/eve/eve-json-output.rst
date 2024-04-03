@@ -281,6 +281,27 @@ Config::
         # (will show more information in case of a drop caused by 'reject')
         verdict: yes
 
+.. _eve-json-output-stats:
+
+Stats
+~~~~~
+
+Zero-valued Counters
+""""""""""""""""""""
+
+While the human-friendly `stats.log` output will only log out non-zeroed
+counters, by default EVE Stats logs output all enabled counters, which may lead
+to fairly verbose logs.
+
+To reduce log file size, one may set `zero-valued-counters` to false. Do note
+that this may impact on the visibility of information for which a stats counter
+as zero is relevant.
+
+Config::
+
+    - stats:
+        # Don't log stats counters that are zero. Default: true
+        #zero-valued-counters: false    # False will NOT log stats counters: 0
 
 Date modifiers in filename
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
