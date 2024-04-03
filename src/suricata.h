@@ -216,4 +216,7 @@ int WindowsInitService(int argc, char **argv);
 
 const char *GetProgramVersion(void);
 
+/* Library only methods. */
+void SuricataSetLibRunmode(void);
+
 #endif /* SURICATA_SURICATA_H */
