@@ -339,6 +339,10 @@ Similar to the `decoder-events` option, the `stream-events` option controls
 whether the stream-events are added as counters as well. This is disabled by
 default.
 
+To reduce log file size, one may set `zero-valued-counters` to false. This may
+impact on the visibility of information for which a stats counter as zero is
+relevant.
+
 Outputs
 ~~~~~~~
 
