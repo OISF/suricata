@@ -7,6 +7,10 @@
  * This protocol is guaranteed to be stable as per:
  * https://systemd.io/PORTABILITY_AND_STABILITY/ */
 
+/* this file is copied from:
+ * https://github.com/systemd/systemd/blob/main/man/notify-selfcontained-example.c
+ * written by Luca Boccassi */
+
 #include "suricata-common.h"
 
 #if (defined SYSTEMD_NOTIFY) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) &&            \

@@ -431,7 +431,7 @@ void GlobalsDestroy(void)
 static void OnNotifyRunning(void)
 {
 #ifdef SYSTEMD_NOTIFY
-    if (SystemDNotifyReady() != 1) {
+    if (SystemDNotifyReady() < 0) {
         SCLogWarning("failed to notify systemd");
     }
 #endif

@@ -7,9 +7,9 @@
  * This protocol is guaranteed to be stable as per:
  * https://systemd.io/PORTABILITY_AND_STABILITY/ */
 
-#ifndef SURICATA_UTIL_SYSTEMD
-#define SURICATA_UTIL_SYSTEMD
+#ifndef SURICATA_UTIL_SYSTEMD_H
+#define SURICATA_UTIL_SYSTEMD_H
 
 int SystemDNotifyReady(void);
 
-#endif
+#endif /* SURICATA_UTIL_SYSTEMD_H */
