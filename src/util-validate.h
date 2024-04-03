@@ -73,7 +73,7 @@
             }                                                                                      \
             if (!((p)->flags & (PKT_IS_FRAGMENT | PKT_IS_INVALID))) {                              \
                 if ((p)->proto == IPPROTO_TCP) {                                                   \
-                    BUG_ON((p)->tcph == NULL);                                                     \
+                    BUG_ON(PacketGetTCP((p)) == NULL);                                             \
                 } else if ((p)->proto == IPPROTO_UDP) {                                            \
                     BUG_ON(PacketGetUDP((p)) == NULL);                                             \
                 } else if ((p)->proto == IPPROTO_ICMP) {                                           \
