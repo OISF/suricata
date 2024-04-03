@@ -115,9 +115,6 @@ void PacketReinit(Packet *p)
     PacketClearL2(p);
     PacketClearL3(p);
     PacketClearL4(p);
-    if (p->tcph != NULL) {
-        CLEAR_TCP_PACKET(p);
-    }
     p->payload = NULL;
     p->payload_len = 0;
     p->BypassPacketsFlow = NULL;

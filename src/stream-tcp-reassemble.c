@@ -762,9 +762,12 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(0);
     }
 
+    const TCPHdr *tcph = PacketGetTCP(p);
+
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
-    uint32_t size = StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_SEQ(p), p->payload_len);
+    uint32_t size =
+            StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_RAW_SEQ(tcph), p->payload_len);
     SCLogDebug("ssn %p: check depth returned %"PRIu32, ssn, size);
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
@@ -792,10 +795,10 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     DEBUG_VALIDATE_BUG_ON(size > UINT16_MAX);
     TCP_SEG_LEN(seg) = (uint16_t)size;
-    seg->seq = TCP_GET_SEQ(p);
+    seg->seq = TCP_GET_RAW_SEQ(tcph);
 
     /* HACK: for TFO SYN packets the seq for data starts at + 1 */
-    if (TCP_HAS_TFO(p) && p->payload_len && (p->tcph->th_flags & TH_SYN))
+    if (TCP_HAS_TFO(p) && p->payload_len && (tcph->th_flags & TH_SYN))
         seg->seq += 1;
 
     /* proto detection skipped, but now we do get data. Set event. */
@@ -807,7 +810,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     }
 
     int r = StreamTcpReassembleInsertSegment(
-            tv, ra_ctx, stream, seg, p, TCP_GET_SEQ(p), p->payload, p->payload_len);
+            tv, ra_ctx, stream, seg, p, TCP_GET_RAW_SEQ(tcph), p->payload, p->payload_len);
     if (r < 0) {
         if (r == -SC_ENOMEM) {
             ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
@@ -1600,7 +1603,9 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                 p->payload_len, chunk_size);
     }
 
-    uint64_t packet_leftedge_abs = STREAM_BASE_OFFSET(stream) + (TCP_GET_SEQ(p) - stream->base_seq);
+    const TCPHdr *tcph = PacketGetTCP(p);
+    uint64_t packet_leftedge_abs =
+            STREAM_BASE_OFFSET(stream) + (TCP_GET_RAW_SEQ(tcph) - stream->base_seq);
     uint64_t packet_rightedge_abs = packet_leftedge_abs + p->payload_len;
     SCLogDebug("packet_leftedge_abs %"PRIu64", rightedge %"PRIu64,
             packet_leftedge_abs, packet_rightedge_abs);
@@ -1955,6 +1960,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     SCEnter();
 
     DEBUG_VALIDATE_BUG_ON(!PacketIsTCP(p));
+    const TCPHdr *tcph = PacketGetTCP(p);
 
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
@@ -1966,10 +1972,10 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         dir = UPDATE_DIR_PACKET;
     } else if (p->flags & PKT_PSEUDO_STREAM_END) {
         dir = UPDATE_DIR_PACKET;
-    } else if (p->tcph->th_flags & TH_RST) { // accepted rst
+    } else if (tcph->th_flags & TH_RST) { // accepted rst
         dir = UPDATE_DIR_PACKET;
-    } else if ((p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
-        if (p->tcph->th_flags & TH_ACK) {
+    } else if ((tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
+        if (tcph->th_flags & TH_ACK) {
             dir = UPDATE_DIR_BOTH;
         } else {
             dir = UPDATE_DIR_PACKET;
@@ -2007,7 +2013,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
     /* if this segment contains data, insert it */
     if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-            (p->tcph->th_flags & TH_RST) == 0) {
+            (tcph->th_flags & TH_RST) == 0) {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
 
         if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
@@ -2396,30 +2402,30 @@ static int StreamTcpReassembleTest33(void)
     p->flow = &f;
     tcph.th_win = 5480;
     tcph.th_flags = TH_PUSH | TH_ACK;
-    p->tcph = &tcph;
+    UTHSetTCPHdr(p, &tcph);
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = packet;
 
-    p->tcph->th_seq = htonl(10);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(31);
     p->payload_len = 10;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(20);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(20);
+    tcph.th_ack = htonl(31);
     p->payload_len = 10;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(40);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(40);
+    tcph.th_ack = htonl(31);
     p->payload_len = 10;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(5);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(5);
+    tcph.th_ack = htonl(31);
     p->payload_len = 30;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
@@ -2456,31 +2462,31 @@ static int StreamTcpReassembleTest34(void)
     p->flow = &f;
     tcph.th_win = 5480;
     tcph.th_flags = TH_PUSH | TH_ACK;
-    p->tcph = &tcph;
+    UTHSetTCPHdr(p, &tcph);
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = packet;
     SET_ISN(&ssn.client, 857961230);
 
-    p->tcph->th_seq = htonl(857961230);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(857961230);
+    tcph.th_ack = htonl(31);
     p->payload_len = 304;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(857961534);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(857961534);
+    tcph.th_ack = htonl(31);
     p->payload_len = 1460;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(857963582);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(857963582);
+    tcph.th_ack = htonl(31);
     p->payload_len = 1460;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
-    p->tcph->th_seq = htonl(857960946);
-    p->tcph->th_ack = htonl(31);
+    tcph.th_seq = htonl(857960946);
+    tcph.th_ack = htonl(31);
     p->payload_len = 1460;
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
@@ -2518,7 +2524,7 @@ static int StreamTcpReassembleTest39 (void)
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
-    p->tcph = &tcph;
+    UTHSetTCPHdr(p, &tcph);
 
     StreamTcpUTInit(&stt.ra_ctx);
 
@@ -2548,8 +2554,8 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
+    tcph.th_ack = htonl(1);
+    tcph.th_flags = TH_SYN | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2569,9 +2575,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(1);
+    tcph.th_seq = htonl(1);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2592,9 +2598,9 @@ static int StreamTcpReassembleTest39 (void)
 
     /* partial request */
     uint8_t request1[] = { 0x47, 0x45, };
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(1);
+    tcph.th_seq = htonl(1);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
@@ -2615,9 +2621,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack against partial request */
-    p->tcph->th_ack = htonl(3);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(3);
+    tcph.th_seq = htonl(1);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2650,9 +2656,9 @@ static int StreamTcpReassembleTest39 (void)
         0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
         0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
         0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(3);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(1);
+    tcph.th_seq = htonl(3);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
@@ -2716,9 +2722,9 @@ static int StreamTcpReassembleTest39 (void)
         0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
         0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
         0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
-    p->tcph->th_ack = htonl(88);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(88);
+    tcph.th_seq = htonl(1);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
@@ -2741,9 +2747,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
 
     /* response ack from request */
-    p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(88);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(328);
+    tcph.th_seq = htonl(88);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2766,9 +2772,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response - acking */
-    p->tcph->th_ack = htonl(88);
-    p->tcph->th_seq = htonl(328);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(88);
+    tcph.th_seq = htonl(328);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2791,9 +2797,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack from request */
-    p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(88);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(328);
+    tcph.th_seq = htonl(88);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2815,9 +2821,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response - acking the request again*/
-    p->tcph->th_ack = htonl(88);
-    p->tcph->th_seq = htonl(328);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(88);
+    tcph.th_seq = htonl(328);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2841,9 +2847,9 @@ static int StreamTcpReassembleTest39 (void)
     /*** New Request ***/
 
     /* partial request */
-    p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(88);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(328);
+    tcph.th_seq = htonl(88);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
@@ -2866,9 +2872,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack against partial request */
-    p->tcph->th_ack = htonl(90);
-    p->tcph->th_seq = htonl(328);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(90);
+    tcph.th_seq = htonl(328);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2892,9 +2898,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* complete request */
-    p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(90);
-    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    tcph.th_ack = htonl(328);
+    tcph.th_seq = htonl(90);
+    tcph.th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
@@ -2918,9 +2924,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack against second partial request */
-    p->tcph->th_ack = htonl(175);
-    p->tcph->th_seq = htonl(328);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(175);
+    tcph.th_seq = htonl(328);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2945,9 +2951,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response acking a request */
-    p->tcph->th_ack = htonl(175);
-    p->tcph->th_seq = htonl(328);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(175);
+    tcph.th_seq = htonl(328);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
@@ -2962,9 +2968,9 @@ static int StreamTcpReassembleTest39 (void)
     StreamTcpPruneSession(&f, STREAM_TOCLIENT);
 
     /* request acking a response */
-    p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(175);
-    p->tcph->th_flags = TH_ACK;
+    tcph.th_ack = htonl(328);
+    tcph.th_seq = htonl(175);
+    tcph.th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
@@ -3027,7 +3033,7 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_seq = htonl(10);
     tcph.th_ack = htonl(10);
     tcph.th_flags = TH_ACK|TH_PUSH;
-    p->tcph = &tcph;
+    UTHSetTCPHdr(p, &tcph);
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf1;
     p->payload_len = httplen1;
@@ -3238,6 +3244,7 @@ static int StreamTcpReassembleTest47 (void)
     TcpSession ssn;
     ThreadVars tv;
     memset(&tcph, 0, sizeof (TCPHdr));
+    UTHSetTCPHdr(p, &tcph);
     memset(&tv, 0, sizeof (ThreadVars));
     StreamTcpInitConfig(true);
     StreamTcpUTSetupSession(&ssn);
@@ -3266,8 +3273,7 @@ static int StreamTcpReassembleTest47 (void)
     for (cnt=0; cnt < httplen1; cnt++) {
         tcph.th_seq = htonl(ssn.client.isn + 1 + cnt);
         tcph.th_ack = htonl(572799782UL);
-        tcph.th_flags = TH_ACK|TH_PUSH;
-        p->tcph = &tcph;
+        tcph.th_flags = TH_ACK | TH_PUSH;
         p->flowflags = FLOW_PKT_TOSERVER;
         p->payload = &httpbuf1[cnt];
         p->payload_len = 1;
@@ -3281,7 +3287,6 @@ static int StreamTcpReassembleTest47 (void)
         tcph.th_seq = htonl(572799782UL);
         tcph.th_ack = htonl(ssn.client.isn + 1 + cnt);
         tcph.th_flags = TH_ACK;
-        p->tcph = &tcph;
         s = &ssn.server;
 
         FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p) == -1);
@@ -3320,7 +3325,7 @@ static int StreamTcpReassembleInlineTest01(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
@@ -3370,7 +3375,7 @@ static int StreamTcpReassembleInlineTest02(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
@@ -3428,7 +3433,7 @@ static int StreamTcpReassembleInlineTest03(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
@@ -3451,7 +3456,7 @@ static int StreamTcpReassembleInlineTest03(void)
     }
     ssn.client.next_seq = 22;
 
-    p->tcph->th_seq = htonl(17);
+    p->l4.hdrs.tcph->th_seq = htonl(17);
     ret = 1;
 end:
     FLOW_DESTROY(&f);
@@ -3489,7 +3494,7 @@ static int StreamTcpReassembleInlineTest04(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
@@ -3512,7 +3517,7 @@ static int StreamTcpReassembleInlineTest04(void)
     }
     ssn.client.next_seq = 22;
 
-    p->tcph->th_seq = htonl(17);
+    p->l4.hdrs.tcph->th_seq = htonl(17);
     ret = 1;
 end:
     FLOW_DESTROY(&f);
@@ -3546,7 +3551,7 @@ static int StreamTcpReassembleInlineTest08(void)
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF(p == NULL);
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
@@ -3556,7 +3561,7 @@ static int StreamTcpReassembleInlineTest08(void)
     ssn.client.next_seq = 17;
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
-    p->tcph->th_seq = htonl(17);
+    p->l4.hdrs.tcph->th_seq = htonl(17);
     StreamTcpPruneSession(&f, STREAM_TOSERVER);
 
     TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
@@ -3599,7 +3604,7 @@ static int StreamTcpReassembleInlineTest09(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(17);
+    p->l4.hdrs.tcph->th_seq = htonl(17);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
@@ -3625,7 +3630,7 @@ static int StreamTcpReassembleInlineTest09(void)
     }
     ssn.client.next_seq = 22;
 
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
 
     TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
     FAIL_IF_NULL(seg);
@@ -3677,7 +3682,7 @@ static int StreamTcpReassembleInlineTest10(void)
         printf("couldn't get a packet: ");
         goto end;
     }
-    p->tcph->th_seq = htonl(7);
+    p->l4.hdrs.tcph->th_seq = htonl(7);
     p->flow = f;
     p->flowflags = FLOW_PKT_TOSERVER;
 
@@ -3746,7 +3751,7 @@ static int StreamTcpReassembleInsertTest01(void)
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF(p == NULL);
-    p->tcph->th_seq = htonl(12);
+    p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1);

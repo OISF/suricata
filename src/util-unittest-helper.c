@@ -133,6 +133,11 @@ void UTHSetIPV6Hdr(Packet *p, IPV6Hdr *ip6h)
     PacketSetIPV6(p, (uint8_t *)ip6h);
 }
 
+void UTHSetTCPHdr(Packet *p, TCPHdr *tcph)
+{
+    PacketSetTCP(p, (uint8_t *)tcph);
+}
+
 /**
  *  \brief return the uint32_t for a ipv4 address string
  *
@@ -169,6 +174,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport)
 {
     uint32_t in[4];
+    TCPHdr *tcph = NULL;
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -213,12 +219,13 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     ip6h->s_ip6_dst[2] = in[2];
     ip6h->s_ip6_dst[3] = in[3];
 
-    p->tcph = SCMalloc(sizeof(TCPHdr));
-    if (p->tcph == NULL)
+    tcph = SCMalloc(sizeof(TCPHdr));
+    if (tcph == NULL)
         goto error;
-    memset(p->tcph, 0, sizeof(TCPHdr));
-    p->tcph->th_sport = htons(sport);
-    p->tcph->th_dport = htons(dport);
+    memset(tcph, 0, sizeof(TCPHdr));
+    tcph->th_sport = htons(sport);
+    tcph->th_dport = htons(dport);
+    UTHSetTCPHdr(p, tcph);
 
     SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len);
     return p;
@@ -228,8 +235,8 @@ error:
         if (ip6h != NULL) {
             SCFree(ip6h);
         }
-        if (p->tcph != NULL) {
-            SCFree(p->tcph);
+        if (tcph != NULL) {
+            SCFree(tcph);
         }
         SCFree(p);
     }
@@ -302,15 +309,16 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             hdr_offset += sizeof(UDPHdr);
             break;
         }
-        case IPPROTO_TCP:
-            p->tcph = (TCPHdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
-            if (p->tcph == NULL)
+        case IPPROTO_TCP: {
+            TCPHdr *tcph = PacketSetTCP(p, GET_PKT_DATA(p) + sizeof(IPV4Hdr));
+            if (tcph == NULL)
                 goto error;
 
-            p->tcph->th_sport = htons(sport);
-            p->tcph->th_dport = htons(dport);
+            tcph->th_sport = htons(sport);
+            tcph->th_dport = htons(dport);
             hdr_offset += sizeof(TCPHdr);
             break;
+        }
         case IPPROTO_ICMP: {
             ICMPV4Hdr *icmpv4h = PacketSetICMPv4(p, (GET_PKT_DATA(p) + sizeof(IPV4Hdr)));
             if (icmpv4h == NULL)
@@ -977,14 +985,16 @@ static int CheckUTHTestPacket(Packet *p, uint8_t ipproto)
                 return 0;
         break;
         }
-        case IPPROTO_TCP:
-            if (p->tcph == NULL)
+        case IPPROTO_TCP: {
+            const TCPHdr *tcph = PacketGetTCP(p);
+            if (tcph == NULL)
                 return 0;
-            if (SCNtohs(p->tcph->th_sport) != sport)
+            if (SCNtohs(tcph->th_sport) != sport)
                 return 0;
-            if (SCNtohs(p->tcph->th_dport) != dport)
+            if (SCNtohs(tcph->th_dport) != dport)
                 return 0;
-        break;
+            break;
+        }
     }
     return 1;
 }
