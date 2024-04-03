@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2020 Open Information Security Foundation
+/* Copyright (C) 2014-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -229,6 +229,10 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
                 continue;
+            if (flags & JSON_STATS_NO_ZEROES && st->stats[u].value == 0) {
+                continue;
+            }
+
             json_t *js_type = NULL;
             const char *stat_name = st->stats[u].short_name;
             /*
@@ -272,6 +276,9 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
             for (u = offset; u < (offset + st->nstats); u++) {
                 if (st->tstats[u].name == NULL)
                     continue;
+                if (flags & JSON_STATS_NO_ZEROES && st->tstats[u].value == 0) {
+                    continue;
+                }
 
                 DEBUG_VALIDATE_BUG_ON(st->tstats[u].tm_name == NULL);
 
@@ -443,6 +450,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         const char *totals = ConfNodeLookupChildValue(conf, "totals");
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
         const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
+        const char *zero_counters = ConfNodeLookupChildValue(conf, "zero-valued-counters");
         SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
         if ((totals != NULL && ConfValIsFalse(totals)) &&
@@ -460,6 +468,9 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         }
         if (deltas != NULL && ConfValIsTrue(deltas)) {
             stats_ctx->flags |= JSON_STATS_DELTAS;
+        }
+        if (zero_counters != NULL && ConfValIsFalse(zero_counters)) {
+            stats_ctx->flags |= JSON_STATS_NO_ZEROES;
         }
         SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);
     }
