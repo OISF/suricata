@@ -133,6 +133,7 @@ void FreeCachedCtx(void)
 
 static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, enum RejectDirection dir)
 {
+    const TCPHdr *tcph = PacketGetTCP(p);
     switch (dir) {
         case REJECT_DIR_SRC:
             SCLogDebug("sending a tcp reset to src");
@@ -141,28 +142,28 @@ static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, enum RejectDirec
              *  the normal way. If packet has a ACK, the seq of the RST packet
              *  is equal to the ACK of incoming packet and the ACK is build
              *  using packet sequence number and size of the data. */
-            if (TCP_GET_ACK(p) == 0) {
+            if (TCP_GET_RAW_ACK(tcph) == 0) {
                 lpacket->seq = 0;
-                lpacket->ack = TCP_GET_SEQ(p) + lpacket->dsize + 1;
+                lpacket->ack = TCP_GET_RAW_SEQ(tcph) + lpacket->dsize + 1;
             } else {
-                lpacket->seq = TCP_GET_ACK(p);
-                lpacket->ack = TCP_GET_SEQ(p) + lpacket->dsize;
+                lpacket->seq = TCP_GET_RAW_ACK(tcph);
+                lpacket->ack = TCP_GET_RAW_SEQ(tcph) + lpacket->dsize;
             }
 
-            lpacket->sp = TCP_GET_DST_PORT(p);
-            lpacket->dp = TCP_GET_SRC_PORT(p);
+            lpacket->sp = p->dp;
+            lpacket->dp = p->sp;
             break;
         case REJECT_DIR_DST:
         default:
             SCLogDebug("sending a tcp reset to dst");
-            lpacket->seq = TCP_GET_SEQ(p);
-            lpacket->ack = TCP_GET_ACK(p);
+            lpacket->seq = TCP_GET_RAW_SEQ(tcph);
+            lpacket->ack = TCP_GET_RAW_ACK(tcph);
 
-            lpacket->sp = TCP_GET_SRC_PORT(p);
-            lpacket->dp = TCP_GET_DST_PORT(p);
+            lpacket->sp = p->sp;
+            lpacket->dp = p->dp;
             break;
     }
-    lpacket->window = TCP_GET_WINDOW(p);
+    lpacket->window = TCP_GET_RAW_WINDOW(tcph);
     //lpacket.seq += lpacket.dsize;
 }
 

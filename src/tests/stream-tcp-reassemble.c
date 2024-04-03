@@ -88,23 +88,24 @@ static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
     StreamTcpUTDeinit(ra_ctx);                  \
     PASS
 
-#define RAWREASSEMBLY_STEP(seq, seg, seglen, buf, buflen)   \
-    p = PacketGetFromAlloc();                               \
-    FAIL_IF_NULL(p);                                        \
-    {                                                       \
-        SCLogNotice("SEQ %u block of %u", (seq), (seglen)); \
-        p->flowflags = FLOW_PKT_TOSERVER;                   \
-        TCPHdr tcphdr;                                      \
-        memset(&tcphdr, 0, sizeof(tcphdr));                 \
-        p->tcph = &tcphdr;                                  \
-        p->tcph->th_seq = htonl((seq));                     \
-        p->tcph->th_ack = htonl(10);                        \
-        p->payload_len = (seglen);                          \
-                                                            \
-        FAIL_IF(StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen)) != 0);    \
-        p->flags |= PKT_STREAM_ADD;                         \
-        FAIL_IF(!(TestReassembleRawValidate(&ssn, p, (uint8_t *)(buf), (buflen))));   \
-    }\
+#define RAWREASSEMBLY_STEP(seq, seg, seglen, buf, buflen)                                          \
+    p = PacketGetFromAlloc();                                                                      \
+    FAIL_IF_NULL(p);                                                                               \
+    {                                                                                              \
+        SCLogNotice("SEQ %u block of %u", (seq), (seglen));                                        \
+        p->flowflags = FLOW_PKT_TOSERVER;                                                          \
+        TCPHdr tcphdr;                                                                             \
+        memset(&tcphdr, 0, sizeof(tcphdr));                                                        \
+        UTHSetTCPHdr(p, &tcphdr);                                                                  \
+        tcphdr.th_seq = htonl((seq));                                                              \
+        tcphdr.th_ack = htonl(10);                                                                 \
+        p->payload_len = (seglen);                                                                 \
+                                                                                                   \
+        FAIL_IF(StreamTcpUTAddPayload(                                                             \
+                        &tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen)) != 0);       \
+        p->flags |= PKT_STREAM_ADD;                                                                \
+        FAIL_IF(!(TestReassembleRawValidate(&ssn, p, (uint8_t *)(buf), (buflen))));                \
+    }                                                                                              \
     PacketFree(p);
 
 #define RAWREASSEMBLY_STEP_WITH_PROGRESS(seq, seg, seglen, buf, buflen, lastack, progress) \

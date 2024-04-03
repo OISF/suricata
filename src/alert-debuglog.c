@@ -191,9 +191,11 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              "DST PORT:          %" PRIu32 "\n",
                              p->sp, p->dp);
         if (PacketIsTCP(p)) {
-            MemBufferWriteString(aft->buffer, "TCP SEQ:           %"PRIu32"\n"
-                                 "TCP ACK:           %"PRIu32"\n",
-                                 TCP_GET_SEQ(p), TCP_GET_ACK(p));
+            const TCPHdr *tcph = PacketGetTCP(p);
+            MemBufferWriteString(aft->buffer,
+                    "TCP SEQ:           %" PRIu32 "\n"
+                    "TCP ACK:           %" PRIu32 "\n",
+                    TCP_GET_RAW_SEQ(tcph), TCP_GET_RAW_ACK(tcph));
         }
     }
 

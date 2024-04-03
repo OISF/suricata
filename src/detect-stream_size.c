@@ -331,7 +331,7 @@ static int DetectStreamSizeParseTest03 (void)
     ssn.client = client;
     f.protoctx = &ssn;
     p->flow = &f;
-    p->tcph = &tcph;
+    PacketSetTCP(p, (uint8_t *)&tcph);
     sm.ctx = (SigMatchCtx*)sd;
 
     result = DetectStreamSizeMatch(&dtx, p, &s, sm.ctx);
