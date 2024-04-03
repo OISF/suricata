@@ -35,6 +35,7 @@
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
 #include "runmode-ipfw.h"
+#include "runmode-lib.h"
 #include "runmode-napatech.h"
 #include "runmode-netmap.h"
 #include "runmode-nflog.h"
@@ -161,6 +162,8 @@ static const char *RunModeTranslateModeToName(int runmode)
 #else
             return "DPDK(DISABLED)";
 #endif
+        case RUNMODE_LIB:
+            return "LIB";
 
         default:
             FatalError("Unknown runtime mode. Aborting");
@@ -234,6 +237,7 @@ void RunModeRegisterRunModes(void)
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
     RunModeDpdkRegister();
+    RunModeIdsLibRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -349,6 +353,9 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 custom_mode = RunModeDpdkGetDefaultMode();
                 break;
 #endif
+            case RUNMODE_LIB:
+                custom_mode = RunModeLibGetDefaultMode();
+                break;
             default:
                 return NULL;
         }
