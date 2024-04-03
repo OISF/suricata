@@ -103,6 +103,10 @@ const char *stats_decoder_events_prefix = "decoder.event";
 /**< add stream events as stats? disabled by default */
 bool stats_stream_events = false;
 
+/** Log stats counters that are zero. Enabled by default, as that's the existing
+ * behavior */
+bool stats_zero_counters = true;
+
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
@@ -293,6 +297,11 @@ static void StatsInitCtxPreOutput(void)
             prefix = "decoder.event";
         }
         stats_decoder_events_prefix = prefix;
+
+        ret = ConfGetChildValueBool(stats, "zero-valued-counters", &b);
+        if (ret) {
+            stats_zero_counters = (b != 0);
+        }
     }
     SCReturn;
 }

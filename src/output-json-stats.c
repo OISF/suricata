@@ -52,6 +52,7 @@
 
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
+extern bool stats_zero_counters;
 
 /**
  * specify which engine info will be printed in stats log.
@@ -229,6 +230,10 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
                 continue;
+            if (st->stats[u].value == 0 && !stats_zero_counters) {
+                continue;
+            }
+
             json_t *js_type = NULL;
             const char *stat_name = st->stats[u].short_name;
             /*
@@ -272,6 +277,9 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
             for (u = offset; u < (offset + st->nstats); u++) {
                 if (st->tstats[u].name == NULL)
                     continue;
+                if (!stats_zero_counters && st->tstats[u].value == 0) {
+                    continue;
+                }
 
                 DEBUG_VALIDATE_BUG_ON(st->tstats[u].tm_name == NULL);
 
