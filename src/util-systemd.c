@@ -9,7 +9,8 @@
 
 #include "suricata-common.h"
 
-#if (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
+#if (defined SYSTEMD_NOTIFY) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) &&            \
+        (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/types.h>
