@@ -44,7 +44,6 @@ int SCKernelVersionIsAtLeast(int major, int minor)
     PCRE2_SIZE eo;
     int ret;
     int kmajor, kminor;
-    PCRE2_UCHAR **list;
 
     /* get local version */
     if (uname(&kuname) != 0) {
@@ -79,24 +78,35 @@ int SCKernelVersionIsAtLeast(int major, int minor)
         goto error;
     }
 
-    pcre2_substring_list_get(version_regex_match, &list, NULL);
-
-    bool err = false;
-    if (StringParseInt32(&kmajor, 10, 0, (const char *)list[1]) < 0) {
-        SCLogError("Invalid value for kmajor: '%s'", list[1]);
-        err = true;
-    }
-    if (StringParseInt32(&kminor, 10, 0, (const char *)list[2]) < 0) {
-        SCLogError("Invalid value for kminor: '%s'", list[2]);
-        err = true;
+    char majorstr[32];
+    size_t pcre2len = sizeof(majorstr);
+    ret = pcre2_substring_copy_bynumber(
+            version_regex_match, 1, (PCRE2_UCHAR8 *)majorstr, &pcre2len);
+    if (ret < 0) {
+        SCLogError("pcre2_substring_copy_bynumber failed");
+        goto error;
     }
 
-    pcre2_substring_list_free((PCRE2_SPTR *)list);
+    char minorstr[32];
+    pcre2len = sizeof(majorstr);
+    ret = pcre2_substring_copy_bynumber(
+            version_regex_match, 2, (PCRE2_UCHAR8 *)minorstr, &pcre2len);
+    if (ret < 0) {
+        SCLogError("pcre2_substring_copy_bynumber failed");
+        goto error;
+    }
+
+    if (StringParseInt32(&kmajor, 10, 0, (const char *)majorstr) < 0) {
+        SCLogError("Invalid value for kmajor: '%s'", minorstr);
+        goto error;
+    }
+    if (StringParseInt32(&kminor, 10, 0, (const char *)minorstr) < 0) {
+        SCLogError("Invalid value for kminor: '%s'", minorstr);
+        goto error;
+    }
+
     pcre2_match_data_free(version_regex_match);
     pcre2_code_free(version_regex);
-
-    if (err)
-        goto error;
 
     if (kmajor > major)
         return 1;
