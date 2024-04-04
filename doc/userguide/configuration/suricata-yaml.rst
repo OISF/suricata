@@ -346,6 +346,10 @@ Similar to the `decoder-events` option, the `stream-events` option controls
 whether the stream-events are added as counters as well. This is disabled by
 default.
 
+If any exception policy is enabled, stats counters are logged. To control
+verbosity for application layer protocol errors, leave `per-app-proto-errors`
+as false.
+
 Outputs
 ~~~~~~~
 
