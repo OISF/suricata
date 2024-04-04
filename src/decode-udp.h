@@ -44,7 +44,7 @@ typedef struct UDPHdr_
 	uint16_t uh_dport;  /* destination port */
 	uint16_t uh_len;    /* length */
 	uint16_t uh_sum;    /* checksum */
-} __attribute__((__packed__)) UDPHdr;
+} UDPHdr;
 
 #define CLEAR_UDP_PACKET(p) do {    \
     (p)->level4_comp_csum = -1;     \
