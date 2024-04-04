@@ -150,7 +150,7 @@ typedef struct TCPHdr_
     uint16_t th_win;    /**< pkt window */
     uint16_t th_sum;    /**< checksum */
     uint16_t th_urp;    /**< urgent pointer */
-} __attribute__((__packed__)) TCPHdr;
+} TCPHdr;
 
 typedef struct TCPVars_
 {
