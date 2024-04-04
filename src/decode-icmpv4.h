@@ -166,7 +166,7 @@ typedef struct ICMPV4Hdr_
     uint8_t  type;
     uint8_t  code;
     uint16_t checksum;
-} __attribute__((__packed__)) ICMPV4Hdr;
+} ICMPV4Hdr;
 
 /* ICMPv4 header structure */
 typedef struct ICMPV4ExtHdr_
