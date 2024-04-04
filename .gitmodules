@@ -5,4 +5,4 @@
 [submodule "libhtp"]
 	path = libhtp
 	url = git@github.com:rtkwlf/libhtp-awn.git
-	branch = 0.5.40-awn
+	branch = 0.5.47-awn
