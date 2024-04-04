@@ -5490,6 +5490,13 @@
                         "issuerdn": {
                             "type": "string"
                         },
+                        "subjectaltname": {
+                            "description": "TLS Subject Alternative Name field",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "notafter": {
                             "$ref": "#/$defs/tls_date"
                         },
@@ -5513,6 +5520,13 @@
                 },
                 "issuerdn": {
                     "type": "string"
+                },
+                "subjectaltname": {
+                    "description": "TLS Subject Alternative Name field",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "notafter": {
                     "$ref": "#/$defs/tls_date"
