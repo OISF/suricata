@@ -44,9 +44,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (size > BLK_SIZE)
         shift = BIT_SHIFT_SIZE;
     else
-        shift = BYTE_SIZE * (size - 1);
+        shift = BYTE_SIZE * (uint8_t)(size - 1);
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (i == BLK_SIZE)
             break;
         dest_size |= (uint32_t)(data[i] << shift);
