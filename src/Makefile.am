@@ -330,6 +330,7 @@ noinst_HEADERS = \
 	detect-tls-certs.h \
 	detect-tls-cert-subject.h \
 	detect-tls-cert-validity.h \
+	detect-tls-subjectaltname.h \
 	detect-tls.h \
 	detect-tls-ja3-hash.h \
 	detect-tls-ja3s-hash.h \
@@ -941,6 +942,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-cert-serial.c \
 	detect-tls-cert-subject.c \
 	detect-tls-cert-validity.c \
+	detect-tls-subjectaltname.c \
 	detect-tls-ja3-hash.c \
 	detect-tls-ja3s-hash.c \
 	detect-tls-ja3s-string.c \
