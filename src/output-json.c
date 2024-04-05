@@ -854,9 +854,9 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
             }
             break;
         case IPPROTO_ICMPV6:
-            if (p->icmpv6h) {
-                jb_set_uint(js, "icmp_type", p->icmpv6h->type);
-                jb_set_uint(js, "icmp_code", p->icmpv6h->code);
+            if (PacketIsICMPv6(p)) {
+                jb_set_uint(js, "icmp_type", PacketGetICMPv6(p)->type);
+                jb_set_uint(js, "icmp_code", PacketGetICMPv6(p)->code);
             }
             break;
     }
