@@ -29,6 +29,17 @@
 #include "rust.h"
 
 int DetectHelperKeywordRegister(const SCSigTableElmt *kw);
+
+typedef struct SCPluginTransformTableElmt {
+    const char *name;
+    const char *desc;
+    uint16_t flags;
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
+    void (*Free)(DetectEngineCtx *, void *);
+    void (*Transform)(InspectionBuffer *buffer, void *options);
+} SCPluginTransformTableElmt;
+
+int DetectHelperTransformRegister(const SCPluginTransformTableElmt *kw);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 
 typedef bool (*SimpleGetTxBuffer)(void *, uint8_t, const uint8_t **, uint32_t *);

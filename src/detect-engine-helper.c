@@ -85,26 +85,41 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
 {
     if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
         void *tmp = SCRealloc(
-                sigmatch_table, (DETECT_TBLSIZE + DETECT_TBLSIZE_STEP) * sizeof(SigTableElmt));
+                              sigmatch_table, (DETECT_TBLSIZE + DETECT_TBLSIZE_STEP) * sizeof(SigTableElmt));
         if (unlikely(tmp == NULL)) {
             return -1;
         }
         sigmatch_table = tmp;
         DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
     }
-
+    
     sigmatch_table[DETECT_TBLSIZE_IDX].name = kw->name;
     sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
     sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
     sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
     sigmatch_table[DETECT_TBLSIZE_IDX].AppLayerTxMatch =
-            (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
-                    void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
+    (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
+             void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
+    (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
     sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
     DETECT_TBLSIZE_IDX++;
     return DETECT_TBLSIZE_IDX - 1;
+}
+
+int DetectHelperTransformRegister(const SCPluginTransformTableElmt *kw)
+{
+    if (DETECT_TBLSIZE_IDX < DETECT_TBLSIZE) {
+        sigmatch_table[DETECT_TBLSIZE_IDX].name = kw->name;
+        sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
+        sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
+        sigmatch_table[DETECT_TBLSIZE_IDX].Transform = kw->Transform;
+        sigmatch_table[DETECT_TBLSIZE_IDX].Setup = kw->Setup;
+        sigmatch_table[DETECT_TBLSIZE_IDX].Free = kw->Free;
+        DETECT_TBLSIZE_IDX++;
+        return DETECT_TBLSIZE_IDX - 1;
+    }
+    return -1;
 }
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
