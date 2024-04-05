@@ -66,12 +66,13 @@ static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
 {
     if (!(PacketIsICMPv6(p)) || PKT_IS_PSEUDOPKT(p))
         return 0;
-    if (ICMPV6_GET_CODE(p) != 0)
+    const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
+    if (ICMPV6_GET_CODE(icmpv6h) != 0)
         return 0;
-    if (!(ICMPV6_HAS_MTU(p)))
+    if (!(ICMPV6_HAS_MTU(icmpv6h)))
         return 0;
 
-    *picmpv6mtu = ICMPV6_GET_MTU(p);
+    *picmpv6mtu = ICMPV6_GET_MTU(icmpv6h);
     return 1;
 }
 

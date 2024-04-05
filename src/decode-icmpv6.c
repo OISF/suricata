@@ -37,6 +37,14 @@
 #include "util-print.h"
 #include "util-validate.h"
 
+#if defined(DEBUG) || defined(UNITTESTS)
+static inline const IPV6Hdr *PacketGetICMPv6EmbIPv6(const Packet *p)
+{
+    BUG_ON(p->l4.type != PACKET_L4_ICMPV6);
+    return p->l4.vars.icmpv6.emb_ipv6h;
+}
+#endif
+
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
  *
@@ -66,51 +74,51 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
         return;
     }
 
-    /** We need to fill icmpv6vars */
-    p->icmpv6vars.emb_ipv6h = icmp6_ip6h;
+    /** We need to fill l4.vars.icmpv6 */
+    p->l4.vars.icmpv6.emb_ipv6h = icmp6_ip6h;
     /** Get protocol and ports inside the embedded ipv6 packet and set the pointers */
-    p->icmpv6vars.emb_ip6_proto_next = icmp6_ip6h->s_ip6_nxt;
+    p->l4.vars.icmpv6.emb_ip6_proto_next = icmp6_ip6h->s_ip6_nxt;
 
     switch (icmp6_ip6h->s_ip6_nxt) {
         case IPPROTO_TCP:
             if (len >= IPV6_HEADER_LEN + TCP_HEADER_LEN ) {
                 TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV6_HEADER_LEN);
-                p->icmpv6vars.emb_sport = emb_tcph->th_sport;
-                p->icmpv6vars.emb_dport = emb_tcph->th_dport;
-                p->icmpv6vars.emb_ports_set = true;
+                p->l4.vars.icmpv6.emb_sport = emb_tcph->th_sport;
+                p->l4.vars.icmpv6.emb_dport = emb_tcph->th_dport;
+                p->l4.vars.icmpv6.emb_ports_set = true;
 
                 SCLogDebug("ICMPV6->IPV6->TCP header sport: "
-                           "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
-                            p->icmpv6vars.emb_dport);
+                           "%" PRIu16 " dport %" PRIu16 "",
+                        p->l4.vars.icmpv6.emb_sport, p->l4.vars.icmpv6.emb_dport);
             } else {
                 SCLogDebug("Warning, ICMPV6->IPV6->TCP "
                            "header Didn't fit in the packet!");
-                p->icmpv6vars.emb_sport = 0;
-                p->icmpv6vars.emb_dport = 0;
+                p->l4.vars.icmpv6.emb_sport = 0;
+                p->l4.vars.icmpv6.emb_dport = 0;
             }
 
             break;
         case IPPROTO_UDP:
             if (len >= IPV6_HEADER_LEN + UDP_HEADER_LEN ) {
                 UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV6_HEADER_LEN);
-                p->icmpv6vars.emb_sport = emb_udph->uh_sport;
-                p->icmpv6vars.emb_dport = emb_udph->uh_dport;
-                p->icmpv6vars.emb_ports_set = true;
+                p->l4.vars.icmpv6.emb_sport = emb_udph->uh_sport;
+                p->l4.vars.icmpv6.emb_dport = emb_udph->uh_dport;
+                p->l4.vars.icmpv6.emb_ports_set = true;
 
                 SCLogDebug("ICMPV6->IPV6->UDP header sport: "
-                           "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
-                            p->icmpv6vars.emb_dport);
+                           "%" PRIu16 " dport %" PRIu16 "",
+                        p->l4.vars.icmpv6.emb_sport, p->l4.vars.icmpv6.emb_dport);
             } else {
                 SCLogDebug("Warning, ICMPV6->IPV6->UDP "
                            "header Didn't fit in the packet!");
-                p->icmpv6vars.emb_sport = 0;
-                p->icmpv6vars.emb_dport = 0;
+                p->l4.vars.icmpv6.emb_sport = 0;
+                p->l4.vars.icmpv6.emb_dport = 0;
             }
 
             break;
         case IPPROTO_ICMPV6:
-            p->icmpv6vars.emb_sport = 0;
-            p->icmpv6vars.emb_dport = 0;
+            p->l4.vars.icmpv6.emb_sport = 0;
+            p->l4.vars.icmpv6.emb_dport = 0;
 
             SCLogDebug("ICMPV6->IPV6->ICMP header");
 
@@ -120,8 +128,8 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     /* debug print */
 #ifdef DEBUG
     char s[46], d[46];
-    PrintInet(AF_INET6, (const void *)ICMPV6_GET_EMB_IPV6(p)->s_ip6_src, s, sizeof(s));
-    PrintInet(AF_INET6, (const void *)ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst, d, sizeof(d));
+    PrintInet(AF_INET6, (const void *)PacketGetICMPv6EmbIPv6(p)->s_ip6_src, s, sizeof(s));
+    PrintInet(AF_INET6, (const void *)PacketGetICMPv6EmbIPv6(p)->s_ip6_dst, d, sizeof(d));
     SCLogDebug("ICMPv6 embedding IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: "
                "%" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32,
                s, d, IPV6_GET_RAW_CLASS(icmp6_ip6h), IPV6_GET_RAW_FLOW(icmp6_ip6h),
@@ -177,10 +185,10 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    p->icmpv6h = (ICMPV6Hdr *)pkt;
+    ICMPV6Hdr *icmpv6h = PacketSetICMPv6(p, pkt);
     p->proto = IPPROTO_ICMPV6;
-    p->icmp_s.type = p->icmpv6h->type;
-    p->icmp_s.code = p->icmpv6h->code;
+    const uint8_t type = p->icmp_s.type = icmpv6h->type;
+    const uint8_t code = p->icmp_s.code = icmpv6h->code;
     DEBUG_VALIDATE_BUG_ON(len - ICMPV6_HEADER_LEN > UINT16_MAX);
     p->payload_len = (uint16_t)(len - ICMPV6_HEADER_LEN);
     p->payload = (uint8_t *)pkt + ICMPV6_HEADER_LEN;
@@ -190,14 +198,13 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         p->icmp_d.type = (uint8_t)ctype;
     }
 
-    SCLogDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type,
-               p->icmpv6h->code);
+    SCLogDebug("ICMPV6 TYPE %u CODE %u", type, code);
 
-    switch (ICMPV6_GET_TYPE(p)) {
+    switch (type) {
         case ICMP6_DST_UNREACH:
             SCLogDebug("ICMP6_DST_UNREACH");
 
-            if (ICMPV6_GET_CODE(p) > ICMP6_DST_UNREACH_REJECTROUTE) {
+            if (code > ICMP6_DST_UNREACH_REJECTROUTE) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
@@ -212,13 +219,13 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case ICMP6_PACKET_TOO_BIG:
             SCLogDebug("ICMP6_PACKET_TOO_BIG");
 
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
                     return TM_ECODE_FAILED;
                 }
-                p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
+                p->l4.vars.icmpv6.mtu = ICMPV6_GET_MTU(icmpv6h);
                 DecodePartialIPV6(p, (uint8_t *)(pkt + ICMPV6_HEADER_LEN),
                         (uint16_t)(len - ICMPV6_HEADER_LEN));
                 full_hdr = 1;
@@ -228,7 +235,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case ICMP6_TIME_EXCEEDED:
             SCLogDebug("ICMP6_TIME_EXCEEDED");
 
-            if (ICMPV6_GET_CODE(p) > ICMP6_TIME_EXCEED_REASSEMBLY) {
+            if (code > ICMP6_TIME_EXCEED_REASSEMBLY) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
@@ -243,7 +250,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case ICMP6_PARAM_PROB:
             SCLogDebug("ICMP6_PARAM_PROB");
 
-            if (ICMPV6_GET_CODE(p) > ICMP6_PARAMPROB_OPTION) {
+            if (code > ICMP6_PARAMPROB_OPTION) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
@@ -256,64 +263,64 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
             break;
         case ICMP6_ECHO_REQUEST:
-            SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u",
-                       p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
+            SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u", icmpv6h->icmpv6b.icmpv6i.id,
+                    icmpv6h->icmpv6b.icmpv6i.seq);
 
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
-                p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
+                p->l4.vars.icmpv6.id = icmpv6h->icmpv6b.icmpv6i.id;
+                p->l4.vars.icmpv6.seq = icmpv6h->icmpv6b.icmpv6i.seq;
                 full_hdr = 1;
             }
 
             break;
         case ICMP6_ECHO_REPLY:
-            SCLogDebug("ICMP6_ECHO_REPLY id: %u seq: %u",
-                       p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
+            SCLogDebug("ICMP6_ECHO_REPLY id: %u seq: %u", icmpv6h->icmpv6b.icmpv6i.id,
+                    icmpv6h->icmpv6b.icmpv6i.seq);
 
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
-                p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
+                p->l4.vars.icmpv6.id = icmpv6h->icmpv6b.icmpv6i.id;
+                p->l4.vars.icmpv6.seq = icmpv6h->icmpv6b.icmpv6i.seq;
                 full_hdr = 1;
             }
 
             break;
         case ND_ROUTER_SOLICIT:
             SCLogDebug("ND_ROUTER_SOLICIT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_ROUTER_ADVERT:
             SCLogDebug("ND_ROUTER_ADVERT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_NEIGHBOR_SOLICIT:
             SCLogDebug("ND_NEIGHBOR_SOLICIT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_NEIGHBOR_ADVERT:
             SCLogDebug("ND_NEIGHBOR_ADVERT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_REDIRECT:
             SCLogDebug("ND_REDIRECT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MLD_LISTENER_QUERY:
             SCLogDebug("MLD_LISTENER_QUERY");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
@@ -322,7 +329,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case MLD_LISTENER_REPORT:
             SCLogDebug("MLD_LISTENER_REPORT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
@@ -331,7 +338,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case MLD_LISTENER_REDUCTION:
             SCLogDebug("MLD_LISTENER_REDUCTION");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_RAW_HLIM(ip6h) != 1) {
@@ -340,73 +347,73 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case ICMP6_RR:
             SCLogDebug("ICMP6_RR");
-            if (ICMPV6_GET_CODE(p) > 2 && ICMPV6_GET_CODE(p) != 255) {
+            if (code > 2 && code != 255) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ICMP6_NI_QUERY:
             SCLogDebug("ICMP6_NI_QUERY");
-            if (ICMPV6_GET_CODE(p) > 2) {
+            if (code > 2) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ICMP6_NI_REPLY:
             SCLogDebug("ICMP6_NI_REPLY");
-            if (ICMPV6_GET_CODE(p) > 2) {
+            if (code > 2) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_INVERSE_SOLICIT:
             SCLogDebug("ND_INVERSE_SOLICIT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_INVERSE_ADVERT:
             SCLogDebug("ND_INVERSE_ADVERT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MLD_V2_LIST_REPORT:
             SCLogDebug("MLD_V2_LIST_REPORT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case HOME_AGENT_AD_REQUEST:
             SCLogDebug("HOME_AGENT_AD_REQUEST");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case HOME_AGENT_AD_REPLY:
             SCLogDebug("HOME_AGENT_AD_REPLY");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MOBILE_PREFIX_SOLICIT:
             SCLogDebug("MOBILE_PREFIX_SOLICIT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MOBILE_PREFIX_ADVERT:
             SCLogDebug("MOBILE_PREFIX_ADVERT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case CERT_PATH_SOLICIT:
             SCLogDebug("CERT_PATH_SOLICIT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case CERT_PATH_ADVERT:
             SCLogDebug("CERT_PATH_ADVERT");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
@@ -424,40 +431,40 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case FMIPV6_MSG:
             SCLogDebug("FMIPV6_MSG");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case RPL_CONTROL_MSG:
             SCLogDebug("RPL_CONTROL_MSG");
-            if (ICMPV6_GET_CODE(p) > 3 && ICMPV6_GET_CODE(p) < 128) {
+            if (code > 3 && code < 128) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
-            if (ICMPV6_GET_CODE(p) > 132) {
+            if (code > 132) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case LOCATOR_UDATE_MSG:
             SCLogDebug("LOCATOR_UDATE_MSG");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case DUPL_ADDR_REQUEST:
             SCLogDebug("DUPL_ADDR_REQUEST");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case DUPL_ADDR_CONFIRM:
             SCLogDebug("DUPL_ADDR_CONFIRM");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MPL_CONTROL_MSG:
             SCLogDebug("MPL_CONTROL_MSG");
-            if (ICMPV6_GET_CODE(p) != 0) {
+            if (code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
@@ -465,21 +472,22 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             /* Various range taken from:
              *   http://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml#icmpv6-parameters-2
              */
-            if ((ICMPV6_GET_TYPE(p) > 4) &&  (ICMPV6_GET_TYPE(p) < 100)) {
+            if (type > 4 && type < 100) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
-            } else if ((ICMPV6_GET_TYPE(p) >= 100) &&  (ICMPV6_GET_TYPE(p) < 102)) {
+            } else if (type >= 100 && type < 102) {
                 ENGINE_SET_EVENT(p, ICMPV6_EXPERIMENTATION_TYPE);
-            } else  if ((ICMPV6_GET_TYPE(p) >= 102) &&  (ICMPV6_GET_TYPE(p) < 127)) {
+            } else if (type >= 102 && type < 127) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
-            } else if ((ICMPV6_GET_TYPE(p) >= 160) &&  (ICMPV6_GET_TYPE(p) < 200)) {
+            } else if (type >= 160 && type < 200) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
-            } else if ((ICMPV6_GET_TYPE(p) >= 200) &&  (ICMPV6_GET_TYPE(p) < 202)) {
+            } else if (type >= 200 && type < 202) {
                 ENGINE_SET_EVENT(p, ICMPV6_EXPERIMENTATION_TYPE);
-            } else if (ICMPV6_GET_TYPE(p) >= 202) {
+            } else if (type >= 202) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
             } else {
-                SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
-                        "implemented yet", ICMPV6_GET_TYPE(p));
+                SCLogDebug("ICMPV6 Message type %u not "
+                           "implemented yet",
+                        type);
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
             }
     }
@@ -609,13 +617,14 @@ static int ICMPV6ParamProbTest01(void)
     FAIL_IF(!PacketIsICMPv6(p));
 
     /* ICMPv6 not processed at all? */
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0 ||
-        ICMPV6_GET_EMB_PROTO(p) != IPPROTO_ICMPV6);
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 4);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
+    FAIL_IF(ICMPV6_GET_EMB_PROTO(p) != IPPROTO_ICMPV6);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
     for (int i = 0; i < 4; i++) {
-        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
-                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
+        FAIL_IF(PacketGetICMPv6EmbIPv6(p)->s_ip6_src[i] != ipv6src[i] ||
+                PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     PacketRecycle(p);
@@ -664,12 +673,13 @@ static int ICMPV6PktTooBigTest01(void)
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6
      * (IPPROTO_NONE) */
     /* Check if ICMPv6 header was processed at all. */
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 2 || ICMPV6_GET_CODE(p) != 0 );
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 2);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
     for (int i = 0; i < 4; i++) {
-        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
-                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
+        FAIL_IF(PacketGetICMPv6EmbIPv6(p)->s_ip6_src[i] != ipv6src[i] ||
+                PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
@@ -718,14 +728,15 @@ static int ICMPV6TimeExceedTest01(void)
     FAIL_IF(!PacketIsICMPv6(p));
 
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6 (IPPROTO_NONE) */
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 3 || ICMPV6_GET_CODE(p) != 0 ||
-        ICMPV6_GET_EMB_IPV6(p) == NULL ||
-        ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 3);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
+    FAIL_IF_NULL(PacketGetICMPv6EmbIPv6(p));
+    FAIL_IF(ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
     for (int i = 0; i < 4; i++) {
-        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
-                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
+        FAIL_IF(PacketGetICMPv6EmbIPv6(p)->s_ip6_src[i] != ipv6src[i] ||
+                PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
@@ -774,14 +785,15 @@ static int ICMPV6DestUnreachTest01(void)
     FAIL_IF(!PacketIsICMPv6(p));
 
     /* Note: it has an embedded ipv6 packet but no protocol after ipv6 (IPPROTO_NONE) */
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 1 || ICMPV6_GET_CODE(p) != 0 ||
-        ICMPV6_GET_EMB_IPV6(p) == NULL ||
-        ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 1);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
+    FAIL_IF_NULL(PacketGetICMPv6EmbIPv6(p));
+    FAIL_IF(ICMPV6_GET_EMB_PROTO(p) != IPPROTO_NONE);
 
     /* Let's check if we retrieved the embedded ipv6 addresses correctly */
     for (int i = 0; i < 4; i++) {
-        FAIL_IF(ICMPV6_GET_EMB_IPV6(p)->s_ip6_src[i] != ipv6src[i] ||
-                ICMPV6_GET_EMB_IPV6(p)->s_ip6_dst[i] != ipv6dst[i]);
+        FAIL_IF(PacketGetICMPv6EmbIPv6(p)->s_ip6_src[i] != ipv6src[i] ||
+                PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
     PacketRecycle(p);
@@ -819,13 +831,10 @@ static int ICMPV6EchoReqTest01(void)
 
     SCLogDebug("ID: %u seq: %u", ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
-    if (ICMPV6_GET_TYPE(p) != 128 || ICMPV6_GET_CODE(p) != 0 ||
-        SCNtohs(ICMPV6_GET_ID(p)) != 9712 || SCNtohs(ICMPV6_GET_SEQ(p)) != 29987) {
-        printf("ICMPv6 Echo reply decode failed TYPE %u CODE %u ID %04x(%u) SEQ %04x(%u): ",
-                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)),
-                ICMPV6_GET_SEQ(p), SCNtohs(ICMPV6_GET_SEQ(p)));
-        FAIL;
-    }
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 128);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
+    FAIL_IF(SCNtohs(ICMPV6_GET_ID(p)) != 9712);
+    FAIL_IF(SCNtohs(ICMPV6_GET_SEQ(p)) != 29987);
 
     PacketRecycle(p);
     FlowShutdown();
@@ -861,16 +870,10 @@ static int ICMPV6EchoRepTest01(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
     FAIL_IF(!PacketIsICMPv6(p));
 
-    SCLogDebug("type: %u code %u ID: %u seq: %u", ICMPV6_GET_TYPE(p),
-               ICMPV6_GET_CODE(p),ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
-
-    if (ICMPV6_GET_TYPE(p) != 129 || ICMPV6_GET_CODE(p) != 0 ||
-        SCNtohs(ICMPV6_GET_ID(p)) != 9712 || SCNtohs(ICMPV6_GET_SEQ(p)) != 29987) {
-        printf("ICMPv6 Echo reply decode failed TYPE %u CODE %u ID %04x(%u) SEQ %04x(%u): ",
-                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)),
-                ICMPV6_GET_SEQ(p), SCNtohs(ICMPV6_GET_SEQ(p)));
-        FAIL;
-    }
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 129);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
+    FAIL_IF(SCNtohs(ICMPV6_GET_ID(p)) != 9712);
+    FAIL_IF(SCNtohs(ICMPV6_GET_SEQ(p)) != 29987);
 
     PacketRecycle(p);
     FlowShutdown();
@@ -911,7 +914,8 @@ static int ICMPV6ParamProbTest02(void)
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
     FAIL_IF(!PacketIsICMPv6(p));
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0);
+    FAIL_IF(ICMPV6_GET_TYPE(PacketGetICMPv6(p)) != 4);
+    FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER));
 
     PacketRecycle(p);
@@ -1501,19 +1505,19 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeIPV6(&tv, &dtv, p, raw_ipv6 + 14, sizeof(raw_ipv6) - 14);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6));
     FAIL_IF(!PacketIsICMPv6(p));
 
+    const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
     const IPV6Hdr *ip6h = PacketGetIPv6(p);
     uint16_t icmpv6_len = IPV6_GET_RAW_PLEN(ip6h) -
-                          ((const uint8_t *)p->icmpv6h - (const uint8_t *)ip6h - IPV6_HEADER_LEN);
+                          ((const uint8_t *)icmpv6h - (const uint8_t *)ip6h - IPV6_HEADER_LEN);
     FAIL_IF(icmpv6_len != 28);
-    FAIL_IF(ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->icmpv6h, icmpv6_len) != csum);
+    FAIL_IF(ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)icmpv6h, icmpv6_len) != csum);
 
     PacketRecycle(p);
     FlowShutdown();

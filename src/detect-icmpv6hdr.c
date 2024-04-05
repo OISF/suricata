@@ -109,17 +109,16 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             // DETECT_PROTO_IPV6 does not prefilter
             return NULL;
         }
-        if (((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
-            SCLogDebug("data out of range: %p > %p",
-                    ((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen),
+        const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
+        if (((uint8_t *)icmpv6h + (ptrdiff_t)hlen) >
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)icmpv6h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             SCReturnPtr(NULL, "InspectionBuffer");
         }
 
         const uint32_t data_len = hlen;
-        const uint8_t *data = (const uint8_t *)p->icmpv6h;
+        const uint8_t *data = (const uint8_t *)icmpv6h;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
