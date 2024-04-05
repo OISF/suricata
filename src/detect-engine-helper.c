@@ -146,3 +146,11 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
+
+uint8_t * InspectionBufferPtr(InspectionBuffer *buf) {
+    return buf->inspect;
+}
+
+uint32_t InspectionBufferLength(InspectionBuffer *buf) {
+    return buf->inspect_len;
+}
