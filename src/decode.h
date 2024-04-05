@@ -428,6 +428,7 @@ struct PacketL3 {
 
 enum PacketL4Types {
     PACKET_L4_UNKNOWN = 0,
+    PACKET_L4_ICMPV6,
     PACKET_L4_SCTP,
     PACKET_L4_GRE,
     PACKET_L4_ESP,
@@ -438,10 +439,14 @@ struct PacketL4 {
     bool csum_set;
     uint16_t csum;
     union L4Hdrs {
+        ICMPV6Hdr *icmpv6h;
         SCTPHdr *sctph;
         GREHdr *greh;
         ESPHdr *esph;
     } hdrs;
+    union L4Vars {
+        ICMPV6Vars icmpv6;
+    } vars;
 };
 
 /* sizes of the members:
@@ -571,16 +576,13 @@ typedef struct Packet_
     union {
         TCPVars tcpvars;
         ICMPV4Vars icmpv4vars;
-        ICMPV6Vars icmpv6vars;
     } l4vars;
 #define tcpvars     l4vars.tcpvars
 #define icmpv4vars  l4vars.icmpv4vars
-#define icmpv6vars  l4vars.icmpv6vars
 
     TCPHdr *tcph;
     UDPHdr *udph;
     ICMPV4Hdr *icmpv4h;
-    ICMPV6Hdr *icmpv6h;
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
 
@@ -773,9 +775,23 @@ static inline bool PacketIsICMPv4(const Packet *p)
     return PKT_IS_ICMPV4(p);
 }
 
+static inline ICMPV6Hdr *PacketSetICMPv6(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_ICMPV6;
+    p->l4.hdrs.icmpv6h = (ICMPV6Hdr *)buf;
+    return p->l4.hdrs.icmpv6h;
+}
+
+static inline const ICMPV6Hdr *PacketGetICMPv6(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_ICMPV6);
+    return p->l4.hdrs.icmpv6h;
+}
+
 static inline bool PacketIsICMPv6(const Packet *p)
 {
-    return PKT_IS_ICMPV6(p);
+    return p->l4.type == PACKET_L4_ICMPV6;
 }
 
 static inline SCTPHdr *PacketSetSCTP(Packet *p, const uint8_t *buf)

@@ -100,7 +100,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
                 return false;
         }
     } else if (PacketIsICMPv6(p)) {
-        switch (ICMPV6_GET_TYPE(p)) {
+        switch (ICMPV6_GET_TYPE(PacketGetICMPv6(p))) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
                 SCLogDebug("ICMPV6_GET_ID(p) %"PRIu16" (network byte order), "

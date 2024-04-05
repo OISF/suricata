@@ -81,7 +81,7 @@
                 } else if ((p)->proto == IPPROTO_SCTP) {                                           \
                     BUG_ON(PacketGetSCTP((p)) == NULL);                                            \
                 } else if ((p)->proto == IPPROTO_ICMPV6) {                                         \
-                    BUG_ON((p)->icmpv6h == NULL);                                                  \
+                    BUG_ON(PacketGetICMPv6((p)) == NULL);                                          \
                 }                                                                                  \
             }                                                                                      \
             if ((p)->payload_len > 0) {                                                            \
