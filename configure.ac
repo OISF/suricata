@@ -2483,7 +2483,7 @@ return 0;
 # get git revision and last commit date
     AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
     if test "$HAVE_GIT_CMD" != "no"; then
-        if [ test -d .git ]; then
+        if [ test -e .git ]; then
             REVISION=`git rev-parse --short HEAD`
             LAST_COMMIT_DATE=`git log -1 --date=short --pretty=format:%cd`
             REVISION="$REVISION $LAST_COMMIT_DATE"
