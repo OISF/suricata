@@ -437,6 +437,11 @@ struct PacketL3 {
     } vars;
 };
 
+struct PacketL4 {
+    bool csum_set;
+    uint16_t csum;
+};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -557,10 +562,8 @@ typedef struct Packet_
     /* header pointers */
     EthernetHdr *ethh;
 
-    /* Check sum for TCP, UDP or ICMP packets */
-    int32_t level4_comp_csum;
-
     struct PacketL3 l3;
+    struct PacketL4 l4;
 
     /* Can only be one of TCP, UDP, ICMP at any given time */
     union {
@@ -751,6 +754,11 @@ static inline void PacketClearL3(Packet *p)
     memset(&p->l3, 0, sizeof(p->l3));
 }
 
+static inline void PacketClearL4(Packet *p)
+{
+    memset(&p->l4, 0, sizeof(p->l4));
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
@@ -846,14 +854,6 @@ void CaptureStatsSetup(ThreadVars *tv);
 
 #define PACKET_CLEAR_L4VARS(p) do {                         \
         memset(&(p)->l4vars, 0x00, sizeof((p)->l4vars));    \
-    } while (0)
-
-/**
- *  \brief reset these to -1(indicates that the packet is fresh from the queue)
- */
-#define PACKET_RESET_CHECKSUMS(p)                                                                  \
-    do {                                                                                           \
-        (p)->level4_comp_csum = -1;                                                                \
     } while (0)
 
 /* if p uses extended data, free them */
