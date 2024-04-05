@@ -98,32 +98,25 @@
 
 
 /** macro for icmpv6 "type" access */
-#define ICMPV6_GET_TYPE(p)      (p)->icmpv6h->type
+#define ICMPV6_GET_TYPE(icmp6h) (icmp6h)->type
 /** macro for icmpv6 "code" access */
-#define ICMPV6_GET_CODE(p)      (p)->icmpv6h->code
-/** macro for icmpv6 "csum" access */
-#define ICMPV6_GET_RAW_CSUM(p)      SCNtohs((p)->icmpv6h->csum)
-#define ICMPV6_GET_CSUM(p)      (p)->icmpv6h->csum
+#define ICMPV6_GET_CODE(icmp6h) (icmp6h)->code
 
 /** If message is informational */
 /** macro for icmpv6 "id" access */
-#define ICMPV6_GET_ID(p)        (p)->icmpv6vars.id
+#define ICMPV6_GET_ID(p) (p)->l4.vars.icmpv6.id
 /** macro for icmpv6 "seq" access */
-#define ICMPV6_GET_SEQ(p)       (p)->icmpv6vars.seq
+#define ICMPV6_GET_SEQ(p) (p)->l4.vars.icmpv6.seq
 
 /** If message is Error */
-/** macro for icmpv6 "unused" access */
-#define ICMPV6_GET_UNUSED(p) (p)->icmpv6h->icmpv6b.icmpv6e.unused
 /** macro for icmpv6 "mtu" accessibility */
 // ICMPv6 has MTU only for type too big
-#define ICMPV6_HAS_MTU(p)          ((p)->icmpv6h->type == ICMP6_PACKET_TOO_BIG)
+#define ICMPV6_HAS_MTU(icmp6h) ((icmp6h)->type == ICMP6_PACKET_TOO_BIG)
 /** macro for icmpv6 "mtu" access */
-#define ICMPV6_GET_MTU(p)          SCNtohl((p)->icmpv6h->icmpv6b.icmpv6e.mtu)
+#define ICMPV6_GET_MTU(icmp6h) SCNtohl((icmp6h)->icmpv6b.icmpv6e.mtu)
 
 /** macro for icmpv6 embedded "protocol" access */
-#define ICMPV6_GET_EMB_PROTO(p)    (p)->icmpv6vars.emb_ip6_proto_next
-/** macro for icmpv6 embedded "ipv6h" header access */
-#define ICMPV6_GET_EMB_IPV6(p) (p)->icmpv6vars.emb_ipv6h
+#define ICMPV6_GET_EMB_PROTO(p) (p)->l4.vars.icmpv6.emb_ip6_proto_next
 
 typedef struct ICMPV6Info_
 {
@@ -166,12 +159,6 @@ typedef struct ICMPV6Vars_ {
     /** Pointers to the embedded packet headers */
     IPV6Hdr *emb_ipv6h;
 } ICMPV6Vars;
-
-#define CLEAR_ICMPV6_PACKET(p)                                                                     \
-    do {                                                                                           \
-        PACKET_CLEAR_L4VARS((p));                                                                  \
-        (p)->icmpv6h = NULL;                                                                       \
-    } while (0)
 
 void DecodeICMPV6RegisterTests(void);
 

@@ -776,8 +776,11 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
     if (!PacketIsIPv6(p) || !PacketIsICMPv6(p) || p->proto != IPPROTO_ICMPV6 ||
-            PKT_IS_PSEUDOPKT(p) ||
-            (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
+            PKT_IS_PSEUDOPKT(p)) {
+        return 0;
+    }
+    const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
+    if ((GET_PKT_LEN(p) - ((uint8_t *)icmpv6h - GET_PKT_DATA(p))) <= 0) {
         return 0;
     }
 
@@ -788,14 +791,14 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
     if (!p->l4.csum_set) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
         uint16_t len = IPV6_GET_RAW_PLEN(ip6h) -
-                       (uint16_t)((uint8_t *)p->icmpv6h - (uint8_t *)ip6h - IPV6_HEADER_LEN);
-        p->l4.csum = ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)p->icmpv6h, len);
+                       (uint16_t)((uint8_t *)icmpv6h - (uint8_t *)ip6h - IPV6_HEADER_LEN);
+        p->l4.csum = ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)icmpv6h, len);
         p->l4.csum_set = true;
     }
 
-    if (p->l4.csum == p->icmpv6h->csum && cd->valid == 1)
+    if (p->l4.csum == icmpv6h->csum && cd->valid == 1)
         return 1;
-    else if (p->l4.csum != p->icmpv6h->csum && cd->valid == 0)
+    else if (p->l4.csum != icmpv6h->csum && cd->valid == 0)
         return 1;
     else
         return 0;
