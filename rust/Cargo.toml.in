@@ -69,3 +69,4 @@ suricata-derive = { path = "./derive" }
 [dev-dependencies]
 test-case = "~3.3.1"
 hex = "~0.4.3"
+serde_json = { version = "~1.0.115", default-features = false, features = ["std"] }
