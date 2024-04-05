@@ -5522,19 +5522,21 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     if (p->flags & PKT_IGNORE_CHECKSUM)
         return ret;
 
-    if (p->level4_comp_csum == -1) {
+    if (!p->l4.csum_set) {
         if (PacketIsIPv4(p)) {
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
-            p->level4_comp_csum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph,
+            p->l4.csum = TCPChecksum(ip4h->s_ip_addrs, (uint16_t *)p->tcph,
                     (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
+            p->l4.csum_set = true;
         } else if (PacketIsIPv6(p)) {
             const IPV6Hdr *ip6h = PacketGetIPv6(p);
-            p->level4_comp_csum = TCPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph,
+            p->l4.csum = TCPV6Checksum(ip6h->s_ip6_addrs, (uint16_t *)p->tcph,
                     (p->payload_len + TCP_GET_HLEN(p)), p->tcph->th_sum);
+            p->l4.csum_set = true;
         }
     }
 
-    if (p->level4_comp_csum != 0) {
+    if (p->l4.csum != 0) {
         ret = 0;
         if (p->livedev) {
             (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
