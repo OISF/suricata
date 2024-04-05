@@ -63,7 +63,6 @@ void PacketInit(Packet *p)
 {
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
-    PACKET_RESET_CHECKSUMS(p);
     p->livedev = NULL;
 }
 
@@ -115,6 +114,7 @@ void PacketReinit(Packet *p)
     }
     p->ethh = NULL;
     PacketClearL3(p);
+    PacketClearL4(p);
     if (p->tcph != NULL) {
         CLEAR_TCP_PACKET(p);
     }
@@ -155,7 +155,6 @@ void PacketReinit(Packet *p)
     p->tunnel_verdicted = false;
     p->root = NULL;
     p->livedev = NULL;
-    PACKET_RESET_CHECKSUMS(p);
     PACKET_PROFILING_RESET(p);
     p->tenant_id = 0;
     p->nb_decoded_layers = 0;

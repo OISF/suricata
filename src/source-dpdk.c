@@ -499,7 +499,8 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
             }
             if ((ol_flags & RTE_MBUF_F_RX_L4_CKSUM_MASK) == RTE_MBUF_F_RX_L4_CKSUM_BAD) {
                 SCLogDebug("HW detected BAD L4 chsum");
-                p->level4_comp_csum = 0;
+                p->l4.csum_set = true;
+                p->l4.csum = 0;
             }
         }
     }
