@@ -359,7 +359,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+) -> bool {
     let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
-                        return 1;
+                        return true;
                     } else {
                         pos += blocks.len() as u32;
                     }
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
-                        return 1;
+                        return true;
                     } else {
                         pos += blocks.len() as u32;
                     }
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_name(
             }
         }
     }
-    return 0;
+    return false;
 }
 
 fn http2_frames_get_header_firstvalue<'a>(
