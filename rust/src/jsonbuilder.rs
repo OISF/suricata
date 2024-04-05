@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -435,7 +435,7 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.push_str(&val.to_string())?;
+        self.push_float(val)?;
         Ok(self)
     }
 
@@ -650,7 +650,7 @@ impl JsonBuilder {
         self.push('"')?;
         self.push_str(key)?;
         self.push_str("\":")?;
-        self.push_str(&val.to_string())?;
+        self.push_float(val)?;
         Ok(self)
     }
 
@@ -679,6 +679,21 @@ impl JsonBuilder {
 
     pub fn capacity(&self) -> usize {
         self.buf.capacity()
+    }
+
+    fn push_float(&mut self, val: f64) -> Result<(), JsonError> {
+        if val.is_nan() {
+            self.push_str(".nan")?;
+        } else if val.is_infinite() {
+            if val.is_sign_negative() {
+                self.push_str("-.inf")?;
+            } else {
+                self.push_str(".inf")?;
+            }
+        } else {
+            self.push_str(&val.to_string())?;
+        }
+        Ok(())
     }
 
     /// Encode a string into the buffer, escaping as needed.
@@ -1338,6 +1353,48 @@ mod test {
         jb.append_float(2.2).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[1.1,2.2]"#);
+    }
+
+    #[test]
+    fn test_set_nan() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_float("nan", f64::NAN).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"{"nan":.nan}"#);
+    }
+
+    #[test]
+    fn test_append_nan() {
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        jb.append_float(f64::NAN).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"[.nan]"#);
+    }
+
+    #[test]
+    fn test_set_inf() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_float("inf", f64::INFINITY).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"{"inf":.inf}"#);
+
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_float("inf", f64::NEG_INFINITY).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"{"inf":-.inf}"#);
+    }
+
+    #[test]
+    fn test_append_inf() {
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        jb.append_float(f64::INFINITY).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"[.inf]"#);
+
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        jb.append_float(f64::NEG_INFINITY).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"[-.inf]"#);
     }
 }
 
