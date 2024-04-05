@@ -366,7 +366,7 @@ static void DPDKReleasePacket(Packet *p)
     if ((p->dpdk_v.copy_mode == DPDK_COPY_MODE_TAP ||
                 (p->dpdk_v.copy_mode == DPDK_COPY_MODE_IPS && !PacketCheckAction(p, ACTION_DROP)))
 #if defined(RTE_LIBRTE_I40E_PMD) || defined(RTE_LIBRTE_IXGBE_PMD) || defined(RTE_LIBRTE_ICE_PMD)
-            && !(PacketIsICMPv6(p) && p->icmpv6h->type == 143)
+            && !(PacketIsICMPv6(p) && PacketGetICMPv6(p)->type == 143)
 #endif
     ) {
         BUG_ON(PKT_IS_PSEUDOPKT(p));

@@ -124,9 +124,6 @@ void PacketReinit(Packet *p)
     if (p->icmpv4h != NULL) {
         CLEAR_ICMPV4_PACKET(p);
     }
-    if (p->icmpv6h != NULL) {
-        CLEAR_ICMPV6_PACKET(p);
-    }
     p->ppph = NULL;
     p->pppoesh = NULL;
     p->pppoedh = NULL;
