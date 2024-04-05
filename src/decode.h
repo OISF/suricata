@@ -420,7 +420,8 @@ enum PacketL3Types {
 struct PacketL3 {
     enum PacketL3Types type;
     /* Checksum for IP packets. */
-    int32_t comp_csum;
+    bool csum_set;
+    uint16_t csum;
     union Hdrs {
         IPV4Hdr *ip4h;
         IPV6Hdr *ip6h;

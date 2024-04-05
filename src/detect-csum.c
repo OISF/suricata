@@ -246,14 +246,15 @@ static int DetectIPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
         return cd->valid;
     }
 
-    if (p->l3.comp_csum == -1) {
+    if (!p->l3.csum_set) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        p->l3.comp_csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), ip4h->ip_csum);
+        p->l3.csum = IPV4Checksum((uint16_t *)ip4h, IPV4_GET_RAW_HLEN(ip4h), ip4h->ip_csum);
+        p->l3.csum_set = true;
     }
 
-    if (p->l3.comp_csum == 0 && cd->valid == 1)
+    if (p->l3.csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->l3.comp_csum != 0 && cd->valid == 0)
+    else if (p->l3.csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
