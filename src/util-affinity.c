@@ -319,7 +319,38 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
     return ncpu;
 }
 
-#ifdef HAVE_DPDK
+#if defined(__linux__)
+#if defined(UNITTESTS)
+/**
+ * \brief Verify that the CPU requirement is met
+ * \retval 0 if the requirement is met, 2 if the test is skipped, negative number otherwise
+ */
+int UnitTestsUtilAffinityVerifyCPURequirement(void)
+{
+    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    if (wtaf == NULL) {
+        SCLogError("Specify worker-cpu-set list in the threading section");
+        SCReturnInt(-EINVAL);
+    }
+    ThreadsAffinityType *mtaf = GetAffinityTypeFromName("management-cpu-set");
+    if (mtaf == NULL) {
+        SCLogError("Specify management-cpu-set list in the threading section");
+        SCReturnInt(-EINVAL);
+    }
+    UtilAffinityCpusExclude(wtaf, mtaf);
+    uint32_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf) + UtilAffinityGetAffinedCPUNum(mtaf);
+
+    if (UtilCpuGetNumProcessorsOnline() < sched_cpus) {
+        char err_msg[256];
+        snprintf(err_msg, sizeof(err_msg),
+                "not enough cpus in the system, the test requires at least %d cores", sched_cpus);
+        SKIP(err_msg);
+    }
+    return 0;
+}
+
+#endif /* defined(UNITTESTS) */
+
 /**
  * Find if CPU sets overlap
  * \return 1 if CPUs overlap, 0 otherwise
@@ -363,4 +394,4 @@ void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *
     SCMutexUnlock(&static_taf->taf_mutex);
     SCMutexUnlock(&mod_taf->taf_mutex);
 }
-#endif /* HAVE_DPDK */
+#endif /* defined(__linux__) */
