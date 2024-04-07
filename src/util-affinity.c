@@ -326,7 +326,7 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
  */
 int UnitTestsUtilAffinityVerifyCPURequirement(void)
 {
-#if UNITTESTS && !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ &&               \
+#if defined(UNITTESTS) && !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ &&      \
         !defined sun && !defined OS_DARWIN
     ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
     if (wtaf == NULL) {

@@ -49,6 +49,7 @@
 #include "util-conf.h"
 #include "suricata.h"
 #include "util-affinity.h"
+#include "conf-yaml-loader.h"
 
 #ifdef HAVE_DPDK
 
@@ -1765,6 +1766,351 @@ int RunModeIdsDpdkWorkers(void)
 #endif /* HAVE_DPDK */
     SCReturnInt(0);
 }
+
+#if defined(HAVE_DPDK) && defined(UNITTESTS)
+// prep stage
+static void DPDKRunmodeSetThreadsInit(const char *input, size_t input_len)
+{
+    // prep stage - config
+    ConfCreateContextBackup();
+    ConfInit();
+    int ret = ConfYamlLoadString(input, input_len);
+    if (ret != 0) {
+        FatalError("Unable to load configuration");
+    }
+    // prep stage - threading
+    RunModeInitializeThreadSettings();
+    // prep stage - interfaces
+    LiveBuildDeviceListCustom("unittest-ifaces", "iface");
+    LiveDeviceFinalize();
+    // prep stage - DPDK Threading
+    AutoRemainingThreadsInit(true);
+}
+
+// pre-test check stage
+#define SKIP_INCOMPATIBLE_ENVIRONMENT                                                              \
+    do {                                                                                           \
+        int ret = UnitTestsUtilAffinityVerifyCPURequirement();                                     \
+        FAIL_IF(ret < 0);                                                                          \
+        if (ret != 0)                                                                              \
+            return ret;                                                                            \
+    } while (0)
+
+// cleanup stage
+static void DPDKRunmodeSetThreadsDeinit(void)
+{
+    LiveDeviceListClean();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+}
+
+static int DPDKRunmodeSetThreads01(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ \"0-1\" ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"0-1\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF(r != -EINVAL);
+
+    DPDKRunmodeSetThreadsDeinit();
+
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads02(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0,1 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"0-3\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF(iconf.threads != 2);
+    FAIL_IF(r != 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads03(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"1-2\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF(iconf.threads != 2);
+    FAIL_IF(r != 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads04(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev1\n\
+    - iface: test_dev2\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"1-2\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF(iconf1.threads != 1);
+    FAIL_IF(r1 != 0);
+    FAIL_IF(iconf2.threads != 1);
+    FAIL_IF(r2 != 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads05(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev1\n\
+    - iface: test_dev2\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"1-3\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF(iconf1.threads != 2);
+    FAIL_IF(r1 != 0);
+    FAIL_IF(iconf2.threads != 1);
+    FAIL_IF(r2 != 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads06(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"1-2\" ]\n\
+";
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "-2");
+    FAIL_IF(r != -ERANGE);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "0");
+    FAIL_IF(r != -ERANGE);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF(r != 0);
+    FAIL_IF(iconf.threads != 1);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "abc");
+    FAIL_IF(r != -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "99999999999999");
+    FAIL_IF(r == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetThreads07(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+    - iface: test_dev\n\
+threading:\n\
+    set-cpu-affinity: yes\n\
+    cpu-affinity:\n\
+        - management-cpu-set:\n\
+            cpu: [ 0 ] \n\
+        - worker-cpu-set:\n\
+            cpu: [ \"1-2\" ]\n\
+";
+
+    DPDKRunmodeSetThreadsInit(input, strlen(input));
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "2");
+    FAIL_IF(iconf.threads != 2);
+    FAIL_IF(r != 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize01(void)
+{
+    DPDKIfaceConfig iconf;
+    const char *entry_str;
+
+    entry_str = NULL;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != -EINVAL);
+
+    entry_str = "";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != -EINVAL);
+
+    entry_str = "-1";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != -EINVAL);
+
+    entry_str = "999999999999999999";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != -EINVAL);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize02(void)
+{
+    DPDKIfaceConfig iconf;
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "auto");
+    iconf.mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != 0);
+    FAIL_IF(iconf.mempool_cache_size >= RTE_MEMPOOL_CACHE_MAX_SIZE);
+    FAIL_IF(iconf.mempool_cache_size >= iconf.mempool_size / 1.5);
+    FAIL_IF(iconf.mempool_size % iconf.mempool_cache_size != 0);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize03(void)
+{
+    DPDKIfaceConfig iconf;
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", 1);
+    iconf.mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != 0);
+    FAIL_IF(iconf.mempool_cache_size != 1);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize04(void)
+{
+    DPDKIfaceConfig iconf;
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", RTE_MEMPOOL_CACHE_MAX_SIZE + 1);
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF(r != -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief This function registers unit tests for AlertFastLog API.
+ */
+void DPDKRunmodeRegisterTests(void)
+{
+
+    UtRegisterTest("DPDKRunmodeSetThreads01", DPDKRunmodeSetThreads01);
+    UtRegisterTest("DPDKRunmodeSetThreads02", DPDKRunmodeSetThreads02);
+    UtRegisterTest("DPDKRunmodeSetThreads03", DPDKRunmodeSetThreads03);
+    UtRegisterTest("DPDKRunmodeSetThreads04", DPDKRunmodeSetThreads04);
+    UtRegisterTest("DPDKRunmodeSetThreads05", DPDKRunmodeSetThreads05);
+    UtRegisterTest("DPDKRunmodeSetThreads06", DPDKRunmodeSetThreads06);
+    UtRegisterTest("DPDKRunmodeSetThreads07", DPDKRunmodeSetThreads07);
+
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize01", DPDKRunmodeSetMempoolCacheSize01);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize02", DPDKRunmodeSetMempoolCacheSize02);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize03", DPDKRunmodeSetMempoolCacheSize03);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize04", DPDKRunmodeSetMempoolCacheSize04);
+}
+#endif /* UNITTESTS and HAVE_DPDK */
 
 /**
  * @}
