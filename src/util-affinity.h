@@ -88,10 +88,14 @@ ThreadsAffinityType * GetAffinityTypeFromName(const char *name);
 
 uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf);
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
-#ifdef HAVE_DPDK
+#ifdef __linux__
 uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);
 void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
-#endif /* HAVE_DPDK */
+
+#ifdef UNITTESTS
+int UnitTestsUtilAffinityVerifyCPURequirement(void);
+#endif /* UNITTESTS */
+#endif /* __linux__ */
 
 void BuildCpusetWithCallback(const char *name, ConfNode *node,
                              void (*Callback)(int i, void * data),
