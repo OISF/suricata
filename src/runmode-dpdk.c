@@ -379,10 +379,47 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturn;
 }
 
+static int32_t remaining_auto_cpus = -1; // -1 means not initialized
+
+/**
+ * \brief Initialize the number of remaining auto-assigned threads.
+ * \retval 0 on success, -EINVAL on invalid input
+ */
+static int AutoRemainingThreadsInit(uint16_t sched_cpus, uint16_t live_dev_count)
+{
+    if (remaining_auto_cpus != -1) {
+        return 0;
+    }
+
+    if (sched_cpus == 0) {
+        SCLogError("No worker CPU cores with affinity were configured");
+        return -EINVAL;
+    }
+    if (live_dev_count == 0) {
+        SCLogError("No devices configured");
+        return -EINVAL;
+    }
+    remaining_auto_cpus = sched_cpus % live_dev_count;
+    return 0;
+}
+
+/**
+ * \brief Decrease the number of remaining auto-assigned threads by one
+ * \retval true if a leftover thread was consumed, false otherwise
+ */
+static bool AutoRemainingThreadsUsedOne(void)
+{
+    if (remaining_auto_cpus <= 0) {
+        return false;
+    }
+
+    remaining_auto_cpus--;
+    return true;
+}
+
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    static uint16_t remaining_auto_cpus = UINT16_MAX; // uninitialized
     if (!threading_set_cpu_affinity) {
         SCLogError("DPDK runmode requires configured thread affinity");
         SCReturnInt(-EINVAL);
@@ -448,16 +485,11 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
             SCReturnInt(-ERANGE);
         }
 
-        if (remaining_auto_cpus == UINT16_MAX) {
-            // first time auto-assignment
-            remaining_auto_cpus = sched_cpus % live_dev_count;
-            if (remaining_auto_cpus > 0) {
-                iconf->threads++;
-                remaining_auto_cpus--;
-            }
-        } else if (remaining_auto_cpus > 0) {
+        int init_ret = AutoRemainingThreadsInit(sched_cpus, live_dev_count);
+        if (init_ret < 0)
+            SCReturnInt(init_ret);
+        if (AutoRemainingThreadsUsedOne()) {
             iconf->threads++;
-            remaining_auto_cpus--;
         }
         SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
         SCReturnInt(0);
