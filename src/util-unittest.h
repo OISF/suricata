@@ -106,6 +106,18 @@ extern int unittests_fatal;
         return 1; \
     } while (0)
 
+/**
+ * \brief Skip the test.
+ *
+ * Used to skip the tests that cannot be run in the current environment.
+ * The aim is to keep this at 0.
+ */
+#define SKIP(reason)                                                                               \
+    do {                                                                                           \
+        SCLogInfo("Test skipped: %s", reason);                                                     \
+        return 2;                                                                                  \
+    } while (0)
+
 #endif
 
 #endif /* SURICATA_UTIL_UNITTEST_H */
