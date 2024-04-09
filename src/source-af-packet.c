@@ -2430,7 +2430,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[0]->vlan0 = p->vlan_id[0];
         keys[0]->vlan1 = p->vlan_id[1];
         keys[0]->vlan2 = p->vlan_id[2];
-        if (IPV6_GET_NH(p) == IPPROTO_TCP) {
+        if (p->proto == IPPROTO_TCP) {
             keys[0]->ip_proto = 1;
         } else {
             keys[0]->ip_proto = 0;
