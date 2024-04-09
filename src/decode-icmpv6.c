@@ -37,11 +37,13 @@
 #include "util-print.h"
 #include "util-validate.h"
 
+#if defined(DEBUG) || defined(UNITTESTS)
 static inline const IPV6Hdr *PacketGetICMPv6EmbIPv6(const Packet *p)
 {
     BUG_ON(p->l4.type != PACKET_L4_ICMPV6);
     return p->l4.vars.icmpv6.emb_ipv6h;
 }
+#endif
 
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
