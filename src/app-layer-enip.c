@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -562,9 +562,7 @@ void RegisterENIPUDPParsers(void)
                 IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
     } else
     {
-        SCLogInfo(
-                "Parsed disabled for %s protocol. Protocol detection" "still on.",
-                proto_name);
+        SCLogInfo("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
 
 #ifdef UNITTESTS

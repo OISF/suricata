@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1018,7 +1018,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         if (!(HAS_SPACE(supported_ver_len)))
             goto invalid_length;
 
-        /* Use the first (and prefered) valid version as client version,
+        /* Use the first (and preferred) valid version as client version,
          * skip over GREASE and other possible noise. */
         uint16_t i = 0;
         while (i + 1 < (uint16_t)supported_ver_len) {
@@ -3074,8 +3074,7 @@ void RegisterSSLParsers(void)
             }
         }
     } else {
-        SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
-                  "still on.", proto_name);
+        SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
 
     return;
