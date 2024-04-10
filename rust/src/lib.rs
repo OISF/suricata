@@ -62,6 +62,7 @@ extern crate der_parser;
 extern crate kerberos_parser;
 extern crate tls_parser;
 extern crate x509_parser;
+extern crate ldap_parser;
 
 #[macro_use]
 extern crate suricata_derive;
@@ -124,6 +125,7 @@ pub mod util;
 pub mod ffi;
 pub mod feature;
 pub mod sdp;
+pub mod ldap;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;
