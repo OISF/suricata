@@ -18,4 +18,5 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 pub mod filters;
+pub mod ldap;
 pub mod types;
