@@ -4024,7 +4024,6 @@ libhtp:\n\
         goto end;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
@@ -4104,7 +4103,6 @@ libhtp:\n\
         goto end;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        //printf("uri %s\n", bstr_util_strdup_to_c(tx->request_uri_normalized));
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
@@ -4867,80 +4865,6 @@ end:
     UTHFreeFlow(f);
     return result;
 }
-
-/* disabled when we upgraded to libhtp 0.5.x */
-#if 0
-static int HTPParserConfigTest04(void)
-{
-    int result = 0;
-
-    char input[] = "\
-%YAML 1.1\n\
----\n\
-libhtp:\n\
-\n\
-  default-config:\n\
-    personality: IDS\n\
-    path-control-char-handling: status_400\n\
-    path-convert-utf8: yes\n\
-    path-invalid-encoding-handling: remove_percent\n\
-\n\
-  server-config:\n\
-\n\
-    - apache-tomcat:\n\
-        personality: Tomcat_6_0\n\
-        path-invalid-utf8-handling: none\n\
-        path-nul-encoded-handling: status_404\n\
-        path-nul-raw-handling: status_400\n\
-\n\
-    - iis7:\n\
-        personality: IIS_7_0\n\
-        path-replacement-char: o\n\
-        path-unicode-mapping: status_400\n\
-";
-
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
-
-    ConfYamlLoadString(input, strlen(input));
-
-    HTPConfigure();
-
-    HTPCfgRec *cfg_rec = &cfglist;
-    if (cfg_rec->cfg->path_control_char_handling != STATUS_400 ||
-        cfg_rec->cfg->path_convert_utf8 != 1 ||
-        cfg_rec->cfg->path_invalid_encoding_handling != URL_DECODER_REMOVE_PERCENT) {
-        printf("failed 1\n");
-        goto end;
-    }
-
-    cfg_rec = cfg_rec->next;
-    if (cfg_rec->cfg->bestfit_replacement_char != 'o' ||
-        cfg_rec->cfg->path_unicode_mapping != STATUS_400) {
-        printf("failed 2\n");
-        goto end;
-    }
-
-    cfg_rec = cfg_rec->next;
-    if (cfg_rec->cfg->path_invalid_utf8_handling != NONE ||
-        cfg_rec->cfg->path_nul_encoded_handling != STATUS_404 ||
-        cfg_rec->cfg->path_nul_raw_handling != STATUS_400) {
-        printf("failed 3\n");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-
-    return result;
-}
-#endif
 
 /** \test Test %2f decoding in profile Apache_2_2
  *
@@ -7080,9 +7004,6 @@ static void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03);
-#if 0 /* disabled when we upgraded to libhtp 0.5.x */
-    UtRegisterTest("HTPParserConfigTest04", HTPParserConfigTest04, 1);
-#endif
 
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01);
     UtRegisterTest("HTPParserDecodingTest01a", HTPParserDecodingTest01a);
