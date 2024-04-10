@@ -2061,6 +2061,366 @@
             },
             "additionalProperties": false
         },
+        "ldap": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "operation": {
+                            "type": "string"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "search_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "base_object": {
+                                    "type": "string"
+                                },
+                                "scope": {
+                                    "type": "integer"
+                                },
+                                "deref_alias": {
+                                    "type": "integer"
+                                },
+                                "size_limit": {
+                                    "type": "integer"
+                                },
+                                "time_limit": {
+                                    "type": "integer"
+                                },
+                                "types_online": {
+                                    "type": "boolean"
+                                },
+                                "attributes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "bind_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "version": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "sasl": {
+                                    "type": "object",
+                                    "optional": "true",
+                                    "properties": {
+                                        "mechanism": {
+                                            "type": "string"
+                                        },
+                                        "credentials": {
+                                            "type": "string",
+                                            "optional": "true"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "modify_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "object": {
+                                    "type": "string"
+                                },
+                                "changes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "operation": {
+                                                "type": "string"
+                                            },
+                                            "modification": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "attribute_type": {
+                                                        "type": "string"
+                                                    },
+                                                    "attribute_values": {
+                                                        "type": "array",
+                                                        "minItems": 1,
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "add_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "attributes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "values": {
+                                                "type": "array",
+                                                "minItems": 1,
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "del_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "dn": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "mod_dn_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "new_rdn": {
+                                    "type": "string"
+                                },
+                                "delete_old_rdn": {
+                                    "type": "boolean"
+                                },
+                                "new_superior": {
+                                    "type": "string",
+                                    "optional": "true"
+                                }
+                            }
+                        },
+                        "compare_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "attribute_value_assertion": {
+                                    "type": "object",
+                                    "properties": {
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "abandon_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "message_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "extended_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "optional": "true"
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "responses": {
+                    "type": "array",
+                    "optional": "true",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "search_result_done": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "bind_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    },
+                                    "server_sasl_creds": {
+                                        "type": "string",
+                                        "optional": "true"
+                                    }
+                                }
+                            },
+                            "modify_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "add_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "del_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "mod_dn_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "compare_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "extended_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "intermediate_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "metadata": {
             "type": "object",
             "optional": true,
@@ -3956,6 +4316,10 @@
                                             "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "ldap": {
+                                    "description": "Errors encountered parsing LDAP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "modbus": {
                                     "description": "Errors encountered parsing Modbus protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4117,6 +4481,10 @@
                                     "description": "Number of flows for Kerberos v5/UDP protocol",
                                     "type": "integer"
                                 },
+                                "ldap": {
+                                    "description": "Number of flows for LDAP protocol",
+                                    "type": "integer"
+                                },
                                 "modbus": {
                                     "description": "Number of flows for Modbus protocol",
                                     "type": "integer"
@@ -4271,6 +4639,10 @@
                                 "krb5_udp": {
                                     "description":
                                             "Number of transactions for Kerberos v5/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap": {
+                                    "description": "Number of transactions for LDAP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
