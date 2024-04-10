@@ -68,3 +68,9 @@ test.sh
 /libsuricata-config
 !/libsuricata-config.in
 !/.readthedocs.yaml
+
+# Man pages.
+doc/userguide/*.1
+
+# Generated compile commands for LSP.
+/compile_commands.json

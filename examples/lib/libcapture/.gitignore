@@ -1,2 +1,3 @@
-!/Makefile.example.in
+g!/Makefile.example.in
 Makefile.example
+/libcapture
