@@ -301,6 +301,7 @@ outputs:
         - rfb
         - sip
         - quic
+        - ldap
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:

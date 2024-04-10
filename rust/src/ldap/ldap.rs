@@ -410,6 +410,7 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for LDAP.");
     }
