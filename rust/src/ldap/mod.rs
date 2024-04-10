@@ -19,4 +19,5 @@
 
 pub mod filters;
 pub mod ldap;
+pub mod logger;
 pub mod types;
