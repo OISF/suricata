@@ -2631,6 +2631,7 @@ AC_CONFIG_FILES(libsuricata-config)
 AC_CONFIG_FILES(examples/plugins/c-json-filetype/Makefile)
 AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
+AC_CONFIG_FILES(examples/lib/libcapture/Makefile examples/lib/libcapture/Makefile.example)
 
 AC_OUTPUT
 
