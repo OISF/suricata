@@ -1,0 +1,16 @@
+LIBSURICATA_CONFIG ?=	@CONFIGURE_PREFIX@/bin/libsuricata-config
+
+SURICATA_LIBS =		`$(LIBSURICATA_CONFIG) --libs --static`
+SURICATA_CFLAGS :=	`$(LIBSURICATA_CONFIG) --cflags`
+
+# Currently the Suricata logging system requires this to be even for
+# plugins.
+CPPFLAGS +=    "-D__SCFILENAME__=\"$(*F)\""
+
+all: custom
+
+custom: main.c
+	$(CC) -o $@ $^ $(CPPFLAGS) $(CFLAGS) $(SURICATA_CFLAGS) $(SURICATA_LIBS)
+
+clean:
+	rm -f custom
