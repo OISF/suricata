@@ -15,9 +15,15 @@
  * 02110-1301, USA.
  */
 
-// written by Giuseppe Longo <giuseppe@glongo.it>
+/**
+ * \file
+ *
+ * \author FirstName LastName <name@domain>
+ */
 
-pub mod filters;
-pub mod ldap;
-pub mod logger;
-pub mod types;
+#ifndef __OUTPUT_JSON_LDAP_H__
+#define __OUTPUT_JSON_LDAP_H__
+
+void JsonLdapLogRegister(void);
+
+#endif /* __OUTPUT_JSON_LDAP_H__ */
