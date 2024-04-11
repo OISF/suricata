@@ -1666,7 +1666,6 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
 
 #define BOTH_SET(a, b) ((a) != NULL && (b) != NULL)
 #define BOTH_SET_OR_BOTH_UNSET(a, b) (((a) == NULL && (b) == NULL) || ((a) != NULL && (b) != NULL))
-#define THREE_SET_OR_THREE_UNSET(a, b, c) (((a) == NULL && (b) == NULL && (c) == NULL) || ((a) != NULL && (b) != NULL && (c) != NULL))
 #define THREE_SET(a, b, c) ((a) != NULL && (b) != NULL && (c) != NULL)
 
 static void ValidateParserProto(AppProto alproto, uint8_t ipproto)

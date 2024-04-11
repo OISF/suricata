@@ -21,9 +21,6 @@
  * \author Lukas Sismis <lukas.sismis@gmail.com>
  */
 
-#ifndef UTIL_DPDK_BONDING_C
-#define UTIL_DPDK_BONDING_C
-
 #include "suricata-common.h"
 #include "util-dpdk-bonding.h"
 
@@ -121,5 +118,3 @@ const char *BondingDeviceDriverGet(uint16_t bond_pid)
 }
 
 #endif /* HAVE_DPDK */
-
-#endif /* UTIL_DPDK_BONDING_C */

@@ -1,2 +1,2 @@
 #!/bin/sh
-./configure --disable-shared --enable-fuzztargets --disable-gccmarch-native --enable-debug-validation
+./configure --enable-warnings --disable-shared --enable-fuzztargets --disable-gccmarch-native --enable-debug-validation

@@ -45,12 +45,7 @@
 #define COLON             58
 #define DASH              45
 #define PRINTABLE_START   33
-#define PRINTABLE_END    126
-#define UC_START          65
-#define UC_END            90
-#define LC_START          97
-#define LC_END           122
-#define UC_LC_DIFF        32
+#define PRINTABLE_END      126
 #define EOL_LEN            2
 
 /* Base-64 constants */

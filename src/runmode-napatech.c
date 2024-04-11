@@ -38,12 +38,12 @@
 #include "runmode-napatech.h"
 #include "source-napatech.h" // need NapatechStreamDevConf structure
 
-#define NT_RUNMODE_AUTOFP  1
-#define NT_RUNMODE_WORKERS 2
-
 static const char *default_mode = "workers";
 
 #ifdef HAVE_NAPATECH
+
+#define NT_RUNMODE_AUTOFP  1
+#define NT_RUNMODE_WORKERS 2
 
 #define MAX_STREAMS 256
 static uint16_t num_configured_streams = 0;

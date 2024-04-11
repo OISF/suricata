@@ -58,12 +58,13 @@
 
 static int DetectByteMathSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
+#define DETECT_BYTEMATH_ENDIAN_DEFAULT (uint8_t) BigEndian
+#define DETECT_BYTEMATH_BASE_DEFAULT   (uint8_t) BaseDec
+
 static void DetectByteMathRegisterTests(void);
 #endif
 static void DetectByteMathFree(DetectEngineCtx *, void *);
 
-#define DETECT_BYTEMATH_ENDIAN_DEFAULT (uint8_t) BigEndian
-#define DETECT_BYTEMATH_BASE_DEFAULT   (uint8_t) BaseDec
 /**
  * \brief Registers the keyword handlers for the "byte_math" keyword.
  */
