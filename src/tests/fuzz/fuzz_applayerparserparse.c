@@ -66,9 +66,6 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
     return 0;
 }
 
-// arbitrary value
-#define ALPROTO_MAXTX 4096
-
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     Flow * f;

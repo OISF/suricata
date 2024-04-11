@@ -25,11 +25,10 @@
 
 #include "util-sysfs.h"
 
-#define SYSFS_MAX_FILENAME_LEN (SYSFS_MAX_FILENAME_SIZE + 5)
-
 TmEcode SysFsWriteValue(const char *path, int64_t value)
 {
 #if defined(__linux__)
+#define SYSFS_MAX_FILENAME_LEN (SYSFS_MAX_FILENAME_SIZE + 5)
     char fname[SYSFS_MAX_FILENAME_LEN] = "/sys/";
     char sentence[64];
 

@@ -64,9 +64,6 @@
 
 #include "flow-util.h"
 
-/** convert enum to string */
-#define CASE_CODE(E)  case E: return #E
-
 static inline int StateIsValid(uint16_t alproto, void *alstate)
 {
     if (alstate != NULL) {

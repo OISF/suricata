@@ -29,7 +29,6 @@
  * AF_XDP socket runmode
  *
  */
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
 #define SC_PCAP_DONT_INCLUDE_PCAP_H  1
 #include "suricata-common.h"
 #include "tm-threads.h"

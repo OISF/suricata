@@ -40,7 +40,6 @@
 
 #define BUFFER_NAME  "smb_version"
 #define KEYWORD_NAME "smb.version"
-#define KEYWORD_ID   DETECT_SMB_VERSION
 
 static int g_smb_version_list_id = 0;
 
