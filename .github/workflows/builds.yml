@@ -2819,7 +2819,6 @@ jobs:
                 ccache \
                 curl \
                 git \
-                gosu \
                 jq \
                 libpcre2-dev \
                 libpcap-dev   \
@@ -2901,7 +2900,6 @@ jobs:
                 ccache \
                 curl \
                 git \
-                gosu \
                 jq \
                 libpcre2-dev \
                 libpcap-dev   \
