@@ -40,7 +40,6 @@ static void DetectQuicSniRegisterTests(void);
 
 #define BUFFER_NAME  "quic_sni"
 #define KEYWORD_NAME "quic.sni"
-#define KEYWORD_ID   DETECT_AL_QUIC_SNI
 
 static int quic_sni_id = 0;
 

@@ -76,7 +76,7 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: ./configure
+      - run: ./configure --enable-warnings
       - run: cargo clippy --all-features --fix --allow-no-vcs
         working-directory: rust
       - run: |

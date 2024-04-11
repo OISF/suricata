@@ -40,7 +40,6 @@ static void DetectQuicVersionRegisterTests(void);
 
 #define BUFFER_NAME  "quic_version"
 #define KEYWORD_NAME "quic.version"
-#define KEYWORD_ID   DETECT_AL_QUIC_VERSION
 
 static int quic_version_id = 0;
 
