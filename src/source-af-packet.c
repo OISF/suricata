@@ -30,7 +30,6 @@
  *
  */
 
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "suricata.h"
@@ -76,11 +75,6 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #endif
-
-struct bpf_program {
-    unsigned int bf_len;
-    struct bpf_insn *bf_insns;
-};
 
 #ifdef HAVE_PCAP_H
 #include <pcap.h>

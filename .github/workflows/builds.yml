@@ -22,7 +22,7 @@ env:
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
   DEFAULT_SV_BRANCH: master
 
-  DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
+  DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -Wunused-macros"
 
   # Apt sometimes likes to ask for user input, this will prevent that.
   DEBIAN_FRONTEND: "noninteractive"

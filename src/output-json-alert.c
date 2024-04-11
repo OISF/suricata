@@ -844,8 +844,6 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
     }
 }
 
-#define DEFAULT_LOG_FILENAME "alert.json"
-
 static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         ConfNode *conf)
 {

@@ -294,8 +294,6 @@ static void OutputDNP3LogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-#define DEFAULT_LOG_FILENAME "dnp3.json"
-
 static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
