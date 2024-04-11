@@ -64,8 +64,6 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 # define HASH_BIG_ENDIAN 0
 #endif
 
-#define hashsize(n) ((uint32_t)1<<(n))
-#define hashmask(n) (hashsize(n)-1)
 #define rot(x,k) (((x)<<(k)) | ((x)>>(32-(k))))
 
 /*

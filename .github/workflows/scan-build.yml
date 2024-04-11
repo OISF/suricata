@@ -72,7 +72,7 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-16 ./configure --enable-dpdk --enable-nfqueue --enable-nflog
+      - run: scan-build-16 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
           CC: clang-16
       # exclude libhtp from the analysis
