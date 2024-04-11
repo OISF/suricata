@@ -181,11 +181,10 @@ typedef struct ICMPV4ExtHdr_
 /* ICMPv4 vars */
 typedef struct ICMPV4Vars_
 {
-    /** Pointers to the embedded packet headers */
-    IPV4Hdr *emb_ipv4h;
+    uint16_t emb_ip4h_offset;
 
-    uint16_t  id;
-    uint16_t  seq;
+    uint16_t id;
+    uint16_t seq;
 
     /** Actual header length **/
     uint16_t hlen;
@@ -242,8 +241,7 @@ typedef struct ICMPV4Timestamp_ {
 
 /** macro for icmpv4 embedded "protocol" access */
 #define ICMPV4_GET_EMB_PROTO(p) (p)->l4.vars.icmpv4.emb_ip4_proto
-/** macro for icmpv4 embedded "ipv4h" header access */
-#define ICMPV4_GET_EMB_IPV4(p) (p)->l4.vars.icmpv4.emb_ipv4h
+
 /** macro for icmpv4 header length */
 #define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->l4.vars.icmpv4.hlen
 
