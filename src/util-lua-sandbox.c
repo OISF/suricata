@@ -42,13 +42,13 @@ typedef struct sb_block_function {
 } sb_block_function;
 
 static void sb_hook(lua_State *L, lua_Debug *ar);
-LUAMOD_API int luaopen_sandbox(lua_State *L);
+static int luaopen_sandbox(lua_State *L);
 
 static void *sb_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 {
     (void)ud;
     (void)osize; /* not used */
-    sb_lua_state *ctx = (sb_lua_state *)ud;
+    SCLuaSbState *ctx = (SCLuaSbState *)ud;
     if (nsize == 0) {
         if (ptr != NULL) {
             // ASSERT: alloc_bytes > osize
@@ -74,16 +74,31 @@ static void *sb_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 /*
 ** These are the set of libs allowed in the restricted lua sandbox
 */
-static const luaL_Reg sb_restrictedlibs[] = { { LUA_GNAME, luaopen_base },
-    //  {LUA_LOADLIBNAME, luaopen_package},
-    //  {LUA_COLIBNAME, luaopen_coroutine},
+
+static const luaL_Reg sb_restrictedlibs[] = {
+    // clang-format off
+    { LUA_GNAME, luaopen_base },
     { LUA_TABLIBNAME, luaopen_table },
-    //  {LUA_IOLIBNAME, luaopen_io},
-    //  {LUA_OSLIBNAME, luaopen_os},
-    { LUA_STRLIBNAME, luaopen_string }, { LUA_MATHLIBNAME, luaopen_math },
+    { LUA_STRLIBNAME, luaopen_string },
+    { LUA_MATHLIBNAME, luaopen_math },
     { LUA_UTF8LIBNAME, luaopen_utf8 },
+
+    /* TODO: Review these libs... */
+#if 0
+    {LUA_LOADLIBNAME, luaopen_package},
+    {LUA_COLIBNAME, luaopen_coroutine},
+    {LUA_IOLIBNAME, luaopen_io},
+    {LUA_OSLIBNAME, luaopen_os},
+#endif
+
+    /* What is this for? */
+#if 0
     { LUA_DBLIBNAME, luaopen_sandbox }, // TODO: remove this from restricted
-    { NULL, NULL } };
+#endif
+
+    { NULL, NULL }
+    // clang-format on
+};
 
 // TODO: should we block raw* functions?
 // TODO: Will we ever need to block a subset of functions more than one level deep?
@@ -123,15 +138,15 @@ static void sb_block_functions(lua_State *L, const sb_block_function *funcs)
     lua_pop(L, 1); // remove global table
 }
 
-LUALIB_API void sb_loadrestricted(lua_State *L)
+void SCLuaSbLoadRestricted(lua_State *L)
 {
     sb_loadlibs(L, sb_restrictedlibs);
     sb_block_functions(L, sb_restrictedfuncs);
 }
 
-lua_State *sb_newstate(uint64_t alloclimit, uint64_t instructionlimit)
+lua_State *SCLuaSbStateNew(uint64_t alloclimit, uint64_t instructionlimit)
 {
-    sb_lua_state *sb = SCMalloc(sizeof(sb_lua_state));
+    SCLuaSbState *sb = SCCalloc(1, sizeof(SCLuaSbState));
     if (sb == NULL) {
         // Out of memory.  Error code?
         return NULL;
@@ -157,19 +172,19 @@ lua_State *sb_newstate(uint64_t alloclimit, uint64_t instructionlimit)
     return sb->L;
 }
 
-static sb_lua_state *sb_get_ctx(lua_State *L)
+static SCLuaSbState *sb_get_ctx(lua_State *L)
 {
     lua_pushstring(L, SANDBOX_CTX);
     lua_gettable(L, LUA_REGISTRYINDEX);
-    sb_lua_state *ctx = lua_touserdata(L, -1);
+    SCLuaSbState *ctx = lua_touserdata(L, -1);
     // TODO:  log if null?
     lua_pop(L, 1);
     return ctx;
 }
 
-void sb_close(lua_State *L)
+void SCLuaSbStateClose(lua_State *L)
 {
-    sb_lua_state *sb = sb_get_ctx(L);
+    SCLuaSbState *sb = sb_get_ctx(L);
     lua_close(sb->L);
     SCFree(sb);
 }
@@ -177,7 +192,7 @@ void sb_close(lua_State *L)
 static void sb_hook(lua_State *L, lua_Debug *ar)
 {
     (void)ar;
-    sb_lua_state *sb = sb_get_ctx(L);
+    SCLuaSbState *sb = sb_get_ctx(L);
 
     sb->instruction_count += sb->hook_instruction_count;
 
@@ -187,18 +202,18 @@ static void sb_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
-void sb_resetinstructioncounter(lua_State *L)
+void SCLuaSbResetInstructionCounter(lua_State *L)
 {
-    sb_lua_state *sb = sb_get_ctx(L);
+    SCLuaSbState *sb = sb_get_ctx(L);
     if (sb != NULL) {
         sb->instruction_count = 0;
         lua_sethook(L, sb_hook, LUA_MASKCOUNT, sb->hook_instruction_count);
     }
 }
 
-void sb_setinstructionlimit(lua_State *L, uint64_t instruction_limit)
+void SCLuaSbSetInstructionLimit(lua_State *L, uint64_t instruction_limit)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         ctx->instruction_limit = instruction_limit;
     }
@@ -206,7 +221,7 @@ void sb_setinstructionlimit(lua_State *L, uint64_t instruction_limit)
 
 static uint64_t sb_getinstructioncount(lua_State *L)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         return ctx->instruction_count;
     }
@@ -215,7 +230,7 @@ static uint64_t sb_getinstructioncount(lua_State *L)
 
 static int sb_Ltotalalloc(lua_State *L)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->alloc_bytes);
     } else {
@@ -226,7 +241,7 @@ static int sb_Ltotalalloc(lua_State *L)
 
 static int sb_Lgetalloclimit(lua_State *L)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->alloc_limit);
     } else {
@@ -237,22 +252,12 @@ static int sb_Lgetalloclimit(lua_State *L)
 
 static int sb_Lsetalloclimit(lua_State *L)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         ctx->alloc_limit = luaL_checkinteger(L, 1);
     }
     return 0;
 }
-
-/*
-static int sb_Lsetlevel(lua_State *L)
-{
-    lua_Integer level = luaL_checkinteger(L, 1);
-    lua_pushnil(L);
-    lua_setglobal(L, "debug");
-    return 0;
-}
-*/
 
 static int sb_Lgetinstructioncount(lua_State *L)
 {
@@ -262,7 +267,7 @@ static int sb_Lgetinstructioncount(lua_State *L)
 
 static int sb_Lgetinstructionlimit(lua_State *L)
 {
-    sb_lua_state *ctx = sb_get_ctx(L);
+    SCLuaSbState *ctx = sb_get_ctx(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->instruction_limit);
     } else {
@@ -273,13 +278,13 @@ static int sb_Lgetinstructionlimit(lua_State *L)
 
 static int sb_Lsetinstructionlimit(lua_State *L)
 {
-    sb_setinstructionlimit(L, luaL_checkinteger(L, 1));
+    SCLuaSbSetInstructionLimit(L, luaL_checkinteger(L, 1));
     return 0;
 }
 
 static int sb_Lresetinstructioncount(lua_State *L)
 {
-    sb_resetinstructioncounter(L);
+    SCLuaSbResetInstructionCounter(L);
     return 0;
 }
 
@@ -291,7 +296,7 @@ static const luaL_Reg sblib[] = { { "totalalloc", sb_Ltotalalloc },
     { "setinstructionlimit", sb_Lsetinstructionlimit },
     { "resetinstructioncount", sb_Lresetinstructioncount }, { NULL, NULL } };
 
-LUAMOD_API int luaopen_sandbox(lua_State *L)
+static int luaopen_sandbox(lua_State *L)
 {
     luaL_newlib(L, sblib);
     return 1;
