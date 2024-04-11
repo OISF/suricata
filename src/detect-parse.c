@@ -145,17 +145,6 @@ typedef struct SigDuplWrapper_ {
     Signature *s_prev;
 } SigDuplWrapper;
 
-#define CONFIG_PARTS 8
-
-#define CONFIG_ACTION 0
-#define CONFIG_PROTO  1
-#define CONFIG_SRC    2
-#define CONFIG_SP     3
-#define CONFIG_DIREC  4
-#define CONFIG_DST    5
-#define CONFIG_DP     6
-#define CONFIG_OPTS   7
-
 /** helper structure for sig parsing */
 typedef struct SignatureParser_ {
     char action[DETECT_MAX_RULE_SIZE];

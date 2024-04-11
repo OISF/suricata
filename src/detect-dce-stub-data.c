@@ -58,7 +58,6 @@
 #include "rust.h"
 
 #define BUFFER_NAME "dce_stub_data"
-#define KEYWORD_NAME "dce_stub_data"
 
 static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

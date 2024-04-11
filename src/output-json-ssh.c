@@ -49,8 +49,6 @@
 #include "output-json-ssh.h"
 #include "rust.h"
 
-#define MODULE_NAME "LogSshLog"
-
 static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                          Flow *f, void *state, void *txptr, uint64_t tx_id)
 {

@@ -350,7 +350,6 @@ static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
     JsonAnomalyLogDeInitCtxSubHelper(output_ctx);
 }
 
-#define DEFAULT_LOG_FILENAME "anomaly.json"
 static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
 {
     DEBUG_VALIDATE_BUG_ON(conf == NULL);

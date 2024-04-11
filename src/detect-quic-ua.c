@@ -40,7 +40,6 @@ static void DetectQuicUaRegisterTests(void);
 
 #define BUFFER_NAME  "quic_ua"
 #define KEYWORD_NAME "quic.ua"
-#define KEYWORD_ID   DETECT_AL_QUIC_UA
 
 static int quic_ua_id = 0;
 

@@ -57,8 +57,6 @@
 
 #define MODULE_NAME "EveStreamLog"
 
-#define LOG_DROP_ALERTS 1
-
 typedef struct EveStreamOutputCtx_ {
     uint16_t trigger_flags; /**< presence of flags in packet trigger logging. 0xffff for all. */
     OutputJsonCtx *eve_ctx;

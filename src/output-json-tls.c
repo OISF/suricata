@@ -52,9 +52,6 @@
 
 SC_ATOMIC_EXTERN(unsigned int, cert_id);
 
-#define MODULE_NAME "LogTlsLog"
-#define DEFAULT_LOG_FILENAME "tls.json"
-
 #define LOG_TLS_DEFAULT                 0
 #define LOG_TLS_EXTENDED                (1 << 0)
 #define LOG_TLS_CUSTOM                  (1 << 1)

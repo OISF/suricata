@@ -67,21 +67,16 @@
 #define FILEDATA_CONTENT_INSPECT_WINDOW 4096
 
 /* raw extraction default value */
-#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE      false
-#define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
+#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE false
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
 
 /* we are in process of parsing a fresh command.  Just a placeholder.  If we
  * are not in STATE_COMMAND_DATA_MODE, we have to be in this mode */
-#define SMTP_PARSER_STATE_COMMAND_MODE            0x00
+// unused #define SMTP_PARSER_STATE_COMMAND_MODE            0x00
 /* we are in mode of parsing a command's data.  Used when we are parsing tls
  * or accepting the rfc 2822 mail after DATA command */
-#define SMTP_PARSER_STATE_COMMAND_DATA_MODE       0x01
-/* Used when we are still in the process of parsing a server command.  Used
- * with multi-line replies and the stream is fragmented before all the lines
- * for a response is seen */
-#define SMTP_PARSER_STATE_PARSING_SERVER_RESPONSE 0x02
+#define SMTP_PARSER_STATE_COMMAND_DATA_MODE 0x01
 /* Used to indicate that the parser has seen the first reply */
 #define SMTP_PARSER_STATE_FIRST_REPLY_SEEN        0x04
 /* Used to indicate that the parser is parsing a multiline reply */
@@ -104,13 +99,6 @@
 /* All other commands are represented by this var */
 #define SMTP_COMMAND_OTHER_CMD 5
 #define SMTP_COMMAND_RSET      6
-
-/* Different EHLO extensions.  Not used now. */
-#define SMTP_EHLO_EXTENSION_PIPELINING
-#define SMTP_EHLO_EXTENSION_SIZE
-#define SMTP_EHLO_EXTENSION_DSN
-#define SMTP_EHLO_EXTENSION_STARTTLS
-#define SMTP_EHLO_EXTENSION_8BITMIME
 
 #define SMTP_DEFAULT_MAX_TX 256
 
