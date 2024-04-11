@@ -42,15 +42,6 @@
 #include "util-device.h"
 #include "runmodes.h"
 
-#define IPFW_ACCEPT 0
-#define IPFW_DROP 1
-
-#define IPFW_SOCKET_POLL_MSEC 300
-
-#ifndef IP_MAXPACKET
-#define IP_MAXPACKET 65535
-#endif
-
 #ifndef IPFW
 /* Handle the case if --enable-ipfw was not used
  *
@@ -101,6 +92,11 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have IPFW compiled in */
 
 #include "action-globals.h"
+
+#define IPFW_ACCEPT 0
+#define IPFW_DROP   1
+
+#define IPFW_SOCKET_POLL_MSEC 300
 
 extern uint16_t max_pending_packets;
 
@@ -222,6 +218,10 @@ static inline void IPFWMutexUnlock(IPFWQueueVars *nq)
     if (nq->use_mutex)
         SCMutexUnlock(&nq->socket_lock);
 }
+
+#ifndef IP_MAXPACKET
+#define IP_MAXPACKET 65535
+#endif
 
 TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 {

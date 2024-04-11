@@ -2458,6 +2458,20 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+    AC_ARG_ENABLE(enable_warnings,
+           AS_HELP_STRING([--enable-warnings], [Enable supported C compiler warnings]),[enable_warnings=$enableval],[enable_warnings=no])
+    AS_IF([test "x$enable_warnings" = "xyes"], [
+        # check if our compiler supports -Wunused-macros
+        AC_MSG_CHECKING(for -Wunused-macros support)
+        OCFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -Wunused-macros"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                    [[]])],
+                AC_MSG_RESULT([yes]),
+                [AC_MSG_RESULT([no])
+                CFLAGS="$OCFLAGS"])
+    ])
+
     AC_CHECK_LIB(fuzzpcap, FPC_IsFuzzPacketCapture, HAS_FUZZPCAP="yes")
     AM_CONDITIONAL([HAS_FUZZPCAP], [test "x$HAS_FUZZPCAP" = "xyes"])
     AC_ARG_ENABLE(fuzztargets,

@@ -200,8 +200,7 @@ SslConfig ssl_config;
 #define SSLV2_MT_REQUEST_CERTIFICATE    7
 #define SSLV2_MT_CLIENT_CERTIFICATE     8
 
-#define SSLV3_RECORD_HDR_LEN            5
-#define SSLV3_MESSAGE_HDR_LEN           4
+#define SSLV3_RECORD_HDR_LEN 5
 /** max length according to RFC 5246 6.2.2 is 2^14 + 1024 */
 #define SSLV3_RECORD_MAX_LEN ((1 << 14) + 1024)
 

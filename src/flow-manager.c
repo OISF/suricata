@@ -101,14 +101,6 @@ void FlowTimeoutsEmergency(void)
     SC_ATOMIC_SET(flow_timeouts, flow_timeouts_emerg);
 }
 
-/* 1 seconds */
-#define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 1
-#define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
-/* 0.3 seconds */
-#define FLOW_EMERG_MODE_UPDATE_DELAY_SEC 0
-#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 300000
-#define NEW_FLOW_COUNT_COND 10
-
 typedef struct FlowTimeoutCounters_ {
     uint32_t rows_checked;
     uint32_t rows_skipped;

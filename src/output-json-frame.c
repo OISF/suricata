@@ -67,8 +67,6 @@
 
 #define MODULE_NAME "JsonFrameLog"
 
-#define JSON_STREAM_BUFFER_SIZE 4096
-
 typedef struct FrameJsonOutputCtx_ {
     LogFileCtx *file_ctx;
     uint16_t flags;
