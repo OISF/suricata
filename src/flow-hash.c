@@ -218,8 +218,8 @@ static inline uint32_t FlowGetHash(const Packet *p)
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
 
         } else if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
-            uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
-            uint32_t pdst = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
+            uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p));
+            uint32_t pdst = IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p));
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
             const int ai = (psrc > pdst);
@@ -468,8 +468,8 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
         /* first check the direction of the flow, in other words, the client ->
          * server direction as it's most likely the ICMP error will be a
          * response to the clients traffic */
-        if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
-                (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+        if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p))) &&
+                (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p))) &&
                 f->sp == p->l4.vars.icmpv4.emb_sport && f->dp == p->l4.vars.icmpv4.emb_dport &&
                 f->proto == ICMPV4_GET_EMB_PROTO(p) && f->recursion_level == p->recursion_level &&
                 CmpVlanIds(f->vlan_id, p->vlan_id) &&
@@ -478,8 +478,8 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
 
         /* check the less likely case where the ICMP error was a response to
          * a packet from the server. */
-        } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
-                   (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
+        } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p))) &&
+                   (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p))) &&
                    f->dp == p->l4.vars.icmpv4.emb_sport && f->sp == p->l4.vars.icmpv4.emb_dport &&
                    f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                    f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&

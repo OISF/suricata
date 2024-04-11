@@ -252,7 +252,7 @@ typedef struct ICMPV4Timestamp_ {
  */
 #define ICMPV4_DEST_UNREACH_IS_VALID(p)                                                            \
     ((!((p)->flags & PKT_IS_INVALID)) && PacketIsICMPv4((p)) &&                                    \
-            ((p)->icmp_s.type == ICMP_DEST_UNREACH) && (ICMPV4_GET_EMB_IPV4((p)) != NULL) &&       \
+            ((p)->icmp_s.type == ICMP_DEST_UNREACH) && (PacketGetICMPv4EmbIPv4((p)) != NULL) &&    \
             (p)->l4.vars.icmpv4.emb_ports_set)
 
 /**
