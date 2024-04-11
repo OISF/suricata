@@ -28,6 +28,7 @@
 
 #include "threads.h"
 #include "decode.h"
+#include "datasets.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -414,6 +415,121 @@ static int LuaSetFlowint(lua_State *luastate)
     return 0;
 }
 
+struct LuaDataset {
+    Dataset *set;
+};
+
+static int LuaDatasetGC(lua_State *luastate)
+{
+    SCLogDebug("gc:start");
+    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
+    SCLogDebug("deref %s", s->set->name);
+    s->set = NULL;
+    SCLogDebug("gc:done");
+    return 0;
+}
+
+static int LuaDatasetGetRef(lua_State *luastate)
+{
+    SCLogDebug("get");
+    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
+    if (s == NULL) {
+        LUA_ERROR("dataset is not initialized");
+    }
+
+    const char *name = lua_tostring(luastate, 2);
+    if (name == NULL) {
+        LUA_ERROR("null string");
+    }
+
+    Dataset *dataset = DatasetFind(name, DATASET_TYPE_STRING);
+    if (dataset == NULL) {
+        LUA_ERROR("dataset not found");
+    }
+    s->set = dataset;
+    return 0;
+}
+
+static int LuaDatasetAdd(lua_State *luastate)
+{
+    SCLogDebug("add:start");
+    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
+    if (s == NULL) {
+        LUA_ERROR("dataset is not initialized");
+    }
+    if (!lua_isstring(luastate, 2)) {
+        LUA_ERROR("1st arg is not a string");
+    }
+    if (!lua_isnumber(luastate, 3)) {
+        LUA_ERROR("2nd arg is not a number");
+    }
+
+    const uint8_t *str = (const uint8_t *)lua_tostring(luastate, 2);
+    if (str == NULL) {
+        LUA_ERROR("1st arg is not null string");
+    }
+
+    uint32_t str_len = lua_tonumber(luastate, 3);
+
+    int r = DatasetAdd(s->set, (const uint8_t *)str, str_len);
+    /* return value through luastate, as a luanumber */
+    lua_pushnumber(luastate, (lua_Number)r);
+    SCLogDebug("add:end");
+    return 1;
+}
+
+static int LuaDatasetNew(lua_State *luastate)
+{
+    SCLogDebug("new:start");
+    struct LuaDataset *s = (struct LuaDataset *)lua_newuserdata(luastate, sizeof(*s));
+    if (s == NULL) {
+        LUA_ERROR("failed to get userdata");
+    }
+    luaL_getmetatable(luastate, "dataset::metatable");
+    lua_setmetatable(luastate, -2);
+    SCLogDebug("new:done");
+    return 1;
+}
+
+// clang-format off
+const luaL_Reg datasetlib[] = {
+    { "new", LuaDatasetNew },
+    { "get", LuaDatasetGetRef },
+    { "add", LuaDatasetAdd },
+    { "__gc", LuaDatasetGC },
+    { NULL, NULL }
+};
+// clang-format on
+
+static void SetFuncs(lua_State *luastate, const luaL_Reg *lib)
+{
+    for (; lib->name != NULL; lib++) {
+        lua_pushstring(luastate, lib->name);
+        lua_pushcfunction(luastate, lib->func);
+        lua_settable(luastate, -3);
+    }
+}
+
+static void CreateMeta(lua_State *luastate)
+{
+    luaL_newmetatable(luastate, "dataset::metatable");
+    lua_pushliteral(luastate, "__index");
+    lua_pushvalue(luastate, -2);
+    lua_rawset(luastate, -3);
+    SetFuncs(luastate, datasetlib);
+}
+
+static void LuaDatasetRegister(lua_State *luastate)
+{
+    CreateMeta(luastate);
+    lua_newtable(luastate);
+    SetFuncs(luastate, datasetlib);
+    lua_pushvalue(luastate, -1);
+    lua_setglobal(luastate, "dataset");
+    lua_pop(luastate, 1);
+    lua_pop(luastate, 1);
+}
+
 static int LuaIncrFlowint(lua_State *luastate)
 {
     uint32_t idx;
@@ -577,6 +693,8 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     lua_pushcfunction(lua_state, LuaGetByteVar);
     lua_setglobal(lua_state, "SCByteVarGet");
+
+    LuaDatasetRegister(lua_state);
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
