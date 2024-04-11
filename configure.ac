@@ -324,6 +324,16 @@
         CFLAGS="$CFLAGS -std=gnu99"
     fi
 
+    # check if our compiler supports -Wunused-macros
+    AC_MSG_CHECKING(for -Wunused-macros support)
+    OCFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS -Wunused-macros"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                [[]])],
+            AC_MSG_RESULT([yes]),
+            [AC_MSG_RESULT([no])
+             CFLAGS="$OCFLAGS"])
+
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage gnu __thread support)
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
