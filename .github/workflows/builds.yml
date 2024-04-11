@@ -1262,6 +1262,56 @@ jobs:
           else
             exit 0
           fi
+  almalinux-9-minimal-recommended-dependecies:
+    name: AlmaLinux 9 (Minimal/Recommended Build)
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    needs: [prepare-deps]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3.3.1
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install git dependencies
+        run: |
+          dnf -y install \
+            sudo \
+            git \
+            libtool \
+            which
+
+      - name: Install Almalinux 9 extra repositories
+        run : |
+          dnf -y update
+          dnf -y install dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb
+
+      - name: Install minimal dependencies
+        run: ./scripts/docs-almalinux9-minimal-build.sh
+
+      - uses: actions/checkout@v3.5.3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j ${{ env.CPUS }}
+      - run: ./src/suricata --build-info # check if we can run Suricata
 
   ubuntu-22-04-cov-ut:
     name: Ubuntu 22.04 (unittests coverage)
@@ -1869,6 +1919,45 @@ jobs:
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-netmap
       - run: make -j2
       - run: ./src/suricata --build-info | grep -E "Netmap support:\s+yes"
+
+  ubuntu-22-04-minimal-recommended-build:
+    name: Ubuntu 22.04 (Minimal/Recommended Build)
+    needs: [prepare-deps, prepare-cbindgen]
+    runs-on: ubuntu-22.04
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install git dependencies
+        run: |
+          sudo apt update
+          sudo apt -y install \
+            git \
+            libtool
+
+      - uses: actions/checkout@v3.5.3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      
+      - name: Install minimal dependencies
+        run: ./scripts/docs-ubuntu-debian-minimal-build.sh
+
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j ${{ env.CPUS }}
+      - run: ./src/suricata --build-info # check if we can run Suricata
 
   ubuntu-22-04-dpdk-build:
     name: Ubuntu 22.04 (DPDK Build)
