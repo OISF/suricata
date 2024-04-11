@@ -162,20 +162,20 @@ typedef struct TCPHdr_
 typedef struct TCPVars_
 {
     /* commonly used and needed opts */
-    bool md5_option_present;
-    bool ao_option_present;
-    bool ts_set;
-    bool sack_ok;
-    bool mss_set;
-    bool tfo_set;
+    uint8_t md5_option_present : 1;
+    uint8_t ao_option_present : 1;
+    uint8_t ts_set : 1;
+    uint8_t sack_ok : 1;
+    uint8_t mss_set : 1;
+    uint8_t tfo_set : 1;
     uint8_t wscale_set : 1;
-    uint8_t wscale : 4;
-    uint16_t mss; /**< MSS value in host byte order */
+    uint8_t sack_set : 1;
+    uint8_t wscale;
+    uint8_t sack_cnt; /**< number of sack records */
+    uint16_t mss;     /**< MSS value in host byte order */
     uint16_t stream_pkt_flags;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
-    bool sack_set;
-    uint8_t sack_cnt;     /**< number of sack records */
     uint16_t sack_offset; /**< offset relative to tcp header start */
 } TCPVars;
 
