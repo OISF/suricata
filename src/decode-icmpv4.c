@@ -69,7 +69,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
     }
 
     /** We need to fill icmpv4vars */
-    p->l4.vars.icmpv4.emb_ipv4h = icmp4_ip4h;
+    const uint8_t *icmpv4_ptr = (const uint8_t *)p->l4.hdrs.icmpv4h;
+    p->l4.vars.icmpv4.emb_ip4h_offset = partial_packet - icmpv4_ptr;
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
