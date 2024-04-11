@@ -845,6 +845,13 @@ static inline bool PacketIsICMPv4(const Packet *p)
     return p->l4.type == PACKET_L4_ICMPV4;
 }
 
+static inline const IPV4Hdr *ICMPV4_GET_EMB_IPV4(const Packet *p)
+{
+    const uint8_t *start = (const uint8_t *)PacketGetICMPv4(p);
+    const uint8_t *ip = start + p->l4.vars.icmpv4.emb_ip4h_offset;
+    return (const IPV4Hdr *)ip;
+}
+
 static inline ICMPV6Hdr *PacketSetICMPv6(Packet *p, const uint8_t *buf)
 {
     DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
