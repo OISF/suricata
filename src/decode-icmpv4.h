@@ -181,14 +181,14 @@ typedef struct ICMPV4ExtHdr_
 /* ICMPv4 vars */
 typedef struct ICMPV4Vars_
 {
+    /** Pointers to the embedded packet headers */
+    IPV4Hdr *emb_ipv4h;
+
     uint16_t  id;
     uint16_t  seq;
 
     /** Actual header length **/
     uint16_t hlen;
-
-    /** Pointers to the embedded packet headers */
-    IPV4Hdr *emb_ipv4h;
 
     uint8_t emb_ip4_proto;
 
