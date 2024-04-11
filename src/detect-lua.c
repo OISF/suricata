@@ -164,7 +164,6 @@ void DetectLuaRegister(void)
 
 #define DATATYPE_BUFFER BIT_U32(22)
 
-// TODO: move to config
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
 
@@ -608,7 +607,7 @@ static void *DetectLuaThreadInit(void *data)
     t->alproto = lua->alproto;
     t->flags = lua->flags;
 
-    t->luastate = sb_newstate(lua->alloc_limit, lua->instruction_limit);
+    t->luastate = SCLuaSbStateNew(lua->alloc_limit, lua->instruction_limit);
     if (t->luastate == NULL) {
         SCLogError("luastate pool depleted");
         goto error;
@@ -617,7 +616,7 @@ static void *DetectLuaThreadInit(void *data)
     if (lua->allow_restricted_functions) {
         luaL_openlibs(t->luastate);
     } else {
-        sb_loadrestricted(t->luastate);
+        SCLuaSbLoadRestricted(t->luastate);
     }
 
     LuaRegisterExtensions(t->luastate);
@@ -658,7 +657,7 @@ static void *DetectLuaThreadInit(void *data)
 
 error:
     if (t->luastate != NULL)
-        sb_close(t->luastate);
+        SCLuaSbStateClose(t->luastate);
     SCFree(t);
     return NULL;
 }
@@ -668,7 +667,7 @@ static void DetectLuaThreadFree(void *ctx)
     if (ctx != NULL) {
         DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
         if (t->luastate != NULL)
-            sb_close(t->luastate);
+            SCLuaSbStateClose(t->luastate);
         SCFree(t);
     }
 }
@@ -714,13 +713,13 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 {
     int status;
 
-    lua_State *luastate = sb_newstate(ld->alloc_limit, ld->instruction_limit);
+    lua_State *luastate = SCLuaSbStateNew(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
     if (ld->allow_restricted_functions) {
         luaL_openlibs(luastate);
     } else {
-        sb_loadrestricted(luastate);
+        SCLuaSbLoadRestricted(luastate);
     }
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
@@ -1000,10 +999,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
     /* pop the table */
     lua_pop(luastate, 1);
-    sb_close(luastate);
+    SCLuaSbStateClose(luastate);
     return 0;
 error:
-    sb_close(luastate);
+    SCLuaSbStateClose(luastate);
     return -1;
 }
 
