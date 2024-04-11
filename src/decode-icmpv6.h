@@ -156,8 +156,8 @@ typedef struct ICMPV6Vars_ {
     uint16_t emb_sport;
     uint16_t emb_dport;
 
-    /** Pointers to the embedded packet headers */
-    IPV6Hdr *emb_ipv6h;
+    /** offset of the embedded packet header */
+    uint16_t emb_ip6h_offset;
 } ICMPV6Vars;
 
 void DecodeICMPV6RegisterTests(void);
