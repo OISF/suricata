@@ -506,8 +506,8 @@ static int DecodeICMPV4test03(void)
     FAIL_IF(p->l4.vars.icmpv4.emb_dport != 33450);
 
     /* check the src,dst IPs contained inside */
-    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
-    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p));
     char s[16], d[16];
     PrintInet(AF_INET, &src_ip, s, sizeof(s));
     PrintInet(AF_INET, &dst_ip, d, sizeof(d));
@@ -574,8 +574,8 @@ static int DecodeICMPV4test04(void)
     }
 
     // check the src,dst IPs contained inside
-    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
-    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p));
     char s[16], d[16];
     PrintInet(AF_INET, &src_ip, s, sizeof(s));
     PrintInet(AF_INET, &dst_ip, d, sizeof(d));
@@ -642,8 +642,8 @@ static int DecodeICMPV4test05(void)
     }
 
     // check the src,dst IPs contained inside
-    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
-    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
+    uint32_t src_ip = IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p));
+    uint32_t dst_ip = IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p));
     char s[16], d[16];
     PrintInet(AF_INET, &src_ip, s, sizeof(s));
     PrintInet(AF_INET, &dst_ip, d, sizeof(d));
