@@ -861,6 +861,7 @@ int DatasetsInit(void)
     uint32_t default_hashsize = 0;
     GetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
+        SCLogDebug("datasets %p", datasets);
         int list_pos = 0;
         ConfNode *iter = NULL;
         TAILQ_FOREACH(iter, &datasets->head, next) {
@@ -868,6 +869,7 @@ int DatasetsInit(void)
                 list_pos++;
                 continue;
             }
+            SCLogDebug("datasets %p name %s", datasets, iter->name);
 
             char save[PATH_MAX] = "";
             char load[PATH_MAX] = "";
