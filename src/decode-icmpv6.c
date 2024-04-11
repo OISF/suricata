@@ -41,7 +41,9 @@
 static inline const IPV6Hdr *PacketGetICMPv6EmbIPv6(const Packet *p)
 {
     BUG_ON(p->l4.type != PACKET_L4_ICMPV6);
-    return p->l4.vars.icmpv6.emb_ipv6h;
+    const uint8_t *start = (const uint8_t *)PacketGetICMPv6(p);
+    const uint8_t *ip = start + p->l4.vars.icmpv6.emb_ip6h_offset;
+    return (const IPV6Hdr *)ip;
 }
 #endif
 
@@ -75,7 +77,9 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     }
 
     /** We need to fill l4.vars.icmpv6 */
-    p->l4.vars.icmpv6.emb_ipv6h = icmp6_ip6h;
+    const uint8_t *icmpv6_ptr = (const uint8_t *)p->l4.hdrs.icmpv6h;
+    DEBUG_VALIDATE_BUG_ON((ptrdiff_t)(partial_packet - icmpv6_ptr) > (ptrdiff_t)UINT16_MAX);
+    p->l4.vars.icmpv6.emb_ip6h_offset = (uint16_t)(partial_packet - icmpv6_ptr);
     /** Get protocol and ports inside the embedded ipv6 packet and set the pointers */
     p->l4.vars.icmpv6.emb_ip6_proto_next = icmp6_ip6h->s_ip6_nxt;
 
