@@ -2,7 +2,9 @@ EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
-		vendor
+		vendor \
+		Cargo.toml Cargo.lock \
+		derive/Cargo.toml
 
 if !DEBUG
 RELEASE = --release
@@ -30,14 +32,14 @@ endif
 
 all-local: Cargo.toml
 if HAVE_CYGPATH
-	@rustup_home@ \
-		CARGO_HOME="$(CARGO_HOME)" \
+	cd $(abs_top_srcdir)/rust && \
+		@rustup_home@ CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else
-	@rustup_home@ \
-		CARGO_HOME="$(CARGO_HOME)" \
+	cd $(abs_top_srcdir)/rust && \
+		@rustup_home@ CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
@@ -72,7 +74,8 @@ maintainer-clean-local:
 	rm -rf vendor gen
 
 check:
-	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
+	cd $(abs_top_srcdir)/rust && \
+		CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
