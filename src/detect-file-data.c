@@ -151,6 +151,9 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
 
     s->init_data->init_flags |= SIG_FLAG_INIT_FILEDATA;
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) == 0) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
+    }
     SetupDetectEngineConfig(de_ctx);
     return 0;
 }

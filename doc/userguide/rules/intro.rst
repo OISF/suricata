@@ -278,8 +278,9 @@ Bidirectional rules can use direction-abmibuous keywords, by first using
 Bidirectional rules have some limitations :
 - They are only meant to work on transactions with first a request to the server,
 and then a response to the client, and not the other way around.
-- They cannot have ``fast_pattern`` or ``prefilter`` on a keyword which is on
-the direction to client.
+- They cann have ``fast_pattern`` or ``prefilter`` on a keyword which is on
+the direction to client only if they do not have any have streaming buffers
+for detection on the other side.
 - They will refuse to load if a single directional rule is enough.
 
 Rule options
