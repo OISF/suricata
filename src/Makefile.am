@@ -507,8 +507,6 @@ noinst_HEADERS = \
 	util-affinity.h \
 	util-atomic.h \
 	util-base64.h \
-	util-bloomfilter-counting.h \
-	util-bloomfilter.h \
 	util-bpf.h \
 	util-buffer.h \
 	util-byte.h \
@@ -1107,8 +1105,6 @@ libsuricata_c_a_SOURCES = \
 	util-affinity.c \
 	util-atomic.c \
 	util-base64.c \
-	util-bloomfilter.c \
-	util-bloomfilter-counting.c \
 	util-bpf.c \
 	util-buffer.c \
 	util-byte.c \

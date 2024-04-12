@@ -85,8 +85,6 @@
 #include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
-#include "util-bloomfilter.h"
-#include "util-bloomfilter-counting.h"
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-proto-name.h"
@@ -139,8 +137,6 @@ static void RegisterUnittests(void)
     SigTableRegisterTests();
     HashTableRegisterTests();
     HashListTableRegisterTests();
-    BloomFilterRegisterTests();
-    BloomFilterCountingRegisterTests();
     PoolRegisterTests();
     ByteRegisterTests();
     MpmRegisterTests();
