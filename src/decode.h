@@ -576,7 +576,6 @@ typedef struct Packet_
 
     ICMPV6Hdr *icmpv6h;
 
-    PPPHdr *ppph;
     PPPOESessionHdr *pppoesh;
     PPPOEDiscoveryHdr *pppoedh;
 

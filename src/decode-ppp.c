@@ -213,17 +213,12 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     }
     /* implied proto_offset + proto_size == 4, so continue below */
 
-    p->ppph = (PPPHdr *)pkt;
+    PPPHdr *ppph = (PPPHdr *)pkt;
 
-    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "", p, pkt, SCNtohs(p->ppph->protocol),
-            len);
+    SCLogDebug(
+            "p %p pkt %p PPP protocol %04x Len: %" PRIu32 "", p, pkt, SCNtohs(ppph->protocol), len);
 
-    int r = DecodePPPUncompressedProto(
-            tv, dtv, p, pkt, len, SCNtohs(p->ppph->protocol), data_offset);
-    if (r < 0) {
-        p->ppph = NULL;
-    }
-    return r;
+    return DecodePPPUncompressedProto(tv, dtv, p, pkt, len, SCNtohs(ppph->protocol), data_offset);
 }
 
 /* TESTS BELOW */
@@ -319,11 +314,6 @@ static int DecodePPPtest03 (void)
 
     FlowShutdown();
 
-    if(p->ppph == NULL) {
-        SCFree(p);
-        return 0;
-    }
-
     if(ENGINE_ISSET_EVENT(p,PPP_PKT_TOO_SMALL))  {
         SCFree(p);
         return 0;
@@ -376,11 +366,6 @@ static int DecodePPPtest04 (void)
     DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp));
 
     FlowShutdown();
-
-    if(p->ppph == NULL) {
-        SCFree(p);
-        return 0;
-    }
 
     if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
         SCFree(p);

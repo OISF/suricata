@@ -138,7 +138,6 @@ void PacketReinit(Packet *p)
     if (p->icmpv6h != NULL) {
         CLEAR_ICMPV6_PACKET(p);
     }
-    p->ppph = NULL;
     p->pppoesh = NULL;
     p->pppoedh = NULL;
     p->greh = NULL;
