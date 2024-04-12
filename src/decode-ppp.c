@@ -73,6 +73,7 @@ static int DecodePPPCompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Packe
             }
 
             if (likely(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + data_offset)) == 4)) {
+                p->flags |= PKT_PPP_VJ_UCOMP;
                 return DecodeIPV4(tv, dtv, p, pkt + data_offset, (uint16_t)(len - data_offset));
             } else
                 return TM_ECODE_FAILED;
