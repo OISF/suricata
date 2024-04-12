@@ -43,6 +43,8 @@
 #include "decode-events.h"
 #include "conf.h"
 
+#include "feature.h"
+
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -2950,6 +2952,31 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
+#ifdef HAVE_JA3
+static void CheckJA3Enabled(void)
+{
+    const char *strval = NULL;
+    /* Check if we should generate JA3 fingerprints */
+    int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+    if (ConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
+        enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+    } else if (strcmp(strval, "auto") == 0) {
+        enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+    } else if (ConfValIsFalse(strval)) {
+        enable_ja3 = 0;
+        ssl_config.disable_ja3 = true;
+    } else if (ConfValIsTrue(strval)) {
+        enable_ja3 = true;
+    }
+    SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
+    if (!ssl_config.disable_ja3 && !g_disable_hashing) {
+        /* The feature is available, i.e. _could_ be activated by a rule or
+           even is enabled in the configuration. */
+        ProvidesFeature(FEATURE_JA3);
+    }
+}
+#endif /* HAVE_JA3 */
+
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
@@ -3049,20 +3076,9 @@ void RegisterSSLParsers(void)
         }
         SCLogDebug("ssl_config.encrypt_mode %u", ssl_config.encrypt_mode);
 
-        /* Check if we should generate JA3 fingerprints */
-        int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        const char *strval = NULL;
-        if (ConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
-            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        } else if (strcmp(strval, "auto") == 0) {
-            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        } else if (ConfValIsFalse(strval)) {
-            enable_ja3 = 0;
-            ssl_config.disable_ja3 = true;
-        } else if (ConfValIsTrue(strval)) {
-            enable_ja3 = true;
-        }
-        SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
+#ifdef HAVE_JA3
+        CheckJA3Enabled();
+#endif /* HAVE_JA3 */
 
         if (g_disable_hashing) {
             if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
@@ -3071,7 +3087,9 @@ void RegisterSSLParsers(void)
             }
         } else {
             if (RunmodeIsUnittests()) {
+#ifdef HAVE_JA3
                 SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+#endif /* HAVE_JA3 */
             }
         }
     } else {

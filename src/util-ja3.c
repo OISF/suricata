@@ -64,6 +64,8 @@ void Ja3BufferFree(JA3Buffer **buffer)
     *buffer = NULL;
 }
 
+#ifdef HAVE_JA3
+
 /**
  * \internal
  * \brief Resize buffer if it is full.
@@ -300,3 +302,29 @@ InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
     }
     return buffer;
 }
+
+#else /* HAVE_JA3 */
+
+/* Stubs for when JA3 is disabled */
+
+int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
+{
+    return 0;
+}
+
+int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
+{
+    return 0;
+}
+
+char *Ja3GenerateHash(JA3Buffer *buffer)
+{
+    return NULL;
+}
+
+int Ja3IsDisabled(const char *type)
+{
+    return true;
+}
+
+#endif /* HAVE_JA3 */

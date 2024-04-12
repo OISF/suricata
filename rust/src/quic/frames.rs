@@ -136,7 +136,7 @@ pub(crate) struct Crypto {
     // We remap the Vec<TlsExtension> from tls_parser::parse_tls_extensions because of
     // the lifetime of TlsExtension due to references to the slice used for parsing
     pub extv: Vec<QuicTlsExtension>,
-    pub ja3: String,
+    pub ja3: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -296,7 +296,15 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                 ja3.push(',');
                 let ciphers = ch.ciphers;
                 let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
-                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+                return Some(Frame::Crypto(Crypto {
+                    ciphers,
+                    extv,
+                    ja3: if cfg!(feature = "ja3") {
+                        Some(ja3)
+                    } else {
+                        None
+                    },
+                }));
             }
             ServerHello(sh) => {
                 let mut ja3 = String::with_capacity(256);
@@ -306,7 +314,15 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                 ja3.push(',');
                 let ciphers = vec![sh.cipher];
                 let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
-                return Some(Frame::Crypto(Crypto { ciphers, extv, ja3 }));
+                return Some(Frame::Crypto(Crypto {
+                    ciphers,
+                    extv,
+                    ja3: if cfg!(feature = "ja3") {
+                        Some(ja3)
+                    } else {
+                        None
+                    },
+                }));
             }
             _ => {}
         }
