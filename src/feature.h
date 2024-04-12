@@ -26,6 +26,7 @@
 
 /* Provided feature names */
 #define FEATURE_OUTPUT_FILESTORE    "output::file-store"
+#define FEATURE_JA3                 "ja3"
 
 void ProvidesFeature(const char *);
 bool RequiresFeature(const char *);
