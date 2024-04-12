@@ -744,6 +744,9 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #endif
+#ifdef HAVE_JA3
+    strlcat(features, "HAVE_JA3 ", sizeof(features));
+#endif
 #ifdef HAVE_LUAJIT
     strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
