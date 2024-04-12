@@ -230,7 +230,9 @@ impl QuicState {
                     }
                 }
                 Frame::Crypto(c) => {
-                    ja3 = Some(c.ja3.clone());
+                    if let Some(ja3str) = &c.ja3 {
+                        ja3 = Some(ja3str.clone());
+                    }
                     for e in &c.extv {
                         if e.etype == TlsExtensionType::ServerName && !e.values.is_empty() {
                             sni = Some(e.values[0].to_vec());
