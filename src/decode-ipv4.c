@@ -601,7 +601,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
-            if(p->ppph != NULL && SCNtohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
+            if (p->flags & PKT_PPP_VJ_UCOMP) {
                 DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                           IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p));
             }
