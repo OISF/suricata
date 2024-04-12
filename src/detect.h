@@ -298,6 +298,11 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_JA                    BIT_U32(10) /**< signature has ja3/ja4 keyword */
 #define SIG_FLAG_INIT_BIDIR_TOCLIENT        BIT_U32(11) /**< signature now takes keywords toclient */
 #define SIG_FLAG_INIT_BIDIR_TOSERVER        BIT_U32(12) /**< signature now takes keywords toserver */
+// Two following flags are meant to be mutually exclusive
+#define SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER                                                     \
+    BIT_U32(13) /**< bidirectional signature uses a streaming buffer to server */
+#define SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT                                                          \
+    BIT_U32(14) /**< bidirectional signature uses a fast pattern to client */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
