@@ -77,11 +77,15 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
      * 'fast_pattern' w/o options. */
     if (sm->type == DETECT_CONTENT) {
         if (s->flags & SIG_FLAG_BOTHDIR && s->init_data->curbuf != NULL) {
-            if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
-                SCLogError("prefilter cannot be used on to_client keyword for "
-                           "bidirectional rule %u",
-                        s->id);
-                SCReturnInt(-1);
+            if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER) {
+                if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
+                    SCLogError("prefilter cannot be used on to_client keyword for "
+                               "bidirectional rule %u",
+                            s->id);
+                    SCReturnInt(-1);
+                } else {
+                    s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT;
+                }
             }
         }
 

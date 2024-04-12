@@ -1175,6 +1175,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
              tmp = tmp->next)
         {
             if (s->flags & SIG_FLAG_BOTHDIR) {
+                // prefer to choose a fast_pattern to server by default
                 if (DetectBufferToClient(de_ctx, tmp->list_id, s->alproto)) {
                     continue;
                 }

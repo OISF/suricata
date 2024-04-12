@@ -1096,9 +1096,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
+        // also if it is not the same direction, but
+        // this is a bidrectional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
-                direction == engine->dir)
-        {
+                (direction == engine->dir || ((s->flags & SIG_FLAG_BOTHDIR) && direction == 1))) {
             const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
             /* special case: file_data on 'alert tcp' will have engines
              * in the list that are not for us. */
@@ -1130,6 +1131,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 }
             }
 
+            uint8_t engine_flags = flow_flags;
+            if (direction != engine->dir) {
+                engine_flags = flow_flags ^ (STREAM_TOCLIENT | STREAM_TOSERVER);
+            }
             /* run callback: but bypass stream callback if we can */
             uint8_t match;
             if (unlikely(engine->stream && can->stream_stored)) {
@@ -1138,8 +1143,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
-                match = engine->v2.Callback(
-                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                match = engine->v2.Callback(de_ctx, det_ctx, engine, s, f, engine_flags, alstate,
+                        tx->tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;

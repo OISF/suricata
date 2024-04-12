@@ -129,6 +129,9 @@ static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     s->init_data->list = DETECT_SM_LIST_NOTSET;
     s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) == 0) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
+    }
 
     size_t dotstr_len = strlen(str) + 2;
     char *dotstr = SCCalloc(1, dotstr_len);
@@ -176,6 +179,9 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     }
     s->init_data->list = DETECT_SM_LIST_NOTSET;
     s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) == 0) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
+    }
 
     if (DetectContentSetup(de_ctx, s, str) < 0) {
         return -1;
@@ -211,6 +217,9 @@ static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, cons
     if (DetectBufferSetActiveList(de_ctx, s, g_file_name_buffer_id) < 0)
         return -1;
     s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) == 0) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
+    }
     return 0;
 }
 
