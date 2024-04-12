@@ -995,6 +995,7 @@ void DecodeUnregisterCounters(void);
  * Libpcap on at least OpenBSD returns 101 as datalink type for RAW pcaps though. */
 #define LINKTYPE_RAW2        101
 #define LINKTYPE_IPV4        228
+#define LINKTYPE_IPV6        229
 #define LINKTYPE_GRE_OVER_IP 778
 #define LINKTYPE_CISCO_HDLC  DLT_C_HDLC
 #define PPP_OVER_GRE         11
