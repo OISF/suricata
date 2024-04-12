@@ -1005,7 +1005,8 @@ void DecodeUnregisterCounters(void);
 
 /** Flag to indicate that packet header or contents should not be inspected */
 #define PKT_NOPACKET_INSPECTION BIT_U32(0)
-// vacancy
+/** Packet has a PPP_VJ_UCOMP header */
+#define PKT_PPP_VJ_UCOMP BIT_U32(1)
 
 /** Flag to indicate that packet contents should not be inspected */
 #define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
