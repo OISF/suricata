@@ -240,10 +240,14 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     if (s->flags & SIG_FLAG_BOTHDIR && s->init_data->curbuf != NULL) {
         if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
-            SCLogError("fast_pattern cannot be used on to_client keyword for "
-                       "bidirectional rule %u",
-                    s->id);
-            goto error;
+            if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER) {
+                SCLogError("fast_pattern cannot be used on to_client keyword for "
+                           "bidirectional rule with a streaming buffer to server %u",
+                        s->id);
+                goto error;
+            } else {
+                s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT;
+            }
         }
     }
 
