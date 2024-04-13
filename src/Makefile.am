@@ -288,6 +288,7 @@ noinst_HEADERS = \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
+	detect-sip-content-length.h \
 	detect-sip-content-type.h \
 	detect-sip-headers-stub.h \
 	detect-sip-from.h \
@@ -905,6 +906,7 @@ libsuricata_c_a_SOURCES = \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
+	detect-sip-content-length.c \
 	detect-sip-content-type.c \
 	detect-sip-from.c \
 	detect-sip-method.c \
