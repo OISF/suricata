@@ -56,7 +56,6 @@ jobs:
                 libnuma-dev \
                 libhiredis-dev \
                 libhyperscan-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
