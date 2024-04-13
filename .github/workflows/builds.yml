@@ -212,7 +212,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -365,7 +364,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -513,7 +511,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
@@ -563,7 +561,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -679,7 +676,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -742,7 +739,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -839,7 +835,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -937,7 +932,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1035,7 +1029,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1066,7 +1059,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1128,7 +1121,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1213,7 +1205,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1307,7 +1298,6 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1378,7 +1368,6 @@ jobs:
                 libhiredis-dev \
                 libhyperscan-dev \
                 libjansson-dev \
-                liblua5.4-dev \
                 libmagic-dev \
                 libnet1-dev \
                 libnetfilter-queue-dev \
@@ -1459,7 +1448,6 @@ jobs:
                 libnuma-dev \
                 libhiredis-dev \
                 libhyperscan-dev \
-                liblua5.4-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1587,7 +1575,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1702,7 +1689,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1850,7 +1836,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1939,7 +1924,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -2040,7 +2024,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.4-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -2180,7 +2163,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-warnings --enable-unittests --disable-lua
+      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-warnings --enable-unittests
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: make dist
@@ -2310,7 +2293,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                liblua5.4-dev \
                 libpython2.7 \
                 make \
                 parallel \
@@ -2401,7 +2383,6 @@ jobs:
                 libnfnetlink0 \
                 libhiredis-dev \
                 libjansson-dev \
-                liblua5.4-dev \
                 libpython2.7 \
                 make \
                 rustc \
@@ -2472,7 +2453,6 @@ jobs:
                   libjansson-dev \
                   libevent-dev \
                   libevent-pthreads-2.1-7 \
-                  liblua5.4-dev \
                   libpython2.7 \
                   make \
                   parallel \
@@ -2564,7 +2544,6 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
-                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -2683,7 +2662,6 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.4-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2771,7 +2749,6 @@ jobs:
               libmagic-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.4-dev \
               liblz4-dev \
               libssl-dev \
               liblzma-dev \
@@ -2853,7 +2830,6 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.4-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2941,7 +2917,6 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.4-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -3057,7 +3032,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets --disable-lua
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -3091,7 +3066,6 @@ jobs:
           libtool \
           libyaml \
           pyyaml \
-          lua \
           pcre2 \
           pkg-config \
           python \
@@ -3138,7 +3112,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lua
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3194,7 +3168,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap mingw-w64-x86_64-lua
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3238,7 +3212,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap mingw-w64-x86_64-lua
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
