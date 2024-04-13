@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,6 +47,7 @@
 #include "rust.h"
 
 #define PGSQL_LOG_PASSWORDS BIT_U32(0)
+#define PGSQL_DEFAULTS      (PGSQL_LOG_PASSWORDS)
 
 typedef struct OutputPgsqlCtx_ {
     uint32_t flags;
@@ -57,6 +58,11 @@ typedef struct LogPgsqlLogThread_ {
     OutputPgsqlCtx *pgsqllog_ctx;
     OutputJsonThreadCtx *ctx;
 } LogPgsqlLogThread;
+
+bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb)
+{
+    return rs_pgsql_logger(vtx, PGSQL_DEFAULTS, jb);
+}
 
 static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *txptr, uint64_t tx_id)
