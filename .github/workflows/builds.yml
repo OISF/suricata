@@ -212,7 +212,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -266,7 +265,7 @@ jobs:
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }} distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
           MAKEFLAGS: "-j ${{ env.CPUS }}"
       - run: test -e doc/userguide/suricata.1
       - name: Checking includes
@@ -365,7 +364,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -458,7 +456,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -564,7 +561,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -654,7 +650,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -744,7 +739,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -842,7 +836,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -880,7 +873,7 @@ jobs:
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -942,7 +935,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1040,7 +1032,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1071,7 +1062,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1133,7 +1124,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1218,7 +1208,6 @@ jobs:
                 hiredis-devel \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1312,7 +1301,6 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
-                lua-devel \
                 libasan \
                 libtool \
                 libyaml-devel \
@@ -1389,7 +1377,6 @@ jobs:
                 libnuma-dev \
                 libhiredis-dev \
                 libhyperscan-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1516,7 +1503,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -2163,7 +2149,6 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2196,7 +2181,7 @@ jobs:
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation
@@ -2332,7 +2317,6 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2370,7 +2354,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Building Rust documentation
@@ -2420,7 +2404,6 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -2503,7 +2486,6 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -2570,7 +2552,6 @@ jobs:
           libnet \
           libtool \
           libyaml \
-          lua \
           pkg-config \
           python \
           rust \

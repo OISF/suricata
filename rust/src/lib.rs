@@ -120,3 +120,6 @@ pub mod lzma;
 pub mod util;
 pub mod ffi;
 pub mod feature;
+
+#[allow(unused_imports)]
+pub use suricata_lua_sys;
