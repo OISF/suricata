@@ -61,6 +61,9 @@ endif
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	mkdir -p $(abs_top_builddir)/rust/gen
+	cp -a $(RUST_SURICATA_LIBDIR)/build/suricata-lua-sys-*/out/lua/*.h \
+		$(abs_top_builddir)/rust/gen/
 
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -92,7 +95,8 @@ vendor:
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
-	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+	cd $(abs_top_srcdir)/rust && \
+		cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
 else
 gen/rust-bindings.h:

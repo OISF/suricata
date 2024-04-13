@@ -493,19 +493,9 @@ typedef enum {
     LOGGER_SIZE,
 } LoggerId;
 
-#ifndef HAVE_LUA
-
 /* If we don't have Lua, create a typedef for lua_State so the
  * exported Lua functions don't fail the build. */
-typedef void lua_State;
-
-#else
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
-#endif
+typedef struct lua_State lua_State;
 
 #include "tm-threads-common.h"
 #include "util-optimize.h"

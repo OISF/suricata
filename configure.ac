@@ -243,9 +243,6 @@
     #check for os
     AC_MSG_CHECKING([host os])
 
-    # Default lua libname if not detected otherwise.
-    LUA_LIB_NAME="lua5.4"
-
     # If no host os was detected, try with uname
     if test -z "$host" ; then
         host="`uname`"
@@ -259,7 +256,6 @@
     e_magic_file_comment="#"
     case "$host" in
         *-*-*freebsd*)
-            LUA_LIB_NAME="lua-5.4"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
@@ -272,7 +268,6 @@
             RUST_LDADD="-lm -lc++ -lc++abi"
             ;;
         *darwin*|*Darwin*)
-            LUA_LIB_NAME="lua-5.4"
             CFLAGS="${CFLAGS} -DOS_DARWIN"
             CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
             LDFLAGS="${LDFLAGS} -L/opt/local/lib -framework Security"
@@ -293,7 +288,6 @@
             TRY_WPCAP="yes"
             ;;
         *-*-cygwin)
-            LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
             TRY_WPCAP="yes"
             ;;
@@ -1875,120 +1869,11 @@
         fi
     fi
 
-  # liblua
-    AC_ARG_ENABLE(lua,
-            AS_HELP_STRING([--disable-lua],[Disable Lua support]),
-                [ enable_lua="$enableval"],
-                [ enable_lua="yes"])
-
-    AC_ARG_WITH(liblua_includes,
-            [  --with-liblua-includes=DIR  liblua include directory],
-            [with_liblua_includes="$withval"],[with_liblua_includes="no"])
-    AC_ARG_WITH(liblua_libraries,
-            [  --with-liblua-libraries=DIR    liblua library directory],
-            [with_liblua_libraries="$withval"],[with_liblua_libraries="no"])
-
-    if test "$enable_lua" = "yes"; then
-        if test "$with_liblua_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_liblua_includes}"
-        else
-            # lua lua54 lua5.4 lua-5.4
-            PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
-                PKG_CHECK_MODULES([LUA], [lua5.4], [LUA="yes"], [
-                    PKG_CHECK_MODULES([LUA], [lua-5.4], [LUA="yes"], [
-                        PKG_CHECK_MODULES([LUA], [lua54], [LUA="yes"], [
-                            LUA="no"
-                        ])
-                    ])
-                ])
-            ])
-            CPPFLAGS="${CPPFLAGS} ${LUA_CFLAGS}"
-        fi
-
-        AC_CHECK_HEADER(lualib.h,LUA="yes",LUA="no")
-        if test "$LUA" = "yes"; then
-            if test "$with_liblua_libraries" != "no"; then
-                LDFLAGS="${LDFLAGS}  -L${with_liblua_libraries}"
-                AC_CHECK_LIB(${LUA_LIB_NAME}, luaL_openlibs,, LUA="no")
-                if test "$LUA" = "no"; then
-                    echo
-                    echo "   ERROR!  liblua library not found, go get it"
-                    echo "   from http://lua.org/index.html or your distribution:"
-                    echo
-                    echo "   Ubuntu: apt-get install liblua5.4-dev"
-                    echo "   Fedora: dnf install lua-devel"
-                    echo "   CentOS/RHEL: yum install lua-devel"
-                    echo
-                    echo "   If you installed software in a non-standard prefix"
-                    echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
-                    echo "   or use --with-liblua-libraries configure option."
-                    echo
-                    exit 1
-                fi
-            else
-                # lua lua54 lua5.4 lua-5.4
-                PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
-                    PKG_CHECK_MODULES([LUA], [lua5.4], [LUA="yes"], [
-                        PKG_CHECK_MODULES([LUA], [lua-5.4], [LUA="yes"], [
-                            PKG_CHECK_MODULES([LUA], [lua54], [LUA="yes"], [
-                                LUA="no"
-                            ])
-                        ])
-                    ])
-                ])
-                LIBS="${LIBS} ${LUA_LIBS}"
-            fi
-
-            if test "$LUA" = "no"; then
-                AC_CHECK_LIB(lua, luaL_openlibs,, LUA="no")
-            fi
-
-            if test "$LUA" = "yes"; then
-                AC_DEFINE([HAVE_LUA],[1],[liblua available])
-                enable_lua="yes"
-            fi
-        else
-            echo
-                echo "   ERROR!  liblua headers not found, go get them"
-                echo "   from http://lua.org/index.html or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install liblua5.4-dev"
-                echo "   Fedora: dnf install lua-devel"
-                echo "   CentOS/RHEL: yum install lua-devel"
-                echo
-                echo "   If you installed software in a non-standard prefix"
-                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
-                echo "   or use --with-liblua-includes and --with-liblua-libraries"
-                echo "   configure option."
-                echo
-                exit 1
-        fi
-    fi
-
-    AM_CONDITIONAL([HAVE_LUA], [test "x$enable_lua" != "xno"])
-
-    # If Lua is enabled, test the integer size.
-    if test "x$enable_lua" = "xyes" -a "$cross_compiling" != "yes"; then
-        TMPLIBS="$LIBS"
-        LIBS=""
-
-        AC_MSG_CHECKING([size of lua integer])
-        AC_RUN_IFELSE([AC_LANG_PROGRAM([[#include <lua.h>]],
-            [[
-            if (sizeof(lua_Integer) == 8) {
-                return 1;
-            }
-            return 0;
-            ]])],
-            [
-                AC_MSG_RESULT([4])
-            ],
-            [
-                AC_MSG_RESULT([8])
-                AC_SUBST([LUA_INT8], ["lua_int8"])
-            ])
-        LIBS="$TMPLIBS"
-    fi
+  # Lua support, always enabled
+  # TODO: Update the code to not require this.
+    AC_DEFINE([HAVE_LUA], [1], [lua support available])
+    AM_CONDITIONAL([HAVE_LUA], [true])
+    AC_SUBST([LUA_INT8], ["lua_int8"])
 
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
@@ -2282,7 +2167,7 @@ fi
     fi
     RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist -I../rust/gen"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
