@@ -1157,7 +1157,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, rs_rfb_logger_log },
     { ALPROTO_MQTT, JsonMQTTAddMetadata },
-    { ALPROTO_PGSQL, NULL },  // TODO missing
+    { ALPROTO_PGSQL, JsonPgsqlAddMetadata },
     { ALPROTO_TELNET, NULL }, // no logging
     { ALPROTO_TEMPLATE, rs_template_logger_log },
     { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
