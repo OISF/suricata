@@ -297,6 +297,7 @@ noinst_HEADERS = \
 	detect-sip-response-line.h \
 	detect-sip-stat-code.h \
 	detect-sip-stat-msg.h \
+	detect-sip-to.h \
 	detect-sip-uri.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
@@ -912,6 +913,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sip-response-line.c \
 	detect-sip-stat-code.c \
 	detect-sip-stat-msg.c \
+	detect-sip-to.c \
 	detect-sip-uri.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
