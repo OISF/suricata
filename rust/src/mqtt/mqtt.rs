@@ -114,6 +114,8 @@ pub struct MQTTState {
     skip_response: usize,
     max_msg_len: u32,
     tx_index_completed: usize,
+    request_frame: Option<Frame>,
+    response_frame: Option<Frame>,
 }
 
 impl State<MQTTTransaction> for MQTTState {
@@ -142,8 +144,10 @@ impl MQTTState {
             connected: false,
             skip_request: 0,
             skip_response: 0,
-            max_msg_len: unsafe { MAX_MSG_LEN},
+            max_msg_len: unsafe { MAX_MSG_LEN },
             tx_index_completed: 0,
+            request_frame: None,
+            response_frame: None,
         }
     }
 
@@ -428,16 +432,24 @@ impl MQTTState {
 
         while !current.is_empty() {
             SCLogDebug!("request: handling {}", current.len());
+            if self.request_frame.is_none() {
+                self.request_frame = Frame::new(
+                    flow,
+                    &stream_slice,
+                    current,
+                    -1_i64,
+                    MQTTFrameType::Pdu as u8,
+                );
+            }
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
-                    let _pdu = Frame::new(
-                        flow,
-                        &stream_slice,
-                        current,
-                        (current.len() - rem.len()) as i64,
-                        MQTTFrameType::Pdu as u8,
-                    );
                     SCLogDebug!("request msg {:?}", msg);
+
+                    if let Some(frame) = &self.request_frame {
+                        frame.set_len(flow, (current.len() - rem.len()) as i64);
+                        self.request_frame = None;
+                    }
+
                     if let MQTTOperation::TRUNCATED(ref trunc) = msg.op {
                         SCLogDebug!(
                             "found truncated with skipped {} current len {}",
@@ -513,17 +525,24 @@ impl MQTTState {
 
         while !current.is_empty() {
             SCLogDebug!("response: handling {}", current.len());
+            if self.response_frame.is_none() {
+                self.response_frame = Frame::new(
+                    flow,
+                    &stream_slice,
+                    current,
+                    -1_i64,
+                    MQTTFrameType::Pdu as u8,
+                );
+            }
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
-                    let _pdu = Frame::new(
-                        flow,
-                        &stream_slice,
-                        current,
-                        (current.len() - rem.len()) as i64,
-                        MQTTFrameType::Pdu as u8,
-                    );
-
                     SCLogDebug!("response msg {:?}", msg);
+
+                    if let Some(frame) = &self.response_frame {
+                        frame.set_len(flow, (current.len() - rem.len()) as i64);
+                        self.response_frame = None;
+                    }
+
                     if let MQTTOperation::TRUNCATED(ref trunc) = msg.op {
                         SCLogDebug!(
                             "found truncated with skipped {} current len {}",
