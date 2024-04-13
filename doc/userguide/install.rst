@@ -109,10 +109,9 @@ Recommended::
     sudo apt-get install autoconf automake build-essential ccache clang curl git \
                     gosu jq libbpf-dev libcap-ng0 libcap-ng-dev libelf-dev \
                     libevent-dev libgeoip-dev libhiredis-dev libjansson-dev \
-                    liblua5.4-dev libmagic-dev libnet1-dev libpcap-dev \
-                    libpcre2-dev libtool libyaml-0-2 libyaml-dev m4 make \
-                    pkg-config python3 python3-dev python3-yaml sudo zlib1g \
-                    zlib1g-dev
+                    libmagic-dev libnet1-dev libpcap-dev libpcre2-dev libtool \
+                    libyaml-0-2 libyaml-dev m4 make pkg-config python3 \
+                    python3-dev python3-yaml sudo zlib1g zlib1g-dev
     cargo install --force cbindgen
 
 Extra for iptables/nftables IPS integration::
