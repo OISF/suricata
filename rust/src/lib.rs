@@ -124,3 +124,6 @@ pub mod util;
 pub mod ffi;
 pub mod feature;
 pub mod sdp;
+
+#[allow(unused_imports)]
+pub use suricata_lua_sys;
