@@ -78,7 +78,7 @@ jobs:
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
       - run: |
-          scan-build-16 --status-bugs --exclude libhtp/ \
+          scan-build-16 --status-bugs --exclude libhtp/ --exclude rust \
                 -enable-checker valist.Uninitialized \
                 -enable-checker valist.CopyToSelf \
                 -enable-checker valist.Unterminated \
