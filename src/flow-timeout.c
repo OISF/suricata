@@ -342,9 +342,8 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
  *        The function requires flow to be locked beforehand.
  *
  * Normally, the first thread_id value should be used. This is when the flow is
- * created on seeing the first packet to the server; sometimes, if the first
- * packet is determined to be to the client, the second thread_id value should
- * be used.
+ * created on seeing the first packet to the server; when the flow's reversed
+ * flag is set, choose the second thread_id (to client/source).
  *
  * \param f Pointer to the flow.
  *
@@ -352,9 +351,9 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
  */
 void FlowForceReassemblyForFlow(Flow *f)
 {
-    // Have packets traveled to the server? If not,
-    // use the reverse direction
-    int idx = f->todstpktcnt > 0 ? 0 : 1;
+    // Choose the thread_id based on whether the flow has been
+    // reversed.
+    int idx = f->flags & FLOW_DIR_REVERSED ? 1 : 0;
     TmThreadsInjectFlowById(f, (const int)f->thread_id[idx]);
 }
 
