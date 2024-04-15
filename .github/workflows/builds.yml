@@ -551,7 +551,6 @@ jobs:
                 autoconf \
                 automake \
                 cargo-vendor \
-                cbindgen \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -610,6 +609,9 @@ jobs:
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
       - run: suricatasc -h
+      # Test build after clean.
+      - run: make clean
+      - run: make -j ${{ env.CPUS }}
 
   centos-stream8:
     name: CentOS Stream 8
