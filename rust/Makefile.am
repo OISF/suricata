@@ -73,16 +73,10 @@ uninstall-local:
 	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
 
 clean-local:
-	rm -rf target
-if HAVE_CBINDGEN
-	rm -rf gen dist
-endif
+	rm -rf target gen
 
 distclean-local:
-	rm -f Cargo.lock
-
-maintainer-clean-local:
-	rm -rf vendor gen
+	rm -rf vendor dist
 
 check:
 	cd $(abs_top_srcdir)/rust && \
