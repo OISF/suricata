@@ -59,6 +59,9 @@
 #define PPP_PAP        0xc023       /* Password Authentication Protocol */
 #define PPP_LQM        0xc025       /* Link Quality Monitoring */
 #define PPP_CHAP       0xc223       /* Challenge Handshake Authentication Protocol */
+#define PPP_CCP        0x80fd       /* Compression Control Protocol */
+#define PPP_CBCP       0xc029       /* Callback Control Protocol CBCP */
+#define PPP_COMP_DGRAM 0x00fd       /* Compressed datagram */
 
 /** PPP Packet header */
 typedef struct PPPHdr_ {
