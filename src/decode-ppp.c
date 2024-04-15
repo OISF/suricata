@@ -158,6 +158,9 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
         case PPP_PAP:
         case PPP_LQM:
         case PPP_CHAP:
+        case PPP_CCP:
+        case PPP_CBCP:
+        case PPP_COMP_DGRAM:
             ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
             return TM_ECODE_OK;
 
