@@ -162,11 +162,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    if (p->ip4vars.opts_set & de->ipopt) {
-        return 1;
-    }
-
-    return 0;
+    return (p->ip4vars.opts_set & de->ipopt) == de->ipopt;
 }
 
 /**
