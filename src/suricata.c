@@ -2697,8 +2697,10 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     LiveDeviceFinalize(); // must be after EBPF extension registration
 
-    RunModeEngineIsIPS(
-            suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+    if (RunModeEngineIsIPS(suricata.run_mode, suricata.runmode_custom_mode,
+                suricata.capture_plugin_name) < 0) {
+        FatalError("IPS mode setup failed");
+    }
 
     if (EngineModeIsUnknown()) { // if still uninitialized, set the default
         SCLogInfo("Setting engine mode to IDS mode by default");

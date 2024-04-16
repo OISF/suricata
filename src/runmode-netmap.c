@@ -79,14 +79,14 @@ static int NetmapRunModeIsIPS(void)
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
             SCLogError("Problem with config file");
-            return 0;
+            return -1;
         }
         if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
                 SCLogError("Problem with config file");
-                return 0;
+                return -1;
             }
             if_root = if_default;
         }
@@ -106,44 +106,22 @@ static int NetmapRunModeIsIPS(void)
     }
 
     if (has_ids && has_ips) {
-        SCLogWarning("Netmap using both IPS and TAP/IDS mode, this will not be "
-                     "allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
-        for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
-            if (live_dev == NULL) {
-                SCLogError("Problem with config file");
-                return 0;
-            }
-            if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
-            const char *copymodestr = NULL;
-
-            if (if_root == NULL) {
-                if (if_default == NULL) {
-                    SCLogError("Problem with config file");
-                    return 0;
-                }
-                if_root = if_default;
-            }
-
-            if (!((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) ==
-                          1) &&
-                        (strcmp(copymodestr, "ips") == 0))) {
-                SCLogError("Netmap IPS mode used and interface '%s' is in IDS or TAP mode. "
-                           "Sniffing '%s' but expect bad result as stream-inline is activated.",
-                        live_dev, live_dev);
-            }
-        }
+        SCLogError("using both IPS and TAP/IDS mode is not allowed due to undefined behavior. See "
+                   "ticket #5588.");
+        return -1;
     }
 
     return has_ips;
 }
 
-static void NetmapRunModeEnableIPS(void)
+static int NetmapRunModeEnableIPS(void)
 {
-    if (NetmapRunModeIsIPS()) {
+    int r = NetmapRunModeIsIPS();
+    if (r == 1) {
         SCLogInfo("Netmap: Setting IPS mode");
         EngineModeSetIPS();
     }
+    return r;
 }
 
 void RunModeIdsNetmapRegister(void)
