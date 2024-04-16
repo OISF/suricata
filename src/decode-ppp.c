@@ -52,7 +52,7 @@ static int DecodePPPCompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Packe
                 return TM_ECODE_FAILED;
             }
             DEBUG_VALIDATE_BUG_ON(len < data_offset);
-            uint16_t iplen = MIN(USHRT_MAX, (uint16_t)(len - data_offset));
+            uint16_t iplen = (uint16_t)MIN((uint32_t)USHRT_MAX, len - data_offset);
             return DecodeIPV4(tv, dtv, p, pkt + data_offset, iplen);
         }
         case 0x57: { /* PPP_IPV6 */
@@ -61,7 +61,7 @@ static int DecodePPPCompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Packe
                 return TM_ECODE_FAILED;
             }
             DEBUG_VALIDATE_BUG_ON(len < data_offset);
-            uint16_t iplen = MIN(USHRT_MAX, (uint16_t)(len - data_offset));
+            uint16_t iplen = (uint16_t)MIN((uint32_t)USHRT_MAX, len - data_offset);
             return DecodeIPV6(tv, dtv, p, pkt + data_offset, iplen);
         }
         case 0x2f: /* PPP_VJ_UCOMP */
