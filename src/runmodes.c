@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -393,6 +393,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
     return custom_mode;
 }
 
+#include "util-device.h"
 int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name)
 {
     if (runmode == NULL) {
@@ -406,10 +407,19 @@ int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *captur
         return 0;
     }
 
+    int ips_enabled = 0;
     if (mode->RunModeIsIPSEnabled != NULL) {
-        return mode->RunModeIsIPSEnabled();
+        ips_enabled = mode->RunModeIsIPSEnabled();
+        if (ips_enabled == 1) {
+            extern uint16_t g_livedev_mask;
+            if (g_livedev_mask != 0 && LiveGetDeviceCount() > 0) {
+                SCLogError("livedev.use-for-tracking can't be used with IPS mode");
+                return -1;
+            }
+        }
     }
-    return 0;
+
+    return ips_enabled;
 }
 
 /**
