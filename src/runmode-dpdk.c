@@ -1685,12 +1685,14 @@ static int DPDKRunModeIsIPS(void)
     return has_ips;
 }
 
-static void DPDKRunModeEnableIPS(void)
+static int DPDKRunModeEnableIPS(void)
 {
-    if (DPDKRunModeIsIPS()) {
+    int r = DPDKRunModeIsIPS();
+    if (r == 1) {
         SCLogInfo("Setting IPS mode");
         EngineModeSetIPS();
     }
+    return r;
 }
 
 const char *RunModeDpdkGetDefaultMode(void)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2020 Open Information Security Foundation
+/* Copyright (C) 2011-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -88,14 +88,14 @@ static int AFPRunModeIsIPS(void)
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
             SCLogError("Problem with config file");
-            return 0;
+            return -1;
         }
         if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
                 SCLogError("Problem with config file");
-                return 0;
+                return -1;
             }
             if_root = if_default;
         }
@@ -115,44 +115,22 @@ static int AFPRunModeIsIPS(void)
     }
 
     if (has_ids && has_ips) {
-        SCLogWarning("AF_PACKET using both IPS and TAP/IDS mode, this will not "
-                     "be allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
-        for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
-            if (live_dev == NULL) {
-                SCLogError("Problem with config file");
-                return 0;
-            }
-            if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
-            const char *copymodestr = NULL;
-
-            if (if_root == NULL) {
-                if (if_default == NULL) {
-                    SCLogError("Problem with config file");
-                    return 0;
-                }
-                if_root = if_default;
-            }
-
-            if (!((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) ==
-                          1) &&
-                        (strcmp(copymodestr, "ips") == 0))) {
-                SCLogError("AF_PACKET IPS mode used and interface '%s' is in IDS or TAP mode. "
-                           "Sniffing '%s' but expect bad result as stream-inline is activated.",
-                        live_dev, live_dev);
-            }
-        }
+        SCLogError("using both IPS and TAP/IDS mode is not allowed due to undefined behavior. See "
+                   "ticket #5588.");
+        return -1;
     }
 
     return has_ips;
 }
 
-static void AFPRunModeEnableIPS(void)
+static int AFPRunModeEnableIPS(void)
 {
-    if (AFPRunModeIsIPS()) {
+    int r = AFPRunModeIsIPS();
+    if (r == 1) {
         SCLogInfo("Setting IPS mode");
         EngineModeSetIPS();
     }
+    return r;
 }
 
 void RunModeIdsAFPRegister(void)
