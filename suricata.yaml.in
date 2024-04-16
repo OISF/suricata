@@ -317,7 +317,6 @@ outputs:
             deltas: no        # include delta values
             # Don't log stats counters that are zero. Default: true
             #zero-valued-counters: false    # False will NOT log stats counters: 0
-            # Exception policy stats counters options
         # bi-directional flows
         - flow
         # uni-directional flows
