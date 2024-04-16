@@ -406,10 +406,6 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         SCLogError("failed to set up dataset '%s'.", name);
         return -1;
     }
-    if (set->hash && SC_ATOMIC_GET(set->hash->memcap_reached)) {
-        SCLogError("dataset too large for set memcap");
-        return -1;
-    }
 
     cd = SCCalloc(1, sizeof(DetectDatasetData));
     if (unlikely(cd == NULL))
