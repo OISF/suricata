@@ -98,7 +98,7 @@ typedef struct RunMode_ {
     const char *description;
     /* runmode function */
     int (*RunModeFunc)(void);
-    void (*RunModeIsIPSEnabled)(void);
+    int (*RunModeIsIPSEnabled)(void);
 } RunMode;
 
 typedef struct RunModes_ {
@@ -393,22 +393,23 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
     return custom_mode;
 }
 
-void RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name)
+int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name)
 {
     if (runmode == NULL) {
         runmode = RunModeGetConfOrDefault(capture_mode, capture_plugin_name);
         if (runmode == NULL) // non-standard runmode
-            return;
+            return 0;
     }
 
     RunMode *mode = RunModeGetCustomMode(capture_mode, runmode);
     if (mode == NULL) {
-        return;
+        return 0;
     }
 
     if (mode->RunModeIsIPSEnabled != NULL) {
-        mode->RunModeIsIPSEnabled();
+        return mode->RunModeIsIPSEnabled();
     }
+    return 0;
 }
 
 /**
@@ -489,7 +490,7 @@ int RunModeNeedsBypassManager(void)
  * \param RunModeFunc The function to be run for this runmode.
  */
 void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description,
-        int (*RunModeFunc)(void), void (*RunModeIsIPSEnabled)(void))
+        int (*RunModeFunc)(void), int (*RunModeIsIPSEnabled)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
         FatalError("runmode '%s' has already "
