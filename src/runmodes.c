@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,6 +70,7 @@
 #include "counters.h"
 
 #include "suricata-plugin.h"
+#include "util-device.h"
 
 int debuglog_enabled = 0;
 bool threading_set_cpu_affinity = false;
@@ -406,10 +407,19 @@ int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *captur
         return 0;
     }
 
+    int ips_enabled = 0;
     if (mode->RunModeIsIPSEnabled != NULL) {
-        return mode->RunModeIsIPSEnabled();
+        ips_enabled = mode->RunModeIsIPSEnabled();
+        if (ips_enabled == 1) {
+            extern uint16_t g_livedev_mask;
+            if (g_livedev_mask != 0 && LiveGetDeviceCount() > 0) {
+                SCLogWarning("disabling livedev.use-for-tracking with IPS mode. See ticket #6726.");
+                g_livedev_mask = 0;
+            }
+        }
     }
-    return 0;
+
+    return ips_enabled;
 }
 
 /**
