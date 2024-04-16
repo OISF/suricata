@@ -1646,7 +1646,9 @@ static int DPDKRunModeIsIPS(void)
         }
 
         const char *copymodestr = NULL;
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+        const char *copyifacestr = NULL;
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
+                ConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
             if (strcmp(copymodestr, "ips") == 0) {
                 has_ips = true;
             } else {

@@ -90,7 +90,6 @@ static int AFPRunModeIsIPS(void)
             SCLogError("Problem with config file");
             return 0;
         }
-        const char *copymodestr = NULL;
         if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
@@ -101,7 +100,10 @@ static int AFPRunModeIsIPS(void)
             if_root = if_default;
         }
 
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+        const char *copymodestr = NULL;
+        const char *copyifacestr = NULL;
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
+                ConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
             if (strcmp(copymodestr, "ips") == 0) {
                 has_ips = 1;
             } else {
