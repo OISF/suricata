@@ -124,6 +124,9 @@ static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
+    // file data is on both directions, but we only take the one to client here
+    s->flags |= SIG_FLAG_TOCLIENT;
+    s->flags &= ~SIG_FLAG_TOSERVER;
     return 0;
 }
 
