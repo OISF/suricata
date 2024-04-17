@@ -450,7 +450,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
         const char *totals = ConfNodeLookupChildValue(conf, "totals");
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
         const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
-        const char *zero_counters = ConfNodeLookupChildValue(conf, "zero-valued-counters");
+        const char *zero_counters = ConfNodeLookupChildValue(conf, "null-values");
         SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
         if ((totals != NULL && ConfValIsFalse(totals)) &&
