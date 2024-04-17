@@ -185,16 +185,16 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
          * remaining bytes to be decoded which should always be < 4 at this stage */
         if (dest_size - *decoded_bytes < 3)
             return BASE64_ECODE_BUF;
-        *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64);
+        *decoded_bytes += numDecoded_blk;
         *consumed_bytes += bbidx;
     }
 
     /* Finish remaining b64 bytes by padding */
     if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
         /* Decode remaining */
-        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
         DecodeBase64Block(dptr, b64);
+        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
     }
 
     if (*decoded_bytes == 0) {
