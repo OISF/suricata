@@ -319,7 +319,7 @@ outputs:
             threads: no       # per thread stats
             deltas: no        # include delta values
             # Don't log stats counters that are zero. Default: true
-            #zero-valued-counters: false    # False will NOT log stats counters: 0
+            #null-values: false    # False will NOT log stats counters: 0
         # bi-directional flows
         - flow
         # uni-directional flows
