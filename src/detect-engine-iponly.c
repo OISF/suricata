@@ -506,6 +506,7 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
                    (tmphead->negated) ? "yes":"no",
                    inet_ntoa(*(struct in_addr*)&tmphead->ip[0]),
                    tmphead->signum);
+        (void)i;
         tmphead = tmphead->next;
     }
 }
