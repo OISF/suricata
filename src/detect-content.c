@@ -436,11 +436,20 @@ void SigParseRequiredContentSize(
                 continue;
             }
         }
-        SCLogDebug("content_len %d; distance: %d, offset: %d, depth: %d", cd->content_len,
-                cd->distance, cd->offset, cd->depth);
-        total_len += cd->content_len + cd->distance;
-        max_offset = MAX(max_offset, cd->offset);
-        first = false;
+        if (!(cd->flags & DETECT_CONTENT_NEGATED)) {
+            SCLogDebug("content_len %d; distance: %d, offset: %d, depth: %d", cd->content_len,
+                    cd->distance, cd->offset, cd->depth);
+            total_len += cd->content_len + cd->distance;
+            max_offset = MAX(max_offset, cd->offset);
+            first = false;
+        }
+#if 0
+        else {
+            if (max_size < cd->content_len) {
+                SCLogNotice("Useless content section \"%s\" [length %d]", cd->content, cd->content_len);
+            }
+        }
+#endif
     }
 
     *len = total_len;
