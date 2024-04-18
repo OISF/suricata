@@ -13,6 +13,17 @@ build simply run:
 make
 ```
 
+## Running
+
+```
+./custom -l . -- filename.pcap
+```
+
+For this example, any arguments before `--` are passed directly as
+Suricata command line arguments. Arguments after the first `--` are
+handled by this example program, and currently the only argument is a
+PCAP filename to be read.
+
 ## Building Out of Tree
 
 A Makefile.example has also been generated to use as an example on how
