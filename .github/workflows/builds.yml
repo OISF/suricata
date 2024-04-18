@@ -2106,14 +2106,14 @@ jobs:
       # IDS config
       - run: rm -f ./eve.json
       - run: |
-          timeout --kill-after=30 --preserve-status 3 \
+          timeout --kill-after=30 --preserve-status 10 \
             ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       # IPS config
       - run: rm -f ./eve.json
       - run: |
-          timeout --kill-after=30 --preserve-status 3 \
+          timeout --kill-after=30 --preserve-status 10 \
             ./src/suricata -c .github/workflows/dpdk/suricata-null-ips.yaml -S /dev/null -l ./ --dpdk -vvvv
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
