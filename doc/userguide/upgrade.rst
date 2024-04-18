@@ -52,6 +52,14 @@ Major changes
   for the ``stats`` event.
 - Stats counters that are 0 can now be hidden from EVE logs. Default behavior
   still logs those (see :ref:`EVE Output - Stats <eve-json-output-stats>` for configuration setting).
+- The following sticky buffers for matching SIP headers have been implemented:
+    - sip.via
+    - sip.from
+    - sip.to
+    - sip.content_type
+    - sip.content_length
+
+  Note: Headers expressed in compact form will still be matched.
 
 Upgrading 6.0 to 7.0
 --------------------
