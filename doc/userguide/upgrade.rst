@@ -71,6 +71,12 @@ Major changes
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
 - LDAP parser and logger have been introduced.
+- The following sticky buffers for matching SIP headers have been implemented:
+    - sip.via
+    - sip.from
+    - sip.to
+    - sip.content_type
+    - sip.content_length
 
 Removals
 ~~~~~~~~
