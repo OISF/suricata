@@ -617,6 +617,11 @@ static uint8_t *GetFullValue(const DataValue *dv, uint32_t *olen)
 
     /* First calculate total length */
     for (const DataValue *curr = dv; curr != NULL; curr = curr->next) {
+        if (unlikely(len > UINT32_MAX - curr->value_len)) {
+            // This should never happen as caller checks already against mdcfg->header_value_depth
+            DEBUG_VALIDATE_BUG_ON(1);
+            return NULL;
+        }
         len += curr->value_len;
     }
     /* Must have at least one character in the value */
