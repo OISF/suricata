@@ -812,9 +812,11 @@ static inline void DetectRulePacketRules(
                 (s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP)) {
             // if there is a stream match (TCP), or
             // a UDP specific app-layer signature,
-            // try to use the last tx
+            // try to use the good tx for the packet direction
             if (pflow->alstate) {
-                txid = AppLayerParserGetTxCnt(pflow, pflow->alstate) - 1;
+                uint8_t dir =
+                        (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
+                txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
                 alert_flags |= PACKET_ALERT_FLAG_TX;
             }
         }
