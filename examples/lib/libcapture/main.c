@@ -67,7 +67,21 @@ int main(int argc, char **argv)
     /* Parse command line options. This is optional, you could
      * directly configure Suricata through the Conf API.
        The last argument is the PCAP file to replay. */
-    SCParseCommandLine(argc - 1, argv);
+    SCParseCommandLine(argc, argv);
+
+    /* Find our list of pcap files, after the "--". */
+    while (argc) {
+        bool end = strncmp(argv[0], "--", 2) == 0;
+        argv++;
+        argc--;
+        if (end) {
+            break;
+        }
+    }
+    if (argc == 0) {
+        fprintf(stderr, "ERROR: No PCAP files provided\n");
+        return 1;
+    }
 
     /* Set lib runmode. There is currently no way to set it via
        the Conf API. */
