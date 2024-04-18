@@ -22,8 +22,10 @@
 #include "source-lib.h"
 #include "threadvars.h"
 
-/* Suricata worker thread in library mode.
-   The functions should be wrapped in an API layer. */
+/**
+ * Suricata worker thread in library mode.
+ * The functions should be wrapped in an API layer.
+ */
 static void *SimpleWorker(void *arg)
 {
     char *pcap_file = (char *)arg;
@@ -65,12 +67,25 @@ int main(int argc, char **argv)
     SuricataPreInit(argv[0]);
 
     /* Parse command line options. This is optional, you could
-     * directly configure Suricata through the Conf API.
-       The last argument is the PCAP file to replay. */
-    SCParseCommandLine(argc - 1, argv);
+     * directly configure Suricata through the Conf API. */
+    SCParseCommandLine(argc, argv);
 
-    /* Set lib runmode. There is currently no way to set it via
-       the Conf API. */
+    /* Find our list of pcap files, after the "--". */
+    while (argc) {
+        bool end = strncmp(argv[0], "--", 2) == 0;
+        argv++;
+        argc--;
+        if (end) {
+            break;
+        }
+    }
+    if (argc == 0) {
+        fprintf(stderr, "ERROR: No PCAP files provided\n");
+        return 1;
+    }
+
+    /* Set lib runmode. There is currently no way to set it via the
+     * Conf API. */
     SuricataSetLibRunmode();
 
     /* Validate/finalize the runmode. */
@@ -100,19 +115,23 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Force logging to the current directory. */
+    ConfSetFromString("default-log-dir=.", 1);
+
     SuricataInit();
 
-    /* Create and start worker on its own thread, passing the PCAP file
-       as argument. This needs to be done in between SuricataInit and
-       SuricataPostInit. */
+    /* Create and start worker on its own thread, passing the PCAP
+     * file as argument. This needs to be done in between SuricataInit
+     * and SuricataPostInit. */
     pthread_t worker;
     if (pthread_create(&worker, NULL, SimpleWorker, argv[argc - 1]) != 0) {
         exit(EXIT_FAILURE);
     }
 
     /* Need to introduce a little sleep to allow the worker thread to
-       initialize before SuricataPostInit invokes TmThreadContinueThreads().
-       This should be handle at the API level. */
+     * initialize before SuricataPostInit invokes
+     * TmThreadContinueThreads().  This should be handle at the API
+     * level. */
     usleep(100);
 
     SuricataPostInit();
