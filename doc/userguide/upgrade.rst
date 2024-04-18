@@ -60,6 +60,12 @@ Major changes
 - It is possible to see an increase of alerts, for the same rule-sets, if you
   use many stream/payload rules, due to Suricata triggering TCP stream
   reassembly earlier.
+- The following sticky buffers for matching SIP headers have been implemented:
+    - sip.via
+    - sip.from
+    - sip.to
+    - sip.content_type
+    - sip.content_length
 
 Upgrading 6.0 to 7.0
 --------------------
