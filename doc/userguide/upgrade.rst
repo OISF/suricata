@@ -55,6 +55,14 @@ Major changes
 - SDP parser and logger have been introduced.
   Due to SDP being encapsulated within other protocols, such as SIP, they cannot be directly enabled or disabled.
   Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
+- The following sticky buffers for matching SIP headers have been implemented:
+    - sip.via
+    - sip.from
+    - sip.to
+    - sip.content_type
+    - sip.content_length
+
+  Note: Headers expressed in compact form will still be matched.
 
 Upgrading 6.0 to 7.0
 --------------------
