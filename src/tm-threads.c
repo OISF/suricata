@@ -1355,9 +1355,12 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
     }
 
-    /* join it and flag it as dead */
-    pthread_join(tv->t, NULL);
-    SCLogDebug("thread %s stopped", tv->name);
+    /* Join the thread and flag as dead, unless the thread ID is 0 as
+     * its not a thread created by Suricata. */
+    if (tv->t) {
+        pthread_join(tv->t, NULL);
+        SCLogDebug("thread %s stopped", tv->name);
+    }
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
 }
