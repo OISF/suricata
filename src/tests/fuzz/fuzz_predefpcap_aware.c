@@ -6,6 +6,7 @@
 
 #include "suricata-common.h"
 #include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 #include "detect-engine.h"
 #include "util-classification-config.h"
 #include "util-reference-config.h"
@@ -128,7 +129,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (r > 0) {
         if (PacketCopyData(p, pkt, header.caplen) == 0) {
             // DecodePcapFile
-            TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(&tv, p, dtv);
+            TmEcode ecode = DecodePcapFile(&tv, p, dtv);
             if (ecode == TM_ECODE_FAILED) {
                 break;
             }

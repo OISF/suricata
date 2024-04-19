@@ -82,12 +82,6 @@ int RunModeFilePcapSingle(void)
     }
     TmSlotSetFuncAppend(tv, tm_module, file);
 
-    tm_module = TmModuleGetByName("DecodePcapFile");
-    if (tm_module == NULL) {
-        FatalError("TmModuleGetByName DecodePcap failed");
-    }
-    TmSlotSetFuncAppend(tv, tm_module, NULL);
-
     tm_module = TmModuleGetByName("FlowWorker");
     if (tm_module == NULL) {
         FatalError("TmModuleGetByName for FlowWorker failed");
@@ -176,12 +170,6 @@ int RunModeFilePcapAutoFp(void)
         FatalError("TmModuleGetByName failed for ReceivePcap");
     }
     TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
-
-    tm_module = TmModuleGetByName("DecodePcapFile");
-    if (tm_module == NULL) {
-        FatalError("TmModuleGetByName DecodePcap failed");
-    }
-    TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
 
     TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 

@@ -58,6 +58,33 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
     }
 }
 
+TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, DecodeThreadVars *dtv)
+{
+    SCEnter();
+
+    BUG_ON(PKT_IS_PSEUDOPKT(p));
+
+    /* update counters */
+    DecodeUpdatePacketCounters(tv, dtv, p);
+
+    DecoderFunc decoder;
+    if (ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
+
+        /* call the decoder */
+        decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+
+#ifdef DEBUG
+        BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR);
+#endif
+
+        PacketDecodeFinalize(tv, dtv, p);
+
+        SCReturnInt(TM_ECODE_OK);
+    } else {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+}
+
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 {
     SCEnter();
@@ -105,11 +132,27 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     PACKET_PROFILING_TMM_END(p, TMM_RECEIVEPCAPFILE);
 
-    if (TmThreadsSlotProcessPkt(ptv->shared->tv, ptv->shared->slot, p) != TM_ECODE_OK) {
-        pcap_breakloop(ptv->pcap_handle);
-        ptv->shared->cb_result = TM_ECODE_FAILED;
+    /* What TmThreadsSlotVarRun did for the decode module. */
+    if (DecodePcapFile(ptv->shared->tv, p, ptv->shared->dtv) != TM_ECODE_OK) {
+        TmThreadsSlotProcessPktFail(ptv->shared->tv, ptv->shared->slot, NULL);
+        goto fail;
     }
 
+    /* Handle pseudo packets created in decode. */
+    if (TmThreadsProcessDecodePseudoPackets(
+                ptv->shared->tv, &ptv->shared->tv->decode_pq, ptv->shared->slot) != TM_ECODE_OK) {
+        goto fail;
+    }
+
+    if (TmThreadsSlotProcessPkt(ptv->shared->tv, ptv->shared->slot, p) != TM_ECODE_OK) {
+        goto fail;
+    }
+
+    SCReturn;
+
+fail:
+    pcap_breakloop(ptv->pcap_handle);
+    ptv->shared->cb_result = TM_ECODE_FAILED;
     SCReturn;
 }
 

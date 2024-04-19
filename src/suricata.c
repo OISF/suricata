@@ -913,7 +913,6 @@ void RegisterAllModules(void)
     TmModuleDecodePcapRegister();
     /* pcap file */
     TmModuleReceivePcapFileRegister();
-    TmModuleDecodePcapFileRegister();
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
