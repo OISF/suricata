@@ -266,100 +266,24 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
 Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, uint32_t len,
         uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode)
 {
-    int val;
-    uint32_t padding = 0, bbidx = 0, sp = 0, leading_sp = 0;
-    uint8_t *dptr = dest;
-    uint8_t b64[B64_BLOCK] = { 0,0,0,0 };
-    bool valid = true;
-    Base64Ecode ecode = BASE64_ECODE_OK;
     *decoded_bytes = 0;
-
-    /* Traverse through each alpha-numeric letter in the source array */
-    for (uint32_t i = 0; i < len; i++) {
-        /* Get decimal representation */
-        val = GetBase64Value(src[i]);
-        if (val < 0) {
-            if (mode == BASE64_MODE_RFC2045 && src[i] != '=') {
-                if (bbidx == 0) {
-                    /* Special case where last block of data has a leading space or invalid char */
-                    leading_sp++;
-                }
-                sp++;
-                continue;
-            }
-            /* Invalid character found, so decoding fails */
-            if (src[i] != '=') {
-                valid = false;
-                ecode = BASE64_ECODE_ERR;
-                if (mode == BASE64_MODE_STRICT) {
-                    *decoded_bytes = 0;
-                }
-                break;
-            }
-            padding++;
-        }
-
-        /* For each alpha-numeric letter in the source array, find the numeric
-         * value */
-        b64[bbidx++] = (val > 0 ? (uint8_t)val : 0);
-
-        /* Decode every 4 base64 bytes into 3 ascii bytes */
-        if (bbidx == B64_BLOCK) {
-
-            /* For every 4 bytes, add 3 bytes but deduct the '=' padded blocks */
-            uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
-            if (dest_size < *decoded_bytes + numDecoded_blk) {
-                SCLogDebug("Destination buffer full");
-                ecode = BASE64_ECODE_BUF;
-                break;
-            }
-
-            /* Decode base-64 block into ascii block and move pointer */
-            DecodeBase64Block(dptr, b64);
-            dptr += numDecoded_blk;
-            *decoded_bytes += numDecoded_blk;
-            /* Reset base-64 block and index */
-            bbidx = 0;
-            padding = 0;
-            *consumed_bytes += B64_BLOCK + sp;
-            sp = 0;
-            leading_sp = 0;
-            memset(&b64, 0, sizeof(b64));
-        }
+    Base64Ecode ret = BASE64_ECODE_OK;
+    switch (mode) {
+        case BASE64_MODE_RFC4648:
+            ret = DecodeBase64RFC4648(
+                    dest, dest_size, src, len, consumed_bytes, decoded_bytes, false);
+            break;
+        case BASE64_MODE_RFC2045:
+            ret = DecodeBase64RFC2045(dest, dest_size, src, len, consumed_bytes, decoded_bytes);
+            break;
+        case BASE64_MODE_STRICT:
+            ret = DecodeBase64RFC4648(
+                    dest, dest_size, src, len, consumed_bytes, decoded_bytes, true);
+            break;
+        default:
+            return BASE64_ECODE_ERR;
     }
-
-    if (bbidx > 0 && bbidx < 4 && ((!valid && mode == BASE64_MODE_RFC4648))) {
-        /* Decoded bytes for 1 or 2 base64 encoded bytes is 1 */
-        padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
-        uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
-        if (dest_size < *decoded_bytes + numDecoded_blk) {
-            SCLogDebug("Destination buffer full");
-            ecode = BASE64_ECODE_BUF;
-            return ecode;
-        }
-        /* if the destination size is not at least 3 Bytes long, it'll give a dynamic
-         * buffer overflow while decoding, so, return and let the caller take care of the
-         * remaining bytes to be decoded which should always be < 4 at this stage */
-        if (dest_size - *decoded_bytes < 3)
-            return BASE64_ECODE_BUF;
-        *decoded_bytes += numDecoded_blk;
-        DecodeBase64Block(dptr, b64);
-        *consumed_bytes += bbidx;
-    }
-
-    /* Finish remaining b64 bytes by padding */
-    if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
-        /* Decode remaining */
-        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
-        DecodeBase64Block(dptr, b64);
-    }
-
-    if (*decoded_bytes == 0) {
-        SCLogDebug("base64 decoding failed");
-    }
-
-    *consumed_bytes += leading_sp;
-    return ecode;
+    return ret;
 }
 
 #ifdef UNITTESTS
