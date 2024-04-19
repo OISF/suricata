@@ -92,10 +92,11 @@ void ThresholdDestroy(void)
 
 #define SID   0
 #define GID   1
-#define TRACK 2
+#define REV   2
+#define TRACK 3
 
 typedef struct ThresholdEntry_ {
-    uint32_t key[3];
+    uint32_t key[4];
 
     uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
@@ -538,10 +539,11 @@ static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
 }
 
 static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
-        const SCTime_t packet_time, const uint32_t sid, const uint32_t gid)
+        const SCTime_t packet_time, const uint32_t sid, const uint32_t gid, const uint32_t rev)
 {
     te->key[SID] = sid;
     te->key[GID] = gid;
+    te->key[REV] = rev;
     te->key[TRACK] = td->track;
     te->seconds = td->seconds;
 
@@ -695,6 +697,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
     memset(&lookup, 0, sizeof(lookup));
     lookup.key[SID] = s->id;
     lookup.key[GID] = s->gid;
+    lookup.key[REV] = s->rev;
     lookup.key[TRACK] = td->track;
     if (td->track == TRACK_SRC) {
         COPY_ADDRESS(&p->src, &lookup.addr);
@@ -728,7 +731,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
         ThresholdEntry *te = res.data->data;
         if (res.is_new) {
             // new threshold, set up
-            r = ThresholdSetup(td, te, p->ts, s->id, s->gid);
+            r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev);
         } else {
             // existing, check/update
             r = ThresholdCheckUpdate(td, te, p, s->id, pa);
