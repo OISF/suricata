@@ -239,7 +239,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
+static int ParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 {
     /* Checking IPv6 case */
     char *got_colon = strchr(line, ':');
@@ -1636,10 +1636,12 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             return DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4);
         }
         case DATASET_TYPE_IPV6: {
-            struct in6_addr in;
-            if (inet_pton(AF_INET6, string, &in) != 1)
+            struct in6_addr in6;
+            if (ParseIpv6String(set, string, &in6) != 0) {
+                SCLogWarning("Failing import");
                 return -2;
-            return DatasetOpIPv6(set, (uint8_t *)&in.s6_addr, 16);
+            }
+            return DatasetOpIPv6(set, (uint8_t *)&in6.s6_addr, 16);
         }
     }
     return -1;
