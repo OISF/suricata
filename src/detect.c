@@ -1727,12 +1727,14 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                     /* match */
                     DetectRunPostMatch(tv, det_ctx, p, s);
 
-                    const uint8_t alert_flags =
-                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
+                    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
+                    if (frame->flags & FRAME_FLAG_TX_ID_SET) {
+                        alert_flags |= PACKET_ALERT_FLAG_TX;
+                    }
                     AlertQueueAppend(det_ctx, s, p, frame->tx_id, alert_flags);
                 }
             }
