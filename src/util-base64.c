@@ -319,7 +319,7 @@ static int B64DecodeCompleteString(void)
      * */
     const char *src = "SGVsbG8gV29ybGR6";
     const char *fin_str = "Hello Worldz";
-    TEST_RFC2045(src, fin_str, strlen(fin_str), strlen(fin_str), strlen(src), BASE64_ECODE_OK);
+    TEST_RFC2045(src, fin_str, 12, 12, 16, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -330,7 +330,7 @@ static int B64DecodeInCompleteString(void)
      * */
     const char *src = "SGVsbG8gV29ybGR";
     const char *fin_str = "Hello Wor";
-    TEST_RFC2045(src, fin_str, strlen(fin_str), strlen(fin_str), strlen(src) - 3, BASE64_ECODE_OK);
+    TEST_RFC2045(src, fin_str, 9, 9, 12, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -342,7 +342,7 @@ static int B64DecodeCompleteStringWSp(void)
 
     const char *src = "SGVs bG8 gV29y bGQ=";
     const char *fin_str = "Hello World";
-    TEST_RFC2045(src, fin_str, strlen(fin_str) + 3, strlen(fin_str), strlen(src), BASE64_ECODE_OK);
+    TEST_RFC2045(src, fin_str, 14, 11, 19, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -355,8 +355,7 @@ static int B64DecodeInCompleteStringWSp(void)
 
     const char *src = "SGVs bG8 gV29y bGQ";
     const char *fin_str = "Hello Wor";
-    TEST_RFC2045(src, fin_str, strlen(fin_str) + 1 /* 12 B in dest_size */, strlen(fin_str),
-            strlen(src) - 4, BASE64_ECODE_OK);
+    TEST_RFC2045(src, fin_str, 9, 9, 14, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -368,8 +367,7 @@ static int B64DecodeStringBiggerThanBuffer(void)
 
     const char *src = "SGVs bG8 gV29y bGQ=";
     const char *fin_str = "Hello Wor";
-    TEST_RFC2045(
-            src, fin_str, strlen(fin_str) + 1, strlen(fin_str), strlen(src) - 5, BASE64_ECODE_BUF);
+    TEST_RFC2045(src, fin_str, 10, 9, 14, BASE64_ECODE_BUF);
     PASS;
 }
 
@@ -378,8 +376,8 @@ static int B64DecodeStringEndingSpaces(void)
     const char *src = "0YPhA d H";
     uint32_t consumed_bytes = 0, num_decoded = 0;
     uint8_t dst[10];
-    Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, strlen(src),
-            &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
+    Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, 9, &consumed_bytes,
+            &num_decoded, BASE64_MODE_RFC2045);
     FAIL_IF(code != BASE64_ECODE_OK);
     FAIL_IF(num_decoded != 3);
     FAIL_IF(consumed_bytes != 4);
@@ -427,8 +425,7 @@ static int B64TestVectorsRFC2045(void)
     TEST_RFC2045(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
     TEST_RFC2045(src8, fin_str8, ASCII_BLOCK * 2, strlen(fin_str8), strlen(src8), BASE64_ECODE_OK);
     TEST_RFC2045(src9, fin_str9, ASCII_BLOCK * 2, strlen(fin_str9), strlen(src9), BASE64_ECODE_OK);
-    TEST_RFC2045(src10, fin_str10, strlen(fin_str10) + 2, strlen(fin_str10), strlen(src10),
-            BASE64_ECODE_OK);
+    TEST_RFC2045(src10, fin_str10, 50, 48, 65, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -473,8 +470,7 @@ static int B64TestVectorsRFC4648(void)
     TEST_RFC4648(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
     TEST_RFC4648(src8, fin_str8, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_OK);
     TEST_RFC4648(src9, fin_str9, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_OK);
-    TEST_RFC4648(src10, fin_str10, strlen(fin_str10) + 1, strlen(fin_str10), strlen(src10) - 3,
-            BASE64_ECODE_OK);
+    TEST_RFC4648(src10, fin_str10, 48, 47, 63, BASE64_ECODE_OK);
     PASS;
 }
 
