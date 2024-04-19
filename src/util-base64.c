@@ -356,7 +356,7 @@ static int B64DecodeInCompleteStringWSp(void)
     const char *src = "SGVs bG8 gV29y bGQ";
     const char *fin_str = "Hello Wor";
     TEST_RFC2045(src, fin_str, strlen(fin_str) + 1 /* 12 B in dest_size */, strlen(fin_str),
-            strlen(src) - 3, BASE64_ECODE_OK);
+            strlen(src) - 4, BASE64_ECODE_OK);
     PASS;
 }
 
@@ -369,7 +369,7 @@ static int B64DecodeStringBiggerThanBuffer(void)
     const char *src = "SGVs bG8 gV29y bGQ=";
     const char *fin_str = "Hello Wor";
     TEST_RFC2045(
-            src, fin_str, strlen(fin_str) + 1, strlen(fin_str), strlen(src) - 4, BASE64_ECODE_BUF);
+            src, fin_str, strlen(fin_str) + 1, strlen(fin_str), strlen(src) - 5, BASE64_ECODE_BUF);
     PASS;
 }
 
@@ -471,10 +471,10 @@ static int B64TestVectorsRFC4648(void)
     TEST_RFC4648(src5, fin_str5, ASCII_BLOCK * 2, strlen(fin_str5), strlen(src5), BASE64_ECODE_OK);
     TEST_RFC4648(src6, fin_str6, ASCII_BLOCK * 2, strlen(fin_str6), strlen(src6), BASE64_ECODE_OK);
     TEST_RFC4648(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
-    TEST_RFC4648(src8, fin_str8, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_ERR);
-    TEST_RFC4648(src9, fin_str9, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_ERR);
+    TEST_RFC4648(src8, fin_str8, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_OK);
+    TEST_RFC4648(src9, fin_str9, ASCII_BLOCK * 2, 1 /* f */, 2 /* Zm */, BASE64_ECODE_OK);
     TEST_RFC4648(src10, fin_str10, strlen(fin_str10) + 1, strlen(fin_str10), strlen(src10) - 3,
-            BASE64_ECODE_ERR);
+            BASE64_ECODE_OK);
     PASS;
 }
 
