@@ -142,6 +142,9 @@ Example HTTP Request::
 
 .. note:: ``http.accept`` does not include the leading space or trailing \\r\\n
 
+.. note:: ``http.accept`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
+
 .. _http.accept_enc:
 
 http.accept_enc
@@ -169,6 +172,9 @@ Example HTTP Request::
 .. note:: ``http.accept_enc`` does not include the leading space or trailing
    \\r\\n
 
+.. note:: ``http.accept_enc`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
+
 .. _http.accept_lang:
 
 http.accept_lang
@@ -195,6 +201,9 @@ Example HTTP Request::
 
 .. note:: ``http.accept_lang`` does not include the leading space or
   trailing \\r\\n
+
+.. note:: ``http.accept_lang`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.host:
 
@@ -238,24 +247,8 @@ In the above example the host buffer would contain `suricata.io`.
   in a proxy request) or the HTTP Host header. If both are present, the
   URI is used.
 
-.. note:: If a request contains multiple "Host" headers, the values will be
-  concatenated in the ``http.host`` and ``http.host.raw``
-  buffers, in the order seen from top to bottom, with a comma and space
-  (", ") between each of them.
-
-Example Duplicate Host Header Request::
-
-  GET /index.html HTTP/1.1
-  User-Agent: Chrome/2.0
-  Cookie: PHPSESSION=123
-  Host: suricata.io
-  Host: oisf.net
-
-.. container:: example-rule
-
-  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Two Host Example"; \
-  flow:established,to_server; :example-rule-options:`http.host; \
-  content:"suricata.io, oisf.net";` classtype:bad-unknown; sid:125; rev:1;)
+.. note:: ``http.host`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.host.raw:
 
@@ -284,24 +277,8 @@ Example HTTP Request::
   in a proxy request) or the HTTP Host header. If both are present, the
   URI is used.
 
-.. note:: If a request contains multiple "Host" headers, the values will be
-  concatenated in the ``http.host`` and ``http.host.raw`` buffers, in the
-  order seen from top to bottom, with a comma and space (", ") between each
-  of them.
-
-Example Duplicate Host Header Request::
-
-  GET /index.html HTTP/1.1
-  User-Agent: Chrome/2.0
-  Cookie: PHPSESSION=123
-  Host: suricata.io
-  Host: oisf.net
-
-.. container:: example-rule
-
-  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Two Host Example"; \
-  flow:established,to_server; :example-rule-options:`http.host.raw; \
-  content:"suricata.io, oisf.net";` classtype:bad-unknown; sid:125; rev:1;)
+.. note:: ``http.host.raw`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.method:
 
@@ -361,6 +338,9 @@ Example HTTP Request::
 
 .. note:: ``http.referer`` does not include the leading space or trailing
    \\r\\n
+
+.. note:: ``http.referer`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.request_body:
 
@@ -555,24 +535,9 @@ Example HTTP Request::
 .. note:: Using the ``http.user_agent`` generally provides better performance
    than using :ref:`http.header`.
 
-.. note:: If a request contains multiple "User-Agent" headers, the values will
-   be concatenated in the ``http.user_agent`` buffer, in the order seen from
-   top to bottom, with a comma and space (", ") between each of them.
-
-Example Duplicate User-Agent Header Request::
-
-  GET /index.html HTTP/1.1
-  User-Agent: Mozilla/5.0
-  User-Agent: Chrome/2.0
-  Cookie: PHPSESSION=123
-  Host: suricata.io
-
-.. container:: example-rule
-
-  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP User-Agent Example"; \
-  flow:established,to_server; :example-rule-options:`http.user_agent; \
-  content:"Mozilla/5.0, Chrome/2.0";` bsize:23; classtype:bad-unknown; sid:90; \
-  rev:1;)
+.. note:: ``http.user_agent`` can have additional formatting/normalization
+  applied to buffer contents, see :ref:`http.normalization` for additional
+  details.
 
 .. _urilen:
 
@@ -645,6 +610,9 @@ Example HTTP Response::
   content:"suricata.io";` bsize:11; classtype:bad-unknown; sid:122; rev:1;)
 
 .. note:: ``http.location`` does not include the leading space or trailing \\r\\n
+
+.. note:: ``http.location`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.response_body:
 
@@ -761,6 +729,10 @@ Example HTTP Response::
   content:"nginx/0.8.54";` bsize:12; classtype:bad-unknown; sid:121; rev:1;)
 
 .. note:: ``http.server`` does not include the leading space or trailing \\r\\n
+
+.. note:: ``http.server`` can have additional formatting/normalization
+  applied to buffer contents, see :ref:`http.normalization` for additional
+  details.
 
 .. _http.stat_code:
 
@@ -916,6 +888,10 @@ Example HTTP Request::
 .. note:: ``http.connection`` does not include the leading space or trailing
    \\r\\n
 
+.. note:: ``http.connection`` can have additional formatting/normalization
+  applied to buffer contents, see :ref:`http.normalization` for additional
+  details.
+
 .. _http.content_len:
 
 http.content_len
@@ -1010,6 +986,10 @@ Example HTTP Response::
 .. note:: ``http.content_type`` does not include the leading space or trailing
    \\r\\n
 
+.. note:: ``http.content_type`` can have additional formatting/normalization
+  applied to buffer contents, see :ref:`http.normalization` for additional
+  details.
+
 .. _http.cookie:
 
 http.cookie
@@ -1020,12 +1000,6 @@ present in HTTP request (Cookie) or HTTP response (Set-Cookie) headers.
 
 It is possible to use any of the :doc:`payload-keywords` with both ``http.header``
 keywords.
-
-.. note:: Cookies are passed in HTTP headers but Suricata extracts the cookie
-  data to ``http.cookie`` and will not match cookie content put in the
-  :ref:`http.header` sticky buffer.
-
-.. note:: ``http.cookie`` does not include the leading space or trailing \\r\\n
 
 Example HTTP Request::
 
@@ -1039,6 +1013,16 @@ Example HTTP Request::
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Cookie Example"; \
   flow:established,to_server; :example-rule-emphasis:`http.cookie; \
   content:"PHPSESSIONID=123";` bsize:14; classtype:bad-unknown; sid:80; rev:1;)
+
+.. note:: Cookies are passed in HTTP headers but Suricata extracts the cookie
+  data to ``http.cookie`` and will not match cookie content put in the
+  :ref:`http.header` sticky buffer.
+
+.. note:: ``http.cookie`` does not include the leading space or trailing \\r\\n
+
+.. note:: ``http.cookie`` can have additional formatting/normalization
+  applied to buffer contents, see :ref:`http.normalization` for additional
+  details.
 
 .. _http.header:
 
@@ -1091,11 +1075,6 @@ Example HTTP Request::
 
 .. note:: There are headers that will not be included in the ``http.header``
   buffer, specifically the :ref:`http.cookie` buffer.
-
-.. note:: If there are multiple values for the same header name, they are
-  concatenated with a comma and space (", ") between each value.
-  More information can be found in RFC 2616
-  `<https://www.rfc-editor.org/rfc/rfc2616.html#section-4.2>`_
 
 .. _http.header.raw:
 
@@ -1258,3 +1237,32 @@ Example HTTP Response::
 
 .. note:: ``http.start`` contains the normalized headers and is terminated by
   an extra \\r\\n to indicate the end of the headers.
+
+.. _http.normalization:
+
+Normalization
+-------------
+
+There are times when Suricata performs formatting/normalization changes to
+traffic that is seen.
+
+Duplicate Header Names
+~~~~~~~~~~~~~~~~~~~~~~
+
+If there are multiple values for the same header name, they are concatenated
+with a comma and space (", ") between each value. More information can be
+found in RFC 2616 `<https://www.rfc-editor.org/rfc/rfc2616.html#section-4.2>`_
+
+Example Duplicate HTTP Header::
+
+  GET / HTTP/1.1
+  Host: suricata.io
+  User-Agent: Mozilla/5.0
+  User-Agent: Chrome/121.0.0
+
+.. container:: example-rule
+
+  alert http $HOME_NET -> $EXTERNAL_NET (msg:"Example Duplicate Header"; \
+  flow:established,to_server; :example-rule-options:`http.user_agent; \
+  content:"Mozilla/5.0, Chrome/121.0.0";` classtype:bad-unknown; sid:103; \
+  rev:1;)
