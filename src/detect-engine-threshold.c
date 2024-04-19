@@ -91,10 +91,12 @@ void ThresholdDestroy(void)
     ThresholdsDestroy(&ctx);
 }
 
+#define SID   0
+#define GID   1
+#define TRACK 2
+
 typedef struct ThresholdEntry_ {
-    uint32_t sid; /**< Signature id */
-    uint32_t gid; /**< Signature group id */
-    int track;    /**< Track type: by_src, by_src */
+    uint32_t key[3];
 
     uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
@@ -151,8 +153,8 @@ static inline int CompareAddress(const Address *a, const Address *b)
 static uint32_t ThresholdEntryHash(void *ptr)
 {
     const ThresholdEntry *e = ptr;
-    uint32_t hash = e->sid + e->gid + e->track;
-    switch (e->track) {
+    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), 0);
+    switch (e->key[TRACK]) {
         case TRACK_BOTH:
             hash += HashAddress(&e->addr2);
             /* fallthrough */
@@ -168,10 +170,11 @@ static bool ThresholdEntryCompare(void *a, void *b)
 {
     const ThresholdEntry *e1 = a;
     const ThresholdEntry *e2 = b;
-    SCLogDebug("sid1: %u sid2: %u", e1->sid, e2->sid);
-    if (!(e1->sid == e2->sid && e1->gid == e2->gid && e1->track == e2->track))
+    SCLogDebug("sid1: %u sid2: %u", e1->key[SID], e2->key[SID]);
+
+    if (memcmp(e1->key, e2->key, sizeof(e1->key)) != 0)
         return false;
-    switch (e1->track) {
+    switch (e1->key[TRACK]) {
         case TRACK_BOTH:
             if (!(CompareAddress(&e1->addr2, &e2->addr2)))
                 return false;
@@ -521,7 +524,7 @@ static ThresholdEntry *ThresholdFlowLookupEntry(Flow *f, uint32_t sid, uint32_t 
         return NULL;
 
     for (FlowThresholdEntryList *e = t->thresholds; e != NULL; e = e->next) {
-        if (e->threshold.sid == sid && e->threshold.gid == gid) {
+        if (e->threshold.key[SID] == sid && e->threshold.key[GID] == gid) {
             return &e->threshold;
         }
     }
@@ -611,9 +614,9 @@ static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
 static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
         const SCTime_t packet_time, const uint32_t sid, const uint32_t gid)
 {
-    te->sid = sid;
-    te->gid = gid;
-    te->track = td->track;
+    te->key[SID] = sid;
+    te->key[GID] = gid;
+    te->key[TRACK] = td->track;
     te->seconds = td->seconds;
 
     te->current_count = 1;
@@ -764,9 +767,9 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
 
     ThresholdEntry lookup;
     memset(&lookup, 0, sizeof(lookup));
-    lookup.sid = s->id;
-    lookup.gid = s->gid;
-    lookup.track = td->track;
+    lookup.key[SID] = s->id;
+    lookup.key[GID] = s->gid;
+    lookup.key[TRACK] = td->track;
     if (td->track == TRACK_SRC) {
         COPY_ADDRESS(&p->src, &lookup.addr);
     } else if (td->track == TRACK_DST) {
