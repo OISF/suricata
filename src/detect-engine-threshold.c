@@ -223,12 +223,17 @@ uint32_t ThresholdsExpire(const SCTime_t ts)
 
 #include "util-hash.h"
 
+#define TC_ADDRESS 0
+#define TC_SID     1
+#define TC_GID     2
+#define TC_REV     3
+#define TC_TENANT  4
+
 typedef struct ThresholdCacheItem {
     int8_t track; // by_src/by_dst
     int8_t ipv;
     int8_t retval;
-    uint32_t addr;
-    uint32_t sid;
+    uint32_t key[5];
     SCTime_t expires_at;
     RB_ENTRY(ThresholdCacheItem) rb;
 } ThresholdCacheItem;
@@ -296,8 +301,8 @@ static void ThresholdCacheExpire(SCTime_t now)
 
 static uint32_t ThresholdCacheHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
-    ThresholdCacheItem *tci = data;
-    int hash = tci->ipv * tci->track + tci->addr + tci->sid;
+    ThresholdCacheItem *e = data;
+    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), 0) * (e->ipv + e->track);
     hash = hash % ht->array_size;
     return hash;
 }
@@ -307,8 +312,8 @@ static char ThresholdCacheHashCompareFunc(
 {
     ThresholdCacheItem *tci1 = data1;
     ThresholdCacheItem *tci2 = data2;
-    return tci1->ipv == tci2->ipv && tci1->track == tci2->track && tci1->addr == tci2->addr &&
-           tci1->sid == tci2->sid;
+    return tci1->ipv == tci2->ipv && tci1->track == tci2->track &&
+           memcmp(tci1->key, tci2->key, sizeof(tci1->key)) == 0;
 }
 
 static void ThresholdCacheHashFreeFunc(void *data)
@@ -318,7 +323,7 @@ static void ThresholdCacheHashFreeFunc(void *data)
 
 /// \brief Thread local cache
 static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, const uint32_t sid,
-        SCTime_t expires)
+        const uint32_t gid, const uint32_t rev, SCTime_t expires)
 {
     if (!threshold_cache_ht) {
         threshold_cache_ht = HashTableInit(256, ThresholdCacheHashFunc,
@@ -338,8 +343,11 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
         .track = track,
         .ipv = 4,
         .retval = retval,
-        .addr = addr,
-        .sid = sid,
+        .key[TC_ADDRESS] = addr,
+        .key[TC_SID] = sid,
+        .key[TC_GID] = gid,
+        .key[TC_REV] = rev,
+        .key[TC_TENANT] = p->tenant_id,
         .expires_at = expires,
     };
     ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
@@ -349,8 +357,11 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
             n->track = track;
             n->ipv = 4;
             n->retval = retval;
-            n->addr = addr;
-            n->sid = sid;
+            n->key[TC_ADDRESS] = addr;
+            n->key[TC_SID] = sid;
+            n->key[TC_GID] = gid;
+            n->key[TC_REV] = rev;
+            n->key[TC_TENANT] = p->tenant_id;
             n->expires_at = expires;
 
             if (HashTableAdd(threshold_cache_ht, n, 0) == 0) {
@@ -379,7 +390,8 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
 /** \brief Check Thread local thresholding cache
  *  \retval negative value cache miss (-1 miss, -2 expired)
  */
-static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid)
+static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid, const uint32_t gid,
+        const uint32_t rev)
 {
     cache_lookup_cnt++;
 
@@ -405,8 +417,11 @@ static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid)
     ThresholdCacheItem lookup = {
         .track = track,
         .ipv = 4,
-        .addr = addr,
-        .sid = sid,
+        .key[TC_ADDRESS] = addr,
+        .key[TC_SID] = sid,
+        .key[TC_GID] = gid,
+        .key[TC_REV] = rev,
+        .key[TC_TENANT] = p->tenant_id,
     };
     ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
     if (found) {
@@ -571,7 +586,7 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
 
 static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *te,
         const Packet *p, // ts only? - cache too
-        const uint32_t sid, PacketAlert *pa)
+        const uint32_t sid, const uint32_t gid, const uint32_t rev, PacketAlert *pa)
 {
     int ret = 0;
     const SCTime_t packet_time = p->ts;
@@ -589,7 +604,7 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
                     ret = 2;
 
                     if (PacketIsIPv4(p)) {
-                        SetupCache(p, td->track, (int8_t)ret, sid, entry);
+                        SetupCache(p, td->track, (int8_t)ret, sid, gid, rev, entry);
                     }
                 }
             } else {
@@ -624,7 +639,7 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
                     ret = 2;
 
                     if (PacketIsIPv4(p)) {
-                        SetupCache(p, td->track, (int8_t)ret, sid, entry);
+                        SetupCache(p, td->track, (int8_t)ret, sid, gid, rev, entry);
                     }
                 }
             } else {
@@ -738,7 +753,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
             r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
         } else {
             // existing, check/update
-            r = ThresholdCheckUpdate(td, te, p, s->id, pa);
+            r = ThresholdCheckUpdate(td, te, p, s->id, s->gid, s->rev, pa);
         }
 
         (void)THashDecrUsecnt(res.data);
@@ -774,7 +789,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
     } else if (td->track == TRACK_SRC) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
-            int cache_ret = CheckCache(p, td->track, s->id);
+            int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);
             if (cache_ret >= 0) {
                 SCReturnInt(cache_ret);
             }
@@ -783,7 +798,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         ret = ThresholdGetFromHash(&ctx, p, s, td, pa);
     } else if (td->track == TRACK_DST) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
-            int cache_ret = CheckCache(p, td->track, s->id);
+            int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);
             if (cache_ret >= 0) {
                 SCReturnInt(cache_ret);
             }
