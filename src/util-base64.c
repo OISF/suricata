@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@
 
 #include "util-base64.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "util-unittest.h"
 /* Constants */
 #define BASE64_TABLE_MAX  122
@@ -91,6 +92,162 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
     ascii[0] = (uint8_t) (b64[0] << 2) | (b64[1] >> 4);
     ascii[1] = (uint8_t) (b64[1] << 4) | (b64[2] >> 2);
     ascii[2] = (uint8_t) (b64[2] << 6) | (b64[3]);
+}
+
+/**
+ * \brief Decode a base64 encoded string as per RFC 2045.
+ *        RFC 2045 states that any characters that do not fall under the Base64
+ *        alphabet must be skipped by the decoding software.
+ *        Following are some important considerations:
+ *        1. This Decoding algorithm is used by MIME parser currently.
+ *        2. The number of decoded bytes are constrained by the destination buffer size.
+ *        3. The leftover bytes are not handled by the decoder but the caller.
+ *
+ * \param dest destination buffer
+ * \param dest_size destination buffer size
+ * \param src base64 encoded string
+ * \param len length of the base64 encoded string
+ * \param consumed_bytes number of bytes successfully consumed by the decoder
+ * \param decoded_bytes number of bytes successfully decoded by the decoder
+ *
+ * \return Base64Ecode BASE64_ECODE_OK if all went well
+ *                     BASE64_ECODE_BUF if destination buffer got full before all could be decoded
+ */
+static inline Base64Ecode DecodeBase64RFC2045(uint8_t *dest, uint32_t dest_size, const uint8_t *src,
+        uint32_t len, uint32_t *consumed_bytes, uint32_t *decoded_bytes)
+{
+    int val;
+    uint32_t padding = 0, bbidx = 0, non_b64_chars = 0;
+    uint8_t *dptr = dest;
+    uint8_t b64[B64_BLOCK] = { 0, 0, 0, 0 };
+
+    for (uint32_t i = 0; i < len; i++) {
+        val = GetBase64Value(src[i]);
+        if (val < 0) {
+            if (src[i] != '=') {
+                non_b64_chars++;
+                continue;
+            } else {
+                padding++;
+            }
+        }
+
+        /* For each alpha-numeric letter in the source array, find the numeric value */
+        b64[bbidx++] = val > 0 ? (uint8_t)val : 0;
+
+        /* Decode every 4 base64 bytes into 3 ascii bytes */
+        if (bbidx == B64_BLOCK) {
+            /* For every 4 bytes, add 3 bytes but deduct the '=' padded blocks */
+            uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+            if (dest_size < *decoded_bytes + numDecoded_blk) {
+                SCLogDebug("Destination buffer full");
+                return BASE64_ECODE_BUF;
+            }
+            /* Decode base-64 block into ascii block and move pointer */
+            DecodeBase64Block(dptr, b64);
+            dptr += numDecoded_blk;
+            *decoded_bytes += numDecoded_blk;
+            /* Reset base-64 block and index */
+            bbidx = 0;
+            padding = 0;
+            *consumed_bytes += B64_BLOCK + non_b64_chars;
+            non_b64_chars = 0;
+            memset(&b64, 0, sizeof(b64));
+        }
+    }
+
+    DEBUG_VALIDATE_BUG_ON(*consumed_bytes > len);
+    DEBUG_VALIDATE_BUG_ON(bbidx == B64_BLOCK);
+    /* Any leftover bytes must be handled by the caller */
+    return BASE64_ECODE_OK;
+}
+
+/**
+ * \brief Decode a base64 encoded string as per RFC 4648.
+ *        RFC 4648 states that if a character is encountered that does not fall under
+ *        the Base64 alphabet, the decoding software should stop processing the string further.
+ *        Following are some important considerations:
+ *        1. This Decoding algorithm is used by base64_decode keyword currently.
+ *        2. This Decoding algorithm in strict mode is used by datasets currently.
+ *        3. The number of decoded bytes are constrained by the destination buffer size.
+ *        4. The leftover bytes are handled by the decoder.
+ *
+ * \param dest destination buffer
+ * \param dest_size destination buffer size
+ * \param src base64 encoded string
+ * \param len length of the base64 encoded string
+ * \param consumed_bytes number of bytes successfully consumed by the decoder
+ * \param decoded_bytes number of bytes successfully decoded by the decoder
+ * \param strict whether an invalid base64 encoding should be strictly rejected
+ *
+ * \return Base64Ecode BASE64_ECODE_OK if all went well
+ *                     BASE64_ECODE_BUF if destination buffer got full before all could be decoded
+ *                     BASE64_ECODE_ERR if an invalid char was found in strict mode
+ */
+static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size, const uint8_t *src,
+        uint32_t len, uint32_t *consumed_bytes, uint32_t *decoded_bytes, bool strict)
+{
+    int val;
+    uint32_t padding = 0, bbidx = 0;
+    uint8_t *dptr = dest;
+    uint8_t b64[B64_BLOCK] = { 0, 0, 0, 0 };
+
+    for (uint32_t i = 0; i < len; i++) {
+        val = GetBase64Value(src[i]);
+        if (val < 0) {
+            if (src[i] != '=') {
+                if (strict) {
+                    *decoded_bytes = 0;
+                    return BASE64_ECODE_ERR;
+                }
+                break;
+            }
+            padding++;
+        }
+        /* For each alpha-numeric letter in the source array, find the numeric value */
+        b64[bbidx++] = (val > 0 ? (uint8_t)val : 0);
+
+        /* Decode every 4 base64 bytes into 3 ascii bytes */
+        if (bbidx == B64_BLOCK) {
+            /* For every 4 bytes, add 3 bytes but deduct the '=' padded blocks */
+            uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+            if (dest_size < *decoded_bytes + numDecoded_blk) {
+                SCLogDebug("Destination buffer full");
+                return BASE64_ECODE_BUF;
+            }
+
+            /* Decode base-64 block into ascii block and move pointer */
+            DecodeBase64Block(dptr, b64);
+            dptr += numDecoded_blk;
+            *decoded_bytes += numDecoded_blk;
+            /* Reset base-64 block and index */
+            bbidx = 0;
+            padding = 0;
+            *consumed_bytes += B64_BLOCK;
+            memset(&b64, 0, sizeof(b64));
+        }
+    }
+
+    DEBUG_VALIDATE_BUG_ON(bbidx == B64_BLOCK);
+
+    /* Handle any leftover bytes by adding padding to them as long as they do not
+     * violate the destination buffer size */
+    if (bbidx > 0) {
+        padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
+        uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+        if (dest_size < *decoded_bytes + numDecoded_blk) {
+            SCLogDebug("Destination buffer full");
+            return BASE64_ECODE_BUF;
+        }
+        /* Decode base-64 block into ascii block and move pointer */
+        DecodeBase64Block(dptr, b64);
+        *decoded_bytes += numDecoded_blk;
+        /* Consumed bytes should not have the padding bytes added by us */
+        *consumed_bytes += bbidx;
+    }
+
+    DEBUG_VALIDATE_BUG_ON(*consumed_bytes > len);
+    return BASE64_ECODE_OK;
 }
 
 /**
