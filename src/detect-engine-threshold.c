@@ -91,13 +91,14 @@ void ThresholdDestroy(void)
     ThresholdsDestroy(&ctx);
 }
 
-#define SID   0
-#define GID   1
-#define REV   2
-#define TRACK 3
+#define SID    0
+#define GID    1
+#define REV    2
+#define TRACK  3
+#define TENANT 4
 
 typedef struct ThresholdEntry_ {
-    uint32_t key[4];
+    uint32_t key[5];
 
     uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
@@ -518,7 +519,8 @@ static FlowVarThreshold *FlowThresholdVarGet(Flow *f)
     return NULL;
 }
 
-static ThresholdEntry *ThresholdFlowLookupEntry(Flow *f, uint32_t sid, uint32_t gid, uint32_t rev)
+static ThresholdEntry *ThresholdFlowLookupEntry(
+        Flow *f, uint32_t sid, uint32_t gid, uint32_t rev, uint32_t tenant_id)
 {
     FlowVarThreshold *t = FlowThresholdVarGet(f);
     if (t == NULL)
@@ -526,7 +528,7 @@ static ThresholdEntry *ThresholdFlowLookupEntry(Flow *f, uint32_t sid, uint32_t 
 
     for (FlowThresholdEntryList *e = t->thresholds; e != NULL; e = e->next) {
         if (e->threshold.key[SID] == sid && e->threshold.key[GID] == gid &&
-                e->threshold.key[REV] == rev) {
+                e->threshold.key[REV] == rev && e->threshold.key[TENANT] == tenant_id) {
             return &e->threshold;
         }
     }
@@ -614,12 +616,14 @@ static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
 }
 
 static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
-        const SCTime_t packet_time, const uint32_t sid, const uint32_t gid, const uint32_t rev)
+        const SCTime_t packet_time, const uint32_t sid, const uint32_t gid, const uint32_t rev,
+        const uint32_t tenant_id)
 {
     te->key[SID] = sid;
     te->key[GID] = gid;
     te->key[REV] = rev;
     te->key[TRACK] = td->track;
+    te->key[TENANT] = tenant_id;
     te->seconds = td->seconds;
 
     te->current_count = 1;
@@ -774,6 +778,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
     lookup.key[GID] = s->gid;
     lookup.key[REV] = s->rev;
     lookup.key[TRACK] = td->track;
+    lookup.key[TENANT] = p->tenant_id;
     if (td->track == TRACK_SRC) {
         COPY_ADDRESS(&p->src, &lookup.addr);
     } else if (td->track == TRACK_DST) {
@@ -806,7 +811,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
         ThresholdEntry *te = res.data->data;
         if (res.is_new) {
             // new threshold, set up
-            r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev);
+            r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
         } else {
             // existing, check/update
             r = ThresholdCheckUpdate(td, te, p, s->id, pa);
@@ -828,7 +833,7 @@ static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdDa
         uint32_t sid, uint32_t gid, uint32_t rev, PacketAlert *pa)
 {
     int ret = 0;
-    ThresholdEntry *found = ThresholdFlowLookupEntry(f, sid, gid, rev);
+    ThresholdEntry *found = ThresholdFlowLookupEntry(f, sid, gid, rev, p->tenant_id);
     SCLogDebug("found %p sid %u gid %u rev %u", found, sid, gid, rev);
 
     if (found == NULL) {
@@ -837,7 +842,7 @@ static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdDa
             return 0;
 
         // new threshold, set up
-        ret = ThresholdSetup(td, &new->threshold, p->ts, sid, gid, rev);
+        ret = ThresholdSetup(td, &new->threshold, p->ts, sid, gid, rev, p->tenant_id);
 
         if (AddEntryToFlow(f, new, p->ts) == -1) {
             SCFree(new);
