@@ -82,6 +82,7 @@ Response Keywords:
 
 Request or Response Keywords:
  * :ref:`file.data`
+ * :ref:`http.connection`
  * :ref:`http.content_len`
  * :ref:`http.content_type`
  * :ref:`http.cookie`
@@ -194,34 +195,6 @@ Example HTTP Request::
 
 .. note:: ``http.accept_lang`` does not include the leading space or
   trailing \\r\\n
-
-.. _http.connection:
-
-http.connection
----------------
-
-The ``http.connection`` keyword is used to match on the Connection field that
-can be present in HTTP request headers.
-
-It is possible to use any of the :doc:`payload-keywords` with the
-``http.connection`` keyword.
-
-Example HTTP Request::
-
-  GET /index.html HTTP/1.1
-  User-Agent: Mozilla/5.0
-  Accept-Language: en-US
-  Host: suricata.io
-  Connection: Keep-Alive
-
-.. container:: example-rule
-
-  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Connection Example"; \
-  flow:established,to_server; :example-rule-options:`http.connection; \
-  content:"Keep-Alive";` bsize:10; classtype:bad-unknown; sid:94; rev:1;)
-
-.. note:: ``http.connection`` does not include the leading space or trailing
-   \\r\\n
 
 .. _http.host:
 
@@ -914,6 +887,34 @@ setting.
 
 .. note:: ``file.data`` supports multiple buffer matching, see
   :doc:`multi-buffer-matching`.
+
+.. _http.connection:
+
+http.connection
+---------------
+
+The ``http.connection`` keyword is used to match on the Connection field that
+can be present in HTTP request or response headers.
+
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.connection`` keyword.
+
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept-Language: en-US
+  Host: suricata.io
+  Connection: Keep-Alive
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Connection Example"; \
+  flow:established,to_server; :example-rule-options:`http.connection; \
+  content:"Keep-Alive";` bsize:10; classtype:bad-unknown; sid:94; rev:1;)
+
+.. note:: ``http.connection`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.content_len:
 
