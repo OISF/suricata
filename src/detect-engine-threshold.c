@@ -39,38 +39,19 @@
 #include "detect.h"
 #include "flow.h"
 
-#include "host.h"
-#include "host-storage.h"
-
-#include "ippair.h"
-#include "ippair-storage.h"
-
 #include "detect-parse.h"
-#include "detect-engine-sigorder.h"
-
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
-
 #include "detect-engine.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-address.h"
+#include "detect-engine-address-ipv6.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
-
-#include "util-hash.h"
 #include "util-time.h"
 #include "util-error.h"
 #include "util-debug.h"
-
-#include "util-var-name.h"
-#include "tm-threads.h"
-
 #include "action-globals.h"
 #include "util-validate.h"
 
+#include "util-hash.h"
 #include "util-thash.h"
 #include "util-hash-lookup3.h"
 
@@ -221,8 +202,6 @@ uint32_t ThresholdsExpire(const SCTime_t ts)
 {
     return THashExpire(ctx.thash, ts);
 }
-
-#include "util-hash.h"
 
 #define TC_ADDRESS 0
 #define TC_SID     1
@@ -776,8 +755,6 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
     }
     return ret;
 }
-
-#include "detect-engine-address-ipv6.h"
 
 static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const Signature *s,
         const DetectThresholdData *td, PacketAlert *pa)
