@@ -51,15 +51,9 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-nfs-tcp.h"
 #include "app-layer-nfs-udp.h"
-#include "app-layer-ntp.h"
 #include "app-layer-tftp.h"
 #include "app-layer-ike.h"
-#include "app-layer-krb5.h"
-#include "app-layer-sip.h"
 #include "app-layer-rfb.h"
-#include "app-layer-snmp.h"
-#include "app-layer-quic.h"
-#include "app-layer-rdp.h"
 #include "app-layer-http2.h"
 
 struct AppLayerParserThreadCtx_ {
@@ -1746,20 +1740,20 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDNP3Parsers();
     RegisterNFSTCPParsers();
     RegisterNFSUDPParsers();
-    RegisterNTPParsers();
+    rs_register_ntp_parser();
     RegisterTFTPParsers();
     RegisterIKEParsers();
-    RegisterKRB5Parsers();
+    rs_register_krb5_parser();
     rs_dhcp_register_parser();
-    RegisterSNMPParsers();
-    RegisterSIPParsers();
-    RegisterQuicParsers();
+    rs_register_snmp_parser();
+    rs_sip_register_parser();
+    rs_quic_register_parser();
     rs_websocket_register_parser();
     rs_template_register_parser();
     RegisterRFBParsers();
     SCMqttRegisterParser();
     rs_pgsql_register_parser();
-    RegisterRdpParsers();
+    rs_rdp_register_parser();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
 
