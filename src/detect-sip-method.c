@@ -51,7 +51,6 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
 
 #define KEYWORD_NAME "sip.method"
 #define KEYWORD_DOC  "sip-keywords.html#sip-method"
