@@ -22,11 +22,13 @@
 #include "detect.h"
 #include "detect-engine-state.h" //DetectEngineState
 
-#include "app-layer-krb5.h" //KRB5State, KRB5Transaction
 #include "app-layer-ike.h"  //IKEState, IKETransaction
-#include "app-layer-ntp.h" //NTPState, NTPTransaction
-#include "app-layer-snmp.h" //SNMPState, SNMPTransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
+/** Opaque Rust types. */
+typedef struct KRB5State_ KRB5State;
+typedef struct KRB5Transaction_ KRB5Transaction;
+typedef struct SNMPState_ SNMPState;
+typedef struct SNMPTransaction_ SNMPTransaction;
 
 #include "util-debug.h"
 #include "util-file.h"

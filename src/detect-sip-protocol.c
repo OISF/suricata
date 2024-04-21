@@ -52,24 +52,23 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
 
 #define KEYWORD_NAME "sip.protocol"
 #define KEYWORD_DOC  "sip-keywords.html#sip-protocol"
 #define BUFFER_NAME  "sip.protocol"
 #define BUFFER_DESC  "sip protocol"
-static int g_buffer_id = 0;
+ static int g_buffer_id = 0;
 
-static int DetectSipProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
-{
-    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
-        return -1;
+ static int DetectSipProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+ {
+     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
+         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SIP) < 0)
-        return -1;
+     if (DetectSignatureSetAppProto(s, ALPROTO_SIP) < 0)
+         return -1;
 
-    return 0;
-}
+     return 0;
+ }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,

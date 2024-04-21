@@ -33,21 +33,15 @@ noinst_HEADERS = \
 	app-layer-htp-xff.h \
 	app-layer-http2.h \
 	app-layer-ike.h \
-	app-layer-krb5.h \
 	app-layer-modbus.h \
-	app-layer-quic.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
-	app-layer-ntp.h \
 	app-layer-parser.h \
 	app-layer-protos.h \
-	app-layer-rdp.h \
 	app-layer-register.h \
 	app-layer-rfb.h \
-	app-layer-sip.h \
 	app-layer-smb.h \
 	app-layer-smtp.h \
-	app-layer-snmp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
@@ -649,21 +643,15 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-xff.c \
 	app-layer-http2.c \
 	app-layer-ike.c \
-	app-layer-krb5.c \
 	app-layer-modbus.c \
-	app-layer-quic.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
-	app-layer-ntp.c \
 	app-layer-parser.c \
 	app-layer-protos.c \
-	app-layer-rdp.c \
 	app-layer-register.c \
 	app-layer-rfb.c \
-	app-layer-sip.c \
 	app-layer-smb.c \
 	app-layer-smtp.c \
-	app-layer-snmp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
