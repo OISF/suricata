@@ -1,4 +1,4 @@
- /* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,7 +52,6 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
 
 #define KEYWORD_NAME "sip.protocol"
 #define KEYWORD_DOC  "sip-keywords.html#sip-protocol"

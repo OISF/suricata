@@ -34,7 +34,6 @@
 #include "detect-krb5-cname.h"
 
 #include "rust.h"
-#include "app-layer-krb5.h"
 #include "util-profiling.h"
 
 static int g_krb5_cname_buffer_id = 0;
