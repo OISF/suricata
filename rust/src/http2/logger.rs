@@ -43,8 +43,7 @@ fn log_http2_headers<'a>(
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
                 if Rc::strong_count(&blocks[j].name) > 2 {
                     // more than one reference in headers table + current headers
-                    let ptr = Rc::as_ptr(&blocks[j].name) as usize;
-                    if !logged_headers.insert(ptr) {
+                    if !logged_headers.insert(blocks[j].name.as_ptr()) {
                         // only log once
                         continue;
                     }
