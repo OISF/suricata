@@ -1,3 +1,16 @@
+6.0.19 -- 2024-04-23
+
+Security #6978: http2: timeout logging headers (6.0.x backport)(CVE 2024-32663)
+Security #6972: http2: oom on copying compressed headers (6.0.x backport)(CVE 2024-32663)
+Security #6931: base64: off-by-three overflow in DecodeBase64() (6.0.x backport)(CVE 2024-32664)
+Security #6676: ip-defrag: packet can be considered complete even with holes (6.0.x backport)(CVE 2024-32867)
+Security #6671: ip defrag: final overlapping packet can lead to "hole" in re-assembled data (6.0.x backport)(CVE 2024-32867)
+Security #6670: ip defrag: re-assembly error in bsd policy (6.0.x backport)(CVE 2024-32867)
+Bug #6944: defrag: reassembled packet can have wrong datatype (6.0.x backport)
+Bug #6898: detect: slowdown in rule parsing (6.0.x backport)
+Optimization #6879: conf: quadratic complexity in yaml loader (6.0.x backport)
+Feature #6946: pcap: datalink type 229 not (yet) supported in module PcapFile (6.0.x backport)
+
 6.0.18 -- 2024-03-21
 
 Bug #6876: rust: MSRV unintentionally bumped
