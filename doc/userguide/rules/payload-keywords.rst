@@ -852,7 +852,7 @@ Suricata has its own specific pcre modifiers. These are:
 .. _pcre-update-v1-to-v2:
 
 Changes from PCRE1 to PCRE2
-===========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The upgrade from PCRE1 to PCRE2 changes the behavior for some
 PCRE expressions.
