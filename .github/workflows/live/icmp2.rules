@@ -1,0 +1,1 @@
+alert icmp any any -> any any (itype:8; sid:2;)
