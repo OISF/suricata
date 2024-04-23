@@ -2570,7 +2570,9 @@ jobs:
           libnet \
           libtool \
           libyaml \
+          pyyaml \
           lua \
+          pcre2 \
           pkg-config \
           python \
           rust \
@@ -2578,7 +2580,6 @@ jobs:
       - name: Install cbindgen
         run: cargo install --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: pip3 install PyYAML
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - name: Downloading prep archive
@@ -2589,8 +2590,8 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
-      - run: make -j ${{ env.CPUS }}
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --prefix="$HOME/.local/"
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
       # somehow it gets included by some C++ stdlib header (case unsensitive)
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
