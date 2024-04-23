@@ -5,6 +5,8 @@ Payload Keywords
 Payload keywords inspect the content of the payload of a packet or
 stream.
 
+.. _content:
+
 content
 -------
 
@@ -691,11 +693,25 @@ the reassembled stream.
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
+.. _pkt-data:
+
+pkt_data
+--------
+
+``pkt_data`` is a sticky buffer that allows for payload inspection from the
+beginning of the normalized packet data. As a sticky buffer, ``pkt_data``
+requires the usage of the :ref:`content` keyword for the buffer inspection.
+
+Example of ``pkt_data`` in a signature:
+
+.. container:: example-rule
+
+   alert tftp any any -> any any (msg:"TFTP Test Rule"; :example-rule-emphasis:`pkt_data; content:"rfc1350";` sid:1; rev:1;)
+
 .. _pcre:
 
 pcre (Perl Compatible Regular Expressions)
 ------------------------------------------
-.. role:: example-rule-emphasis
 
 The keyword pcre matches specific on regular expressions. More
 information about regular expressions can be found here
@@ -851,4 +867,3 @@ PCRE expressions.
   ``PCRE2_ERROR_UNSET`` instead of ``pcre_copy_substring`` returning
   no error and giving an empty string. If the behavior of some use
   case is no longer the expected one, please let us know.
-

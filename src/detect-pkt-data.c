@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2020 Open Information Security Foundation
+/* Copyright (C) 2012-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,7 +48,7 @@ static void DetectPktDataTestRegister(void);
 #endif
 
 /**
- * \brief Registration function for keyword: file_data
+ * \brief Registration function for keyword: pkt_data
  */
 void DetectPktDataRegister(void)
 {
@@ -57,6 +57,7 @@ void DetectPktDataRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;
 #endif
+    sigmatch_table[DETECT_PKT_DATA].url = "/rules/payload-keywords.html#pkt-data";
     sigmatch_table[DETECT_PKT_DATA].flags = SIGMATCH_NOOPT;
 }
 
