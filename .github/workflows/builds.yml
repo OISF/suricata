@@ -1592,9 +1592,19 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
+      - run: |
+          echo IFACE=$(/usr/sbin/ip a|grep eth0|awk '{print $2}'|cut -d'@' -f1) >> $GITHUB_ENV
+      # AF_PACKET IDS config
+      - run: rm -f ./eve.json
+      - run: |
+          timeout --kill-after=30 --preserve-status 10 \
+            ./src/suricata -c suricata.yaml -S /dev/null -l ./ --af-packet=${{ env.IFACE }} -vvvv
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ids.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
-      - run: /usr/sbin/ip a
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8
         with:
