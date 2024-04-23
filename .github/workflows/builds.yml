@@ -1581,6 +1581,26 @@ jobs:
             ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ids.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
+      # IDS config single
+      - run: rm -f ./eve.json
+      - run: |
+          timeout --kill-after=30 --preserve-status 10 \
+            ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv --runmode=single
+        env:
+          LLVM_PROFILE_FILE: "/tmp/dpdk-ids-single.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
+      # IDS config interupt mode
+      - run: rm -f ./eve.json
+      - run: |
+          timeout --kill-after=30 --preserve-status 10 \
+            ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv --set dpdk.interfaces.0.interrupt-mode=true
+        env:
+          LLVM_PROFILE_FILE: "/tmp/dpdk-ids-intr.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       # IPS config
       - run: rm -f ./eve.json
       - run: |
@@ -1588,6 +1608,8 @@ jobs:
             ./src/suricata -c .github/workflows/dpdk/suricata-null-ips.yaml -S /dev/null -l ./ --dpdk -vvvv
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
