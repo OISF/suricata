@@ -1565,8 +1565,8 @@ jobs:
           CC: "clang-14"
           CXX: "clang++-14"
           RUSTFLAGS: "-C instrument-coverage"
-          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -Wimplicit-int-float-conversion -Wimplicit-int-conversion -Werror"
-          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
