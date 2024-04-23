@@ -1500,6 +1500,7 @@ jobs:
                 clang-14 \
                 git \
                 jq \
+                inetutils-ping \
                 libc++-dev \
                 libc++abi-dev \
                 libtool \
