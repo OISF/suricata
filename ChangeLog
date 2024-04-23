@@ -1,3 +1,33 @@
+7.0.5 -- 2024-04-23
+
+Security #6905: base64: off-by-three overflow in DecodeBase64() (7.0.x backport)(CVE 2024-32664)
+Security #6901: http2: timeout logging headers (7.0.x backport)(CVE 2024-32663)
+Security #6893: http2: oom on copying compressed headers (7.0.x backport)(CVE 2024-32663)
+Security #6677: ip-defrag: packet can be considered complete even with holes (7.0.x backport)(CVE 2024-32867)
+Security #6673: ip defrag: final overlapping packet can lead to "hole" in re-assembled data (7.0.x backport)(CVE 2024-32867)
+Security #6672: ip defrag: re-assembly error in bsd policy (7.0.x backport)(CVE 2024-32867)
+Bug #6970: streaming buffer: heap overflows in StreamingBufferAppend()/StreamingBufferAppendNoTrack() (7.0.x backport)
+Bug #6966: improve handling of content encoding: gzip but request_body not actually compressed (7.0.x backport)
+Bug #6958: Assert:  BUG_ON(id <= 0 || id > (int)thread_store.threads_size); (7.0.x backport)
+Bug #6949: detect/http.response_body: false positive because not enforcing direction to_client (7.0.x backport)
+Bug #6945: defrag: reassembled packet can have wrong datatype (7.0.x backport)
+Bug #6923: jsonbuilder:  serializes Rust f64 NaNs to an invalid literal (7.0.x backport)
+Bug #6919: pcre2 compile warning (7.0.x backport)
+Bug #6907: Fix stats key (7.0.x backport)
+Bug #6890: detect: slowdown in rule parsing (7.0.x backport)
+Bug #6884: rust: clippy 1.77 warning (7.0.x backport)
+Bug #6882: Detect: ipopts keyword misfires (7.0.x backport)
+Bug #6872: dpdk: fix compatibility issues for ice cards (7.0.x backport)
+Bug #6863: BUG_ON triggered from TmThreadsInjectFlowById (7.0.x backport)
+Bug #6859: fast_pattern specification in base64_data shouldn't be allowed (7.0.x backport)
+Bug #6727: stream: stream.drop-invalid drops valid traffic (7.0.x backport)
+Bug #6679: datasets: discard datasets that hit the memcap while loading correctly (7.0.x backport)
+Bug #6313: napatech: display HBA deprecation notice only once
+Optimization #6880: conf: quadratic complexity in yaml loader (7.0.x backport)
+Feature #6947: pcap: datalink type 229 not (yet) supported in module PcapFile (7.0.x backport)
+Feature #6696: dpdk: power saving mode (7.0.x backport)
+Documentation #6912: manpages: use consistant date based on release and/or git commits (7.0.x backport)
+
 7.0.4 -- 2024-03-19
 
 Security #6868: eve: excessive ssh long banner logging (7.0.x backport)(CVE 2024-28870)
