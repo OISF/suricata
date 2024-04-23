@@ -1341,6 +1341,7 @@ jobs:
           libnet \
           libtool \
           libyaml \
+          pyyaml \
           lua \
           nss \
           nspr \
@@ -1352,7 +1353,6 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: pip3 install PyYAML
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - name: Downloading prep archive
         uses: actions/download-artifact@v2
@@ -1362,8 +1362,8 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" CPPFLAGS="-I/usr/local/opt/libiconv/include" CXXFLAGS="-I/usr/local/opt/libiconv/include" LDFLAGS="-L/usr/local/opt/libiconv/lib" ./configure --enable-unittests
-      - run: make -j2
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --prefix="$HOME/.local/"
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
       # somehow it gets included by some C++ stdlib header (case unsensitive)
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
