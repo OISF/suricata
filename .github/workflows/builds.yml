@@ -2578,7 +2578,10 @@ jobs:
       - name: Install cbindgen
         run: cargo install --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: pip3 install PyYAML
+      - run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip3 install PyYAML
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - name: Downloading prep archive
@@ -2595,7 +2598,9 @@ jobs:
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q --debug-failed
+        run: |
+          source .venv/bin/activate
+          python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
