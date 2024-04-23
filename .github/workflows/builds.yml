@@ -1593,7 +1593,7 @@ jobs:
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       - run: |
-          echo IFACE=$(/usr/sbin/ip a|grep "eth0@"|awk '{print $2}'|cut -d':' -f1) >> $GITHUB_ENV
+          echo IFACE=$(/usr/sbin/ip a|grep "eth0@"|awk '{print $2}'|cut -d'@' -f1) >> $GITHUB_ENV
       - run: |
           ping suricata.io &
       # AF_PACKET IDS config
