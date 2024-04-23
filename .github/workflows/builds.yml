@@ -704,10 +704,10 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  fedora-38-sv-codecov:
-    name: Fedora 38 (Suricata Verify codecov)
+  fedora-39-sv-codecov:
+    name: Fedora 39 (Suricata Verify codecov)
     runs-on: ubuntu-latest
-    container: fedora:38
+    container: fedora:39
     needs: [prepare-deps]
     steps:
 
@@ -800,11 +800,11 @@ jobs:
           fail_ci_if_error: false
           flags: suricata-verify
 
-  # Fedora 38 build using Clang.
-  fedora-38-clang:
-    name: Fedora 38 (clang, cocci, debug, asan, wshadow, rust-strict, systemd)
+  # Fedora 39 build using Clang.
+  fedora-39-clang:
+    name: Fedora 39 (clang, cocci, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:38
+    container: fedora:39
     needs: [prepare-deps]
     steps:
 
@@ -909,11 +909,11 @@ jobs:
       # Check compilation against systemd
       - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
-  # Fedora 38 build using GCC.
-  fedora-38-gcc:
-    name: Fedora 38 (gcc, debug, asan, wshadow, rust-strict)
+  # Fedora 39 build using GCC.
+  fedora-39-gcc:
+    name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:38
+    container: fedora:39
     needs: [prepare-deps]
     steps:
 
@@ -999,11 +999,11 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  # Fedora 39 build using Clang.
-  fedora-39-clang:
-    name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
+  # Fedora 40 build using Clang.
+  fedora-40-clang:
+    name: Fedora 40 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:40
     needs: [prepare-deps]
     steps:
 
@@ -1100,11 +1100,11 @@ jobs:
       # Check compilation against systemd
       - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
-  # Fedora 39 build using GCC.
-  fedora-39-gcc:
-    name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
+  # Fedora 40 build using GCC.
+  fedora-40-gcc:
+    name: Fedora 40 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:40
     needs: [prepare-deps]
     steps:
 
@@ -1193,10 +1193,10 @@ jobs:
   # This job builds and tests Suricata as a non-root user as some
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
-  fedora-39-non-root:
-    name: Fedora 39 (non-root, debug, clang, asan, wshadow, rust-strict)
+  fedora-40-non-root:
+    name: Fedora 40 (non-root, debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:40
     needs: [prepare-deps]
     steps:
       - name: Determine number of CPUs
