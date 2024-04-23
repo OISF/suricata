@@ -1583,15 +1583,6 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ids.profraw"
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
-      # IDS config single
-      - run: rm -f ./eve.json
-      - run: |
-          timeout --kill-after=30 --preserve-status 10 \
-            ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv --runmode=single
-        env:
-          LLVM_PROFILE_FILE: "/tmp/dpdk-ids-single.profraw"
-      - run: |
-          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       # IDS config interupt mode
       - run: rm -f ./eve.json
       - run: |
