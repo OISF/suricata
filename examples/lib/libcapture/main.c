@@ -22,6 +22,8 @@
 #include "source-lib.h"
 #include "threadvars.h"
 
+static int worker_id = 1;
+
 /* Suricata worker thread in library mode.
    The functions should be wrapped in an API layer. */
 static void *SimpleWorker(void *arg)
@@ -29,7 +31,7 @@ static void *SimpleWorker(void *arg)
     char *pcap_file = (char *)arg;
 
     /* Create worker. */
-    ThreadVars *tv = SCRunModeLibCreateThreadVars();
+    ThreadVars *tv = SCRunModeLibCreateThreadVars(worker_id++);
     if (!tv) {
         pthread_exit(NULL);
     }
