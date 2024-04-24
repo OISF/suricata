@@ -1601,11 +1601,24 @@ jobs:
       - run: rm -f ./eve.json
       - run: |
           timeout --kill-after=30 --preserve-status 10 \
-            ./src/suricata -c suricata.yaml -S /dev/null -l ./ --af-packet=${{ env.IFACE }} -vvvv
+            ./src/suricata -c suricata.yaml -S .github/workflows/live/icmp.rules -l ./ --af-packet=${{ env.IFACE }} -vvvv
         env:
-          LLVM_PROFILE_FILE: "/tmp/afp-ids.profraw"
+          LLVM_PROFILE_FILE: "/tmp/afp2-ids.profraw"
       - run: |
           test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')  = true
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.detect.alert > 0')  = true
+      # AF_PACKET IDS config tpacket v3
+      - run: rm -f ./eve.json
+      - run: |
+          timeout --kill-after=30 --preserve-status 10 \
+            ./src/suricata -c suricata.yaml -S .github/workflows/live/icmp.rules -l ./ --af-packet=${{ env.IFACE }} -vvvv --set af-packet.0.tpacket-v3=true
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp3-ids.profraw"
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')  = true
+      - run: |
+          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.detect.alert > 0')  = true
       - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
