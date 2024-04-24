@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -127,8 +127,7 @@ void *ROHashLookup(ROHashTable *table, void *data, uint16_t size)
         SCReturnPtr(NULL, "void");
     }
 
-    uint32_t u;
-    for (u = 0; u < o->cnt; u++) {
+    for (uint32_t u = 0; u < o->cnt; u++) {
         uint32_t offset = (o->offset + u) * table->item_size;
 
         if (SCMemcmp(table->data + offset, data, table->item_size) == 0) {
@@ -214,8 +213,7 @@ int ROHashInitFinalize(ROHashTable *table)
 
     /* calc offsets into the block per hash value */
     uint32_t total = 0;
-    uint32_t x;
-    for (x = 0; x < hashsize(table->hash_bits); x++) {
+    for (uint32_t x = 0; x < hashsize(table->hash_bits); x++) {
         ROHashTableOffsets *o = &os[x];
 
         if (o->cnt == 0)
