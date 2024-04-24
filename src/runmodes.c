@@ -23,18 +23,11 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
-#include "tm-threads.h"
 #include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-byte.h"
 #include "util-affinity.h"
 #include "conf.h"
-#include "queue.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
 #include "runmode-af-xdp.h"
@@ -56,11 +49,6 @@
 #include "util-plugin.h"
 
 #include "output.h"
-
-#include "alert-fastlog.h"
-#include "alert-debuglog.h"
-
-#include "log-httplog.h"
 
 #include "source-pfring.h"
 

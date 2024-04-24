@@ -29,7 +29,6 @@
 #include "util-reference-config.h"
 #include "conf.h"
 #include "util-unittest.h"
-#include "util-error.h"
 #include "util-debug.h"
 #include "util-fmemopen.h"
 
