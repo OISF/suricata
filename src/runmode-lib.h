@@ -25,6 +25,8 @@
 #ifndef SURICATA_RUNMODE_LIB_H
 #define SURICATA_RUNMODE_LIB_H
 
+#include "threadvars.h"
+
 /** \brief register runmodes for suricata as a library */
 void RunModeIdsLibRegister(void);
 
@@ -37,13 +39,15 @@ int RunModeIdsLibOffline(void);
 /** \brief runmode default mode (live) */
 const char *RunModeLibGetDefaultMode(void);
 
-/** \brief create a "fake" worker thread in charge of processing the packets.
+/**
+ * \brief Create ThreadVars for use by a user provided thread.
  *
- *  This method just creates a context representing the worker, which is handled from the library
- *  client. No actual thread (pthread_t) is created.
+ * Unlike other runmodes, this does not spawn a thread, as the threads
+ * are controlled by the application using Suricata as a library.
  *
- * \return Pointer to ThreadVars structure representing the worker thread */
-void *RunModeCreateWorker(void);
+ * \return Pointer to allocated ThreadVars or NULL on failure
+ */
+ThreadVars *SCRunModeLibCreateThreadVars(void);
 
 /** \brief start the "fake" worker.
  *
