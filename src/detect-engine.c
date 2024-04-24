@@ -2457,7 +2457,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
 
     SCClassConfInit(de_ctx);
     if (!SCClassConfLoadClassificationConfigFile(de_ctx, NULL)) {
-        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+        if (SCRunmodeGet() == RUNMODE_CONF_TEST)
             goto error;
     }
 
@@ -2466,7 +2466,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     }
     SCReferenceConfInit(de_ctx);
     if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
-        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+        if (SCRunmodeGet() == RUNMODE_CONF_TEST)
             goto error;
     }
 
@@ -2698,7 +2698,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         }
     }
 
-    if (run_mode == RUNMODE_UNITTEST) {
+    if (RunmodeIsUnittests()) {
         de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
     }
 

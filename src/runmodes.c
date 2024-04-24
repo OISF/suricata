@@ -229,7 +229,7 @@ char *RunmodeGetActive(void)
  */
 const char *RunModeGetMainMode(void)
 {
-    int mainmode = RunmodeGetCurrent();
+    int mainmode = SCRunmodeGet();
 
     return RunModeTranslateModeToName(mainmode);
 }

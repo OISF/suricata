@@ -321,7 +321,7 @@ static int SCRConfIsLineBlankOrComment(char *line)
 static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
-    int runmode = RunmodeGetCurrent();
+    int runmode = SCRunmodeGet();
     bool is_conf_test_mode = runmode == RUNMODE_CONF_TEST;
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCRConfIsLineBlankOrComment(line))

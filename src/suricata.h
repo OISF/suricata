@@ -185,11 +185,21 @@ int RunmodeIsUnittests(void);
 #else
 #define RunmodeIsUnittests() 0
 #endif
-int RunmodeGetCurrent(void);
+int SCRunmodeGet(void);
+
+/**
+ * \brief Get the current run mode.
+ */
+int SCRunmodeGet(void);
+
+/**
+ * \brief Set the current run mode.
+ *
+ * Mainly exposed outside of suricata.c as a unit-test helper.
+ */
+void SCRunmodeSet(int run_mode);
 
 int SuriHasSigFile(void);
-
-extern int run_mode;
 
 void SuricataPreInit(const char *progname);
 void SuricataInit(void);
