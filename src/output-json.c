@@ -1178,8 +1178,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
         if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
             json_ctx->file_ctx->is_pcap_offline =
-                (RunmodeGetCurrent() == RUNMODE_PCAP_FILE ||
-                 RunmodeGetCurrent() == RUNMODE_UNIX_SOCKET);
+                    (SCRunmodeGet() == RUNMODE_PCAP_FILE || SCRunmodeGet() == RUNMODE_UNIX_SOCKET);
         }
         json_ctx->file_ctx->type = log_filetype;
     }

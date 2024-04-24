@@ -89,7 +89,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         InitGlobal();
 
         GlobalsInitPreConfig();
-        run_mode = RUNMODE_PCAP_FILE;
+        SCRunmodeSet(RUNMODE_PCAP_FILE);
         // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
         // disables checksums validation for fuzzing
@@ -104,7 +104,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         surifuzz.delayed_detect = 1;
 
         PostConfLoadedSetup(&surifuzz);
-        PreRunPostPrivsDropInit(run_mode);
+        PreRunPostPrivsDropInit(SCRunmodeGet());
         PostConfLoadedDetectSetup(&surifuzz);
 
         memset(&tv, 0, sizeof(tv));

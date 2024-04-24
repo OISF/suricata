@@ -21,7 +21,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         setenv("SC_LOG_FILE", "/dev/null", 0);
         //global init
         InitGlobal();
-        run_mode = RUNMODE_UNITTEST;
+        SCRunmodeSet(RUNMODE_UNITTEST);
         initialized = 1;
     }
 

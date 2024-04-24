@@ -121,7 +121,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
         }
     }
 
-    if (run_mode == RUNMODE_PLUGIN) {
+    if (SCRunmodeGet() == RUNMODE_PLUGIN) {
         SCCapturePlugin *capture = SCPluginFindCaptureByName(capture_plugin_name);
         if (capture == NULL) {
             FatalError("No capture plugin found with name %s", capture_plugin_name);

@@ -304,7 +304,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
                 de_ctx->config_prefix);
     }
 
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
         SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
     }
 
@@ -405,7 +405,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
 
  end:
     gettimeofday(&de_ctx->last_reload, NULL);
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
         CleanupEngineAnalysis(de_ctx);
     }
 

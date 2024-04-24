@@ -66,9 +66,6 @@
 
 #include "runmode-unix-socket.h"
 
-/* Run mode selected at suricata.c */
-extern int run_mode;
-
 /** queue to pass flows to cleanup/log thread(s) */
 FlowQueue flow_recycle_q;
 

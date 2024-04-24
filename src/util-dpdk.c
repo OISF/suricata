@@ -29,7 +29,7 @@
 void DPDKCleanupEAL(void)
 {
 #ifdef HAVE_DPDK
-    if (run_mode == RUNMODE_DPDK) {
+    if (SCRunmodeGet() == RUNMODE_DPDK) {
         int retval = rte_eal_cleanup();
         if (retval != 0)
             SCLogError("EAL cleanup failed: %s", strerror(-retval));
@@ -41,7 +41,7 @@ void DPDKCloseDevice(LiveDevice *ldev)
 {
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
-    if (run_mode == RUNMODE_DPDK) {
+    if (SCRunmodeGet() == RUNMODE_DPDK) {
         uint16_t port_id;
         int retval = rte_eth_dev_get_port_by_name(ldev->dev, &port_id);
         if (retval < 0) {
@@ -59,7 +59,7 @@ void DPDKFreeDevice(LiveDevice *ldev)
 {
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
-    if (run_mode == RUNMODE_DPDK) {
+    if (SCRunmodeGet() == RUNMODE_DPDK) {
         SCLogDebug("%s: releasing packet mempool", ldev->dev);
         rte_mempool_free(ldev->dpdk_vars.pkt_mp);
     }
