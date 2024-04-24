@@ -483,7 +483,9 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
     struct timespec older_than;
     memset(&older_than, 0, sizeof(struct timespec));
     older_than.tv_sec = LONG_MAX;
-    uint32_t poll_seconds = (uint32_t)localtime(&ptv->poll_interval)->tm_sec;
+    struct tm safe_tm;
+    memset(&safe_tm, 0, sizeof(safe_tm));
+    uint32_t poll_seconds = (uint32_t)localtime_r(&ptv->poll_interval, &safe_tm)->tm_sec;
 
     if (ptv->should_loop) {
         GetTime(&older_than);
