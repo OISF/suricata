@@ -198,6 +198,8 @@ on the decoded data.
 
 The option values must be ``,`` separated and can appear in any order.
 
+.. note:: ``from_base64`` follows RFC 4648 by default i.e. encounter with any character that is not found in the base64 alphabet leads to rejection of that character and the rest of the string.
+
 Format::
 
     from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
