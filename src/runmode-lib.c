@@ -59,13 +59,7 @@ const char *RunModeLibGetDefaultMode(void)
     return "live";
 }
 
-/** \brief create a "fake" worker thread in charge of processing the packets.
- *
- *  This method just creates a context representing the worker, which is handled from the library
- *  client. No actual thread (pthread_t) is created.
- *
- * \return Pointer to ThreadVars structure representing the worker thread */
-void *RunModeCreateWorker(void)
+ThreadVars *SCRunModeLibCreateThreadVars(void)
 {
     char tname[TM_THREAD_NAME_MAX];
     TmModule *tm_module = NULL;
