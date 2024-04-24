@@ -1176,13 +1176,6 @@ static uint32_t ProcessBase64Remainder(
 
     SCLogDebug("len %u force %d", len, force);
 
-    /* should be impossible, but lets be defensive */
-    DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
-    if (state->bvr_len > B64_BLOCK) {
-        state->bvr_len = 0;
-        return 0;
-    }
-
     /* Strip spaces in remainder */
     for (uint8_t i = 0; i < state->bvr_len; i++) {
         if (IsBase64Alphabet(state->bvremain[i])) {
@@ -1191,6 +1184,13 @@ static uint32_t ProcessBase64Remainder(
             /* any invalid char is skipped over but it is consumed by the parser */
             buf_consumed++;
         }
+    }
+
+    /* should be impossible, but lets be defensive */
+    DEBUG_VALIDATE_BUG_ON(cnt > B64_BLOCK);
+    if (cnt > B64_BLOCK) {
+        state->bvr_len = 0;
+        return 0;
     }
 
     /* if we don't have 4 bytes see if we can fill it from `buf` */
