@@ -31,8 +31,6 @@
 #include "decode.h"
 #include "conf.h"
 #include "threadvars.h"
-#include "tm-threads.h"
-#include "runmodes.h"
 
 #include "util-random.h"
 #include "util-time.h"
@@ -41,17 +39,13 @@
 #include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
-#include "flow-var.h"
 #include "flow-private.h"
-#include "flow-timeout.h"
 #include "flow-manager.h"
 #include "flow-storage.h"
 #include "flow-bypass.h"
 #include "flow-spare-pool.h"
 
 #include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -60,12 +54,6 @@
 #include "util-macset.h"
 
 #include "util-debug.h"
-#include "util-privs.h"
-#include "util-validate.h"
-
-#include "detect.h"
-#include "detect-engine-state.h"
-#include "stream.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-expectation.h"

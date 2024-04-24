@@ -35,28 +35,18 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-byte-extract.h"
 #include "detect-replace.h"
 #include "app-layer.h"
 
 #include "detect-engine-mpm.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
 #include "detect-engine-build.h"
 
 #include "util-checksum.h"
 
 #include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "flow-var.h"
 
 #include "util-debug.h"
-
-#include "pkt-var.h"
-#include "host.h"
-#include "util-profiling.h"
 
 static int DetectReplaceSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

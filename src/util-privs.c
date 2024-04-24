@@ -40,7 +40,6 @@
 #include <sys/prctl.h>
 #endif
 #include "threadvars.h"
-#include "util-cpu.h"
 #include "runmodes.h"
 
 /** flag indicating if we'll be using caps */

@@ -28,7 +28,6 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util-random.h"
 #include "util-time.h"
 
 #include "flow.h"
@@ -41,21 +40,13 @@
 #include "flow-storage.h"
 #include "flow-spare-pool.h"
 
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-device.h"
 
 #include "util-debug.h"
 
 #include "threads.h"
-#include "detect.h"
-#include "detect-engine-state.h"
-#include "stream.h"
-
-#include "app-layer-parser.h"
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"
