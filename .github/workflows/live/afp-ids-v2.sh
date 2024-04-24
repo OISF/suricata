@@ -7,8 +7,10 @@ echo $IFACE
 ping suricata.io &
 PINGPID=$!
 
+cp .github/workflows/live/icmp.rules suricata.rules
+
 timeout --kill-after=120 --preserve-status 10 \
-    ./src/suricata -c suricata.yaml -S .github/workflows/live/icmp.rules -l ./ --af-packet=$IFACE -v --set af-packet.1.tpacket-v3=false &
+    ./src/suricata -c suricata.yaml -l ./ --af-packet=$IFACE -v --set af-packet.1.tpacket-v3=false --set default-rule-path=. &
 SURIPID=$!
 
 sleep 5
@@ -27,6 +29,7 @@ python3 python/bin/suricatasc -c "reload-rules" /var/run/suricata/suricata-comma
 
 kill -INT $PINGPID
 wait $PINGPID
+python3 python/bin/suricatasc -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
 echo "Done: $RES"
