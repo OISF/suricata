@@ -45,9 +45,11 @@ const char *RunModeLibGetDefaultMode(void);
  * Unlike other runmodes, this does not spawn a thread, as the threads
  * are controlled by the application using Suricata as a library.
  *
+ * \param worker_id an ID to give this ThreadVars instance
+ *
  * \return Pointer to allocated ThreadVars or NULL on failure
  */
-ThreadVars *SCRunModeLibCreateThreadVars(void);
+ThreadVars *SCRunModeLibCreateThreadVars(int worker_id);
 
 /** \brief start the "fake" worker.
  *
