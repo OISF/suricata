@@ -12,14 +12,14 @@ PINGPID=$!
 
 cp .github/workflows/live/icmp.rules suricata.rules
 
-timeout --kill-after=120 --preserve-status 10 \
+timeout --kill-after=120 --preserve-status 90 \
     ./src/suricata -c suricata.yaml -l ./ --af-packet=$IFACE -v --set af-packet.1.tpacket-v3=false --set default-rule-path=. &
 SURIPID=$!
 
-sleep 5
+sleep 15
 
 STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')
-if [ $STATSCHECK  = false ]; then
+if [ $STATSCHECK = false ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
@@ -29,6 +29,12 @@ echo "SURIPID $SURIPID PINGPID $PINGPID"
 # will fail currently as -S and reloads don't mix
 export PYTHONPATH=python/
 python3 python/bin/suricatasc -c "reload-rules" /var/run/suricata/suricata-command.socket
+
+STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')
+if [ $STATSCHECK = false ]; then
+    echo "ERROR no packets captured"
+    RES=1
+fi
 
 kill -INT $PINGPID
 wait $PINGPID
