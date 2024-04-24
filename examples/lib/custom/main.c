@@ -31,7 +31,7 @@ static void *SimpleWorker(void *arg)
     char *pcap_file = (char *)arg;
 
     /* Create worker. */
-    ThreadVars *tv = RunModeCreateWorker();
+    ThreadVars *tv = SCRunModeLibCreateThreadVars();
     if (!tv) {
         pthread_exit(NULL);
     }
