@@ -24,7 +24,6 @@
 #include "suricata.h"
 #include "util-dpdk.h"
 #include "util-debug.h"
-#include "util-byte.h"
 
 void DPDKCleanupEAL(void)
 {

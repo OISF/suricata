@@ -32,7 +32,6 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "queue.h"
-#include "util-signal.h"
 
 #include "detect-engine-loader.h"
 #include "detect-engine-build.h"
