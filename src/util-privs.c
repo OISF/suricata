@@ -46,9 +46,6 @@
 /** flag indicating if we'll be using caps */
 extern bool sc_set_caps;
 
-/** our current runmode */
-extern int run_mode;
-
 /**
  * \brief   Drop the privileges of the main thread
  */
@@ -59,7 +56,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    switch (run_mode) {
+    switch (SCRunmodeGet()) {
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
         case RUNMODE_AFXDP_DEV:

@@ -150,7 +150,7 @@ int ConfUnixSocketIsEnable(void)
 #ifdef OS_WIN32
         return 0;
 #else
-        if (!IsRunModeOffline(RunmodeGetCurrent())) {
+        if (!IsRunModeOffline(SCRunmodeGet())) {
             SCLogInfo("Running in live mode, activating unix socket");
             return 1;
         } else {

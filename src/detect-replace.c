@@ -30,8 +30,6 @@
 
 #include "runmodes.h"
 
-extern int run_mode;
-
 #include "decode.h"
 
 #include "detect.h"
@@ -100,7 +98,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
         return -1;
     }
 
-    switch (run_mode) {
+    switch (SCRunmodeGet()) {
         case RUNMODE_NFQ:
         case RUNMODE_IPFW:
             break;
@@ -355,15 +353,15 @@ static int DetectReplaceLongPatternMatchTestWrp(const char *sig, uint32_t sid, c
     uint16_t psize = sizeof(raw_eth_pkt);
 
     /* would be unittest */
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
     if (ret == 1) {
         SCLogDebug("replace: test1 phase1");
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
     }
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     return ret;
 }
 
@@ -390,15 +388,15 @@ static int DetectReplaceLongPatternMatchTestUDPWrp(const char *sig, uint32_t sid
     uint8_t p[sizeof(raw_eth_pkt)];
     uint16_t psize = sizeof(raw_eth_pkt);
 
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
     if (ret == 1) {
         SCLogDebug("replace: test1 phase1 ok: %" PRIuMAX" vs %d",(uintmax_t)sizeof(raw_eth_pkt),psize);
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
     }
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     return ret;
 }
 
@@ -605,8 +603,8 @@ static int DetectReplaceMatchTest15(void)
  */
 static int DetectReplaceParseTest01(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -616,7 +614,7 @@ static int DetectReplaceParseTest01(void)
             "alert udp any any -> any any "
             "(msg:\"test\"; content:\"doh\"; replace:\"; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -626,8 +624,8 @@ static int DetectReplaceParseTest01(void)
  */
 static int DetectReplaceParseTest02(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -637,7 +635,7 @@ static int DetectReplaceParseTest02(void)
             "alert http any any -> any any "
             "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -648,8 +646,8 @@ static int DetectReplaceParseTest02(void)
  */
 static int DetectReplaceParseTest03(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
@@ -660,7 +658,7 @@ static int DetectReplaceParseTest03(void)
             "alert tcp any any -> any any "
             "(msg:\"test\"; content:\"doh\"; replace:\"don\"; http_header; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -670,8 +668,8 @@ static int DetectReplaceParseTest03(void)
  */
 static int DetectReplaceParseTest04(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -680,7 +678,7 @@ static int DetectReplaceParseTest04(void)
     FAIL_IF_NOT_NULL(DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                                    "(msg:\"test\"; replace:\"don\"; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -690,8 +688,8 @@ static int DetectReplaceParseTest04(void)
  */
 static int DetectReplaceParseTest05(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -701,7 +699,7 @@ static int DetectReplaceParseTest05(void)
             "alert tcp any any -> any any "
             "(msg:\"test\"; replace:\"don\"; content:\"doh\"; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -711,8 +709,8 @@ static int DetectReplaceParseTest05(void)
  */
 static int DetectReplaceParseTest06(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -722,7 +720,7 @@ static int DetectReplaceParseTest06(void)
             "alert tcp any any -> any any "
             "(msg:\"test\"; content:\"don\"; replace:\"donut\"; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -732,8 +730,8 @@ static int DetectReplaceParseTest06(void)
  */
 static int DetectReplaceParseTest07(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = SCRunmodeGet();
+    SCRunmodeSet(RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -744,7 +742,7 @@ static int DetectReplaceParseTest07(void)
                                           "(msg:\"test\"; content:\"don\"; replace:\"dou\"; "
                                           "content:\"jpg\"; http_header; sid:238012;)"));
 
-    run_mode = run_mode_backup;
+    SCRunmodeSet(run_mode_backup);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }

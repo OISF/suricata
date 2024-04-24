@@ -171,9 +171,6 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 /** suricata engine control flags */
 volatile uint8_t suricata_ctl_flags = 0;
 
-/** Run mode selected */
-int run_mode = RUNMODE_UNKNOWN;
-
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
@@ -256,16 +253,21 @@ void EngineModeSetIDS(void)
 #ifdef UNITTESTS
 int RunmodeIsUnittests(void)
 {
-    if (run_mode == RUNMODE_UNITTEST)
+    if (suricata.run_mode == RUNMODE_UNITTEST)
         return 1;
 
     return 0;
 }
 #endif
 
-int RunmodeGetCurrent(void)
+int SCRunmodeGet(void)
 {
-    return run_mode;
+    return suricata.run_mode;
+}
+
+void SCRunmodeSet(int run_mode)
+{
+    suricata.run_mode = run_mode;
 }
 
 /** signal handlers
@@ -2385,8 +2387,6 @@ int SCFinalizeRunMode(void)
         default:
             break;
     }
-    /* Set the global run mode and offline flag. */
-    run_mode = suri->run_mode;
 
     if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
         return TM_ECODE_FAILED;
@@ -2984,7 +2984,7 @@ void SuricataInit(void)
         goto out;
     }
 
-    if (run_mode == RUNMODE_DPDK)
+    if (suricata.run_mode == RUNMODE_DPDK)
         prerun_snap = SystemHugepageSnapshotCreate();
 
     SCSetStartTime(&suricata);
@@ -3066,7 +3066,7 @@ void SuricataPostInit(void)
     OnNotifyRunning();
 
     PostRunStartedDetectSetup(&suricata);
-    if (run_mode == RUNMODE_DPDK) { // only DPDK uses hpages at the moment
+    if (suricata.run_mode == RUNMODE_DPDK) { // only DPDK uses hpages at the moment
         SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
         SystemHugepageEvaluateHugepages(prerun_snap, postrun_snap);
         SystemHugepageSnapshotDestroy(prerun_snap);

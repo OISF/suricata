@@ -36,7 +36,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (alpd_tctx == NULL) {
         //global init
         InitGlobal();
-        run_mode = RUNMODE_UNITTEST;
+        SCRunmodeSet(RUNMODE_UNITTEST);
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }

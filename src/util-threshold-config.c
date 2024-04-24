@@ -186,7 +186,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
         SCLogWarning("Error loading threshold configuration from %s", filename);
         SCThresholdConfDeInitContext(de_ctx, fd);
         /* maintain legacy behavior so no errors unless config testing */
-        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
+        if (SCRunmodeGet() == RUNMODE_CONF_TEST) {
             ret = -1;
         }
         return ret;
@@ -996,7 +996,7 @@ int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
         esc_pos = SCThresholdConfLineIsMultiline(line);
         if (esc_pos == 0) {
             if (SCThresholdConfAddThresholdtype(line, de_ctx) < 0) {
-                if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+                if (SCRunmodeGet() == RUNMODE_CONF_TEST)
                     return -1;
             } else {
                 SCLogDebug("Adding threshold.config rule num %" PRIu32 "( %s )", rule_num, line);

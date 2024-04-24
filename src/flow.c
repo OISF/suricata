@@ -108,9 +108,6 @@ void FlowRegisterTests(void);
 void FlowInitFlowProto(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
-/* Run mode selected at suricata.c */
-extern int run_mode;
-
 /**
  *  \brief Update memcap value
  *
