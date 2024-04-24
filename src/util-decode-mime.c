@@ -1187,6 +1187,9 @@ static uint32_t ProcessBase64Remainder(
     for (uint8_t i = 0; i < state->bvr_len; i++) {
         if (IsBase64Alphabet(state->bvremain[i])) {
             block[cnt++] = state->bvremain[i];
+        } else {
+            /* any invalid char is skipped over but it is consumed by the parser */
+            buf_consumed++;
         }
     }
 
