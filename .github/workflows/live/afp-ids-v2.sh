@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 RES=0
 IFACE=$(ip r|grep default|awk '{print $5}')
 echo $IFACE

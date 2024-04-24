@@ -1561,7 +1561,7 @@ jobs:
       # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
-      - run: ./configure --with-gnu-ld --enable-dpdk --disable-shared --enable-gccprotect
+      - run: ./configure --with-gnu-ld --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
         env:
           CC: "clang-14"
           CXX: "clang++-14"
