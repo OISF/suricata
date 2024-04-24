@@ -42,6 +42,14 @@
 #include "threadvars.h"
 #include "util-cpu.h"
 #include "runmodes.h"
+#include <stdio.h>
+#include <sys/utsname.h>
+
+#ifndef CAP_BPF
+// https://github.com/torvalds/linux/blob/master/include/uapi/linux/capability.h#L412
+#define CAP_BPF 39
+#endif
+
 
 /** flag indicating if we'll be using caps */
 extern int sc_set_caps;
@@ -54,10 +62,26 @@ extern int run_mode;
  */
 void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 {
+    struct utsname linux_version;
+    
     if (sc_set_caps == FALSE)
         return;
 
     capng_clear(CAPNG_SELECT_BOTH);
+
+    // Privelege bitmasks changed on Linux >= 5.8
+    bool has_cap_bpf = false;
+    if (uname(&linux_version) >= 0) {
+        int major, minor, patch;
+	SCLogInfo("Found Linux version %s", linux_version.release);
+        if (sscanf(linux_version.release, "%d.%d.%d", &major, &minor, &patch) >= 2) {
+	    if (major > 5 || ( major == 5 && minor >= 8) ) {
+	        has_cap_bpf = true;
+		SCLogInfo("Linux >= 5.8, using CAP_BPF");
+	    }
+	}
+	
+    }
 
     switch (run_mode) {
         case RUNMODE_PCAP_DEV:
@@ -66,7 +90,15 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
                     CAP_NET_RAW,            /* needed for pcap live mode */
                     CAP_SYS_NICE,
                     CAP_NET_ADMIN,
+  		    CAP_SYS_RESOURCE,       /* These two are required to lock memory for XDP */
+		    CAP_IPC_LOCK,		  
                     -1);
+	    if( has_cap_bpf ) {
+	      capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_BPF);
+	    }
+	    else {
+	      capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SYS_ADMIN);
+	    }
             break;
         case RUNMODE_PFRING:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
