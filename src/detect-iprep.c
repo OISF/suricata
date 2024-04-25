@@ -155,7 +155,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     uint8_t val = 0;
 
     SCLogDebug("rd->cmd %u", rd->cmd);
-    switch(rd->cmd) {
+    switch (rd->cmd) {
         case IPRepCmdAny:
             val = GetHostRepSrc(p, rd->cat, version);
             if (val == 0)
@@ -247,7 +247,6 @@ error:
 void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIPRepData *fd = (DetectIPRepData *)ptr;
-
     if (fd == NULL)
         return;
 
