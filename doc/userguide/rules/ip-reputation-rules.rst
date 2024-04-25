@@ -21,7 +21,7 @@ category: the category short name
 
 operator: <, >, =
 
-reputation score: 1-127
+reputation score: 0-127
 
 Example:
 
