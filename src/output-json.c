@@ -439,6 +439,10 @@ void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
     if (!jb_set_uint(js, "linktype", p->datalink)) {
         return;
     }
+    const char *dl_name = pcap_datalink_val_to_name(p->datalink);
+    if (!jb_set_string(js, "linktype_name", dl_name == NULL ? "n/a" : dl_name)) {
+        return;
+    }
     jb_close(js);
 }
 
