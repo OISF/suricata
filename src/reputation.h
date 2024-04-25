@@ -49,8 +49,8 @@ void SRepDestroy(struct DetectEngineCtx_ *de_ctx);
 void SRepReloadComplete(void);
 int SRepHostTimedOut(Host *);
 
-uint8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
-uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
+int8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
+int8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
 void SRepResetVersion(void);
 int SRepLoadCatFileFromFD(FILE *fp);
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
