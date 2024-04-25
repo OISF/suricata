@@ -70,11 +70,9 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(jb, "pgsql");
     if (!rs_pgsql_logger(txptr, thread->pgsqllog_ctx->flags, jb)) {
         goto error;
     }
-    jb_close(jb);
 
     OutputJsonBuilderBuffer(jb, thread->ctx);
     jb_free(jb);
