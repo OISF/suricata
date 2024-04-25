@@ -2825,6 +2825,9 @@
             "properties": {
                 "linktype": {
                     "type": "integer"
+                },
+                "linktype_name": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
