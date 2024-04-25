@@ -75,65 +75,66 @@ void DetectIPRepRegister (void)
     sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
 }
 
-static inline uint8_t GetRep(const SReputation *r, const uint8_t cat, const uint32_t version)
+static inline int8_t GetRep(const SReputation *r, const uint8_t cat, const uint32_t version)
 {
     /* allow higher versions as this happens during
      * rule reload */
     if (r != NULL && r->version >= version) {
         return r->rep[cat];
     }
-    return 0;
+    return -1;
 }
 
-static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
+/** \returns: -2 no host, -1 no rep entry, 0-127 rep values */
+static int8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
 {
     if (p->flags & PKT_HOST_SRC_LOOKED_UP && p->host_src == NULL) {
-        return 0;
+        return -2;
     } else if (p->host_src != NULL) {
         Host *h = (Host *)p->host_src;
         HostLock(h);
         /* use_cnt: 1 for having iprep, 1 for packet ref */
         DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 2);
-        uint8_t val = GetRep(h->iprep, cat, version);
+        int8_t val = GetRep(h->iprep, cat, version);
         HostUnlock(h);
         return val;
     } else {
         Host *h = HostLookupHostFromHash(&(p->src));
         p->flags |= PKT_HOST_SRC_LOOKED_UP;
         if (h == NULL)
-            return 0;
+            return -2;
         HostReference(&p->host_src, h);
         /* use_cnt: 1 for having iprep, 1 for HostLookupHostFromHash,
          * 1 for HostReference to packet */
         DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 3);
-        uint8_t val = GetRep(h->iprep, cat, version);
+        int8_t val = GetRep(h->iprep, cat, version);
         HostRelease(h); /* use_cnt >= 2: 1 for iprep, 1 for packet ref */
         return val;
     }
 }
 
-static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
+static int8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
 {
     if (p->flags & PKT_HOST_DST_LOOKED_UP && p->host_dst == NULL) {
-        return 0;
+        return -2;
     } else if (p->host_dst != NULL) {
         Host *h = (Host *)p->host_dst;
         HostLock(h);
         /* use_cnt: 1 for having iprep, 1 for packet ref */
         DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 2);
-        uint8_t val = GetRep(h->iprep, cat, version);
+        int8_t val = GetRep(h->iprep, cat, version);
         HostUnlock(h);
         return val;
     } else {
         Host *h = HostLookupHostFromHash(&(p->dst));
         p->flags |= PKT_HOST_DST_LOOKED_UP;
         if (h == NULL)
-            return 0;
+            return -2;
         HostReference(&p->host_dst, h);
         /* use_cnt: 1 for having iprep, 1 for HostLookupHostFromHash,
          * 1 for HostReference to packet */
         DEBUG_VALIDATE_BUG_ON(h->iprep != NULL && SC_ATOMIC_GET(h->use_cnt) < 3);
-        uint8_t val = GetRep(h->iprep, cat, version);
+        int8_t val = GetRep(h->iprep, cat, version);
         HostRelease(h); /* use_cnt >= 2: 1 for iprep, 1 for packet ref */
         return val;
     }
@@ -152,58 +153,58 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
 
     uint32_t version = det_ctx->de_ctx->srep_version;
-    uint8_t val = 0;
+    int8_t val = 0;
 
     SCLogDebug("rd->cmd %u", rd->cmd);
     switch (rd->cmd) {
         case IPRepCmdAny:
             val = GetHostRepSrc(p, rd->cat, version);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val > 0) {
-                if (DetectU8Match(val, &rd->du8))
+            if (val >= 0) {
+                if (DetectU8Match((uint8_t)val, &rd->du8))
                     return 1;
             }
             val = GetHostRepDst(p, rd->cat, version);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val > 0) {
-                return DetectU8Match(val, &rd->du8);
+            if (val >= 0) {
+                return DetectU8Match((uint8_t)val, &rd->du8);
             }
             break;
 
         case IPRepCmdSrc:
             val = GetHostRepSrc(p, rd->cat, version);
-            SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat,
+            SCLogDebug("checking src -- val %d (looking for cat %u, val %u)", val, rd->cat,
                     rd->du8.arg1);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val > 0) {
-                return DetectU8Match(val, &rd->du8);
+            if (val >= 0) {
+                return DetectU8Match((uint8_t)val, &rd->du8);
             }
             break;
 
         case IPRepCmdDst:
             SCLogDebug("checking dst");
             val = GetHostRepDst(p, rd->cat, version);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val > 0) {
-                return DetectU8Match(val, &rd->du8);
+            if (val >= 0) {
+                return DetectU8Match((uint8_t)val, &rd->du8);
             }
             break;
 
         case IPRepCmdBoth:
             val = GetHostRepSrc(p, rd->cat, version);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val == 0 || DetectU8Match(val, &rd->du8) == 0)
+            if (val < 0 || DetectU8Match((uint8_t)val, &rd->du8) == 0)
                 return 0;
             val = GetHostRepDst(p, rd->cat, version);
-            if (val == 0)
+            if (val < 0)
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val > 0) {
-                return DetectU8Match(val, &rd->du8);
+            if (val >= 0) {
+                return DetectU8Match((uint8_t)val, &rd->du8);
             }
             break;
     }
