@@ -189,7 +189,7 @@ impl ModbusState {
                                 None => {
                                     let mut tx = match self.new_tx() {
                                         Some(tx) => tx,
-                                        None => return AppLayerResult::ok(),
+                                        None => return AppLayerResult::err(),
                                     };
                                     tx.set_events_from_flags(&msg.error_flags);
                                     tx.request = Some(msg);
@@ -215,7 +215,7 @@ impl ModbusState {
                             None => {
                                 let mut tx = match self.new_tx() {
                                     Some(tx) => tx,
-                                    None => return AppLayerResult::ok(),
+                                    None => return AppLayerResult::err(),
                                 };
                                 if msg
                                     .access_type
