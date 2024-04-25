@@ -27,6 +27,7 @@ use std;
 pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(0);
 
 fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    js.open_object("pgsql")?;
     js.set_uint("tx_id", tx.tx_id)?;
     if let Some(request) = &tx.request {
         js.set_object("request", &log_request(request, flags)?)?;
@@ -41,6 +42,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     if !tx.responses.is_empty() {
         js.set_object("response", &log_response_object(tx)?)?;
     }
+    js.close()?;
 
     Ok(())
 }
