@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,6 +56,7 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
+#include "util-datalink.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
@@ -437,6 +438,11 @@ void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
         return;
     }
     if (!jb_set_uint(js, "linktype", p->datalink)) {
+        return;
+    }
+
+    const char *dl_name = LinktypeName(p->datalink);
+    if (!jb_set_string(js, "linktype_name", dl_name == NULL ? "n/a" : dl_name)) {
         return;
     }
     jb_close(js);
