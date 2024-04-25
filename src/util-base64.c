@@ -235,7 +235,7 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
      * violate the destination buffer size */
     if (bbidx > 0) {
         padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
-        uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+        uint32_t numDecoded_blk = ASCII_BLOCK - padding;
         if (dest_size < *decoded_bytes + numDecoded_blk) {
             SCLogDebug("Destination buffer full");
             return BASE64_ECODE_BUF;
