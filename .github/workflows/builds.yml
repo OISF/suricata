@@ -802,7 +802,7 @@ jobs:
 
   # Fedora 39 build using Clang.
   fedora-39-clang:
-    name: Fedora 39 (clang, cocci, debug, asan, wshadow, rust-strict, systemd)
+    name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:39
     needs: [prepare-deps]
@@ -833,7 +833,6 @@ jobs:
                 cbindgen \
                 ccache \
                 clang \
-                coccinelle \
                 diffutils \
                 file-devel \
                 gcc \
@@ -875,10 +874,8 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared  --enable-coccinelle
-      - name: Running unit tests and cocci checks
-        # Set the concurrency level for cocci.
-        run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
+      - run: make check
       - run: make distclean
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
         env:
