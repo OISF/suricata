@@ -310,10 +310,6 @@ noinst_HEADERS = \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
 	detect-smb-version.h \
-	detect-snmp-community.h \
-	detect-snmp-pdu_type.h \
-	detect-snmp-usm.h \
-	detect-snmp-version.h \
 	detect-dhcp-leasetime.h \
 	detect-dhcp-rebinding-time.h \
 	detect-dhcp-renewal-time.h \
@@ -936,10 +932,6 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
 	detect-smb-version.c \
-	detect-snmp-community.c \
-	detect-snmp-pdu_type.c \
-	detect-snmp-usm.c \
-	detect-snmp-version.c \
 	detect-dhcp-leasetime.c \
 	detect-dhcp-rebinding-time.c \
 	detect-dhcp-renewal-time.c \
@@ -1263,8 +1255,6 @@ EXTRA_DIST = \
 	tests/detect-http2.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
-	tests/detect-snmp-pdu_type.c \
-	tests/detect-snmp-version.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
