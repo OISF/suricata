@@ -96,7 +96,7 @@ impl Frame {
     #[cfg(test)]
     pub fn new(
         _flow: *const Flow, _stream_slice: &StreamSlice, _frame_start: &[u8], _frame_len: i64,
-        _frame_type: u8,
+        _frame_type: u8, _tx_id: Option<u64>,
     ) -> Option<Self> {
         None
     }
