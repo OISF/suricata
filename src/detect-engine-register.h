@@ -355,10 +355,15 @@ enum DetectKeywordId {
     DETECT_AL_JA4_HASH,
 
     /* make sure this stays last */
-    DETECT_TBLSIZE,
+    DETECT_TBLSIZE_STATIC,
 };
 
+extern int DETECT_TBLSIZE;
+extern int DETECT_TBLSIZE_IDX;
+// step for reallocating sigmatch_table
+#define DETECT_TBLSIZE_STEP 256
 int SigTableList(const char *keyword);
+void SigTableCleanup(void);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
 
