@@ -74,7 +74,7 @@
 #include "util-validate.h"
 
 /* Table with all filehandler registrations */
-DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];
+DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 {
@@ -124,7 +124,7 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 }
 
 /* Table with all SigMatch registrations */
-SigTableElmt sigmatch_table[DETECT_TBLSIZE];
+SigTableElmt *sigmatch_table = NULL;
 
 extern bool sc_set_caps;
 
@@ -394,7 +394,7 @@ bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
 
 bool SigMatchStrictEnabled(const enum DetectKeywordId id)
 {
-    if (id < DETECT_TBLSIZE) {
+    if ((int)id < DETECT_TBLSIZE) {
         return ((sigmatch_table[id].flags & SIGMATCH_STRICT_PARSING) != 0);
     }
     return false;

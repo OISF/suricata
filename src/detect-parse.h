@@ -42,7 +42,7 @@ typedef struct DetectFileHandlerTableElmt_ {
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *entry);
 
 /* File registration table */
-extern DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];
+extern DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 
 /** Flags to indicate if the Signature parsing must be done
 *   switching the source and dest (for ip addresses and ports)
