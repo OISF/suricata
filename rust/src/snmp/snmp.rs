@@ -322,7 +322,7 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
     1
 }
 
-static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
 fn parse_pdu_envelope_version(i:&[u8]) -> IResult<&[u8],u32> {
