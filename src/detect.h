@@ -1019,8 +1019,8 @@ typedef struct DetectEngineCtx_ {
     /** per keyword flag indicating if a prefilter has been
      *  set for it. If true, the setup function will have to
      *  run. */
-    bool sm_types_prefilter[DETECT_TBLSIZE];
-    bool sm_types_silent_error[DETECT_TBLSIZE];
+    bool *sm_types_prefilter;
+    bool *sm_types_silent_error;
 
     /* classification config parsing */
 
@@ -1552,7 +1552,7 @@ typedef struct DetectEngineMasterCtx_ {
 } DetectEngineMasterCtx;
 
 /* Table with all SigMatch registrations */
-extern SigTableElmt sigmatch_table[DETECT_TBLSIZE];
+extern SigTableElmt *sigmatch_table;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
