@@ -1,6 +1,11 @@
 Flow Keywords
 =============
 
+.. role:: example-rule-action
+.. role:: example-rule-header
+.. role:: example-rule-options
+.. role:: example-rule-emphasis
+
 flowbits
 --------
 
@@ -9,13 +14,13 @@ is going to perform, the second part is the name of the flowbit.
 
 There are multiple packets that belong to one flow. Suricata keeps
 those flows in memory. For more information see
-:ref:`suricata-yaml-flow-settings`.  Flowbits can make sure an alert
-will be generated when for example two different packets match.  An
-alert will only be generated when both packets match. So, when the
-second packet matches, Suricata has to know if the first packet was a
-match too. Flowbits marks the flow if a packet matches so Suricata
-'knows' it should generate an alert when the second packet matches as
-well.
+:ref:`suricata-yaml-flow-settings`.
+
+Flowbits can make sure an alert will be generated when for example two
+different packets match. An alert will only be generated when both packets
+match. So, when the second packet matches, Suricata has to know if the first
+packet was a match too. Flowbits mark the flow if a packet matches so Suricata
+'knows' it should generate an alert when the second packet matches as well.
 
 Flowbits have different actions. These are:
 
@@ -41,24 +46,26 @@ Example:
 
 When you take a look at the first rule you will notice it would
 generate an alert if it would match, if it were not for the 'flowbits:
-noalert' at the end of that rule. The purpose of this rule is to check
-for a match on 'userlogin' and mark that in the flow. So, there is no
-need for generating an alert.  The second rule has no effect without
-the first rule. If the first rule matches, the flowbits sets that
-specific condition to be present in the flow. Now with the second rule
-there can be checked whether or not the previous packet fulfills the
-first condition. If at that point the second rule matches, an alert
-will be generated.
+noalert' at the end of that rule.
 
-It is possible to use flowbits several times in a rule and combine the
-different functions.
+The purpose of this rule is to check for a match on 'userlogin' and mark that
+in the flow. So, there is no need to generate an alert. The second rule has no
+effect without the first rule. If the first rule matches, the flowbit sets that
+specific condition to be present in the flow. Now the second rule can be
+checked whether or not the previous packet fulfills the first condition.
+If the second rule matches now, an alert will be generated.
 
-It is also possible to perform an `OR` operation with flowbits with `|` op.
+.. note:: flowbit names are case-sensitive.
 
-Example::
-  alert http any any -> any any (msg: "User1 or User2 logged in"; content:"login"; flowbits:isset,user1|user2; sid:1;)
+.. note:: It is possible to use flowbits several times in a rule and combine
+  the different functions.
 
-This can be used with either `isset` or `isnotset` action.
+.. note:: It is possible to perform an `OR` operation with flowbits using the `|` (pipe).
+
+.. container:: example-rule
+
+  alert http any any -> any any (msg:"User1 or User2 logged in"; \
+  content:"login"; :example-rule-options:`flowbits:isset,user1|user2;` sid:1;)
 
 flow
 ----
