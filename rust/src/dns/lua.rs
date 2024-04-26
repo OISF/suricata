@@ -22,14 +22,14 @@ use crate::dns::log::*;
 use crate::lua::*;
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_tx_id(clua: &mut CLuaState, tx: &mut DNSTransaction) {
+pub extern "C" fn SCDnsLuaGetTxId(clua: &mut CLuaState, tx: &mut DNSTransaction) {
     let lua = LuaState { lua: clua };
 
     lua.pushinteger(tx.tx_id() as i64);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
+pub extern "C" fn SCDnsLuaGetRrname(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
 
     if let Some(request) = &tx.request {
@@ -48,7 +48,7 @@ pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState, tx: &mut DNSTransa
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_rcode(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
+pub extern "C" fn SCDnsLuaGetRcode(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
 
     let rcode = tx.rcode();
@@ -61,9 +61,7 @@ pub extern "C" fn rs_dns_lua_get_rcode(clua: &mut CLuaState, tx: &mut DNSTransac
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_query_table(
-    clua: &mut CLuaState, tx: &mut DNSTransaction,
-) -> c_int {
+pub extern "C" fn SCDnsLuaGetQueryTable(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
 
     let mut i: i64 = 0;
@@ -116,9 +114,7 @@ pub extern "C" fn rs_dns_lua_get_query_table(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_answer_table(
-    clua: &mut CLuaState, tx: &mut DNSTransaction,
-) -> c_int {
+pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
 
     let mut i: i64 = 0;
@@ -195,7 +191,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_lua_get_authority_table(
+pub extern "C" fn SCDnsLuaGetAuthorityTable(
     clua: &mut CLuaState, tx: &mut DNSTransaction,
 ) -> c_int {
     let lua = LuaState { lua: clua };
