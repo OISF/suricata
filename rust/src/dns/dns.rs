@@ -713,8 +713,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 }
 
 /// Returns *mut DNSState
-#[no_mangle]
-pub extern "C" fn rs_dns_state_new(
+extern "C" fn state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
@@ -722,31 +721,20 @@ pub extern "C" fn rs_dns_state_new(
     return Box::into_raw(boxed) as *mut _;
 }
 
-/// Returns *mut DNSState
-#[no_mangle]
-pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
-    let state = DNSState::new();
-    let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut _;
-}
-
 /// Params:
 /// - state: *mut DNSState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut DNSState) });
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, DNSState);
     state.free_tx(tx_id);
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request(
+unsafe extern "C" fn parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -755,8 +743,7 @@ pub unsafe extern "C" fn rs_dns_parse_request(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response(
+unsafe extern "C" fn parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -766,8 +753,7 @@ pub unsafe extern "C" fn rs_dns_parse_response(
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request_tcp(
+unsafe extern "C" fn parse_request_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -780,8 +766,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response_tcp(
+unsafe extern "C" fn parse_response_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -794,8 +779,7 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dns_tx_get_alstate_progress(
+extern "C" fn tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // This is a stateless parser, just the existence of a transaction
@@ -804,15 +788,13 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(
     return 1;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DNSState);
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx(
+unsafe extern "C" fn state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DNSState);
@@ -827,18 +809,16 @@ pub unsafe extern "C" fn rs_dns_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_is_request(tx: &mut DNSTransaction) -> bool {
+pub extern "C" fn SCDnsTxIsRequest(tx: &mut DNSTransaction) -> bool {
     tx.request.is_some()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
+pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-pub unsafe extern "C" fn rs_dns_state_get_tx_data(
-    tx: *mut std::os::raw::c_void,
-) -> *mut AppLayerTxData {
+unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
     return &mut tx.tx_data;
 }
@@ -895,40 +875,15 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerName(
     false
 }
 
-/// Get the DNS transaction ID of a transaction.
-//
-/// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
-#[no_mangle]
-pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16 {
-    return tx.tx_id();
-}
-
 /// Get the DNS response flags for a transaction.
 ///
-/// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
+/// extern uint16_t SCDnsTxGetResponseFlags(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction) -> u16 {
+pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
-    tx: &mut DNSTransaction, i: u16, rrtype: *mut u16,
-) -> u8 {
-    if let Some(request) = &tx.request {
-        if (i as usize) < request.queries.len() {
-            let query = &request.queries[i as usize];
-            if !query.name.is_empty() {
-                *rrtype = query.rrtype;
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_probe(
+unsafe extern "C" fn probe_udp(
     _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
@@ -948,8 +903,7 @@ pub unsafe extern "C" fn rs_dns_probe(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_probe_tcp(
+unsafe extern "C" fn c_probe_tcp(
     _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
@@ -972,8 +926,7 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_apply_tx_config(
+unsafe extern "C" fn apply_tx_config(
     _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void, _mode: std::os::raw::c_int,
     config: AppLayerTxConfig,
 ) {
@@ -990,35 +943,35 @@ pub unsafe extern "C" fn rs_dns_apply_tx_config(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_udp_register_parser() {
+pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
     let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_UDP,
-        probe_ts: Some(rs_dns_probe),
-        probe_tc: Some(rs_dns_probe),
+        probe_ts: Some(probe_udp),
+        probe_tc: Some(probe_udp),
         min_depth: 0,
         max_depth: std::mem::size_of::<DNSHeader>() as u16,
-        state_new: rs_dns_state_new,
-        state_free: rs_dns_state_free,
-        tx_free: rs_dns_state_tx_free,
-        parse_ts: rs_dns_parse_request,
-        parse_tc: rs_dns_parse_response,
-        get_tx_count: rs_dns_state_get_tx_count,
-        get_tx: rs_dns_state_get_tx,
+        state_new,
+        state_free,
+        tx_free: state_tx_free,
+        parse_ts: parse_request,
+        parse_tc: parse_response,
+        get_tx_count: state_get_tx_count,
+        get_tx: state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_dns_tx_get_alstate_progress,
+        tx_get_progress: tx_get_alstate_progress,
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_tx_data: rs_dns_state_get_tx_data,
+        get_tx_data: state_get_tx_data,
         get_state_data: rs_dns_get_state_data,
-        apply_tx_config: Some(rs_dns_apply_tx_config),
+        apply_tx_config: Some(apply_tx_config),
         flags: 0,
         truncate: None,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
@@ -1036,35 +989,35 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
+pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
     let default_port = std::ffi::CString::new("53").unwrap();
     let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_dns_probe_tcp),
-        probe_tc: Some(rs_dns_probe_tcp),
+        probe_ts: Some(c_probe_tcp),
+        probe_tc: Some(c_probe_tcp),
         min_depth: 0,
         max_depth: std::mem::size_of::<DNSHeader>() as u16 + 2,
-        state_new: rs_dns_state_new,
-        state_free: rs_dns_state_free,
-        tx_free: rs_dns_state_tx_free,
-        parse_ts: rs_dns_parse_request_tcp,
-        parse_tc: rs_dns_parse_response_tcp,
-        get_tx_count: rs_dns_state_get_tx_count,
-        get_tx: rs_dns_state_get_tx,
+        state_new,
+        state_free,
+        tx_free: state_tx_free,
+        parse_ts: parse_request_tcp,
+        parse_tc: parse_response_tcp,
+        get_tx_count: state_get_tx_count,
+        get_tx: state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_dns_tx_get_alstate_progress,
+        tx_get_progress: tx_get_alstate_progress,
         get_eventinfo: Some(DNSEvent::get_event_info),
         get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_tx_data: rs_dns_state_get_tx_data,
+        get_tx_data: state_get_tx_data,
         get_state_data: rs_dns_get_state_data,
-        apply_tx_config: Some(rs_dns_apply_tx_config),
+        apply_tx_config: Some(apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         truncate: None,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),

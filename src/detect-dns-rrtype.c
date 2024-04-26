@@ -62,7 +62,7 @@ static void DetectDnsRrtypeFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectDnsRrtypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
         void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
-    return rs_dns_rrtype_match(txv, (void *)ctx, flags);
+    return SCDnsDetectRrtypeMatch(txv, (void *)ctx, flags);
 }
 
 void DetectDnsRrtypeRegister(void)

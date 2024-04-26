@@ -62,7 +62,7 @@ static void DetectDnsRcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectDnsRcodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
         void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
-    return rs_dns_rcode_match(txv, (void *)ctx, flags);
+    return SCDnsDetectRcodeMatch(txv, (void *)ctx, flags);
 }
 
 void DetectDnsRcodeRegister(void)

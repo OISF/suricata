@@ -67,7 +67,7 @@ static int DetectDnsOpcodeMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
 {
-    return rs_dns_opcode_match(txv, (void *)ctx, flags);
+    return SCDnsDetectOpcodeMatch(txv, (void *)ctx, flags);
 }
 
 void DetectDnsOpcodeRegister(void)
