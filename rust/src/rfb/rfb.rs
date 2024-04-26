@@ -194,6 +194,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -235,6 +236,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -293,6 +295,7 @@ impl RFBState {
                             current,
                             consumed as i64,
                             RFBFrameType::Pdu as u8,
+                            None,
                         );
 
                         current = rem;
@@ -330,6 +333,7 @@ impl RFBState {
                             current,
                             consumed as i64,
                             RFBFrameType::Pdu as u8,
+                            None,
                         );
 
                         current = rem;
@@ -413,6 +417,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -449,6 +454,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -503,6 +509,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -566,6 +573,7 @@ impl RFBState {
                             current,
                             consumed as i64,
                             RFBFrameType::Pdu as u8,
+                            None,
                         );
 
                         current = rem;
@@ -604,6 +612,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
@@ -684,6 +693,7 @@ impl RFBState {
                                 current,
                                 consumed as i64,
                                 RFBFrameType::Pdu as u8,
+                                None,
                             );
 
                             current = rem;
