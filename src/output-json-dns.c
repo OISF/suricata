@@ -260,7 +260,7 @@ static JsonBuilder *JsonDNSLogQuery(void *txptr)
 
     for (uint16_t i = 0; i < UINT16_MAX; i++) {
         JsonBuilder *js = jb_new_object();
-        if (!rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
+        if (!SCDnsLogJsonQuery((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
             jb_free(js);
             break;
         }
@@ -281,11 +281,11 @@ static JsonBuilder *JsonDNSLogQuery(void *txptr)
 
 static JsonBuilder *JsonDNSLogAnswer(void *txptr)
 {
-    if (!rs_dns_do_log_answer(txptr, LOG_ALL_RRTYPES)) {
+    if (!SCDnsLogAnswerEnabled(txptr, LOG_ALL_RRTYPES)) {
         return NULL;
     } else {
         JsonBuilder *js = jb_new_object();
-        rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES, js);
+        SCDnsLogJsonAnswer(txptr, LOG_ALL_RRTYPES, js);
         jb_close(js);
         return js;
     }
@@ -330,7 +330,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
 
         jb_open_object(jb, "dns");
-        if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
+        if (!SCDnsLogJsonQuery(txptr, i, td->dnslog_ctx->flags, jb)) {
             jb_free(jb);
             break;
         }
@@ -355,14 +355,14 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
+    if (SCDnsLogAnswerEnabled(txptr, td->dnslog_ctx->flags)) {
         JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
 
         jb_open_object(jb, "dns");
-        rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
+        SCDnsLogJsonAnswer(txptr, td->dnslog_ctx->flags, jb);
         jb_close(jb);
         OutputJsonBuilderBuffer(jb, td->ctx);
         jb_free(jb);
@@ -374,9 +374,9 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
         void *txptr, uint64_t tx_id)
 {
-    if (rs_dns_tx_is_request(txptr)) {
+    if (SCDnsTxIsRequest(txptr)) {
         return JsonDnsLoggerToServer(tv, thread_data, p, f, alstate, txptr, tx_id);
-    } else if (rs_dns_tx_is_response(txptr)) {
+    } else if (SCDnsTxIsResponse(txptr)) {
         return JsonDnsLoggerToClient(tv, thread_data, p, f, alstate, txptr, tx_id);
     }
     return TM_ECODE_OK;

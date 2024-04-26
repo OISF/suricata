@@ -23,7 +23,7 @@ use crate::detect::uint::{detect_match_uint, DetectUintData};
 ///
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
-pub extern "C" fn rs_dns_opcode_match(
+pub extern "C" fn SCDnsDetectOpcodeMatch(
     tx: &mut DNSTransaction, detect: &mut DetectUintData<u8>, flags: u8,
 ) -> u8 {
     let header_flags = if flags & Direction::ToServer as u8 != 0 {
@@ -54,7 +54,7 @@ pub extern "C" fn rs_dns_opcode_match(
 ///
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
-pub extern "C" fn rs_dns_rcode_match(
+pub extern "C" fn SCDnsDetectRcodeMatch(
     tx: &mut DNSTransaction, detect: &mut DetectUintData<u8>, flags: u8,
 ) -> u8 {
     let header_flags = if flags & Direction::ToServer as u8 != 0 {
@@ -80,7 +80,7 @@ pub extern "C" fn rs_dns_rcode_match(
 /// Perform the DNS rrtype match.
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
-pub extern "C" fn rs_dns_rrtype_match(
+pub extern "C" fn SCDnsDetectRrtypeMatch(
     tx: &mut DNSTransaction, detect: &mut DetectUintData<u16>, flags: u8,
 ) -> u16 {
     if flags & Direction::ToServer as u8 != 0 {
