@@ -436,6 +436,7 @@ impl MQTTState {
                         current,
                         (current.len() - rem.len()) as i64,
                         MQTTFrameType::Pdu as u8,
+                        None,
                     );
                     SCLogDebug!("request msg {:?}", msg);
                     if let MQTTOperation::TRUNCATED(ref trunc) = msg.op {
@@ -521,6 +522,7 @@ impl MQTTState {
                         current,
                         (current.len() - rem.len()) as i64,
                         MQTTFrameType::Pdu as u8,
+                        None,
                     );
 
                     SCLogDebug!("response msg {:?}", msg);
@@ -595,7 +597,7 @@ impl MQTTState {
     ) {
         let hdr = stream_slice.as_slice();
         //MQTT payload has a fixed header of 2 bytes
-        let _mqtt_hdr = Frame::new(flow, stream_slice, hdr, 2, MQTTFrameType::Header as u8);
+        let _mqtt_hdr = Frame::new(flow, stream_slice, hdr, 2, MQTTFrameType::Header as u8, None);
         SCLogDebug!("mqtt_hdr Frame {:?}", _mqtt_hdr);
         let rem_length = input.header.remaining_length as usize;
         let data = &hdr[2..rem_length + 2];
@@ -605,6 +607,7 @@ impl MQTTState {
             data,
             rem_length as i64,
             MQTTFrameType::Data as u8,
+            None,
         );
         SCLogDebug!("mqtt_data Frame {:?}", _mqtt_data);
     }
