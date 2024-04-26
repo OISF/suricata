@@ -29,7 +29,7 @@ use nom7::{error_position, Err, IResult};
 /// Parameters:
 ///   start: the start of the name
 ///   message: the complete message that start is a part of with the DNS header
-pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
+fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], Vec<u8>> {
     let mut pos = start;
     let mut pivot = start;
     let mut name: Vec<u8> = Vec::with_capacity(32);
@@ -175,7 +175,7 @@ fn dns_parse_answer<'a>(
 /// Arguments are suitable for using with call!:
 ///
 ///    call!(complete_dns_message_buffer)
-pub fn dns_parse_query<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSQueryEntry> {
+fn dns_parse_query<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSQueryEntry> {
     let i = input;
     let (i, name) = dns_parse_name(i, message)?;
     let (i, rrtype) = be_u16(i)?;
@@ -286,7 +286,7 @@ fn dns_parse_rdata_unknown(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::Unknown(data.to_vec())))
 }
 
-pub fn dns_parse_rdata<'a>(
+fn dns_parse_rdata<'a>(
     input: &'a [u8], message: &'a [u8], rrtype: u16,
 ) -> IResult<&'a [u8], DNSRData> {
     match rrtype {

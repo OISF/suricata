@@ -115,7 +115,7 @@ pub const DNS_RCODE_BADTRUNC: u16 = 22;
 static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
-pub enum DnsFrameType {
+enum DnsFrameType {
     /// DNS PDU frame. For UDP DNS this is the complete UDP payload, for TCP
     /// this is the DNS payload not including the leading length field allowing
     /// this frame to be used for UDP and TCP DNS.
@@ -243,7 +243,7 @@ impl Transaction for DNSTransaction {
 }
 
 impl DNSTransaction {
-    pub fn new(direction: Direction) -> Self {
+    fn new(direction: Direction) -> Self {
         Self {
             tx_data: AppLayerTxData::for_direction(direction),
             ..Default::default()
@@ -308,10 +308,10 @@ pub struct DNSState {
     state_data: AppLayerStateData,
 
     // Internal transaction ID.
-    pub tx_id: u64,
+    tx_id: u64,
 
     // Transactions.
-    pub transactions: VecDeque<DNSTransaction>,
+    transactions: VecDeque<DNSTransaction>,
 
     config: Option<ConfigTracker>,
 
@@ -329,18 +329,18 @@ impl State<DNSTransaction> for DNSState {
 }
 
 impl DNSState {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Default::default()
     }
 
-    pub fn new_tx(&mut self, direction: Direction) -> DNSTransaction {
+    fn new_tx(&mut self, direction: Direction) -> DNSTransaction {
         let mut tx = DNSTransaction::new(direction);
         self.tx_id += 1;
         tx.id = self.tx_id;
         return tx;
     }
 
-    pub fn free_tx(&mut self, tx_id: u64) {
+    fn free_tx(&mut self, tx_id: u64) {
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
@@ -357,12 +357,12 @@ impl DNSState {
         }
     }
 
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
+    fn get_tx(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
         return self.transactions.iter().find(|&tx| tx.id == tx_id + 1);
     }
 
     /// Set an event. The event is set on the most recent transaction.
-    pub fn set_event(&mut self, event: DNSEvent) {
+    fn set_event(&mut self, event: DNSEvent) {
         let len = self.transactions.len();
         if len == 0 {
             return;
@@ -453,7 +453,7 @@ impl DNSState {
         self.parse_response(input, false)
     }
 
-    pub fn parse_response(&mut self, input: &[u8], is_tcp: bool) -> bool {
+    fn parse_response(&mut self, input: &[u8], is_tcp: bool) -> bool {
         let (body, header) = if let Some((body, header)) = self.validate_header(input) {
             (body, header)
         } else {
@@ -511,7 +511,7 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_request_tcp(
+    fn parse_request_tcp(
         &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
@@ -573,7 +573,7 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_response_tcp(
+    fn parse_response_tcp(
         &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
@@ -632,7 +632,7 @@ impl DNSState {
     }
 
     /// A gap has been seen in the request direction. Set the gap flag.
-    pub fn request_gap(&mut self, gap: u32) {
+    fn request_gap(&mut self, gap: u32) {
         if gap > 0 {
             self.gap = true;
         }
@@ -640,7 +640,7 @@ impl DNSState {
 
     /// A gap has been seen in the response direction. Set the gap
     /// flag.
-    pub fn response_gap(&mut self, gap: u32) {
+    fn response_gap(&mut self, gap: u32) {
         if gap > 0 {
             self.gap = true;
         }
@@ -699,7 +699,7 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
 }
 
 /// Probe TCP input to see if it looks like DNS.
-pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
+fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
     match be_u16(input) as IResult<&[u8], u16> {
         Ok((rem, dlen)) => {
             return probe(rem, dlen as usize);
