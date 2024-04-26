@@ -142,6 +142,7 @@ The Frame API calls parameters represent:
 - ``frame_start``: a pointer to the start of the frame buffer in the stream (``cur_i`` in the SMB code snippet)
 - ``frame_len``: what we expect the frame length to be (the engine may need to wait until it has enough data. See what is done in the telnet snippet request frames registering)
 - ``frame_type``: type of frame it's being registering (defined in an enum, as shown further above)
+- ``tx_id``: an optional transaction id, if the frame belongs to a transaction, may be set later like `frame_len`
 
 ``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition  is found in *applayer.rs*:
 

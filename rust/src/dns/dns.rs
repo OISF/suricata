@@ -437,6 +437,7 @@ impl DNSState {
             input,
             input.len() as i64,
             DnsFrameType::Pdu as u8,
+            None,
         );
         self.parse_request(input, false)
     }
@@ -449,6 +450,7 @@ impl DNSState {
             input,
             input.len() as i64,
             DnsFrameType::Pdu as u8,
+            None,
         );
         self.parse_response(input, false)
     }
@@ -547,6 +549,7 @@ impl DNSState {
                     msg,
                     msg.len() as i64,
                     DnsFrameType::Pdu as u8,
+                    None,
                 );
                 if self.parse_request(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
@@ -609,6 +612,7 @@ impl DNSState {
                     msg,
                     msg.len() as i64,
                     DnsFrameType::Pdu as u8,
+                    None,
                 );
                 if self.parse_response(msg, true) {
                     cur_i = &cur_i[(size + 2)..];
