@@ -320,7 +320,39 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
     return ncpu;
 }
 
-#ifdef HAVE_DPDK
+/**
+ * \brief Verify that the CPU requirement is met
+ * \retval 0 if the requirement is met, 2 if the test is skipped, negative number otherwise
+ */
+int UnitTestsUtilAffinityVerifyCPURequirement(void)
+{
+#if defined(UNITTESTS) && !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ &&      \
+        !defined sun && !defined OS_DARWIN
+    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    if (wtaf == NULL) {
+        SCLogError("Specify worker-cpu-set list in the threading section");
+        SCReturnInt(-EINVAL);
+    }
+    ThreadsAffinityType *mtaf = GetAffinityTypeFromName("management-cpu-set");
+    if (mtaf == NULL) {
+        SCLogError("Specify management-cpu-set list in the threading section");
+        SCReturnInt(-EINVAL);
+    }
+    UtilAffinityCpusExclude(wtaf, mtaf);
+    uint32_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf) + UtilAffinityGetAffinedCPUNum(mtaf);
+
+    if (UtilCpuGetNumProcessorsOnline() < sched_cpus) {
+        char err_msg[256];
+        snprintf(err_msg, sizeof(err_msg),
+                "not enough cpus in the system, the test requires at least %d cores", sched_cpus);
+        SKIP(err_msg);
+    }
+#endif
+    return 0;
+}
+
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun &&            \
+        !defined OS_DARWIN
 /**
  * Find if CPU sets overlap
  * \return 1 if CPUs overlap, 0 otherwise
@@ -353,12 +385,15 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
  */
 void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf)
 {
-    cpu_set_t tmpset;
     SCMutexLock(&mod_taf->taf_mutex);
     SCMutexLock(&static_taf->taf_mutex);
-    CPU_XOR(&tmpset, &mod_taf->cpu_set, &static_taf->cpu_set);
+    int max_cpus = UtilCpuGetNumProcessorsOnline();
+    for (int cpu = 0; cpu < max_cpus; cpu++) {
+        if (CPU_ISSET(cpu, &mod_taf->cpu_set) && CPU_ISSET(cpu, &static_taf->cpu_set)) {
+            CPU_CLR(cpu, &mod_taf->cpu_set);
+        }
+    }
     SCMutexUnlock(&static_taf->taf_mutex);
-    mod_taf->cpu_set = tmpset;
     SCMutexUnlock(&mod_taf->taf_mutex);
 }
-#endif /* HAVE_DPDK */
+#endif
