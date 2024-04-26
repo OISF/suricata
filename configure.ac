@@ -324,6 +324,17 @@
         CFLAGS="$CFLAGS -std=gnu99"
     fi
 
+    # check if our target supports -Wl,--start-group
+    AC_MSG_CHECKING(for -Wl,--start-group support)
+    OLDFLAGS=$LDFLAGS
+    LDFLAGS="-Wl,--start-group,--end-group"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[
+            have_linker_group_support=yes
+            AC_MSG_RESULT(yes)],
+            [AC_MSG_RESULT(no)])
+    LDFLAGS=$OLDFLAGS
+    AM_CONDITIONAL([LINKER_SUPPORTS_GROUP], [test "x$have_linker_group_support" = "xyes"])
+
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage gnu __thread support)
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
