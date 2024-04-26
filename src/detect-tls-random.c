@@ -218,9 +218,9 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = DETECT_TLS_RANDOM_TIME_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
-            data = ssl_state->server_connp.random;
-        } else {
             data = ssl_state->client_connp.random;
+        } else {
+            data = ssl_state->server_connp.random;
         }
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -245,9 +245,9 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = DETECT_TLS_RANDOM_BYTES_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
-            data = ssl_state->server_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
-        } else {
             data = ssl_state->client_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
+        } else {
+            data = ssl_state->server_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
         }
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -272,9 +272,9 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = TLS_RANDOM_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
-            data = ssl_state->server_connp.random;
-        } else {
             data = ssl_state->client_connp.random;
+        } else {
+            data = ssl_state->server_connp.random;
         }
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
