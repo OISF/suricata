@@ -381,7 +381,7 @@ impl DNSState {
         None
     }
 
-    fn parse_request(&mut self, input: &[u8], is_tcp: bool) -> bool {
+    fn parse_request(&mut self, input: &[u8], is_tcp: bool, fid: Option<Frame>, flow: *const core::Flow,) -> bool {
         let (body, header) = if let Some((body, header)) = self.validate_header(input) {
             (body, header)
         } else {
@@ -400,6 +400,9 @@ impl DNSState {
                 let opcode = ((request.header.flags >> 11) & 0xf) as u8;
 
                 let mut tx = self.new_tx(Direction::ToServer);
+                if let Some(frame) = fid {
+                    frame.set_tx(flow, tx.id);
+                }
                 tx.request = Some(request);
                 self.transactions.push_back(tx);
 
@@ -431,7 +434,7 @@ impl DNSState {
 
     fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new(
+        let fid = Frame::new(
             flow,
             &stream_slice,
             input,
@@ -439,12 +442,12 @@ impl DNSState {
             DnsFrameType::Pdu as u8,
             None,
         );
-        self.parse_request(input, false)
+        self.parse_request(input, false, fid, flow)
     }
 
     fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new(
+        let fid = Frame::new(
             flow,
             &stream_slice,
             input,
@@ -452,10 +455,10 @@ impl DNSState {
             DnsFrameType::Pdu as u8,
             None,
         );
-        self.parse_response(input, false)
+        self.parse_response(input, false, fid, flow)
     }
 
-    pub fn parse_response(&mut self, input: &[u8], is_tcp: bool) -> bool {
+    pub fn parse_response(&mut self, input: &[u8], is_tcp: bool, fid: Option<Frame>, flow: *const core::Flow) -> bool {
         let (body, header) = if let Some((body, header)) = self.validate_header(input) {
             (body, header)
         } else {
@@ -475,6 +478,9 @@ impl DNSState {
                 let opcode = ((response.header.flags >> 11) & 0xf) as u8;
 
                 let mut tx = self.new_tx(Direction::ToClient);
+                if let Some(frame) = fid {
+                    frame.set_tx(flow, tx.id);
+                }
                 if let Some(ref mut config) = &mut self.config {
                     if let Some(config) = config.remove(&response.header.tx_id) {
                         tx.tx_data.config = config;
@@ -543,7 +549,7 @@ impl DNSState {
             );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new(
+                let fid = Frame::new(
                     flow,
                     &stream_slice,
                     msg,
@@ -551,7 +557,7 @@ impl DNSState {
                     DnsFrameType::Pdu as u8,
                     None,
                 );
-                if self.parse_request(msg, true) {
+                if self.parse_request(msg, true, fid, flow) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
                 } else {
@@ -606,7 +612,7 @@ impl DNSState {
             );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
-                let _pdu = Frame::new(
+                let fid = Frame::new(
                     flow,
                     &stream_slice,
                     msg,
@@ -614,7 +620,7 @@ impl DNSState {
                     DnsFrameType::Pdu as u8,
                     None,
                 );
-                if self.parse_response(msg, true) {
+                if self.parse_response(msg, true, fid, flow) {
                     cur_i = &cur_i[(size + 2)..];
                     consumed += size + 2;
                 } else {
