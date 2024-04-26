@@ -234,6 +234,19 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
     /* Handle any leftover bytes by adding padding to them as long as they do not
      * violate the destination buffer size */
     if (bbidx > 0) {
+        /*
+         * --------------------
+         * | bbidx  | padding |
+         * --------------------
+         * |   1    |    2    |
+         * |   2    |    2    |
+         * |   3    |    1    |
+         * --------------------
+         * Note: Padding for 1 byte is set to 2 to have at least one
+         * decoded byte while calculating numDecoded_blk
+         * This does not affect the decoding as the b64 array is already
+         * populated with all padding bytes unless overwritten.
+         * */
         padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
         uint32_t numDecoded_blk = ASCII_BLOCK - padding;
         if (dest_size < *decoded_bytes + numDecoded_blk) {
