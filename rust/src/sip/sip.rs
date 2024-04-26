@@ -112,15 +112,6 @@ impl SIPState {
         }
     }
 
-    fn build_tx_request(&mut self, input: &[u8], request: Request) {
-        let mut tx = self.new_tx(crate::core::Direction::ToServer);
-        tx.request = Some(request);
-        if let Ok((_, req_line)) = sip_take_line(input) {
-            tx.request_line = req_line;
-        }
-        self.transactions.push_back(tx);
-    }
-
     // app-layer-frame-documentation tag start: parse_request
     fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
@@ -130,13 +121,19 @@ impl SIPState {
             input,
             input.len() as i64,
             SIPFrameType::Pdu as u8,
+            None,
         );
         SCLogDebug!("ts: pdu {:?}", _pdu);
 
         match sip_parse_request(input) {
             Ok((_, request)) => {
-                sip_frames_ts(flow, &stream_slice, &request);
-                self.build_tx_request(input, request);
+                let mut tx = self.new_tx(crate::core::Direction::ToServer);
+                sip_frames_ts(flow, &stream_slice, &request, tx.id);
+                tx.request = Some(request);
+                if let Ok((_, req_line)) = sip_take_line(input) {
+                    tx.request_line = req_line;
+                }
+                self.transactions.push_back(tx);
                 return true;
             }
             // app-layer-frame-documentation tag end: parse_request
@@ -168,18 +165,26 @@ impl SIPState {
                     start,
                     -1_i64,
                     SIPFrameType::Pdu as u8,
+                    None,
                 );
                 SCLogDebug!("ts: pdu {:?}", self.request_frame);
             }
             match sip_parse_request(start) {
                 Ok((rem, request)) => {
-                    sip_frames_ts(flow, &stream_slice, &request);
-                    self.build_tx_request(start, request);
+                    let mut tx = self.new_tx(crate::core::Direction::ToServer);
+                    let tx_id = tx.id;
+                    sip_frames_ts(flow, &stream_slice, &request, tx_id);
+                    tx.request = Some(request);
+                    if let Ok((_, req_line)) = sip_take_line(input) {
+                        tx.request_line = req_line;
+                    }
+                    self.transactions.push_back(tx);
                     let consumed = start.len() - rem.len();
                     start = rem;
 
                     if let Some(frame) = &self.request_frame {
                         frame.set_len(flow, consumed as i64);
+                        frame.set_tx(flow, tx_id);
                         self.request_frame = None;
                     }
                 }
@@ -204,15 +209,6 @@ impl SIPState {
         return AppLayerResult::ok();
     }
 
-    fn build_tx_response(&mut self, input: &[u8], response: Response) {
-        let mut tx = self.new_tx(crate::core::Direction::ToClient);
-        tx.response = Some(response);
-        if let Ok((_, resp_line)) = sip_take_line(input) {
-            tx.response_line = resp_line;
-        }
-        self.transactions.push_back(tx);
-    }
-
     fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
@@ -221,13 +217,19 @@ impl SIPState {
             input,
             input.len() as i64,
             SIPFrameType::Pdu as u8,
+            None,
         );
         SCLogDebug!("tc: pdu {:?}", _pdu);
 
         match sip_parse_response(input) {
             Ok((_, response)) => {
-                sip_frames_tc(flow, &stream_slice, &response);
-                self.build_tx_response(input, response);
+                let mut tx = self.new_tx(crate::core::Direction::ToClient);
+                sip_frames_tc(flow, &stream_slice, &response, tx.id);
+                tx.response = Some(response);
+                if let Ok((_, resp_line)) = sip_take_line(input) {
+                    tx.response_line = resp_line;
+                }
+                self.transactions.push_back(tx);
                 return true;
             }
             Err(Err::Incomplete(_)) => {
@@ -258,18 +260,26 @@ impl SIPState {
                     start,
                     -1_i64,
                     SIPFrameType::Pdu as u8,
+                    None,
                 );
                 SCLogDebug!("tc: pdu {:?}", self.request_frame);
             }
             match sip_parse_response(start) {
                 Ok((rem, response)) => {
-                    sip_frames_tc(flow, &stream_slice, &response);
-                    self.build_tx_response(start, response);
+                    let mut tx = self.new_tx(crate::core::Direction::ToClient);
+                    let tx_id = tx.id;
+                    sip_frames_tc(flow, &stream_slice, &response, tx_id);
+                    tx.response = Some(response);
+                    if let Ok((_, resp_line)) = sip_take_line(input) {
+                        tx.response_line = resp_line;
+                    }
+                    self.transactions.push_back(tx);
                     let consumed = start.len() - rem.len();
                     start = rem;
 
                     if let Some(frame) = &self.response_frame {
                         frame.set_len(flow, consumed as i64);
+                        frame.set_tx(flow, tx_id);
                         self.response_frame = None;
                     }
                 }
@@ -309,7 +319,7 @@ impl SIPTransaction {
 }
 
 // app-layer-frame-documentation tag start: function to add frames
-fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request) {
+fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
@@ -317,6 +327,7 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
         oi,
         r.request_line_len as i64,
         SIPFrameType::RequestLine as u8,
+        Some(tx_id),
     );
     SCLogDebug!("ts: request_line {:?}", _f);
     let hi = &oi[r.request_line_len as usize..];
@@ -326,6 +337,7 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
         hi,
         r.headers_len as i64,
         SIPFrameType::RequestHeaders as u8,
+        Some(tx_id),
     );
     SCLogDebug!("ts: request_headers {:?}", _f);
     if r.body_len > 0 {
@@ -336,13 +348,14 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
             bi,
             r.body_len as i64,
             SIPFrameType::RequestBody as u8,
+            Some(tx_id),
         );
         SCLogDebug!("ts: request_body {:?}", _f);
     }
 }
 // app-layer-frame-documentation tag end: function to add frames
 
-fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response) {
+fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
@@ -350,6 +363,7 @@ fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Respon
         oi,
         r.response_line_len as i64,
         SIPFrameType::ResponseLine as u8,
+        Some(tx_id),
     );
     let hi = &oi[r.response_line_len as usize..];
     SCLogDebug!("tc: response_line {:?}", _f);
@@ -359,6 +373,7 @@ fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Respon
         hi,
         r.headers_len as i64,
         SIPFrameType::ResponseHeaders as u8,
+        Some(tx_id),
     );
     SCLogDebug!("tc: response_headers {:?}", _f);
     if r.body_len > 0 {
@@ -369,6 +384,7 @@ fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Respon
             bi,
             r.body_len as i64,
             SIPFrameType::ResponseBody as u8,
+            Some(tx_id),
         );
         SCLogDebug!("tc: response_body {:?}", _f);
     }

@@ -164,6 +164,7 @@ impl TelnetState {
                     start,
                     -1_i64,
                     TelnetFrameType::Pdu as u8,
+                    None,
                 );
             }
             if self.request_specific_frame.is_none() {
@@ -175,6 +176,7 @@ impl TelnetState {
                             start,
                             -1_i64,
                             TelnetFrameType::Ctl as u8,
+                            None,
                         )
                     } else {
                         Frame::new(
@@ -183,6 +185,7 @@ impl TelnetState {
                             start,
                             -1_i64,
                             TelnetFrameType::Data as u8,
+                            None,
                         )
                     // app-layer-frame-documentation tag end: parse_request
                     };
@@ -266,14 +269,14 @@ impl TelnetState {
         let mut start = input;
         while !start.is_empty() {
             if self.response_frame.is_none() {
-                self.response_frame = Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Pdu as u8);
+                self.response_frame = Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Pdu as u8, None);
             }
             if self.response_specific_frame.is_none() {
                 if let Ok((_, is_ctl)) = parser::peek_message_is_ctl(start) {
                     self.response_specific_frame = if is_ctl {
-                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Ctl as u8)
+                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Ctl as u8, None)
                     } else {
-                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Data as u8)
+                        Frame::new(flow, stream_slice, start, -1_i64, TelnetFrameType::Data as u8, None)
                     };
                 }
             }
