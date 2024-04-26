@@ -340,6 +340,9 @@
 #include "util-mpm-ac.h"
 #include "runmodes.h"
 
+int DETECT_TBLSIZE = 0;
+int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
+
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
     const uint16_t flags = e->flags;
@@ -408,7 +411,7 @@ static void SigMultilinePrint(int i, const char *prefix)
 
 int SigTableList(const char *keyword)
 {
-    size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
+    size_t size = DETECT_TBLSIZE;
     size_t i;
 
     if (keyword == NULL) {
@@ -483,15 +486,32 @@ int SigTableList(const char *keyword)
 
 static void DetectFileHandlerRegister(void)
 {
-    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+    for (int i = 0; i < DETECT_TBLSIZE_STATIC; i++) {
         if (filehandler_table[i].name)
             DetectFileRegisterFileProtocols(&filehandler_table[i]);
     }
 }
 
+void SigTableCleanup(void)
+{
+    if (sigmatch_table != NULL) {
+        SCFree(sigmatch_table);
+        sigmatch_table = NULL;
+        DETECT_TBLSIZE = 0;
+    }
+}
+
 void SigTableSetup(void)
 {
-    memset(sigmatch_table, 0, sizeof(sigmatch_table));
+    if (sigmatch_table == NULL) {
+        DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC + DETECT_TBLSIZE_STEP;
+        sigmatch_table = SCCalloc(DETECT_TBLSIZE, sizeof(SigTableElmt));
+        if (sigmatch_table == NULL) {
+            DETECT_TBLSIZE = 0;
+            FatalError("Could not allocate sigmatch_table");
+            return;
+        }
+    }
 
     DetectSidRegister();
     DetectPriorityRegister();
