@@ -214,10 +214,6 @@
 #include "detect-dhcp-leasetime.h"
 #include "detect-dhcp-rebinding-time.h"
 #include "detect-dhcp-renewal-time.h"
-#include "detect-snmp-usm.h"
-#include "detect-snmp-version.h"
-#include "detect-snmp-community.h"
-#include "detect-snmp-pdu_type.h"
 #include "detect-mqtt-type.h"
 #include "detect-mqtt-flags.h"
 #include "detect-mqtt-qos.h"
@@ -703,10 +699,6 @@ void SigTableSetup(void)
     DetectDHCPLeaseTimeRegister();
     DetectDHCPRebindingTimeRegister();
     DetectDHCPRenewalTimeRegister();
-    DetectSNMPUsmRegister();
-    DetectSNMPVersionRegister();
-    DetectSNMPCommunityRegister();
-    DetectSNMPPduTypeRegister();
     DetectMQTTTypeRegister();
     DetectMQTTFlagsRegister();
     DetectMQTTQosRegister();
@@ -750,6 +742,8 @@ void SigTableSetup(void)
     DetectTransformHeaderLowercaseRegister();
 
     DetectFileHandlerRegister();
+
+    ScDetectSNMPRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
