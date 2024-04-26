@@ -82,6 +82,7 @@ include = [
     "QuicState",
     "QuicTransaction",
     "FtpEvent",
+    "SCSigTableElmt",
 ]
 
 # A list of items to not include in the generated bindings

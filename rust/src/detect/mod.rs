@@ -27,6 +27,9 @@ pub mod uri;
 pub mod requires;
 pub mod tojson;
 
+use crate::core::AppProto;
+use std::os::raw::{c_int, c_void};
+
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
 pub trait EnumString<T> {
@@ -41,6 +44,64 @@ pub trait EnumString<T> {
 
     /// Get an enum variant from parsing a string.
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
+}
+
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct SCSigTableElmt {
+    pub name: *const libc::c_char,
+    pub desc: *const libc::c_char,
+    pub url: *const libc::c_char,
+    pub flags: u16,
+    pub Setup: unsafe extern "C" fn(
+        de: *mut c_void,
+        s: *mut c_void,
+        raw: *const std::os::raw::c_char,
+    ) -> c_int,
+    pub Free: Option<unsafe extern "C" fn(de: *mut c_void, ptr: *mut c_void)>,
+    pub AppLayerTxMatch: Option<
+        unsafe extern "C" fn(
+            de: *mut c_void,
+            f: *mut c_void,
+            flags: u8,
+            state: *mut c_void,
+            tx: *mut c_void,
+            sig: *const c_void,
+            ctx: *const c_void,
+        ) -> c_int,
+    >,
+}
+
+pub(crate) const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
+pub(crate) const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
+
+extern {
+    pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
+    pub fn DetectHelperGetData(
+        de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+        tx: *const c_void, list_id: c_int,
+        get_buf: unsafe extern "C" fn(*const c_void, u8, *mut *const u8, *mut u32) -> bool,
+    ) -> *mut c_void;
+    pub fn DetectHelperBufferMpmRegister(
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
+        toserver: bool,
+        get_data: unsafe extern "C" fn(
+            *mut c_void,
+            *const c_void,
+            *const c_void,
+            u8,
+            *const c_void,
+            i32,
+        ) -> *mut c_void,
+    ) -> c_int;
+    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperBufferRegister(
+        name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
+    ) -> c_int;
+    pub fn DetectSignatureSetAppProto(s: *mut c_void, alproto: AppProto) -> c_int;
+    pub fn SigMatchAppendSMToList(
+        de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
+    ) -> *mut c_void;
 }
 
 #[cfg(test)]
