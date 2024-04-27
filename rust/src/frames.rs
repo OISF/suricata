@@ -130,7 +130,7 @@ impl Frame {
     /// the C functions for building a frame are not available for
     /// linkage.
     #[cfg(test)]
-    pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {}
+    pub fn set_tx(&self, _flow: *const Flow, _tx_id: u64) {}
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn add_event(&self, flow: *const Flow, event: u8) {
