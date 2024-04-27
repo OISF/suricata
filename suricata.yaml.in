@@ -168,6 +168,19 @@ outputs:
             # payload-length: yes      # enable dumping payload length, including the gaps
             # packet: yes              # enable dumping of packet (without stream segments)
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
+            # If you want metadata, use:
+            # metadata:
+              # Include the decoded application layer (ie. http, dns)
+              #app-layer: true
+              # Log the current state of the flow record.
+              #flow: true
+              #rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                #metadata: true
+                # Log the raw rule text.
+                #raw: false
+                # reference: no        # include reference information from the rule
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
             # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
