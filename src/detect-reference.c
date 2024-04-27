@@ -43,7 +43,10 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
+/* Breakout key and scheme (optional) and domain/path (mandatory) */
+#define PARSE_REGEX                                                                                \
+    "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z]+:\\/\\/)?([a-zA-Z0-9\\-_\\.\\/"               \
+    "\\?\\=]+)\"?\\s*\"?"
 
 static DetectParseRegex parse_regex;
 
@@ -74,6 +77,9 @@ void DetectReferenceFree(DetectReference *ref)
 {
     SCEnter();
 
+    if (ref->key)
+        SCFree(ref->key);
+
     if (ref->reference != NULL) {
         SCFree(ref->reference);
     }
@@ -98,11 +104,12 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     int res = 0;
     size_t pcre2len;
     char key[REFERENCE_SYSTEM_NAME_MAX] = "";
-    char content[REFERENCE_CONTENT_NAME_MAX] = "";
+    char scheme[REFERENCE_SYSTEM_NAME_MAX] = "";
+    char uri[REFERENCE_CONTENT_NAME_MAX] = "";
 
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 2) {
+    if (ret != 4) {
         SCLogError("Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.",
                 rawstr);
@@ -118,50 +125,71 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         return NULL;
     }
 
+    /* Position 1 = key (mandatory) */
     pcre2len = sizeof(key);
     res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)key, &pcre2len);
     if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber key failed");
         goto error;
     }
 
-    pcre2len = sizeof(content);
-    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)content, &pcre2len);
+    /* Position 2 = scheme (optional) */
+    pcre2len = sizeof(scheme);
+    (void)pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)scheme, &pcre2len);
+
+    /* Position 3 = domain-path (mandatory) */
+    pcre2len = sizeof(uri);
+    res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)uri, &pcre2len);
     if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
+        SCLogError("pcre2_substring_copy_bynumber domain-path failed");
         goto error;
     }
 
-    if (strlen(key) == 0 || strlen(content) == 0)
+    int ref_len = strlen(uri);
+    /* no key, reference -- return an error */
+    if (strlen(key) == 0 || ref_len == 0)
         goto error;
 
-    SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
-    if (lookup_ref_conf != NULL) {
-        ref->key = lookup_ref_conf->url;
+    if (strlen(scheme)) {
+        SCLogConfig("scheme value %s overrides key %s", scheme, key);
+        ref->key = SCStrdup(scheme);
+        /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
+        ref->key_len = (uint16_t)strlen(scheme);
     } else {
-        if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
-            SCLogError("unknown reference key \"%s\"", key);
-            goto error;
+
+        SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
+        if (lookup_ref_conf != NULL) {
+            ref->key = SCStrdup(lookup_ref_conf->url);
+            /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
+            ref->key_len = (uint16_t)strlen(ref->key);
+        } else {
+            if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
+                SCLogError("unknown reference key \"%s\"", key);
+                goto error;
+            }
+
+            SCLogWarning("unknown reference key \"%s\"", key);
+
+            char str[2048];
+            snprintf(str, sizeof(str), "config reference: %s undefined\n", key);
+
+            if (SCRConfAddReference(de_ctx, str) < 0)
+                goto error;
+            lookup_ref_conf = SCRConfGetReference(key, de_ctx);
+            if (lookup_ref_conf == NULL)
+                goto error;
         }
-
-        SCLogWarning("unknown reference key \"%s\"", key);
-
-        char str[2048];
-        snprintf(str, sizeof(str), "config reference: %s undefined\n", key);
-
-        if (SCRConfAddReference(de_ctx, str) < 0)
-            goto error;
-        lookup_ref_conf = SCRConfGetReference(key, de_ctx);
-        if (lookup_ref_conf == NULL)
-            goto error;
     }
 
     /* make a copy so we can free pcre's substring */
-    ref->reference = SCStrdup(content);
+    ref->reference = SCStrdup(uri);
     if (ref->reference == NULL) {
         SCLogError("strdup failed: %s", strerror(errno));
         goto error;
     }
+
+    /* already bound checked to be REFERENCE_CONTENT_NAME_MAX or less */
+    ref->reference_len = (uint16_t)ref_len;
 
     pcre2_match_data_free(match);
     /* free the substrings */

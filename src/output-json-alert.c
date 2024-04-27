@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2023 Open Information Security Foundation
+/* Copyright (C) 2013-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,6 +63,7 @@
 #include "util-print.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
+#include "util-reference-config.h"
 #include "util-validate.h"
 
 #include "action-globals.h"
@@ -83,6 +84,7 @@
 #define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
 #define LOG_JSON_PAYLOAD_LENGTH           BIT_U16(13)
+#define LOG_JSON_REFERENCE                BIT_U16(14)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -169,6 +171,27 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     jb_close(js);
 }
 
+static void AlertJsonReference(const PacketAlert *pa, JsonBuilder *jb)
+{
+    if (!pa->s->references) {
+        return;
+    }
+
+    const DetectReference *kv = pa->s->references;
+    jb_open_array(jb, "references");
+    while (kv) {
+        /* Note that the key and reference sizes have been bound
+         * checked during parsing
+         */
+        const size_t size_needed = kv->key_len + kv->reference_len + 1;
+        char kv_store[size_needed];
+        snprintf(kv_store, size_needed, "%s%s", kv->key, kv->reference);
+        jb_append_string(jb, kv_store);
+        kv = kv->next;
+    }
+    jb_close(jb);
+}
+
 static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
         const PacketAlert *pa, JsonBuilder *js)
 {
@@ -219,6 +242,10 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 
     if (addr && pa->s->flags & SIG_FLAG_HAS_TARGET) {
         AlertJsonSourceTarget(p, pa, js, addr);
+    }
+
+    if ((json_output_ctx != NULL) && (flags & LOG_JSON_REFERENCE)) {
+        AlertJsonReference(pa, js);
     }
 
     if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
@@ -902,6 +929,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
                     SetFlag(rule_metadata, "raw", LOG_JSON_RULE, &flags);
                     SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA,
                             &flags);
+                    SetFlag(rule_metadata, "reference", LOG_JSON_REFERENCE, &flags);
                 }
                 SetFlag(metadata, "flow", LOG_JSON_FLOW, &flags);
                 SetFlag(metadata, "app-layer", LOG_JSON_APP_LAYER, &flags);
