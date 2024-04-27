@@ -107,8 +107,8 @@ fn log_media_description(
             }
             js.close()?;
         }
+        js.close()?;
     }
-    js.close()?;
 
     Ok(())
 }
