@@ -38,6 +38,7 @@ extern {
     ) -> *const CFrame;
     fn AppLayerFrameAddEventById(flow: *const Flow, dir: i32, id: i64, event: u8);
     fn AppLayerFrameSetLengthById(flow: *const Flow, dir: i32, id: i64, len: i64);
+    #[cfg(not(test))]
     fn AppLayerFrameSetTxIdById(flow: *const Flow, dir: i32, id: i64, tx_id: u64);
     #[cfg(not(test))]
     fn AppLayerFrameGetId(frame: *const CFrame) -> i64;
