@@ -30,7 +30,7 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
             .set_string("version", &req.version)?;
 
         if let Some(sdp_body) = &req.body {
-            let _ = sdp_log(sdp_body, js);
+            sdp_log(sdp_body, js)?;
         }
     }
 
@@ -43,7 +43,7 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
             .set_string("code", &resp.code)?
             .set_string("reason", &resp.reason)?;
         if let Some(sdp_body) = &resp.body {
-            let _ = sdp_log(sdp_body, js);
+            sdp_log(sdp_body, js)?;
         }
     }
 
