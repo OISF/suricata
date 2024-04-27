@@ -118,12 +118,19 @@ impl Frame {
         };
     }
 
+    #[cfg(not(test))]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {
         unsafe {
             AppLayerFrameSetTxIdById(flow, self.direction(), self.id, tx_id);
         };
     }
+
+    /// A variation of `set_tx` for use when running Rust unit tests as
+    /// the C functions for building a frame are not available for
+    /// linkage.
+    #[cfg(test)]
+    pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {}
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn add_event(&self, flow: *const Flow, event: u8) {

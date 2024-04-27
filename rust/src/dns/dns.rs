@@ -1290,7 +1290,7 @@ mod tests {
             0x80,
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf, false));
+        assert!(state.parse_response(buf, false, None, std::ptr::null()));
     }
 
     // Port of the C RustDNSUDPParserTest02 unit test.
@@ -1310,7 +1310,7 @@ mod tests {
             0x10,0x00,0x02,0xC0,0x85,0x00,0x00,0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf, false));
+        assert!(state.parse_response(buf, false, None, std::ptr::null()));
     }
 
     // Port of the C RustDNSUDPParserTest03 unit test.
@@ -1330,7 +1330,7 @@ mod tests {
             0x29,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf, false));
+        assert!(state.parse_response(buf, false, None, std::ptr::null()));
     }
 
     // Port of the C RustDNSUDPParserTest04 unit test.
@@ -1354,7 +1354,7 @@ mod tests {
             0x6b,0x00,0x01,0x00,0x01,0x00,0x09,0x3a,0x80,0x00,0x04,0x0a,0x1e,0x1c,0x5f
         ];
         let mut state = DNSState::new();
-        assert!(state.parse_response(buf, false));
+        assert!(state.parse_response(buf, false, None, std::ptr::null()));
     }
 
     // Port of the C RustDNSUDPParserTest05 unit test.
@@ -1378,7 +1378,7 @@ mod tests {
             0x6b,0x00,0x01,0x00,0x01,0x00,0x09,0x3a,0x80,0x00,0x04,0x0a,0x1e,0x1c,0x5f
         ];
         let mut state = DNSState::new();
-        assert!(!state.parse_response(buf, false));
+        assert!(!state.parse_response(buf, false, None, std::ptr::null()));
     }
 
     // Port of the C RustDNSTCPParserTestMultiRecord unit test.
