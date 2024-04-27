@@ -132,12 +132,15 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         goto error;
     }
 
-    if (strlen(key) == 0 || strlen(content) == 0)
+    int ref_len = strlen(content);
+    if (strlen(key) == 0 || ref_len == 0)
         goto error;
 
     SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
     if (lookup_ref_conf != NULL) {
         ref->key = lookup_ref_conf->url;
+        /* already bound checked to be REFERENCE_CONTENT_NAME_MAX or less */
+        ref->key_len = (uint16_t) strlen(ref->key);
     } else {
         if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
             SCLogError("unknown reference key \"%s\"", key);
@@ -162,6 +165,8 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         SCLogError("strdup failed: %s", strerror(errno));
         goto error;
     }
+    /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
+    ref->reference_len = (uint16_t) ref_len;
 
     pcre2_match_data_free(match);
     /* free the substrings */
