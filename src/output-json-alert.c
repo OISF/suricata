@@ -87,6 +87,7 @@
 #define LOG_JSON_VERDICT           BIT_U16(10)
 #define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
+#define LOG_JSON_REFERENCE                BIT_U16(13)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -173,6 +174,31 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     jb_close(js);
 }
 
+static void AlertJsonReference(
+        AlertJsonOutputCtx *json_output_ctx, const PacketAlert *pa, JsonBuilder *jb)
+{
+    if (!pa->s->references) {
+        return;
+    }
+
+    bool first = true;
+    const DetectReference *kv = pa->s->references;
+    while (kv) {
+        if (first) {
+            jb_open_array(jb, "references");
+            first = false;
+        }
+        const size_t size = strlen(kv->key) + strlen(kv->reference) + 1;
+        char kv_store[size];
+        snprintf(kv_store, size, "%s%s", kv->key, kv->reference);
+        jb_append_string(jb, kv_store);
+        kv = kv->next;
+    }
+    if (!first) {
+        jb_close(jb);
+    }
+}
+
 static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
         const PacketAlert *pa, JsonBuilder *js)
 {
@@ -223,6 +249,10 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 
     if (addr && pa->s->flags & SIG_FLAG_HAS_TARGET) {
         AlertJsonSourceTarget(p, pa, js, addr);
+    }
+
+    if ((json_output_ctx != NULL) && (flags & LOG_JSON_REFERENCE)) {
+        AlertJsonReference(json_output_ctx, pa, js);
     }
 
     if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
@@ -897,6 +927,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "websocket-payload-printable", LOG_JSON_WEBSOCKET_PAYLOAD, &flags);
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
+        SetFlag(conf, "reference", LOG_JSON_REFERENCE, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
