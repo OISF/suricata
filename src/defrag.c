@@ -3167,8 +3167,10 @@ void DefragRegisterTests(void)
             DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test);
     UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test",
             DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test);
-    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2", DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2);
-    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2", DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
     UtRegisterTest("DefragBsdMissingFragmentIpv4Test", DefragBsdMissingFragmentIpv4Test);
     UtRegisterTest("DefragBsdMissingFragmentIpv6Test", DefragBsdMissingFragmentIpv6Test);
 #endif /* UNITTESTS */
