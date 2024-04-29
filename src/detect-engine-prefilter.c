@@ -199,10 +199,8 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
     SCReturn;
 }
 
-int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name)
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
@@ -234,9 +232,7 @@ int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name)
+        PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
