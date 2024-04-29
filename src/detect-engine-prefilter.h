@@ -50,14 +50,10 @@ typedef struct PrefilterStore_ {
 void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
         const uint8_t flags);
 
-int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name);
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name);
+        PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const int tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);
