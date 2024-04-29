@@ -1374,6 +1374,7 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef void (*PrefilterPktFn)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
 typedef void (*PrefilterFrameFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
         const struct Frames *frames, const struct Frame *frame);
 
@@ -1396,7 +1397,7 @@ typedef struct PrefilterEngineList_ {
      *  for other engines. */
     void *pectx;
 
-    void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+    PrefilterPktFn Prefilter;
     PrefilterTxFn PrefilterTx;
     PrefilterFrameFn PrefilterFrame;
 
@@ -1428,7 +1429,7 @@ typedef struct PrefilterEngine_ {
     void *pectx;
 
     union {
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+        PrefilterPktFn Prefilter;
         PrefilterTxFn PrefilterTx;
         PrefilterFrameFn PrefilterFrame;
     } cb;
