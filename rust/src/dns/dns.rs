@@ -443,13 +443,6 @@ impl DNSState {
         Default::default()
     }
 
-    fn new_tx(&mut self, direction: Direction) -> DNSTransaction {
-        let mut tx = DNSTransaction::new(direction);
-        self.tx_id += 1;
-        tx.id = self.tx_id;
-        return tx;
-    }
-
     fn free_tx(&mut self, tx_id: u64) {
         let len = self.transactions.len();
         let mut found = false;
