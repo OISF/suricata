@@ -475,10 +475,8 @@ PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW,
-        PrefilterPacketFlowSet,
-        PrefilterPacketFlowCompare,
-        PrefilterPacketFlowMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW, 0, PrefilterPacketFlowSet,
+            PrefilterPacketFlowCompare, PrefilterPacketFlowMatch);
 }
 
 static bool PrefilterFlowIsPrefilterable(const Signature *s)
