@@ -175,7 +175,7 @@ impl PgsqlState {
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
+            if tx.tx_id == tx_id {
                 found = true;
                 index = i;
                 break;
@@ -188,7 +188,7 @@ impl PgsqlState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&PgsqlTransaction> {
-        self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
+        self.transactions.iter().find(|tx| tx.tx_id == tx_id)
     }
 
     fn new_tx(&mut self) -> PgsqlTransaction {
