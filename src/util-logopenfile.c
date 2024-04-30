@@ -126,7 +126,7 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
     log_ctx->fp = SCLogOpenUnixSocketFp(log_ctx->filename, log_ctx->sock_type, 0);
     if (log_ctx->fp) {
         /* Connected at last (or reconnected) */
-        SCLogNotice("Reconnected socket \"%s\"", log_ctx->filename);
+        SCLogDebug("Reconnected socket \"%s\"", log_ctx->filename);
     } else if (disconnected) {
         SCLogWarning("Reconnect failed: %s (will keep trying)", strerror(errno));
     }
@@ -190,6 +190,22 @@ static inline void OutputWriteLock(pthread_mutex_t *m)
 }
 
 /**
+ * \brief Flush a log file.
+ */
+static void SCLogFileFlushNoLock(LogFileCtx *log_ctx)
+{
+    log_ctx->bytes_since_last_flush = 0;
+    SCFflushUnlocked(log_ctx->fp);
+}
+
+static void SCLogFileFlush(LogFileCtx *log_ctx)
+{
+    OutputWriteLock(&log_ctx->fp_mutex);
+    SCLogFileFlushNoLock(log_ctx);
+    SCMutexUnlock(&log_ctx->fp_mutex);
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
@@ -224,8 +240,15 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
                         log_ctx->filename);
             }
             log_ctx->output_errors++;
-        } else if (log_ctx->buffer_size) {
-            SCFflushUnlocked(log_ctx->fp);
+            return ret;
+        }
+
+        log_ctx->bytes_since_last_flush += buffer_len;
+
+        if (log_ctx->buffer_size && log_ctx->bytes_since_last_flush >= log_ctx->buffer_size) {
+            SCLogDebug("%s: flushing %" PRIu64 " during write", log_ctx->filename,
+                    log_ctx->bytes_since_last_flush);
+            SCLogFileFlushNoLock(log_ctx);
         }
     }
 
@@ -248,35 +271,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     } else
 #endif
     {
-
-        /* Check for rotation. */
-        if (log_ctx->rotation_flag) {
-            log_ctx->rotation_flag = 0;
-            SCConfLogReopen(log_ctx);
-        }
-
-        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-            time_t now = time(NULL);
-            if (now >= log_ctx->rotate_time) {
-                SCConfLogReopen(log_ctx);
-                log_ctx->rotate_time = now + log_ctx->rotate_interval;
-            }
-        }
-
-        if (log_ctx->fp) {
-            clearerr(log_ctx->fp);
-            if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
-                /* Only the first error is logged */
-                if (!log_ctx->output_errors) {
-                    SCLogError("%s error while writing to %s",
-                            ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
-                            log_ctx->filename);
-                }
-                log_ctx->output_errors++;
-            } else {
-                fflush(log_ctx->fp);
-            }
-        }
+        ret = SCLogFileWriteNoLock(buffer, buffer_len, log_ctx);
     }
 
     SCMutexUnlock(&log_ctx->fp_mutex);
@@ -704,6 +699,7 @@ LogFileCtx *LogFileNewCtx(void)
 
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+    lf_ctx->Flush = SCLogFileFlush;
 
     return lf_ctx;
 }
@@ -958,6 +954,12 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCFree(lf_ctx);
 
     SCReturnInt(1);
+}
+
+void LogFileFlush(LogFileCtx *file_ctx)
+{
+    SCLogDebug("%s: bytes-to-flush %ld", file_ctx->filename, file_ctx->bytes_since_last_flush);
+    file_ctx->Flush(file_ctx);
 }
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)

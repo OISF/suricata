@@ -273,6 +273,14 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     return rc;
 }
 
+static int JsonAnomalyFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonAnomalyLogThread *aft = thread_data;
+    SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(aft->ctx->file_ctx))->filename);
+    OutputJsonFlush(aft->ctx);
+    return 0;
+}
+
 static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAnomalyLogThread *aft = thread_data;
@@ -453,7 +461,7 @@ void JsonAnomalyLogRegister (void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonAnomalyLogger,
-        .FlushFunc = NULL,
+        .FlushFunc = JsonAnomalyFlush,
         .ConditionFunc = JsonAnomalyLogCondition,
         .ThreadInitFunc = JsonAnomalyLogThreadInit,
         .ThreadDeinitFunc = JsonAnomalyLogThreadDeinit,

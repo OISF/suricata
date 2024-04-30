@@ -552,7 +552,7 @@ void JsonFrameLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonFrameLogger,
-        .FlushFunc = NULL,
+        .FlushFunc = OutputJsonLogFlush,
         .ConditionFunc = JsonFrameLogCondition,
         .ThreadInitFunc = JsonFrameLogThreadInit,
         .ThreadDeinitFunc = JsonFrameLogThreadDeinit,

@@ -90,6 +90,7 @@ typedef struct LogFileCtx_ {
 
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
+    void (*Flush)(struct LogFileCtx_ *fp);
 
     LogFileTypeCtx filetype;
 
@@ -163,6 +164,9 @@ typedef struct LogFileCtx_ {
     uint64_t dropped;
 
     uint64_t output_errors;
+
+    /* Track buffered content */
+    uint64_t bytes_since_last_flush;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
@@ -177,6 +181,7 @@ typedef struct LogFileCtx_ {
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
+void LogFileFlush(LogFileCtx *file_ctx);
 
 LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);

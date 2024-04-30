@@ -455,7 +455,7 @@ void EveStreamLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = EveStreamLogger,
-        .FlushFunc = NULL,
+        .FlushFunc = OutputJsonLogFlush,
         .ConditionFunc = EveStreamLogCondition,
         .ThreadInitFunc = EveStreamLogThreadInit,
         .ThreadDeinitFunc = EveStreamLogThreadDeinit,
