@@ -76,9 +76,17 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
 void AlertFastLogRegister(void)
 {
-    OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
-        AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
-        AlertFastLogThreadInit, AlertFastLogThreadDeinit, NULL);
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = AlertFastLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = AlertFastLogCondition,
+        .ThreadInitFunc = AlertFastLogThreadInit,
+        .ThreadDeinitFunc = AlertFastLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
+    OutputRegisterPacketModule(
+            LOGGER_ALERT_FAST, MODULE_NAME, "fast", AlertFastLogInitCtx, &output_logger_functions);
     AlertFastLogRegisterTests();
 }
 

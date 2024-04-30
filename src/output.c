@@ -85,6 +85,7 @@
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
+    OutputFlushFunc FlushFunc;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
     ThreadExitPrintStatsFunc ThreadExitPrintStats;
@@ -167,13 +168,11 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterPacketModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, OutputPacketLoggerFunctions *output_module_functions)
 {
-    if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
+    if (unlikely(output_module_functions->LogFunc == NULL ||
+                 output_module_functions->ConditionFunc == NULL)) {
         goto error;
     }
 
@@ -186,11 +185,12 @@ void OutputRegisterPacketModule(LoggerId id, const char *name,
     module->name = name;
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
-    module->PacketLogFunc = PacketLogFunc;
-    module->PacketConditionFunc = PacketConditionFunc;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
+    module->PacketLogFunc = output_module_functions->LogFunc;
+    module->PacketFlushFunc = output_module_functions->FlushFunc;
+    module->PacketConditionFunc = output_module_functions->ConditionFunc;
+    module->ThreadInit = output_module_functions->ThreadInitFunc;
+    module->ThreadDeinit = output_module_functions->ThreadDeinitFunc;
+    module->ThreadExitPrintStats = output_module_functions->ThreadExitPrintStatsFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Packet logger \"%s\" registered.", name);
@@ -207,13 +207,12 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc,
+        OutputPacketLoggerFunctions *output_logger_functions)
 {
-    if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
+    if (unlikely(output_logger_functions->LogFunc == NULL ||
+                 output_logger_functions->ConditionFunc == NULL)) {
         goto error;
     }
 
@@ -227,11 +226,12 @@ void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
     module->conf_name = conf_name;
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
-    module->PacketLogFunc = PacketLogFunc;
-    module->PacketConditionFunc = PacketConditionFunc;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
+    module->PacketLogFunc = output_logger_functions->LogFunc;
+    module->PacketFlushFunc = output_logger_functions->FlushFunc;
+    module->PacketConditionFunc = output_logger_functions->ConditionFunc;
+    module->ThreadInit = output_logger_functions->ThreadInitFunc;
+    module->ThreadDeinit = output_logger_functions->ThreadDeinitFunc;
+    module->ThreadExitPrintStats = output_logger_functions->ThreadExitPrintStatsFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Packet logger \"%s\" registered.", name);

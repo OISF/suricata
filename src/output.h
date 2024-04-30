@@ -51,6 +51,7 @@ typedef struct OutputInitResult_ {
 typedef OutputInitResult (*OutputInitFunc)(ConfNode *);
 typedef OutputInitResult (*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
+typedef TmEcode (*OutputFlushFunc)(ThreadVars *, Packet *, void *);
 typedef uint32_t (*OutputGetActiveCountFunc)(void);
 
 typedef struct OutputModule_ {
@@ -66,6 +67,7 @@ typedef struct OutputModule_ {
     ThreadExitPrintStatsFunc ThreadExitPrintStats;
 
     PacketLogger PacketLogFunc;
+    PacketLogger PacketFlushFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
@@ -82,20 +84,25 @@ typedef struct OutputModule_ {
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
+/* struct for packet module and packet sub-module registration */
+typedef struct OutputPacketLoggerFunctions_ {
+    PacketLogger LogFunc;
+    PacketLogger FlushFunc;
+    PacketLogCondition ConditionFunc;
+    ThreadInitFunc ThreadInitFunc;
+    ThreadDeinitFunc ThreadDeinitFunc;
+    ThreadExitPrintStatsFunc ThreadExitPrintStatsFunc;
+} OutputPacketLoggerFunctions;
+
 typedef TAILQ_HEAD(OutputModuleList_, OutputModule_) OutputModuleList;
 extern OutputModuleList output_modules;
 
 void OutputRegisterModule(const char *, const char *, OutputInitFunc);
 
-void OutputRegisterPacketModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, PacketLogger LogFunc,
-    PacketLogCondition ConditionFunc, ThreadInitFunc, ThreadDeinitFunc,
-    ThreadExitPrintStatsFunc);
-void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, OutputPacketLoggerFunctions *);
+void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, OutputPacketLoggerFunctions *);
 
 void OutputRegisterTxModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc, AppProto alproto,

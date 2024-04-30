@@ -103,9 +103,17 @@ static bool JsonArpLogCondition(ThreadVars *tv, void *thread_data, const Packet 
 
 void JsonArpLogRegister(void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = JsonArpLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = JsonArpLogCondition,
+        .ThreadInitFunc = JsonLogThreadInit,
+        .ThreadDeinitFunc = JsonLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketSubModule(LOGGER_JSON_ARP, "eve-log", "JsonArpLog", "eve-log.arp",
-            OutputJsonLogInitSub, JsonArpLogger, JsonArpLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, &output_logger_functions);
 
     SCLogDebug("ARP JSON logger registered.");
 }

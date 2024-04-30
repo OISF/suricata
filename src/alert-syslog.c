@@ -382,8 +382,15 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 void AlertSyslogRegister (void)
 {
 #ifndef OS_WIN32
-    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
-        AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = AlertSyslogLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = AlertSyslogCondition,
+        .ThreadInitFunc = AlertSyslogThreadInit,
+        .ThreadDeinitFunc = AlertSyslogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog", AlertSyslogInitCtx,
+            &output_logger_functions);
 #endif /* !OS_WIN32 */
 }

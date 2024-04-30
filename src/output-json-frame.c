@@ -550,7 +550,14 @@ error:
 
 void JsonFrameLogRegister(void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = JsonFrameLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = JsonFrameLogCondition,
+        .ThreadInitFunc = JsonFrameLogThreadInit,
+        .ThreadDeinitFunc = JsonFrameLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
     OutputRegisterPacketSubModule(LOGGER_JSON_FRAME, "eve-log", MODULE_NAME, "eve-log.frame",
-            JsonFrameLogInitCtxSub, JsonFrameLogger, JsonFrameLogCondition, JsonFrameLogThreadInit,
-            JsonFrameLogThreadDeinit, NULL);
+            JsonFrameLogInitCtxSub, &output_logger_functions);
 }
