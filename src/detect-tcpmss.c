@@ -158,8 +158,8 @@ PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
 
 static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TCPMSS, PrefilterPacketU16Set,
-            PrefilterPacketU16Compare, PrefilterPacketTcpmssMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TCPMSS, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU16Set, PrefilterPacketU16Compare, PrefilterPacketTcpmssMatch);
 }
 
 static bool PrefilterTcpmssIsPrefilterable(const Signature *s)

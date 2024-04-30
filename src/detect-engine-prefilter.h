@@ -47,11 +47,11 @@ typedef struct PrefilterStore_ {
     uint32_t id;
 } PrefilterStore;
 
-void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
-        const uint8_t flags);
+void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p, const uint8_t flags,
+        const SignatureMask mask);
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
-        void *pectx, void (*FreeFunc)(void *pectx), const char *name);
+        SignatureMask mask, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
