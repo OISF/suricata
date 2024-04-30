@@ -58,19 +58,15 @@ typedef struct PrefilterPacketU8HashCtx_ {
 #define PREFILTER_U8HASH_MODE_GT DetectUintModeGt
 #define PREFILTER_U8HASH_MODE_RA DetectUintModeRange
 
-int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, int sm_type,
-        void (*Set)(PrefilterPacketHeaderValue *v, void *),
+int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh, int sm_type,
+        SignatureMask mask, void (*Set)(PrefilterPacketHeaderValue *v, void *),
         bool (*Compare)(PrefilterPacketHeaderValue v, void *),
-        void (*Match)(DetectEngineThreadCtx *det_ctx,
-            Packet *p, const void *pectx));
+        void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx));
 
-int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, int sm_type,
-        void (*Set)(PrefilterPacketHeaderValue *v, void *),
+int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx, SigGroupHead *sgh, int sm_type,
+        SignatureMask mask, void (*Set)(PrefilterPacketHeaderValue *v, void *),
         bool (*Compare)(PrefilterPacketHeaderValue v, void *),
-        void (*Match)(DetectEngineThreadCtx *det_ctx,
-            Packet *p, const void *pectx));
+        void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx));
 
 static inline bool
 PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,

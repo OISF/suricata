@@ -178,10 +178,8 @@ PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_SEQ,
-        PrefilterPacketSeqSet,
-        PrefilterPacketSeqCompare,
-        PrefilterPacketSeqMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_SEQ, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketSeqSet, PrefilterPacketSeqCompare, PrefilterPacketSeqMatch);
 }
 
 static bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
