@@ -696,7 +696,7 @@ static inline void DetectRunPrefilterPkt(
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
     /* run the prefilter engines */
-    Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
+    Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags, scratch->pkt_mask);
     /* create match list if we have non-pf and/or pf */
     if (det_ctx->non_pf_store_cnt || det_ctx->pmq.rule_id_array_cnt) {
 #ifdef PROFILING

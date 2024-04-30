@@ -173,8 +173,8 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
 
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE, PrefilterPacketU8Set,
-            PrefilterPacketU8Compare, PrefilterPacketICodeMatch);
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketICodeMatch);
 }
 
 static bool PrefilterICodeIsPrefilterable(const Signature *s)
