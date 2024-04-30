@@ -1065,7 +1065,15 @@ error:
 
 void JsonAlertLogRegister (void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = JsonAlertLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = JsonAlertLogCondition,
+        .ThreadInitFunc = JsonAlertLogThreadInit,
+        .ThreadDeinitFunc = JsonAlertLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME, "eve-log.alert",
-            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition, JsonAlertLogThreadInit,
-            JsonAlertLogThreadDeinit);
+            JsonAlertLogInitCtxSub, &output_logger_functions);
 }

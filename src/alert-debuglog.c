@@ -484,7 +484,15 @@ static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *
 
 void AlertDebugLogRegister(void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = AlertDebugLogLogger,
+        .FlushFunc = NULL,
+        .ConditionFunc = AlertDebugLogCondition,
+        .ThreadInitFunc = AlertDebugLogThreadInit,
+        .ThreadDeinitFunc = AlertDebugLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug", AlertDebugLogInitCtx,
-            AlertDebugLogLogger, AlertDebugLogCondition, AlertDebugLogThreadInit,
-            AlertDebugLogThreadDeinit);
+            &output_logger_functions);
 }
