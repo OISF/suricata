@@ -392,7 +392,7 @@ void JsonDropLogRegister (void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonDropLogger,
-        .FlushFunc = NULL,
+        .FlushFunc = OutputJsonLogFlush,
         .ConditionFunc = JsonDropLogCondition,
         .ThreadInitFunc = JsonDropLogThreadInit,
         .ThreadDeinitFunc = JsonDropLogThreadDeinit,
