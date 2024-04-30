@@ -1319,7 +1319,7 @@ LDADD_FUZZ = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group
 
 fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
-fuzz_applayerprotodetectgetproto_LDADD = $(LDADD_FUZZ)
+fuzz_applayerprotodetectgetproto_LDADD = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group" $(HTP_LDADD) $(RUST_LDADD)
 if HAS_FUZZLDFLAGS
     fuzz_applayerprotodetectgetproto_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
