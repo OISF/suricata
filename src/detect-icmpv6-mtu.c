@@ -170,10 +170,8 @@ PrefilterPacketIcmpv6mtuMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const v
 
 static int PrefilterSetupIcmpv6mtu(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMPV6MTU,
-            PrefilterPacketU32Set,
-            PrefilterPacketU32Compare,
-            PrefilterPacketIcmpv6mtuMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMPV6MTU, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketIcmpv6mtuMatch);
 }
 
 static bool PrefilterIcmpv6mtuIsPrefilterable(const Signature *s)

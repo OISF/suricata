@@ -310,10 +310,9 @@ PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGOFFSET,
-        PrefilterPacketFragOffsetSet,
-        PrefilterPacketFragOffsetCompare,
-        PrefilterPacketFragOffsetMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGOFFSET, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketFragOffsetSet, PrefilterPacketFragOffsetCompare,
+            PrefilterPacketFragOffsetMatch);
 }
 
 static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)

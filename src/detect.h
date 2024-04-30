@@ -1393,6 +1393,8 @@ typedef struct PrefilterEngineList_ {
 
     uint8_t frame_type;
 
+    SignatureMask pkt_mask; /**< mask for pkt engines */
+
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
     void *pectx;
@@ -1418,6 +1420,7 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
 
     union {
+        SignatureMask pkt_mask; /**< mask for pkt engines */
         /** Minimal Tx progress we need before running the engine. Only used
          *  with Tx Engine */
         uint8_t tx_min_progress;
