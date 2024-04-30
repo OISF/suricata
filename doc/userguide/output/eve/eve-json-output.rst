@@ -70,6 +70,7 @@ Metadata::
             #payload-printable: yes   # enable dumping payload in printable (lossy) format
             #payload-length: yes      # enable dumping payload length, including the gaps
             #packet: yes              # enable dumping of packet (without stream segments)
+            #reference: no            # include reference information, if present, in the alert
             #http-body: yes           # Requires metadata; enable dumping of http body in Base64
             #http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
 
@@ -88,6 +89,9 @@ Metadata::
 
                 # Log the raw rule text.
                 #raw: false
+
+                # Include the rule reference information
+                # reference: no
 
 Anomaly
 ~~~~~~~
