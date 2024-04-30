@@ -183,10 +183,8 @@ PrefilterPacketAckCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ACK,
-        PrefilterPacketAckSet,
-        PrefilterPacketAckCompare,
-        PrefilterPacketAckMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ACK, SIG_MASK_REQUIRE_NEED_REAL_PKT,
+            PrefilterPacketAckSet, PrefilterPacketAckCompare, PrefilterPacketAckMatch);
 }
 
 static bool PrefilterTcpAckIsPrefilterable(const Signature *s)

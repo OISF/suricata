@@ -364,10 +364,9 @@ PrefilterPacketFragBitsCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGBITS,
-        PrefilterPacketFragBitsSet,
-        PrefilterPacketFragBitsCompare,
-        PrefilterPacketFragBitsMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGBITS, SIG_MASK_REQUIRE_NEED_REAL_PKT,
+            PrefilterPacketFragBitsSet, PrefilterPacketFragBitsCompare,
+            PrefilterPacketFragBitsMatch);
 }
 
 static bool PrefilterFragBitsIsPrefilterable(const Signature *s)

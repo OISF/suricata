@@ -172,8 +172,8 @@ PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const v
 
 static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TEMPLATE2, PrefilterPacketU8Set,
-            PrefilterPacketU8Compare, PrefilterPacketTemplate2Match);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TEMPLATE2, SIG_MASK_REQUIRE_NEED_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketTemplate2Match);
 }
 
 static bool PrefilterTemplate2IsPrefilterable(const Signature *s)

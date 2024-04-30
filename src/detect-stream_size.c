@@ -214,7 +214,8 @@ static bool PrefilterPacketStreamSizeCompare(PrefilterPacketHeaderValue v, void 
 
 static int PrefilterSetupStreamSize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_STREAM_SIZE, PrefilterPacketStreamSizeSet,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_STREAM_SIZE,
+            SIG_MASK_REQUIRE_FLOW | SIG_MASK_REQUIRE_NEED_REAL_PKT, PrefilterPacketStreamSizeSet,
             PrefilterPacketStreamSizeCompare, PrefilterPacketStreamsizeMatch);
 }
 

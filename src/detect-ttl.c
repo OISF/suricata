@@ -171,8 +171,8 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
 
 static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TTL, PrefilterPacketU8Set,
-            PrefilterPacketU8Compare, PrefilterPacketTtlMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TTL, SIG_MASK_REQUIRE_NEED_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketTtlMatch);
 }
 
 static bool PrefilterTtlIsPrefilterable(const Signature *s)

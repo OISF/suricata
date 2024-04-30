@@ -261,10 +261,8 @@ PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID,
-        PrefilterPacketIdSet,
-        PrefilterPacketIdCompare,
-        PrefilterPacketIdMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID, SIG_MASK_REQUIRE_NEED_REAL_PKT,
+            PrefilterPacketIdSet, PrefilterPacketIdCompare, PrefilterPacketIdMatch);
 }
 
 static bool PrefilterIdIsPrefilterable(const Signature *s)

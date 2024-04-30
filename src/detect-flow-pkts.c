@@ -75,7 +75,8 @@ static void PrefilterPacketFlowPktsToClientMatch(
 static int PrefilterSetupFlowPktsToClient(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS_TO_CLIENT,
-            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowPktsToClientMatch);
+            SIG_MASK_REQUIRE_FLOW, PrefilterPacketU32Set, PrefilterPacketU32Compare,
+            PrefilterPacketFlowPktsToClientMatch);
 }
 
 static bool PrefilterFlowPktsToClientIsPrefilterable(const Signature *s)
@@ -148,7 +149,8 @@ static void PrefilterPacketFlowPktsToServerMatch(
 static int PrefilterSetupFlowPktsToServer(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS_TO_SERVER,
-            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowPktsToServerMatch);
+            SIG_MASK_REQUIRE_FLOW, PrefilterPacketU32Set, PrefilterPacketU32Compare,
+            PrefilterPacketFlowPktsToServerMatch);
 }
 
 static bool PrefilterFlowPktsToServerIsPrefilterable(const Signature *s)
