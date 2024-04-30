@@ -1320,6 +1320,7 @@ LDADD_FUZZ = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group
 fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerprotodetectgetproto_LDADD = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group" $(HTP_LDADD) $(RUST_LDADD)
+fuzz_applayerprotodetectgetproto_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_applayerprotodetectgetproto_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1331,6 +1332,7 @@ nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
 fuzz_applayerparserparse_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerparserparse_LDADD = $(LDADD_FUZZ)
+fuzz_applayerparserparse_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_applayerparserparse_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1342,6 +1344,7 @@ nodist_EXTRA_fuzz_applayerparserparse_SOURCES = force-cxx-linking.cxx
 fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c
 fuzz_siginit_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_siginit_LDADD = $(LDADD_FUZZ)
+fuzz_siginit_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_siginit_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1353,6 +1356,7 @@ nodist_EXTRA_fuzz_siginit_SOURCES = force-cxx-linking.cxx
 fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c
 fuzz_confyamlloadstring_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_confyamlloadstring_LDADD = $(LDADD_FUZZ)
+fuzz_confyamlloadstring_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_confyamlloadstring_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1364,6 +1368,7 @@ nodist_EXTRA_fuzz_confyamlloadstring_SOURCES = force-cxx-linking.cxx
 fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c
 fuzz_decodepcapfile_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_decodepcapfile_LDADD = $(LDADD_FUZZ)
+fuzz_decodepcapfile_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_decodepcapfile_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1375,6 +1380,7 @@ nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
 fuzz_sigpcap_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_LDADD = $(LDADD_FUZZ)
+fuzz_sigpcap_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_sigpcap_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1387,6 +1393,7 @@ if HAS_FUZZPCAP
 fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c
 fuzz_sigpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
+fuzz_sigpcap_aware_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_sigpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1398,6 +1405,7 @@ nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
 fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c
 fuzz_predefpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_predefpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
+fuzz_predefpcap_aware_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_predefpcap_aware_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
@@ -1410,6 +1418,7 @@ endif
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
 fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_mimedecparseline_LDADD = $(LDADD_FUZZ)
+fuzz_mimedecparseline_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 if HAS_FUZZLDFLAGS
     fuzz_mimedecparseline_LDFLAGS += $(LIB_FUZZING_ENGINE)
 else
