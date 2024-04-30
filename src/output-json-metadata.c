@@ -96,7 +96,7 @@ void JsonMetadataLogRegister (void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonMetadataLogger,
-        .FlushFunc = NULL,
+        .FlushFunc = OutputJsonLogFlush,
         .ConditionFunc = JsonMetadataLogCondition,
         .ThreadInitFunc = JsonLogThreadInit,
         .ThreadDeinitFunc = JsonLogThreadDeinit,
