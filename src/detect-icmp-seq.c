@@ -308,10 +308,8 @@ PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ,
-        PrefilterPacketIcmpSeqSet,
-        PrefilterPacketIcmpSeqCompare,
-        PrefilterPacketIcmpSeqMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketIcmpSeqSet, PrefilterPacketIcmpSeqCompare, PrefilterPacketIcmpSeqMatch);
 }
 
 static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)

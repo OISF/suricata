@@ -595,11 +595,8 @@ PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS,
-            PrefilterPacketFlagsSet,
-            PrefilterPacketFlagsCompare,
-            PrefilterPacketFlagsMatch);
-
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketFlagsSet, PrefilterPacketFlagsCompare, PrefilterPacketFlagsMatch);
 }
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
