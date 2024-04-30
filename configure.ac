@@ -1873,7 +1873,6 @@
   # TODO: Update the code to not require this.
     AC_DEFINE([HAVE_LUA], [1], [lua support available])
     AM_CONDITIONAL([HAVE_LUA], [true])
-    AC_SUBST([LUA_INT8], ["lua_int8"])
 
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
