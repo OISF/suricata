@@ -47,8 +47,6 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -344,5 +342,3 @@ int LuaPushInteger(lua_State *luastate, lua_Integer n)
     lua_pushinteger(luastate, n);
     return 1;
 }
-
-#endif /* HAVE_LUA */

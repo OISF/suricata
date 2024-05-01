@@ -740,9 +740,8 @@ static void PrintBuildInfo(void)
     strlcat(features, "HAVE_NSS ", sizeof(features));
     /* HTTP2_DECOMPRESSION is not an optional feature in this major version */
     strlcat(features, "HTTP2_DECOMPRESSION ", sizeof(features));
-#ifdef HAVE_LUA
+    /* Lua is now vendored in and always available. */
     strlcat(features, "HAVE_LUA ", sizeof(features));
-#endif
 #ifdef HAVE_JA3
     strlcat(features, "HAVE_JA3 ", sizeof(features));
 #endif

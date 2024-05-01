@@ -1871,11 +1871,6 @@
         fi
     fi
 
-  # Lua support, always enabled
-  # TODO: Update the code to not require this.
-    AC_DEFINE([HAVE_LUA], [1], [lua support available])
-    AM_CONDITIONAL([HAVE_LUA], [true])
-
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
             AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
@@ -2502,7 +2497,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
   PCRE jit:                                ${pcre2_jit_available}
-  LUA support:                             ${enable_lua}
   GeoIP2 support:                          ${enable_geoip}
   JA3 support:                             ${enable_ja3}
   JA4 support:                             ${enable_ja4}
