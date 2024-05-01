@@ -92,9 +92,7 @@ static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     SCEnter();
     int ret = 0;
 
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturnInt(0);
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     const DetectU16Data *dd = (const DetectU16Data *)ctx;
 

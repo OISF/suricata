@@ -84,8 +84,7 @@ void DetectITypeRegister (void)
 static int DetectITypeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t pitype;
     if (PacketIsICMPv4(p)) {
@@ -168,9 +167,7 @@ void DetectITypeFree(DetectEngineCtx *de_ctx, void *ptr)
 static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturn;
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t pitype;
     if (PacketIsICMPv4(p)) {
