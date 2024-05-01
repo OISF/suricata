@@ -87,8 +87,7 @@ void DetectICodeRegister (void)
 static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {
@@ -152,9 +151,7 @@ void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturn;
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {

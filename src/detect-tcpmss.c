@@ -74,8 +74,9 @@ void DetectTcpmssRegister(void)
 static int DetectTcpmssMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p))
+    if (!(PacketIsTCP(p)))
         return 0;
 
     if (!(TCP_HAS_MSS(p)))
@@ -128,7 +129,8 @@ void DetectTcpmssFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p))
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!(PacketIsTCP(p)))
         return;
 
     if (!(TCP_HAS_MSS(p)))
