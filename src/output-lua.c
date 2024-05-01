@@ -25,7 +25,6 @@
 #include "suricata-common.h"
 #include "output-lua.h"
 
-#ifdef HAVE_LUA
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -888,11 +887,3 @@ void LuaLogRegister(void) {
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
-
-#else /* HAVE_LUA */
-
-void LuaLogRegister (void) {
-    /* no-op */
-}
-
-#endif /* HAVE_LUA */

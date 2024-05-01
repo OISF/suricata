@@ -24,8 +24,6 @@
 #ifndef SURICATA_DETECT_LUA_H
 #define SURICATA_DETECT_LUA_H
 
-#ifdef HAVE_LUA
-
 #include "util-lua.h"
 #include "util-lua-sandbox.h"
 
@@ -59,8 +57,6 @@ typedef struct DetectLuaData {
     uint64_t instruction_limit;
     int allow_restricted_functions;
 } DetectLuaData;
-
-#endif /* HAVE_LUA */
 
 /* prototypes */
 void DetectLuaRegister (void);

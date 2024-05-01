@@ -168,7 +168,7 @@ jobs:
           git -c advice.detachedHead=false checkout FETCH_HEAD
 
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --disable-lua
+      - run: ./configure --enable-warnings
       - run: make -j ${{ env.CPUS }}
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install-full

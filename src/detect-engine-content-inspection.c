@@ -62,9 +62,7 @@
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 
-#ifdef HAVE_LUA
 #include "util-lua.h"
-#endif
 
 #ifdef UNITTESTS
 thread_local uint32_t ut_inspection_recursion_counter = 0;
@@ -650,7 +648,6 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto match;
         }
         goto no_match_discontinue;
-#ifdef HAVE_LUA
     }
     else if (smd->type == DETECT_LUA) {
         SCLogDebug("lua starting");
@@ -663,7 +660,6 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
         SCLogDebug("lua match");
         goto match;
-#endif /* HAVE_LUA */
     } else if (smd->type == DETECT_BASE64_DECODE) {
         if (DetectBase64DecodeDoMatch(det_ctx, s, smd, buffer, buffer_len)) {
             if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {

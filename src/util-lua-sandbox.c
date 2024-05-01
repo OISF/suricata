@@ -23,22 +23,15 @@
 
 #include "suricata-common.h"
 
-#ifdef HAVE_LUA
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "lua.h"
-
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "util-debug.h"
+#include "util-validate.h"
 #include "util-lua-sandbox.h"
 
-#if !defined(SANDBOX_ALLOC_CTX)
 #define SANDBOX_CTX "SANDBOX_CTX"
-#endif
 
 typedef struct BlockedFunction {
     const char *module;
@@ -66,6 +59,7 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
     if (nsize == 0) {
         if (ptr != NULL) {
             // ASSERT: alloc_bytes > osize
+            DEBUG_VALIDATE_BUG_ON(ctx->alloc_bytes < osize);
             ctx->alloc_bytes -= osize;
         }
         SCFree(ptr);
@@ -334,5 +328,3 @@ static int OpenSandbox(lua_State *L)
     luaL_newlib(L, sblib);
     return 1;
 }
-
-#endif

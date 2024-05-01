@@ -24,10 +24,6 @@
 #ifndef SURICATA_UTIL_LUA_HASSH_H
 #define SURICATA_UTIL_LUA_HASSH_H
 
-#ifdef HAVE_LUA
-
 int LuaRegisterHasshFunctions(lua_State *luastate);
-
-#endif /* HAVE_LUA */
 
 #endif /* SURICATA_UTIL_LUA_HASSH_H */

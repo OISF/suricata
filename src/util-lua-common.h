@@ -24,8 +24,6 @@
 #ifndef SURICATA_UTIL_LUA_COMMON_H
 #define SURICATA_UTIL_LUA_COMMON_H
 
-#ifdef HAVE_LUA
-
 int LuaCallbackError(lua_State *luastate, const char *msg);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
 
@@ -36,7 +34,5 @@ void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8
 int LuaRegisterFunctions(lua_State *luastate);
 
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
-
-#endif /* HAVE_LUA */
 
 #endif /* SURICATA_UTIL_LUA_COMMON_H */

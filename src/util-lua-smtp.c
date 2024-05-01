@@ -36,8 +36,6 @@
 
 #include "app-layer-smtp.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 
@@ -338,5 +336,3 @@ int LuaRegisterSmtpFunctions(lua_State *luastate)
 
     return 0;
 }
-
-#endif /* HAVE_LUA */

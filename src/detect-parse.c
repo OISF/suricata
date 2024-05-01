@@ -2076,9 +2076,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
-#ifdef HAVE_LUA
     DetectLuaPostSetup(s);
-#endif
 
     if ((s->init_data->init_flags & SIG_FLAG_INIT_JA) && s->alproto != ALPROTO_UNKNOWN &&
             s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {

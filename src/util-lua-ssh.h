@@ -24,10 +24,6 @@
 #ifndef SURICATA_UTIL_LUA_SSH_H
 #define SURICATA_UTIL_LUA_SSH_H
 
-#ifdef HAVE_LUA
-
 int LuaRegisterSshFunctions(lua_State *luastate);
-
-#endif /* HAVE_LUA */
 
 #endif /* SURICATA_UTIL_LUA_SSH_H */
