@@ -81,8 +81,7 @@ void DetectTtlRegister(void)
 static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t pttl;
     if (PacketIsIPv4(p)) {
@@ -140,9 +139,7 @@ void DetectTtlFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturn;
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t pttl;
     if (PacketIsIPv4(p)) {

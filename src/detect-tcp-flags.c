@@ -151,7 +151,8 @@ static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 {
     SCEnter();
 
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p)) {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!(PacketIsTCP(p))) {
         SCReturnInt(0);
     }
 
@@ -553,7 +554,8 @@ int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
 static void
 PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p)) {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!(PacketIsTCP(p))) {
         SCReturn;
     }
 

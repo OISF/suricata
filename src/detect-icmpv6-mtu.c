@@ -63,7 +63,7 @@ void DetectICMPv6mtuRegister(void)
 // returns 0 on no mtu, and 1 if mtu
 static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
 {
-    if (!(PacketIsICMPv6(p)) || PKT_IS_PSEUDOPKT(p))
+    if (!(PacketIsICMPv6(p)))
         return 0;
     const ICMPV6Hdr *icmpv6h = PacketGetICMPv6(p);
     if (ICMPV6_GET_CODE(icmpv6h) != 0)
@@ -89,6 +89,8 @@ static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
 static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     uint32_t picmpv6mtu;
     if (DetectICMPv6mtuGetValue(p, &picmpv6mtu) == 0) {
         return 0;
@@ -140,6 +142,8 @@ void DetectICMPv6mtuFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketIcmpv6mtuMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     uint32_t picmpv6mtu;
     if (DetectICMPv6mtuGetValue(p, &picmpv6mtu) == 0) {
         return;
