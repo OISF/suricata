@@ -1648,23 +1648,15 @@ jobs:
           CXX: "clang++-14"
           RUSTFLAGS: "-C instrument-coverage"
       # IDS config
-      - run: rm -f ./eve.json
       - run: |
-          timeout --kill-after=30 --preserve-status 10 \
-            ./src/suricata -c .github/workflows/dpdk/suricata-null-ids.yaml -S /dev/null -l ./ --dpdk -vvvv
+          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ids.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ids.profraw"
-      - run: |
-          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       # IPS config
-      - run: rm -f ./eve.json
       - run: |
-          timeout --kill-after=30 --preserve-status 10 \
-            ./src/suricata -c .github/workflows/dpdk/suricata-null-ips.yaml -S /dev/null -l ./ --dpdk -vvvv
+          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
-      - run: |
-          test $(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')  = true
       # AF_PACKET tests
       - run: |
           ./.github/workflows/live/afp-ids.sh "2" "autofp"
