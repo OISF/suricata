@@ -93,12 +93,13 @@ void DetectIdRegister (void)
 static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
                           const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     const DetectIdData *id_d = (const DetectIdData *)ctx;
 
     /**
      * To match a ipv4 packet with a "id" rule
      */
-    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p)) {
+    if (!PacketIsIPv4(p)) {
         return 0;
     }
 
@@ -224,9 +225,11 @@ void DetectIdFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p)) {
+    if (!PacketIsIPv4(p)) {
         return;
     }
 

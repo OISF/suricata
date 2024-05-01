@@ -83,8 +83,9 @@ static int DetectSeqMatch(DetectEngineThreadCtx *det_ctx,
 {
     const DetectSeqData *data = (const DetectSeqData *)ctx;
 
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     /* This is only needed on TCP packets */
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p)) {
+    if (!(PacketIsTCP(p))) {
         return 0;
     }
 
@@ -148,10 +149,11 @@ PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (p->proto == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p) &&
+    if (p->proto == IPPROTO_TCP && PacketIsTCP(p) &&
             (TCP_GET_RAW_SEQ(PacketGetTCP(p)) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP seq %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);

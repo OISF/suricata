@@ -142,7 +142,8 @@ FragBitsMatch(const uint8_t pbits, const uint8_t modifier,
 static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    if (!ctx || !PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!ctx || !PacketIsIPv4(p))
         return 0;
 
     uint8_t fragbits = 0;
@@ -320,9 +321,10 @@ static void DetectFragBitsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 static void
 PrefilterPacketFragBitsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
+    if (!PacketIsIPv4(p))
         return;
 
     uint8_t fragbits = 0;
