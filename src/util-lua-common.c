@@ -48,8 +48,6 @@
 #include "util-time.h"
 #include "util-conf.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -1004,7 +1002,4 @@ int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
     flow_alproto = flow->alproto;
 
     return (alproto == flow_alproto);
-
 }
-
-#endif /* HAVE_LUA */

@@ -42,6 +42,3 @@ pub mod events;
 pub mod auth;
 pub mod files;
 pub mod funcs;
-
-//#[cfg(feature = "lua")]
-//pub mod lua;

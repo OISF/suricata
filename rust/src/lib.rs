@@ -86,7 +86,6 @@ pub mod detect;
 
 pub mod ja4;
 
-#[cfg(feature = "lua")]
 pub mod lua;
 
 pub mod dns;

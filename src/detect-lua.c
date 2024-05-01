@@ -56,32 +56,6 @@
 
 #include "util-var-name.h"
 
-#ifndef HAVE_LUA
-
-static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
-{
-    SCLogError("no Lua support built in, needed for lua keyword");
-    return -1;
-}
-
-/**
- * \brief Registration function for keyword: lua
- */
-void DetectLuaRegister(void)
-{
-    sigmatch_table[DETECT_LUA].name = "lua";
-    sigmatch_table[DETECT_LUA].desc = "support for lua scripting";
-    sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
-    sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
-    sigmatch_table[DETECT_LUA].Free  = NULL;
-    sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
-
-	SCLogDebug("registering lua rule option");
-    return;
-}
-
-#else /* HAVE_LUA */
-
 #include "util-lua.h"
 #include "util-lua-sandbox.h"
 
@@ -2445,4 +2419,3 @@ void DetectLuaRegisterTests(void)
     UtRegisterTest("LuaMatchTest06a", LuaMatchTest06a);
 }
 #endif
-#endif /* HAVE_LUA */

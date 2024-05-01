@@ -18,10 +18,6 @@
 #ifndef SURICATA_UTIL_LUA_SMTP_H
 #define SURICATA_UTIL_LUA_SMTP_H
 
-#ifdef HAVE_LUA
-
 int LuaRegisterSmtpFunctions(lua_State *luastate);
-
-#endif /* HAVE_LUA */
 
 #endif /* SURICATA_UTIL_LUA_SMTP_H */

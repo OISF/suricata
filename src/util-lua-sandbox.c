@@ -23,8 +23,6 @@
 
 #include "suricata-common.h"
 
-#ifdef HAVE_LUA
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -335,5 +333,3 @@ static int OpenSandbox(lua_State *L)
     luaL_newlib(L, sblib);
     return 1;
 }
-
-#endif
