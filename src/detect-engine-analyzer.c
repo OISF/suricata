@@ -977,6 +977,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
         jb_append_string(ctx.js, "engine_event");
     }
+    if (s->mask & SIG_MASK_REQUIRE_REAL_PKT) {
+        jb_append_string(ctx.js, "real_pkt");
+    }
     jb_close(ctx.js);
 
     switch (s->type) {
