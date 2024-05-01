@@ -116,7 +116,6 @@ void DetectDnsQueryRegister (void)
 
     g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
 
-#ifdef HAVE_LUA
     /* register these generic engines from here for now */
     DetectAppLayerInspectEngineRegister(
             "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
@@ -125,9 +124,7 @@ void DetectDnsQueryRegister (void)
 
     DetectBufferTypeSetDescriptionByName("dns_request",
             "dns requests");
-    DetectBufferTypeSetDescriptionByName("dns_response",
-            "dns responses");
-#endif
+    DetectBufferTypeSetDescriptionByName("dns_response", "dns responses");
 }
 
 

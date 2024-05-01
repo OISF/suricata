@@ -47,8 +47,6 @@
 #include "util-time.h"
 #include "rust.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -158,5 +156,3 @@ int LuaRegisterDnsFunctions(lua_State *luastate)
     lua_setglobal(luastate, "DnsGetRecursionDesired");
     return 0;
 }
-
-#endif /* HAVE_LUA */

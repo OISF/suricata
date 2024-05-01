@@ -47,8 +47,6 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -215,5 +213,3 @@ int LuaRegisterHasshFunctions(lua_State *luastate)
     
     return 0;
 }
-
-#endif /* HAVE_LUA */

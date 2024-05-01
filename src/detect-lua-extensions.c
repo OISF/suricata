@@ -59,8 +59,6 @@
 
 #include "app-layer-parser.h"
 
-#ifdef HAVE_LUA
-
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
@@ -591,5 +589,3 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterDNP3Functions(lua_state);
     return 0;
 }
-
-#endif /* HAVE_LUA */

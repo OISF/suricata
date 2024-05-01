@@ -17,7 +17,6 @@ name = "suricata"
 debug = true
 
 [features]
-lua = []
 strict = []
 debug = []
 debug-validate = []

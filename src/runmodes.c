@@ -829,13 +829,6 @@ void RunModeInitializeOutputs(void)
         } else if (strncmp(output->val, "unified2-", sizeof("unified2-") - 1) == 0) {
             SCLogWarning("Unified2 is no longer supported.");
             continue;
-        } else if (strcmp(output->val, "lua") == 0) {
-#ifndef HAVE_LUA
-            SCLogWarning("lua support not compiled in. Reconfigure/"
-                         "recompile with lua(jit) and its development "
-                         "files installed to add lua support.");
-            continue;
-#endif
         } else if (strcmp(output->val, "dns-log") == 0) {
             SCLogWarning("dns-log is not longer available as of Suricata 5.0");
             continue;

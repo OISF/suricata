@@ -21,6 +21,4 @@ pub mod detect;
 pub mod dns;
 pub mod log;
 pub mod parser;
-
-#[cfg(feature = "lua")]
 pub mod lua;

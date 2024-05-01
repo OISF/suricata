@@ -46,8 +46,6 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#ifdef HAVE_LUA
-
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -349,5 +347,3 @@ int LuaRegisterHttpFunctions(lua_State *luastate)
     lua_setglobal(luastate, "HttpGetResponseBody");
     return 0;
 }
-
-#endif /* HAVE_LUA */

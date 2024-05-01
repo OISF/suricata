@@ -24,10 +24,6 @@
 #ifndef SURICATA_UTIL_LUA_HTTP_H
 #define SURICATA_UTIL_LUA_HTTP_H
 
-#ifdef HAVE_LUA
-
 int LuaRegisterHttpFunctions(lua_State *luastate);
-
-#endif /* HAVE_LUA */
 
 #endif /* SURICATA_UTIL_LUA_HTTP_H */
