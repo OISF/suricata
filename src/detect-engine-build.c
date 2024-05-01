@@ -406,6 +406,9 @@ void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         bool app_decoder_events)
 {
+    if (!(PKT_IS_PSEUDOPKT(p))) {
+        (*mask) |= SIG_MASK_REQUIRE_NEED_REAL_PKT;
+    }
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0) {
         SCLogDebug("packet has payload");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
@@ -442,6 +445,10 @@ static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
 
+    if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
+            SIG_FLAG_REQUIRE_PACKET) {
+        s->mask |= SIG_MASK_REQUIRE_NEED_REAL_PKT;
+    }
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
         SCLogDebug("sig requires payload");
