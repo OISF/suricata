@@ -14,7 +14,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     examples/plugins
 SUBDIRS = rust src plugins qa rules doc etc python ebpf \
           $(SURICATA_UPDATE_DIR)
-DIST_SUBDIRS = $(SUBDIRS) examples/lib/simple examples/lib/custom
+DIST_SUBDIRS = $(SUBDIRS) examples/lib/simple examples/lib/custom tools/benches/bench-content-inspect
 
 CLEANFILES = stamp-h[0-9]*
 
