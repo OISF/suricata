@@ -1252,7 +1252,6 @@ EXTRA_DIST = \
 	tests/detect-http-stat-msg.c \
 	tests/detect-http-uri.c \
 	tests/detect-http-user-agent.c \
-	tests/detect-snmp-community.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
 	tests/detect-template-buffer.c \
