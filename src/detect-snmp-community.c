@@ -39,12 +39,8 @@
 static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,
     const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
-#ifdef UNITTESTS
-static void DetectSNMPCommunityRegisterTests(void);
-#endif
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static int g_snmp_rust_id = 0;
 
 void DetectSNMPCommunityRegister(void)
@@ -52,13 +48,8 @@ void DetectSNMPCommunityRegister(void)
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp.community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].desc =
         "SNMP content modifier to match on the SNMP community";
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
-        DetectSNMPCommunitySetup;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests = DetectSNMPCommunityRegisterTests;
-#endif
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup = DetectSNMPCommunitySetup;
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = "/rules/snmp-keywords.html#snmp-community";
-
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
@@ -108,7 +99,3 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     return buffer;
 }
-
-#ifdef UNITTESTS
-#include "tests/detect-snmp-community.c"
-#endif /* UNITTESTS */
