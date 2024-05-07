@@ -1004,8 +1004,8 @@ fn http2_caseinsensitive_cmp(s1: &[u8], s2: &str) -> bool {
 pub unsafe extern "C" fn rs_http2_tx_add_header(
     state: &mut HTTP2State, name: *const u8, name_len: u32, value: *const u8, value_len: u32,
 ) {
-    let slice_name = build_slice!(name, name_len as usize);
-    let slice_value = build_slice!(value, value_len as usize);
+    let slice_name = build_slice_null!(name, name_len as usize);
+    let slice_value = build_slice_null!(value, value_len as usize);
     if slice_name == "HTTP2-Settings".as_bytes() {
         http2_tx_set_settings(state, slice_value)
     } else if http2_caseinsensitive_cmp(slice_name, "host") {
