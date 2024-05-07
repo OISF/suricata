@@ -234,7 +234,6 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
-#include "detect-websocket.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -716,7 +715,6 @@ void SigTableSetup(void)
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
-    DetectWebsocketRegister();
 
     DetectBypassRegister();
     DetectConfigRegister();
@@ -739,6 +737,7 @@ void SigTableSetup(void)
 
     ScDetectSNMPRegister();
     ScDetectDHCPRegister();
+    ScDetectWebsocketRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
