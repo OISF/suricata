@@ -16,6 +16,10 @@ name = "suricata"
 [profile.release]
 debug = true
 
+[profile.dev]
+debug = true
+debug-assertions = false
+
 [features]
 lua = []
 lua_int8 = ["lua"]
