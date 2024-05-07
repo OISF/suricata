@@ -398,9 +398,9 @@ pub unsafe extern "C" fn rs_detect_u64_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_detect_u64_free(ctx: &mut DetectUintData<u64>) {
     // Just unbox...
-    std::mem::drop(Box::from_raw(ctx as *mut DetectUintData<u64>));
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]

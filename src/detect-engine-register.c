@@ -211,9 +211,6 @@
 #include "detect-rfb-name.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
-#include "detect-dhcp-leasetime.h"
-#include "detect-dhcp-rebinding-time.h"
-#include "detect-dhcp-renewal-time.h"
 #include "detect-mqtt-type.h"
 #include "detect-mqtt-flags.h"
 #include "detect-mqtt-qos.h"
@@ -696,9 +693,6 @@ void SigTableSetup(void)
     DetectRfbNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
-    DetectDHCPLeaseTimeRegister();
-    DetectDHCPRebindingTimeRegister();
-    DetectDHCPRenewalTimeRegister();
     DetectMQTTTypeRegister();
     DetectMQTTFlagsRegister();
     DetectMQTTQosRegister();
@@ -744,6 +738,7 @@ void SigTableSetup(void)
     DetectFileHandlerRegister();
 
     ScDetectSNMPRegister();
+    ScDetectDHCPRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
