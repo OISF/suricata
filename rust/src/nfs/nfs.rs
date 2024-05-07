@@ -1881,6 +1881,9 @@ pub unsafe extern "C" fn rs_nfs_probe_ms(
         direction: u8, input: *const u8,
         len: u32, rdir: *mut u8) -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe_ms: probing direction {:02x}", direction);
     let mut adirection : u8 = 0;
@@ -1920,6 +1923,9 @@ pub unsafe extern "C" fn rs_nfs_probe(_f: *const Flow,
                                _rdir: *mut u8)
     -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe: running probe");
     match nfs_probe(slice, direction.into()) {
@@ -1938,6 +1944,9 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_ts(_f: *const Flow,
                                _rdir: *mut u8)
     -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     match nfs_probe_udp(slice, Direction::ToServer) {
         1 => { ALPROTO_NFS },
@@ -1955,6 +1964,9 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
                                _rdir: *mut u8)
     -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     match nfs_probe_udp(slice, Direction::ToClient) {
         1 => { ALPROTO_NFS },

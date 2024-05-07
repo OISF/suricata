@@ -917,7 +917,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
 pub unsafe extern "C" fn rs_dns_probe(
     _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
-    if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
+    if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
@@ -938,7 +938,7 @@ pub unsafe extern "C" fn rs_dns_probe(
 pub unsafe extern "C" fn rs_dns_probe_tcp(
     _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
-    if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
+    if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);

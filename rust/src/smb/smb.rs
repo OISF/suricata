@@ -2121,7 +2121,7 @@ pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
-    if len < MIN_REC_SIZE as u32 {
+    if len < MIN_REC_SIZE as u32 || input.is_null() {
         return ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
@@ -2135,7 +2135,7 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
-    if len < MIN_REC_SIZE as u32 {
+    if len < MIN_REC_SIZE as u32 || input.is_null() {
         return ALPROTO_UNKNOWN;
     }
     let slice = build_slice!(input, len as usize);
