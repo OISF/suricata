@@ -314,7 +314,6 @@ static int DetectICodeParseTest08(void)
     DetectU8Data *icd = DetectU8Parse("> 8 <> 20");
     FAIL_IF_NOT_NULL(icd);
 
-    DetectICodeFree(NULL, icd);
     PASS;
 }
 
@@ -327,7 +326,6 @@ static int DetectICodeParseTest09(void)
     DetectU8Data *icd = DetectU8Parse("8<<20");
     FAIL_IF_NOT_NULL(icd);
 
-    DetectICodeFree(NULL, icd);
     PASS;
 }
 
