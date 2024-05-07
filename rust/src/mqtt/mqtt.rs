@@ -619,6 +619,9 @@ impl MQTTState {
 pub unsafe extern "C" fn rs_mqtt_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let buf = build_slice!(input, input_len as usize);
     match parse_fixed_header(buf) {
         Ok((_, hdr)) => {
