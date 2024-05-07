@@ -310,7 +310,7 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
                                       len: u32, rdir: *mut u8) -> core::AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
-    if len == 0 {
+    if len == 0 || input.is_null() {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
