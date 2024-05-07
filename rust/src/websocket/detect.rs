@@ -213,9 +213,9 @@ unsafe extern "C" fn websocket_detect_flags_setup(
     if SigMatchAppendSMToList(
         de,
         s,
-        G_WEBSOCKET_MASK_KW_ID,
+        G_WEBSOCKET_FLAGS_KW_ID,
         ctx,
-        G_WEBSOCKET_MASK_BUFFER_ID,
+        G_WEBSOCKET_FLAGS_BUFFER_ID,
     )
     .is_null()
     {
