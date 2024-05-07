@@ -334,7 +334,6 @@ static int DetectITypeParseTest08(void)
     DetectU8Data *itd = NULL;
     itd = DetectITypeParse(NULL, "> 8 <> 20");
     FAIL_IF_NOT_NULL(itd);
-    DetectITypeFree(NULL, itd);
 
     PASS;
 }
