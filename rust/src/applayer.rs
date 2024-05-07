@@ -386,6 +386,17 @@ macro_rules! build_slice {
     ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
 }
 
+#[macro_export]
+macro_rules! build_slice_null {
+    ($buf:ident, $len:expr) => {
+        if $buf.is_null() && $len == 0 {
+            &[]
+        } else {
+            std::slice::from_raw_parts($buf, $len)
+        }
+    };
+}
+
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
 /// UNSAFE !
