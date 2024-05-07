@@ -310,9 +310,6 @@ noinst_HEADERS = \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
 	detect-smb-version.h \
-	detect-dhcp-leasetime.h \
-	detect-dhcp-rebinding-time.h \
-	detect-dhcp-renewal-time.h \
 	detect-ssh-hassh.h \
 	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-server-string.h \
@@ -932,9 +929,6 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
 	detect-smb-version.c \
-	detect-dhcp-leasetime.c \
-	detect-dhcp-rebinding-time.c \
-	detect-dhcp-renewal-time.c \
 	detect-ssh-hassh.c \
 	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-server-string.c \
