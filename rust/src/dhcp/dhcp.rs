@@ -22,7 +22,7 @@ use crate::dhcp::parser::*;
 use std;
 use std::ffi::CString;
 
-static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
 static DHCP_MIN_FRAME_LEN: u32 = 232;
 
