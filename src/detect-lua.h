@@ -32,6 +32,7 @@ typedef struct DetectLuaThreadData {
     lua_State *luastate;
     uint32_t flags;
     int alproto;
+    bool error_logged;
 } DetectLuaThreadData;
 
 #define DETECT_LUAJIT_MAX_FLOWVARS  15
