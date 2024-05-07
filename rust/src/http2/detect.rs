@@ -1000,12 +1000,31 @@ fn http2_caseinsensitive_cmp(s1: &[u8], s2: &str) -> bool {
     return false;
 }
 
+// This macro builds a rust slice from a C pointer
+// It handles the case where the C pointer is NULL by creating an empty slice
+// This is not the idiomatic rust behavior
+// But it is fit for this specific use case, hence the macro is not public
+// Every HTTP2 header has a name and a value, even if an empty one
+// It is not currently guaranteed with HTTP1 headers
+// During protocol upgrade, we translate a HTTP1 request with headers into a HTTP2 one
+// So, we translate an absent name/value into an empty one
+macro_rules! build_slice_null {
+    ($buf:ident, $len:expr) => {
+        if $buf.is_null() {
+            &[]
+        } else {
+            // unsafe
+            std::slice::from_raw_parts($buf, $len)
+        }
+    };
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_add_header(
     state: &mut HTTP2State, name: *const u8, name_len: u32, value: *const u8, value_len: u32,
 ) {
-    let slice_name = build_slice!(name, name_len as usize);
-    let slice_value = build_slice!(value, value_len as usize);
+    let slice_name = build_slice_null!(name, name_len as usize);
+    let slice_value = build_slice_null!(value, value_len as usize);
     if slice_name == "HTTP2-Settings".as_bytes() {
         http2_tx_set_settings(state, slice_value)
     } else if http2_caseinsensitive_cmp(slice_name, "host") {
