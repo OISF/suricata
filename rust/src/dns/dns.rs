@@ -1063,7 +1063,7 @@ pub extern "C" fn rs_dns_probe(
     len: u32,
     rdir: *mut u8,
 ) -> AppProto {
-    if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
+    if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = unsafe {
@@ -1092,7 +1092,7 @@ pub extern "C" fn rs_dns_probe_tcp(
     len: u32,
     rdir: *mut u8
 ) -> AppProto {
-    if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
+    if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = unsafe {

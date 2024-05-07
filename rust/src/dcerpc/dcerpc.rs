@@ -1351,7 +1351,7 @@ pub extern "C" fn rs_dcerpc_probe_tcp(direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> i32
 {
     SCLogDebug!("Probing packet for DCERPC");
-    if len == 0 {
+    if len == 0 || input.is_null() {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = unsafe {
