@@ -1431,7 +1431,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
         }
     }
 
-    if (!FLOW_IS_PP_DONE(f, flags)) {
+    if (!FLOW_IS_PP_DONE(f, flags) && buf != NULL) {
         bool rflow = false;
         alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, flags, &rflow);
         if (AppProtoIsValid(alproto)) {
