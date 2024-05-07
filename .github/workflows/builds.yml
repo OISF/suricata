@@ -2309,7 +2309,14 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      # dummy debug
+      - run: pkg-config --libs-only-L libdpdk
+      - run: pkg-config --cflags libdpdk
+      - run: pkg-config --libs libdpdk
       - run: ./autogen.sh
+      # dummy debug
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j ${{ env.CPUS }}
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
