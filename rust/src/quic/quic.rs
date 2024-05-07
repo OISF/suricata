@@ -376,6 +376,9 @@ pub unsafe extern "C" fn rs_quic_state_tx_free(state: *mut std::os::raw::c_void,
 pub unsafe extern "C" fn rs_quic_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice = build_slice!(input, input_len as usize);
 
     if QuicHeader::from_bytes(slice, DEFAULT_DCID_LEN).is_ok() {
