@@ -1227,6 +1227,9 @@ typedef struct DetectEngineThreadCtx_ {
     AppLayerDecoderEvents *decoder_events;
     uint16_t events;
 
+    /** stats id for lua rule errors */
+    uint16_t lua_rule_errors;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
