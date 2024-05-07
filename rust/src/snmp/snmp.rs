@@ -357,6 +357,9 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
                                          input:*const u8,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice = build_slice!(input,input_len as usize);
     let alproto = ALPROTO_SNMP;
     if slice.len() < 4 { return ALPROTO_FAILED; }
