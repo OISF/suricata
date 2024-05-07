@@ -58,6 +58,9 @@ impl StreamSlice {
         self.input_len
     }
     pub fn as_slice(&self) -> &[u8] {
+        if self.input.is_null() && self.input_len == 0 {
+            return &[];
+        }
         unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
     }
     pub fn is_empty(&self) -> bool {
