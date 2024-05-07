@@ -165,6 +165,8 @@ void DetectLuaRegister(void)
 
 #define DATATYPE_BUFFER BIT_U32(22)
 
+#define ERROR_LOGGED BIT_U32(23)
+
 #if 0
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state)
@@ -202,43 +204,29 @@ void LuaDumpStack(lua_State *state)
 }
 #endif
 
-int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
-        Flow *f)
+/**
+ * \brief Common function to run the Lua match function and process
+ *     the return value.
+ */
+static int DetectLuaRunMatch(
+        DetectEngineThreadCtx *det_ctx, const DetectLuaData *lua, DetectLuaThreadData *tlua)
 {
-    SCEnter();
-    int ret = 0;
-
-    if (buffer == NULL || buffer_len == 0)
+    if (lua_pcall(tlua->luastate, 1, 1, 0) != 0) {
+        if (!(tlua->flags & ERROR_LOGGED)) {
+            /* Log once per thread, the message from Lua will include
+             * the filename. */
+            SCLogWarning(
+                    "Lua script failed to run successfully: %s", lua_tostring(tlua->luastate, -1));
+            tlua->flags |= ERROR_LOGGED;
+        }
+        StatsIncr(det_ctx->tv, det_ctx->lua_rule_errors);
+        while (lua_gettop(tlua->luastate) > 0) {
+            lua_pop(tlua->luastate, 1);
+        }
         SCReturnInt(0);
-
-    DetectLuaData *lua = (DetectLuaData *)smd->ctx;
-    if (lua == NULL)
-        SCReturnInt(0);
-
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
-    if (tlua == NULL)
-        SCReturnInt(0);
-
-    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, /* no packet in the ctx */ NULL, s, 0);
-
-    /* prepare data to pass to script */
-    lua_getglobal(tlua->luastate, "match");
-    lua_newtable(tlua->luastate); /* stack at -1 */
-
-    lua_pushliteral (tlua->luastate, "offset"); /* stack at -2 */
-    lua_pushnumber (tlua->luastate, (int)(offset + 1));
-    lua_settable(tlua->luastate, -3);
-
-    lua_pushstring (tlua->luastate, lua->buffername); /* stack at -2 */
-    LuaPushStringBuffer(tlua->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
-    lua_settable(tlua->luastate, -3);
-
-    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
     }
+
+    int match = 0;
 
     /* process returns from script */
     if (lua_gettop(tlua->luastate) > 0) {
@@ -249,7 +237,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
             lua_pop(tlua->luastate, 1);
 
             if (script_ret == 1.0)
-                ret = 1;
+                match = 1;
 
         /* script returns a table */
         } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
@@ -271,10 +259,10 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                         SCLogError("Invalid value "
                                    "for \"retval\" from LUA return table: '%s'",
                                 v);
-                        ret = 0;
+                        match = 0;
                     }
                     else if (val == 1) {
-                        ret = 1;
+                        match = 1;
                     }
                 } else {
                     /* set flow var? */
@@ -284,23 +272,55 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
             /* pop the table */
             lua_pop(tlua->luastate, 1);
         }
-    } else {
-        SCLogDebug("no stack");
     }
 
-    /* clear the stack */
+    if (lua->negated) {
+        if (match == 1)
+            match = 0;
+        else
+            match = 1;
+    }
+
     while (lua_gettop(tlua->luastate) > 0) {
         lua_pop(tlua->luastate, 1);
     }
 
-    if (lua->negated) {
-        if (ret == 1)
-            ret = 0;
-        else
-            ret = 1;
-    }
+    SCReturnInt(match);
+}
 
-    SCReturnInt(ret);
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+        Flow *f)
+{
+    SCEnter();
+
+    if (buffer == NULL || buffer_len == 0)
+        SCReturnInt(0);
+
+    DetectLuaData *lua = (DetectLuaData *)smd->ctx;
+    if (lua == NULL)
+        SCReturnInt(0);
+
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    if (tlua == NULL)
+        SCReturnInt(0);
+
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, /* no packet in the ctx */ NULL, s, 0);
+
+    /* prepare data to pass to script */
+    lua_getglobal(tlua->luastate, "match");
+    lua_newtable(tlua->luastate); /* stack at -1 */
+
+    lua_pushliteral(tlua->luastate, "offset"); /* stack at -2 */
+    lua_pushnumber(tlua->luastate, (int)(offset + 1));
+    lua_settable(tlua->luastate, -3);
+
+    lua_pushstring(tlua->luastate, lua->buffername); /* stack at -2 */
+    LuaPushStringBuffer(tlua->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
+    lua_settable(tlua->luastate, -3);
+
+    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
 
 /**
@@ -319,7 +339,6 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
-    int ret = 0;
     DetectLuaData *lua = (DetectLuaData *)ctx;
     if (lua == NULL)
         SCReturnInt(0);
@@ -389,70 +408,7 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
-    }
-
-    /* process returns from script */
-    if (lua_gettop(tlua->luastate) > 0) {
-
-        /* script returns a number (return 1 or return 0) */
-        if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tlua->luastate, 1);
-            SCLogDebug("script_ret %f", script_ret);
-            lua_pop(tlua->luastate, 1);
-
-            if (script_ret == 1.0)
-                ret = 1;
-
-        /* script returns a table */
-        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tlua->luastate);
-            const char *k, *v;
-            while (lua_next(tlua->luastate, -2)) {
-                v = lua_tostring(tlua->luastate, -1);
-                lua_pop(tlua->luastate, 1);
-                k = lua_tostring(tlua->luastate, -1);
-
-                if (!k || !v)
-                    continue;
-
-                SCLogDebug("k='%s', v='%s'", k, v);
-
-                if (strcmp(k, "retval") == 0) {
-                    int val;
-                    if (StringParseInt32(&val, 10, 0,
-                                         (const char *)v) < 0) {
-                        SCLogError("Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'",
-                                v);
-                        ret = 0;
-                    }
-                    else if (val == 1) {
-                        ret = 1;
-                    }
-                } else {
-                    /* set flow var? */
-                }
-            }
-
-            /* pop the table */
-            lua_pop(tlua->luastate, 1);
-        }
-    }
-    while (lua_gettop(tlua->luastate) > 0) {
-        lua_pop(tlua->luastate, 1);
-    }
-
-    if (lua->negated) {
-        if (ret == 1)
-            ret = 0;
-        else
-            ret = 1;
-    }
-
-    SCReturnInt(ret);
+    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
 
 static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
@@ -460,7 +416,6 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
-    int ret = 0;
     DetectLuaData *lua = (DetectLuaData *)ctx;
     if (lua == NULL)
         SCReturnInt(0);
@@ -499,70 +454,7 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
-    }
-
-    /* process returns from script */
-    if (lua_gettop(tlua->luastate) > 0) {
-
-        /* script returns a number (return 1 or return 0) */
-        if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tlua->luastate, 1);
-            SCLogDebug("script_ret %f", script_ret);
-            lua_pop(tlua->luastate, 1);
-
-            if (script_ret == 1.0)
-                ret = 1;
-
-        /* script returns a table */
-        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tlua->luastate);
-            const char *k, *v;
-            while (lua_next(tlua->luastate, -2)) {
-                v = lua_tostring(tlua->luastate, -1);
-                lua_pop(tlua->luastate, 1);
-                k = lua_tostring(tlua->luastate, -1);
-
-                if (!k || !v)
-                    continue;
-
-                SCLogDebug("k='%s', v='%s'", k, v);
-
-                if (strcmp(k, "retval") == 0) {
-                    int val;
-                    if (StringParseInt32(&val, 10, 0,
-                                         (const char *)v) < 0) {
-                        SCLogError("Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'",
-                                v);
-                        ret = 0;
-                    }
-                    else if (val == 1) {
-                        ret = 1;
-                    }
-                } else {
-                    /* set flow var? */
-                }
-            }
-
-            /* pop the table */
-            lua_pop(tlua->luastate, 1);
-        }
-    }
-    while (lua_gettop(tlua->luastate) > 0) {
-        lua_pop(tlua->luastate, 1);
-    }
-
-    if (lua->negated) {
-        if (ret == 1)
-            ret = 0;
-        else
-            ret = 1;
-    }
-
-    SCReturnInt(ret);
+    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
 
 /**

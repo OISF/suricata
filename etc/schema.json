@@ -5166,6 +5166,16 @@
                         "alerts_suppressed": {
                             "type": "integer"
                         },
+                        "lua": {
+                            "type": "object",
+                            "properties": {
+                                "errors": {
+                                    "description": "Errors encountered while running Lua scripts",
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "mpm_list": {
                             "type": "integer"
                         },
