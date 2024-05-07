@@ -1873,6 +1873,9 @@ pub extern "C" fn rs_nfs_probe_ms(
         direction: u8, input: *const u8,
         len: u32, rdir: *mut u8) -> i8
 {
+    if input.is_null() {
+        return 0;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe_ms: probing direction {:02x}", direction);
     let mut adirection : u8 = 0;
@@ -1907,6 +1910,9 @@ pub extern "C" fn rs_nfs_probe(direction: u8,
         input: *const u8, len: u32)
     -> i8
 {
+    if input.is_null() {
+        return 0;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe: running probe");
     return nfs_probe(slice, direction);
@@ -1917,6 +1923,9 @@ pub extern "C" fn rs_nfs_probe(direction: u8,
 pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
                                -> i8
 {
+    if input.is_null() {
+        return 0;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     return nfs_probe_udp(slice, STREAM_TOSERVER);
 }
@@ -1926,6 +1935,9 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
 pub extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
                                -> i8
 {
+    if input.is_null() {
+        return 0;
+    }
     let slice: &[u8] = build_slice!(input, len as usize);
     return nfs_probe_udp(slice, STREAM_TOCLIENT);
 }

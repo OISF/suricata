@@ -417,6 +417,9 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
         input:*const u8, input_len: u32,
         _rdir: *mut u8) -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_KRB5 };
     if slice.len() <= 10 { return unsafe{ALPROTO_FAILED}; }
@@ -455,6 +458,9 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
         input:*const u8, input_len: u32,
         rdir: *mut u8) -> AppProto
 {
+    if input.is_null() {
+        return ALPROTO_UNKNOWN;
+    }
     let slice = build_slice!(input,input_len as usize);
     if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
     match be_u32(slice) as IResult<&[u8],u32> {

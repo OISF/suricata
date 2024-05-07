@@ -231,7 +231,7 @@ pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto
 {
-    if input_len < DHCP_MIN_FRAME_LEN {
+    if input_len < DHCP_MIN_FRAME_LEN || input.is_null() {
         return ALPROTO_UNKNOWN;
     }
 

@@ -2055,7 +2055,7 @@ fn smb_probe_tcp(direction: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> i8
 pub extern "C" fn rs_smb_probe_begins_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> i8
 {
-    if len < MIN_REC_SIZE as u32 {
+    if len < MIN_REC_SIZE as u32 || input.is_null() {
         return 0;
     }
     let slice = build_slice!(input, len as usize);
@@ -2068,7 +2068,7 @@ pub extern "C" fn rs_smb_probe_begins_tcp(direction: u8, input: *const u8, len: 
 pub extern "C" fn rs_smb_probe_tcp(direction: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> i8
 {
-    if len < MIN_REC_SIZE as u32 {
+    if len < MIN_REC_SIZE as u32 || input.is_null() {
         return 0;
     }
     let slice = build_slice!(input, len as usize);
