@@ -32,7 +32,7 @@ use std::ffi::CString;
 use std::io::Read;
 use std::os::raw::{c_char, c_int, c_void};
 
-static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 
