@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,7 +25,6 @@
 #include "suricata-common.h"
 #include "conf.h"
 
-#include "threads.h"
 #include "decode.h"
 
 #include "detect.h"
@@ -33,7 +32,6 @@
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-engine-build.h"
 
 #include "detect-byte.h"
@@ -42,9 +40,6 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
 #include "util-byte.h"
 
 #include "util-unittest.h"
@@ -59,8 +54,6 @@
 #include "detect-lua.h"
 #include "detect-lua-extensions.h"
 
-#include "queue.h"
-#include "util-cpu.h"
 #include "util-var-name.h"
 
 #ifndef HAVE_LUA
@@ -132,40 +125,31 @@ void DetectLuaRegister(void)
     return;
 }
 
-#define DATATYPE_PACKET  BIT_U32(0)
-#define DATATYPE_PAYLOAD BIT_U32(1)
-#define DATATYPE_STREAM  BIT_U32(2)
-
-#define DATATYPE_HTTP_URI     BIT_U32(3)
-#define DATATYPE_HTTP_URI_RAW BIT_U32(4)
-
-#define DATATYPE_HTTP_REQUEST_HEADERS     BIT_U32(5)
-#define DATATYPE_HTTP_REQUEST_HEADERS_RAW BIT_U32(6)
-#define DATATYPE_HTTP_REQUEST_COOKIE      BIT_U32(7)
-#define DATATYPE_HTTP_REQUEST_UA          BIT_U32(8)
-
-#define DATATYPE_HTTP_REQUEST_LINE BIT_U32(9)
-#define DATATYPE_HTTP_REQUEST_BODY BIT_U32(10)
-
-#define DATATYPE_HTTP_RESPONSE_COOKIE BIT_U32(11)
-#define DATATYPE_HTTP_RESPONSE_BODY   BIT_U32(12)
-
-#define DATATYPE_HTTP_RESPONSE_HEADERS     BIT_U32(13)
-#define DATATYPE_HTTP_RESPONSE_HEADERS_RAW BIT_U32(14)
-
-#define DATATYPE_DNS_RRNAME   BIT_U32(15)
-#define DATATYPE_DNS_REQUEST  BIT_U32(16)
-#define DATATYPE_DNS_RESPONSE BIT_U32(17)
-
-#define DATATYPE_TLS  BIT_U32(18)
-#define DATATYPE_SSH  BIT_U32(19)
-#define DATATYPE_SMTP BIT_U32(20)
-
-#define DATATYPE_DNP3 BIT_U32(21)
-
-#define DATATYPE_BUFFER BIT_U32(22)
-
-#define ERROR_LOGGED BIT_U32(23)
+/* Flags for DetectLuaThreadData. */
+#define FLAG_DATATYPE_PACKET                    BIT_U32(0)
+#define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
+#define FLAG_DATATYPE_STREAM                    BIT_U32(2)
+#define FLAG_DATATYPE_HTTP_URI                  BIT_U32(3)
+#define FLAG_DATATYPE_HTTP_URI_RAW              BIT_U32(4)
+#define FLAG_DATATYPE_HTTP_REQUEST_HEADERS      BIT_U32(5)
+#define FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW  BIT_U32(6)
+#define FLAG_DATATYPE_HTTP_REQUEST_COOKIE       BIT_U32(7)
+#define FLAG_DATATYPE_HTTP_REQUEST_UA           BIT_U32(8)
+#define FLAG_DATATYPE_HTTP_REQUEST_LINE         BIT_U32(9)
+#define FLAG_DATATYPE_HTTP_REQUEST_BODY         BIT_U32(10)
+#define FLAG_DATATYPE_HTTP_RESPONSE_COOKIE      BIT_U32(11)
+#define FLAG_DATATYPE_HTTP_RESPONSE_BODY        BIT_U32(12)
+#define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS     BIT_U32(13)
+#define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW BIT_U32(14)
+#define FLAG_DATATYPE_DNS_RRNAME                BIT_U32(15)
+#define FLAG_DATATYPE_DNS_REQUEST               BIT_U32(16)
+#define FLAG_DATATYPE_DNS_RESPONSE              BIT_U32(17)
+#define FLAG_DATATYPE_TLS                       BIT_U32(18)
+#define FLAG_DATATYPE_SSH                       BIT_U32(19)
+#define FLAG_DATATYPE_SMTP                      BIT_U32(20)
+#define FLAG_DATATYPE_DNP3                      BIT_U32(21)
+#define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
+#define FLAG_ERROR_LOGGED                       BIT_U32(23)
 
 #if 0
 /** \brief dump stack from lua state to screen */
@@ -212,12 +196,12 @@ static int DetectLuaRunMatch(
         DetectEngineThreadCtx *det_ctx, const DetectLuaData *lua, DetectLuaThreadData *tlua)
 {
     if (lua_pcall(tlua->luastate, 1, 1, 0) != 0) {
-        if (!(tlua->flags & ERROR_LOGGED)) {
+        if (!(tlua->flags & FLAG_ERROR_LOGGED)) {
             /* Log once per thread, the message from Lua will include
              * the filename. */
             SCLogWarning(
                     "Lua script failed to run successfully: %s", lua_tostring(tlua->luastate, -1));
-            tlua->flags |= ERROR_LOGGED;
+            tlua->flags |= FLAG_ERROR_LOGGED;
         }
         StatsIncr(det_ctx->tv, det_ctx->lua_rule_errors);
         while (lua_gettop(tlua->luastate) > 0) {
@@ -358,9 +342,9 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
 
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, p->flow, p, s, flags);
 
-    if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
+    if ((tlua->flags & FLAG_DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
-    if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
+    if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
     if (tlua->alproto != ALPROTO_UNKNOWN) {
         if (p->flow == NULL)
@@ -374,12 +358,12 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len) {
+    if ((tlua->flags & FLAG_DATATYPE_PAYLOAD) && p->payload_len) {
         lua_pushliteral(tlua->luastate, "payload"); /* stack at -2 */
         LuaPushStringBuffer (tlua->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
         lua_settable(tlua->luastate, -3);
     }
-    if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
+    if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p)) {
         lua_pushliteral(tlua->luastate, "packet"); /* stack at -2 */
         LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tlua->luastate, -3);
@@ -396,8 +380,8 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                 if (tx == NULL)
                     continue;
 
-                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                if ((tlua->flags & FLAG_DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                        bstr_len(tx->request_line) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
                     LuaPushStringBuffer(tlua->luastate,
                                      (const uint8_t *)bstr_ptr(tx->request_line),
@@ -442,8 +426,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
             htp_tx_t *tx = NULL;
             tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, det_ctx->tx_id);
             if (tx != NULL) {
-                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                if ((tlua->flags & FLAG_DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                        bstr_len(tx->request_line) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
                     LuaPushStringBuffer(tlua->luastate,
                                      (const uint8_t *)bstr_ptr(tx->request_line),
@@ -749,11 +733,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
         SCLogDebug("k='%s', v='%s'", k, v);
         if (strcmp(k, "packet") == 0 && strcmp(v, "true") == 0) {
-            ld->flags |= DATATYPE_PACKET;
+            ld->flags |= FLAG_DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
-            ld->flags |= DATATYPE_PAYLOAD;
+            ld->flags |= FLAG_DATATYPE_PAYLOAD;
         } else if (strcmp(k, "buffer") == 0 && strcmp(v, "true") == 0) {
-            ld->flags |= DATATYPE_BUFFER;
+            ld->flags |= FLAG_DATATYPE_BUFFER;
 
             ld->buffername = SCStrdup("buffer");
             if (ld->buffername == NULL) {
@@ -761,7 +745,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 goto error;
             }
         } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
-            ld->flags |= DATATYPE_STREAM;
+            ld->flags |= FLAG_DATATYPE_STREAM;
 
             ld->buffername = SCStrdup("stream");
             if (ld->buffername == NULL) {
@@ -784,40 +768,40 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             ld->alproto = ALPROTO_HTTP1;
 
             if (strcmp(k, "http.uri") == 0)
-                ld->flags |= DATATYPE_HTTP_URI;
+                ld->flags |= FLAG_DATATYPE_HTTP_URI;
 
             else if (strcmp(k, "http.uri.raw") == 0)
-                ld->flags |= DATATYPE_HTTP_URI_RAW;
+                ld->flags |= FLAG_DATATYPE_HTTP_URI_RAW;
 
             else if (strcmp(k, "http.request_line") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_LINE;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_LINE;
 
             else if (strcmp(k, "http.request_headers") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_HEADERS;
 
             else if (strcmp(k, "http.request_headers.raw") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS_RAW;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW;
 
             else if (strcmp(k, "http.request_cookie") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_COOKIE;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_COOKIE;
 
             else if (strcmp(k, "http.request_user_agent") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_UA;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_UA;
 
             else if (strcmp(k, "http.request_body") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_BODY;
+                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_BODY;
 
             else if (strcmp(k, "http.response_body") == 0)
-                ld->flags |= DATATYPE_HTTP_RESPONSE_BODY;
+                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_BODY;
 
             else if (strcmp(k, "http.response_cookie") == 0)
-                ld->flags |= DATATYPE_HTTP_RESPONSE_COOKIE;
+                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_COOKIE;
 
             else if (strcmp(k, "http.response_headers") == 0)
-                ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS;
+                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_HEADERS;
 
             else if (strcmp(k, "http.response_headers.raw") == 0)
-                ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
+                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
 
             else {
                 SCLogError("unsupported http data type %s", k);
@@ -834,11 +818,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             ld->alproto = ALPROTO_DNS;
 
             if (strcmp(k, "dns.rrname") == 0)
-                ld->flags |= DATATYPE_DNS_RRNAME;
+                ld->flags |= FLAG_DATATYPE_DNS_RRNAME;
             else if (strcmp(k, "dns.request") == 0)
-                ld->flags |= DATATYPE_DNS_REQUEST;
+                ld->flags |= FLAG_DATATYPE_DNS_REQUEST;
             else if (strcmp(k, "dns.response") == 0)
-                ld->flags |= DATATYPE_DNS_RESPONSE;
+                ld->flags |= FLAG_DATATYPE_DNS_RESPONSE;
 
             else {
                 SCLogError("unsupported dns data type %s", k);
@@ -853,25 +837,25 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
             ld->alproto = ALPROTO_TLS;
 
-            ld->flags |= DATATYPE_TLS;
+            ld->flags |= FLAG_DATATYPE_TLS;
 
         } else if (strncmp(k, "ssh", 3) == 0 && strcmp(v, "true") == 0) {
 
             ld->alproto = ALPROTO_SSH;
 
-            ld->flags |= DATATYPE_SSH;
+            ld->flags |= FLAG_DATATYPE_SSH;
 
         } else if (strncmp(k, "smtp", 4) == 0 && strcmp(v, "true") == 0) {
 
             ld->alproto = ALPROTO_SMTP;
 
-            ld->flags |= DATATYPE_SMTP;
+            ld->flags |= FLAG_DATATYPE_SMTP;
 
         } else if (strncmp(k, "dnp3", 4) == 0 && strcmp(v, "true") == 0) {
 
             ld->alproto = ALPROTO_DNP3;
 
-            ld->flags |= DATATYPE_DNP3;
+            ld->flags |= FLAG_DATATYPE_DNP3;
 
         } else {
             SCLogError("unsupported data type %s", k);
@@ -938,10 +922,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
 
     int list = -1;
     if (lua->alproto == ALPROTO_UNKNOWN) {
-        if (lua->flags & DATATYPE_STREAM)
+        if (lua->flags & FLAG_DATATYPE_STREAM)
             list = DETECT_SM_LIST_PMATCH;
         else {
-            if (lua->flags & DATATYPE_BUFFER) {
+            if (lua->flags & FLAG_DATATYPE_BUFFER) {
                 if (DetectBufferGetActiveList(de_ctx, s) != -1) {
                     list = s->init_data->list;
                 } else {
@@ -953,33 +937,34 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         }
 
     } else if (lua->alproto == ALPROTO_HTTP1) {
-        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
+        if (lua->flags & FLAG_DATATYPE_HTTP_RESPONSE_BODY) {
             list = DetectBufferTypeGetByName("file_data");
-        } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY) {
+        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_BODY) {
             list = DetectBufferTypeGetByName("http_client_body");
-        } else if (lua->flags & DATATYPE_HTTP_URI) {
+        } else if (lua->flags & FLAG_DATATYPE_HTTP_URI) {
             list = DetectBufferTypeGetByName("http_uri");
-        } else if (lua->flags & DATATYPE_HTTP_URI_RAW) {
+        } else if (lua->flags & FLAG_DATATYPE_HTTP_URI_RAW) {
             list = DetectBufferTypeGetByName("http_raw_uri");
-        } else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
-                 lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
-        {
+        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_COOKIE ||
+                   lua->flags & FLAG_DATATYPE_HTTP_RESPONSE_COOKIE) {
             list = DetectBufferTypeGetByName("http_cookie");
-        } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
+        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_UA) {
             list = DetectBufferTypeGetByName("http_user_agent");
-        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS)) {
+        } else if (lua->flags &
+                   (FLAG_DATATYPE_HTTP_REQUEST_HEADERS | FLAG_DATATYPE_HTTP_RESPONSE_HEADERS)) {
             list = DetectBufferTypeGetByName("http_header");
-        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
+        } else if (lua->flags & (FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW |
+                                        FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
             list = DetectBufferTypeGetByName("http_raw_header");
         } else {
             list = DetectBufferTypeGetByName("http_request_line");
         }
     } else if (lua->alproto == ALPROTO_DNS) {
-        if (lua->flags & DATATYPE_DNS_RRNAME) {
+        if (lua->flags & FLAG_DATATYPE_DNS_RRNAME) {
             list = DetectBufferTypeGetByName("dns_query");
-        } else if (lua->flags & DATATYPE_DNS_REQUEST) {
+        } else if (lua->flags & FLAG_DATATYPE_DNS_REQUEST) {
             list = DetectBufferTypeGetByName("dns_request");
-        } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
+        } else if (lua->flags & FLAG_DATATYPE_DNS_RESPONSE) {
             list = DetectBufferTypeGetByName("dns_response");
         }
     } else if (lua->alproto == ALPROTO_TLS) {
