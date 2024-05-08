@@ -122,6 +122,12 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             SCLogError("JA4 support is not enabled");
         }
         return -2;
+    } else {
+        static bool once = false;
+        if (!once) {
+            once = true;
+            SCLogConfig("enabling JA4 due to rule usage");
+        }
     }
     s->init_data->init_flags |= SIG_FLAG_INIT_JA;
 
