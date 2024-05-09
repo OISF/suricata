@@ -13,6 +13,7 @@ This is the documentation for Suricata |version|.
    upgrade.rst
    security.rst
    support-status.rst
+   source-verification.rst
    command-line-options
    rules/index.rst
    rule-management/index.rst
