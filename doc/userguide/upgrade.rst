@@ -55,6 +55,9 @@ Major changes
 - SDP parser and logger have been introduced.
   Due to SDP being encapsulated within other protocols, such as SIP, they cannot be directly enabled or disabled.
   Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
+- Datasets of the type String had a bug fix which takes into account the length of the string
+  as well when checking for memcaps. This might lead to memcaps being hit on older deployments.
+  For more details, check https://redmine.openinfosecfoundation.org/issues/3910
 
 Upgrading 6.0 to 7.0
 --------------------
