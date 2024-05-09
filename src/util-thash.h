@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -197,5 +197,6 @@ int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
 int THashRemoveFromHash (THashTableContext *ctx, void *data);
 void THashConsolidateMemcap(THashTableContext *ctx);
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h);
+void THashUpdateMemuse(THashTableContext *ctx, size_t data_size);
 
 #endif /* SURICATA_THASH_H */

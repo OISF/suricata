@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1372,7 +1372,12 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
-        return res.is_new ? 1 : 0;
+        if (res.is_new) {
+            THashUpdateMemuse(set->hash, data_len);
+            return 1;
+        }
+        // Data was already there so no need to update memuse
+        return 0;
     }
     return -1;
 }

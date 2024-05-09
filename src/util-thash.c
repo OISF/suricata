@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -332,6 +332,11 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         ctx = NULL;
     }
     return ctx;
+}
+
+void THashUpdateMemuse(THashTableContext *ctx, const size_t data_size)
+{
+    SC_ATOMIC_ADD(ctx->memuse, data_size);
 }
 
 /* \brief Set memcap to current memuse
