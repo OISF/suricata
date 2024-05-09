@@ -57,6 +57,9 @@ Major changes
   Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
 - ARP decoder and logger have been introduced.
   Since ARP can be quite verbose and produce many events, the logger is disabled by default.
+- Datasets of the type String had a bug fix which takes into account the length of the string
+  as well when checking for memcaps. This might lead to memcaps being hit on older deployments.
+  For more details, check https://redmine.openinfosecfoundation.org/issues/3910
 
 Upgrading 6.0 to 7.0
 --------------------
