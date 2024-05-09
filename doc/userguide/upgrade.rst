@@ -60,6 +60,9 @@ Major changes
 - It is possible to see an increase of alerts, for the same rule-sets, if you
   use many stream/payload rules, due to Suricata triggering TCP stream
   reassembly earlier.
+- Datasets of type String now include the length of the strings to determine if the memcap value is reached.
+  This may lead to memcaps being hit for older setups that didn't take that into account.
+  For more details, check https://redmine.openinfosecfoundation.org/issues/3910
 
 Upgrading 6.0 to 7.0
 --------------------
