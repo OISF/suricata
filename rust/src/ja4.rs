@@ -23,7 +23,9 @@ use digest::Digest;
 use libc::c_uchar;
 #[cfg(feature = "ja4")]
 use sha2::Sha256;
-use std::{cmp::min, os::raw::c_char};
+#[cfg(feature = "ja4")]
+use std::cmp::min;
+use std::os::raw::c_char;
 use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
 
 #[derive(Debug, PartialEq)]
