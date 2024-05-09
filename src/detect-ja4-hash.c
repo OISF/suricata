@@ -46,6 +46,7 @@ static int DetectJA4SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 }
 #endif /* HAVE_JA4 */
 
+#ifdef HAVE_JA4
 static int DetectJa4HashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
@@ -56,6 +57,7 @@ static InspectionBuffer *Ja4DetectGetHash(DetectEngineThreadCtx *det_ctx,
         const int list_id);
 
 static int g_ja4_hash_buffer_id = 0;
+#endif
 
 /**
  * \brief Registration function for keyword: ja4.hash
@@ -93,6 +95,7 @@ void DetectJa4HashRegister(void)
 #endif /* HAVE_JA4 */
 }
 
+#ifdef HAVE_JA4
 /**
  * \brief this function setup the ja4.hash modifier keyword used in the rule
  *
@@ -171,3 +174,4 @@ static InspectionBuffer *Ja4DetectGetHash(DetectEngineThreadCtx *det_ctx,
     }
     return buffer;
 }
+#endif

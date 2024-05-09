@@ -64,12 +64,14 @@ static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 }
 #endif /* HAVE_JA3 */
 
+#ifdef HAVE_JA3
 static int DetectTlsJa3SStringSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *f, const uint8_t flow_flags,
        void *txv, const int list_id);
 static int g_tls_ja3s_str_buffer_id = 0;
+#endif
 
 /**
  * \brief Registration function for keyword: ja3s.string
@@ -107,6 +109,7 @@ void DetectTlsJa3SStringRegister(void)
 #endif /*  HAVE_JA3 */
 }
 
+#ifdef HAVE_JA3
 /**
  * \brief this function setup the ja3s.string modifier keyword used in the rule
  *
@@ -164,3 +167,4 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     return buffer;
 }
+#endif

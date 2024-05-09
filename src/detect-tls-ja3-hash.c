@@ -64,6 +64,7 @@ static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 }
 #endif
 
+#ifdef HAVE_JA3
 static int DetectTlsJa3HashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
@@ -74,6 +75,7 @@ static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
 static bool DetectTlsJa3HashValidateCallback(const Signature *s,
        const char **sigerror);
 static int g_tls_ja3_hash_buffer_id = 0;
+#endif
 
 /**
  * \brief Registration function for keyword: ja3_hash
@@ -117,6 +119,7 @@ void DetectTlsJa3HashRegister(void)
 #endif /* HAVE_JA3 */
 }
 
+#ifdef HAVE_JA3
 /**
  * \brief this function setup the ja3.hash modifier keyword used in the rule
  *
@@ -239,3 +242,4 @@ static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
         }
     }
 }
+#endif
