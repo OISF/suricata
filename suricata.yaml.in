@@ -310,6 +310,9 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
+            # msg-log-limit: 0         # limit size of logged messages in bytes.
+                                       # Can be specified in kb, mb, gb. Just a number
+                                       # is parsed as bytes. Default is 0 (no limit)
         - http2
         - pgsql:
             enabled: no

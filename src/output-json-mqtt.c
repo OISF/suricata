@@ -34,6 +34,7 @@
 #include "util-buffer.h"
 #include "util-debug.h"
 #include "util-byte.h"
+#include "util-misc.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -48,7 +49,7 @@
 #define MQTT_DEFAULTS (MQTT_LOG_PASSWORDS)
 
 typedef struct LogMQTTFileCtx_ {
-    uint32_t    flags;
+    uint32_t flags, max_log_len;
     OutputJsonCtx *eve_ctx;
 } LogMQTTFileCtx;
 
@@ -60,7 +61,9 @@ typedef struct LogMQTTLogThread_ {
 
 bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js)
 {
-    return rs_mqtt_logger_log(vtx, MQTT_DEFAULTS, js);
+    // we pass 0 here as max loggable message length to ensure the full message
+    // is logged on alert
+    return rs_mqtt_logger_log(vtx, MQTT_DEFAULTS, 0, js);
 }
 
 static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
@@ -80,7 +83,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (!rs_mqtt_logger_log(tx, thread->mqttlog_ctx->flags, js))
+    if (!rs_mqtt_logger_log(tx, thread->mqttlog_ctx->flags, thread->mqttlog_ctx->max_log_len, js))
         goto error;
 
     OutputJsonBuilderBuffer(js, thread->ctx);
@@ -112,6 +115,15 @@ static void JsonMQTTLogParseConfig(ConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
     } else {
         mqttlog_ctx->flags |= MQTT_LOG_PASSWORDS;
     }
+    uint32_t max_msg_log_len = 0;
+    query = ConfNodeLookupChildValue(conf, "msg-log-limit");
+    if (query != NULL) {
+        if (ParseSizeStringU32(query, &max_msg_log_len) < 0) {
+            SCLogError("Error parsing msg-log-limit from config - %s, ", query);
+            exit(EXIT_FAILURE);
+        }
+    }
+    mqttlog_ctx->max_log_len = max_msg_log_len;
 }
 
 static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
