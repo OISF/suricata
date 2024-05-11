@@ -142,7 +142,7 @@ impl MQTTState {
             connected: false,
             skip_request: 0,
             skip_response: 0,
-            max_msg_len: unsafe { MAX_MSG_LEN},
+            max_msg_len: unsafe { MAX_MSG_LEN },
             tx_index_completed: 0,
         }
     }
