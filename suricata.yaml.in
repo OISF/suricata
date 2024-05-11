@@ -314,6 +314,13 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
+            # string-log-limit: 1kb    # limit size of logged strings in bytes.
+                                       # Can be specified in kb, mb, gb. Just a number
+                                       # is parsed as bytes. Default is 1KB.
+                                       # Use a value of 0 to disable limiting.
+                                       # Note that the size is also bounded by
+                                       # the maximum parsed message size (see
+                                       # app-layer configuration)
         - http2
         - pgsql:
             enabled: no
