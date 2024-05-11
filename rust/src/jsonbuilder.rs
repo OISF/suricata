@@ -542,7 +542,9 @@ impl JsonBuilder {
     }
 
     /// Set a key and a string value (from bytes) on an object, with a limited size
-    pub fn set_string_from_bytes_limited(&mut self, key: &str, val: &[u8], limit: usize) -> Result<&mut Self, JsonError> {
+    pub fn set_string_from_bytes_limited(
+        &mut self, key: &str, val: &[u8], limit: usize,
+    ) -> Result<&mut Self, JsonError> {
         let mut valtrunc = Vec::new();
         let val = if val.len() > limit {
             valtrunc.extend_from_slice(&val[..limit]);
@@ -696,12 +698,12 @@ impl JsonBuilder {
     }
 
     fn push_float(&mut self, val: f64) -> Result<(), JsonError> {
-	if val.is_nan() || val.is_infinite() {
-	    self.push_str("null")?;
-	} else {
-	    self.push_str(&val.to_string())?;
-	}
-	Ok(())
+        if val.is_nan() || val.is_infinite() {
+            self.push_str("null")?;
+        } else {
+            self.push_str(&val.to_string())?;
+        }
+        Ok(())
     }
 
     /// Encode a string into the buffer, escaping as needed.

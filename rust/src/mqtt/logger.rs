@@ -26,7 +26,9 @@ use std;
 pub const MQTT_LOG_PASSWORDS: u32 = BIT_U32!(0);
 
 #[inline]
-fn log_mqtt_topic(js: &mut JsonBuilder, t: &MQTTSubscribeTopicData, max_log_len: usize ) -> Result<(), JsonError> {
+fn log_mqtt_topic(
+    js: &mut JsonBuilder, t: &MQTTSubscribeTopicData, max_log_len: usize,
+) -> Result<(), JsonError> {
     js.start_object()?;
     js.set_string_limited("topic", &t.topic_name, max_log_len)?;
     js.set_uint("qos", t.qos as u64)?;
