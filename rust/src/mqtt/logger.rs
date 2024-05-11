@@ -42,7 +42,9 @@ fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonEr
     return Ok(());
 }
 
-fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_mqtt(
+    tx: &MQTTTransaction, flags: u32, max_log_len: u32, js: &mut JsonBuilder,
+) -> Result<(), JsonError> {
     js.open_object("mqtt")?;
     for msg in tx.msg.iter() {
         match msg.op {
@@ -73,7 +75,15 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                         js.set_string("topic", will_topic)?;
                     }
                     if let Some(will_message) = &conn.will_message {
-                        js.set_string_from_bytes("message", will_message)?;
+                        if max_log_len > 0 {
+                            js.set_string_from_bytes_limited(
+                                "message",
+                                will_message,
+                                max_log_len as usize,
+                            )?;
+                        } else {
+                            js.set_string_from_bytes("message", will_message)?;
+                        }
                     }
                     if let Some(will_properties) = &conn.will_properties {
                         js.open_object("properties")?;
@@ -114,7 +124,15 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
                 if let Some(message_id) = publish.message_id {
                     js.set_uint("message_id", message_id as u64)?;
                 }
-                js.set_string_from_bytes("message", &publish.message)?;
+                if max_log_len > 0 {
+                    js.set_string_from_bytes_limited(
+                        "message",
+                        &publish.message,
+                        max_log_len as usize,
+                    )?;
+                } else {
+                    js.set_string_from_bytes("message", &publish.message)?;
+                }
                 if let Some(properties) = &publish.properties {
                     js.open_object("properties")?;
                     for prop in properties {
@@ -298,8 +316,8 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_logger_log(
-    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, flags: u32, max_log_len: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
-    log_mqtt(tx, flags, js).is_ok()
+    log_mqtt(tx, flags, max_log_len, js).is_ok()
 }
