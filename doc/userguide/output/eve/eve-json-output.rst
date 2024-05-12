@@ -281,6 +281,29 @@ YAML::
 The logger is disabled by default since ARP can generate a large
 number of events.
 
+MQTT
+~~~~
+
+EVE-JSON output for MQTT consists of one object per MQTT transaction, with some common and various type-specific fields.
+Two aspects can be configured:
+
+YAML::
+
+        - mqtt:
+            # passwords: yes           # enable output of passwords
+            # string-log-limit: 1kb    # limit size of logged strings in bytes.
+                                       # Can be specified in kb, mb, gb. Just a number
+                                       # is parsed as bytes. Default is 1KB.
+                                       # Use a value of 0 to disable limiting.
+                                       # Note that the size is also bounded by
+                                       # the maximum parsed message size (see
+                                       # app-layer configuration)
+
+The default is to output passwords in cleartext and not to limit the size of
+message payloads. Depending on the kind of context the parser is used in (public
+output, frequent binary transmissions, ...) this can be configured for regular
+``mqtt`` events.
+
 Drops
 ~~~~~
 
