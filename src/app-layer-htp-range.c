@@ -174,8 +174,8 @@ void HttpRangeContainersInit(void)
 
     ContainerUrlRangeList.ht = THashInit("app-layer.protocols.http.byterange",
             sizeof(HttpRangeContainerFile), ContainerUrlRangeSet, ContainerUrlRangeFree,
-            ContainerUrlRangeHash, ContainerUrlRangeCompare, ContainerValueRangeTimeout, false,
-            memcap, CONTAINER_URLRANGE_HASH_SIZE);
+            ContainerUrlRangeHash, ContainerUrlRangeCompare, ContainerValueRangeTimeout, NULL,
+            false, memcap, CONTAINER_URLRANGE_HASH_SIZE);
     ContainerUrlRangeList.timeout = timeout;
 
     SCLogDebug("containers started");
