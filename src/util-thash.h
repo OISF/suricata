@@ -198,5 +198,6 @@ int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
 int THashRemoveFromHash (THashTableContext *ctx, void *data);
 void THashConsolidateMemcap(THashTableContext *ctx);
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h);
+void THashIncrMemuse(THashTableContext *ctx, const size_t data_size);
 
 #endif /* SURICATA_THASH_H */

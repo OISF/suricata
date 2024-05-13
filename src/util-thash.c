@@ -189,12 +189,16 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
     if (h != NULL) {
         DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) != 0);
 
+        uint32_t len = 0;
         if (h->data != NULL) {
+            if (ctx->config.DataLength) {
+                len = ctx->config.DataLength(h->data);
+            }
             ctx->config.DataFree(h->data);
         }
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx));
+        (void)SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx) + (uint64_t)len);
     }
 }
 
@@ -336,6 +340,11 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     return ctx;
 }
 
+void THashIncrMemuse(THashTableContext *ctx, const size_t data_size)
+{
+    SC_ATOMIC_ADD(ctx->memuse, data_size);
+}
+
 /* \brief Set memcap to current memuse
  * */
 void THashConsolidateMemcap(THashTableContext *ctx)
@@ -373,6 +382,7 @@ void THashShutdown(THashTableContext *ctx)
     }
     (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
+    DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(ctx->memuse) != 0);
     SCFree(ctx);
     return;
 }
