@@ -160,11 +160,9 @@ static uint32_t THashDataQueueLen(THashDataQueue *q)
 static THashData *THashDataAlloc(THashTableContext *ctx)
 {
     const size_t data_size = THASH_DATA_SIZE(ctx);
-
     if (!(THASH_CHECK_MEMCAP(ctx, data_size))) {
         return NULL;
     }
-
     (void) SC_ATOMIC_ADD(ctx->memuse, data_size);
 
     THashData *h = SCCalloc(1, data_size);
@@ -173,8 +171,7 @@ static THashData *THashDataAlloc(THashTableContext *ctx)
 
     /* points to data right after THashData block */
     h->data = (uint8_t *)h + sizeof(THashData);
-
-//    memset(h, 0x00, data_size);
+    //    memset(h, 0x00, data_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -189,12 +186,16 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
     if (h != NULL) {
         DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) != 0);
 
+        uint32_t len = 0;
         if (h->data != NULL) {
+            if (ctx->config.DataSize) {
+                len = ctx->config.DataSize(h->data);
+            }
             ctx->config.DataFree(h->data);
         }
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx));
+        (void)SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx) + (uint64_t)len);
     }
 }
 
@@ -373,6 +374,8 @@ void THashShutdown(THashTableContext *ctx)
     }
     (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
+    SCLogDebug("memuse: %ld", (uint64_t)SC_ATOMIC_GET(ctx->memuse));
+    DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(ctx->memuse) != 0);
     SCFree(ctx);
     return;
 }
@@ -518,7 +521,10 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
 
     // setup the data
     BUG_ON(ctx->config.DataSet(h->data, data) != 0);
-
+    if (ctx->config.DataSize) {
+        uint32_t len = ctx->config.DataSize(data);
+        (void)SC_ATOMIC_ADD(ctx->memuse, (uint64_t)len);
+    }
     (void) SC_ATOMIC_ADD(ctx->counter, 1);
     SCMutexLock(&h->m);
     return h;
@@ -760,6 +766,10 @@ static THashData *THashGetUsed(THashTableContext *ctx)
 
         if (h->data != NULL) {
             ctx->config.DataFree(h->data);
+            if (ctx->config.DataSize) {
+                uint32_t len = ctx->config.DataSize(h->data);
+                (void)SC_ATOMIC_SUB(ctx->memuse, (uint64_t)len);
+            }
         }
         SCMutexUnlock(&h->m);
 
