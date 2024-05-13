@@ -158,18 +158,37 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     SCLogDebug("rd->cmd %u", rd->cmd);
     switch (rd->cmd) {
         case IPRepCmdAny:
-            val = GetHostRepSrc(p, rd->cat, version);
-            if (val < 0)
-                val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val >= 0) {
-                if (DetectU8Match((uint8_t)val, &rd->du8))
+            if (!(rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual)) {
+                val = GetHostRepSrc(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val >= 0) {
+                    if (DetectU8Match((uint8_t)val, &rd->du8))
+                        return 1;
+                }
+                val = GetHostRepDst(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val >= 0) {
+                    return DetectU8Match((uint8_t)val, &rd->du8);
+                }
+            } else {
+                /* isnotset for any */
+
+                val = GetHostRepSrc(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val < 0) {
                     return 1;
-            }
-            val = GetHostRepDst(p, rd->cat, version);
-            if (val < 0)
-                val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val >= 0) {
-                return DetectU8Match((uint8_t)val, &rd->du8);
+                }
+                val = GetHostRepDst(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val < 0) {
+                    return 1;
+                }
+                /* both have a value, so none 'isnotset' */
+                return 0;
             }
             break;
 
@@ -182,6 +201,10 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             if (val >= 0) {
                 return DetectU8Match((uint8_t)val, &rd->du8);
             }
+            /* implied: no value found */
+            if (rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual) {
+                return 1;
+            }
             break;
 
         case IPRepCmdDst:
@@ -192,19 +215,39 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             if (val >= 0) {
                 return DetectU8Match((uint8_t)val, &rd->du8);
             }
+            /* implied: no value found */
+            if (rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual) {
+                return 1;
+            }
             break;
 
         case IPRepCmdBoth:
-            val = GetHostRepSrc(p, rd->cat, version);
-            if (val < 0)
+            if (!(rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual)) {
+                val = GetHostRepSrc(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val < 0 || DetectU8Match((uint8_t)val, &rd->du8) == 0)
+                    return 0;
+                val = GetHostRepDst(p, rd->cat, version);
+                if (val < 0)
+                    val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
+                if (val >= 0) {
+                    return DetectU8Match((uint8_t)val, &rd->du8);
+                }
+            } else {
+                val = GetHostRepSrc(p, rd->cat, version);
+                if (val >= 0)
+                    return 0;
                 val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val < 0 || DetectU8Match((uint8_t)val, &rd->du8) == 0)
-                return 0;
-            val = GetHostRepDst(p, rd->cat, version);
-            if (val < 0)
+                if (val >= 0)
+                    return 0;
+                val = GetHostRepDst(p, rd->cat, version);
+                if (val >= 0)
+                    return 0;
                 val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
-            if (val >= 0) {
-                return DetectU8Match((uint8_t)val, &rd->du8);
+                if (val >= 0)
+                    return 0;
+                return 1;
             }
             break;
     }
@@ -775,6 +818,118 @@ static int DetectIPRepTest09(void)
     PASS;
 }
 
+static FILE *DetectIPRepGenerateNetworksDummy3(void)
+{
+    FILE *fd = NULL;
+    const char *buffer = "192.168.0.0/16,1,127"; // BadHosts
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen()");
+
+    return fd;
+}
+
+static int DetectIPRepTest10(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Signature *sig = NULL;
+    FILE *fd = NULL;
+    int r = 0;
+    Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    HostInitConfig(HOST_QUIET);
+    memset(&th_v, 0, sizeof(th_v));
+
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("192.168.0.2");
+    de_ctx->flags |= DE_QUIET;
+
+    SRepInit(de_ctx);
+    SRepResetVersion();
+
+    fd = DetectIPRepGenerateCategoriesDummy2();
+    r = SRepLoadCatFileFromFD(fd);
+    FAIL_IF(r < 0);
+
+    fd = DetectIPRepGenerateNetworksDummy3();
+    r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
+    FAIL_IF(r < 0);
+
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"test\"; iprep:src,BadHosts,isset; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(p->alerts.cnt == 1);
+
+    UTHFreePacket(p);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    HostShutdown();
+    PASS;
+}
+
+static int DetectIPRepTest11(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Signature *sig = NULL;
+    FILE *fd = NULL;
+    int r = 0;
+    Packet *p = UTHBuildPacket((uint8_t *)"lalala", 6, IPPROTO_TCP);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    HostInitConfig(HOST_QUIET);
+    memset(&th_v, 0, sizeof(th_v));
+
+    FAIL_IF_NULL(de_ctx);
+    FAIL_IF_NULL(p);
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
+    de_ctx->flags |= DE_QUIET;
+
+    SRepInit(de_ctx);
+    SRepResetVersion();
+
+    fd = DetectIPRepGenerateCategoriesDummy2();
+    r = SRepLoadCatFileFromFD(fd);
+    FAIL_IF(r < 0);
+
+    fd = DetectIPRepGenerateNetworksDummy3();
+    r = SRepLoadFileFromFD(de_ctx->srepCIDR_ctx, fd);
+    FAIL_IF(r < 0);
+
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"test\"; "
+                                        "iprep:src,BadHosts,isnotset; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(p->alerts.cnt == 1);
+
+    UTHFreePacket(p);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    HostShutdown();
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for IPRep
  */
@@ -789,5 +944,7 @@ void IPRepRegisterTests(void)
     UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07);
     UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08);
     UtRegisterTest("DetectIPRepTest09", DetectIPRepTest09);
+    UtRegisterTest("DetectIPRepTest10 -- isset", DetectIPRepTest10);
+    UtRegisterTest("DetectIPRepTest11 -- isnotset", DetectIPRepTest11);
 }
 #endif /* UNITTESTS */
