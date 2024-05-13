@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -295,7 +295,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(void *),
         bool (*DataCompare)(void *, void *), bool (*DataExpired)(void *, SCTime_t),
-        bool reset_memcap, uint64_t memcap, uint32_t hashsize)
+        uint32_t (*DataSize)(void *), bool reset_memcap, uint64_t memcap, uint32_t hashsize)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
@@ -306,6 +306,7 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     ctx->config.DataHash = DataHash;
     ctx->config.DataCompare = DataCompare;
     ctx->config.DataExpired = DataExpired;
+    ctx->config.DataSize = DataSize;
 
     /* set defaults */
     ctx->config.hash_rand = (uint32_t)RandomGet();
