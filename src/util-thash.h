@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -133,6 +133,7 @@ typedef struct THashDataConfig_ {
     uint32_t (*DataHash)(void *);
     bool (*DataCompare)(void *, void *);
     bool (*DataExpired)(void *, SCTime_t ts);
+    uint32_t (*DataSize)(void *);
 } THashConfig;
 
 #define THASH_DATA_SIZE(ctx) (sizeof(THashData) + (ctx)->config.data_size)
@@ -171,8 +172,8 @@ typedef struct THashTableContext_ {
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
         uint32_t (*DataHash)(void *), bool (*DataCompare)(void *, void *),
-        bool (*DataExpired)(void *, SCTime_t), bool reset_memcap, uint64_t memcap,
-        uint32_t hashsize);
+        bool (*DataExpired)(void *, SCTime_t), uint32_t (*DataSize)(void *), bool reset_memcap,
+        uint64_t memcap, uint32_t hashsize);
 
 void THashShutdown(THashTableContext *ctx);
 
