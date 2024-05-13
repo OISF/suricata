@@ -580,17 +580,11 @@ int SRepInit(DetectEngineCtx *de_ctx)
     ConfNode *file = NULL;
     const char *filename = NULL;
     int init = 0;
-    int i = 0;
 
     de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCCalloc(1, sizeof(SRepCIDRTree));
     if (de_ctx->srepCIDR_ctx == NULL)
         exit(EXIT_FAILURE);
     SRepCIDRTree *cidr_ctx = de_ctx->srepCIDR_ctx;
-
-    for (i = 0; i < SREP_MAX_CATS; i++) {
-        cidr_ctx->srepIPV4_tree[i] = NULL;
-        cidr_ctx->srepIPV6_tree[i] = NULL;
-    }
 
     if (SRepGetVersion() == 0) {
         SC_ATOMIC_INIT(srep_eversion);
