@@ -16,10 +16,11 @@
  */
 
 use super::uint::*;
-use nom7::bytes::complete::{is_a, take_while};
-use nom7::character::complete::{alpha0, char, digit1};
-use nom7::combinator::{all_consuming, map_opt, map_res, opt};
-use nom7::error::{make_error, ErrorKind};
+use crate::detect::error::RuleParseError;
+use nom7::bytes::complete::tag;
+use nom7::character::complete::multispace0;
+use nom7::sequence::preceded;
+
 use nom7::Err;
 use nom7::IResult;
 
@@ -75,36 +76,46 @@ extern "C" {
     pub fn SRepCatGetByShortname(name: *const c_char) -> u8;
 }
 
-pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, cmd) = map_res(alpha0, DetectIPRepDataCmd::from_str)(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = char(',')(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseError<&str>> {
+    // Inner utility function for easy error creation.
+    fn make_error(reason: String) -> nom7::Err<RuleParseError<&'static str>> {
+        Err::Error(RuleParseError::InvalidIPRep(reason))
+    }
+    let (_, values) = nom7::multi::separated_list1(
+        tag(","),
+        preceded(multispace0, nom7::bytes::complete::is_not(",")),
+    )(i)?;
 
-    let (i, name) = take_while(is_alphanumeric_or_slash)(i)?;
-    // copy as to have final zero
-    let namez = CString::new(name).unwrap();
-    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
-    if cat == 0 {
-        return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
+    if values.len() == 4 {
+        let cmd = match DetectIPRepDataCmd::from_str(values[0].trim()) {
+            Ok(val) => val,
+            Err(_) => return Err(make_error("invalid command".to_string())),
+        };
+        let name = values[1].trim();
+        let mode = match detect_parse_uint_mode(values[2].trim()) {
+            Ok(val) => val.1,
+            Err(_) => return Err(make_error("invalid mode".to_string())),
+        };
+
+        let namez = CString::new(name).unwrap();
+        let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
+        if cat == 0 {
+            return Err(make_error("unknown category".to_string()));
+        }
+        let arg1 = match values[3].trim().parse::<u8>() {
+            Ok(val) => val,
+            Err(_) => return Err(make_error("invalid value".to_string())),
+        };
+        let du8 = DetectUintData::<u8> {
+            arg1,
+            arg2: 0,
+            mode,
+        };
+        return Ok((i, DetectIPRepData { du8, cat, cmd }));
+    } else {
+        return Err(make_error("too many arguments".to_string()));
     }
 
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = char(',')(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, mode) = detect_parse_uint_mode(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = char(',')(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<u8>().ok())(i)?;
-    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
-    let du8 = DetectUintData::<u8> {
-        arg1,
-        arg2: 0,
-        mode,
-    };
-    return Ok((i, DetectIPRepData { du8, cat, cmd }));
 }
 
 #[no_mangle]
