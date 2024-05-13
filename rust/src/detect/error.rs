@@ -23,6 +23,7 @@ use nom7::error::{ErrorKind, ParseError};
 #[derive(Debug, PartialEq, Eq)]
 pub enum RuleParseError<I> {
     InvalidByteMath(String),
+    InvalidIPRep(String),
 
     Nom(I, ErrorKind),
 }
