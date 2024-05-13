@@ -54,12 +54,17 @@ impl std::str::FromStr for DetectIPRepDataCmd {
     }
 }
 
+/// value matching is done use `DetectUintData` logic.
+/// isset matching is done using special `DetectUintData` value ">= 0"
+/// isnotset matching bypasses `DetectUintData` and is handled directly
+/// in the match function (in C).
 #[derive(Debug)]
 #[repr(C)]
 pub struct DetectIPRepData {
     pub du8: DetectUintData<u8>,
     pub cat: u8,
     pub cmd: DetectIPRepDataCmd,
+    pub isnotset: bool, // if true, ignores `du8`
 }
 
 pub fn is_alphanumeric_or_slash(chr: char) -> bool {
@@ -86,33 +91,56 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseEr
         preceded(multispace0, nom7::bytes::complete::is_not(",")),
     )(i)?;
 
-    if values.len() == 4 {
-        let cmd = match DetectIPRepDataCmd::from_str(values[0].trim()) {
-            Ok(val) => val,
-            Err(_) => return Err(make_error("invalid command".to_string())),
+    let args = values.len();
+    if args == 4 || args == 3 {
+        let cmd = if let Ok(cmd) = DetectIPRepDataCmd::from_str(values[0].trim()) {
+            cmd
+        } else {
+            return Err(make_error("invalid command".to_string()));
         };
         let name = values[1].trim();
-        let mode = match detect_parse_uint_mode(values[2].trim()) {
-            Ok(val) => val.1,
-            Err(_) => return Err(make_error("invalid mode".to_string())),
+        let namez = if let Ok(name) = CString::new(name) {
+            name
+        } else {
+            return Err(make_error("invalid name".to_string()));
         };
-
-        let namez = CString::new(name).unwrap();
         let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
         if cat == 0 {
             return Err(make_error("unknown category".to_string()));
         }
-        let arg1 = match values[3].trim().parse::<u8>() {
-            Ok(val) => val,
-            Err(_) => return Err(make_error("invalid value".to_string())),
-        };
-        let du8 = DetectUintData::<u8> {
-            arg1,
-            arg2: 0,
-            mode,
-        };
-        return Ok((i, DetectIPRepData { du8, cat, cmd }));
-    } else {
+
+        if args == 4 {
+            let mode = match detect_parse_uint_mode(values[2].trim()) {
+                Ok(val) => val.1,
+                Err(_) => return Err(make_error("invalid mode".to_string())),
+            };
+
+            let arg1 = match values[3].trim().parse::<u8>() {
+                Ok(val) => val,
+                Err(_) => return Err(make_error("invalid value".to_string())),
+            };
+            let du8 = DetectUintData::<u8> {
+                arg1,
+                arg2: 0,
+                mode,
+            };
+            return Ok((i, DetectIPRepData { du8, cat, cmd, isnotset: false, }));
+        } else {
+            let (isnotset, mode, arg1) = match values[2].trim() {
+                "isset" => { (false, DetectUintMode::DetectUintModeGte, 0) },
+                "isnotset" => { (true, DetectUintMode::DetectUintModeEqual, 0) },
+                _ => { return Err(make_error("invalid mode".to_string())); },
+            };
+            let du8 = DetectUintData::<u8> {
+                arg1,
+                arg2: 0,
+                mode,
+            };
+            return Ok((i, DetectIPRepData { du8, cat, cmd, isnotset, }));
+        }
+    } else if args < 3 {
+        return Err(make_error("too few arguments".to_string()));
+    } else  {
         return Err(make_error("too many arguments".to_string()));
     }
 
