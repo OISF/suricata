@@ -1280,7 +1280,7 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
     Host *host = HostGetHostFromHash(&a);
     if (host) {
         HostBitSet(host, idx, SCTIME_SECS(current_time) + expire);
-        HostUnlock(host);
+        HostRelease(host);
 
         json_object_set_new(answer, "message", json_string("hostbit added"));
         return TM_ECODE_OK;
@@ -1349,7 +1349,7 @@ TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data_unused)
     Host *host = HostLookupHostFromHash(&a);
     if (host) {
         HostBitUnset(host, idx);
-        HostUnlock(host);
+        HostRelease(host);
         json_object_set_new(answer, "message", json_string("hostbit removed"));
         return TM_ECODE_OK;
     } else {
@@ -1426,7 +1426,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
         bits[use].expire = iter->expire;
         use++;
     }
-    HostUnlock(host);
+    HostRelease(host);
 
     json_t *jdata = json_object();
     json_t *jarray = json_array();
