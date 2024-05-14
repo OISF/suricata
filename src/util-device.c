@@ -565,8 +565,11 @@ void LiveDevAddBypassSuccess(LiveDevice *dev, uint64_t cnt, int family)
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
 {
+    if (g_bypass_storage_id.id < 0) {
+        json_object_set_new(answer, "message", json_string("Bypass not enabled"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
     LiveDevice *ldev = NULL, *ndev = NULL;
-
     json_t *ifaces = NULL;
     while(LiveDeviceForEach(&ldev, &ndev)) {
         BypassInfo *bpinfo = LiveDevGetStorageById(ldev, g_bypass_storage_id);
