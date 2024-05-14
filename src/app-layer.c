@@ -1056,7 +1056,7 @@ int AppLayerDeSetup(void)
     SCReturnInt(0);
 }
 
-AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
+AppLayerThreadCtx *AppLayerGetCtxThread(void)
 {
     SCEnter();
 

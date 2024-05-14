@@ -344,9 +344,8 @@ error:
  *  \retval -1 error
  */
 static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
-        uint8_t parsed_type, uint8_t parsed_track, uint32_t parsed_count,
-        uint32_t parsed_seconds, uint32_t parsed_timeout, uint8_t parsed_new_action,
-        const char *th_ip)
+        uint8_t parsed_type, uint8_t parsed_track, uint32_t parsed_count, uint32_t parsed_seconds,
+        uint32_t parsed_timeout, uint8_t parsed_new_action)
 {
     Signature *s = NULL;
     SigMatch *sm = NULL;
@@ -894,9 +893,8 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
                     parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
                     th_ip);
     } else {
-        r = SetupThresholdRule(de_ctx, id, gid, parsed_type, parsed_track,
-                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
-                    th_ip);
+        r = SetupThresholdRule(de_ctx, id, gid, parsed_type, parsed_track, parsed_count,
+                parsed_seconds, parsed_timeout, parsed_new_action);
     }
     if (r < 0) {
         goto error;

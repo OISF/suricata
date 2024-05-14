@@ -167,13 +167,11 @@ static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 /**
  * \brief Releases local resources used by the Reference Config API.
  */
-static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
+static void SCRConfDeInitLocalResources(FILE *fd)
 {
     if (fd != NULL) {
         fclose(fd);
     }
-
-    return;
 }
 
 /**
@@ -506,7 +504,7 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
     }
 
     bool rc = SCRConfParseFile(de_ctx, fd);
-    SCRConfDeInitLocalResources(de_ctx, fd);
+    SCRConfDeInitLocalResources(fd);
 
     return rc ? 0 : -1;
 }
