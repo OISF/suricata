@@ -1,1 +1,2 @@
 alert icmp any any -> any any (itype:8; sid:1;)
+alert icmp any any -> any any (itype:8; ip.dst; dataset:set,ipv4-list,type ipv4; sid:222;)
