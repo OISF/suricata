@@ -141,7 +141,7 @@ static inline void TmThreadsCleanDecodePQ(PacketQueueNoLock *pq)
     }
 }
 
-static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, TmSlot *s, Packet *p)
+static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, Packet *p)
 {
     if (p != NULL) {
         TmqhOutputPacketpool(tv, p);
@@ -176,7 +176,7 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
 #endif
             TmEcode r = TmThreadsSlotVarRun(tv, extra_p, tv->tm_flowworker);
             if (r == TM_ECODE_FAILED) {
-                TmThreadsSlotProcessPktFail(tv, tv->tm_flowworker, extra_p);
+                TmThreadsSlotProcessPktFail(tv, extra_p);
                 break;
             }
             tv->tmqh_out(tv, extra_p);
@@ -199,7 +199,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 
     TmEcode r = TmThreadsSlotVarRun(tv, p, s);
     if (unlikely(r == TM_ECODE_FAILED)) {
-        TmThreadsSlotProcessPktFail(tv, s, p);
+        TmThreadsSlotProcessPktFail(tv, p);
         return TM_ECODE_FAILED;
     }
 

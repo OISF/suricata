@@ -216,8 +216,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(
-        HtpState *s, HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t direction)
+int HTPFileStoreChunk(HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t direction)
 {
     SCEnter();
 
@@ -303,8 +302,8 @@ bool HTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, HtpTxUserData *tx, const uint8_t *data, uint32_t data_len,
-        uint8_t flags, uint8_t direction)
+int HTPFileClose(
+        HtpTxUserData *tx, const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t direction)
 {
     SCEnter();
 
