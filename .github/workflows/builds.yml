@@ -1682,6 +1682,94 @@ jobs:
           fail_ci_if_error: false
           flags: livemode
 
+  ubuntu-24-04-pcap-unix:
+    name: Ubuntu 24.04 (pcap unix socket ASAN)
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --privileged
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                llvm-18-dev \
+                cargo \
+                cbindgen \
+                clang-18 \
+                git \
+                jq \
+                libc++-dev \
+                libc++abi-dev \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                liblua5.1-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                sudo \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags \
+                unzip \
+                curl \
+                time \
+                wget \
+                dpdk-dev
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Fix kernel mmap rnd bits
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - run: ./autogen.sh
+      - run: ./configure --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
+        env:
+          CC: "clang-18"
+          CFLAGS: "-g -fsanitize=address -fno-omit-frame-pointer"
+          ac_cv_func_malloc_0_nonnull: "yes"
+          ac_cv_func_realloc_0_nonnull: "yes"
+      - run: make -j ${{ env.CPUS }}
+        env:
+          CC: "clang-18"
+      - run: |
+          ./qa/unix.sh "suricata-verify/"
+
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
     runs-on: ubuntu-latest
