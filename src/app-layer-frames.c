@@ -464,8 +464,8 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
     return r;
 }
 
-static Frame *AppLayerFrameUdp(Flow *f, const StreamSlice *stream_slice,
-        const uint32_t frame_start_rel, const int64_t len, int dir, uint8_t frame_type)
+static Frame *AppLayerFrameUdp(
+        Flow *f, const uint32_t frame_start_rel, const int64_t len, int dir, uint8_t frame_type)
 {
     BUG_ON(f->proto != IPPROTO_UDP);
 
@@ -511,7 +511,7 @@ Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice
     BUG_ON(f->alparser == NULL);
 
     if (f->proto == IPPROTO_UDP) {
-        return AppLayerFrameUdp(f, stream_slice, frame_start_rel, len, dir, frame_type);
+        return AppLayerFrameUdp(f, frame_start_rel, len, dir, frame_type);
     }
 
     FramesContainer *frames_container = AppLayerFramesSetupContainer(f);
@@ -666,8 +666,7 @@ Frame *AppLayerFrameGetById(Flow *f, const int dir, const FrameId frame_id)
     return FrameGetById(frames, frame_id);
 }
 
-static inline bool FrameIsDone(
-        const Frame *frame, const uint64_t abs_offset, const uint64_t abs_right_edge)
+static inline bool FrameIsDone(const Frame *frame, const uint64_t abs_right_edge)
 {
     /* frame with negative length means we don't know the size yet. */
     if (frame->len < 0)
@@ -699,7 +698,7 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
         if (i < FRAMES_STATIC_CNT) {
             Frame *frame = &frames->sframes[i];
             FrameDebug("prune(s)", frames, frame);
-            if (eof || FrameIsDone(frame, abs_offset, acked)) {
+            if (eof || FrameIsDone(frame, acked)) {
                 // remove by not incrementing 'x'
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameDebug("remove(s)", frames, frame);
@@ -720,7 +719,7 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
             const uint16_t o = i - FRAMES_STATIC_CNT;
             Frame *frame = &frames->dframes[o];
             FrameDebug("prune(d)", frames, frame);
-            if (eof || FrameIsDone(frame, abs_offset, acked)) {
+            if (eof || FrameIsDone(frame, acked)) {
                 // remove by not incrementing 'x'
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameDebug("remove(d)", frames, frame);
