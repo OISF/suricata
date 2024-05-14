@@ -36,3 +36,6 @@ threading:
     - worker-cpu-set:
         cpu: [ "all" ]
         mode: "exclusive"
+
+unix-command:
+  enabled: auto
