@@ -28,8 +28,9 @@ pub enum WebSocketOpcode {
     Continuation = 0,
     Text = 1,
     Binary = 2,
-    Ping = 8,
-    Pong = 9,
+    Close = 8,
+    Ping = 9,
+    Pong = 10,
 }
 
 #[derive(Clone, Debug, Default)]
