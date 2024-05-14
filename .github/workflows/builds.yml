@@ -1544,6 +1544,121 @@ jobs:
           fail_ci_if_error: false
           flags: unittests
 
+  ubuntu-22-04-cov-pcapunix:
+    name: Ubuntu 22.04 (unix socket mode coverage)
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+      options: --privileged
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                llvm-14-dev \
+                clang-14 \
+                git \
+                jq \
+                inetutils-ping \
+                libc++-dev \
+                libc++abi-dev \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                liblua5.1-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                software-properties-common \
+                sudo \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags \
+                unzip \
+                curl \
+                time \
+                wget
+      # specific version to match up to the llvm version in ubuntu below
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          name: cbindgen
+          path: prep
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - run: ./autogen.sh
+      - run: ./configure --with-gnu-ld --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
+        env:
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
+          ac_cv_func_malloc_0_nonnull: "yes"
+          ac_cv_func_realloc_0_nonnull: "yes"
+      - run: make -j ${{ env.CPUS }}
+        env:
+          CC: "clang-14"
+          CXX: "clang++-14"
+          RUSTFLAGS: "-C instrument-coverage"
+      - run: |
+          ./qa/unix.sh "suricata-verify/"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/unix.profraw"
+      - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8
+        with:
+          fail_ci_if_error: false
+          flags: pcap
+
   ubuntu-22-04-cov-afpdpdk:
     name: Ubuntu 22.04 (afpacket and dpdk coverage)
     runs-on: ubuntu-latest
