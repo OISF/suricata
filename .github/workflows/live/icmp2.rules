@@ -1,1 +1,1 @@
-alert icmp any any -> any any (itype:8; sid:2;)
+alert icmp any any -> any any (itype:8; hostbits:isset,test,dst; sid:2;)
