@@ -61,7 +61,7 @@ void SetMasterExceptionPolicy(void)
     g_eps_master_switch = ExceptionPolicyParse("exception-policy", true);
 }
 
-static enum ExceptionPolicy GetMasterExceptionPolicy(const char *option)
+static enum ExceptionPolicy GetMasterExceptionPolicy()
 {
     return g_eps_master_switch;
 }
@@ -208,7 +208,7 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(
 {
     enum ExceptionPolicy p = EXCEPTION_POLICY_NOT_SET;
     if (g_eps_have_exception_policy) {
-        p = GetMasterExceptionPolicy(option);
+        p = GetMasterExceptionPolicy();
 
         if (p == EXCEPTION_POLICY_AUTO) {
             p = ExceptionPolicyPickAuto(midstream, support_flow);

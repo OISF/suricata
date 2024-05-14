@@ -149,9 +149,9 @@ static inline bool RegionsIntersect(const StreamingBufferConfig *cfg,
 /** \internal
  *  \brief find the first region for merging.
  */
-static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len, StreamingBufferRegion **prev)
+static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBufferConfig *cfg,
+        StreamingBufferRegion *r, const uint64_t offset, const uint32_t len,
+        StreamingBufferRegion **prev)
 {
     const uint64_t data_re = offset + len;
     SCLogDebug("looking for first region matching %" PRIu64 "/%" PRIu64, offset, data_re);
@@ -168,9 +168,8 @@ static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBuffer *sb
     return NULL;
 }
 
-static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len)
+static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBufferConfig *cfg,
+        StreamingBufferRegion *r, const uint64_t offset, const uint32_t len)
 {
     const uint64_t data_re = offset + len;
     SCLogDebug("starting at %p/%" PRIu64 ", offset %" PRIu64 ", data_re %" PRIu64, r,
@@ -193,9 +192,8 @@ static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBuffer *
     return candidate;
 }
 
-static StreamingBufferRegion *FindRightEdge(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len)
+static StreamingBufferRegion *FindRightEdge(const StreamingBufferConfig *cfg,
+        StreamingBufferRegion *r, const uint64_t offset, const uint32_t len)
 {
     const uint64_t data_re = offset + len;
     StreamingBufferRegion *candidate = r;
@@ -364,8 +362,8 @@ static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig 
  *
  * [gap][block]
  **/
-static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
-        StreamingBufferRegion *region, uint64_t offset, uint32_t data_len)
+static int WARN_UNUSED SBBInitLeadingGap(
+        StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint64_t offset, uint32_t data_len)
 {
     DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
 
@@ -701,7 +699,7 @@ static inline uint32_t ToNextMultipleOf(const uint32_t in, const uint32_t m)
 
 static thread_local bool g2s_warn_once = false;
 
-static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
+static inline int WARN_UNUSED GrowRegionToSize(
         const StreamingBufferConfig *cfg, StreamingBufferRegion *region, const uint32_t size)
 {
     DEBUG_VALIDATE_BUG_ON(region->buf_size > BIT_U32(30));
@@ -743,7 +741,7 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
 static int WARN_UNUSED GrowToSize(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint32_t size)
 {
-    return GrowRegionToSize(sb, cfg, &sb->region, size);
+    return GrowRegionToSize(cfg, &sb->region, size);
 }
 
 static inline bool RegionBeforeOffset(const StreamingBufferRegion *r, const uint64_t o)
@@ -901,7 +899,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                         goto just_main;
                     }
                     /* expand "next" to include relevant part of "start" */
-                    if (GrowRegionToSize(sb, cfg, next, mem_size) != 0) {
+                    if (GrowRegionToSize(cfg, next, mem_size) != 0) {
                         new_mem_size = new_data_size;
                         goto just_main;
                     }
@@ -937,7 +935,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     goto done;
                 } else {
                     /* using "main", expand to include "next" */
-                    if (GrowRegionToSize(sb, cfg, start, mem_size) != 0) {
+                    if (GrowRegionToSize(cfg, start, mem_size) != 0) {
                         new_mem_size = new_data_size;
                         goto just_main;
                     }
@@ -1268,7 +1266,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
     SCLogDebug("old_size %u, old_offset %u, dst_copy_offset %u", old_size, old_offset,
             dst_copy_offset);
 #endif
-    if ((retval = GrowRegionToSize(sb, cfg, dst, dst_size)) != SC_OK) {
+    if ((retval = GrowRegionToSize(cfg, dst, dst_size)) != SC_OK) {
         sc_errno = retval;
         return NULL;
     }
@@ -1376,21 +1374,21 @@ static StreamingBufferRegion *BufferInsertAtRegionDo(StreamingBuffer *sb,
     SCLogDebug("offset %" PRIu64 ", len %u", offset, len);
     StreamingBufferRegion *start_prev = NULL;
     StreamingBufferRegion *start =
-            FindFirstRegionForOffset(sb, cfg, &sb->region, offset, len, &start_prev);
+            FindFirstRegionForOffset(cfg, &sb->region, offset, len, &start_prev);
     if (start) {
         const uint64_t insert_re = offset + len;
         const uint64_t insert_start_offset = MIN(start->stream_offset, offset);
         uint64_t insert_adjusted_re = insert_re;
 
         SCLogDebug("start region %p/%" PRIu64 "/%u", start, start->stream_offset, start->buf_size);
-        StreamingBufferRegion *big = FindLargestRegionForOffset(sb, cfg, start, offset, len);
+        StreamingBufferRegion *big = FindLargestRegionForOffset(cfg, start, offset, len);
         DEBUG_VALIDATE_BUG_ON(big == NULL);
         if (big == NULL) {
             sc_errno = SC_EINVAL;
             return NULL;
         }
         SCLogDebug("big region %p/%" PRIu64 "/%u", big, big->stream_offset, big->buf_size);
-        StreamingBufferRegion *end = FindRightEdge(sb, cfg, big, offset, len);
+        StreamingBufferRegion *end = FindRightEdge(cfg, big, offset, len);
         DEBUG_VALIDATE_BUG_ON(end == NULL);
         if (end == NULL) {
             sc_errno = SC_EINVAL;
@@ -1453,8 +1451,7 @@ static StreamingBufferRegion *BufferInsertAtRegionDo(StreamingBuffer *sb,
  *  \note sets sc_errno
  */
 static StreamingBufferRegion *BufferInsertAtRegion(StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, const uint8_t *data, const uint32_t data_len,
-        const uint64_t data_offset)
+        const StreamingBufferConfig *cfg, const uint32_t data_len, const uint64_t data_offset)
 {
     SCLogDebug("data_offset %" PRIu64 ", data_len %u, re %" PRIu64, data_offset, data_len,
             data_offset + data_len);
@@ -1511,7 +1508,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
         return SC_EINVAL;
     }
 
-    StreamingBufferRegion *region = BufferInsertAtRegion(sb, cfg, data, data_len, offset);
+    StreamingBufferRegion *region = BufferInsertAtRegion(sb, cfg, data_len, offset);
     if (region == NULL) {
         return sc_errno;
     }
@@ -1582,7 +1579,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
                 } else {
                     /* gap before data in empty list */
                     SCLogDebug("empty sbb list: invoking SBBInitLeadingGap");
-                    if ((r = SBBInitLeadingGap(sb, cfg, region, offset, data_len)) != SC_OK)
+                    if ((r = SBBInitLeadingGap(sb, cfg, offset, data_len)) != SC_OK)
                         return r;
                 }
             }
@@ -1595,7 +1592,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
             } else {
                 /* gap before data in empty list */
                 SCLogDebug("empty sbb list: invoking SBBInitLeadingGap");
-                if ((r = SBBInitLeadingGap(sb, cfg, region, offset, data_len)) != SC_OK)
+                if ((r = SBBInitLeadingGap(sb, cfg, offset, data_len)) != SC_OK)
                     return r;
             }
             if (rel_offset == region->buf_offset) {

@@ -139,7 +139,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
         /* handle error */
         if (unlikely(r == TM_ECODE_FAILED)) {
             /* Encountered error.  Return packets to packetpool and return */
-            TmThreadsSlotProcessPktFail(tv, s, NULL);
+            TmThreadsSlotProcessPktFail(tv, NULL);
             return TM_ECODE_FAILED;
         }
         if (s->tm_flags & TM_FLAG_DECODE_TM) {

@@ -178,7 +178,7 @@ static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 /**
  * \brief Releases resources used by the Classification Config API.
  */
-static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
+static void SCClassConfDeInitLocalResources(FILE *fd)
 {
     if (fd != NULL) {
         fclose(fd);
@@ -549,7 +549,7 @@ bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
         ret = false;
     }
 
-    SCClassConfDeInitLocalResources(de_ctx, fd);
+    SCClassConfDeInitLocalResources(fd);
 
     return ret;
 }

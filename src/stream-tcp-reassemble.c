@@ -1131,7 +1131,7 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
  *  Call this when the app layer didn't get data at the requested
  *  offset.
  */
-static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
+static inline bool CheckGap(TcpSession *ssn, TcpStream *stream)
 {
     const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
     const int ackadded = (ssn->state >= TCP_FIN_WAIT1) ? 1 : 0;
@@ -1245,7 +1245,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         /* make sure to only deal with ACK'd data */
         mydata_len = AdjustToAcked(p, ssn, *stream, app_progress, mydata_len);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
-        if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
+        if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
 
             int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, NULL, mydata_len,

@@ -121,21 +121,15 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv);
 
 void AppLayerProfilingResetInternal(AppLayerThreadCtx *app_tctx);
 
-static inline void AppLayerProfilingReset(AppLayerThreadCtx *app_tctx)
-{
-#ifdef PROFILING
-    AppLayerProfilingResetInternal(app_tctx);
-#endif
-}
-
 void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p);
 
-static inline void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p)
-{
 #ifdef PROFILING
-    AppLayerProfilingStoreInternal(app_tctx, p);
+#define AppLayerProfilingReset(app_tctx)    AppLayerProfilingResetInternal(app_tctx)
+#define AppLayerProfilingStore(app_tctx, p) AppLayerProfilingStoreInternal(app_tctx, p)
+#else
+#define AppLayerProfilingReset(app_tctx)
+#define AppLayerProfilingStore(app_tctx, p)
 #endif
-}
 
 void AppLayerRegisterGlobalCounters(void);
 
