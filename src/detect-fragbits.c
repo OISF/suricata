@@ -480,7 +480,7 @@ static int FragBitsTestParse03 (void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    dtv.app_tctx = AppLayerGetCtxThread(&tv);
+    dtv.app_tctx = AppLayerGetCtxThread();
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -562,7 +562,7 @@ static int FragBitsTestParse04 (void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    dtv.app_tctx = AppLayerGetCtxThread(&tv);
+    dtv.app_tctx = AppLayerGetCtxThread();
 
     FlowInitConfig(FLOW_QUIET);
 
