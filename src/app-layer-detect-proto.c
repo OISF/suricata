@@ -460,7 +460,7 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
  * \brief Call the probing expectation to see if there is some for this flow.
  *
  */
-static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto, uint8_t flags)
+static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t flags)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
 
@@ -1444,7 +1444,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
 
     /* Look if flow can be found in expectation list */
     if (!FLOW_IS_PE_DONE(f, flags)) {
-        alproto = AppLayerProtoDetectPEGetProto(f, ipproto, flags);
+        alproto = AppLayerProtoDetectPEGetProto(f, flags);
     }
 
  end:

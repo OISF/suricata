@@ -560,7 +560,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
     if (unlikely(ra_ctx == NULL))
         return NULL;
 
-    ra_ctx->app_tctx = AppLayerGetCtxThread(tv);
+    ra_ctx->app_tctx = AppLayerGetCtxThread();
 
     SCMutexLock(&segment_thread_pool_mutex);
     if (segment_thread_pool == NULL) {
