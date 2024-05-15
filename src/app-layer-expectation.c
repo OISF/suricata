@@ -386,7 +386,6 @@ void AppLayerExpectationClean(Flow *f)
 out:
     if (ipp)
         IPPairRelease(ipp);
-    return;
 }
 
 /**

@@ -81,8 +81,6 @@ int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
 void MemBufferFree(MemBuffer *buffer)
 {
     SCFree(buffer);
-
-    return;
 }
 
 void MemBufferPrintToFP(MemBuffer *buffer, FILE *fp)

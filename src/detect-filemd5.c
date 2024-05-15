@@ -55,7 +55,6 @@ void DetectFileMd5Register(void)
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filemd5 rule option");
-    return;
 }
 
 /**

@@ -48,8 +48,6 @@ void RunModeIdsPcapRegister(void)
             "Workers pcap live mode, each thread does all"
             " tasks from acquisition to logging",
             RunModeIdsPcapWorkers, NULL);
-
-    return;
 }
 
 static void PcapDerefConfig(void *conf)

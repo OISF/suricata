@@ -1690,7 +1690,6 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
     }
     *data = NULL;
     *data_len = 0;
-    return;
 }
 
 /** \brief get the data for one SBB */
@@ -1733,7 +1732,6 @@ void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
 
     *data = NULL;
     *data_len = 0;
-    return;
 }
 
 void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
@@ -1763,7 +1761,6 @@ void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
     }
     *data = NULL;
     *data_len = 0;
-    return;
 }
 
 /**

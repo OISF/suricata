@@ -79,8 +79,6 @@ void TmqhFlowRegister(void)
     } else {
         tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
     }
-
-    return;
 }
 
 void TmqhFlowPrintAutofpHandler(void)
@@ -217,8 +215,6 @@ void TmqhOutputFlowFreeCtx(void *ctx)
               fctx->size);
     SCFree(fctx->queues);
     SCFree(fctx);
-
-    return;
 }
 
 void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
@@ -241,8 +237,6 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
     PacketEnqueue(q, p);
     SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
-
-    return;
 }
 
 /**
@@ -271,8 +265,6 @@ void TmqhOutputFlowIPPair(ThreadVars *tv, Packet *p)
     PacketEnqueue(q, p);
     SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
-
-    return;
 }
 
 static void TmqhOutputFlowFTPHash(ThreadVars *tv, Packet *p)
@@ -299,8 +291,6 @@ static void TmqhOutputFlowFTPHash(ThreadVars *tv, Packet *p)
     PacketEnqueue(q, p);
     SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
-
-    return;
 }
 
 #ifdef UNITTESTS
@@ -413,6 +403,4 @@ void TmqhFlowRegisterTests(void)
     UtRegisterTest("TmqhOutputFlowSetupCtxTest03",
                    TmqhOutputFlowSetupCtxTest03);
 #endif
-
-    return;
 }
