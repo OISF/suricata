@@ -275,7 +275,6 @@ void IPPairInitConfig(bool quiet)
                 SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     }
 
-    return;
 }
 
 /** \brief print some ippair stats
@@ -288,7 +287,6 @@ void IPPairPrintStats (void)
 #endif /* IPPAIRBITS_STATS */
     SCLogPerf("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
             SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
-    return;
 }
 
 /** \brief shutdown the flow engine
@@ -323,7 +321,6 @@ void IPPairShutdown(void)
     }
     (void) SC_ATOMIC_SUB(ippair_memuse, ippair_config.hash_size * sizeof(IPPairHashRow));
     IPPairQueueDestroy(&ippair_spare_q);
-    return;
 }
 
 /** \brief Cleanup the ippair engine
@@ -365,7 +362,6 @@ void IPPairCleanup(void)
         }
     }
 
-    return;
 }
 
 /** \brief compare two raw ipv6 addrs

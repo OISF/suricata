@@ -407,6 +407,4 @@ void SCRuleVarsRegisterTests(void)
 
     UtRegisterTest("SCRuleVarsMTest01", SCRuleVarsMTest01);
 #endif
-
-    return;
 }

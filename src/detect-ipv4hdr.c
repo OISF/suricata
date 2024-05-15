@@ -68,7 +68,6 @@ void DetectIpv4hdrRegister(void)
     DetectPktInspectEngineRegister("ipv4.hdr", GetData,
             DetectEngineInspectPktBufferGeneric);
 
-    return;
 }
 
 /**

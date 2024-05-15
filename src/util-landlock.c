@@ -33,7 +33,6 @@
 
 void LandlockSandboxing(SCInstance *suri)
 {
-    return;
 }
 
 #else /* HAVE_LINUX_LANDLOCK_H */

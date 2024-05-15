@@ -85,7 +85,6 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
 
 	SCLogDebug("registering lua rule option");
-    return;
 }
 
 #else /* HAVE_LUA */
@@ -129,7 +128,6 @@ void DetectLuaRegister(void)
             DetectEngineInspectGenericList, NULL);
 
     SCLogDebug("registering lua rule option");
-    return;
 }
 
 #define DATATYPE_PACKET  BIT_U32(0)

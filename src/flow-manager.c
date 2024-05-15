@@ -174,7 +174,6 @@ again:
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowmgr_cnt, 0);
-    return;
 }
 
 /** \internal
@@ -962,7 +961,6 @@ void FlowManagerThreadSpawn(void)
             FatalError("flow manager thread spawn failed");
         }
     }
-    return;
 }
 
 typedef struct FlowRecyclerThreadData_ {
@@ -1163,7 +1161,6 @@ void FlowRecyclerThreadSpawn(void)
             FatalError("flow recycler thread spawn failed");
         }
     }
-    return;
 }
 
 /**
@@ -1230,7 +1227,6 @@ again:
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowrec_cnt, 0);
-    return;
 }
 
 void TmModuleFlowManagerRegister (void)

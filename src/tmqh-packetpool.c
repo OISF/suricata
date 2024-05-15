@@ -439,7 +439,6 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
         TmqhOutputPacketpool(NULL, p);
     }
 
-    return;
 }
 
 /** number of packets to keep reserved when calculating the pending

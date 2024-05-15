@@ -109,7 +109,6 @@ static void SCACGetConfig(void)
 
     //ConfNode *pm = ConfGetNode("pattern-matcher");
 
-    return;
 }
 
 /**
@@ -275,7 +274,6 @@ static void SCACSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 
     output_state->pids[output_state->no_of_entries - 1] = pid;
 
-    return;
 }
 
 /**
@@ -319,7 +317,6 @@ static inline void SCACEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pi
      * pattern ends in the trie */
     SCACSetOutputState(state, pid, mpm_ctx);
 
-    return;
 }
 
 /**
@@ -346,7 +343,6 @@ static inline void SCACCreateGotoTable(MpmCtx *mpm_ctx)
         }
     }
 
-    return;
 }
 
 static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
@@ -367,7 +363,6 @@ static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
         ctx->goto_table[0][u] = newstate;
     }
 
-    return;
 }
 
 static inline int SCACStateQueueIsEmpty(StateQueue *q)
@@ -397,7 +392,6 @@ static inline void SCACEnqueue(StateQueue *q, int32_t state)
         FatalError("Just ran out of space in the queue. Please file a bug report on this");
     }
 
-    return;
 }
 
 static inline int32_t SCACDequeue(StateQueue *q)
@@ -455,7 +449,6 @@ static inline void SCACClubOutputStates(int32_t dst_state, int32_t src_state,
         }
     }
 
-    return;
 }
 
 /**
@@ -513,7 +506,6 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
     }
     SCFree(q);
 
-    return;
 }
 
 /**
@@ -607,7 +599,6 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         SCFree(q);
     }
 
-    return;
 }
 
 static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
@@ -637,7 +628,6 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
         }
     }
 
-    return;
 }
 
 static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
@@ -658,7 +648,6 @@ static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
         }
     }
 
-    return;
 }
 
 #if 0
@@ -677,7 +666,6 @@ static void SCACPrintDeltaTable(MpmCtx *mpm_ctx)
         }
     }
 
-    return;
 }
 #endif
 
@@ -720,7 +708,6 @@ static void SCACPrepareStateTable(MpmCtx *mpm_ctx)
     SCFree(ctx->failure_table);
     ctx->failure_table = NULL;
 
-    return;
 }
 
 /**
@@ -922,7 +909,6 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACCtx);
 
-    return;
 }
 
 /**
@@ -1115,7 +1101,6 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     printf("Total states in the state table:    %" PRIu32 "\n", ctx->state_count);
     printf("\n");
 
-    return;
 }
 
 
@@ -1138,7 +1123,6 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
 #endif
     mpm_table[MPM_AC].feature_flags = MPM_FEATURE_FLAG_DEPTH | MPM_FEATURE_FLAG_OFFSET;
-    return;
 }
 
 /*************************************Unittests********************************/

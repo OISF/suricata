@@ -49,7 +49,6 @@ void RunModeIdsPcapRegister(void)
             " tasks from acquisition to logging",
             RunModeIdsPcapWorkers, NULL);
 
-    return;
 }
 
 static void PcapDerefConfig(void *conf)

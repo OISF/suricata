@@ -115,7 +115,6 @@ void StreamTcpReassembleIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(ra_memuse, size);
     SCLogDebug("REASSEMBLY %"PRIu64", incr %"PRIu64, StreamTcpReassembleMemuseGlobalCounter(), size);
-    return;
 }
 
 /**
@@ -142,7 +141,6 @@ void StreamTcpReassembleDecrMemuse(uint64_t size)
     }
 #endif
     SCLogDebug("REASSEMBLY %"PRIu64", decr %"PRIu64, StreamTcpReassembleMemuseGlobalCounter(), size);
-    return;
 }
 
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void)

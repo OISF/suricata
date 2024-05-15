@@ -214,7 +214,6 @@ void PcapLogRegister(void)
     PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
     SC_ATOMIC_SET(thread_cnt, 1); /* first id is 1 */
-    return;
 }
 
 #define PCAPLOG_PROFILE_START \
@@ -324,7 +323,6 @@ static void PcapFileNameFree(PcapFileName *pf)
         SCFree(pf);
     }
 
-    return;
 }
 
 /**
@@ -1653,7 +1651,6 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
     pcre2_code_free(pcre_timestamp_code);
     pcre2_match_data_free(pcre_timestamp_match);
 
-    return;
 }
 
 /**

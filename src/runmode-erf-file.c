@@ -46,7 +46,6 @@ void RunModeErfFileRegister(void)
             "each flow are assigned to a single detect thread",
             RunModeErfFileAutoFp, NULL);
 
-    return;
 }
 
 int RunModeErfFileSingle(void)

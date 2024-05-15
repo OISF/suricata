@@ -155,7 +155,6 @@ void DetectPcreRegister (void)
     }
 #endif
 
-    return;
 }
 
 /**
@@ -973,7 +972,6 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
     }
     SCFree(pd);
 
-    return;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

@@ -46,7 +46,6 @@ void RunModeFilePcapRegister(void)
             "detection thread",
             RunModeFilePcapAutoFp, NULL);
 
-    return;
 }
 
 /**

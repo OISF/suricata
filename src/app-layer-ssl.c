@@ -2907,7 +2907,6 @@ static void SSLStateFree(void *p)
 
     SCFree(ssl_state);
 
-    return;
 }
 
 static void SSLStateTransactionFree(void *state, uint64_t tx_id)
@@ -3303,7 +3302,6 @@ void RegisterSSLParsers(void)
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
 
-    return;
 }
 
 /**

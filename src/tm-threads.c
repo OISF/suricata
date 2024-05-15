@@ -681,7 +681,6 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
             b->slot_next = slot;
         }
     }
-    return;
 }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
@@ -1176,7 +1175,6 @@ void TmThreadAppend(ThreadVars *tv, int type)
 
     SCMutexUnlock(&tv_root_lock);
 
-    return;
 }
 
 static bool ThreadStillHasPackets(ThreadVars *tv)
@@ -1340,7 +1338,6 @@ again:
     }
 
     SCMutexUnlock(&tv_root_lock);
-    return;
 }
 
 /**
@@ -1455,7 +1452,6 @@ again:
      * don't process the last live packets together
      * with FFR packets */
     TmThreadDrainPacketThreads();
-    return;
 }
 
 #ifdef DEBUG_VALIDATION
@@ -1526,7 +1522,6 @@ again:
         }
     }
     SCMutexUnlock(&tv_root_lock);
-    return;
 }
 
 #define MIN_WAIT_TIME 100
@@ -1568,7 +1563,6 @@ void TmThreadKillThreads(void)
         TmThreadKillThreadsFamily(i);
     }
 
-    return;
 }
 
 static void TmThreadFree(ThreadVars *tv)
@@ -1735,7 +1729,6 @@ void TmThreadInitMC(ThreadVars *tv)
                    "variable");
     }
 
-    return;
 }
 
 static void TmThreadDeinitMC(ThreadVars *tv)
@@ -1748,7 +1741,6 @@ static void TmThreadDeinitMC(ThreadVars *tv)
         SCCtrlCondDestroy(tv->ctrl_cond);
         SCFree(tv->ctrl_cond);
     }
-    return;
 }
 
 /**
@@ -1768,7 +1760,6 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
             break;
     }
 
-    return;
 }
 
 /**
@@ -1783,7 +1774,6 @@ void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
         SleepUsec(100);
     }
 
-    return;
 }
 
 /**
@@ -1794,7 +1784,6 @@ void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
 void TmThreadContinue(ThreadVars *tv)
 {
     TmThreadsUnsetFlag(tv, THV_PAUSE);
-    return;
 }
 
 /**
@@ -1915,7 +1904,6 @@ void TmThreadContinueThreads(void)
         }
     }
     SCMutexUnlock(&tv_root_lock);
-    return;
 }
 
 /**
@@ -1934,7 +1922,6 @@ void TmThreadCheckThreadState(void)
         }
     }
     SCMutexUnlock(&tv_root_lock);
-    return;
 }
 
 /**

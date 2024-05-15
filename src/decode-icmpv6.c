@@ -140,7 +140,6 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
                IPV6_GET_RAW_NH(icmp6_ip6h), IPV6_GET_RAW_PLEN(icmp6_ip6h), IPV6_GET_RAW_HLIM(icmp6_ip6h));
 #endif
 
-    return;
 }
 
 /** \retval type counterpart type or -1 */

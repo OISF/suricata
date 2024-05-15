@@ -71,6 +71,4 @@ void UtilSignalHandlerSetup(int sig, void (*handler)(int))
     action.sa_flags = 0;
     sigaction(sig, &action, 0);
 #endif /* OS_WIN32 */
-
-    return;
 }

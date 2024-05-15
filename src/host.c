@@ -278,7 +278,6 @@ void HostInitConfig(bool quiet)
                 SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
     }
 
-    return;
 }
 
 /** \brief print some host stats
@@ -291,7 +290,6 @@ void HostPrintStats (void)
 #endif /* HOSTBITS_STATS */
     SCLogPerf("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
             SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
-    return;
 }
 
 /** \brief shutdown the flow engine
@@ -325,7 +323,6 @@ void HostShutdown(void)
     }
     (void) SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));
     HostQueueDestroy(&host_spare_q);
-    return;
 }
 
 /** \brief Cleanup the host engine
@@ -367,7 +364,6 @@ void HostCleanup(void)
         }
     }
 
-    return;
 }
 
 /* calculate the hash key for this packet

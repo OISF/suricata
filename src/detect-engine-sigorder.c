@@ -110,7 +110,6 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     else
         prev->next = temp;
 
-    return;
 }
 
 /**

@@ -186,7 +186,6 @@ void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     PrefilterCleanupRuleGroup(de_ctx, sgh);
     SCFree(sgh);
 
-    return;
 }
 
 /**
@@ -317,7 +316,6 @@ void SigGroupHeadHashFree(DetectEngineCtx *de_ctx)
     HashListTableFree(de_ctx->sgh_hash_table);
     de_ctx->sgh_hash_table = NULL;
 
-    return;
 }
 
 /**
@@ -471,7 +469,6 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
     }
     sgh->init->sig_cnt = cnt;
 #endif
-    return;
 }
 
 /**
@@ -623,7 +620,6 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
 
-    return;
 }
 
 /** \brief build an array of rule id's for sigs with no prefilter

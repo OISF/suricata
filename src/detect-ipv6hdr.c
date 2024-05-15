@@ -68,7 +68,6 @@ void DetectIpv6hdrRegister(void)
     DetectPktInspectEngineRegister("ipv6.hdr", GetData,
             DetectEngineInspectPktBufferGeneric);
 
-    return;
 }
 
 /**

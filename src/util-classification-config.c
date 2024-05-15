@@ -76,7 +76,6 @@ void SCClassConfInit(DetectEngineCtx *de_ctx)
     }
     de_ctx->class_conf_regex_match =
             pcre2_match_data_create_from_pattern(de_ctx->class_conf_regex, NULL);
-    return;
 }
 
 void SCClassConfDeinit(DetectEngineCtx *de_ctx)
@@ -195,7 +194,6 @@ void SCClassConfDeInitContext(DetectEngineCtx *de_ctx)
 
     de_ctx->class_conf_ht = NULL;
 
-    return;
 }
 
 /**
@@ -436,7 +434,6 @@ static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct)
         SCFree(ct);
     }
 
-    return;
 }
 
 /**
@@ -513,7 +510,6 @@ void SCClassConfClasstypeHashFree(void *ch)
 {
     SCClassConfDeAllocClasstype(ch);
 
-    return;
 }
 
 /**

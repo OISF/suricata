@@ -672,7 +672,6 @@ void ConfCreateContextBackup(void)
     root_backup = root;
     root = NULL;
 
-    return;
 }
 
 /**
@@ -684,7 +683,6 @@ void ConfRestoreContextBackup(void)
     root = root_backup;
     root_backup = NULL;
 
-    return;
 }
 
 /**

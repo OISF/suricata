@@ -67,7 +67,6 @@ void SCReferenceConfInit(DetectEngineCtx *de_ctx)
     }
     de_ctx->reference_conf_regex_match =
             pcre2_match_data_create_from_pattern(de_ctx->reference_conf_regex, NULL);
-    return;
 }
 
 void SCReferenceConfDeinit(DetectEngineCtx *de_ctx)
@@ -183,8 +182,6 @@ void SCRConfDeInitContext(DetectEngineCtx *de_ctx)
         HashTableFree(de_ctx->reference_conf_ht);
 
     de_ctx->reference_conf_ht = NULL;
-
-    return;
 }
 
 /**
@@ -395,8 +392,6 @@ void SCRConfDeAllocSCRConfReference(SCRConfReference *ref)
 
         SCFree(ref);
     }
-
-    return;
 }
 
 /**
@@ -472,8 +467,6 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 void SCRConfReferenceHashFree(void *data)
 {
     SCRConfDeAllocSCRConfReference(data);
-
-    return;
 }
 
 /**
@@ -790,6 +783,4 @@ void SCRConfRegisterTests(void)
     UtRegisterTest("SCRConfTest05", SCRConfTest05);
     UtRegisterTest("SCRConfTest06", SCRConfTest06);
 #endif /* UNITTESTS */
-
-    return;
 }

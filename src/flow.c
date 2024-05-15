@@ -141,7 +141,6 @@ void FlowCleanupAppLayer(Flow *f)
     AppLayerParserStateCleanup(f, f->alstate, f->alparser);
     f->alstate = NULL;
     f->alparser = NULL;
-    return;
 }
 
 /** \brief Set the IPOnly scanned flag for 'direction'.
@@ -153,7 +152,6 @@ void FlowSetIPOnlyFlag(Flow *f, int direction)
 {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    return;
 }
 
 /** \brief Set flag to indicate that flow has alerts
@@ -651,7 +649,6 @@ void FlowInitConfig(bool quiet)
     SCLogConfig("flow size %u, memcap allows for %" PRIu64 " flows. Per hash row in perfect "
                 "conditions %" PRIu64,
             sz, flow_memcap_copy / sz, (flow_memcap_copy / sz) / flow_config.hash_size);
-    return;
 }
 
 void FlowReset(void)
@@ -708,7 +705,6 @@ void FlowShutdown(void)
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
     FlowQueueDestroy(&flow_recycle_q);
     FlowSparePoolDestroy();
-    return;
 }
 
 /**
@@ -1079,7 +1075,6 @@ void FlowInitFlowProto(void)
                 d->new_timeout, d->est_timeout, d->closed_timeout, d->bypassed_timeout);
     }
 
-    return;
 }
 
 /**

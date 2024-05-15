@@ -2538,6 +2538,5 @@ void IPOnlyRegisterTests(void)
     UtRegisterTest("IPOnlyTestBug5168v2", IPOnlyTestBug5168v2);
 #endif
 
-    return;
 }
 

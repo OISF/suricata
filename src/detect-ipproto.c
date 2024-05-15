@@ -442,7 +442,6 @@ void DetectIPProtoRemoveAllSMs(DetectEngineCtx *de_ctx, Signature *s)
         sm = tmp_sm;
     }
 
-    return;
 }
 
 static void DetectIPProtoFree(DetectEngineCtx *de_ctx, void *ptr)

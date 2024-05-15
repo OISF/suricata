@@ -645,7 +645,6 @@ static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
         SCFree(bed);
     }
 
-    return;
 }
 
 /**

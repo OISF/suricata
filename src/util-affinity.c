@@ -92,7 +92,6 @@ static void AffinitySetupInit(void)
         }
         SCMutexInit(&thread_affinity[i].taf_mutex, NULL);
     }
-    return;
 }
 
 void BuildCpusetWithCallback(const char *name, ConfNode *node,

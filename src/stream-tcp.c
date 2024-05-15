@@ -229,7 +229,6 @@ void StreamTcpIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(st_memuse, size);
     SCLogDebug("STREAM %"PRIu64", incr %"PRIu64, StreamTcpMemuseCounter(), size);
-    return;
 }
 
 void StreamTcpDecrMemuse(uint64_t size)
@@ -250,7 +249,6 @@ void StreamTcpDecrMemuse(uint64_t size)
     }
 #endif
     SCLogDebug("STREAM %"PRIu64", decr %"PRIu64, StreamTcpMemuseCounter(), size);
-    return;
 }
 
 uint64_t StreamTcpMemuseCounter(void)
@@ -5103,7 +5101,6 @@ static void StreamTcpPacketCheckPostRst(TcpSession *ssn, Packet *p)
         StreamTcpSetEvent(p, STREAM_SUSPECTED_RST_INJECT);
         return;
     }
-    return;
 }
 
 /**
@@ -7070,7 +7067,6 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
         ssn->reassembly_depth = size;
     }
 
-    return;
 }
 
 const char *StreamTcpStateAsString(const enum TcpState state)

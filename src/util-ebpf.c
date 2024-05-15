@@ -587,7 +587,6 @@ void EBPFBypassFree(void *data)
         SCFree(eb->key[1]);
     }
     SCFree(eb);
-    return;
 }
 
 /**

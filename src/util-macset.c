@@ -429,5 +429,4 @@ void MacSetRegisterTests(void)
     UtRegisterTest("MacSetTest05", MacSetTest05);
 #endif
 
-    return;
 }

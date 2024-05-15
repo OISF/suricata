@@ -183,7 +183,6 @@ error:
 static void DetectAppLayerProtocolFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
-    return;
 }
 
 /** \internal
@@ -281,7 +280,6 @@ void DetectAppLayerProtocolRegister(void)
         PrefilterSetupAppProto;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SupportsPrefilter =
         PrefilterAppProtoIsPrefilterable;
-    return;
 }
 
 /**********************************Unittests***********************************/

@@ -550,7 +550,6 @@ void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
     if (sm->next != NULL)
         sm->next->prev = sm->prev;
 
-    return;
 }
 
 /**
@@ -814,7 +813,6 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
         *dst_sm_list_tail = sm;
     }
 
-    return;
 }
 
 int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
@@ -2364,7 +2362,6 @@ static void DetectParseDupSigFreeFunc(void *data)
     if (data != NULL)
         SCFree(data);
 
-    return;
 }
 
 /**
@@ -2444,7 +2441,6 @@ void DetectParseDupSigHashFree(DetectEngineCtx *de_ctx)
 
     de_ctx->dup_sig_hash_table = NULL;
 
-    return;
 }
 
 /**

@@ -85,7 +85,6 @@ void DetectAddressFree(DetectAddress *ag)
         return;
 
     SCFree(ag);
-    return;
 }
 
 /**
@@ -1342,7 +1341,6 @@ void DetectAddressMapFree(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->address_table);
     de_ctx->address_table = NULL;
-    return;
 }
 
 static bool DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
@@ -1488,7 +1486,6 @@ void DetectAddressHeadCleanup(DetectAddressHead *gh)
         }
     }
 
-    return;
 }
 
 /**
@@ -1788,7 +1785,6 @@ static void DetectAddressPrint(DetectAddress *gr)
 //        printf("%s/%s", ip, mask);
     }
 
-    return;
 }
 #endif
 

@@ -78,7 +78,6 @@ void RunModeIdsAFXDPRegister(void)
             " tasks from acquisition to logging",
             RunModeIdsAFXDPWorkers, NULL);
 
-    return;
 }
 
 #ifdef HAVE_AF_XDP

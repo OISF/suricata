@@ -63,7 +63,6 @@ void RunModeErfDagRegister(void)
             " tasks from acquisition to logging",
             RunModeIdsErfDagWorkers, NULL);
 
-    return;
 }
 
 int RunModeIdsErfDagSingle(void)

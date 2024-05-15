@@ -70,5 +70,4 @@ void SCAtomicRegisterTests(void)
     UtRegisterTest("SCAtomicTest01", SCAtomicTest01);
 #endif
 
-    return;
 }

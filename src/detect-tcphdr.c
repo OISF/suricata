@@ -68,7 +68,6 @@ void DetectTcphdrRegister(void)
     DetectPktInspectEngineRegister("tcp.hdr", GetData,
             DetectEngineInspectPktBufferGeneric);
 
-    return;
 }
 
 /**

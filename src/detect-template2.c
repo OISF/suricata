@@ -59,7 +59,6 @@ void DetectTemplate2Register(void)
     sigmatch_table[DETECT_TEMPLATE2].SupportsPrefilter = PrefilterTemplate2IsPrefilterable;
     sigmatch_table[DETECT_TEMPLATE2].SetupPrefilter = PrefilterSetupTemplate2;
 
-    return;
 }
 
 /**

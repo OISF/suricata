@@ -63,7 +63,6 @@ void DetectIcmpv4HdrRegister(void)
 
     DetectPktInspectEngineRegister("icmpv4.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 
-    return;
 }
 
 /**

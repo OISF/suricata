@@ -66,7 +66,6 @@ void DetectUdphdrRegister(void)
 
     DetectPktInspectEngineRegister("udp.hdr", GetData,
             DetectEngineInspectPktBufferGeneric);
-    return;
 }
 
 /**

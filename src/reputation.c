@@ -74,7 +74,6 @@ static void SRepCIDRFreeUserData(void *data)
     if (data != NULL)
         SCFree(data);
 
-    return;
 }
 
 static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8_t value)

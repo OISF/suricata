@@ -102,7 +102,6 @@ static void SCHInfoFreeUserDataOSPolicy(void *data)
     if (data != NULL)
         SCFree(data);
 
-    return;
 }
 
 /**
@@ -324,7 +323,6 @@ void SCHInfoCleanResources(void)
         sc_hinfo_tree = NULL;
     }
 
-    return;
 }
 
 /**
@@ -365,7 +363,6 @@ static void SCHInfoCreateContextBackup(void)
     sc_hinfo_tree_backup = sc_hinfo_tree;
     sc_hinfo_tree = NULL;
 
-    return;
 }
 
 static void SCHInfoRestoreContextBackup(void)
@@ -373,7 +370,6 @@ static void SCHInfoRestoreContextBackup(void)
     sc_hinfo_tree = sc_hinfo_tree_backup;
     sc_hinfo_tree_backup = NULL;
 
-    return;
 }
 
 /**

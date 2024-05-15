@@ -401,7 +401,6 @@ static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number
                    "name: \"%s\"; number: %d",
                 proto_ent->name, proto_ent->number);
     }
-    return;
 }
 
 static void ProtoNameHashFreeFunc(void *data)

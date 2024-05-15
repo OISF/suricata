@@ -409,7 +409,6 @@ static inline void FlowForceReassemblyForHash(void)
         }
         FBLOCK_UNLOCK(fb);
     }
-    return;
 }
 
 /**
@@ -419,5 +418,4 @@ void FlowForceReassembly(void)
 {
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
-    return;
 }

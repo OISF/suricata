@@ -247,7 +247,6 @@ void RunModeRegisterRunModes(void)
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
-    return;
 }
 
 /**
@@ -291,7 +290,6 @@ void RunModeListRunmodes(void)
         }
     }
 
-    return;
 }
 
 static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture_plugin_name)
@@ -521,7 +519,6 @@ void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const ch
     mode->RunModeFunc = RunModeFunc;
     mode->RunModeIsIPSEnabled = RunModeIsIPSEnabled;
 
-    return;
 }
 
 /**

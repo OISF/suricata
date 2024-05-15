@@ -1600,7 +1600,6 @@ static void SMTPLocalStorageFree(void *ptr)
         SCFree(td);
     }
 
-    return;
 }
 
 static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
@@ -1654,7 +1653,6 @@ static void SMTPStateFree(void *p)
 
     SCFree(smtp_state);
 
-    return;
 }
 
 static void SMTPSetMpmState(void)
@@ -1912,7 +1910,6 @@ void RegisterSMTPParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMTP, SMTPParserRegisterTests);
 #endif
-    return;
 }
 
 /**
@@ -4267,5 +4264,4 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
 #endif /* UNITTESTS */
 
-    return;
 }
