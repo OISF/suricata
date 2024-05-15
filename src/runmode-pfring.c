@@ -63,7 +63,6 @@ void RunModeIdsPfringRegister(void)
             "Workers pfring mode, each thread does all"
             " tasks from acquisition to logging",
             RunModeIdsPfringWorkers, NULL);
-    return;
 }
 
 #ifdef HAVE_PFRING

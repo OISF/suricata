@@ -95,7 +95,6 @@ void DetectLuaRegister(void)
             DetectEngineInspectGenericList, NULL);
 
     SCLogDebug("registering lua rule option");
-    return;
 }
 
 /* Flags for DetectLuaThreadData. */

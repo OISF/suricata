@@ -378,8 +378,6 @@ void SCLogReleaseFGFilters(void)
         SCMutexUnlock(&sc_log_fg_filters_m[i]);
         sc_log_fg_filters[i] = NULL;
     }
-
-    return;
 }
 
 /**
@@ -628,8 +626,6 @@ void SCLogCheckFDFilterExit(const char *function)
 
     if (thread_list != NULL)
         thread_list->entered--;
-
-    return;
 }
 
 /**
@@ -715,9 +711,7 @@ void SCLogReleaseFDFilters(void)
 
     sc_log_fd_filters = NULL;
 
-    SCMutexUnlock( &sc_log_fd_filters_m );
-
-    return;
+    SCMutexUnlock(&sc_log_fd_filters_m);
 }
 
 /**
@@ -874,8 +868,6 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
         sc_log_fg_filters[listtype] = fgf_file_temp;
     else
         fgf_file->next = fgf_file_temp;
-
-    return;
 }
 
 /**
@@ -921,8 +913,6 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
         fgf_file->func = fgf_func_temp;
     else
         fgf_func->next = fgf_func_temp;
-
-    return;
 }
 
 /**
@@ -955,8 +945,6 @@ void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
         fgf_func->line = fgf_line_temp;
     else
         fgf_line->next = fgf_line_temp;
-
-    return;
 }
 
 /**
@@ -971,7 +959,4 @@ void SCLogReleaseFDFilter(SCLogFDFilter *fdf)
             SCFree(fdf->func);
         SCFree(fdf);
     }
-
-    return;
 }
-

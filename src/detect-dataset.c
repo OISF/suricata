@@ -252,7 +252,6 @@ static void GetDirName(const char *in, char *out, size_t outs)
     char *dir = dirname(tmp);
     BUG_ON(dir == NULL);
     strlcpy(out, dir, outs);
-    return;
 }
 
 static int SetupLoadPath(const DetectEngineCtx *de_ctx,

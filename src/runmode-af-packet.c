@@ -146,7 +146,6 @@ void RunModeIdsAFPRegister(void)
             "each flow are assigned to a single detect "
             "thread.",
             RunModeIdsAFPAutoFp, AFPRunModeEnableIPS);
-    return;
 }
 
 

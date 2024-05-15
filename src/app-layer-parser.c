@@ -1781,7 +1781,6 @@ void AppLayerParserRegisterProtocolParsers(void)
     }
 
     ValidateParsers();
-    return;
 }
 
 

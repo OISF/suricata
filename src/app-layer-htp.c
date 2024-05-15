@@ -2550,10 +2550,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
      * config, we have to set the soft limit as well. If libhtp starts using
      * the soft limit in the future, we at least make sure we control what
      * it's value is. */
-    htp_config_set_field_limits(cfg_prec->cfg,
-            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
+    htp_config_set_field_limits(cfg_prec->cfg, (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
             (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD);
-    return;
 }
 
 /* hack: htp random range code expects random values in range of 0-RAND_MAX,
@@ -2609,7 +2607,6 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     }
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
-    return;
 }
 
 static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
@@ -2990,8 +2987,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     p->name);
         }
     } /* TAILQ_FOREACH(p, &default_config->head, next) */
-
-    return;
 }
 
 void HTPConfigure(void)
@@ -3318,15 +3313,11 @@ static HTPCfgRec cfglist_backup;
 void HtpConfigCreateBackup(void)
 {
     cfglist_backup = cfglist;
-
-    return;
 }
 
 void HtpConfigRestoreBackup(void)
 {
     cfglist = cfglist_backup;
-
-    return;
 }
 
 /** \test Test case where chunks are sent in smaller chunks and check the

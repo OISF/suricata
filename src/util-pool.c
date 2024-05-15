@@ -389,7 +389,6 @@ static int PoolTestInitArg(void *data, void *allocdata)
 
 static void PoolTestFree(void *ptr)
 {
-    return;
 }
 
 static int PoolTestInit01 (void)
