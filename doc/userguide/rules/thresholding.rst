@@ -4,6 +4,9 @@ Thresholding Keywords
 Thresholding can be configured per rule and also globally, see
 :doc:`../configuration/global-thresholds`.
 
+Thresholds are tracked in a hash table that is sized according to configuration, see:
+:ref:`suricata-yaml-thresholds`.
+
 *Note: mixing rule and global thresholds is not supported in 1.3 and
 before. See bug #425.* For the state of the support in 1.4 see
 :ref:`global-thresholds-vs-rule-thresholds`
