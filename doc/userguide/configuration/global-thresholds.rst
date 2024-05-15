@@ -6,6 +6,9 @@ Thresholds can be configured in the rules themselves, see
 their intelligence for creating a rule combined with a judgement on how often
 a rule will alert.
 
+Thresholds are tracked in a hash table that is sized according to configuration, see:
+:ref:`suricata-yaml-thresholds`.
+
 Threshold Config
 ----------------
 
