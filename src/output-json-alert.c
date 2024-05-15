@@ -250,11 +250,11 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
         AlertJsonSourceTarget(p, pa, js, addr);
     }
 
-    if ((json_output_ctx != NULL) && (flags & LOG_JSON_REFERENCE)) {
+    if ((flags & LOG_JSON_REFERENCE)) {
         AlertJsonReference(json_output_ctx, pa, js);
     }
 
-    if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
+    if (flags & LOG_JSON_RULE_METADATA) {
         AlertJsonMetadata(json_output_ctx, pa, js);
     }
 
