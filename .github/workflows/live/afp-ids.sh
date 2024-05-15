@@ -52,7 +52,9 @@ fi
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
 # the unix socket.
 timeout --kill-after=240 --preserve-status 120 \
-    ./src/suricata -c suricata.yaml -l ./ --af-packet=$IFACE -v --set af-packet.1.tpacket-v3=$V3 --set default-rule-path=. --runmode=$RUNMODE &
+    ./src/suricata -c suricata.yaml -l ./ --af-packet=$IFACE -v \
+        --set af-packet.1.bpf-filter=icmp \
+        --set af-packet.1.tpacket-v3=$V3 --set default-rule-path=. --runmode=$RUNMODE &
 SURIPID=$!
 
 sleep 15
