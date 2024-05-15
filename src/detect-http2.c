@@ -217,7 +217,6 @@ void DetectHttp2Register(void)
             "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
-    return;
 }
 
 /**

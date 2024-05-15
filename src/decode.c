@@ -731,8 +731,6 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                     DEvents[i].event_name, tv);
         }
     }
-
-    return;
 }
 
 void DecodeUpdatePacketCounters(ThreadVars *tv,

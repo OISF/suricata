@@ -50,8 +50,6 @@ void RegisterSMBParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMB, SMBParserRegisterTests);
 #endif
-
-    return;
 }
 
 #ifdef UNITTESTS

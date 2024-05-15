@@ -1806,7 +1806,6 @@ static void DetectNoFlow(ThreadVars *tv,
 
     /* see if the packet matches one or more of the sigs */
     DetectRun(tv, de_ctx, det_ctx, p);
-    return;
 }
 
 /** \brief Detection engine thread wrapper.
@@ -1914,4 +1913,3 @@ void SigMatchSignatures(
 #ifdef UNITTESTS
 #include "tests/detect.c"
 #endif
-

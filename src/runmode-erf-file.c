@@ -45,8 +45,6 @@ void RunModeErfFileRegister(void)
             "Multi threaded ERF file mode.  Packets from "
             "each flow are assigned to a single detect thread",
             RunModeErfFileAutoFp, NULL);
-
-    return;
 }
 
 int RunModeErfFileSingle(void)

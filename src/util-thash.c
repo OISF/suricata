@@ -372,7 +372,6 @@ void THashShutdown(THashTableContext *ctx)
     (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
     SCFree(ctx);
-    return;
 }
 
 /** \brief Walk the hash
@@ -446,7 +445,6 @@ void THashCleanup(THashTableContext *ctx)
         }
         HRLOCK_UNLOCK(hb);
     }
-    return;
 }
 
 /* calculate the hash key for this packet

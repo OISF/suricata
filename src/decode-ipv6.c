@@ -59,7 +59,6 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
     } else {
         ENGINE_SET_EVENT(p, IPV4_IN_IPV6_WRONG_IP_VER);
     }
-    return;
 }
 
 /**

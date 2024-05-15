@@ -364,6 +364,5 @@ void DetectTosRegisterTests(void)
     UtRegisterTest("DetectTosTest09", DetectTosTest09);
     UtRegisterTest("DetectTosTest10", DetectTosTest10);
     UtRegisterTest("DetectTosTest12", DetectTosTest12);
-    return;
 }
 #endif

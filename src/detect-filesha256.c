@@ -56,7 +56,6 @@ void DetectFileSha256Register(void)
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filesha256 rule option");
-    return;
 }
 
 /**

@@ -71,8 +71,6 @@ Mangle(char *string)
 
     while ((c = strchr(string, '_')))
         *c = '-';
-
-    return;
 }
 
 /**

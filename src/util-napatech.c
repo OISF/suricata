@@ -1216,8 +1216,6 @@ void NapatechStartStats(void)
     if (TmThreadSpawn(buf_monitor_tv) != 0) {
         FatalError("Failed to spawn thread for NapatechBufMonitor - Killing engine.");
     }
-
-    return;
 }
 
 bool NapatechSetupNuma(uint32_t stream, uint32_t numa)

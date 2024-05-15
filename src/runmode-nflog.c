@@ -218,5 +218,4 @@ void RunModeIdsNflogRegister(void)
             RUNMODE_NFLOG, "single", "Single threaded nflog mode", RunModeIdsNflogSingle, NULL);
     RunModeRegisterNewRunMode(
             RUNMODE_NFLOG, "workers", "Workers nflog mode", RunModeIdsNflogWorkers, NULL);
-    return;
 }
