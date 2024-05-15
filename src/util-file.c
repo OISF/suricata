@@ -662,6 +662,7 @@ static int FileStoreNoStoreCheck(File *ff)
 static int AppendData(
         const StreamingBufferConfig *sbcfg, File *file, const uint8_t *data, uint32_t data_len)
 {
+    printf("lol %d\n", data_len);
     DEBUG_VALIDATE_BUG_ON(
             data_len > BIT_U32(26)); // 64MiB as a limit per chunk seems already excessive
 

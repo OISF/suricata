@@ -275,6 +275,7 @@ impl HTTP2Transaction {
                     range::http2_range_append(sfcm, self.file_range, decompressed)
                 }
             }
+            println!("lolh {} {}", decompressed.len(), input.len());
             self.ft_tc.new_chunk(
                 sfcm,
                 b"",

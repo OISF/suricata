@@ -699,7 +699,7 @@ static inline uint32_t ToNextMultipleOf(const uint32_t in, const uint32_t m)
 
 static thread_local bool g2s_warn_once = false;
 
-static inline int WARN_UNUSED GrowRegionToSize(
+static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
         const StreamingBufferConfig *cfg, StreamingBufferRegion *region, const uint32_t size)
 {
     DEBUG_VALIDATE_BUG_ON(region->buf_size > BIT_U32(30));
@@ -741,7 +741,7 @@ static inline int WARN_UNUSED GrowRegionToSize(
 static int WARN_UNUSED GrowToSize(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, uint32_t size)
 {
-    return GrowRegionToSize(cfg, &sb->region, size);
+    return GrowRegionToSize(sb, cfg, &sb->region, size);
 }
 
 static inline bool RegionBeforeOffset(const StreamingBufferRegion *r, const uint64_t o)
@@ -899,7 +899,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                         goto just_main;
                     }
                     /* expand "next" to include relevant part of "start" */
-                    if (GrowRegionToSize(cfg, next, mem_size) != 0) {
+                    if (GrowRegionToSize(sb, cfg, next, mem_size) != 0) {
                         new_mem_size = new_data_size;
                         goto just_main;
                     }
@@ -935,7 +935,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     goto done;
                 } else {
                     /* using "main", expand to include "next" */
-                    if (GrowRegionToSize(cfg, start, mem_size) != 0) {
+                    if (GrowRegionToSize(sb, cfg, start, mem_size) != 0) {
                         new_mem_size = new_data_size;
                         goto just_main;
                     }
@@ -1266,7 +1266,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
     SCLogDebug("old_size %u, old_offset %u, dst_copy_offset %u", old_size, old_offset,
             dst_copy_offset);
 #endif
-    if ((retval = GrowRegionToSize(cfg, dst, dst_size)) != SC_OK) {
+    if ((retval = GrowRegionToSize(sb, cfg, dst, dst_size)) != SC_OK) {
         sc_errno = retval;
         return NULL;
     }
