@@ -45,6 +45,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-address-ipv6.h"
 
+#include "util-misc.h"
 #include "util-time.h"
 #include "util-error.h"
 #include "util-debug.h"
@@ -182,14 +183,38 @@ static bool ThresholdEntryExpire(void *data, const SCTime_t ts)
 
 static int ThresholdsInit(struct Thresholds *t)
 {
-    uint64_t memcap = 16 * 1024 * 1024;
     uint32_t hashsize = 16384;
+    uint64_t memcap = 16 * 1024 * 1024;
+
+    const char *str;
+    if (ConfGet("detect.thresholds.memcap", &str) == 1) {
+        if (ParseSizeStringU64(str, &memcap) < 0) {
+            SCLogError("Error parsing detect.thresholds.memcap from conf file - %s", str);
+            return -1;
+        }
+    }
+
+    intmax_t value = 0;
+    if ((ConfGetInt("detect.thresholds.hash-size", &value)) == 1) {
+        if (value < 256 || value > INT_MAX) {
+            SCLogError("'detect.thresholds.hash-size' value %" PRIiMAX
+                       " out of range. Valid range 256-2147483647.",
+                    value);
+            return -1;
+        }
+        hashsize = (uint32_t)value;
+    }
+
     t->thash = THashInit("thresholds", sizeof(ThresholdEntry), ThresholdEntrySet,
             ThresholdEntryFree, ThresholdEntryHash, ThresholdEntryCompare, ThresholdEntryExpire, 0,
             memcap, hashsize);
-    BUG_ON(t->thash == NULL);
+    if (t->thash == NULL) {
+        SCLogError("failed to initialize thresholds hash table");
+        return -1;
+    }
     return 0;
 }
+
 static void ThresholdsDestroy(struct Thresholds *t)
 {
     if (t->thash) {
