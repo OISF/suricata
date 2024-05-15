@@ -228,7 +228,7 @@ void StreamTcpInitMemuse(void)
 void StreamTcpIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(st_memuse, size);
-    SCLogDebug("STREAM %"PRIu64", incr %"PRIu64, StreamTcpMemuseCounter(), size);
+    SCLogDebug("STREAM %" PRIu64 ", incr %" PRIu64, StreamTcpMemuseCounter(), size);
 }
 
 void StreamTcpDecrMemuse(uint64_t size)
@@ -248,7 +248,7 @@ void StreamTcpDecrMemuse(uint64_t size)
         BUG_ON(postsize > presize);
     }
 #endif
-    SCLogDebug("STREAM %"PRIu64", decr %"PRIu64, StreamTcpMemuseCounter(), size);
+    SCLogDebug("STREAM %" PRIu64 ", decr %" PRIu64, StreamTcpMemuseCounter(), size);
 }
 
 uint64_t StreamTcpMemuseCounter(void)
@@ -965,8 +965,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
     else if (stream->os_policy == OS_POLICY_OLD_SOLARIS)
         stream->os_policy = OS_POLICY_SOLARIS;
 
-    SCLogDebug("Policy is %"PRIu8"", stream->os_policy);
-
+    SCLogDebug("Policy is %" PRIu8 "", stream->os_policy);
 }
 
 /**
@@ -7066,7 +7065,6 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
     if (size > ssn->reassembly_depth || size == 0) {
         ssn->reassembly_depth = size;
     }
-
 }
 
 const char *StreamTcpStateAsString(const enum TcpState state)

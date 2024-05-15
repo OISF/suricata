@@ -136,7 +136,6 @@ static void LockRecordAdd(ProfilingLock *l)
         lookup_fn->ticks_cnt++;
         lookup_fn->cont += l->cont;
     }
-
 }
 
 /** \param p void ptr to Packet struct */
@@ -238,4 +237,3 @@ void LockRecordFreeHash(void)
 
 #endif
 #endif
-

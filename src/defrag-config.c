@@ -36,7 +36,6 @@ static void DefragPolicyFreeUserData(void *data)
 {
     if (data != NULL)
         SCFree(data);
-
 }
 
 static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)

@@ -456,7 +456,6 @@ int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 
     *val = tmpint;
     return 1;
-
 }
 
 int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
@@ -671,7 +670,6 @@ void ConfCreateContextBackup(void)
 {
     root_backup = root;
     root = NULL;
-
 }
 
 /**
@@ -682,7 +680,6 @@ void ConfRestoreContextBackup(void)
 {
     root = root_backup;
     root_backup = NULL;
-
 }
 
 /**

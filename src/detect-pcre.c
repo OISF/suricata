@@ -154,7 +154,6 @@ void DetectPcreRegister (void)
         pcre2_use_jit = 0;
     }
 #endif
-
 }
 
 /**
@@ -971,7 +970,6 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
         VarNameStoreUnregister(pd->capids[i], pd->captypes[i]);
     }
     SCFree(pd);
-
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -2064,6 +2062,5 @@ static void DetectPcreRegisterTests(void)
 
     UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost);
     UtRegisterTest("DetectPcreParseCaptureTest", DetectPcreParseCaptureTest);
-
 }
 #endif /* UNITTESTS */

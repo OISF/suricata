@@ -279,7 +279,7 @@ void DetectAppLayerProtocolRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SetupPrefilter =
         PrefilterSetupAppProto;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SupportsPrefilter =
-        PrefilterAppProtoIsPrefilterable;
+            PrefilterAppProtoIsPrefilterable;
 }
 
 /**********************************Unittests***********************************/

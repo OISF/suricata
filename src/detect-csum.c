@@ -304,7 +304,6 @@ static void DetectIPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -393,7 +392,6 @@ static void DetectTCPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -483,7 +481,6 @@ static void DetectTCPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -575,7 +572,6 @@ static void DetectUDPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -664,7 +660,6 @@ static void DetectUDPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -753,7 +748,6 @@ static void DetectICMPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /**
@@ -847,7 +841,6 @@ static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 
     if (cd != NULL)
         SCFree(cd);
-
 }
 
 /* ---------------------------------- Unit Tests --------------------------- */

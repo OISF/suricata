@@ -150,8 +150,7 @@ void FlowCleanupAppLayer(Flow *f)
   */
 void FlowSetIPOnlyFlag(Flow *f, int direction)
 {
-    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
-        (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
+    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) : (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
 }
 
 /** \brief Set flag to indicate that flow has alerts
@@ -1074,7 +1073,6 @@ void FlowInitFlowProto(void)
         SCLogDebug("deltas: new: -%u est: -%u closed: -%u bypassed: -%u",
                 d->new_timeout, d->est_timeout, d->closed_timeout, d->bypassed_timeout);
     }
-
 }
 
 /**

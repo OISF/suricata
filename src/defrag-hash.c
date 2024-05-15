@@ -288,7 +288,6 @@ void DefragInitConfig(bool quiet)
         SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }
-
 }
 
 /** \brief print some defrag stats

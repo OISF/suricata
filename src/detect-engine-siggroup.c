@@ -185,7 +185,6 @@ void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
     PrefilterCleanupRuleGroup(de_ctx, sgh);
     SCFree(sgh);
-
 }
 
 /**
@@ -315,7 +314,6 @@ void SigGroupHeadHashFree(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->sgh_hash_table);
     de_ctx->sgh_hash_table = NULL;
-
 }
 
 /**
@@ -619,7 +617,6 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             sgh->filestore_cnt++;
         }
     }
-
 }
 
 /** \brief build an array of rule id's for sigs with no prefilter

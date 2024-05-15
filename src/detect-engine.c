@@ -2477,7 +2477,6 @@ error:
         DetectEngineCtxFree(de_ctx);
     }
     return NULL;
-
 }
 
 DetectEngineCtx *DetectEngineCtxInitStubForMT(void)
@@ -4867,7 +4866,6 @@ static void DetectEngineDeInitYamlConf(void)
 {
     ConfDeInit();
     ConfRestoreContextBackup();
-
 }
 
 static int DetectEngineTest01(void)

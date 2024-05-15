@@ -65,9 +65,7 @@ void DetectTcphdrRegister(void)
 
     DetectPktMpmRegister("tcp.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("tcp.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
-
+    DetectPktInspectEngineRegister("tcp.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 }
 
 /**

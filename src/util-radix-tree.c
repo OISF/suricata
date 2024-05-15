@@ -68,7 +68,6 @@ static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 static void SCRadixDeAllocSCRadixUserData(SCRadixUserData *user_data)
 {
     SCFree(user_data);
-
 }
 
 /**
@@ -107,7 +106,6 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
         new->next = prev->next;
         prev->next = new;
     }
-
 }
 
 /**
@@ -183,9 +181,8 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
         FatalError("prefix or user NULL");
     }
 
-    SCRadixAppendToSCRadixUserDataList(SCRadixAllocSCRadixUserData(netmask, user),
-                                       &prefix->user_data);
-
+    SCRadixAppendToSCRadixUserDataList(
+            SCRadixAllocSCRadixUserData(netmask, user), &prefix->user_data);
 }
 
 /**
@@ -219,7 +216,6 @@ static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
         prev = temp;
         temp = temp->next;
     }
-
 }
 
 /**
@@ -359,7 +355,6 @@ static void SCRadixReleasePrefix(SCRadixPrefix *prefix, SCRadixTree *tree)
 
         SCFree(prefix);
     }
-
 }
 
 /**
@@ -395,7 +390,6 @@ static void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
 
         SCFree(node);
     }
-
 }
 
 /**
@@ -436,7 +430,6 @@ static void SCRadixReleaseRadixSubtree(SCRadixNode *node, SCRadixTree *tree)
         SCRadixReleaseRadixSubtree(node->right, tree);
         SCRadixReleaseNode(node, tree);
     }
-
 }
 
 /**
@@ -1144,7 +1137,6 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
 
     for (i = dest->netmask_cnt, j = 0; j < src->netmask_cnt; i++, j++)
         dest->netmasks[i] = src->netmasks[j];
-
 }
 
 /**
@@ -1205,7 +1197,6 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
         return;
     }
     node->netmasks = ptmp;
-
 }
 
 /**
@@ -1341,7 +1332,6 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     SCRadixReleaseNode(parent, tree);
     SCRadixReleaseNode(node, tree);
     SCRadixReleasePrefix(prefix, tree);
-
 }
 
 /**
@@ -1668,7 +1658,6 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
     } else {
         printf("inter_node)\n");
     }
-
 }
 
 /**
@@ -1685,7 +1674,6 @@ static void SCRadixPrintRadixSubtree(SCRadixNode *node, int level, void (*PrintD
         SCRadixPrintRadixSubtree(node->left, level + 1, PrintData);
         SCRadixPrintRadixSubtree(node->right, level + 1, PrintData);
     }
-
 }
 
 /**
@@ -1711,7 +1699,6 @@ void SCRadixPrintTree(SCRadixTree *tree)
     printf("Printing the Radix Tree: \n");
 
     SCRadixPrintRadixSubtree(tree->head, 0, tree->PrintData);
-
 }
 
 /*------------------------------------Unit_Tests------------------------------*/
@@ -3814,5 +3801,4 @@ void SCRadixRegisterTests(void)
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion26",
                    SCRadixTestIPV4NetblockInsertion26);
 #endif
-
 }

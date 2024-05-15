@@ -173,7 +173,6 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
 #if defined (OS_WIN32)
 	SCMutexUnlock(&sc_log_stream_lock);
 #endif /* OS_WIN32 */
-
 }
 
 /**
@@ -192,7 +191,6 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
     //syslog_r(syslog_log_level, NULL, "%s", msg);
 
     syslog(syslog_log_level, "%s", msg);
-
 }
 
 /**
@@ -1029,7 +1027,6 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
 
         SCFree(temp);
     }
-
 }
 
 /**
@@ -1068,7 +1065,6 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
     /* we also set it to a global var, as it is easier to access it */
     sc_log_global_log_level = sc_lc->log_level;
-
 }
 
 SCLogLevel SCLogGetLogLevel(void)
@@ -1126,7 +1122,6 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
-
 }
 
 /**
@@ -1242,7 +1237,6 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         sc_lc->op_filter_regex_match =
                 pcre2_match_data_create_from_pattern(sc_lc->op_filter_regex, NULL);
     }
-
 }
 
 /**
@@ -1276,7 +1270,6 @@ static void SCLogFreeLogInitData(SCLogInitData *sc_lid)
         SCLogFreeLogOPIfaceCtx(sc_lid->op_ifaces);
         SCFree(sc_lid);
     }
-
 }
 #endif
 #endif
@@ -1302,7 +1295,6 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
         SCFree(sc_lc);
     }
-
 }
 
 /**
@@ -1335,7 +1327,6 @@ void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx, SCLogInitData *sc_lid)
         prev->next = iface_ctx;
 
     sc_lid->op_ifaces_cnt++;
-
 }
 
 #ifdef UNITTESTS
@@ -1621,7 +1612,6 @@ void SCLogDeInitLogModule(void)
 #if defined (OS_WIN32)
     SCMutexDestroy(&sc_log_stream_lock);
 #endif /* OS_WIN32 */
-
 }
 
 //------------------------------------Unit_Tests--------------------------------

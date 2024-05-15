@@ -455,7 +455,6 @@ static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
 
     fclose(de_ctx->ea->rule_engine_analysis_fp);
     de_ctx->ea->rule_engine_analysis_fp = NULL;
-
 }
 
 static void CleanupRuleAnalyzer(DetectEngineCtx *de_ctx)
@@ -615,7 +614,6 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
         fprintf(ea_ctx->rule_engine_analysis_fp, "(with %d transform(s)) ", bt->transforms.cnt);
     }
     fprintf(ea_ctx->rule_engine_analysis_fp, "buffer.\n");
-
 }
 
 void EngineAnalysisRulesFailure(const DetectEngineCtx *de_ctx, char *line, char *file, int lineno)

@@ -974,7 +974,6 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData
                             cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     }
-
 }
 
 #define SGH_PROTO(sgh, p) ((sgh)->init->protos[(p)] == 1)

@@ -1179,5 +1179,4 @@ void PayloadRegisterTests(void)
     UtRegisterTest("PayloadTestSig33", PayloadTestSig33);
     UtRegisterTest("PayloadTestSig34", PayloadTestSig34);
 #endif /* UNITTESTS */
-
 }

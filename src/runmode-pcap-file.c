@@ -45,7 +45,6 @@ void RunModeFilePcapRegister(void)
             "Multi-threaded pcap file mode. Packets from each flow are assigned to a consistent "
             "detection thread",
             RunModeFilePcapAutoFp, NULL);
-
 }
 
 /**

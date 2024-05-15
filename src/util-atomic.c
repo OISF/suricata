@@ -69,5 +69,4 @@ void SCAtomicRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("SCAtomicTest01", SCAtomicTest01);
 #endif
-
 }

@@ -73,7 +73,6 @@ static void SRepCIDRFreeUserData(void *data)
 {
     if (data != NULL)
         SCFree(data);
-
 }
 
 static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8_t value)
@@ -263,7 +262,6 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
     *cat = (uint8_t)c;
     strlcpy(shortname, ptrs[1], shortname_len);
     return 0;
-
 }
 
 /**
@@ -431,7 +429,6 @@ static int SRepLoadFile(SRepCIDRTree *cidr_ctx, char *filename)
     fclose(fp);
     fp = NULL;
     return r;
-
 }
 
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)

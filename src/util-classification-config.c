@@ -193,7 +193,6 @@ void SCClassConfDeInitContext(DetectEngineCtx *de_ctx)
         HashTableFree(de_ctx->class_conf_ht);
 
     de_ctx->class_conf_ht = NULL;
-
 }
 
 /**
@@ -433,7 +432,6 @@ static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct)
 
         SCFree(ct);
     }
-
 }
 
 /**
@@ -509,7 +507,6 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
 void SCClassConfClasstypeHashFree(void *ch)
 {
     SCClassConfDeAllocClasstype(ch);
-
 }
 
 /**

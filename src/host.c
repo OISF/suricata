@@ -277,7 +277,6 @@ void HostInitConfig(bool quiet)
         SCLogConfig("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
     }
-
 }
 
 /** \brief print some host stats
@@ -288,8 +287,8 @@ void HostPrintStats (void)
     SCLogPerf("hostbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
         hostbits_added, hostbits_removed, hostbits_memuse_max);
 #endif /* HOSTBITS_STATS */
-    SCLogPerf("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-            SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
+    SCLogPerf("host memory usage: %" PRIu64 " bytes, maximum: %" PRIu64, SC_ATOMIC_GET(host_memuse),
+            SC_ATOMIC_GET(host_config.memcap));
 }
 
 /** \brief shutdown the flow engine
@@ -363,7 +362,6 @@ void HostCleanup(void)
             HRLOCK_UNLOCK(hb);
         }
     }
-
 }
 
 /* calculate the hash key for this packet
@@ -720,4 +718,3 @@ void HostRegisterUnittests(void)
 {
     RegisterHostStorageTests();
 }
-

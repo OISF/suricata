@@ -1485,7 +1485,6 @@ void DetectAddressHeadCleanup(DetectAddressHead *gh)
             gh->ipv6_head = NULL;
         }
     }
-
 }
 
 /**
@@ -1784,7 +1783,6 @@ static void DetectAddressPrint(DetectAddress *gr)
         SCLogDebug("%s/%s", ip, mask);
 //        printf("%s/%s", ip, mask);
     }
-
 }
 #endif
 

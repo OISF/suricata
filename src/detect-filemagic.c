@@ -126,7 +126,7 @@ void DetectFilemagicRegister(void)
     DetectBufferTypeSupportsMultiInstance("file.magic");
 
     g_file_magic_buffer_id = DetectBufferTypeGetByName("file.magic");
-	SCLogDebug("registering filemagic rule option");
+    SCLogDebug("registering filemagic rule option");
 }
 
 #define FILEMAGIC_MIN_SIZE  512

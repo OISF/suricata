@@ -70,12 +70,12 @@ void HTPParseMemcap(void)
 
 static void HTPIncrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_ADD(htp_memuse, size);
+    (void)SC_ATOMIC_ADD(htp_memuse, size);
 }
 
 static void HTPDecrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_SUB(htp_memuse, size);
+    (void)SC_ATOMIC_SUB(htp_memuse, size);
 }
 
 uint64_t HTPMemuseGlobalCounter(void)

@@ -438,7 +438,6 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
         DEBUG_VALIDATE_BUG_ON(p->flow != NULL);
         TmqhOutputPacketpool(NULL, p);
     }
-
 }
 
 /** number of packets to keep reserved when calculating the pending

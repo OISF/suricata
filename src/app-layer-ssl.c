@@ -2906,7 +2906,6 @@ static void SSLStateFree(void *p)
     TAILQ_INIT(&ssl_state->client_connp.certs);
 
     SCFree(ssl_state);
-
 }
 
 static void SSLStateTransactionFree(void *state, uint64_t tx_id)
@@ -3301,7 +3300,6 @@ void RegisterSSLParsers(void)
     } else {
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
-
 }
 
 /**

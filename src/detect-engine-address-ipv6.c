@@ -296,7 +296,6 @@ static void AddressCutIPv6CopySubOne(uint32_t *a, uint32_t *b)
     b[1] = htonl(b[1]);
     b[2] = htonl(b[2]);
     b[3] = htonl(b[3]);
-
 }
 
 /**
@@ -333,7 +332,6 @@ static void AddressCutIPv6CopyAddOne(uint32_t *a, uint32_t *b)
     b[1] = htonl(b[1]);
     b[2] = htonl(b[2]);
     b[3] = htonl(b[3]);
-
 }
 
 /**
@@ -350,7 +348,6 @@ static void AddressCutIPv6Copy(uint32_t *a, uint32_t *b)
     b[1] = htonl(a[1]);
     b[2] = htonl(a[2]);
     b[3] = htonl(a[3]);
-
 }
 
 int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
@@ -1919,5 +1916,4 @@ void DetectAddressIPv6Tests(void)
     UtRegisterTest("AddressTestIPv6CutNot04", AddressTestIPv6CutNot04);
     UtRegisterTest("AddressTestIPv6CutNot05", AddressTestIPv6CutNot05);
 #endif /* UNITTESTS */
-
 }

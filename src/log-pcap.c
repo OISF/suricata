@@ -322,7 +322,6 @@ static void PcapFileNameFree(PcapFileName *pf)
         }
         SCFree(pf);
     }
-
 }
 
 /**
@@ -1650,7 +1649,6 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
 
     pcre2_code_free(pcre_timestamp_code);
     pcre2_match_data_free(pcre_timestamp_match);
-
 }
 
 /**

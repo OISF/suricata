@@ -62,7 +62,6 @@ void RunModeErfDagRegister(void)
             "Workers DAG mode, each thread does all "
             " tasks from acquisition to logging",
             RunModeIdsErfDagWorkers, NULL);
-
 }
 
 int RunModeIdsErfDagSingle(void)

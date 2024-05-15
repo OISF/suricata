@@ -1174,7 +1174,6 @@ void TmThreadAppend(ThreadVars *tv, int type)
     }
 
     SCMutexUnlock(&tv_root_lock);
-
 }
 
 static bool ThreadStillHasPackets(ThreadVars *tv)
@@ -1562,7 +1561,6 @@ void TmThreadKillThreads(void)
     for (i = 0; i < TVT_MAX; i++) {
         TmThreadKillThreadsFamily(i);
     }
-
 }
 
 static void TmThreadFree(ThreadVars *tv)
@@ -1728,7 +1726,6 @@ void TmThreadInitMC(ThreadVars *tv)
         FatalError("Error initializing the tv->cond condition "
                    "variable");
     }
-
 }
 
 static void TmThreadDeinitMC(ThreadVars *tv)
@@ -1759,7 +1756,6 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
         if (TmThreadsCheckFlag(tv, THV_KILL))
             break;
     }
-
 }
 
 /**
@@ -1773,7 +1769,6 @@ void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
     while (!TmThreadsCheckFlag(tv, flags)) {
         SleepUsec(100);
     }
-
 }
 
 /**

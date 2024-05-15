@@ -222,7 +222,6 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     }
 
     pca->head[id].updates++;
-
 }
 
 static ConfNode *GetConfig(void) {
@@ -366,7 +365,6 @@ static void StatsReleaseCtx(void)
     }
     memset(&stats_table, 0, sizeof(stats_table));
     SCMutexUnlock(&stats_table_mutex);
-
 }
 
 /**
@@ -563,7 +561,6 @@ static void StatsReleaseCounter(StatsCounter *pc)
     if (pc != NULL) {
         SCFree(pc);
     }
-
 }
 
 /**

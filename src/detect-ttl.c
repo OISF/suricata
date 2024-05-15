@@ -64,7 +64,6 @@ void DetectTtlRegister(void)
 #endif
     sigmatch_table[DETECT_TTL].SupportsPrefilter = PrefilterTtlIsPrefilterable;
     sigmatch_table[DETECT_TTL].SetupPrefilter = PrefilterSetupTtl;
-
 }
 
 /**

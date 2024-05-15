@@ -274,7 +274,6 @@ void IPPairInitConfig(bool quiet)
         SCLogConfig("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     }
-
 }
 
 /** \brief print some ippair stats
@@ -285,7 +284,7 @@ void IPPairPrintStats (void)
     SCLogPerf("ippairbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
         ippairbits_added, ippairbits_removed, ippairbits_memuse_max);
 #endif /* IPPAIRBITS_STATS */
-    SCLogPerf("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
+    SCLogPerf("ippair memory usage: %" PRIu64 " bytes, maximum: %" PRIu64,
             SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
 }
 
@@ -361,7 +360,6 @@ void IPPairCleanup(void)
             HRLOCK_UNLOCK(hb);
         }
     }
-
 }
 
 /** \brief compare two raw ipv6 addrs

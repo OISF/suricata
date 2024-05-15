@@ -200,5 +200,4 @@ void MaskIPNetblock(uint8_t *stream, int netmask, int key_bitlen)
         }
         stream[i] &= mask;
     }
-
 }

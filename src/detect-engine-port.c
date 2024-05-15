@@ -1425,7 +1425,6 @@ void DetectPortHashFree(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->dport_hash_table);
     de_ctx->dport_hash_table = NULL;
-
 }
 
 /*---------------------- Unittests -------------------------*/
@@ -2373,4 +2372,3 @@ void DetectPortTests(void)
 }
 
 #endif /* UNITTESTS */
-

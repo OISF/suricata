@@ -101,7 +101,6 @@ static void SCHInfoFreeUserDataOSPolicy(void *data)
 {
     if (data != NULL)
         SCFree(data);
-
 }
 
 /**
@@ -322,7 +321,6 @@ void SCHInfoCleanResources(void)
         SCRadixReleaseRadixTree(sc_hinfo_tree);
         sc_hinfo_tree = NULL;
     }
-
 }
 
 /**
@@ -362,14 +360,12 @@ static void SCHInfoCreateContextBackup(void)
 {
     sc_hinfo_tree_backup = sc_hinfo_tree;
     sc_hinfo_tree = NULL;
-
 }
 
 static void SCHInfoRestoreContextBackup(void)
 {
     sc_hinfo_tree = sc_hinfo_tree_backup;
     sc_hinfo_tree_backup = NULL;
-
 }
 
 /**
@@ -1633,5 +1629,4 @@ void SCHInfoRegisterTests(void)
     UtRegisterTest("SCHInfoTestLoadFromConfig04", SCHInfoTestLoadFromConfig04);
     UtRegisterTest("SCHInfoTestLoadFromConfig05", SCHInfoTestLoadFromConfig05);
 #endif /* UNITTESTS */
-
 }
