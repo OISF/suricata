@@ -154,14 +154,12 @@ static void FTPParseMemcap(void)
 
 static void FTPIncrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_ADD(ftp_memuse, size);
-    return;
+    (void)SC_ATOMIC_ADD(ftp_memuse, size);
 }
 
 static void FTPDecrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_SUB(ftp_memuse, size);
-    return;
+    (void)SC_ATOMIC_SUB(ftp_memuse, size);
 }
 
 uint64_t FTPMemuseGlobalCounter(void)
@@ -283,8 +281,6 @@ static void FTPLocalStorageFree(void *ptr)
 
         SCFree(td);
     }
-
-    return;
 }
 static FTPTransaction *FTPTransactionCreate(FtpState *state)
 {

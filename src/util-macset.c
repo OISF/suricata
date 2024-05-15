@@ -428,6 +428,4 @@ void MacSetRegisterTests(void)
     UtRegisterTest("MacSetTest04", MacSetTest04);
     UtRegisterTest("MacSetTest05", MacSetTest05);
 #endif
-
-    return;
 }

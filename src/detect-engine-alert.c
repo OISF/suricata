@@ -303,7 +303,6 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
 
     SCLogDebug("Appending sid %" PRIu32 ", s->num %" PRIu32 " to alert queue", s->id, s->num);
     det_ctx->alert_queue_size++;
-    return;
 }
 
 /** \internal

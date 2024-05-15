@@ -976,7 +976,6 @@ static void DetectBufferTypeFree(void)
 
     HashListTableFree(g_buffer_type_hash);
     g_buffer_type_hash = NULL;
-    return;
 }
 #endif
 static int DetectBufferTypeAdd(const char *string)
@@ -2478,7 +2477,6 @@ error:
         DetectEngineCtxFree(de_ctx);
     }
     return NULL;
-
 }
 
 DetectEngineCtx *DetectEngineCtxInitStubForMT(void)
@@ -4868,8 +4866,6 @@ static void DetectEngineDeInitYamlConf(void)
 {
     ConfDeInit();
     ConfRestoreContextBackup();
-
-    return;
 }
 
 static int DetectEngineTest01(void)
@@ -5067,5 +5063,4 @@ void DetectEngineRegisterTests(void)
     UtRegisterTest("DetectEngineTest08", DetectEngineTest08);
     UtRegisterTest("DetectEngineTest09", DetectEngineTest09);
 #endif
-    return;
 }

@@ -184,15 +184,11 @@ void DetectEngineStateFree(DetectEngineState *state)
         }
     }
     SCFree(state);
-
-    return;
 }
 
 static void StoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
 {
     de_state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1].filestore_cnt += file_no_match;
-
-    return;
 }
 
 static bool StoreFilestoreSigsCantMatch(const SigGroupHead *sgh, const DetectEngineState *de_state, uint8_t direction)
@@ -1461,8 +1457,6 @@ void DeStateRegisterTests(void)
     UtRegisterTest("DeStateSigTest09", DeStateSigTest09);
     UtRegisterTest("DeStateSigTest10", DeStateSigTest10);
 #endif
-
-    return;
 }
 
 /**

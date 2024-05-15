@@ -107,9 +107,7 @@ static void SCACGetConfig(void)
     //ConfNode *ac_conf;
     //const char *hash_val = NULL;
 
-    //ConfNode *pm = ConfGetNode("pattern-matcher");
-
-    return;
+    // ConfNode *pm = ConfGetNode("pattern-matcher");
 }
 
 /**
@@ -274,8 +272,6 @@ static void SCACSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     output_state->pids = ptmp;
 
     output_state->pids[output_state->no_of_entries - 1] = pid;
-
-    return;
 }
 
 /**
@@ -318,8 +314,6 @@ static inline void SCACEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pi
     /* add this pattern id, to the output table of the last state, where the
      * pattern ends in the trie */
     SCACSetOutputState(state, pid, mpm_ctx);
-
-    return;
 }
 
 /**
@@ -345,8 +339,6 @@ static inline void SCACCreateGotoTable(MpmCtx *mpm_ctx)
             ctx->goto_table[0][ascii_code] = 0;
         }
     }
-
-    return;
 }
 
 static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
@@ -366,8 +358,6 @@ static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
         int32_t newstate = SCACInitNewState(mpm_ctx);
         ctx->goto_table[0][u] = newstate;
     }
-
-    return;
 }
 
 static inline int SCACStateQueueIsEmpty(StateQueue *q)
@@ -396,8 +386,6 @@ static inline void SCACEnqueue(StateQueue *q, int32_t state)
     if (q->top == q->bot) {
         FatalError("Just ran out of space in the queue. Please file a bug report on this");
     }
-
-    return;
 }
 
 static inline int32_t SCACDequeue(StateQueue *q)
@@ -454,8 +442,6 @@ static inline void SCACClubOutputStates(int32_t dst_state, int32_t src_state,
                 output_src_state->pids[i];
         }
     }
-
-    return;
 }
 
 /**
@@ -512,8 +498,6 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
         }
     }
     SCFree(q);
-
-    return;
 }
 
 /**
@@ -606,8 +590,6 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         }
         SCFree(q);
     }
-
-    return;
 }
 
 static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
@@ -636,8 +618,6 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
-
-    return;
 }
 
 static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
@@ -657,8 +637,6 @@ static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
             }
         }
     }
-
-    return;
 }
 
 #if 0
@@ -676,8 +654,6 @@ static void SCACPrintDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
-
-    return;
 }
 #endif
 
@@ -719,8 +695,6 @@ static void SCACPrepareStateTable(MpmCtx *mpm_ctx)
     ctx->goto_table = NULL;
     SCFree(ctx->failure_table);
     ctx->failure_table = NULL;
-
-    return;
 }
 
 /**
@@ -921,8 +895,6 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
     mpm_ctx->ctx = NULL;
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACCtx);
-
-    return;
 }
 
 /**
@@ -1114,8 +1086,6 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
     printf("Total states in the state table:    %" PRIu32 "\n", ctx->state_count);
     printf("\n");
-
-    return;
 }
 
 
@@ -1138,7 +1108,6 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
 #endif
     mpm_table[MPM_AC].feature_flags = MPM_FEATURE_FLAG_DEPTH | MPM_FEATURE_FLAG_OFFSET;
-    return;
 }
 
 /*************************************Unittests********************************/

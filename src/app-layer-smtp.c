@@ -1599,8 +1599,6 @@ static void SMTPLocalStorageFree(void *ptr)
 
         SCFree(td);
     }
-
-    return;
 }
 
 static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
@@ -1653,8 +1651,6 @@ static void SMTPStateFree(void *p)
     }
 
     SCFree(smtp_state);
-
-    return;
 }
 
 static void SMTPSetMpmState(void)
@@ -1675,7 +1671,6 @@ static void SMTPSetMpmState(void)
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
-
 }
 
 static void SMTPFreeMpmState(void)
@@ -1791,7 +1786,6 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
         }
     }
     return NULL;
-
 }
 
 static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
@@ -1912,7 +1906,6 @@ void RegisterSMTPParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMTP, SMTPParserRegisterTests);
 #endif
-    return;
 }
 
 /**
@@ -4266,6 +4259,4 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest13", SMTPParserTest13);
     UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
 #endif /* UNITTESTS */
-
-    return;
 }

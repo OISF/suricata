@@ -77,8 +77,6 @@ void RunModeIdsAFXDPRegister(void)
             "Workers af-xdp mode, each thread does all"
             " tasks from acquisition to logging",
             RunModeIdsAFXDPWorkers, NULL);
-
-    return;
 }
 
 #ifdef HAVE_AF_XDP

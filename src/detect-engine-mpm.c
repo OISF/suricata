@@ -974,8 +974,6 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData
                             cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     }
-
-    return;
 }
 
 #define SGH_PROTO(sgh, p) ((sgh)->init->protos[(p)] == 1)
@@ -1007,7 +1005,6 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm, const int mpm_sm_list)
     cd->flags |= DETECT_CONTENT_MPM;
     s->init_data->mpm_sm_list = mpm_sm_list;
     s->init_data->mpm_sm = mpm_sm;
-    return;
 }
 
 static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm_sm,
@@ -1249,7 +1246,6 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 #endif
     /* assign to signature */
     SetMpm(s, mpm_sm, mpm_sm_list);
-    return;
 }
 
 /** \internal
@@ -1509,7 +1505,6 @@ void MpmStoreFree(DetectEngineCtx *de_ctx)
 
     HashListTableFree(de_ctx->mpm_hash_table);
     de_ctx->mpm_hash_table = NULL;
-    return;
 }
 
 static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)

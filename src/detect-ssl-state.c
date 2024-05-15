@@ -332,8 +332,6 @@ static void DetectSslStateFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL)
         SCFree(ptr);
-
-    return;
 }
 
 #ifdef UNITTESTS
