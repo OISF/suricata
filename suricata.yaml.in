@@ -1698,6 +1698,11 @@ detect:
     #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
     #udp-whitelist: 53, 135, 5060
 
+  # Thresholding hash table settings.
+  thresholds:
+    hash-size: 16384
+    memcap: 16mb
+
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
     # default is off. The threshold setting determines how many rules
