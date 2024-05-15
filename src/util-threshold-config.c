@@ -208,7 +208,6 @@ static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL)
         fclose(fd);
-    return;
 }
 
 /** \internal

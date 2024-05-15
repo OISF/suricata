@@ -155,7 +155,6 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 #endif
     pca->head[id].value += x;
     pca->head[id].updates++;
-    return;
 }
 
 /**
@@ -176,7 +175,6 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
 #endif
     pca->head[id].value++;
     pca->head[id].updates++;
-    return;
 }
 
 /**
@@ -197,7 +195,6 @@ void StatsDecr(ThreadVars *tv, uint16_t id)
 #endif
     pca->head[id].value--;
     pca->head[id].updates++;
-    return;
 }
 
 /**
@@ -225,8 +222,6 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     }
 
     pca->head[id].updates++;
-
-    return;
 }
 
 static ConfNode *GetConfig(void) {
@@ -370,8 +365,6 @@ static void StatsReleaseCtx(void)
     }
     memset(&stats_table, 0, sizeof(stats_table));
     SCMutexUnlock(&stats_table_mutex);
-
-    return;
 }
 
 /**
@@ -568,8 +561,6 @@ static void StatsReleaseCounter(StatsCounter *pc)
     if (pc != NULL) {
         SCFree(pc);
     }
-
-    return;
 }
 
 /**
@@ -653,7 +644,6 @@ static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 
     pc->value = pcae->value;
     pc->updates = pcae->updates;
-    return;
 }
 
 /**

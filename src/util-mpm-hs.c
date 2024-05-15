@@ -1001,7 +1001,6 @@ int SCHSAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
 
 void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx)
 {
-    return;
 }
 
 void SCHSPrintInfo(MpmCtx *mpm_ctx)

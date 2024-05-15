@@ -955,7 +955,6 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     fprintf(fp, "%s\n", js_s);
     free(js_s);
     fclose(fp);
-    return;
 }
 
 static int RulesGroupByProto(DetectEngineCtx *de_ctx)

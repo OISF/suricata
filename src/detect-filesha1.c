@@ -55,7 +55,6 @@ void DetectFileSha1Register(void)
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filesha1 rule option");
-    return;
 }
 
 /**

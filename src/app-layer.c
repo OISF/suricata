@@ -354,7 +354,6 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
 
 failure:
     DisableAppLayer(tv, f, p);
-    return;
 }
 
 static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,

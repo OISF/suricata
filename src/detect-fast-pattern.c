@@ -117,7 +117,6 @@ static void Add(SCFPSupportSMList **list, const int list_id, const int priority)
         new->next = ip->next;
         ip->next = new;
     }
-    return;
 }
 
 /**

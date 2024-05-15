@@ -118,7 +118,6 @@ void DetectFilenameRegister(void)
     filehandler_table[DETECT_FILE_NAME].Callback = DetectEngineInspectFilename;
 
     DetectBufferTypeSupportsMultiInstance("file.name");
-    return;
 }
 
 static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)

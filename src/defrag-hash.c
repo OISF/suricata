@@ -288,8 +288,6 @@ void DefragInitConfig(bool quiet)
         SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }
-
-    return;
 }
 
 /** \brief print some defrag stats
@@ -331,7 +329,6 @@ void DefragHashShutdown(void)
     }
     (void) SC_ATOMIC_SUB(defrag_memuse, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
     DefragTrackerQueueDestroy(&defragtracker_spare_q);
-    return;
 }
 
 /** \brief compare two raw ipv6 addrs

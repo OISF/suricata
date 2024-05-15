@@ -441,8 +441,6 @@ void DetectIPProtoRemoveAllSMs(DetectEngineCtx *de_ctx, Signature *s)
         SigMatchFree(de_ctx, sm);
         sm = tmp_sm;
     }
-
-    return;
 }
 
 static void DetectIPProtoFree(DetectEngineCtx *de_ctx, void *ptr)
@@ -928,7 +926,6 @@ static int DetectIPProtoTestSetup15(void)
  end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup16(void)
@@ -966,7 +963,6 @@ static int DetectIPProtoTestSetup16(void)
  end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup17(void)
@@ -1004,7 +1000,6 @@ static int DetectIPProtoTestSetup17(void)
  end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup18(void)
@@ -1042,7 +1037,6 @@ static int DetectIPProtoTestSetup18(void)
  end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup19(void)

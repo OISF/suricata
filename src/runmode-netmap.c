@@ -137,7 +137,6 @@ void RunModeIdsNetmapRegister(void)
             "each flow are assigned to a single detect "
             "thread.",
             RunModeIdsNetmapAutoFp, NetmapRunModeEnableIPS);
-    return;
 }
 
 #ifdef HAVE_NETMAP

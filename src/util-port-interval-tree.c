@@ -300,7 +300,6 @@ error:
         DetectPortFree(de_ctx, new_port);
     if (stack != NULL)
         SCFree(stack);
-    return;
 }
 
 /**
