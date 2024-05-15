@@ -139,10 +139,8 @@ static inline Base64Ecode DecodeBase64RFC2045(uint8_t *dest, uint32_t dest_size,
         if (bbidx == B64_BLOCK) {
             /* For every 4 bytes, add 3 bytes but deduct the '=' padded blocks */
             uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
-            if (dest_size < *decoded_bytes + numDecoded_blk) {
-                SCLogDebug("Destination buffer full");
+            if (dest_size - *decoded_bytes < ASCII_BLOCK)
                 return BASE64_ECODE_BUF;
-            }
             /* Decode base-64 block into ascii block and move pointer */
             DecodeBase64Block(dptr, b64);
             dptr += numDecoded_blk;
@@ -212,10 +210,8 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
         if (bbidx == B64_BLOCK) {
             /* For every 4 bytes, add 3 bytes but deduct the '=' padded blocks */
             uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
-            if (dest_size < *decoded_bytes + numDecoded_blk) {
-                SCLogDebug("Destination buffer full");
+            if (dest_size - *decoded_bytes < ASCII_BLOCK)
                 return BASE64_ECODE_BUF;
-            }
 
             /* Decode base-64 block into ascii block and move pointer */
             DecodeBase64Block(dptr, b64);
@@ -249,10 +245,8 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
          * */
         padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
         uint32_t numDecoded_blk = ASCII_BLOCK - padding;
-        if (dest_size < *decoded_bytes + numDecoded_blk) {
-            SCLogDebug("Destination buffer full");
+        if (dest_size - *decoded_bytes < ASCII_BLOCK)
             return BASE64_ECODE_BUF;
-        }
         /* Decode base-64 block into ascii block and move pointer */
         DecodeBase64Block(dptr, b64);
         *decoded_bytes += numDecoded_blk;
