@@ -739,6 +739,22 @@ To let Suricata make these decisions set default to 'auto':
     prefilter:
       default: auto
 
+.. _suricata-yaml-thresholds:
+
+Thresholding Settings
+~~~~~~~~~~~~~~~~~~~~~
+
+Thresholding uses a central hash table for tracking thresholds of the types: by_src, by_dst, by_both.
+
+::
+
+  detect:
+    thresholds:
+      hash-size: 16384
+      memcap: 16mb
+
+``detect.thresholds.hash-size`` controls the number of hash rows in the hash table.
+``detect.thresholds.memcap`` controls how much memory can be used for the hash table and the data stored in it.
 
 Pattern matcher settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
