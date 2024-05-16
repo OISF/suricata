@@ -1,5 +1,5 @@
 EXTRA_DIST =	src derive \
-		.cargo/config.in \
+		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
 		vendor \
