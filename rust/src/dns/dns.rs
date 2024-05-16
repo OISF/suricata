@@ -226,6 +226,7 @@ pub struct DNSMessage {
     pub queries: Vec<DNSQueryEntry>,
     pub answers: Vec<DNSAnswerEntry>,
     pub authorities: Vec<DNSAnswerEntry>,
+    pub additionals: Vec<DNSAnswerEntry>,
 }
 
 #[derive(Debug, Default)]
