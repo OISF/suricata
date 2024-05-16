@@ -2641,7 +2641,7 @@ AC_SUBST(enable_non_bundled_htp)
 
 AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [test "x$can_build_shared_library" = "xyes"])
 
-AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config)
+AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config.toml)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
 AC_CONFIG_FILES(rules/Makefile doc/Makefile doc/userguide/Makefile)
 AC_CONFIG_FILES(contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile)
