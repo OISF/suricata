@@ -606,6 +606,26 @@ fn dns_log_json_answer(
         js.close()?;
     }
 
+    if !response.additionals.is_empty() {
+        let mut is_js_open = false;
+        for add in &response.additionals {
+            if let DNSRData::Unknown(rdata) = &add.data {
+                if rdata.is_empty() {
+                    continue;
+                }
+            }
+            if !is_js_open {
+                js.open_array("additionals")?;
+                is_js_open = true;
+            }
+            let add_detail = dns_log_json_answer_detail(add)?;
+            js.append_object(&add_detail)?;
+        }
+        if is_js_open {
+            js.close()?;
+        }
+    }
+
     Ok(())
 }
 
