@@ -1,7 +1,8 @@
 !Cargo.toml.in
 !Cargo.lock.in
 Cargo.toml
-/.cargo/config
+/.cargo/config.toml
+!/.cargo/config.toml.in
 /Cargo.lock
 /target
 /vendor
