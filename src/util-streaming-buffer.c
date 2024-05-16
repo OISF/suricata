@@ -23,6 +23,10 @@
 #include "util-debug.h"
 #include "util-error.h"
 
+#include "app-layer-htp-mem.h"
+#include "conf-yaml-loader.h"
+#include "app-layer-htp.h"
+
 static void ListRegions(StreamingBuffer *sb);
 
 #define DUMP_REGIONS 0 // set to 1 to dump a visual representation of the regions list and sbb tree.
@@ -721,6 +725,8 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
 
     void *ptr = REALLOC(cfg, region->buf, region->buf_size, grow);
     if (ptr == NULL) {
+        if (sc_errno == SC_OK)
+            sc_errno = SC_ENOMEM;
         return sc_errno;
     }
     /* for safe printing and general caution, lets memset the
@@ -1099,6 +1105,8 @@ int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         }
     }
     DEBUG_VALIDATE_BUG_ON(DataFits(sb, data_len) != 1);
+    if (DataFits(sb, data_len) != 1)
+        return -1;
 
     memcpy(sb->region.buf + sb->region.buf_offset, data, data_len);
     seg->stream_offset = sb->region.stream_offset + sb->region.buf_offset;
@@ -2366,6 +2374,44 @@ static int StreamingBufferTest11(void)
     StreamingBufferFree(sb, &cfg);
     PASS;
 }
+
+static const char *dummy_conf_string = "%YAML 1.1\n"
+                                       "---\n"
+                                       "\n"
+                                       "app-layer:\n"
+                                       "  protocols:\n"
+                                       "    http:\n"
+                                       "      enabled: yes\n"
+                                       "      memcap: 88\n"
+                                       "\n";
+
+static int StreamingBufferTest12(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString((const char *)dummy_conf_string, strlen(dummy_conf_string));
+    HTPConfigure();
+
+    StreamingBufferConfig cfg = { 8, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, HTPCalloc, HTPRealloc,
+        HTPFree };
+    StreamingBuffer *sb = StreamingBufferInit(&cfg);
+    FAIL_IF(sb == NULL);
+
+    StreamingBufferSegment seg1;
+    FAIL_IF(StreamingBufferAppend(sb, &cfg, &seg1, (const uint8_t *)"ABCDEFGHIJKLMNOP", 16) != 0);
+
+    StreamingBufferSegment seg2;
+    FAIL_IF(StreamingBufferAppend(
+                    sb, &cfg, &seg2, (const uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWX", 24) != -1);
+    FAIL_IF(sc_errno != SC_ELIMIT);
+
+    StreamingBufferFree(sb, &cfg);
+    HtpConfigRestoreBackup();
+    ConfRestoreContextBackup();
+
+    PASS;
+}
 #endif
 
 void StreamingBufferRegisterTests(void)
@@ -2380,5 +2426,6 @@ void StreamingBufferRegisterTests(void)
     UtRegisterTest("StreamingBufferTest09", StreamingBufferTest09);
     UtRegisterTest("StreamingBufferTest10", StreamingBufferTest10);
     UtRegisterTest("StreamingBufferTest11 Bug 6903", StreamingBufferTest11);
+    UtRegisterTest("StreamingBufferTest12 Bug 6782", StreamingBufferTest12);
 #endif
 }
