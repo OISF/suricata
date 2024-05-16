@@ -394,6 +394,22 @@ pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
     }
 }
 
+/// Log OPT section fields
+fn dns_log_opt(opt: &DNSRDataOPT) -> Result<JsonBuilder, JsonError> {
+    let mut js = JsonBuilder::try_new_object()?;
+
+    let mut hex = Vec::new();
+    for byte in &opt.data {
+        hex.push(format!("{:02x}", byte));
+    }
+
+    js.set_uint("code", opt.code as u64)?;
+    js.set_string("data", &hex.concat())?;
+
+    js.close()?;
+    return Ok(js);
+} 
+
 /// Log SOA section fields.
 fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::try_new_object()?;
@@ -467,6 +483,13 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         }
         DNSRData::SRV(srv) => {
             jsa.set_object("srv", &dns_log_srv(srv)?)?;
+        }
+        DNSRData::OPT(opt) => {
+            jsa.open_array("opt")?;
+            for val in opt {
+                jsa.append_object(&dns_log_opt(val)?)?;
+            }
+            jsa.close()?;
         }
         _ => {}
     }
@@ -609,7 +632,7 @@ fn dns_log_json_answer(
     if !response.additionals.is_empty() {
         let mut is_js_open = false;
         for add in &response.additionals {
-            if let DNSRData::Unknown(rdata) = &add.data {
+            if let DNSRData::OPT(rdata) = &add.data {
                 if rdata.is_empty() {
                     continue;
                 }

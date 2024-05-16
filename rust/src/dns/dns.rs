@@ -150,6 +150,14 @@ pub struct DNSQueryEntry {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct DNSRDataOPT {
+    /// Option Code
+    pub code: u16,
+    /// Option Data
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
     pub mname: Vec<u8>,
@@ -207,6 +215,7 @@ pub enum DNSRData {
     SOA(DNSRDataSOA),
     SRV(DNSRDataSRV),
     SSHFP(DNSRDataSSHFP),
+    OPT(Vec<DNSRDataOPT>),
     // RData for remaining types is sometimes ignored
     Unknown(Vec<u8>),
 }
