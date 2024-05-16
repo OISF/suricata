@@ -1101,6 +1101,9 @@
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
                 },
+                "additionals": {
+                    "$ref": "#/$defs/dns.additionals"
+                },
                 "query": {
                     "type": "array",
                     "minItems": 1,
@@ -1172,6 +1175,9 @@
                         },
                         "authorities": {
                             "$ref": "#/$defs/dns.authorities"
+                        },
+                        "additionals": {
+                            "$ref": "#/$defs/dns.additionals"
                         }
                     },
                     "additionalProperties": false
@@ -1201,6 +1207,13 @@
                             }
                         },
                         "MX": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NS": {
                             "type": "array",
                             "minItems": 1,
                             "items": {
@@ -6026,6 +6039,28 @@
                             }
                         },
                         "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "dns.additionals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "rdata": {
+                        "type": "string"
+                    },
+                    "rrname": {
+                        "type": "string"
+                    },
+                    "rrtype": {
+                        "type": "string"
+                    },
+                    "ttl": {
+                        "type": "integer"
                     }
                 },
                 "additionalProperties": false
