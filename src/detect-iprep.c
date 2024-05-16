@@ -158,7 +158,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     SCLogDebug("rd->cmd %u", rd->cmd);
     switch (rd->cmd) {
         case IPRepCmdAny:
-            if (!(rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual)) {
+            if (!rd->isnotset) {
                 val = GetHostRepSrc(p, rd->cat, version);
                 if (val < 0)
                     val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
@@ -202,7 +202,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
                 return DetectU8Match((uint8_t)val, &rd->du8);
             }
             /* implied: no value found */
-            if (rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual) {
+            if (rd->isnotset) {
                 return 1;
             }
             break;
@@ -216,13 +216,13 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
                 return DetectU8Match((uint8_t)val, &rd->du8);
             }
             /* implied: no value found */
-            if (rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual) {
+            if (rd->isnotset) {
                 return 1;
             }
             break;
 
         case IPRepCmdBoth:
-            if (!(rd->du8.arg1 == 255 && rd->du8.mode == DetectUintModeEqual)) {
+            if (!rd->isnotset) {
                 val = GetHostRepSrc(p, rd->cat, version);
                 if (val < 0)
                     val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
