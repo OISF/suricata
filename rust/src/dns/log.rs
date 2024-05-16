@@ -606,6 +606,15 @@ fn dns_log_json_answer(
         js.close()?;
     }
 
+    if !response.additionals.is_empty() {
+        js.open_array("additionals")?;
+        for add in &response.additionals {
+            let add_detail = dns_log_json_answer_detail(add)?;
+            js.append_object(&add_detail)?;
+        }
+        js.close()?;
+    }
+
     Ok(())
 }
 
