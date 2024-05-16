@@ -86,55 +86,56 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseEr
         preceded(multispace0, nom7::bytes::complete::is_not(",")),
     )(i)?;
 
-    if values.len() == 4 {
-        let cmd = match DetectIPRepDataCmd::from_str(values[0].trim()) {
-            Ok(val) => val,
-            Err(_) => return Err(make_error("invalid command".to_string())),
+    let args = values.len();
+    if args == 4 || args == 3 {
+        let cmd = if let Ok(cmd) = DetectIPRepDataCmd::from_str(values[0].trim()) {
+            cmd
+        } else {
+            return Err(make_error("invalid command".to_string()));
         };
         let name = values[1].trim();
-        let mode = match detect_parse_uint_mode(values[2].trim()) {
-            Ok(val) => val.1,
-            Err(_) => return Err(make_error("invalid mode".to_string())),
+        let namez = if let Ok(name) = CString::new(name) {
+            name
+        } else {
+            return Err(make_error("invalid name".to_string()));
         };
+        let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
+        if cat == 0 {
+            return Err(make_error("unknown category".to_string()));
+        }
 
-        let namez = CString::new(name).unwrap();
-        let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
-        if cat == 0 {
-            return Err(make_error("unknown category".to_string()));
+        if values.len() == 4 {
+            let mode = match detect_parse_uint_mode(values[2].trim()) {
+                Ok(val) => val.1,
+                Err(_) => return Err(make_error("invalid mode".to_string())),
+            };
+
+            let arg1 = match values[3].trim().parse::<u8>() {
+                Ok(val) => val,
+                Err(_) => return Err(make_error("invalid value".to_string())),
+            };
+            let du8 = DetectUintData::<u8> {
+                arg1,
+                arg2: 0,
+                mode,
+            };
+            return Ok((i, DetectIPRepData { du8, cat, cmd }));
+        } else {
+            let (mode, arg1) = match values[2].trim() {
+                "isset" => { (DetectUintMode::DetectUintModeGte, 0)}, // any value means it's set
+                "isnotset" => { (DetectUintMode::DetectUintModeEqual, 255) }, // impossible value means not set
+                _ => { return Err(make_error("invalid mode".to_string())); },
+            };
+            let du8 = DetectUintData::<u8> {
+                arg1,
+                arg2: 0,
+                mode,
+            };
+            return Ok((i, DetectIPRepData { du8, cat, cmd }));
         }
-        let arg1 = match values[3].trim().parse::<u8>() {
-            Ok(val) => val,
-            Err(_) => return Err(make_error("invalid value".to_string())),
-        };
-        let du8 = DetectUintData::<u8> {
-            arg1,
-            arg2: 0,
-            mode,
-        };
-        return Ok((i, DetectIPRepData { du8, cat, cmd }));
-    } else if values.len() == 3 {
-        let cmd = match DetectIPRepDataCmd::from_str(values[0].trim()) {
-            Ok(val) => val,
-            Err(_) => return Err(make_error("invalid command".to_string())),
-        };
-        let name = values[1].trim();
-        let namez = CString::new(name).unwrap();
-        let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
-        if cat == 0 {
-            return Err(make_error("unknown category".to_string()));
-        }
-        let (mode, arg1) = match values[2].trim() {
-            "isset" => { (DetectUintMode::DetectUintModeGte, 0)}, // any value means it's set
-            "isnotset" => { (DetectUintMode::DetectUintModeEqual, 255) }, // impossible value means not set
-            _ => { return Err(make_error("invalid mode".to_string())); },
-        };
-        let du8 = DetectUintData::<u8> {
-            arg1,
-            arg2: 0,
-            mode,
-        };
-        return Ok((i, DetectIPRepData { du8, cat, cmd }));
-    } else {
+    } else if args < 3 {
+        return Err(make_error("too few arguments".to_string()));
+    } else  {
         return Err(make_error("too many arguments".to_string()));
     }
 
