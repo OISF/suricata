@@ -141,6 +141,19 @@ fn dns_parse_answer<'a>(
                         1
                     }
                 };
+                // edge case for additional section of type=OPT
+                // with empty data (data length = 0x0000)
+                if val.data.is_empty() && val.rrtype == DNS_RECORD_TYPE_OPT {
+                    answers.push(DNSAnswerEntry {
+                        name: val.name.clone(),
+                        rrtype: val.rrtype,
+                        rrclass: val.rrclass,
+                        ttl: val.ttl,
+                        data: DNSRData::Unknown(Vec::new()),
+                    });
+                    input = rem;
+                    continue;
+                }
                 let result: IResult<&'a [u8], Vec<DNSRData>> =
                     many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype)))(val.data);
                 match result {
@@ -332,6 +345,7 @@ pub fn dns_parse_body<'a>(
     let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
     let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
+    let (i, additionals) = dns_parse_answer(i, message, header.additional_rr as usize)?;
     Ok((
         i,
         DNSMessage {
@@ -339,6 +353,7 @@ pub fn dns_parse_body<'a>(
             queries,
             answers,
             authorities,
+            additionals,
         },
     ))
 }
@@ -478,9 +493,8 @@ mod tests {
         let (body, header) = dns_parse_header(pkt).unwrap();
         let res = dns_parse_body(body, pkt, header);
         let (rem, request) = res.unwrap();
-        // For now we have some remainder data as there is an
-        // additional record type we don't parse yet.
-        assert!(!rem.is_empty());
+        // The response should be fully parsed.
+        assert!(rem.is_empty());
 
         assert_eq!(
             request.header,
@@ -500,6 +514,20 @@ mod tests {
         assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
         assert_eq!(query.rrtype, 1);
         assert_eq!(query.rrclass, 1);
+
+        // verify additional section
+        assert_eq!(request.additionals.len(), 1);
+        let additional = &request.additionals[0];
+        assert_eq!(
+            additional,
+            &DNSAnswerEntry {
+                name: vec![],
+                rrtype: DNS_RECORD_TYPE_OPT,
+                rrclass: 0x1000, // for OPT this is UDP payload size
+                ttl: 0,          // for OPT this is extended RCODE and flags
+                data: DNSRData::Unknown(vec![]), // empty rdata
+            }
+        );
     }
 
     /// Parse a DNS response.
@@ -605,9 +633,8 @@ mod tests {
         ];
 
         let (rem, response) = dns_parse_response(pkt).unwrap();
-        // For now we have some remainder data as there is an
-        // additional record type we don't parse yet.
-        assert!(!rem.is_empty());
+        // The response should be fully parsed.
+        assert!(rem.is_empty());
 
         assert_eq!(
             response.header,
@@ -639,6 +666,21 @@ mod tests {
                 expire: 1209600,
                 minimum: 86400,
             })
+        );
+
+        // verify additional section
+        assert_eq!(response.additionals.len(), 1);
+
+        let additional = &response.additionals[0];
+        assert_eq!(
+            additional,
+            &DNSAnswerEntry {
+                name: vec![],
+                rrtype: DNS_RECORD_TYPE_OPT,
+                rrclass: 0x0200, // for OPT this is UDP payload size
+                ttl: 0,          // for OPT this is extended RCODE and flags
+                data: DNSRData::Unknown(vec![]), // no rdata
+            }
         );
     }
 
@@ -740,7 +782,7 @@ mod tests {
         ;; MSG SIZE  rcvd: 191   */
 
         let pkt: &[u8] = &[
-            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x04, 0x5f,
+            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x04, 0x5f,
             0x73, 0x69, 0x70, 0x04, 0x5f, 0x75, 0x64, 0x70, 0x03, 0x73, 0x69, 0x70, 0x05, 0x76,
             0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
             0x6d, 0x00, 0x00, 0x21, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00,
