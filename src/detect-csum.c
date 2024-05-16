@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -196,13 +196,13 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
     if (key[0] == '\"' && key[strlen(key) - 1] == '\"') {
         str = SCStrdup(key + 1);
         if (unlikely(str == NULL)) {
-            goto error;
+            return 0;
         }
         str[strlen(key) - 2] = '\0';
     } else {
         str = SCStrdup(key);
         if (unlikely(str == NULL)) {
-            goto error;
+            return 0;
         }
     }
 
@@ -213,9 +213,7 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
         return 1;
     }
 
-error:
-    if (str != NULL)
-        SCFree(str);
+    SCFree(str);
     return 0;
 }
 
@@ -274,12 +272,9 @@ static int DetectIPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -292,20 +287,13 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectIPV4CsumFree(de_ctx, cd);
-
+    DetectIPV4CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectIPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /**
@@ -364,12 +352,9 @@ static int DetectTCPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -382,20 +367,13 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectTCPV4CsumFree(de_ctx, cd);
-
+    DetectTCPV4CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectTCPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /**
@@ -455,12 +433,9 @@ static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -473,20 +448,13 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectTCPV6CsumFree(de_ctx, cd);
-
+    DetectTCPV6CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectTCPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /**
@@ -548,12 +516,9 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -566,20 +531,13 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectUDPV4CsumFree(de_ctx, cd);
-
+    DetectUDPV4CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectUDPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /**
@@ -638,12 +596,9 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -656,9 +611,7 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectUDPV6CsumFree(de_ctx, cd);
-
+    DetectUDPV6CsumFree(de_ctx, cd);
     return -1;
 }
 
@@ -728,12 +681,9 @@ static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -746,20 +696,13 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectICMPV4CsumFree(de_ctx, cd);
-
+    DetectICMPV4CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectICMPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /**
@@ -825,10 +768,9 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
-    DetectCsumData *cd = NULL;
-
-    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
-        goto error;
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -841,20 +783,13 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectICMPV6CsumFree(de_ctx, cd);
-
+    DetectICMPV6CsumFree(de_ctx, cd);
     return -1;
 }
 
 static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCsumData *cd = (DetectCsumData *)ptr;
-
-    if (cd != NULL)
-        SCFree(cd);
-
-    return;
+    SCFree(ptr);
 }
 
 /* ---------------------------------- Unit Tests --------------------------- */
