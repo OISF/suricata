@@ -136,13 +136,17 @@ void *HTPMalloc(size_t size)
 {
     void *ptr = NULL;
 
-    if (HTPCheckMemcap((uint32_t)size) == 0)
+    if (HTPCheckMemcap((uint32_t)size) == 0) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
 
     ptr = SCMalloc(size);
 
-    if (unlikely(ptr == NULL))
+    if (unlikely(ptr == NULL)) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
 
     HTPIncrMemuse((uint64_t)size);
 
@@ -153,13 +157,17 @@ void *HTPCalloc(size_t n, size_t size)
 {
     void *ptr = NULL;
 
-    if (HTPCheckMemcap((uint32_t)(n * size)) == 0)
+    if (HTPCheckMemcap((uint32_t)(n * size)) == 0) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
 
     ptr = SCCalloc(n, size);
 
-    if (unlikely(ptr == NULL))
+    if (unlikely(ptr == NULL)) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
 
     HTPIncrMemuse((uint64_t)(n * size));
 
@@ -169,13 +177,17 @@ void *HTPCalloc(size_t n, size_t size)
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
     if (size > orig_size) {
-        if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
+        if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
+            sc_errno = SC_ENOMEM;
             return NULL;
+        }
     }
 
     void *rptr = SCRealloc(ptr, size);
-    if (rptr == NULL)
+    if (rptr == NULL) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
 
     if (size > orig_size) {
         HTPIncrMemuse((uint64_t)(size - orig_size));
