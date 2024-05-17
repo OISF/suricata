@@ -687,7 +687,6 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
     SCLogDebug("start: left edge %" PRIu64 ", left_edge_rel %u, stream base %" PRIu64,
             (uint64_t)frames->left_edge_rel + STREAM_BASE_OFFSET(stream), frames->left_edge_rel,
             STREAM_BASE_OFFSET(stream));
-    const uint64_t abs_offset = STREAM_BASE_OFFSET(stream);
     const uint64_t acked = StreamTcpGetUsable(stream, eof);
     uint64_t le = STREAM_APP_PROGRESS(stream);
 
