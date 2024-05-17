@@ -127,6 +127,7 @@
 #include "detect-ftpbounce.h"
 #include "detect-isdataat.h"
 #include "detect-id.h"
+#include "detect-origin.h"
 #include "detect-rpc.h"
 #include "detect-asn1.h"
 #include "detect-filename.h"
@@ -586,6 +587,7 @@ void SigTableSetup(void)
     DetectFlowBytesToServerRegister();
     DetectRequiresRegister();
     DetectWindowRegister();
+    DetectOriginRegister();
     DetectRpcRegister();
     DetectFtpbounceRegister();
     DetectFtpdataRegister();
