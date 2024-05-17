@@ -157,7 +157,7 @@ static int NapatechRegisterDeviceStreams(void)
             SCLogInfo("Registering Napatech device: %s - active stream%sfound.",
                     plive_dev_buf, stream_config[inst].is_active ? " " : " NOT ");
         }
-        LiveRegisterDevice(plive_dev_buf);
+        LiveRegisterDevice(plive_dev_buf, ROLE_UNKNOWN_STR);
 
         if (first_stream == 0xffff) {
             first_stream = stream_config[inst].stream_id;

@@ -340,7 +340,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     for (int i = 0; i < ring_count; i++) {
         char live_buf[32] = { 0 };
         snprintf(live_buf, sizeof(live_buf), "netmap%d", i);
-        LiveRegisterDevice(live_buf);
+        LiveRegisterDevice(live_buf, ROLE_UNKNOWN_STR);
     }
 
     /* we need the base interface name with any trailing software
