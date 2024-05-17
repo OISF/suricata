@@ -351,8 +351,10 @@ static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uin
 {
     HttpRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
-    if (HttpRangeAppendData(sbcfg, r, data, len) < 0) {
-        SCLogDebug("Failed to append data while opening");
+    if (r) {
+        if (HttpRangeAppendData(sbcfg, r, data, len) < 0) {
+            SCLogDebug("Failed to append data while opening");
+        }
     }
     return r;
 }
