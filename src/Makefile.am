@@ -258,6 +258,7 @@ noinst_HEADERS = \
 	detect-replace.h \
 	detect-requires.h \
 	detect-rev.h \
+	detect-origin.h \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
@@ -837,6 +838,7 @@ libsuricata_c_a_SOURCES = \
 	detect-replace.c \
 	detect-requires.c \
 	detect-rev.c \
+	detect-origin.c \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
