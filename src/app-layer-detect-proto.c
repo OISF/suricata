@@ -1435,9 +1435,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
         bool rflow = false;
         alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, flags, &rflow);
         if (AppProtoIsValid(alproto)) {
-            if (rflow) {
-                *reverse_flow = true;
-            }
+            *reverse_flow = rflow;
             goto end;
         }
     }
