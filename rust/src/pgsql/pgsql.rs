@@ -22,11 +22,11 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use crate::core::{Flow, AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -313,7 +313,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -341,6 +341,7 @@ impl PgsqlState {
             );
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                     start = rem;
                     if let Some(state) = PgsqlState::request_next_state(&request) {
                         self.state_progress = state;
@@ -470,6 +471,7 @@ impl PgsqlState {
         while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
                     if let Some(state) = self.response_process_next_state(&response, flow) {
@@ -633,7 +635,7 @@ pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_pgsql_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -651,7 +653,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
     if stream_slice.is_gap() {
         state_safe.on_request_gap(stream_slice.gap_size());
     } else if !stream_slice.is_empty() {
-        return state_safe.parse_request(stream_slice.as_slice());
+        return state_safe.parse_request(flow, stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
