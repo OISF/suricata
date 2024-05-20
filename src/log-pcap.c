@@ -570,7 +570,6 @@ static void PcapLogDumpSegments(
 static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 {
     size_t len;
-    int rotate = 0;
     int ret = 0;
     Packet *rp = NULL;
 
@@ -609,7 +608,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     PcapLogCompressionData *comp = &pl->compression;
     if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
-        if ((pl->size_current + len) > pl->size_limit || rotate) {
+        if ((pl->size_current + len) > pl->size_limit) {
             if (PcapLogRotateFile(t,pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
@@ -625,8 +624,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
          * bytes that have been fed into lz4 since the last write, and
          * act as if they would be written uncompressed. */
 
-        if ((pl->size_current + comp->bytes_in_block + len) > pl->size_limit ||
-                rotate) {
+        if ((pl->size_current + comp->bytes_in_block + len) > pl->size_limit) {
             if (PcapLogRotateFile(t,pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
