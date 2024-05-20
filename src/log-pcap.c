@@ -523,7 +523,7 @@ static inline int PcapWrite(
 
 struct PcapLogCallbackContext {
     PcapLogData *pl;
-    PcapLogCompressionData *connp;
+    PcapLogCompressionData *comp;
     MemBuffer *buf;
 };
 
@@ -541,19 +541,19 @@ static int PcapLogSegmentCallback(
         MemBufferWriteRaw(pctx->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
         MemBufferWriteRaw(pctx->buf, buf, buflen);
 
-        PcapWrite(pctx->pl, pctx->connp, (uint8_t *)pctx->buf->buffer, pctx->pl->h->len);
+        PcapWrite(pctx->pl, pctx->comp, (uint8_t *)pctx->buf->buffer, pctx->pl->h->len);
     }
     return 1;
 }
 
 static void PcapLogDumpSegments(
-        PcapLogThreadData *td, PcapLogCompressionData *connp, const Packet *p)
+        PcapLogThreadData *td, PcapLogCompressionData *comp, const Packet *p)
 {
     uint8_t flag;
     flag = STREAM_DUMP_HEADERS;
 
     /* Loop on segment from this side */
-    struct PcapLogCallbackContext data = { td->pcap_log, connp, td->buf };
+    struct PcapLogCallbackContext data = { td->pcap_log, comp, td->buf };
     StreamSegmentForSession(p, flag, PcapLogSegmentCallback, (void *)&data);
 }
 
