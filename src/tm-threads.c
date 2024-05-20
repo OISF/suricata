@@ -2249,6 +2249,9 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         Thread *t = &thread_store.threads[s];
         if (t->in_use == 0)
             break;
+        /* only packet threads set timestamps based on packets */
+        if (t->type != TVT_PPT)
+            continue;
         struct timeval pkttv = { .tv_sec = SCTIME_SECS(t->pktts),
             .tv_usec = SCTIME_USECS(t->pktts) };
         if (!(timercmp(&pkttv, &nullts, ==))) {
