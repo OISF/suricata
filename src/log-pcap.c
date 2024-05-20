@@ -485,7 +485,7 @@ static inline int PcapWrite(
         pl->size_current += len;
     }
 #ifdef HAVE_LIBLZ4
-    else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
+    else if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         pcap_dump_flush(pl->pcap_dumper);
         long in_size = ftell(comp->pcap_buf_wrapper);
         if (in_size < 0) {
@@ -498,7 +498,7 @@ static inline int PcapWrite(
             SCLogError("LZ4F_compressUpdate: %s", LZ4F_getErrorName(len));
             return TM_ECODE_FAILED;
         }
-        if (fseek(pl->compression.pcap_buf_wrapper, 0, SEEK_SET) != 0) {
+        if (fseek(comp->pcap_buf_wrapper, 0, SEEK_SET) != 0) {
             SCLogError("fseek failed: %s", strerror(errno));
             return TM_ECODE_FAILED;
         }
