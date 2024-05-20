@@ -650,11 +650,8 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional != LOGMODE_COND_ALL)) {
         if (PacketIsTCP(p)) {
             /* dump fake packets for all segments we have on acked by packet */
-#ifdef HAVE_LIBLZ4
             PcapLogDumpSegments(td, comp, p);
-#else
-            PcapLogDumpSegments(td, NULL, p);
-#endif
+
             if (p->flags & PKT_PSEUDO_STREAM_END) {
                 PcapLogUnlock(pl);
                 return TM_ECODE_OK;
@@ -678,17 +675,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     if (p->ttype == PacketTunnelChild) {
         rp = p->root;
-#ifdef HAVE_LIBLZ4
         ret = PcapWrite(pl, comp, GET_PKT_DATA(rp), len);
-#else
-        ret = PcapWrite(pl, NULL, GET_PKT_DATA(rp), len);
-#endif
     } else {
-#ifdef HAVE_LIBLZ4
         ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
-#else
-        ret = PcapWrite(pl, NULL, GET_PKT_DATA(p), len);
-#endif
     }
     if (ret != TM_ECODE_OK) {
         PCAPLOG_PROFILE_END(pl->profile_write);
