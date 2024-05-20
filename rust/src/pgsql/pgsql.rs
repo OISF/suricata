@@ -22,11 +22,11 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use crate::core::{Flow, AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -313,7 +313,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: Option<*const Flow>, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -341,6 +341,9 @@ impl PgsqlState {
             );
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
+                    if let Some(flow) = flow {
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
+                    }
                     start = rem;
                     if let Some(state) = PgsqlState::request_next_state(&request) {
                         self.state_progress = state;
@@ -449,7 +452,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_response(&mut self, flow: Option<*const Flow>, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -470,11 +473,16 @@ impl PgsqlState {
         while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
+                    if let Some(flow) = flow {
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
+                    }
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_process_next_state(&response, flow) {
-                        self.state_progress = state;
-                    };
+                    if let Some(flow) = flow {
+                        if let Some(state) = self.response_process_next_state(&response, flow) {
+                            self.state_progress = state;
+                        };
+                    }
                     let tx_completed = self.is_tx_completed();
                     let curr_state = self.state_progress;
                     if let Some(tx) = self.find_or_create_tx() {
@@ -633,7 +641,7 @@ pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_pgsql_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -651,7 +659,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
     if stream_slice.is_gap() {
         state_safe.on_request_gap(stream_slice.gap_size());
     } else if !stream_slice.is_empty() {
-        return state_safe.parse_request(stream_slice.as_slice());
+        return state_safe.parse_request(Some(flow), stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -674,7 +682,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
     if stream_slice.is_gap() {
         state_safe.on_response_gap(stream_slice.gap_size());
     } else if !stream_slice.is_empty() {
-        return state_safe.parse_response(stream_slice.as_slice(), flow);
+        return state_safe.parse_response(Some(flow), stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -835,7 +843,7 @@ mod test {
         let mut state = PgsqlState::new();
         // an SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
-        state.parse_request(buf);
+        state.parse_request(None, buf);
         let ok_state = PgsqlStateProgress::SSLRequestReceived;
 
         assert_eq!(state.state_progress, ok_state);
@@ -849,7 +857,7 @@ mod test {
         // An SSL Request
         let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
 
-        let r = state.parse_request(&buf[0..0]);
+        let r = state.parse_request(None, &buf[0..0]);
         assert_eq!(
             r,
             AppLayerResult {
@@ -859,7 +867,7 @@ mod test {
             }
         );
 
-        let r = state.parse_request(&buf[0..1]);
+        let r = state.parse_request(None, &buf[0..1]);
         assert_eq!(
             r,
             AppLayerResult {
@@ -869,7 +877,7 @@ mod test {
             }
         );
 
-        let r = state.parse_request(&buf[0..2]);
+        let r = state.parse_request(None, &buf[0..2]);
         assert_eq!(
             r,
             AppLayerResult {
