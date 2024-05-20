@@ -2211,6 +2211,8 @@ bool TmThreadsTimeSubsysIsReady(void)
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
             break;
+        if (t->type != TVT_PPT)
+            continue;
         if (t->sys_sec_stamp == 0) {
             ready = false;
             break;
@@ -2229,6 +2231,8 @@ void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
             break;
+        if (t->type != TVT_PPT)
+            continue;
         t->pktts = ts;
         t->sys_sec_stamp = (uint32_t)systs.tv_sec;
     }
@@ -2249,6 +2253,9 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         Thread *t = &thread_store.threads[s];
         if (t->in_use == 0)
             break;
+        /* only packet threads set timestamps based on packets */
+        if (t->type != TVT_PPT)
+            continue;
         struct timeval pkttv = { .tv_sec = SCTIME_SECS(t->pktts),
             .tv_usec = SCTIME_USECS(t->pktts) };
         if (!(timercmp(&pkttv, &nullts, ==))) {
