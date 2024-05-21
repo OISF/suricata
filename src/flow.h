@@ -33,6 +33,7 @@ typedef struct FlowStorageId FlowStorageId;
 #include "util-exception-policy-types.h"
 #include "util-var.h"
 #include "util-optimize.h"
+#include "util-validate.h"
 #include "app-layer-protos.h"
 
 /* Part of the flow structure, so we declare it here.
@@ -636,12 +637,9 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f)
 static inline void FlowReference(Flow **d, Flow *f)
 {
     if (likely(f != NULL)) {
-#ifdef DEBUG_VALIDATION
-        BUG_ON(*d == f);
-#else
+        DEBUG_VALIDATE_BUG_ON(*d == f);
         if (*d == f)
             return;
-#endif
         *d = f;
     }
 }
