@@ -915,7 +915,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         } else if (FlowCompare(f, p) != 0) {
             FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
-            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
                 Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
                 if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
                     prev_f = new_f;
