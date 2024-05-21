@@ -234,10 +234,8 @@ static bool PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
             break;
         case LOGMODE_COND_ALERTS:
             return (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow)));
-            break;
         case LOGMODE_COND_TAG:
             return (p->flags & (PKT_HAS_TAG | PKT_FIRST_TAG));
-            break;
     }
 
     if (p->flags & PKT_PSEUDO_STREAM_END) {
@@ -549,8 +547,7 @@ static int PcapLogSegmentCallback(
 static void PcapLogDumpSegments(
         PcapLogThreadData *td, PcapLogCompressionData *comp, const Packet *p)
 {
-    uint8_t flag;
-    flag = STREAM_DUMP_HEADERS;
+    uint8_t flag = STREAM_DUMP_HEADERS;
 
     /* Loop on segment from this side */
     struct PcapLogCallbackContext data = { td->pcap_log, comp, td->buf };
@@ -794,8 +791,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 
     strlcpy(copy->dir, pl->dir, sizeof(copy->dir));
 
-    int i;
-    for (i = 0; i < pl->filename_part_cnt && i < MAX_TOKS; i++)
+    for (int i = 0; i < pl->filename_part_cnt && i < MAX_TOKS; i++)
         copy->filename_parts[i] = pl->filename_parts[i];
     copy->filename_part_cnt = pl->filename_part_cnt;
 
@@ -1205,7 +1201,6 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
     int tok = 0;
     char str[MAX_FILENAMELEN] = "";
     int s = 0;
-    int i, x;
     char *p = NULL;
     size_t filename_len = 0;
 
@@ -1216,7 +1211,7 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
             goto error;
         }
 
-        for (i = 0; i < (int)strlen(filename); i++) {
+        for (int i = 0; i < (int)strlen(filename); i++) {
             if (tok >= MAX_TOKS) {
                 SCLogError("invalid filename option. Max 2 %%-sign options");
                 goto error;
@@ -1277,7 +1272,7 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
         }
 
         /* finally, store tokens in the pl */
-        for (i = 0; i < tok; i++) {
+        for (int i = 0; i < tok; i++) {
             if (toks[i] == NULL)
                 goto error;
 
@@ -1288,7 +1283,7 @@ static int ParseFilename(PcapLogData *pl, const char *filename)
     }
     return 0;
 error:
-    for (x = 0; x < MAX_TOKS; x++) {
+    for (int x = 0; x < MAX_TOKS; x++) {
         if (toks[x] != NULL)
             SCFree(toks[x]);
     }
@@ -1697,8 +1692,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
             strlcpy(filename, pl->dir, PATH_MAX);
             strlcat(filename, "/", PATH_MAX);
 
-            int i;
-            for (i = 0; i < pl->filename_part_cnt; i++) {
+            for (int i = 0; i < pl->filename_part_cnt; i++) {
                 if (pl->filename_parts[i] == NULL ||strlen(pl->filename_parts[i]) == 0)
                     continue;
 
