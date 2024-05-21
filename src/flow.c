@@ -708,6 +708,7 @@ void FlowShutdown(void)
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
     FlowQueueDestroy(&flow_recycle_q);
     FlowSparePoolDestroy();
+    DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(flow_memuse) != 0);
     return;
 }
 
