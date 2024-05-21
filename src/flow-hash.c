@@ -530,9 +530,8 @@ static inline int FlowCompare(Flow *f, const Packet *p)
         return FlowCompareICMPv4(f, p);
     } else if (PacketIsESP(p)) {
         return FlowCompareESP(f, p);
-    } else {
-        return CmpFlowPacket(f, p);
     }
+    return CmpFlowPacket(f, p);
 }
 
 /**
