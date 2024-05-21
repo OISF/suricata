@@ -542,10 +542,10 @@ static inline int FlowCompare(Flow *f, const Packet *p)
  *  - TCP flags (emergency mode only)
  *
  *  \param p packet
- *  \retval 1 true
- *  \retval 0 false
+ *  \retval true
+ *  \retval false
  */
-static inline int FlowCreateCheck(const Packet *p, const bool emerg)
+static inline bool FlowCreateCheck(const Packet *p, const bool emerg)
 {
     /* if we're in emergency mode, don't try to create a flow for a TCP
      * that is not a TCP SYN packet. */
@@ -556,18 +556,18 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
                     !stream_config.midstream) {
                 ;
             } else {
-                return 0;
+                return false;
             }
         }
     }
 
     if (PacketIsICMPv4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p->icmp_s.type)) {
-            return 0;
+            return false;
         }
     }
 
-    return 1;
+    return true;
 }
 
 static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
@@ -684,7 +684,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
         return NULL;
     }
 #endif
-    if (FlowCreateCheck(p, emerg) == 0) {
+    if (!FlowCreateCheck(p, emerg)) {
         return NULL;
     }
 
