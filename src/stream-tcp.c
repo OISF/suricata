@@ -5761,7 +5761,7 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
 /** \internal
  *  \brief Check if Flow and TCP SSN allow this flow/tuple to be reused
  *  \retval bool true yes reuse, false no keep tracking old ssn */
-static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const TcpSession *ssn)
+static bool TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
     const TCPHdr *tcph = PacketGetTCP(p);
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
@@ -5769,96 +5769,96 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
             /* most likely a flow that was picked up after the 3whs, or a flow that
              * does not have a session due to memcap issues. */
             SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
-            return 1;
+            return true;
         }
         if (ssn->flags & STREAMTCP_FLAG_TFO_DATA_IGNORED) {
             SCLogDebug("steam starter packet %" PRIu64
                        ", ssn %p. STREAMTCP_FLAG_TFO_DATA_IGNORED set. Reuse.",
                     p->pcap_cnt, ssn);
-            return 1;
+            return true;
         }
         if (SEQ_EQ(ssn->client.isn, TCP_GET_RAW_SEQ(tcph))) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
-            return 0;
+            return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 0;
+            return false;
         }
 
     } else {
         if (ssn == NULL) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
-            return 1;
+            return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 0;
+            return false;
         }
     }
 
     SCLogDebug("default: how did we get here?");
-    return 0;
+    return false;
 }
 
 /** \internal
  *  \brief check if ssn is done enough for reuse by syn/ack
  *  \note should only be called if midstream is enabled
  */
-static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const TcpSession *ssn)
+static bool TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
     const TCPHdr *tcph = PacketGetTCP(p);
     if (FlowGetPacketDirection(f, p) == TOCLIENT) {
         if (ssn == NULL) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
-            return 0;
+            return false;
         }
         if (SEQ_EQ(ssn->server.isn, TCP_GET_RAW_SEQ(tcph))) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
-            return 0;
+            return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 0;
+            return false;
         }
 
     } else {
         if (ssn == NULL) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
-            return 1;
+            return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 1;
+            return true;
         } else { // < TCP_LAST_ACK
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
-            return 0;
+            return false;
         }
     }
 
     SCLogDebug("default: how did we get here?");
-    return 0;
+    return false;
 }
 
 /** \brief Check if SSN is done enough for reuse
@@ -5866,7 +5866,7 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
  *  Reuse means a new TCP session reuses the tuple (flow in suri)
  *
  *  \retval bool true if ssn can be reused, false if not */
-static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
+static bool TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
     const TCPHdr *tcph = PacketGetTCP(p);
     if ((tcph->th_flags & (TH_SYN | TH_ACK)) == TH_SYN) {
@@ -5879,19 +5879,19 @@ static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSe
         }
     }
 
-    return 0;
+    return false;
 }
 
-int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn)
+bool TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn)
 {
     if (p->proto == IPPROTO_TCP && PacketIsTCP(p)) {
         if (TcpSessionPacketIsStreamStarter(p) == 1) {
             if (TcpSessionReuseDoneEnough(p, f, tcp_ssn) == 1) {
-                return 1;
+                return true;
             }
         }
     }
-    return 0;
+    return false;
 }
 
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
