@@ -1013,7 +1013,7 @@ void FlowInitFlowProto(void)
     }
 
     /* validate and if needed update emergency timeout values */
-    for (int i = 0; i < FLOW_PROTO_MAX; i++) {
+    for (uint8_t i = 0; i < FLOW_PROTO_MAX; i++) {
         const FlowProtoTimeout *n = &flow_timeouts_normal[i];
         FlowProtoTimeout *e = &flow_timeouts_emerg[i];
 
@@ -1046,7 +1046,7 @@ void FlowInitFlowProto(void)
         }
     }
 
-    for (int i = 0; i < FLOW_PROTO_MAX; i++) {
+    for (uint8_t i = 0; i < FLOW_PROTO_MAX; i++) {
         FlowProtoTimeout *n = &flow_timeouts_normal[i];
         FlowProtoTimeout *e = &flow_timeouts_emerg[i];
         FlowProtoTimeout *d = &flow_timeouts_delta[i];
