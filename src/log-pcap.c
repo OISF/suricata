@@ -86,6 +86,7 @@ typedef enum LogModeConditionalType_ {
 
 #define PCAP_SNAPLEN                    262144
 #define PCAP_BUFFER_TIMEOUT             1000000 // microseconds
+#define PCAP_PKTHDR_SIZE                16
 
 SC_ATOMIC_DECLARE(uint32_t, thread_cnt);
 
@@ -621,11 +622,11 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
         rp = p->root;
         pl->h->caplen = GET_PKT_LEN(rp);
         pl->h->len = GET_PKT_LEN(rp);
-        len = sizeof(*pl->h) + GET_PKT_LEN(rp);
+        len = PCAP_PKTHDR_SIZE + GET_PKT_LEN(rp);
     } else {
         pl->h->caplen = GET_PKT_LEN(p);
         pl->h->len = GET_PKT_LEN(p);
-        len = sizeof(*pl->h) + GET_PKT_LEN(p);
+        len = PCAP_PKTHDR_SIZE + GET_PKT_LEN(p);
     }
 
     if (pl->filename == NULL) {
@@ -708,11 +709,11 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
                 rp = p->root;
                 pl->h->caplen = GET_PKT_LEN(rp);
                 pl->h->len = GET_PKT_LEN(rp);
-                len = sizeof(*pl->h) + GET_PKT_LEN(rp);
+                len = PCAP_PKTHDR_SIZE + GET_PKT_LEN(rp);
             } else {
                 pl->h->caplen = GET_PKT_LEN(p);
                 pl->h->len = GET_PKT_LEN(p);
-                len = sizeof(*pl->h) + GET_PKT_LEN(p);
+                len = PCAP_PKTHDR_SIZE + GET_PKT_LEN(p);
             }
         }
     }
