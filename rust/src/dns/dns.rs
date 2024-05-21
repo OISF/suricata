@@ -555,6 +555,7 @@ impl DNSState {
             );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
+                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                 let _pdu = Frame::new(
                     flow,
                     &stream_slice,
@@ -617,6 +618,7 @@ impl DNSState {
             );
             if size > 0 && cur_i.len() >= size + 2 {
                 let msg = &cur_i[2..(size + 2)];
+                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                 let _pdu = Frame::new(
                     flow,
                     &stream_slice,
