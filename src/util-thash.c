@@ -452,6 +452,10 @@ uint32_t THashExpire(THashTableContext *ctx, const SCTime_t ts)
                 h->prev = NULL;
                 SCLogDebug("timeout: removing data %p", h);
                 ctx->config.DataFree(h->data);
+                if (ctx->config.DataSize) {
+                    uint32_t len = ctx->config.DataSize(h->data);
+                    (void)SC_ATOMIC_SUB(ctx->memuse, (uint64_t)len);
+                }
                 THashDataUnlock(h);
                 THashDataMoveToSpare(ctx, h);
             } else {
