@@ -45,10 +45,6 @@ enum LogFileType {
     LOGFILE_TYPE_NOTSET
 };
 
-typedef struct SyslogSetup_ {
-    int alert_syslog_level;
-} SyslogSetup;
-
 typedef struct ThreadLogFileHashEntry {
     struct LogFileCtx_ *ctx;
 

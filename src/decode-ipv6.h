@@ -113,22 +113,6 @@ typedef struct IPV6AuthHdr_
     uint32_t ip6ah_seq;             /* sequence number */
 } __attribute__((__packed__)) IPV6AuthHdr;
 
-typedef struct IPV6EspHdr_
-{
-    uint32_t ip6esph_spi;           /* SECURITY PARAMETERS INDEX (SPI) */
-    uint32_t ip6esph_seq;           /* sequence number */
-} __attribute__((__packed__)) IPV6EspHdr;
-
-typedef struct IPV6RouteHdr_
-{
-    uint8_t ip6rh_nxt;               /* next header */
-    uint8_t ip6rh_len;               /* header length in units of 8 bytes, not
-                                        including first 8 bytes. */
-    uint8_t ip6rh_type;              /* routing type */
-    uint8_t ip6rh_segsleft;          /* segments left */
-} __attribute__((__packed__)) IPV6RouteHdr;
-
-
 /* Hop-by-Hop header and Destination Options header use options that are
  * defined here. */
 
@@ -161,28 +145,6 @@ typedef struct IPV6OptJumbo_
     uint8_t ip6j_len;              /* Option Data len (excludes type and len) */
     uint32_t ip6j_payload_len;     /* Jumbo Payload Length */
 } IPV6OptJumbo;
-
-typedef struct IPV6HopOptsHdr_
-{
-    uint8_t ip6hh_nxt;              /* next header */
-    uint8_t ip6hh_len;              /* header length in units of 8 bytes, not
-                                       including first 8 bytes. */
-} __attribute__((__packed__)) IPV6HopOptsHdr;
-
-typedef struct IPV6DstOptsHdr_
-{
-    uint8_t ip6dh_nxt;              /* next header */
-    uint8_t ip6dh_len;              /* header length in units of 8 bytes, not
-                                       including first 8 bytes. */
-} __attribute__((__packed__)) IPV6DstOptsHdr;
-
-typedef struct IPV6GenOptHdr_
-{
-    uint8_t type;
-    uint8_t next;
-    uint8_t len;
-    uint8_t *data;
-}   IPV6GenOptHdr;
 
 typedef struct IPV6ExtHdrs_
 {
