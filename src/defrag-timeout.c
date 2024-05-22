@@ -67,8 +67,10 @@ static uint32_t DefragTrackerHashRowTimeout(
 {
     uint32_t cnt = 0;
 
+    DefragTracker *prev_dt = NULL;
     do {
         if (SCMutexTrylock(&dt->lock) != 0) {
+            prev_dt = dt;
             dt = dt->hnext;
             continue;
         }
@@ -77,33 +79,32 @@ static uint32_t DefragTrackerHashRowTimeout(
 
         /* check if the tracker is fully timed out and
          * ready to be discarded. */
-        if (DefragTrackerTimedOut(dt, ts) == 1) {
-            /* remove from the hash */
-            if (dt->hprev != NULL)
-                dt->hprev->hnext = dt->hnext;
-            if (dt->hnext != NULL)
-                dt->hnext->hprev = dt->hprev;
-            if (hb->head == dt)
-                hb->head = dt->hnext;
-            if (hb->tail == dt)
-                hb->tail = dt->hprev;
-
-            dt->hnext = NULL;
-            dt->hprev = NULL;
-
-            DefragTrackerClearMemory(dt);
-
-            /* no one is referring to this tracker, use_cnt 0, removed from hash
-             * so we can unlock it and move it back to the spare queue. */
+        if (DefragTrackerTimedOut(dt, ts) == 0) {
+            prev_dt = dt;
             SCMutexUnlock(&dt->lock);
-
-            /* move to spare list */
-            DefragTrackerMoveToSpare(dt);
-
-            cnt++;
-        } else {
-            SCMutexUnlock(&dt->lock);
+            dt = next_dt;
+            continue;
         }
+
+        /* remove from the hash */
+        if (prev_dt != NULL) {
+            prev_dt->hnext = dt->hnext;
+        } else {
+            hb->head = dt->hnext;
+        }
+
+        dt->hnext = NULL;
+
+        DefragTrackerClearMemory(dt);
+
+        /* no one is referring to this tracker, use_cnt 0, removed from hash
+         * so we can unlock it and move it back to the spare queue. */
+        SCMutexUnlock(&dt->lock);
+
+        /* move to spare list */
+        DefragTrackerMoveToSpare(dt);
+
+        cnt++;
 
         dt = next_dt;
     } while (dt != NULL);
