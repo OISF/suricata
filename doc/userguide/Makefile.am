@@ -31,7 +31,8 @@ EXTRA_DIST = \
 	setting-up-ipsinline-for-windows.rst \
 	support-status.rst \
 	unix-socket.rst \
-	what-is-suricata.rst
+	what-is-suricata.rst \
+	verifying-source-files.rst
 
 if HAVE_SURICATA_MAN
 dist_man1_MANS = suricata.1 suricatasc.1 suricatactl.1 suricatactl-filestore.1
