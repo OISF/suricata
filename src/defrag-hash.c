@@ -682,7 +682,7 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
         if (DRLOCK_TRYLOCK(hb) != 0)
             continue;
 
-        DefragTracker *dt = hb->tail;
+        DefragTracker *dt = hb->head;
         if (dt == NULL) {
             DRLOCK_UNLOCK(hb);
             continue;
