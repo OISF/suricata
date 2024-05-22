@@ -579,65 +579,39 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
     /* ok, we have a tracker in the bucket. Let's find out if it is our tracker */
     dt = hb->head;
 
-    /* see if this is the tracker we are looking for */
-    if (dt->remove || DefragTrackerCompare(dt, p) == 0) {
-        DefragTracker *pdt = NULL; /* previous tracker */
+    do {
+        if (!dt->remove && DefragTrackerCompare(dt, p)) {
+            /* found our tracker, lock & return */
+            SCMutexLock(&dt->lock);
+            (void)DefragTrackerIncrUsecnt(dt);
+            DRLOCK_UNLOCK(hb);
+            return dt;
 
-        while (dt) {
-            pdt = dt;
-            dt = dt->hnext;
-
+        } else if (dt->hnext == NULL) {
+            DefragTracker *prev = dt;
+            dt = DefragTrackerGetNew(tv, dtv, p);
             if (dt == NULL) {
-                dt = pdt->hnext = DefragTrackerGetNew(tv, dtv, p);
-                if (dt == NULL) {
-                    DRLOCK_UNLOCK(hb);
-                    return NULL;
-                }
-                hb->tail = dt;
-
-                /* tracker is locked */
-
-                dt->hprev = pdt;
-
-                /* initialize and return */
-                DefragTrackerInit(dt,p);
-
                 DRLOCK_UNLOCK(hb);
-                return dt;
+                return NULL;
             }
+            prev->hnext = hb->tail = dt;
+            dt->hprev = prev;
 
-            if (DefragTrackerCompare(dt, p) != 0) {
-                /* we found our tracker, lets put it on top of the
-                 * hash list -- this rewards active trackers */
-                if (dt->hnext) {
-                    dt->hnext->hprev = dt->hprev;
-                }
-                if (dt->hprev) {
-                    dt->hprev->hnext = dt->hnext;
-                }
-                if (dt == hb->tail) {
-                    hb->tail = dt->hprev;
-                }
+            /* tracker is locked */
 
-                dt->hnext = hb->head;
-                dt->hprev = NULL;
-                hb->head->hprev = dt;
-                hb->head = dt;
+            /* initialize and return */
+            DefragTrackerInit(dt, p);
 
-                /* found our tracker, lock & return */
-                SCMutexLock(&dt->lock);
-                (void) DefragTrackerIncrUsecnt(dt);
-                DRLOCK_UNLOCK(hb);
-                return dt;
-            }
+            DRLOCK_UNLOCK(hb);
+            return dt;
         }
-    }
 
-    /* lock & return */
-    SCMutexLock(&dt->lock);
-    (void) DefragTrackerIncrUsecnt(dt);
-    DRLOCK_UNLOCK(hb);
-    return dt;
+        dt = dt->hnext;
+    } while (dt != NULL);
+
+    /* should be unreachable */
+    BUG_ON(1);
+    return NULL;
 }
 
 /** \brief look up a tracker in the hash
@@ -665,48 +639,25 @@ DefragTracker *DefragLookupTrackerFromHash (Packet *p)
     /* ok, we have a tracker in the bucket. Let's find out if it is our tracker */
     dt = hb->head;
 
-    /* see if this is the tracker we are looking for */
-    if (DefragTrackerCompare(dt, p) == 0) {
-        while (dt) {
-            dt = dt->hnext;
+    do {
+        if (!dt->remove && DefragTrackerCompare(dt, p)) {
+            /* found our tracker, lock & return */
+            SCMutexLock(&dt->lock);
+            (void)DefragTrackerIncrUsecnt(dt);
+            DRLOCK_UNLOCK(hb);
+            return dt;
 
-            if (dt == NULL) {
-                DRLOCK_UNLOCK(hb);
-                return dt;
-            }
-
-            if (DefragTrackerCompare(dt, p) != 0) {
-                /* we found our tracker, lets put it on top of the
-                 * hash list -- this rewards active tracker */
-                if (dt->hnext) {
-                    dt->hnext->hprev = dt->hprev;
-                }
-                if (dt->hprev) {
-                    dt->hprev->hnext = dt->hnext;
-                }
-                if (dt == hb->tail) {
-                    hb->tail = dt->hprev;
-                }
-
-                dt->hnext = hb->head;
-                dt->hprev = NULL;
-                hb->head->hprev = dt;
-                hb->head = dt;
-
-                /* found our tracker, lock & return */
-                SCMutexLock(&dt->lock);
-                (void) DefragTrackerIncrUsecnt(dt);
-                DRLOCK_UNLOCK(hb);
-                return dt;
-            }
+        } else if (dt->hnext == NULL) {
+            DRLOCK_UNLOCK(hb);
+            return NULL;
         }
-    }
 
-    /* lock & return */
-    SCMutexLock(&dt->lock);
-    (void) DefragTrackerIncrUsecnt(dt);
-    DRLOCK_UNLOCK(hb);
-    return dt;
+        dt = dt->hnext;
+    } while (dt != NULL);
+
+    /* should be unreachable */
+    BUG_ON(1);
+    return NULL;
 }
 
 /** \internal
