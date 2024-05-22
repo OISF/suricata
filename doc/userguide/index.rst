@@ -34,3 +34,4 @@ This is the documentation for Suricata |version|.
    acknowledgements
    licenses/index.rst
    devguide/index.rst
+   verifying-source-files
