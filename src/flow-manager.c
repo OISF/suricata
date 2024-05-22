@@ -583,11 +583,6 @@ static uint32_t FlowCleanupHash(void)
     return cnt;
 }
 
-typedef struct FlowQueueTimeoutCounters {
-    uint32_t flows_removed;
-    uint32_t flows_timeout;
-} FlowQueueTimeoutCounters;
-
 typedef struct FlowCounters_ {
     uint16_t flow_mgr_full_pass;
     uint16_t flow_mgr_rows_sec;
