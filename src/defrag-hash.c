@@ -567,7 +567,6 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
 
         /* tracker is locked */
         hb->head = dt;
-        hb->tail = dt;
 
         /* got one, now lock, initialize and return */
         DefragTrackerInit(dt,p);
@@ -594,8 +593,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
                 DRLOCK_UNLOCK(hb);
                 return NULL;
             }
-            prev->hnext = hb->tail = dt;
-            dt->hprev = prev;
+            prev->hnext = dt;
 
             /* tracker is locked */
 
@@ -705,17 +703,9 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
         }
 
         /* remove from the hash */
-        if (dt->hprev != NULL)
-            dt->hprev->hnext = dt->hnext;
-        if (dt->hnext != NULL)
-            dt->hnext->hprev = dt->hprev;
-        if (hb->head == dt)
-            hb->head = dt->hnext;
-        if (hb->tail == dt)
-            hb->tail = dt->hprev;
+        hb->head = dt->hnext;
 
         dt->hnext = NULL;
-        dt->hprev = NULL;
         DRLOCK_UNLOCK(hb);
 
         DefragTrackerClearMemory(dt);
