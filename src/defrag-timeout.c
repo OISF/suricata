@@ -69,11 +69,11 @@ static uint32_t DefragTrackerHashRowTimeout(
 
     do {
         if (SCMutexTrylock(&dt->lock) != 0) {
-            dt = dt->hprev;
+            dt = dt->hnext;
             continue;
         }
 
-        DefragTracker *next_dt = dt->hprev;
+        DefragTracker *next_dt = dt->hnext;
 
         /* check if the tracker is fully timed out and
          * ready to be discarded. */
@@ -131,13 +131,13 @@ uint32_t DefragTimeoutHash(SCTime_t ts)
 
         /* defrag hash bucket is now locked */
 
-        if (hb->tail == NULL) {
+        if (hb->head == NULL) {
             DRLOCK_UNLOCK(hb);
             continue;
         }
 
         /* we have a tracker, or more than one */
-        cnt += DefragTrackerHashRowTimeout(hb, hb->tail, ts);
+        cnt += DefragTrackerHashRowTimeout(hb, hb->head, ts);
         DRLOCK_UNLOCK(hb);
     }
 
