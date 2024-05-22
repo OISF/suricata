@@ -16,10 +16,13 @@ Source
 
 Installing from the source distribution files gives the most control over the Suricata installation.
 
+The Suricata source distribution files should be verified before building
+the source, see :doc:`verifying-source-files`.
+
 Basic steps::
 
-    tar xzvf suricata-6.0.0.tar.gz
-    cd suricata-6.0.0
+    tar xzvf suricata-7.0.5.tar.gz
+    cd suricata-7.0.5
     ./configure
     make
     make install
