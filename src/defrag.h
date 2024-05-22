@@ -115,9 +115,8 @@ typedef struct DefragTracker_ {
 
     struct IP_FRAGMENTS fragment_tree;
 
-    /** hash pointers, protected by hash row mutex/spin */
+    /** hash pointer, protected by hash row mutex/spin */
     struct DefragTracker_ *hnext;
-    struct DefragTracker_ *hprev;
 
     /** list pointers, protected by tracker-queue mutex/spin */
     struct DefragTracker_ *lnext;

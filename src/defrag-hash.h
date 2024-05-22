@@ -60,7 +60,6 @@
 typedef struct DefragTrackerHashRow_ {
     DRLOCK_TYPE lock;
     DefragTracker *head;
-    DefragTracker *tail;
 } DefragTrackerHashRow;
 
 /** defrag tracker hash table */
