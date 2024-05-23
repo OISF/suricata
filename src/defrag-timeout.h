@@ -24,6 +24,9 @@
 #ifndef SURICATA_DEFRAG_TIMEOUT_H
 #define SURICATA_DEFRAG_TIMEOUT_H
 
+#include "defrag.h"
+
+int DefragTrackerTimedOut(DefragTracker *dt, SCTime_t ts);
 uint32_t DefragTimeoutHash(SCTime_t ts);
 
 #endif
