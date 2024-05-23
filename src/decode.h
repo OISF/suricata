@@ -999,6 +999,9 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_fragments;
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_max_hit;
+    uint16_t counter_defrag_no_frags;
+    uint16_t counter_defrag_tracker_soft_reuse;
+    uint16_t counter_defrag_tracker_hard_reuse;
     ExceptionPolicyCounters counter_defrag_memcap_eps;
 
     uint16_t counter_flow_memcap;

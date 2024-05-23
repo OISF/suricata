@@ -675,8 +675,10 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_ipv6_fragments =
         StatsRegisterCounter("defrag.ipv6.fragments", tv);
     dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
-    dtv->counter_defrag_max_hit =
-        StatsRegisterCounter("defrag.max_frag_hits", tv);
+    dtv->counter_defrag_max_hit = StatsRegisterCounter("defrag.max_trackers_reached", tv);
+    dtv->counter_defrag_no_frags = StatsRegisterCounter("defrag.max_frags_reached", tv);
+    dtv->counter_defrag_tracker_soft_reuse = StatsRegisterCounter("defrag.tracker_soft_reuse", tv);
+    dtv->counter_defrag_tracker_hard_reuse = StatsRegisterCounter("defrag.tracker_hard_reuse", tv);
 
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_defrag_memcap_eps, &defrag_memcap_eps_stats,
             DefragGetMemcapExceptionPolicy(), "defrag.memcap_exception_policy.",

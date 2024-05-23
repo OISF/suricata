@@ -872,6 +872,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         } else {
             ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
         }
+        if (tv != NULL && dtv != NULL) {
+            StatsIncr(tv, dtv->counter_defrag_no_frags);
+        }
         goto error_remove_tracker;
     }
     new->pkt = SCMalloc(GET_PKT_LEN(p));
