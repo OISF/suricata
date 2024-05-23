@@ -18,7 +18,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "defrag-hash.h"
-#include "defrag-queue.h"
+#include "defrag-stack.h"
 #include "defrag-config.h"
 #include "util-random.h"
 #include "util-byte.h"
@@ -36,7 +36,7 @@ SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
 static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 
 /** queue with spare tracker */
-static DefragTrackerQueue defragtracker_spare_q;
+static DefragTrackerStack defragtracker_spare_q;
 
 /**
  *  \brief Update memcap value
@@ -173,7 +173,7 @@ void DefragInitConfig(bool quiet)
     SC_ATOMIC_INIT(defrag_memuse);
     SC_ATOMIC_INIT(defragtracker_prune_idx);
     SC_ATOMIC_INIT(defrag_config.memcap);
-    DefragTrackerQueueInit(&defragtracker_spare_q);
+    DefragTrackerStackInit(&defragtracker_spare_q);
 
     /* set defaults */
     defrag_config.hash_rand   = (uint32_t)RandomGet();
@@ -318,7 +318,7 @@ void DefragHashShutdown(void)
         defragtracker_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(defrag_memuse, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
-    DefragTrackerQueueDestroy(&defragtracker_spare_q);
+    DefragTrackerStackDestroy(&defragtracker_spare_q);
 }
 
 /** \brief compare two raw ipv6 addrs

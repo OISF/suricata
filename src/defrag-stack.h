@@ -32,16 +32,14 @@
 #define DQLOCK_MUTEX
 
 #ifdef DQLOCK_SPIN
-    #ifdef DQLOCK_MUTEX
-        #error Cannot enable both DQLOCK_SPIN and DQLOCK_MUTEX
-    #endif
+#ifdef DQLOCK_MUTEX
+#error Cannot enable both DQLOCK_SPIN and DQLOCK_MUTEX
+#endif
 #endif
 
 /* Define a queue for storing defrag trackers */
-typedef struct DefragTrackerQueue_
-{
-    DefragTracker *top;
-    DefragTracker *bot;
+typedef struct DefragTrackerStack_ {
+    DefragTracker *s;
     uint32_t len;
 #ifdef DBG_PERF
     uint32_t dbg_maxlen;
@@ -51,31 +49,31 @@ typedef struct DefragTrackerQueue_
 #elif defined DQLOCK_SPIN
     SCSpinlock s;
 #else
-    #error Enable DQLOCK_SPIN or DQLOCK_MUTEX
+#error Enable DQLOCK_SPIN or DQLOCK_MUTEX
 #endif
-} DefragTrackerQueue;
+} DefragTrackerStack;
 
 #ifdef DQLOCK_SPIN
-    #define DQLOCK_INIT(q) SCSpinInit(&(q)->s, 0)
-    #define DQLOCK_DESTROY(q) SCSpinDestroy(&(q)->s)
-    #define DQLOCK_LOCK(q) SCSpinLock(&(q)->s)
-    #define DQLOCK_TRYLOCK(q) SCSpinTrylock(&(q)->s)
-    #define DQLOCK_UNLOCK(q) SCSpinUnlock(&(q)->s)
+#define DQLOCK_INIT(q)    SCSpinInit(&(q)->s, 0)
+#define DQLOCK_DESTROY(q) SCSpinDestroy(&(q)->s)
+#define DQLOCK_LOCK(q)    SCSpinLock(&(q)->s)
+#define DQLOCK_TRYLOCK(q) SCSpinTrylock(&(q)->s)
+#define DQLOCK_UNLOCK(q)  SCSpinUnlock(&(q)->s)
 #elif defined DQLOCK_MUTEX
-    #define DQLOCK_INIT(q) SCMutexInit(&(q)->m, NULL)
-    #define DQLOCK_DESTROY(q) SCMutexDestroy(&(q)->m)
-    #define DQLOCK_LOCK(q) SCMutexLock(&(q)->m)
-    #define DQLOCK_TRYLOCK(q) SCMutexTrylock(&(q)->m)
-    #define DQLOCK_UNLOCK(q) SCMutexUnlock(&(q)->m)
+#define DQLOCK_INIT(q)    SCMutexInit(&(q)->m, NULL)
+#define DQLOCK_DESTROY(q) SCMutexDestroy(&(q)->m)
+#define DQLOCK_LOCK(q)    SCMutexLock(&(q)->m)
+#define DQLOCK_TRYLOCK(q) SCMutexTrylock(&(q)->m)
+#define DQLOCK_UNLOCK(q)  SCMutexUnlock(&(q)->m)
 #else
-    #error Enable DQLOCK_SPIN or DQLOCK_MUTEX
+#error Enable DQLOCK_SPIN or DQLOCK_MUTEX
 #endif
 
 /* prototypes */
-DefragTrackerQueue *DefragTrackerQueueInit(DefragTrackerQueue *);
-void DefragTrackerQueueDestroy (DefragTrackerQueue *);
+DefragTrackerStack *DefragTrackerStackInit(DefragTrackerStack *);
+void DefragTrackerStackDestroy(DefragTrackerStack *);
 
-void DefragTrackerEnqueue (DefragTrackerQueue *, DefragTracker *);
-DefragTracker *DefragTrackerDequeue(DefragTrackerQueue *);
+void DefragTrackerEnqueue(DefragTrackerStack *, DefragTracker *);
+DefragTracker *DefragTrackerDequeue(DefragTrackerStack *);
 
 #endif /* SURICATA_DEFRAG_QUEUE_H */
