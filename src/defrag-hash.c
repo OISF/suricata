@@ -33,7 +33,8 @@ SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
 
-static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
+static DefragTracker *DefragTrackerGetUsedDefragTracker(
+        ThreadVars *tv, const DecodeThreadVars *dtv);
 
 /** queue with spare tracker */
 static DefragTrackerStack defragtracker_spare_q;
@@ -486,7 +487,7 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
     if (dt == NULL) {
         /* If we reached the max memcap, we get a used tracker */
         if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
-            dt = DefragTrackerGetUsedDefragTracker();
+            dt = DefragTrackerGetUsedDefragTracker(tv, dtv);
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
                 DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
@@ -646,7 +647,7 @@ DefragTracker *DefragLookupTrackerFromHash (Packet *p)
  *
  *  \retval dt tracker or NULL
  */
-static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
+static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const DecodeThreadVars *dtv)
 {
     uint32_t idx = SC_ATOMIC_GET(defragtracker_prune_idx) % defrag_config.hash_size;
     uint32_t cnt = defrag_config.hash_size;
@@ -679,6 +680,9 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
             continue;
         }
 
+        /* only count "forced" reuse */
+        bool incr_reuse_cnt = !dt->remove;
+
         /* remove from the hash */
         hb->head = dt->hnext;
 
@@ -688,6 +692,12 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
         DefragTrackerClearMemory(dt);
 
         SCMutexUnlock(&dt->lock);
+
+        if (incr_reuse_cnt) {
+            StatsIncr(tv, dtv->counter_defrag_tracker_hard_reuse);
+        } else {
+            StatsIncr(tv, dtv->counter_defrag_tracker_soft_reuse);
+        }
 
         (void) SC_ATOMIC_ADD(defragtracker_prune_idx, (defrag_config.hash_size - cnt));
         return dt;
