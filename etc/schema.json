@@ -5190,8 +5190,25 @@
                 "defrag": {
                     "type": "object",
                     "properties": {
-                        "max_frag_hits": {
-                            "type": "integer"
+                        "tracker_soft_reuse": {
+                            "type": "integer",
+                            "description":
+                                    "Finished tracker re-used from hash table before being moved to spare pool"
+                        },
+                        "tracker_hard_reuse": {
+                            "type": "integer",
+                            "description":
+                                    "Active tracker force closed before completion and reused for new tracker"
+                        },
+                        "max_trackers_reached": {
+                            "type": "integer",
+                            "description":
+                                    "How many times a packet wasn't reassembled due to max-trackers limit being reached"
+                        },
+                        "max_frags_reached": {
+                            "type": "integer",
+                            "description":
+                                    "How many times a fragment wasn't stored due to max-frags limit being reached"
                         },
                         "memcap_exception_policy": {
                             "description":
