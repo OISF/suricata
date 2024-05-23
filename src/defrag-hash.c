@@ -20,6 +20,7 @@
 #include "defrag-hash.h"
 #include "defrag-stack.h"
 #include "defrag-config.h"
+#include "defrag-timeout.h"
 #include "util-random.h"
 #include "util-byte.h"
 #include "util-misc.h"
@@ -560,14 +561,17 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
     dt = hb->head;
 
     do {
-        if (!dt->remove && DefragTrackerCompare(dt, p)) {
+        if (DefragTrackerTimedOut(dt, p->ts)) {
+            dt->remove = 1;
+        } else if (!dt->remove && DefragTrackerCompare(dt, p)) {
             /* found our tracker, lock & return */
             SCMutexLock(&dt->lock);
             (void)DefragTrackerIncrUsecnt(dt);
             DRLOCK_UNLOCK(hb);
             return dt;
+        }
 
-        } else if (dt->hnext == NULL) {
+        if (dt->hnext == NULL) {
             DefragTracker *prev = dt;
             dt = DefragTrackerGetNew(tv, dtv, p);
             if (dt == NULL) {
