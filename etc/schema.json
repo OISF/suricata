@@ -1367,6 +1367,13 @@
                 "from": {
                     "type": "string"
                 },
+                "received": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "status": {
                     "type": "string"
                 },
