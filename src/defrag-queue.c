@@ -38,17 +38,6 @@ DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
     return q;
 }
 
-DefragTrackerQueue *DefragTrackerQueueNew(void)
-{
-    DefragTrackerQueue *q = (DefragTrackerQueue *)SCMalloc(sizeof(DefragTrackerQueue));
-    if (q == NULL) {
-        SCLogError("Fatal error encountered in DefragTrackerQueueNew. Exiting...");
-        exit(EXIT_SUCCESS);
-    }
-    q = DefragTrackerQueueInit(q);
-    return q;
-}
-
 /**
  *  \brief Destroy a tracker queue
  *

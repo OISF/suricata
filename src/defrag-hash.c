@@ -168,8 +168,7 @@ void DefragInitConfig(bool quiet)
 {
     SCLogDebug("initializing defrag engine...");
 
-    memset(&defrag_config,  0, sizeof(defrag_config));
-    //SC_ATOMIC_INIT(flow_flags);
+    memset(&defrag_config, 0, sizeof(defrag_config));
     SC_ATOMIC_INIT(defragtracker_counter);
     SC_ATOMIC_INIT(defrag_memuse);
     SC_ATOMIC_INIT(defragtracker_prune_idx);
@@ -290,20 +289,11 @@ void DefragInitConfig(bool quiet)
     }
 }
 
-/** \brief print some defrag stats
- *  \warning Not thread safe */
-static void DefragTrackerPrintStats (void)
-{
-}
-
 /** \brief shutdown the flow engine
  *  \warning Not thread safe */
 void DefragHashShutdown(void)
 {
     DefragTracker *dt;
-    uint32_t u;
-
-    DefragTrackerPrintStats();
 
     /* free spare queue */
     while((dt = DefragTrackerDequeue(&defragtracker_spare_q))) {
@@ -313,7 +303,7 @@ void DefragHashShutdown(void)
 
     /* clear and free the hash */
     if (defragtracker_hash != NULL) {
-        for (u = 0; u < defrag_config.hash_size; u++) {
+        for (uint32_t u = 0; u < defrag_config.hash_size; u++) {
             dt = defragtracker_hash[u].head;
             while (dt) {
                 DefragTracker *n = dt->hnext;
@@ -433,9 +423,9 @@ static inline uint32_t DefragHashGetKey(Packet *p)
         uint32_t hash =
                 hashword(dhk.u32, sizeof(dhk.u32) / sizeof(uint32_t), defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
-    } else
+    } else {
         key = 0;
-
+    }
     return key;
 }
 
@@ -496,16 +486,6 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
     if (dt == NULL) {
         /* If we reached the max memcap, we get a used tracker */
         if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
-            /* declare state of emergency */
-            //if (!(SC_ATOMIC_GET(defragtracker_flags) & DEFRAG_EMERGENCY)) {
-            //    SC_ATOMIC_OR(defragtracker_flags, DEFRAG_EMERGENCY);
-
-                /* under high load, waking up the flow mgr each time leads
-                 * to high cpu usage. Flows are not timed out much faster if
-                 * we check a 1000 times a second. */
-            //    FlowWakeupFlowManagerThread();
-            //}
-
             dt = DefragTrackerGetUsedDefragTracker();
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
@@ -715,5 +695,3 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void)
 
     return NULL;
 }
-
-
