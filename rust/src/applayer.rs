@@ -263,7 +263,13 @@ pub struct RustParser {
 /// UNSAFE !
 #[macro_export]
 macro_rules! build_slice {
-    ($buf:ident, $len:expr) => ( unsafe{ std::slice::from_raw_parts($buf, $len) } );
+    ($buf:ident, $len:expr) => (
+        if $buf.is_null() && $len == 0 {
+             &[]
+        } else {
+            unsafe{ std::slice::from_raw_parts($buf, $len) }
+        }
+    );
 }
 
 /// Cast pointer to a variable, as a mutable reference to an object
