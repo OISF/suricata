@@ -36,7 +36,7 @@
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int DefragTrackerTimedOut(DefragTracker *dt, SCTime_t ts)
+int DefragTrackerTimedOut(DefragTracker *dt, SCTime_t ts)
 {
     /** never prune a trackers that is used by a packet
      *  we are currently processing in one of the threads */
