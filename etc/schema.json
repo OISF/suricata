@@ -1361,11 +1361,34 @@
                 "body_md5": {
                     "type": "string"
                 },
+                "cc": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "date": {
                     "type": "string"
                 },
                 "from": {
                     "type": "string"
+                },
+                "has_exe_url": {
+                    "type": "boolean"
+                },
+                "has_ipv4_url": {
+                    "type": "boolean"
+                },
+                "has_ipv6_url": {
+                    "type": "boolean"
+                },
+                "received": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "status": {
                     "type": "string"
@@ -1376,8 +1399,12 @@
                 "subject_md5": {
                     "type": "string"
                 },
-                "x_mailer": {
-                    "type": "string"
+                "to": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "url": {
                     "type": "array",
@@ -1386,28 +1413,15 @@
                         "type": "string"
                     }
                 },
+                "x_mailer": {
+                    "type": "string"
+                },
                 "attachment": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
                     }
-                },
-                "to": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "has_ipv6_url": {
-                    "type": "boolean"
-                },
-                "has_ipv4_url": {
-                    "type": "boolean"
-                },
-                "has_exe_url": {
-                    "type": "boolean"
                 },
                 "message_id": {
                     "type": "string"
