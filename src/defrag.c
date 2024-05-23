@@ -53,7 +53,6 @@
 
 #include "defrag.h"
 #include "defrag-hash.h"
-#include "defrag-queue.h"
 #include "defrag-config.h"
 
 #include "tmqh-packetpool.h"

@@ -118,9 +118,8 @@ typedef struct DefragTracker_ {
     /** hash pointer, protected by hash row mutex/spin */
     struct DefragTracker_ *hnext;
 
-    /** list pointers, protected by tracker-queue mutex/spin */
+    /** stack pointer, protected by tracker-queue mutex/spin */
     struct DefragTracker_ *lnext;
-    struct DefragTracker_ *lprev;
 } DefragTracker;
 
 void DefragInit(void);
