@@ -86,7 +86,7 @@ noinst_HEADERS = \
 	defrag-config.h \
 	defrag.h \
 	defrag-hash.h \
-	defrag-queue.h \
+	defrag-stack.h \
 	defrag-timeout.h \
 	detect-app-layer-event.h \
 	detect-app-layer-protocol.h \
@@ -698,7 +698,7 @@ libsuricata_c_a_SOURCES = \
 	defrag.c \
 	defrag-config.c \
 	defrag-hash.c \
-	defrag-queue.c \
+	defrag-stack.c \
 	defrag-timeout.c \
 	detect-app-layer-event.c \
 	detect-app-layer-protocol.c \

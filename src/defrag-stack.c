@@ -24,15 +24,15 @@
  */
 
 #include "suricata-common.h"
-#include "defrag-queue.h"
+#include "defrag-stack.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-print.h"
 
-DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
+DefragTrackerStack *DefragTrackerStackInit(DefragTrackerStack *q)
 {
     if (q != NULL) {
-        memset(q, 0, sizeof(DefragTrackerQueue));
+        memset(q, 0, sizeof(DefragTrackerStack));
         DQLOCK_INIT(q);
     }
     return q;
@@ -43,7 +43,7 @@ DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
  *
  *  \param q the tracker queue to destroy
  */
-void DefragTrackerQueueDestroy (DefragTrackerQueue *q)
+void DefragTrackerStackDestroy(DefragTrackerStack *q)
 {
     DQLOCK_DESTROY(q);
 }
@@ -54,24 +54,15 @@ void DefragTrackerQueueDestroy (DefragTrackerQueue *q)
  *  \param q queue
  *  \param dt tracker
  */
-void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
+void DefragTrackerEnqueue(DefragTrackerStack *q, DefragTracker *dt)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || dt == NULL);
 #endif
 
     DQLOCK_LOCK(q);
-
-    /* more trackers in queue */
-    if (q->top != NULL) {
-        dt->lnext = q->top;
-        q->top->lprev = dt;
-        q->top = dt;
-    /* only tracker */
-    } else {
-        q->top = dt;
-        q->bot = dt;
-    }
+    dt->lnext = q->s;
+    q->s = dt;
     q->len++;
 #ifdef DBG_PERF
     if (q->len > q->dbg_maxlen)
@@ -87,35 +78,23 @@ void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
  *
  *  \retval dt tracker or NULL if empty list.
  */
-DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q)
+DefragTracker *DefragTrackerDequeue(DefragTrackerStack *q)
 {
     DQLOCK_LOCK(q);
 
-    DefragTracker *dt = q->bot;
+    DefragTracker *dt = q->s;
     if (dt == NULL) {
         DQLOCK_UNLOCK(q);
         return NULL;
     }
-
-    /* more packets in queue */
-    if (q->bot->lprev != NULL) {
-        q->bot = q->bot->lprev;
-        q->bot->lnext = NULL;
-    /* just the one we remove, so now empty */
-    } else {
-        q->top = NULL;
-        q->bot = NULL;
-    }
+    q->s = dt->lnext;
+    dt->lnext = NULL;
 
 #ifdef DEBUG
     BUG_ON(q->len == 0);
 #endif
     if (q->len > 0)
         q->len--;
-
-    dt->lnext = NULL;
-    dt->lprev = NULL;
-
     DQLOCK_UNLOCK(q);
     return dt;
 }
