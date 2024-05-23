@@ -469,7 +469,7 @@ static void *DetectLuaThreadInit(void *data)
     if (lua->allow_restricted_functions) {
         luaL_openlibs(t->luastate);
     } else {
-        SCLuaSbLoadRestricted(t->luastate);
+        SCLuaSbLoadLibs(t->luastate);
     }
 
     LuaRegisterExtensions(t->luastate);
@@ -572,7 +572,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     if (ld->allow_restricted_functions) {
         luaL_openlibs(luastate);
     } else {
-        SCLuaSbLoadRestricted(luastate);
+        SCLuaSbLoadLibs(luastate);
     }
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */

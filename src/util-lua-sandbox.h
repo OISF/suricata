@@ -74,6 +74,6 @@ void SCLuaSbResetInstructionCounter(lua_State *sb);
  *  Replaces luaL_openlibs.  Only opens allowed packages for the sandbox and
  *  masks out dangerous functions from the base.
  */
-void SCLuaSbLoadRestricted(lua_State *L);
+void SCLuaSbLoadLibs(lua_State *L);
 
 #endif /*  SURICATA_UTIL_LUA_SANDBOX_H */
