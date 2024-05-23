@@ -1471,7 +1471,7 @@ pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
                                        _data: *mut std::os::raw::c_void)
                                        -> AppLayerResult
 {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     state.update_ts(flow.get_last_time().as_secs());
@@ -1497,7 +1497,7 @@ pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
                                         -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
 
     state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_tc(buf)
@@ -1522,7 +1522,7 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        _data: *mut std::os::raw::c_void)
                                        -> AppLayerResult
 {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
     SCLogDebug!("parsing {} bytes of request data", input_len);
     state.parse_udp_ts(buf)
 }
@@ -1537,7 +1537,7 @@ pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
     state.parse_udp_tc(buf)
 }
 

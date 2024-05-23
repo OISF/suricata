@@ -1924,7 +1924,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
                                        flags: u8)
                                        -> AppLayerResult
 {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     /* START with MISTREAM set: record might be starting the middle. */
@@ -1957,7 +1957,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
                                         -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = build_slice!(input, input_len as usize);
 
     /* START with MISTREAM set: record might be starting the middle. */
     if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
