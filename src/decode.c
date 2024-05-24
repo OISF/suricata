@@ -679,6 +679,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_no_frags = StatsRegisterCounter("defrag.max_frags_reached", tv);
     dtv->counter_defrag_tracker_soft_reuse = StatsRegisterCounter("defrag.tracker_soft_reuse", tv);
     dtv->counter_defrag_tracker_hard_reuse = StatsRegisterCounter("defrag.tracker_hard_reuse", tv);
+    dtv->counter_defrag_tracker_timeout = StatsRegisterCounter("defrag.wrk.tracker_timeout", tv);
 
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_defrag_memcap_eps, &defrag_memcap_eps_stats,
             DefragGetMemcapExceptionPolicy(), "defrag.memcap_exception_policy.",
