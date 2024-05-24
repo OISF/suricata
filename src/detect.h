@@ -1242,6 +1242,9 @@ typedef struct DetectEngineThreadCtx_ {
     /** stats id for lua blocked function counts */
     uint16_t lua_blocked_function_errors;
 
+    /** stats if for lua instruction limit errors */
+    uint16_t lua_instruction_limit_errors;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
