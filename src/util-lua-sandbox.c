@@ -35,7 +35,6 @@
 #define SANDBOX_CTX "SANDBOX_CTX"
 
 static void HookFunc(lua_State *L, lua_Debug *ar);
-static int OpenSandbox(lua_State *L);
 
 /**
  * Lua allocator function provided to lua_newstate.
@@ -363,100 +362,4 @@ void SCLuaSbResetInstructionCounter(lua_State *L)
         sb->instruction_count = 0;
         lua_sethook(L, HookFunc, LUA_MASKCOUNT, sb->hook_instruction_count);
     }
-}
-
-static void SetInstructionCount(lua_State *L, uint64_t instruction_limit)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        ctx->instruction_limit = instruction_limit;
-    }
-}
-
-static uint64_t GetInstructionCount(lua_State *L)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        return ctx->instruction_count;
-    }
-    return 0;
-}
-
-static int L_TotalAlloc(lua_State *L)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        lua_pushinteger(L, ctx->alloc_bytes);
-    } else {
-        lua_pushinteger(L, 0);
-    }
-    return 1;
-}
-
-static int L_GetAllocLimit(lua_State *L)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        lua_pushinteger(L, ctx->alloc_limit);
-    } else {
-        lua_pushinteger(L, 0);
-    }
-    return 1;
-}
-
-static int L_SetAllocLimit(lua_State *L)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        ctx->alloc_limit = luaL_checkinteger(L, 1);
-    }
-    return 0;
-}
-
-static int L_GetInstructionCount(lua_State *L)
-{
-    lua_pushinteger(L, GetInstructionCount(L));
-    return 1;
-}
-
-static int L_GetInstructionLimit(lua_State *L)
-{
-    SCLuaSbState *ctx = SCLuaSbGetContext(L);
-    if (ctx != NULL) {
-        lua_pushinteger(L, ctx->instruction_limit);
-    } else {
-        lua_pushinteger(L, 0);
-    }
-    return 1;
-}
-
-static int L_SetInstructionLimit(lua_State *L)
-{
-    SetInstructionCount(L, luaL_checkinteger(L, 1));
-    return 0;
-}
-
-static int L_ResetInstructionCount(lua_State *L)
-{
-    SCLuaSbResetInstructionCounter(L);
-    return 0;
-}
-
-static const luaL_Reg sblib[] = {
-    // clang-format off
-    { "totalalloc", L_TotalAlloc },
-    { "getalloclimit", L_GetAllocLimit },
-    { "setalloclimit", L_SetAllocLimit },
-    { "instructioncount", L_GetInstructionCount },
-    { "getinstructionlimit", L_GetInstructionLimit },
-    { "setinstructionlimit", L_SetInstructionLimit },
-    { "resetinstructioncount", L_ResetInstructionCount },
-    { NULL, NULL }
-    // clang-format on
-};
-
-static int OpenSandbox(lua_State *L)
-{
-    luaL_newlib(L, sblib);
-    return 1;
 }
