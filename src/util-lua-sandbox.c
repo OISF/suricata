@@ -346,8 +346,8 @@ static void HookFunc(lua_State *L, lua_Debug *ar)
     sb->instruction_count += sb->hook_instruction_count;
 
     if (sb->instruction_limit > 0 && sb->instruction_count > sb->instruction_limit) {
-        // TODO: do we care enough for a full traceback here?
-        luaL_error(L, "Instruction limit exceeded");
+        sb->instruction_count_error = true;
+        luaL_error(L, "instruction limit exceeded");
     }
 }
 
@@ -359,6 +359,7 @@ void SCLuaSbResetInstructionCounter(lua_State *L)
     SCLuaSbState *sb = SCLuaSbGetContext(L);
     if (sb != NULL) {
         sb->blocked_function_error = false;
+        sb->instruction_count_error = false;
         sb->instruction_count = 0;
         lua_sethook(L, HookFunc, LUA_MASKCOUNT, sb->hook_instruction_count);
     }

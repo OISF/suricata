@@ -51,6 +51,7 @@ typedef struct SCLuaSbState {
 
     /* Errors. */
     bool blocked_function_error;
+    bool instruction_count_error;
 } SCLuaSbState;
 
 /*

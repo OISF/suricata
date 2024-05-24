@@ -124,6 +124,7 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
+#define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
 
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
@@ -181,6 +182,9 @@ static int DetectLuaRunMatch(
         if (context->blocked_function_error) {
             StatsIncr(det_ctx->tv, det_ctx->lua_blocked_function_errors);
             flag = FLAG_BLOCKED_FUNCTION_LOGGED;
+        } else if (context->instruction_count_error) {
+            StatsIncr(det_ctx->tv, det_ctx->lua_instruction_limit_errors);
+            flag = FLAG_INSTRUCTION_LIMIT_LOGGED;
         } else {
             flag = FLAG_ERROR_LOGGED;
         }
