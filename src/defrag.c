@@ -872,7 +872,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         } else {
             ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
         }
-        goto done;
+        goto error_remove_tracker;
     }
     new->pkt = SCMalloc(GET_PKT_LEN(p));
     if (new->pkt == NULL) {
@@ -884,7 +884,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         } else {
             ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
         }
-        goto done;
+        goto error_remove_tracker;
     }
     memcpy(new->pkt, GET_PKT_DATA(p) + ltrim, GET_PKT_LEN(p) - ltrim);
     new->len = (GET_PKT_LEN(p) - ltrim);
@@ -965,6 +965,10 @@ done:
         }
     }
     return r;
+error_remove_tracker:
+    tracker->remove = 1;
+    DefragTrackerFreeFrags(tracker);
+    return NULL;
 }
 
 /**
