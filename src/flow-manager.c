@@ -49,6 +49,7 @@
 #include "threads.h"
 
 #include "host-timeout.h"
+#include "defrag-hash.h"
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
 #include "app-layer-htp-range.h"
@@ -616,6 +617,7 @@ typedef struct FlowManagerThreadData_ {
 
     FlowManagerTimeoutThread timeout;
     uint16_t counter_defrag_timeout;
+    uint16_t counter_defrag_memuse;
 } FlowManagerThreadData;
 
 static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
@@ -689,6 +691,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
 
     FlowCountersInit(t, &ftd->cnt);
     ftd->counter_defrag_timeout = StatsRegisterCounter("defrag.mgr.tracker_timeout", t);
+    ftd->counter_defrag_memuse = StatsRegisterCounter("defrag.memuse", t);
 
     PacketPoolInit();
     return TM_ECODE_OK;
@@ -886,6 +889,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         }
         if (other_last_sec == 0 || other_last_sec < (uint32_t)SCTIME_SECS(ts)) {
             if (ftd->instance == 0) {
+                StatsSetUI64(th_v, ftd->counter_defrag_memuse, DefragTrackerGetMemcap());
                 uint32_t defrag_cnt = DefragTimeoutHash(ts);
                 if (defrag_cnt) {
                     StatsAddUI64(th_v, ftd->counter_defrag_timeout, defrag_cnt);
