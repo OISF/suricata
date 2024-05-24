@@ -2545,14 +2545,14 @@ static int DefragTrackerReuseTest(void)
     FAIL_IF_NULL(p1);
 
     /* Get a tracker. It shouldn't look like its already in use. */
-    tracker1 = DefragGetTracker(NULL, NULL, p1);
+    tracker1 = DefragGetTracker(&tv, &dtv, p1);
     FAIL_IF_NULL(tracker1);
     FAIL_IF(tracker1->seen_last);
     FAIL_IF(tracker1->remove);
     DefragTrackerRelease(tracker1);
 
     /* Get a tracker again, it should be the same one. */
-    tracker2 = DefragGetTracker(NULL, NULL, p1);
+    tracker2 = DefragGetTracker(&tv, &dtv, p1);
     FAIL_IF_NULL(tracker2);
     FAIL_IF(tracker2 != tracker1);
     DefragTrackerRelease(tracker1);
@@ -2562,7 +2562,7 @@ static int DefragTrackerReuseTest(void)
      * attributes. */
     tracker1->remove = 1;
 
-    tracker2 = DefragGetTracker(NULL, NULL, p1);
+    tracker2 = DefragGetTracker(&tv, &dtv, p1);
     FAIL_IF_NULL(tracker2);
     FAIL_IF(tracker2 == tracker1);
     FAIL_IF(tracker2->remove);
