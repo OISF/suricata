@@ -1002,6 +1002,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_no_frags;
     uint16_t counter_defrag_tracker_soft_reuse;
     uint16_t counter_defrag_tracker_hard_reuse;
+    uint16_t counter_defrag_tracker_timeout;
     ExceptionPolicyCounters counter_defrag_memcap_eps;
 
     uint16_t counter_flow_memcap;

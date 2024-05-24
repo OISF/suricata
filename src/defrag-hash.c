@@ -555,27 +555,48 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
     }
 
     /* ok, we have a tracker in the bucket. Let's find out if it is our tracker */
+    DefragTracker *prev_dt = NULL;
     dt = hb->head;
 
     do {
+        DefragTracker *next_dt = NULL;
+
+        SCMutexLock(&dt->lock);
         if (DefragTrackerTimedOut(dt, p->ts)) {
-            dt->remove = 1;
+            next_dt = dt->hnext;
+            dt->hnext = NULL;
+            if (prev_dt) {
+                prev_dt->hnext = next_dt;
+            } else {
+                hb->head = next_dt;
+            }
+            DefragTrackerClearMemory(dt);
+            SCMutexUnlock(&dt->lock);
+
+            DefragTrackerMoveToSpare(dt);
+            StatsIncr(tv, dtv->counter_defrag_tracker_timeout);
+            goto tracker_removed;
         } else if (!dt->remove && DefragTrackerCompare(dt, p)) {
-            /* found our tracker, lock & return */
-            SCMutexLock(&dt->lock);
+            /* found our tracker, keep locked & return */
             (void)DefragTrackerIncrUsecnt(dt);
             DRLOCK_UNLOCK(hb);
             return dt;
         }
+        SCMutexUnlock(&dt->lock);
+        /* unless we removed 'dt', prev_dt needs to point to
+         * current 'dt' when adding a new tracker below. */
+        prev_dt = dt;
+        next_dt = dt->hnext;
 
-        if (dt->hnext == NULL) {
-            DefragTracker *prev = dt;
+    tracker_removed:
+        if (next_dt == NULL) {
             dt = DefragTrackerGetNew(tv, dtv, p);
             if (dt == NULL) {
                 DRLOCK_UNLOCK(hb);
                 return NULL;
             }
-            prev->hnext = dt;
+            dt->hnext = hb->head;
+            hb->head = dt;
 
             /* tracker is locked */
 
@@ -586,7 +607,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
             return dt;
         }
 
-        dt = dt->hnext;
+        dt = next_dt;
     } while (dt != NULL);
 
     /* should be unreachable */
