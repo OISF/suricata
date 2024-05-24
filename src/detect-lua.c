@@ -197,6 +197,9 @@ void LuaDumpStack(lua_State *state)
 static int DetectLuaRunMatch(
         DetectEngineThreadCtx *det_ctx, const DetectLuaData *lua, DetectLuaThreadData *tlua)
 {
+    /* Reset instruction count. */
+    SCLuaSbResetInstructionCounter(tlua->luastate);
+
     if (lua_pcall(tlua->luastate, 1, 1, 0) != 0) {
         if (!(tlua->flags & FLAG_ERROR_LOGGED)) {
             /* Log once per thread, the message from Lua will include
