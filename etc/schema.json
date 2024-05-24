@@ -5210,6 +5210,10 @@
                             "description":
                                     "How many times a fragment wasn't stored due to max-frags limit being reached"
                         },
+                        "memuse": {
+                            "type": "integer",
+                            "description": "Current memory use."
+                        },
                         "memcap_exception_policy": {
                             "description":
                                     "How many times defrag memcap exception policy was applied, and which one",
