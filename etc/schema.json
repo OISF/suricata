@@ -5257,6 +5257,15 @@
                                 }
                             },
                             "additionalProperties": false
+                        },
+                        "wrk": {
+                            "type": "object",
+                            "properties": {
+                                "tracker_timeout": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false

@@ -2571,7 +2571,10 @@ static int DefragTrackerReuseTest(void)
 
     tracker2 = DefragGetTracker(&tv, &dtv, p1);
     FAIL_IF_NULL(tracker2);
-    FAIL_IF(tracker2 == tracker1);
+    /* DefragGetTracker will have returned tracker1 to the stack,
+     * the set up a new tracker. Since it pops the stack, it got
+     * tracker1. */
+    FAIL_IF(tracker2 != tracker1);
     FAIL_IF(tracker2->remove);
 
     SCFree(p1);
