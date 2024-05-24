@@ -5240,6 +5240,10 @@
                         "lua": {
                             "type": "object",
                             "properties": {
+                                "blocked_function_errors": {
+                                    "description": "Counter for Lua scripts failing due to blocked functions being called",
+                                    "type": "integer"
+                                },
                                 "errors": {
                                     "description": "Errors encountered while running Lua scripts",
                                     "type": "integer"

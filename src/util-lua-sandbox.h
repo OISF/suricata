@@ -25,6 +25,7 @@
 #define SURICATA_UTIL_LUA_SANDBOX_H
 
 #include "lua.h"
+#include "suricata-common.h"
 
 /*
  *  Lua sandbox usage:  The only needed changes to use the sandboxed lua state are
@@ -47,6 +48,9 @@ typedef struct SCLuaSbState {
     uint64_t instruction_count;
     uint64_t instruction_limit;
     uint64_t hook_instruction_count;
+
+    /* Errors. */
+    bool blocked_function_error;
 } SCLuaSbState;
 
 /*
@@ -64,6 +68,11 @@ lua_State *SCLuaSbStateNew(uint64_t alloclimit, uint64_t instructionlimit);
  *  Replaces lua_close.  Handles freeing the SCLuaSbState
  */
 void SCLuaSbStateClose(lua_State *sb);
+
+/**
+ * Retreive the SCLuaSbState from a lua_State.
+ */
+SCLuaSbState *SCLuaSbGetContext(lua_State *L);
 
 /*
  *  Resets the instruction counter for the sandbox to 0

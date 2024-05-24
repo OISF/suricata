@@ -88,6 +88,8 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
  */
 static int LuaBlockedFunction(lua_State *L)
 {
+    SCLuaSbState *context = SCLuaSbGetContext(L);
+    context->blocked_function_error = true;
     lua_Debug ar;
     lua_getstack(L, 0, &ar);
     lua_getinfo(L, "n", &ar);
@@ -311,7 +313,7 @@ lua_State *SCLuaSbStateNew(uint64_t alloclimit, uint64_t instructionlimit)
     return sb->L;
 }
 
-static SCLuaSbState *GetContext(lua_State *L)
+SCLuaSbState *SCLuaSbGetContext(lua_State *L)
 {
     lua_pushstring(L, SANDBOX_CTX);
     lua_gettable(L, LUA_REGISTRYINDEX);
@@ -323,7 +325,7 @@ static SCLuaSbState *GetContext(lua_State *L)
 
 void SCLuaSbStateClose(lua_State *L)
 {
-    SCLuaSbState *sb = GetContext(L);
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
     lua_close(sb->L);
     SCFree(sb);
 }
@@ -334,7 +336,7 @@ void SCLuaSbStateClose(lua_State *L)
 static void HookFunc(lua_State *L, lua_Debug *ar)
 {
     (void)ar;
-    SCLuaSbState *sb = GetContext(L);
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
 
     sb->instruction_count += sb->hook_instruction_count;
 
@@ -349,8 +351,9 @@ static void HookFunc(lua_State *L, lua_Debug *ar)
  */
 void SCLuaSbResetInstructionCounter(lua_State *L)
 {
-    SCLuaSbState *sb = GetContext(L);
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
     if (sb != NULL) {
+        sb->blocked_function_error = false;
         sb->instruction_count = 0;
         lua_sethook(L, HookFunc, LUA_MASKCOUNT, sb->hook_instruction_count);
     }
@@ -358,7 +361,7 @@ void SCLuaSbResetInstructionCounter(lua_State *L)
 
 static void SetInstructionCount(lua_State *L, uint64_t instruction_limit)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         ctx->instruction_limit = instruction_limit;
     }
@@ -366,7 +369,7 @@ static void SetInstructionCount(lua_State *L, uint64_t instruction_limit)
 
 static uint64_t GetInstructionCount(lua_State *L)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         return ctx->instruction_count;
     }
@@ -375,7 +378,7 @@ static uint64_t GetInstructionCount(lua_State *L)
 
 static int L_TotalAlloc(lua_State *L)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->alloc_bytes);
     } else {
@@ -386,7 +389,7 @@ static int L_TotalAlloc(lua_State *L)
 
 static int L_GetAllocLimit(lua_State *L)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->alloc_limit);
     } else {
@@ -397,7 +400,7 @@ static int L_GetAllocLimit(lua_State *L)
 
 static int L_SetAllocLimit(lua_State *L)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         ctx->alloc_limit = luaL_checkinteger(L, 1);
     }
@@ -412,7 +415,7 @@ static int L_GetInstructionCount(lua_State *L)
 
 static int L_GetInstructionLimit(lua_State *L)
 {
-    SCLuaSbState *ctx = GetContext(L);
+    SCLuaSbState *ctx = SCLuaSbGetContext(L);
     if (ctx != NULL) {
         lua_pushinteger(L, ctx->instruction_limit);
     } else {
