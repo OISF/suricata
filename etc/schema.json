@@ -5244,6 +5244,10 @@
                                     "description": "Counter for Lua scripts failing due to blocked functions being called",
                                     "type": "integer"
                                 },
+                                "instruction_limit_errors": {
+                                    "description": "Count of Lua rules exceeding the instruction limit",
+                                    "type": "integer"
+                                },
                                 "errors": {
                                     "description": "Errors encountered while running Lua scripts",
                                     "type": "integer"
