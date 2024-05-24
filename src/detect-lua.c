@@ -123,6 +123,7 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_DNP3                      BIT_U32(21)
 #define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
+#define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
 
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
@@ -175,13 +176,23 @@ static int DetectLuaRunMatch(
     SCLuaSbResetInstructionCounter(tlua->luastate);
 
     if (lua_pcall(tlua->luastate, 1, 1, 0) != 0) {
-        if (!(tlua->flags & FLAG_ERROR_LOGGED)) {
-            /* Log once per thread, the message from Lua will include
-             * the filename. */
+        SCLuaSbState *context = SCLuaSbGetContext(tlua->luastate);
+        uint32_t flag = 0;
+        if (context->blocked_function_error) {
+            StatsIncr(det_ctx->tv, det_ctx->lua_blocked_function_errors);
+            flag = FLAG_BLOCKED_FUNCTION_LOGGED;
+        } else {
+            flag = FLAG_ERROR_LOGGED;
+        }
+
+        /* Log once per thread per error type, the message from Lua
+         * will include the filename. */
+        if (!(tlua->flags & flag)) {
             SCLogWarning(
                     "Lua script failed to run successfully: %s", lua_tostring(tlua->luastate, -1));
-            tlua->flags |= FLAG_ERROR_LOGGED;
+            tlua->flags |= flag;
         }
+
         StatsIncr(det_ctx->tv, det_ctx->lua_rule_errors);
         while (lua_gettop(tlua->luastate) > 0) {
             lua_pop(tlua->luastate, 1);
