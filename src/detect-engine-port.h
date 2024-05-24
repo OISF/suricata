@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef SURICATA_DETECT_PORT_H
-#define SURICATA_DETECT_PORT_H
+#ifndef SURICATA_DETECT_ENGINE_PORT_H
+#define SURICATA_DETECT_ENGINE_PORT_H
 
 #include "interval-tree.h"
 #include "detect.h"
@@ -40,17 +40,6 @@ typedef struct SCPortIntervalNode {
 IRB_HEAD(PI, SCPortIntervalNode); /* head of the interval tree */
 IRB_PROTOTYPE(PI, SCPortIntervalNode, irb,
         SCPortIntervalCompare); /* prototype definition of the interval tree */
-
-typedef struct SCPortIntervalTree_ {
-    struct PI tree;
-    SCPortIntervalNode *head;
-} SCPortIntervalTree;
-
-SCPortIntervalTree *SCPortIntervalTreeInit(void);
-void SCPortIntervalTreeFree(DetectEngineCtx *, SCPortIntervalTree *);
-int SCPortIntervalInsert(DetectEngineCtx *, SCPortIntervalTree *, const DetectPort *);
-void SCPortIntervalFindOverlappingRanges(
-        DetectEngineCtx *, const uint16_t, const uint16_t, const struct PI *, DetectPort **);
 
 /* prototypes */
 int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
@@ -80,4 +69,4 @@ int DetectPortHashInit(DetectEngineCtx *de_ctx);
 void DetectPortTests(void);
 #endif
 
-#endif /* SURICATA_DETECT_PORT_H */
+#endif /* SURICATA_DETECT_ENGINE_PORT_H */

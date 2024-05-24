@@ -21,9 +21,20 @@
  * \author Shivani Bhardwaj <shivani@oisf.net>
  */
 
-#ifndef SURICATA_UTIL_INTERVAL_TREE_H
-#define SURICATA_UTIL_INTERVAL_TREE_H
+#ifndef SURICATA_UTIL_PORT_INTERVAL_TREE_H
+#define SURICATA_UTIL_PORT_INTERVAL_TREE_H
 
 #include "detect-engine-port.h"
 
-#endif /* SURICATA_UTIL_INTERVAL_TREE_H */
+typedef struct SCPortIntervalTree_ {
+    struct PI tree;
+    SCPortIntervalNode *head;
+} SCPortIntervalTree;
+
+SCPortIntervalTree *SCPortIntervalTreeInit(void);
+void SCPortIntervalTreeFree(DetectEngineCtx *, SCPortIntervalTree *);
+int SCPortIntervalInsert(DetectEngineCtx *, SCPortIntervalTree *, const DetectPort *);
+void SCPortIntervalFindOverlappingRanges(
+        DetectEngineCtx *, const uint16_t, const uint16_t, const struct PI *, DetectPort **);
+
+#endif /* SURICATA_UTIL_PORT_INTERVAL_TREE_H */
