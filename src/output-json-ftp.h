@@ -24,6 +24,6 @@
 #ifndef SURICATA_OUTPUT_JSON_FTP_H
 #define SURICATA_OUTPUT_JSON_FTP_H
 
-bool EveFTPLogCommand(void *vtx, JsonBuilder *js);
+bool EveFTPLogCommand(void *vtx, JsonBuilder *js, void *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_FTP_H */

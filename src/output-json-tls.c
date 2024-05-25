@@ -465,7 +465,7 @@ static bool JsonTlsLogJSONExtendedAux(void *vtx, JsonBuilder *tjs)
     return true;
 }
 
-bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
+bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs, void *ctx)
 {
     jb_open_object(tjs, "tls");
     bool r = JsonTlsLogJSONExtendedAux(vtx, tjs);

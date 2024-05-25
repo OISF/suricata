@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2021 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,13 +54,17 @@ typedef struct LogMQTTFileCtx_ {
 
 typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
-    uint32_t        count;
     OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
-bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js)
+bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js, void *ctx)
 {
-    return rs_mqtt_logger_log(vtx, MQTT_DEFAULTS, js);
+    LogMQTTFileCtx *mqtt_ctx = NULL;
+    if (ctx == NULL) {
+        return rs_mqtt_logger_log(vtx, MQTT_DEFAULTS, js);
+    }
+    mqtt_ctx = (LogMQTTFileCtx *)ctx;
+    return rs_mqtt_logger_log(vtx, mqtt_ctx->flags, js);
 }
 
 static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
@@ -137,6 +141,7 @@ static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
     JsonMQTTLogParseConfig(conf, mqttlog_ctx);
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MQTT);
+    ajt->applayer_ctx[ALPROTO_MQTT] = mqttlog_ctx;
 
     result.ctx = output_ctx;
     result.ok = true;

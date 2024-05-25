@@ -46,7 +46,7 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
+bool EveFTPLogCommand(void *vtx, JsonBuilder *jb, void *ctx)
 {
     FTPTransaction *tx = vtx;
     /* Preallocate array objects to simplify failure case */

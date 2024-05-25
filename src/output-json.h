@@ -84,6 +84,7 @@ typedef struct OutputJsonCtx_ {
     OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
     SCEveFileType *filetype;
+    void *applayer_ctx[ALPROTO_MAX];
 } OutputJsonCtx;
 
 typedef struct OutputJsonThreadCtx_ {

@@ -26,6 +26,6 @@
 
 void JsonDnsLogRegister(void);
 
-bool AlertJsonDns(void *vtx, JsonBuilder *js);
+bool AlertJsonDns(void *vtx, JsonBuilder *js, void *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_DNS_H */

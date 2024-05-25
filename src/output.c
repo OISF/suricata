@@ -938,7 +938,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    if (!al->LogTx(tx, js)) {
+    if (!al->LogTx(tx, js, thread->ctx)) {
         goto error;
     }
 

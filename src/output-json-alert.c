@@ -285,8 +285,8 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js
     }
 }
 
-static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
-        const uint64_t tx_id, const uint16_t option_flags)
+static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb, const uint64_t tx_id,
+        const uint16_t option_flags, OutputJsonCtx *ctx)
 {
     const AppProto proto = FlowGetAppProtocol(p->flow);
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
@@ -311,7 +311,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                             return;
                         }
                 }
-                if (!al->LogTx(tx, jb)) {
+                if (!al->LogTx(tx, jb, ctx->applayer_ctx[proto])) {
                     jb_restore_mark(jb, &mark);
                 }
             }
@@ -629,7 +629,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (p->flow != NULL) {
             if (pa->flags & PACKET_ALERT_FLAG_TX) {
                 if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                    AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
+                    AlertAddAppLayer(
+                            p, jb, pa->tx_id, json_output_ctx->flags, json_output_ctx->eve_ctx);
                 }
                 /* including fileinfo data is configured by the metadata setting */
                 if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {

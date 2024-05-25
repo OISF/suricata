@@ -21,6 +21,6 @@
 #include "app-layer-dnp3.h"
 
 void JsonDNP3LogRegister(void);
-bool AlertJsonDnp3(void *vtx, JsonBuilder *js);
+bool AlertJsonDnp3(void *vtx, JsonBuilder *js, void *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_DNP3_H */

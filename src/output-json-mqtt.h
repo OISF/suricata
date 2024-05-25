@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,6 @@
 #define SURICATA_OUTPUT_JSON_MQTT_H
 
 void JsonMQTTLogRegister(void);
-bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js);
+bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js, void *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_MQTT_H */

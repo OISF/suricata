@@ -180,7 +180,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
                     tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, state, tx_id);
                     if (tx) {
                         jb_get_mark(js, &mark);
-                        if (!al->LogTx(tx, js)) {
+                        if (!al->LogTx(tx, js, eve_ctx)) {
                             jb_restore_mark(js, &mark);
                         }
                     }

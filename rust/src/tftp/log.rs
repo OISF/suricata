@@ -38,7 +38,8 @@ fn tftp_log_request(tx: &mut TFTPTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction,
-                                           jb: &mut JsonBuilder)
+                                           jb: &mut JsonBuilder,
+                                           _: *mut std::os::raw::c_void)
                                            -> bool
 {
     tftp_log_request(tx, jb).is_ok()

@@ -77,7 +77,7 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder) -> bool
+pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder, _: *mut std::os::raw::c_void) -> bool
 {
     snmp_log_response(jsb, tx).is_ok()
 }

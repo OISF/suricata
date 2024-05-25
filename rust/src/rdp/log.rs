@@ -24,7 +24,7 @@ use crate::rdp::windows;
 use x509_parser::prelude::{X509Certificate, FromDer};
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder) -> bool {
+pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder, _: *mut std::os::raw::c_void) -> bool {
     log(tx, js).is_ok()
 }
 

@@ -59,9 +59,14 @@ typedef struct LogPgsqlLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogPgsqlLogThread;
 
-bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb)
+bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb, void *ctx)
 {
-    return rs_pgsql_logger(vtx, PGSQL_DEFAULTS, jb);
+    OutputPgsqlCtx *pgsql_ctx = NULL;
+    if (ctx == NULL) {
+        return rs_pgsql_logger(vtx, PGSQL_DEFAULTS, jb);
+    }
+    pgsql_ctx = (OutputPgsqlCtx *)ctx;
+    return rs_pgsql_logger(vtx, pgsql_ctx->flags, jb);
 }
 
 static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
@@ -138,6 +143,7 @@ static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_
     JsonPgsqlLogParseConfig(conf, pgsql_ctx);
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
+    ojc->applayer_ctx[ALPROTO_PGSQL] = pgsql_ctx;
 
     SCLogDebug("PostgreSQL log sub-module initialized.");
 

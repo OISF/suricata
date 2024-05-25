@@ -49,7 +49,7 @@ fn log_websocket(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_websocket_logger_log(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder, _: *mut std::os::raw::c_void
 ) -> bool {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     log_websocket(tx, js, false, false).is_ok()

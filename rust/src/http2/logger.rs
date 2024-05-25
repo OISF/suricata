@@ -283,7 +283,7 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_log_json(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder, _: *mut std::os::raw::c_void
 ) -> bool {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     if let Ok(x) = log_http2(tx, js) {

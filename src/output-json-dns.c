@@ -287,7 +287,7 @@ static JsonBuilder *JsonDNSLogAnswer(void *txptr)
     }
 }
 
-bool AlertJsonDns(void *txptr, JsonBuilder *js)
+bool AlertJsonDns(void *txptr, JsonBuilder *js, void *ctx)
 {
     bool r = false;
     jb_open_object(js, "dns");

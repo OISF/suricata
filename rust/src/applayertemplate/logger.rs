@@ -33,7 +33,7 @@ fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), Js
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_logger_log(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder, _: *mut std::os::raw::c_void
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);
     log_template(tx, js).is_ok()

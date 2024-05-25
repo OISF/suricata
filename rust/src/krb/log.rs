@@ -70,7 +70,7 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_log_json_response(tx: &mut KRB5Transaction, jsb: &mut JsonBuilder) -> bool
+pub extern "C" fn rs_krb5_log_json_response(tx: &mut KRB5Transaction, jsb: &mut JsonBuilder, _: *mut std::os::raw::c_void) -> bool
 {
     krb5_log_response(jsb, tx).is_ok()
 }
