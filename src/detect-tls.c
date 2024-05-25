@@ -612,7 +612,7 @@ static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
 
     SSLStateConnp *connp;
 
-    if (p->flow->flags & STREAM_TOSERVER) {
+    if (PKT_IS_TOSERVER(p)) {
         connp = &ssl_state->client_connp;
     } else {
         connp = &ssl_state->server_connp;
