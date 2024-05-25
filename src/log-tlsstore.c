@@ -362,12 +362,8 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
     output_ctx->data = NULL;
     output_ctx->DeInit = LogTlsStoreLogDeInitCtx;
 
-    /* FIXME we need to implement backward compatibility here */
-    const char *s_default_log_dir = NULL;
-    s_default_log_dir = ConfigGetLogDirectory();
-
-    const char *s_base_dir = NULL;
-    s_base_dir = ConfNodeLookupChildValue(conf, "certs-log-dir");
+    const char *s_default_log_dir = ConfigGetLogDirectory();
+    const char *s_base_dir = ConfNodeLookupChildValue(conf, "certs-log-dir");
     if (s_base_dir == NULL || strlen(s_base_dir) == 0) {
         strlcpy(tls_logfile_base_dir,
                 s_default_log_dir, sizeof(tls_logfile_base_dir));
