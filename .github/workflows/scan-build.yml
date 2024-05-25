@@ -18,7 +18,7 @@ jobs:
   scan-build:
     name: Scan-build
     runs-on: ubuntu-latest
-    container: ubuntu:23.04
+    container: ubuntu:24.04
     steps:
       - name: Cache scan-build
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -36,8 +36,8 @@ jobs:
                 automake \
                 cargo \
                 cbindgen \
-                clang-16 \
-                clang-tools-16 \
+                clang-18 \
+                clang-tools-18 \
                 dpdk-dev \
                 git \
                 libtool \
@@ -61,7 +61,7 @@ jobs:
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
                 liblz4-dev \
-                llvm-16-dev \
+                llvm-18-dev \
                 make \
                 python3-yaml \
                 rustc \
@@ -72,14 +72,14 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-16 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
+      - run: scan-build-18 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
-          CC: clang-16
+          CC: clang-18
       # exclude libhtp from the analysis
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
       - run: |
-          scan-build-16 --status-bugs --exclude libhtp/ \
+          scan-build-18 --status-bugs --exclude libhtp/ \
                 -enable-checker valist.Uninitialized \
                 -enable-checker valist.CopyToSelf \
                 -enable-checker valist.Unterminated \
@@ -101,4 +101,4 @@ jobs:
                 \
                 make
         env:
-          CC: clang-16
+          CC: clang-18
