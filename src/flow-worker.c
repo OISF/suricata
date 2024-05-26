@@ -511,6 +511,7 @@ static void PacketAppUpdate2FlowFlags(Packet *p)
 {
     switch ((enum StreamUpdateDir)p->app_update_direction) {
         case UPDATE_DIR_NONE: // NONE implies pseudo packet
+            SCLogDebug("pcap_cnt %" PRIu64 ", UPDATE_DIR_NONE", p->pcap_cnt);
             break;
         case UPDATE_DIR_PACKET:
             if (PKT_IS_TOSERVER(p)) {
@@ -587,6 +588,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* handle TCP and app layer */
     if (p->flow) {
+        SCLogDebug("packet %" PRIu64
+                   ": direction %s FLOW_TS_APP_UPDATE_NEXT %s FLOW_TC_APP_UPDATE_NEXT %s",
+                p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient",
+                BOOL2STR((p->flow->flags & FLOW_TS_APP_UPDATE_NEXT) != 0),
+                BOOL2STR((p->flow->flags & FLOW_TC_APP_UPDATE_NEXT) != 0));
         /* see if need to consider flags set by prev packets */
         if (PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATE_NEXT)) {
             p->flow->flags |= FLOW_TS_APP_UPDATED;
@@ -667,11 +673,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
                     if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
                         AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
                         p->flow->flags &= ~FLOW_TS_APP_UPDATED;
+                        SCLogDebug("~FLOW_TS_APP_UPDATED");
                     }
                 } else {
                     if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TC_APP_UPDATED))) {
                         AppLayerParserTransactionsCleanup(p->flow, STREAM_TOCLIENT);
                         p->flow->flags &= ~FLOW_TC_APP_UPDATED;
+                        SCLogDebug("~FLOW_TC_APP_UPDATED");
                     }
                 }
             }
