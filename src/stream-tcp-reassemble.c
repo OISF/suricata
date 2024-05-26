@@ -1214,10 +1214,8 @@ static inline uint32_t AdjustToAcked(const Packet *p,
  *  \param stream pointer to pointer as app-layer can switch flow dir
  *  \retval 0 success
  */
-static int ReassembleUpdateAppLayer (ThreadVars *tv,
-        TcpReassemblyThreadCtx *ra_ctx,
-        TcpSession *ssn, TcpStream **stream,
-        Packet *p, enum StreamUpdateDir dir)
+static int ReassembleUpdateAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream **stream, Packet *p, enum StreamUpdateDir app_update_dir)
 {
     uint64_t app_progress = STREAM_APP_PROGRESS(*stream);
 
@@ -1249,7 +1247,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
 
             int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, NULL, mydata_len,
-                    StreamGetAppLayerFlags(ssn, *stream, p) | STREAM_GAP, dir);
+                    StreamGetAppLayerFlags(ssn, *stream, p) | STREAM_GAP, app_update_dir);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
@@ -1321,8 +1319,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
         SCLogDebug("parser");
         /* update the app-layer */
-        (void)AppLayerHandleTCPData(
-                tv, ra_ctx, p, p->flow, ssn, stream, (uint8_t *)mydata, mydata_len, flags, dir);
+        (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, (uint8_t *)mydata,
+                mydata_len, flags, app_update_dir);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         AppLayerFrameDump(p->flow);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
@@ -1348,9 +1346,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
  *  any issues, since processing of each stream is independent of the
  *  other stream.
  */
-int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                                 TcpSession *ssn, TcpStream *stream,
-                                 Packet *p, enum StreamUpdateDir dir)
+int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream *stream, Packet *p, enum StreamUpdateDir app_update_dir)
 {
     SCEnter();
 
@@ -1376,7 +1373,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0,
-                    StreamGetAppLayerFlags(ssn, stream, p), dir);
+                    StreamGetAppLayerFlags(ssn, stream, p), app_update_dir);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
@@ -1384,7 +1381,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* with all that out of the way, lets update the app-layer */
-    return ReassembleUpdateAppLayer(tv, ra_ctx, ssn, &stream, p, dir);
+    return ReassembleUpdateAppLayer(tv, ra_ctx, ssn, &stream, p, app_update_dir);
 }
 
 /** \internal
