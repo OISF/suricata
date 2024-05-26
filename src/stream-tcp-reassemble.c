@@ -1983,6 +1983,9 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     } else if (ssn->state == TCP_CLOSED) {
         dir = UPDATE_DIR_BOTH;
+    } else if ((ssn->flags & STREAMTCP_FLAG_ASYNC) != 0) {
+        dir = UPDATE_DIR_PACKET;
+        SCLogDebug("%" PRIu64 ": ASYNC: UPDATE_DIR_PACKET", p->pcap_cnt);
     }
 
     /* handle ack received */
