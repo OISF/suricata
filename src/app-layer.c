@@ -389,7 +389,7 @@ extern enum ExceptionPolicy g_applayerparser_error_policy;
  */
 static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerThreadCtx *app_tctx, Packet *p, Flow *f, TcpSession *ssn, TcpStream **stream,
-        uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir dir)
+        uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir app_update_dir)
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
@@ -555,7 +555,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        p->app_update_direction = (uint8_t)dir;
+        p->app_update_direction = (uint8_t)app_update_dir;
         if (r != 1) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
@@ -643,7 +643,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                             f->alproto, flags,
                             data, data_len);
                     PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-                    p->app_update_direction = (uint8_t)dir;
+                    p->app_update_direction = (uint8_t)app_update_dir;
                     if (r != 1) {
                         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                     }
@@ -706,7 +706,7 @@ detect_error:
  */
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet *p, Flow *f,
         TcpSession *ssn, TcpStream **stream, uint8_t *data, uint32_t data_len, uint8_t flags,
-        enum StreamUpdateDir dir)
+        enum StreamUpdateDir app_update_dir)
 {
     SCEnter();
 
@@ -752,7 +752,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        p->app_update_direction = (uint8_t)dir;
+        p->app_update_direction = (uint8_t)app_update_dir;
         /* ignore parser result for gap */
         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         if (r < 0) {
@@ -771,8 +771,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         DEBUG_VALIDATE_BUG_ON(FlowChangeProto(f));
         /* run protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, dir) !=
-                0) {
+        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags,
+                    app_update_dir) != 0) {
             goto failure;
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
@@ -784,8 +784,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
         StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->client);
         StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->server);
         /* rerun protocol detection */
-        int rd =
-                TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, dir);
+        int rd = TCPProtoDetect(
+                tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, app_update_dir);
         if (f->alproto == ALPROTO_UNKNOWN) {
             DEBUG_VALIDATE_BUG_ON(alstate_orig != f->alstate);
             // not enough data, revert AppLayerProtoDetectReset to rerun detection
@@ -838,7 +838,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-            p->app_update_direction = (uint8_t)dir;
+            p->app_update_direction = (uint8_t)app_update_dir;
             if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                 if (r < 0) {
