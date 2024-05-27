@@ -1367,7 +1367,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         get_state_data: rs_dcerpc_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        truncate: None,
+        truncate: Some(rs_dcerpc_state_trunc),
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };
