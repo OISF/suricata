@@ -84,7 +84,14 @@ typedef struct RunMode_ {
     /* the runmode type */
     enum RunModes runmode;
     const char *name;
+    const char *default_runmode;
+    const char *supported_runmode;
+    const char *notes;
+    const char *yaml_section;
+    const char *commandline;
+    const char *supported_features;
     const char *description;
+    
     /* runmode function */
     int (*RunModeFunc)(void);
     int (*RunModeIsIPSEnabled)(void);
