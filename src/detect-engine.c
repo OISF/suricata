@@ -3343,6 +3343,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->lua_instruction_limit_errors =
             StatsRegisterCounter("detect.lua.instruction_limit_errors", tv);
 
+    /* Register a counter for Lua memory limit errors. */
+    det_ctx->lua_memory_limit_errors = StatsRegisterCounter("detect.lua.memory_limit_errors", tv);
+
 #ifdef PROFILING
     det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
     det_ctx->counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);

@@ -125,6 +125,7 @@ void DetectLuaRegister(void)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
 #define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
+#define FLAG_MEMORY_LIMIT_LOGGED                BIT_U32(26)
 
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
@@ -177,6 +178,7 @@ static int DetectLuaRunMatch(
     SCLuaSbResetInstructionCounter(tlua->luastate);
 
     if (lua_pcall(tlua->luastate, 1, 1, 0) != 0) {
+        const char *reason = lua_tostring(tlua->luastate, -1);
         SCLuaSbState *context = SCLuaSbGetContext(tlua->luastate);
         uint32_t flag = 0;
         if (context->blocked_function_error) {
@@ -185,6 +187,10 @@ static int DetectLuaRunMatch(
         } else if (context->instruction_count_error) {
             StatsIncr(det_ctx->tv, det_ctx->lua_instruction_limit_errors);
             flag = FLAG_INSTRUCTION_LIMIT_LOGGED;
+        } else if (context->memory_limit_error) {
+            StatsIncr(det_ctx->tv, det_ctx->lua_memory_limit_errors);
+            reason = "memory limit exceeded";
+            flag = FLAG_MEMORY_LIMIT_LOGGED;
         } else {
             flag = FLAG_ERROR_LOGGED;
         }
@@ -192,8 +198,7 @@ static int DetectLuaRunMatch(
         /* Log once per thread per error type, the message from Lua
          * will include the filename. */
         if (!(tlua->flags & flag)) {
-            SCLogWarning(
-                    "Lua script failed to run successfully: %s", lua_tostring(tlua->luastate, -1));
+            SCLogWarning("Lua script failed to run successfully: %s", reason);
             tlua->flags |= flag;
         }
 

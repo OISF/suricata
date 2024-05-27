@@ -41,7 +41,7 @@ typedef struct SCLuaSbState {
     lua_State *L;
 
     /* Allocation limits */
-    uint64_t alloc_bytes;
+    size_t alloc_bytes;
     uint64_t alloc_limit;
 
     /* Execution Limits */
@@ -52,6 +52,7 @@ typedef struct SCLuaSbState {
     /* Errors. */
     bool blocked_function_error;
     bool instruction_count_error;
+    bool memory_limit_error;
 } SCLuaSbState;
 
 /*

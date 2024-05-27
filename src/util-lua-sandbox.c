@@ -49,26 +49,41 @@ static void HookFunc(lua_State *L, lua_Debug *ar);
 static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
 {
     (void)ud;
-    (void)osize; /* not used */
+    (void)osize;
     SCLuaSbState *ctx = (SCLuaSbState *)ud;
+
     if (nsize == 0) {
-        if (ptr != NULL) {
-            // ASSERT: alloc_bytes > osize
-            DEBUG_VALIDATE_BUG_ON(ctx->alloc_bytes < osize);
-            ctx->alloc_bytes -= osize;
-        }
-        SCFree(ptr);
-        return NULL;
-    } else {
-        // We can be a bit sloppy on the alloc limit since it's not supposed to be hit.
-        //  ASSERT: ctx->alloc_bytes + nsize > ctx->alloc_bytes
-        if (ctx->alloc_bytes + nsize > ctx->alloc_limit) {
-            // TODO: Trace in a better way
+        if (ptr == NULL) {
+            /* This happens, ignore. */
             return NULL;
         }
+        BUG_ON(osize > ctx->alloc_bytes);
+        SCFree(ptr);
+        ctx->alloc_bytes -= osize;
+        return NULL;
+    } else if (ptr == NULL) {
+        /* Allocating new data. */
         void *nptr = SCRealloc(ptr, nsize);
         if (nptr != NULL) {
             ctx->alloc_bytes += nsize;
+        }
+        return nptr;
+    } else {
+        /* Resizing existing data. */
+        ssize_t diff = nsize - osize;
+
+        if (ctx->alloc_bytes + diff > ctx->alloc_limit) {
+            /* This request will exceed the allocation limit. Act as
+             * though allocation failed. */
+            ctx->memory_limit_error = true;
+            return NULL;
+        }
+
+        void *nptr = SCRealloc(ptr, nsize);
+        if (nptr != NULL) {
+            BUG_ON((ssize_t)ctx->alloc_bytes + diff < 0);
+            BUG_ON(osize > ctx->alloc_bytes);
+            ctx->alloc_bytes += diff;
         }
         return nptr;
     }
@@ -298,7 +313,7 @@ lua_State *SCLuaSbStateNew(uint64_t alloclimit, uint64_t instructionlimit)
     sb->hook_instruction_count = 100;
     sb->instruction_limit = instructionlimit;
 
-    sb->L = lua_newstate(LuaAlloc, sb); /* create state */
+    sb->L = lua_newstate(LuaAlloc, sb);
     if (sb->L == NULL) {
         SCFree(sb);
         return NULL;
@@ -331,6 +346,7 @@ void SCLuaSbStateClose(lua_State *L)
 {
     SCLuaSbState *sb = SCLuaSbGetContext(L);
     lua_close(sb->L);
+    BUG_ON(sb->alloc_bytes);
     SCFree(sb);
 }
 
