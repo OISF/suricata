@@ -223,7 +223,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->tcph->th_dport = htons(f->dp);
 
         p->tcph->th_seq = htonl(ssn->client.next_seq);
-        p->tcph->th_ack = htonl(ssn->server.last_ack);
+        p->tcph->th_ack = 0;
 
         /* to client */
     } else {
@@ -231,7 +231,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->tcph->th_dport = htons(f->sp);
 
         p->tcph->th_seq = htonl(ssn->server.next_seq);
-        p->tcph->th_ack = htonl(ssn->client.last_ack);
+        p->tcph->th_ack = 0;
     }
 
     if (FLOW_IS_IPV4(f)) {
