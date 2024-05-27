@@ -1799,6 +1799,53 @@ void TmThreadContinue(ThreadVars *tv)
     return;
 }
 
+static TmEcode WaitOnThreadsRunningByType(const int t)
+{
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
+
+    /* on retries, this will init to the last thread that started up already */
+    ThreadVars *tv_start = tv_root[t];
+again:
+    SCMutexLock(&tv_root_lock);
+    ThreadVars *tv = tv_start;
+    while (tv != NULL) {
+        if (TmThreadsCheckFlag(tv, (THV_FAILED | THV_CLOSED | THV_DEAD))) {
+            SCMutexUnlock(&tv_root_lock);
+
+            SCLogError("thread \"%s\" failed to "
+                       "start: flags %04x",
+                    tv->name, SC_ATOMIC_GET(tv->flags));
+            return TM_ECODE_FAILED;
+        }
+
+        if (!(TmThreadsCheckFlag(tv, THV_RUNNING | THV_RUNNING_DONE))) {
+            SCMutexUnlock(&tv_root_lock);
+
+            /* 60 seconds provided for the thread to transition from
+             * THV_INIT_DONE to THV_RUNNING */
+            gettimeofday(&cur_ts, NULL);
+            if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+                SCLogError("thread \"%s\" failed to "
+                           "start in time: flags %04x",
+                        tv->name, SC_ATOMIC_GET(tv->flags));
+                return TM_ECODE_FAILED;
+            }
+
+            /* sleep a little to give the thread some
+             * time to start running */
+            SleepUsec(100);
+            goto again;
+        }
+        tv_start = tv;
+
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Waits for all threads to be in a running state
  *
@@ -1812,45 +1859,12 @@ TmEcode TmThreadWaitOnThreadRunning(void)
     uint16_t FR_num = 0;
     uint16_t TX_num = 0;
 
-    struct timeval start_ts;
-    struct timeval cur_ts;
-    gettimeofday(&start_ts, NULL);
-
-again:
-    SCMutexLock(&tv_root_lock);
     for (int i = 0; i < TVT_MAX; i++) {
-        ThreadVars *tv = tv_root[i];
-        while (tv != NULL) {
-            if (TmThreadsCheckFlag(tv, (THV_FAILED | THV_CLOSED | THV_DEAD))) {
-                SCMutexUnlock(&tv_root_lock);
-
-                SCLogError("thread \"%s\" failed to "
-                           "start: flags %04x",
-                        tv->name, SC_ATOMIC_GET(tv->flags));
-                return TM_ECODE_FAILED;
-            }
-
-            if (!(TmThreadsCheckFlag(tv, THV_RUNNING | THV_RUNNING_DONE))) {
-                SCMutexUnlock(&tv_root_lock);
-
-                /* 60 seconds provided for the thread to transition from
-                 * THV_INIT_DONE to THV_RUNNING */
-                gettimeofday(&cur_ts, NULL);
-                if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
-                    SCLogError("thread \"%s\" failed to "
-                               "start in time: flags %04x",
-                            tv->name, SC_ATOMIC_GET(tv->flags));
-                    return TM_ECODE_FAILED;
-                }
-
-                /* sleep a little to give the thread some
-                 * time to start running */
-                SleepUsec(100);
-                goto again;
-            }
-            tv = tv->next;
-        }
+        if (WaitOnThreadsRunningByType(i) != TM_ECODE_OK)
+            return TM_ECODE_FAILED;
     }
+
+    SCMutexLock(&tv_root_lock);
     for (int i = 0; i < TVT_MAX; i++) {
         for (ThreadVars *tv = tv_root[i]; tv != NULL; tv = tv->next) {
             if (strncmp(thread_name_autofp, tv->name, strlen(thread_name_autofp)) == 0)
