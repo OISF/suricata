@@ -5248,6 +5248,10 @@
                                     "description": "Count of Lua rules exceeding the instruction limit",
                                     "type": "integer"
                                 },
+                                "memory_limit_errors": {
+                                    "description": "Count of Lua rules exceeding the memory limit",
+                                    "type": "integer"
+                                },
                                 "errors": {
                                     "description": "Errors encountered while running Lua scripts",
                                     "type": "integer"
