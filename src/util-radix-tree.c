@@ -715,6 +715,13 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
         return NULL;
     }
     new_node = SCRadixCreateNode();
+
+    if (new_node == NULL) {
+        SCRadixReleasePrefix(prefix, tree);
+        sc_errno = SC_ENOMEM;
+        return NULL;
+    }
+
     new_node->prefix = prefix;
     new_node->bit = prefix->bitlen;
 
@@ -745,6 +752,13 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
          * detail below) */
     } else {
         inter_node = SCRadixCreateNode();
+
+        if (inter_node == NULL) {
+            SCRadixReleaseNode(new_node, tree);
+            sc_errno = SC_ENOMEM;
+            return NULL;
+        }
+
         inter_node->prefix = NULL;
         inter_node->bit = differ_bit;
         inter_node->parent = node->parent;
