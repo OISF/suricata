@@ -41,6 +41,7 @@ static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 pub enum WebSocketFrameType {
     Header,
     Pdu,
+    Data,
 }
 
 #[derive(AppLayerEvent)]
@@ -173,6 +174,14 @@ impl WebSocketState {
                         start,
                         (start.len() - rem.len()) as i64,
                         WebSocketFrameType::Pdu as u8,
+                        Some(tx.tx_id),
+                    );
+                    let _pdu = Frame::new(
+                        flow,
+                        &stream_slice,
+                        &start[(start.len() - rem.len() - pdu.payload.len())..],
+                        pdu.payload.len() as i64,
+                        WebSocketFrameType::Data as u8,
                         Some(tx.tx_id),
                     );
                     start = rem;
