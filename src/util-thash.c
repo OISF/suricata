@@ -181,6 +181,7 @@ static THashData *THashDataAlloc(THashTableContext *ctx)
     return h;
 
 error:
+    (void)SC_ATOMIC_SUB(ctx->memuse, data_size);
     return NULL;
 }
 
