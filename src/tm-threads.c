@@ -1801,10 +1801,20 @@ static TmEcode WaitOnThreadsRunningByType(const int t)
 {
     struct timeval start_ts;
     struct timeval cur_ts;
-    gettimeofday(&start_ts, NULL);
+    uint32_t thread_cnt = 0;
 
     /* on retries, this will init to the last thread that started up already */
     ThreadVars *tv_start = tv_root[t];
+    SCMutexLock(&tv_root_lock);
+    for (ThreadVars *tv = tv_start; tv != NULL; tv = tv->next) {
+        thread_cnt++;
+    }
+    SCMutexUnlock(&tv_root_lock);
+
+    /* give threads a second each to start up, plus a margin of a minute. */
+    uint32_t time_budget = 60 + thread_cnt;
+
+    gettimeofday(&start_ts, NULL);
 again:
     SCMutexLock(&tv_root_lock);
     ThreadVars *tv = tv_start;
@@ -1824,10 +1834,10 @@ again:
             /* 60 seconds provided for the thread to transition from
              * THV_INIT_DONE to THV_RUNNING */
             gettimeofday(&cur_ts, NULL);
-            if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+            if (((uint32_t)cur_ts.tv_sec - (uint32_t)start_ts.tv_sec) > time_budget) {
                 SCLogError("thread \"%s\" failed to "
-                           "start in time: flags %04x",
-                        tv->name, SC_ATOMIC_GET(tv->flags));
+                           "start in time: flags %04x. Total threads: %u. Time budget %us",
+                        tv->name, SC_ATOMIC_GET(tv->flags), thread_cnt, time_budget);
                 return TM_ECODE_FAILED;
             }
 
