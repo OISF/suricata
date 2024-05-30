@@ -1335,6 +1335,79 @@ jobs:
             exit 0
           fi
 
+  ubuntu-24-04-arm:
+    name: Ubuntu 24.04 (ARM)
+    runs-on: macos-14
+    container: ubuntu:24.04
+    needs: [prepare-deps]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                autoconf \
+                automake \
+                build-essential \
+                cargo \
+                cbindgen \
+                clang-14 \
+                dpdk-dev \
+                git \
+                jq \
+                libcap-ng-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libhiredis-dev \
+                libhyperscan-dev \
+                libjansson-dev \
+                libmagic-dev \
+                libnet1-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libpcap-dev \
+                libpcre2-dev \
+                libpython3.12 \
+                libtool \
+                libyaml-dev \
+                llvm-14-dev \
+                make \
+                parallel \
+                python-is-python3 \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - run: make -j ${{ env.CPUS }}
+      - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
+      - run: make install
+      - run: make install-headers
+      - run: make install-library
+
   ubuntu-24-04:
     name: Ubuntu 24.04 (cocci)
     runs-on: ubuntu-latest
