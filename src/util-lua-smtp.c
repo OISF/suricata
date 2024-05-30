@@ -36,8 +36,8 @@
 
 #include "app-layer-smtp.h"
 
-#include <lua.h>
-#include <lualib.h>
+#include "lua.h"
+#include "lualib.h"
 
 #include "util-lua.h"
 #include "util-lua-common.h"
