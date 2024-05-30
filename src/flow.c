@@ -485,7 +485,13 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-        FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
+        if (
+#ifdef CAPTURE_OFFLOAD
+                (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) &&
+#endif
+                (f->flow_state != FLOW_STATE_LOCAL_BYPASSED)) {
+            FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
+        }
     }
 
     if (f->flags & FLOW_ACTION_DROP) {
