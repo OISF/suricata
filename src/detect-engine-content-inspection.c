@@ -816,6 +816,7 @@ bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
             case DETECT_BYTEJUMP:
                 // fallthrough
                 match_on_null = false;
+                break;
                 // also file keywords that are not on content
             case DETECT_FILESIZE:
                 // fallthrough
