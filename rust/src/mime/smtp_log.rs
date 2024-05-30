@@ -105,6 +105,8 @@ fn log_field_comma(
 ) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, e.as_bytes()) {
+            let mark = js.get_mark();
+            let mut has_not_empty_field = false;
             js.open_array(c)?;
             let mut start = 0;
             let mut state = FieldCommaState::Start;
@@ -121,7 +123,10 @@ fn log_field_comma(
                     }
                     FieldCommaState::Field => {
                         if h.value[i] == b',' {
-                            js.append_string(&String::from_utf8_lossy(&h.value[start..i]))?;
+                            if i > start {
+                                js.append_string(&String::from_utf8_lossy(&h.value[start..i]))?;
+                                has_not_empty_field = true;
+                            }
                             start = i + 1;
                             state = FieldCommaState::Start;
                         } else if h.value[i] == b'"' {
@@ -135,8 +140,16 @@ fn log_field_comma(
                     }
                 }
             }
-            js.append_string(&String::from_utf8_lossy(&h.value[start..]))?;
-            js.close()?;
+            if h.value.len() > start {
+                // do not log empty string
+                js.append_string(&String::from_utf8_lossy(&h.value[start..]))?;
+                has_not_empty_field = true;
+            }
+            if has_not_empty_field {
+                js.close()?;
+            } else {
+                js.restore_mark(&mark)?;
+            }
             break;
         }
     }
