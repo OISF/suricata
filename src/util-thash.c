@@ -35,7 +35,7 @@
 #include "util-hash-lookup3.h"
 #include "util-validate.h"
 
-static THashData *THashGetUsed(THashTableContext *ctx);
+static THashData *THashGetUsed(THashTableContext *ctx, size_t data_size);
 static void THashDataEnqueue (THashDataQueue *q, THashData *h);
 
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h)
@@ -568,7 +568,7 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
     if (h == NULL) {
         /* If we reached the max memcap, we get used data */
         if (!(THASH_CHECK_MEMCAP(ctx, THASH_DATA_SIZE(ctx) + len))) {
-            h = THashGetUsed(ctx);
+            h = THashGetUsed(ctx, len);
             if (h == NULL) {
                 return NULL;
             }
@@ -790,7 +790,7 @@ THashData *THashLookupFromHash (THashTableContext *ctx, void *data)
  *
  *  \retval h data or NULL
  */
-static THashData *THashGetUsed(THashTableContext *ctx)
+static THashData *THashGetUsed(THashTableContext *ctx, size_t data_size)
 {
     uint32_t idx = SC_ATOMIC_GET(ctx->prune_idx) % ctx->config.hash_size;
     uint32_t cnt = ctx->config.hash_size;
@@ -836,17 +836,20 @@ static THashData *THashGetUsed(THashTableContext *ctx)
         HRLOCK_UNLOCK(hb);
 
         if (h->data != NULL) {
+            size_t data_len = 0;
             ctx->config.DataFree(h->data);
             if (ctx->config.DataSize) {
-                uint32_t len = ctx->config.DataSize(h->data);
-                if (len > 0)
-                    (void)SC_ATOMIC_SUB(ctx->memuse, (uint64_t)len);
-                SCLogNotice("SUB memuse: %ld", SC_ATOMIC_GET(ctx->memuse));
+                data_len += ctx->config.DataSize(h->data);
             }
+            if (data_len > 0)
+                (void)SC_ATOMIC_SUB(ctx->memuse, (uint64_t)data_len);
+            SCLogNotice("SUB memuse: %ld", SC_ATOMIC_GET(ctx->memuse));
         }
         SCMutexUnlock(&h->m);
 
         (void) SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));
+        if (data_size > 0)
+            (void)SC_ATOMIC_ADD(ctx->memuse, data_size);
         return h;
     }
 
