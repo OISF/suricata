@@ -94,15 +94,48 @@ pub unsafe extern "C" fn SCMimeSmtpLogFieldArray(
     return false;
 }
 
+enum FieldCommaState {
+    Start = 0, // skip leading spaces
+    Field = 1,
+    Quoted = 2, // do not take comma for split in quote
+}
+
 fn log_field_comma(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, c: &str, e: &str,
 ) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, e.as_bytes()) {
             js.open_array(c)?;
-            for s in h.value.split(|c| *c == b',') {
-                js.append_string(&String::from_utf8_lossy(s))?;
+            let mut start = 0;
+            let mut state = FieldCommaState::Start;
+            for i in 0..h.value.len() {
+                match state {
+                    FieldCommaState::Start => {
+                        if h.value[i] == b' ' || h.value[i] == b'\t' {
+                            start += 1;
+                        } else if h.value[i] == b'"' {
+                            state = FieldCommaState::Quoted;
+                        } else {
+                            state = FieldCommaState::Field;
+                        }
+                    }
+                    FieldCommaState::Field => {
+                        if h.value[i] == b',' {
+                            js.append_string(&String::from_utf8_lossy(&h.value[start..i]))?;
+                            start = i + 1;
+                            state = FieldCommaState::Start;
+                        } else if h.value[i] == b'"' {
+                            state = FieldCommaState::Quoted;
+                        }
+                    }
+                    FieldCommaState::Quoted => {
+                        if h.value[i] == b'"' {
+                            state = FieldCommaState::Field;
+                        }
+                    }
+                }
             }
+            js.append_string(&String::from_utf8_lossy(&h.value[start..]))?;
             js.close()?;
             break;
         }
