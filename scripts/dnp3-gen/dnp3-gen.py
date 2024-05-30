@@ -59,9 +59,9 @@ util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Sec
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 
 #include "util-lua.h"
 #include "util-lua-dnp3-objects.h"
