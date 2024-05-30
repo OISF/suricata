@@ -47,9 +47,9 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 
 #include "util-lua.h"
 #include "util-lua-sandbox.h"
