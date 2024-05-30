@@ -1392,7 +1392,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input_buf == NULL || input_len == 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     SMTPInput input = { .buf = input_buf, .len = input_len, .orig_len = input_len, .consumed = 0 };
