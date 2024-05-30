@@ -190,9 +190,10 @@ pub const MIME_ANOM_LONG_HEADER_VALUE: u32 = 0x20;
 pub const MIME_ANOM_LONG_BOUNDARY: u32 = 0x80;
 pub const MIME_ANOM_LONG_FILENAME: u32 = 0x100;
 
-fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> u32 {
+fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
     let mut sections_values = Vec::new();
     let mut warnings = 0;
+    let mut encap = false;
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::slice_equals_lowercase(&h.name, b"content-disposition") {
             if ctx.filename.is_empty() {
@@ -219,10 +220,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> u32 {
             } else if mime::slice_equals_lowercase(&h.value, b"quoted-printable") {
                 ctx.encoding = MimeSmtpEncoding::QuotedPrintable;
             }
-        }
-    }
-    for h in &ctx.headers[ctx.main_headers_nb..] {
-        if mime::slice_equals_lowercase(&h.name, b"content-type") {
+        } else if mime::slice_equals_lowercase(&h.name, b"content-type") {
             if ctx.filename.is_empty() {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
@@ -267,13 +265,15 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> u32 {
                     ctx.content_type = MimeSmtpContentType::Html;
                 }
                 _ => {
+                    if ct.starts_with(b"message/") {
+                        encap = true;
+                    }
                     ctx.content_type = MimeSmtpContentType::Unknown;
                 }
             }
-            break;
         }
     }
-    return warnings;
+    return (warnings, encap);
 }
 
 extern "C" {
@@ -508,12 +508,17 @@ fn mime_smtp_parse_line(
                 ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Inited;
             }
             if i.is_empty() {
-                ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
-                let w = mime_smtp_process_headers(ctx);
+                let (w, encap_msg) = mime_smtp_process_headers(ctx);
                 warnings |= w;
                 if ctx.main_headers_nb == 0 {
                     ctx.main_headers_nb = ctx.headers.len();
                 }
+                if encap_msg {
+                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
+                    ctx.headers.truncate(ctx.main_headers_nb);
+                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
+                }
+                ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
                 return (MimeSmtpParserResult::MimeSmtpFileOpen, warnings);
             } else if let Ok((value, name)) = mime::mime_parse_header_line(i) {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpHeader;
@@ -531,12 +536,17 @@ fn mime_smtp_parse_line(
         }
         MimeSmtpParserState::MimeSmtpHeader => {
             if i.is_empty() {
-                ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
-                let w = mime_smtp_process_headers(ctx);
+                let (w, encap_msg) = mime_smtp_process_headers(ctx);
                 warnings |= w;
                 if ctx.main_headers_nb == 0 {
                     ctx.main_headers_nb = ctx.headers.len();
                 }
+                if encap_msg {
+                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
+                    ctx.headers.truncate(ctx.main_headers_nb);
+                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
+                }
+                ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
                 return (MimeSmtpParserResult::MimeSmtpFileOpen, warnings);
             } else if i[0] == b' ' || i[0] == b'\t' {
                 let last = ctx.headers.len() - 1;
