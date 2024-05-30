@@ -215,10 +215,14 @@ enum SMTPCode {
     SMTP_REPLY_334,
     SMTP_REPLY_354,
 
+    SMTP_REPLY_401, // Unauthorized
+    SMTP_REPLY_402, // Command not implemented
     SMTP_REPLY_421,
+    SMTP_REPLY_435, // Your account has not yet been verified
     SMTP_REPLY_450,
     SMTP_REPLY_451,
     SMTP_REPLY_452,
+    SMTP_REPLY_454, // Temporary authentication failure
     SMTP_REPLY_455,
 
     SMTP_REPLY_500,
@@ -226,6 +230,15 @@ enum SMTPCode {
     SMTP_REPLY_502,
     SMTP_REPLY_503,
     SMTP_REPLY_504,
+    SMTP_REPLY_511, // Bad email address
+    SMTP_REPLY_521, // Server does not accept mail
+    SMTP_REPLY_522, // Recipient has exceeded mailbox limit
+    SMTP_REPLY_525, // User Account Disabled
+    SMTP_REPLY_530, // Authentication required
+    SMTP_REPLY_534, // Authentication mechanism is too weak
+    SMTP_REPLY_535, // Authentication credentials invalid
+    SMTP_REPLY_541, // No response from host
+    SMTP_REPLY_543, // Routing server failure. No available route
     SMTP_REPLY_550,
     SMTP_REPLY_551,
     SMTP_REPLY_552,
@@ -234,7 +247,7 @@ enum SMTPCode {
     SMTP_REPLY_555,
 };
 
-SCEnumCharMap smtp_reply_map[ ] = {
+SCEnumCharMap smtp_reply_map[] = {
     { "211", SMTP_REPLY_211 },
     { "214", SMTP_REPLY_214 },
     { "220", SMTP_REPLY_220 },
@@ -247,10 +260,15 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "334", SMTP_REPLY_334 },
     { "354", SMTP_REPLY_354 },
 
+    { "401", SMTP_REPLY_401 },
+    { "402", SMTP_REPLY_402 },
     { "421", SMTP_REPLY_421 },
+    { "435", SMTP_REPLY_435 },
     { "450", SMTP_REPLY_450 },
     { "451", SMTP_REPLY_451 },
     { "452", SMTP_REPLY_452 },
+    { "454", SMTP_REPLY_454 },
+    // { "4.7.0", SMTP_REPLY_454 }, // rfc4954
     { "455", SMTP_REPLY_455 },
 
     { "500", SMTP_REPLY_500 },
@@ -258,13 +276,22 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "502", SMTP_REPLY_502 },
     { "503", SMTP_REPLY_503 },
     { "504", SMTP_REPLY_504 },
+    { "511", SMTP_REPLY_511 },
+    { "521", SMTP_REPLY_521 },
+    { "522", SMTP_REPLY_522 },
+    { "525", SMTP_REPLY_525 },
+    { "530", SMTP_REPLY_530 },
+    { "534", SMTP_REPLY_534 },
+    { "535", SMTP_REPLY_535 },
+    { "541", SMTP_REPLY_541 },
+    { "543", SMTP_REPLY_543 },
     { "550", SMTP_REPLY_550 },
     { "551", SMTP_REPLY_551 },
     { "552", SMTP_REPLY_552 },
     { "553", SMTP_REPLY_553 },
     { "554", SMTP_REPLY_554 },
     { "555", SMTP_REPLY_555 },
-    {  NULL,  -1 },
+    { NULL, -1 },
 };
 
 /* Create SMTP config structure */
