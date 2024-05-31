@@ -6139,6 +6139,20 @@
                     },
                     "additionalProperties": false
                 },
+                "client_alpns": {
+                    "description": "TLS client ALPN field(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "server_alpns": {
+                    "description": "TLS server ALPN field(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "fingerprint": {
                     "type": "string"
                 },
