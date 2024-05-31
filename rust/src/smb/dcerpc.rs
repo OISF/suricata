@@ -168,6 +168,7 @@ impl SMBState {
                 _ => { false },
             };
             if found {
+                tx.tx_data.updated = [true; 2];
                 return Some(tx);
             }
         }
