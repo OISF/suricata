@@ -1449,6 +1449,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
+    tx_ud->tx_data.updated_ts = true;
     SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
 
     if (!tx_ud->response_body_init) {
@@ -1580,6 +1581,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
+    tx_ud->tx_data.updated_tc = true;
     SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
@@ -1686,6 +1688,7 @@ static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
+        htud->tx_data.updated_ts = true;
         htud->request_has_trailers = 1;
     }
     return HTP_OK;
@@ -1695,6 +1698,7 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
+        htud->tx_data.updated_tc = true;
         htud->response_has_trailers = 1;
     }
     return HTP_OK;
@@ -1737,6 +1741,8 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         }
         tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // each http tx may xfer files
         htp_tx_set_user_data(tx, tx_ud);
+    } else {
+        tx_ud->tx_data.updated_ts = true;
     }
     SCReturnInt(HTP_OK);
 }
@@ -1777,6 +1783,8 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         tx_ud->tx_data.file_tx =
                 STREAM_TOCLIENT; // each http tx may xfer files. Toserver already missed.
         htp_tx_set_user_data(tx, tx_ud);
+    } else {
+        tx_ud->tx_data.updated_tc = true;
     }
     SCReturnInt(HTP_OK);
 }
@@ -1828,6 +1836,7 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
+        htud->tx_data.updated_ts = true;
         if (htud->tsflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER);
@@ -1883,6 +1892,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (htud != NULL) {
+        htud->tx_data.updated_tc = true;
         if (htud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOCLIENT);
@@ -2001,6 +2011,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
         return HTP_OK;
     }
     tx_ud->request_headers_raw = ptmp;
+    tx_ud->tx_data.updated_ts = true;
 
     memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
            tx_data->data, tx_data->len);
@@ -2023,6 +2034,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     if (tx_ud == NULL) {
         return HTP_OK;
     }
+    tx_ud->tx_data.updated_tc = true;
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);
