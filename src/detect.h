@@ -884,6 +884,9 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
+    /* maximum number of times a tx will get logged for a stream-only rule match */
+    uint8_t stream_tx_log_limit;
+
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;
 
