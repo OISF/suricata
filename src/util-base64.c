@@ -201,6 +201,12 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
                 }
                 break;
             }
+            if (strict) {
+                if ((i < len - 1) && (src[i + 1] != '=')) {
+                    *decoded_bytes = 0;
+                    return BASE64_ECODE_ERR;
+                }
+            }
             padding++;
         }
         /* For each alpha-numeric letter in the source array, find the numeric value */
@@ -394,6 +400,29 @@ static int B64DecodeStringEndingSpaces(void)
     PASS;
 }
 
+static int B64DecodeStrictModeInvalidPadding(void)
+{
+    const char *src = "D=aB";
+    uint32_t consumed_bytes = 0, num_decoded = 0;
+    uint8_t dst[4];
+    Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, 4, &consumed_bytes,
+            &num_decoded, BASE64_MODE_STRICT);
+    FAIL_IF(code != BASE64_ECODE_ERR);
+    FAIL_IF(num_decoded != 0);
+    PASS;
+}
+
+static int B64DecodeStrictModeValidPadding(void)
+{
+    const char *src = "DaB=";
+    uint32_t consumed_bytes = 0, num_decoded = 0;
+    uint8_t dst[4];
+    Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, 4, &consumed_bytes,
+            &num_decoded, BASE64_MODE_STRICT);
+    FAIL_IF(code != BASE64_ECODE_OK);
+    PASS;
+}
+
 static int B64TestVectorsRFC2045(void)
 {
     const char *src1 = "";
@@ -500,6 +529,8 @@ void Base64RegisterTests(void)
     UtRegisterTest("B64DecodeInCompleteString", B64DecodeInCompleteString);
     UtRegisterTest("B64DecodeStringBiggerThanBuffer", B64DecodeStringBiggerThanBuffer);
     UtRegisterTest("B64DecodeStringEndingSpaces", B64DecodeStringEndingSpaces);
+    UtRegisterTest("B64DecodeStrictModeInvalidPadding", B64DecodeStrictModeInvalidPadding);
+    UtRegisterTest("B64DecodeStrictModeValidPadding", B64DecodeStrictModeValidPadding);
     UtRegisterTest("B64TestVectorsRFC2045", B64TestVectorsRFC2045);
     UtRegisterTest("B64TestVectorsRFC4648", B64TestVectorsRFC4648);
 }
