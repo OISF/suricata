@@ -866,6 +866,9 @@ static int SMTPProcessReply(
         return 0; // to continue processing further
     }
 
+    if (state->curr_tx) {
+        state->curr_tx->tx_data.updated[1] = true;
+    }
     /* the reply code has to contain at least 3 bytes, to hold the 3 digit
      * reply code */
     if (line->len < 3) {
@@ -1170,6 +1173,7 @@ static int SMTPProcessRequest(
     if (frame != NULL && state->curr_tx) {
         AppLayerFrameSetTxId(frame, state->curr_tx->tx_id);
     }
+    tx->tx_data.updated[0] = true;
 
     state->toserver_data_count += (line->len + line->delim_len);
 

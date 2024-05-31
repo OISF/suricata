@@ -124,6 +124,7 @@ impl ModbusState {
         for tx in &mut self.transactions {
             if let Some(req) = &tx.request {
                 if tx.response.is_none() && resp.matches(req) {
+                    tx.tx_data.updated = [true; 2];
                     return Some(tx);
                 }
             }
@@ -139,6 +140,7 @@ impl ModbusState {
         for tx in &mut self.transactions {
             if let Some(resp) = &tx.response {
                 if tx.request.is_none() && req.matches(resp) {
+                    tx.tx_data.updated = [true; 2];
                     return Some(tx);
                 }
             }
@@ -184,6 +186,7 @@ impl ModbusState {
                             match self.find_response_and_validate(&mut msg) {
                                 Some(tx) => {
                                     tx.set_events_from_flags(&msg.error_flags);
+                                    tx.tx_data.updated = [true; 2];
                                     tx.request = Some(msg);
                                 }
                                 None => {
@@ -210,6 +213,7 @@ impl ModbusState {
                                 } else {
                                     tx.set_events_from_flags(&msg.error_flags);
                                 }
+                                tx.tx_data.updated = [true; 2];
                                 tx.response = Some(msg);
                             }
                             None => {
