@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
- //! Module for building JSON documents.
+//! Module for building JSON documents.
 
 #![allow(clippy::missing_safety_doc)]
 
@@ -502,6 +502,40 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    /// Set a key and a string value on an object, with a limited size
+    pub fn set_string_limited(
+        &mut self, key: &str, val: &str, limit: usize,
+    ) -> Result<&mut Self, JsonError> {
+        if val.len() > limit {
+            // Gracefully handle splitting UTF-8 strings at arbitrary locations.
+            // Strings in Rust are UTF-8; and a UTF-8 code point is max 4 bytes.
+            // Hence we will find a suitable boundary within 4 bytes of any byte
+            // position, in any direction with sufficiently long strings left.
+            // This is an approach similar to Rust's (currently nightly unstable
+            // only) "floor_char_boundary" str method:
+            // https://doc.rust-lang.org/std/primitive.str.html#method.floor_char_boundary
+            for i in 0..=std::cmp::min(limit, 4) {
+                // We first try the requested boundary. In the expected
+                // ("happy") case the limit is at a code point boundary so the
+                // slice will succeed immediately. If not, we successively try
+                // earlier positions in the string until we find a suitable
+                // position.
+                if let Some(valtrunc) = val.get(0..limit - i) {
+                    let additional_bytes = val.len() - limit;
+                    let outstr = format!(
+                        "{valtrunc}[truncated {additional_bytes} additional byte{}]",
+                        if additional_bytes != 1 { "s" } else { "" }
+                    );
+                    self.set_string(key, &outstr)?;
+                    break;
+                }
+            }
+        } else {
+            self.set_string(key, val)?;
+        }
+        Ok(self)
+    }
+
     pub fn set_formatted(&mut self, formatted: &str) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
@@ -531,8 +565,15 @@ impl JsonBuilder {
     pub fn set_string_from_bytes_limited(&mut self, key: &str, val: &[u8], limit: usize) -> Result<&mut Self, JsonError> {
         let mut valtrunc = Vec::new();
         let val = if val.len() > limit {
+            let additional_bytes = val.len() - limit;
             valtrunc.extend_from_slice(&val[..limit]);
-            valtrunc.extend_from_slice(b"[truncated]");
+            valtrunc.extend_from_slice(
+                format!(
+                    "[truncated {additional_bytes} additional byte{}]",
+                    if additional_bytes != 1 { "s" } else { "" }
+                )
+                .as_bytes(),
+            );
             &valtrunc
         } else {
             val
@@ -1283,6 +1324,88 @@ mod test {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn test_set_string_limited() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_string_limited("val", "foobar", 10).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"foobar""#);
+        jb.reset();
+        jb.set_string_limited("val", "foobar", 2).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"fo[truncated 4 additional bytes]""#);
+        jb.reset();
+        jb.set_string_limited("val", "foobar", 0).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"[truncated 6 additional bytes]""#);
+        jb.reset();
+        let unicode_str = "Hello, 世界! 👋😊";
+        // invalid unicode boundary, naive access should panic
+        let result = std::panic::catch_unwind(|| _ = unicode_str[..9]);
+        assert!(result.is_err());
+        // our code should just skip the incomplete character
+        jb.set_string_limited("val", unicode_str, 9).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"Hello, [truncated 14 additional bytes]""#);
+        jb.reset();
+        // valid unicode boundary, naive access should not panic
+        let result = std::panic::catch_unwind(|| _ = unicode_str[..10]);
+        assert!(result.is_ok());
+        jb.set_string_limited("val", unicode_str, 10).unwrap();
+        assert_eq!(
+            jb.buf,
+            r#"{"val":"Hello, 世[truncated 13 additional bytes]""#
+        );
+        jb.reset();
+        let unicode_str2 = "世";
+        // this character has three UTF-8 bytes
+        assert_eq!(
+            unicode_str2,
+            std::str::from_utf8(&[0xE4, 0xB8, 0x96]).unwrap()
+        );
+        let result = std::panic::catch_unwind(|| _ = unicode_str2[..1]);
+        assert!(result.is_err());
+        jb.set_string_limited("val", unicode_str2, 1).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"[truncated 2 additional bytes]""#);
+        jb.reset();
+        jb.set_string_limited("val", unicode_str2, 2).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"[truncated 1 additional byte]""#);
+        jb.reset();
+        // with limit 3 or more we should include it in the log
+        jb.set_string_limited("val", unicode_str2, 3).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"世""#);
+        jb.reset();
+        jb.set_string_limited("val", unicode_str2, 4).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"世""#);
+        jb.reset();
+        jb.set_string_limited("val", unicode_str2, 0).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"[truncated 3 additional bytes]""#);
+        let unicode_str3 = "🏴󠁧󠁢󠁷󠁬󠁳󠁿";
+        // this character consists of multiple code points
+        jb.reset();
+        jb.set_string_limited("val", unicode_str3, 7).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"🏴[truncated 21 additional bytes]""#);
+        jb.reset();
+        jb.set_string_limited("val", unicode_str3, 2).unwrap();
+        assert_eq!(jb.buf, r#"{"val":"[truncated 26 additional bytes]""#);
+    }
+
+    #[test]
+    fn test_set_string_from_bytes_limited() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_string_from_bytes_limited("first", b"foobar", 10)
+            .unwrap();
+        assert_eq!(jb.buf, r#"{"first":"foobar""#);
+        jb.set_string_from_bytes_limited("second", b"foobar", 2)
+            .unwrap();
+        assert_eq!(
+            jb.buf,
+            r#"{"first":"foobar","second":"fo[truncated 4 additional bytes]""#
+        );
+        jb.set_string_from_bytes_limited("third", b"foobar", 0)
+            .unwrap();
+        assert_eq!(
+            jb.buf,
+            r#"{"first":"foobar","second":"fo[truncated 4 additional bytes]","third":"[truncated 6 additional bytes]""#
+        );
     }
 
     #[test]
