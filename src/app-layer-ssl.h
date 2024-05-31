@@ -226,6 +226,11 @@ typedef struct SSLCertsChain_ {
     TAILQ_ENTRY(SSLCertsChain_) next;
 } SSLCertsChain;
 
+typedef struct SSLAlpns_ {
+    TAILQ_ENTRY(SSLAlpns_) next;
+    uint32_t size;
+    uint8_t alpn[];
+} SSLAlpns;
 
 typedef struct SSLStateConnp_ {
     /* record length */
@@ -262,6 +267,7 @@ typedef struct SSLStateConnp_ {
     char *session_id;
 
     TAILQ_HEAD(, SSLCertsChain_) certs;
+    TAILQ_HEAD(, SSLAlpns_) alpns;
 
     uint8_t *certs_buffer;
     uint32_t certs_buffer_size;
