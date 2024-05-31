@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
- //! Module for building JSON documents.
+//! Module for building JSON documents.
 
 #![allow(clippy::missing_safety_doc)]
 
@@ -499,6 +499,20 @@ impl JsonBuilder {
         self.push_str(key)?;
         self.push_str("\":")?;
         self.encode_string(val)?;
+        Ok(self)
+    }
+
+    /// Set a key and a string value on an object, with a limited size
+    pub fn set_string_limited(
+        &mut self, key: &str, val: &str, limit: usize,
+    ) -> Result<&mut Self, JsonError> {
+        if val.len() > limit {
+            let valtrunc = &val[..limit];
+            let outstr = format!("{valtrunc}[truncated]");
+            self.set_string(key, &outstr)?;
+        } else {
+            self.set_string(key, val)?;
+        }
         Ok(self)
     }
 
@@ -1283,6 +1297,20 @@ mod test {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn test_set_string_limited() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_string_limited("first", "foobar", 10).unwrap();
+        assert_eq!(jb.buf, r#"{"first":"foobar""#);
+        jb.set_string_limited("second", "foobar", 2).unwrap();
+        assert_eq!(jb.buf, r#"{"first":"foobar","second":"fo[truncated]""#);
+        jb.set_string_limited("third", "foobar", 0).unwrap();
+        assert_eq!(
+            jb.buf,
+            r#"{"first":"foobar","second":"fo[truncated]","third":"[truncated]""#
+        );
     }
 
     #[test]
