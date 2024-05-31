@@ -659,6 +659,7 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
       toserver-groups: 25
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
+    stream-tx-log-limit: 4
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -692,6 +693,11 @@ bugs in Suricata cause big problems. Often Suricata has to deal with
 complicated issues. It could end up in an 'endless loop' due to a bug,
 meaning it will repeat its actions over and over again. With the
 option inspection-recursion-limit you can limit this action.
+
+The stream-tx-log-limit defines the maximum number of times a
+transaction will get logged for a stream-only rule match.
+This is meant to avoid logging the same data an arbitrary number
+of times.
 
 *Example 4	Detection-engine grouping tree*
 
