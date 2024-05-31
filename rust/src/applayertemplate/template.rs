@@ -200,6 +200,7 @@ impl TemplateState {
                     start = rem;
 
                     if let Some(tx) =  self.find_request() {
+                        tx.tx_data.processed_until_update = [false; 2];
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
                         SCLogNotice!("- Request: {:?}", tx.request);

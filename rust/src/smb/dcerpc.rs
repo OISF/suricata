@@ -168,6 +168,7 @@ impl SMBState {
                 _ => { false },
             };
             if found {
+                tx.tx_data.processed_until_update = [false; 2];
                 return Some(tx);
             }
         }
