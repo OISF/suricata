@@ -2904,6 +2904,17 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     SCLogDebug("de_ctx->inspection_recursion_limit: %d",
                de_ctx->inspection_recursion_limit);
 
+    // default value is 4
+    de_ctx->stream_tx_log_limit = 4;
+    if (ConfGetInt("detect.stream-tx-log-limit", &value) == 1) {
+        if (value >= 0 && value <= UINT8_MAX) {
+            de_ctx->stream_tx_log_limit = (uint8_t)value;
+        } else {
+            SCLogWarning("Invalid value for detect-engine.stream-tx-log-limit: must be between 0 "
+                         "and 255, will default to 4");
+        }
+    }
+
     /* parse port grouping whitelisting settings */
 
     const char *ports = NULL;

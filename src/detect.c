@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "conf.h"
 
 #include "decode.h"
 #include "packet.h"
@@ -823,7 +822,15 @@ static inline void DetectRulePacketRules(
                 uint8_t dir =
                         (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
                 txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
-                alert_flags |= PACKET_ALERT_FLAG_TX;
+                void *tx_ptr =
+                        AppLayerParserGetTx(pflow->proto, pflow->alproto, pflow->alstate, txid);
+                AppLayerTxData *txd =
+                        tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
+                               : NULL;
+                if (txd && txd->stream_logged < de_ctx->stream_tx_log_limit) {
+                    alert_flags |= PACKET_ALERT_FLAG_TX;
+                    txd->stream_logged++;
+                }
             }
         }
         AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
