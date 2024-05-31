@@ -1287,6 +1287,12 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
+    const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
+    if (txd->processed_until_update[(flow_flags & STREAM_TOSERVER) ? 0 : 1] &&
+            tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
+        DetectTransaction no_tx = NO_TX;
+        return no_tx;
+    }
     uint64_t detect_flags =
             (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
@@ -1303,7 +1309,6 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         return no_tx;
     }
 
-    const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     const int dir_int = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     DetectEngineState *tx_de_state = txd->de_state;
     DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;

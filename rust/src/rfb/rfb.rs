@@ -166,7 +166,12 @@ impl RFBState {
 
     fn get_current_tx(&mut self) -> Option<&mut RFBTransaction> {
         let tx_id = self.tx_id;
-        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id)
+        let r = self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id);
+        if let Some(tx) = r {
+            tx.tx_data.processed_until_update = [false; 2];
+            return Some(tx);
+        }
+        return None;
     }
 
     fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {

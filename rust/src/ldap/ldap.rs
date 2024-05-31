@@ -150,6 +150,7 @@ impl LdapState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.complete {
+                    tx_old.tx_data.processed_until_update = [false; 2];
                     tx_old.complete = true;
                     tx_old
                         .tx_data
@@ -278,6 +279,7 @@ impl LdapState {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
+                        tx.tx_data.processed_until_update = [false; 2];
                         tx.responses.push_back(response);
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);

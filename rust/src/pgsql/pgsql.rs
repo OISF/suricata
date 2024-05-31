@@ -204,6 +204,7 @@ impl PgsqlState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if tx_old.tx_state < PgsqlTransactionState::ResponseDone {
+                    tx_old.tx_data.processed_until_update = [false; 2];
                     tx_old.tx_state = PgsqlTransactionState::FlushedOut;
                     //TODO set event
                     break;
@@ -348,6 +349,7 @@ impl PgsqlState {
                     };
                     let tx_completed = self.is_tx_completed();
                     if let Some(tx) = self.find_or_create_tx() {
+                        tx.tx_data.processed_until_update = [false; 2];
                         tx.request = Some(request);
                         if tx_completed {
                             tx.tx_state = PgsqlTransactionState::ResponseDone;
@@ -480,6 +482,7 @@ impl PgsqlState {
                     let tx_completed = self.is_tx_completed();
                     let curr_state = self.state_progress;
                     if let Some(tx) = self.find_or_create_tx() {
+                        tx.tx_data.processed_until_update = [false; 2];
                         if curr_state == PgsqlStateProgress::DataRowReceived {
                             tx.incr_row_cnt();
                         } else if curr_state == PgsqlStateProgress::CommandCompletedReceived
