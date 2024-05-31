@@ -116,6 +116,11 @@ pub struct AppLayerTxData {
     pub file_tx: u8,
     /// Number of times this tx data has already been logged for one stream match
     pub stream_logged: u8,
+    /// The tx has been updated and needs to be processed : detection, logging, cleaning
+    /// It can then be skipped until new data arrives.
+    /// There is a boolean for both directions : to server and to client
+    pub updated_tc: bool,
+    pub updated_ts: bool,
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -155,6 +160,8 @@ impl AppLayerTxData {
             file_flags: 0,
             file_tx: 0,
             stream_logged: 0,
+            updated_tc: true,
+            updated_ts: true,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
@@ -165,9 +172,9 @@ impl AppLayerTxData {
     /// Create new AppLayerTxData for a transaction in a single
     /// direction.
     pub fn for_direction(direction: Direction) -> Self {
-        let (detect_flags_ts, detect_flags_tc) = match direction {
-            Direction::ToServer => (0, APP_LAYER_TX_SKIP_INSPECT_FLAG),
-            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_FLAG, 0),
+        let (detect_flags_ts, detect_flags_tc, updated_ts, updated_tc) = match direction {
+            Direction::ToServer => (0, APP_LAYER_TX_SKIP_INSPECT_FLAG, true, false),
+            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_FLAG, 0, false, true),
         };
         Self {
             config: AppLayerTxConfig::new(),
@@ -178,6 +185,8 @@ impl AppLayerTxData {
             file_flags: 0,
             file_tx: 0,
             stream_logged: 0,
+            updated_tc,
+            updated_ts,
             detect_flags_ts,
             detect_flags_tc,
             de_state: std::ptr::null_mut(),

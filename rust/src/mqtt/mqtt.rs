@@ -174,6 +174,8 @@ impl MQTTState {
             if !tx.complete {
                 if let Some(mpktid) = tx.pkt_id {
                     if mpktid == pkt_id {
+                        tx.tx_data.updated_tc = true;
+                        tx.tx_data.updated_ts = true;
                         return Some(tx);
                     }
                 }
@@ -196,6 +198,8 @@ impl MQTTState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.complete {
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                     tx_old.complete = true;
                     MQTTState::set_event(tx_old, MQTTEvent::TooManyTransactions);
                     break;
