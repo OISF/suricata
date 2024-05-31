@@ -1258,6 +1258,18 @@ invalid_length:
     return -1;
 }
 
+static void StoreALPN(SSLStateConnp *connp, const uint8_t *alpn, const uint32_t size)
+{
+    if (size > 0) {
+        SSLAlpns *a = SCCalloc(1, sizeof(*a) + size);
+        if (a != NULL) {
+            memcpy(a->alpn, alpn, size);
+            a->size = size;
+            TAILQ_INSERT_TAIL(&connp->alpns, a, next);
+        }
+    }
+}
+
 static inline int TLSDecodeHSHelloExtensionALPN(
         SSLState *ssl_state, const uint8_t *const initial_input, const uint32_t input_len)
 {
@@ -1276,37 +1288,35 @@ static inline int TLSDecodeHSHelloExtensionALPN(
     if (!(HAS_SPACE(alpn_len)))
         goto invalid_length;
 
-    if (ssl_state->curr_connp->ja4 != NULL &&
-            ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
-        /* We use 32 bits here to avoid potentially overflowing a value that
-           needs to be compared to an unsigned 16-bit value. */
-        uint32_t alpn_processed_len = 0;
-        while (alpn_processed_len < alpn_len) {
-            uint8_t protolen = *input;
-            input += 1;
-            alpn_processed_len += 1;
+    /* We use 32 bits here to avoid potentially overflowing a value that
+       needs to be compared to an unsigned 16-bit value. */
+    uint32_t alpn_processed_len = 0;
+    while (alpn_processed_len < alpn_len) {
+        uint8_t protolen = *input;
+        input += 1;
+        alpn_processed_len += 1;
 
-            if (!(HAS_SPACE(protolen)))
-                goto invalid_length;
+        if (!(HAS_SPACE(protolen)))
+            goto invalid_length;
 
-            /* Check if reading another protolen bytes would exceed the
-               overall ALPN length; if so, skip and continue */
-            if (alpn_processed_len + protolen > ((uint32_t)alpn_len)) {
-                input += alpn_len - alpn_processed_len;
-                break;
-            }
+        /* Check if reading another protolen bytes would exceed the
+           overall ALPN length; if so, skip and continue */
+        if (alpn_processed_len + protolen > ((uint32_t)alpn_len)) {
+            input += alpn_len - alpn_processed_len;
+            break;
+        }
 
-            /* Only record the first value for JA4 */
+        /* Only record the first value for JA4 */
+        if (ssl_state->curr_connp->ja4 != NULL &&
+                ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
             if (alpn_processed_len == 1) {
                 SCJA4SetALPN(ssl_state->curr_connp->ja4, (const char *)input, protolen);
             }
-
-            alpn_processed_len += protolen;
-            input += protolen;
         }
-    } else {
-        /* Skip ALPN protocols */
-        input += alpn_len;
+        StoreALPN(ssl_state->curr_connp, input, protolen);
+
+        alpn_processed_len += protolen;
+        input += protolen;
     }
 
     return (input - initial_input);
@@ -2839,7 +2849,9 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     memset(ssl_state->client_connp.random, 0, TLS_RANDOM_LEN);
     memset(ssl_state->server_connp.random, 0, TLS_RANDOM_LEN);
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    TAILQ_INIT(&ssl_state->server_connp.alpns);
     TAILQ_INIT(&ssl_state->client_connp.certs);
+    TAILQ_INIT(&ssl_state->client_connp.alpns);
 
     return (void *)ssl_state;
 }
@@ -2929,6 +2941,18 @@ static void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->client_connp.certs);
+
+    SSLAlpns *a;
+    while ((a = TAILQ_FIRST(&ssl_state->server_connp.alpns))) {
+        TAILQ_REMOVE(&ssl_state->server_connp.alpns, a, next);
+        SCFree(a);
+    }
+    TAILQ_INIT(&ssl_state->server_connp.alpns);
+    while ((a = TAILQ_FIRST(&ssl_state->client_connp.alpns))) {
+        TAILQ_REMOVE(&ssl_state->client_connp.alpns, a, next);
+        SCFree(a);
+    }
+    TAILQ_INIT(&ssl_state->client_connp.alpns);
 
     SCFree(ssl_state);
 
