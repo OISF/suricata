@@ -208,6 +208,8 @@ impl PgsqlState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if tx_old.tx_res_state < PgsqlTxProgress::TxDone {
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                     // we don't check for TxReqDone for the majority of requests are basically completed
                     // when they're parsed, as of now
                     tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
@@ -360,6 +362,7 @@ impl PgsqlState {
                     // A simplified finite state machine for PostgreSQL v3 can be found at:
                     // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
+                        tx.tx_data.updated_ts = true;
                         tx.request = Some(request);
                         if let Some(state) = new_state {
                             if Self::request_is_complete(state) {
@@ -518,6 +521,7 @@ impl PgsqlState {
                         self.state_progress = state;
                     }
                     if let Some(tx) = self.find_or_create_tx() {
+                        tx.tx_data.updated_tc = true;
                         if tx.tx_res_state == PgsqlTxProgress::TxInit {
                             tx.tx_res_state = PgsqlTxProgress::TxReceived;
                         }
