@@ -116,6 +116,10 @@ pub struct AppLayerTxData {
     pub file_tx: u8,
     /// Number of times this tx data has already been logged for one stream match
     pub stream_logged: u8,
+    /// The tx has been processed : detection, logging, cleaning
+    /// It can be skipped until new data arrives.
+    /// There is a boolean for both directions : to server and to client
+    pub processed_until_update: [bool; 2],
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -155,6 +159,7 @@ impl AppLayerTxData {
             file_flags: 0,
             file_tx: 0,
             stream_logged: 0,
+            processed_until_update: [false; 2],
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
@@ -178,6 +183,7 @@ impl AppLayerTxData {
             file_flags: 0,
             file_tx: 0,
             stream_logged: 0,
+            processed_until_update: [false; 2],
             detect_flags_ts,
             detect_flags_tc,
             de_state: std::ptr::null_mut(),
