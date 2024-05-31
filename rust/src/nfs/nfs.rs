@@ -431,6 +431,8 @@ impl NFSState {
             // set at least one another transaction to the drop state
             for tx_old in &mut self.transactions {
                 if !tx_old.request_done || !tx_old.response_done {
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                     tx_old.request_done = true;
                     tx_old.response_done = true;
                     tx_old.is_file_closed = true;
@@ -484,6 +486,8 @@ impl NFSState {
     pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8])
     {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
+            mytx.tx_data.updated_tc = true;
+            mytx.tx_data.updated_ts = true;
             mytx.response_done = true;
             mytx.rpc_response_status = rpc_status;
             mytx.nfs_response_status = nfs_status;
@@ -736,6 +740,8 @@ impl NFSState {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
                     d.update_file_flags(tx.tx_data.file_flags);
                     SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
+                    tx.tx_data.updated_tc = true;
+                    tx.tx_data.updated_ts = true;
                     return Some(tx);
                 }
             }

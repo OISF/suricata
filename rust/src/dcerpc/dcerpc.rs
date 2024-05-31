@@ -357,6 +357,8 @@ impl DCERPCState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.req_done || !tx_old.resp_done {
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                     tx_old.req_done = true;
                     tx_old.resp_done = true;
                     break;
@@ -533,6 +535,8 @@ impl DCERPCState {
                         }
                     }
                 }
+                tx.tx_data.updated_tc = true;
+                tx.tx_data.updated_ts = true;
                 return Some(tx);
             }
         }
