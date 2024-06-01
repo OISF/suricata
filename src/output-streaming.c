@@ -392,7 +392,7 @@ static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata
                     tmp->next = ts;
                 }
 
-                SCLogInfo("%s is now set up", logger->name);
+                SCLogDebug("%s is now set up", logger->name);
             }
         }
 
