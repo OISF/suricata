@@ -502,8 +502,10 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->tcp_data = 1;
         else if (strcmp(k, "type") == 0 && strcmp(v, "stats") == 0)
             options->stats = 1;
-        else
-            SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
+        else {
+            SCLogError("unknown key and/or value: k='%s', v='%s'", k, v);
+            goto error;
+        }
     }
 
     if (((options->alproto != ALPROTO_UNKNOWN)) + options->packet + options->file > 1) {
