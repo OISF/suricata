@@ -3378,12 +3378,14 @@
                         "email": {
                             "type": "string",
                             "optional": true,
-                            "description": "Email address for the person responsible for the conference"
+                            "description":
+                                    "Email address for the person responsible for the conference"
                         },
                         "phone_number": {
                             "type": "string",
                             "optional": true,
-                            "description": "Phone number for the person responsible for the conference"
+                            "description":
+                                    "Phone number for the person responsible for the conference"
                         },
                         "connection_data": {
                             "type": "string",
@@ -3412,12 +3414,14 @@
                         "timezone": {
                             "type": "string",
                             "optional": true,
-                            "description": "Timezone to specify adjustments for times and offsets from the base time"
+                            "description":
+                                    "Timezone to specify adjustments for times and offsets from the base time"
                         },
                         "encryption_key": {
                             "type": "string",
                             "optional": true,
-                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                            "description":
+                                    "Field used to convey encryption keys if SDP is used over a secure channel"
                         },
                         "attributes": {
                             "type": "array",
@@ -3444,7 +3448,8 @@
                                     "media_info": {
                                         "type": "string",
                                         "optional": true,
-                                        "description": "Media information primarily intended for labelling media streams"
+                                        "description":
+                                                "Media information primarily intended for labelling media streams"
                                     },
                                     "bandwidths": {
                                         "type": "array",
@@ -3462,7 +3467,8 @@
                                     },
                                     "attributes": {
                                         "type": "array",
-                                        "description": "A list of attributes specified for a media description",
+                                        "description":
+                                                "A list of attributes specified for a media description",
                                         "optional": true,
                                         "minItems": 1,
                                         "items": {
@@ -5241,11 +5247,13 @@
                             "type": "object",
                             "properties": {
                                 "blocked_function_errors": {
-                                    "description": "Counter for Lua scripts failing due to blocked functions being called",
+                                    "description":
+                                            "Counter for Lua scripts failing due to blocked functions being called",
                                     "type": "integer"
                                 },
                                 "instruction_limit_errors": {
-                                    "description": "Count of Lua rules exceeding the instruction limit",
+                                    "description":
+                                            "Count of Lua rules exceeding the instruction limit",
                                     "type": "integer"
                                 },
                                 "memory_limit_errors": {
