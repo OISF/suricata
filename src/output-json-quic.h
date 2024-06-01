@@ -22,7 +22,7 @@
 #ifndef __OUTPUT_JSON_QUIC_H__
 #define __OUTPUT_JSON_QUIC_H__
 
-bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
+bool JsonQuicAddMetadata(const Flow *f, const uint32_t sig_flags, uint64_t tx_id, JsonBuilder *js);
 void JsonQuicLogRegister(void);
 
 #endif /* __OUTPUT_JSON_QUIC_H__ */

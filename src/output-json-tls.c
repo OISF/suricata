@@ -408,7 +408,7 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
     }
 }
 
-void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState * state)
+void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState *state, const bool log_ja4)
 {
     JsonTlsLogJSONBasic(tjs, state);
 
@@ -437,7 +437,8 @@ void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState * state)
     JsonTlsLogJa3S(tjs, state);
 
     /* tls ja4 */
-    JsonTlsLogSCJA4(tjs, state);
+    if (log_ja4)
+        JsonTlsLogSCJA4(tjs, state);
 
     if (HasClientCert(&state->client_connp)) {
         jb_open_object(tjs, "client");
@@ -478,7 +479,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
     /* log extended */
     else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        JsonTlsLogJSONExtended(js, ssl_state);
+        JsonTlsLogJSONExtended(js, ssl_state, false);
     }
     /* log basic */
     else {
