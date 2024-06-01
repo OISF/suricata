@@ -88,7 +88,7 @@ fn quic_tls_extension_name(e: u16) -> Option<String> {
     }
 }
 
-fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_template(tx: &QuicTransaction, log_ja4: bool, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("quic")?;
     if tx.header.ty != QuicType::Short {
         js.set_string("version", String::from(tx.header.version).as_str())?;
@@ -123,8 +123,10 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.close()?;
     }
 
-    if let Some(ref ja4) = &tx.ja4 {
-        js.set_string("ja4", ja4)?;
+    if log_ja4 {
+        if let Some(ref ja4) = &tx.ja4 {
+            js.set_string("ja4", ja4)?;
+        }
     }
 
     if !tx.extv.is_empty() {
@@ -155,8 +157,8 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_to_json(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, log_ja4: bool, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, QuicTransaction);
-    log_template(tx, js).is_ok()
+    log_template(tx, log_ja4, js).is_ok()
 }

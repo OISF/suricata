@@ -137,13 +137,13 @@ static int AlertJsonDumpStreamSegmentCallback(
     return 1;
 }
 
-static void AlertJsonTls(const Flow *f, JsonBuilder *js)
+static void AlertJsonTls(const Flow *f, const uint32_t sig_flags, JsonBuilder *js)
 {
     SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
     if (ssl_state) {
         jb_open_object(js, "tls");
 
-        JsonTlsLogJSONExtended(js, ssl_state);
+        JsonTlsLogJSONExtended(js, ssl_state, sig_flags & SIG_FLAG_JA4);
 
         jb_close(js);
     }
@@ -467,8 +467,8 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js
     }
 }
 
-static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
-        const uint64_t tx_id, const uint16_t option_flags)
+static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb, const uint64_t tx_id,
+        const uint32_t sig_flags, const uint16_t option_flags)
 {
     const AppProto proto = FlowGetAppProtocol(p->flow);
     JsonBuilderMark mark = { 0, 0, 0 };
@@ -487,7 +487,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             jb_close(jb);
             break;
         case ALPROTO_TLS:
-            AlertJsonTls(p->flow, jb);
+            AlertJsonTls(p->flow, sig_flags, jb);
             break;
         case ALPROTO_SSH:
             AlertJsonSsh(p->flow, jb);
@@ -573,7 +573,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_QUIC:
             jb_get_mark(jb, &mark);
-            if (!JsonQuicAddMetadata(p->flow, tx_id, jb)) {
+            if (!JsonQuicAddMetadata(p->flow, sig_flags, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
             break;
@@ -784,7 +784,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (p->flow != NULL) {
             if (pa->flags & PACKET_ALERT_FLAG_TX) {
                 if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                    AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
+                    AlertAddAppLayer(p, jb, pa->tx_id, pa->s->flags, json_output_ctx->flags);
                 }
                 /* including fileinfo data is configured by the metadata setting */
                 if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
