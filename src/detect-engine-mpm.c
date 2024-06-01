@@ -109,7 +109,7 @@ static void RegisterInternal(const char *name, int direction, int priority,
 
     // every HTTP2 can be accessed from DOH2
     if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        DetectAppLayerMpmRegister(name, direction, priority, PrefilterRegister, GetData,
+        RegisterInternal(name, direction, priority, PrefilterRegister, GetData, GetMultiData,
                 ALPROTO_DOH2, tx_min_progress);
     }
     DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
