@@ -59,7 +59,7 @@ static int JsonQuicLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
-    if (!rs_quic_to_json(tx, js)) {
+    if (!rs_quic_to_json(tx, false, js)) {
         jb_free(js);
         return TM_ECODE_FAILED;
     }
@@ -140,13 +140,13 @@ static TmEcode JsonQuicLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+bool JsonQuicAddMetadata(const Flow *f, const uint32_t sig_flags, uint64_t tx_id, JsonBuilder *js)
 {
     void *state = FlowGetAppState(f);
     if (state) {
         void *tx = AppLayerParserGetTx(f->proto, ALPROTO_QUIC, state, tx_id);
         if (tx) {
-            return rs_quic_to_json(tx, js);
+            return rs_quic_to_json(tx, sig_flags & SIG_FLAG_JA4, js);
         }
     }
 

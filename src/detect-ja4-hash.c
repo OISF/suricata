@@ -130,6 +130,7 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         }
     }
     s->init_data->init_flags |= SIG_FLAG_INIT_JA;
+    s->flags |= SIG_FLAG_JA4;
 
     return 0;
 }

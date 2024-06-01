@@ -275,6 +275,8 @@ typedef struct DetectPort_ {
 /** Info for Source and Target identification */
 #define SIG_FLAG_DEST_IS_TARGET         BIT_U32(26)
 
+#define SIG_FLAG_JA4 BIT_U32(27) /**< signature uses JA4 */
+
 #define SIG_FLAG_HAS_TARGET             (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
