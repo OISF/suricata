@@ -73,6 +73,8 @@ typedef struct FlowWorkerThreadData_ {
 
     SC_ATOMIC_DECLARE(DetectEngineThreadCtxPtr, detect_thread);
 
+    SC_ATOMIC_DECLARE(int, flush_ack);
+
     void *output_thread; /* Output thread data. */
     void *output_thread_flow; /* Output thread data. */
 
@@ -553,8 +555,14 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
     /* update time */
-    if (!(PKT_IS_PSEUDOPKT(p))) {
+    if (!(PKT_IS_PSEUDOPKT(p) || PKT_IS_FLUSHPKT(p))) {
         TimeSetByThread(tv->id, p->ts);
+    }
+    if ((PKT_IS_FLUSHPKT(p))) {
+        OutputLoggerFlush(tv, p, fw->output_thread);
+        /* Ack if a flush was requested */
+        int notset = 0;
+        SC_ATOMIC_CAS(&fw->flush_ack, notset, 1);
     }
 
     /* handle Flow */
@@ -693,6 +701,23 @@ void *FlowWorkerGetDetectCtxPtr(void *flow_worker)
     FlowWorkerThreadData *fw = flow_worker;
 
     return SC_ATOMIC_GET(fw->detect_thread);
+}
+
+void *FlowWorkerGetThreadData(void *flow_worker)
+{
+    return (FlowWorkerThreadData *)flow_worker;
+}
+
+bool FlowWorkerGetFlushAck(void *flow_worker)
+{
+    FlowWorkerThreadData *fw = flow_worker;
+    return SC_ATOMIC_GET(fw->flush_ack) == 1;
+}
+
+void FlowWorkerSetFlushAck(void *flow_worker)
+{
+    FlowWorkerThreadData *fw = flow_worker;
+    SC_ATOMIC_SET(fw->flush_ack, 0);
 }
 
 const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)

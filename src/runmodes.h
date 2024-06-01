@@ -75,6 +75,7 @@ extern const char *thread_name_unix_socket;
 extern const char *thread_name_detect_loader;
 extern const char *thread_name_counter_stats;
 extern const char *thread_name_counter_wakeup;
+extern const char *thread_name_heartbeat;
 
 char *RunmodeGetActive(void);
 const char *RunModeGetMainMode(void);
