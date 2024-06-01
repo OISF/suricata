@@ -59,6 +59,7 @@
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
 #include "detect-tls-cert-serial.h"
+#include "detect-tls-alpn.h"
 #include "detect-tls-subjectaltname.h"
 #include "detect-tls-random.h"
 #include "detect-tls-ja3-hash.h"
@@ -553,6 +554,7 @@ void SigTableSetup(void)
     DetectTlsCertsRegister();
     DetectTlsCertChainLenRegister();
     DetectTlsSubjectAltNameRegister();
+    DetectTlsAlpnRegister();
     DetectTlsRandomRegister();
 
     DetectTlsJa3HashRegister();
