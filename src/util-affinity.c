@@ -307,6 +307,110 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
     return ncpu;
 }
 
+static hwloc_topology_t topology;
+
+// Function to get the NUMA node of a network device using hwloc
+int get_numa_node_for_net_device(hwloc_topology_t topology, const char *net_device) {
+    hwloc_obj_t obj = NULL;
+    char sysfs_path[256];
+    char pci_address[256];
+    FILE *fp;
+
+    // Get the PCI address of the network device
+    snprintf(sysfs_path, sizeof(sysfs_path), "/sys/class/net/%s/device/uevent", net_device);
+    fp = fopen(sysfs_path, "r");
+    if (!fp) {
+        perror("fopen");
+        return -1;
+    }
+
+    while (fgets(pci_address, sizeof(pci_address), fp)) {
+        if (strncmp(pci_address, "PCI_SLOT_NAME=", 14) == 0) {
+            strcpy(pci_address, pci_address + 14);
+            pci_address[strcspn(pci_address, "\n")] = '\0'; // Remove newline character
+            break;
+        }
+    }
+    fclose(fp);
+
+    if (strlen(pci_address) == 0) {
+        fprintf(stderr, "Failed to get PCI address for device %s\n", net_device);
+        return -1;
+    }
+
+    // Iterate through PCI devices to find the matching one
+    while ((obj = hwloc_get_next_pcidev(topology, obj)) != NULL) {
+        char pci_name[128];
+        hwloc_obj_snprintf(pci_name, sizeof(pci_name), topology, obj, "#", 0);
+
+        if (strcmp(pci_name, pci_address) == 0) {
+            // Find the NUMA node associated with this PCI device
+            hwloc_obj_t parent = obj;
+            while (parent && parent->type != HWLOC_OBJ_NUMANODE) {
+                parent = parent->parent;
+            }
+
+            if (parent) {
+                return parent->logical_index;
+            } else {
+                fprintf(stderr, "No NUMA node found for device %s\n", net_device);
+                return -1;
+            }
+        }
+    }
+
+    fprintf(stderr, "No matching PCI device found for %s\n", net_device);
+    return -1;
+}
+
+uint16_t AffinityGetNextCPUFromNUMANode(ThreadsAffinityType *taf, int numa_node) {
+    uint16_t ncpu = 0;
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+    int iter = 0;
+    SCMutexLock(&taf->taf_mutex);
+    ncpu = taf->lcpu;
+
+    // Check for CPUs within the preferred NUMA node first
+    while (!CPU_ISSET(ncpu, &taf->cpu_set) || hwloc_get_obj_by_os_index(topology, HWLOC_OBJ_PU, ncpu)->nodeset->first != numa_node) {
+        ncpu++;
+        if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
+            ncpu = 0;
+            iter++;
+        }
+        if (iter >= 2) {
+            break;
+        }
+    }
+
+    if (iter == 2) {
+        // Fallback to any available CPU if no CPU found within the preferred NUMA node
+        ncpu = taf->lcpu;
+        while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {
+            ncpu++;
+            if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
+                ncpu = 0;
+                iter++;
+            }
+        }
+        if (iter == 2) {
+            SCLogError("cpu_set does not contain "
+                       "available cpus, cpu affinity conf is invalid");
+        }
+    }
+
+    taf->lcpu = ncpu + 1;
+    if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
+        taf->lcpu = 0;
+    SCMutexUnlock(&taf->taf_mutex);
+    SCLogDebug("Setting affinity on CPU %d", ncpu);
+#endif /* OS_WIN32 and __OpenBSD__ */
+    return ncpu;
+}
+
+/**
+ * \brief Return the total number of CPUs in a given affinity
+ * \retval the number of affined CPUs
+ */
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
 {
     uint16_t ncpu = 0;

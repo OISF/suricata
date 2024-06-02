@@ -27,6 +27,8 @@
 #include "conf.h"
 #include "threads.h"
 
+#include <hwloc.h>
+
 #if defined OS_FREEBSD
 #include <sched.h>
 #include <sys/param.h>
