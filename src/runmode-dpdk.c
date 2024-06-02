@@ -368,12 +368,17 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    bool wtaf_periface = true;
+    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iconf->iface);
     if (wtaf == NULL) {
-        SCLogError("Specify worker-cpu-set list in the threading section");
-        SCReturnInt(-EINVAL);
+        wtaf_periface = false;
+        wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL); // mandatory
+        if (wtaf == NULL) {
+            SCLogError("Specify worker-cpu-set list in the threading section");
+            SCReturnInt(-EINVAL);
+        }
     }
-    ThreadsAffinityType *mtaf = GetAffinityTypeFromName("management-cpu-set");
+    ThreadsAffinityType *mtaf = GetAffinityTypeForNameAndIface("management-cpu-set", NULL);
     if (mtaf == NULL) {
         SCLogError("Specify management-cpu-set list in the threading section");
         SCReturnInt(-EINVAL);
@@ -406,7 +411,12 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        iconf->threads = (uint16_t)sched_cpus / LiveGetDeviceCount();
+        if (wtaf_periface) {
+            iconf->threads = (uint16_t)sched_cpus;
+            SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
+            SCReturnInt(0);
+        }
+        iconf->threads = (uint16_t)sched_cpus / LiveGetDeviceCountWithoutAssignedThreading();
         if (iconf->threads == 0) {
             SCLogError("Not enough worker CPU cores with affinity were configured");
             SCReturnInt(-ERANGE);
@@ -416,7 +426,8 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
             iconf->threads++;
             remaining_auto_cpus--;
         } else if (remaining_auto_cpus == -1) {
-            remaining_auto_cpus = (int32_t)sched_cpus % LiveGetDeviceCount();
+            remaining_auto_cpus =
+                    (int32_t)sched_cpus % LiveGetDeviceCountWithoutAssignedThreading();
             if (remaining_auto_cpus > 0) {
                 iconf->threads++;
                 remaining_auto_cpus--;
@@ -844,20 +855,35 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     SCReturnInt(0);
 }
 
-static int32_t ConfigValidateThreads(uint16_t iface_threads)
+static int32_t ConfigValidateThreads(uint16_t iface_threads, const char *iface)
 {
     static uint32_t total_cpus = 0;
-    total_cpus += iface_threads;
-    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    bool per_iface_set = true;
+    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iface);
     if (wtaf == NULL) {
-        SCLogError("Specify worker-cpu-set list in the threading section");
-        return -1;
+        per_iface_set = false;
+        wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+        if (wtaf == NULL) {
+            SCLogError("Specify worker-cpu-set list in the threading section");
+            return -1;
+        }
     }
-    if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
-        SCLogError("Interfaces requested more cores than configured in the threading section "
-                   "(requested %d configured %d",
-                total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
-        return -1;
+
+    if (!per_iface_set) {
+        total_cpus += iface_threads;
+        if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
+            SCLogError("Interfaces requested more cores than configured in the threading section "
+                       "(requested %d configured %d",
+                    total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
+            return -1;
+        }
+    } else {
+        if (iface_threads > UtilAffinityGetAffinedCPUNum(wtaf)) {
+            SCLogError("Interface %s requested more cores than configured in the threading section "
+                       "(requested %d configured %d",
+                    iface, iface_threads, UtilAffinityGetAffinedCPUNum(wtaf));
+            return -1;
+        }
     }
 
     return 0;
@@ -873,7 +899,7 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
 
     ConfigInit(&iconf);
     retval = ConfigLoad(iconf, iface);
-    if (retval < 0 || ConfigValidateThreads(iconf->threads) != 0) {
+    if (retval < 0 || ConfigValidateThreads(iconf->threads, iface) != 0) {
         iconf->DerefFunc(iconf);
         SCReturnPtr(NULL, "void *");
     }
