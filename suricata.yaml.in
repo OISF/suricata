@@ -1767,6 +1767,19 @@ threading:
           medium: [ "1-2" ]
           high: [ 3 ]
           default: "medium"
+        # per-iface:
+        #   - interface: ens1f0 # 0000:3b:00.0 # ens1f0
+        #     cpu: [ 1,3,5,7,9 ]
+        #     mode: "exclusive"
+        #     prio:
+        #       high: [ "all" ]
+        #       default: "medium"
+        #   - interface: ens1f1 # 0000:3b:00.1 # ens1f1
+        #     cpu: [ 2,4,6,8,10 ]
+        #     mode: "exclusive"
+        #     prio:
+        #       high: [ 2,4 ]
+        #       default: "medium"
     #- verdict-cpu-set:
     #    cpu: [ 0 ]
     #    prio:
