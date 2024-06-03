@@ -49,13 +49,21 @@ static void *SimpleWorker(void *arg)
         pthread_exit(NULL);
     }
 
+    LiveDevice *device = LiveGetDevice("lib0");
+    assert(device != NULL);
+
     int datalink = pcap_datalink(fp);
+    int count = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *packet;
     while ((packet = pcap_next(fp, &pkthdr)) != NULL) {
-        if (TmModuleLibHandlePacket(tv, packet, datalink, pkthdr.ts, pkthdr.len, 0, 0, NULL) != 0) {
+        if (TmModuleLibHandlePacket(tv, device, packet, datalink, pkthdr.ts, pkthdr.len, 0, 0) !=
+                0) {
             pthread_exit(NULL);
         }
+
+        (void)SC_ATOMIC_ADD(device->pkts, 1);
+        count++;
     }
     pcap_close(fp);
 
@@ -119,6 +127,11 @@ int main(int argc, char **argv)
 
     /* Force logging to the current directory. */
     ConfSetFromString("default-log-dir=.", 1);
+
+    if (LiveRegisterDevice("lib0") < 0) {
+        fprintf(stderr, "LiveRegisterDevice failed");
+        exit(1);
+    }
 
     SuricataInit();
 
