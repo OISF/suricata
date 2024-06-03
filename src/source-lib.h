@@ -27,6 +27,7 @@
 #define SURICATA_SOURCE_LIB_H
 
 #include "tm-threads.h"
+#include "util-device.h"
 
 /** \brief register a "Decode" module for suricata as a library.
  *
@@ -45,7 +46,7 @@ void TmModuleDecodeLibRegister(void);
  * \param iface                 Sniffing interface this packet comes from (can be NULL).
  * \return                      Error code.
  */
-int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink, struct timeval ts,
-        uint32_t len, uint32_t tenant_id, uint32_t flags, const char *iface);
+int TmModuleLibHandlePacket(ThreadVars *tv, LiveDevice *device, const uint8_t *data, int datalink,
+        struct timeval ts, uint32_t len, uint32_t tenant_id, uint32_t flags);
 
 #endif /* SURICATA_SOURCE_LIB_H */
