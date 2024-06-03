@@ -427,7 +427,7 @@ Frame *AppLayerFrameNewByPointer(Flow *f, const StreamSlice *stream_slice,
     if (f->proto == IPPROTO_TCP && f->protoctx == NULL)
         return NULL;
     if (frame_start < stream_slice->input ||
-            frame_start >= stream_slice->input + stream_slice->input_len)
+            frame_start > stream_slice->input + stream_slice->input_len)
         return NULL;
 #endif
     BUG_ON(frame_start < stream_slice->input);
