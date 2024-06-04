@@ -935,6 +935,11 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
     // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
+    size_t tofree_nb = 0;
+    uint64_t *tofree = SCMalloc(total_txs * sizeof(uint64_t));
+    if (tofree == NULL) {
+        SCLogDebug("allocation failed for %" PRIu64, total_txs);
+    }
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -1028,7 +1033,11 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
 
         /* if we are here, the tx can be freed. */
-        p->StateTransactionFree(alstate, i);
+        if (tofree) {
+            // do not remove the tx while iterating over the list
+            tofree[tofree_nb] = i;
+            tofree_nb++;
+        }
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
@@ -1051,6 +1060,18 @@ next:
             break;
         }
         i++;
+    }
+
+    if (tofree) {
+        for (i = 0; i < tofree_nb; i++) {
+            p->StateTransactionFree(alstate, tofree[i]);
+        }
+        SCFree(tofree);
+    } else {
+        // we are oom, try to free all txs
+        for (i = min; i < min + total_txs; i++) {
+            p->StateTransactionFree(alstate, i);
+        }
     }
 
     /* see if we need to bring all trackers up to date. */
