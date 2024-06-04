@@ -230,7 +230,9 @@ pub struct DNSMessage {
 
 #[derive(Debug, Default)]
 pub struct DNSTransaction {
-    pub id: u64,
+    /// Internal ID of this DNS transaction (not the DNS message
+    /// transaction ID).
+    pub(crate) id: u64,
     pub request: Option<DNSMessage>,
     pub response: Option<DNSMessage>,
     pub tx_data: AppLayerTxData,
@@ -261,6 +263,14 @@ impl DNSTransaction {
 
         // Shouldn't happen.
         return 0;
+    }
+
+    pub(crate) fn is_request(&self) -> bool {
+        self.request.is_some()
+    }
+
+    pub(crate) fn is_response(&self) -> bool {
+        self.response.is_some()
     }
 
     /// Get the reply code of the transaction. Note that this will
@@ -381,7 +391,9 @@ impl DNSState {
         None
     }
 
-    fn parse_request(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,) -> bool {
+    fn parse_request(
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+    ) -> bool {
         let (body, header) = if let Some((body, header)) = self.validate_header(input) {
             (body, header)
         } else {
@@ -458,7 +470,9 @@ impl DNSState {
         self.parse_response(input, false, frame, flow)
     }
 
-    fn parse_response(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow) -> bool {
+    fn parse_response(
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+    ) -> bool {
         let (body, header) = if let Some((body, header)) = self.validate_header(input) {
             (body, header)
         } else {
@@ -822,12 +836,12 @@ unsafe extern "C" fn state_get_tx(
 
 #[no_mangle]
 pub extern "C" fn SCDnsTxIsRequest(tx: &mut DNSTransaction) -> bool {
-    tx.request.is_some()
+    tx.is_request()
 }
 
 #[no_mangle]
 pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
-    tx.response.is_some()
+    tx.is_response()
 }
 
 unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
