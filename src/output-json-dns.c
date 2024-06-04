@@ -277,7 +277,7 @@ static JsonBuilder *JsonDNSLogQuery(void *txptr)
 
 static JsonBuilder *JsonDNSLogAnswer(void *txptr)
 {
-    if (!SCDnsLogAnswerEnabled(txptr, LOG_ALL_RRTYPES)) {
+    if (!SCDnsLogEnabled(txptr, LOG_ALL_RRTYPES)) {
         return NULL;
     } else {
         JsonBuilder *js = jb_new_object();
@@ -291,17 +291,21 @@ bool AlertJsonDns(void *txptr, JsonBuilder *js)
 {
     bool r = false;
     jb_open_object(js, "dns");
-    JsonBuilder *qjs = JsonDNSLogQuery(txptr);
-    if (qjs != NULL) {
-        jb_set_object(js, "query", qjs);
-        jb_free(qjs);
-        r = true;
-    }
-    JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
-    if (ajs != NULL) {
-        jb_set_object(js, "answer", ajs);
-        jb_free(ajs);
-        r = true;
+    if (SCDnsTxIsRequest(txptr)) {
+        r = SCDnsLogJson(txptr, LOG_ALL_RRTYPES, js);
+    } else {
+        JsonBuilder *qjs = JsonDNSLogQuery(txptr);
+        if (qjs != NULL) {
+            jb_set_object(js, "queries", qjs);
+            jb_free(qjs);
+            r = true;
+        }
+        JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
+        if (ajs != NULL) {
+            jb_set_object(js, "answer", ajs);
+            jb_free(ajs);
+            r = true;
+        }
     }
     jb_close(js);
     return r;
@@ -319,22 +323,21 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    for (uint16_t i = 0; i < 0xffff; i++) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
-        if (unlikely(jb == NULL)) {
-            return TM_ECODE_OK;
-        }
-
-        jb_open_object(jb, "dns");
-        if (!SCDnsLogJsonQuery(txptr, i, td->dnslog_ctx->flags, jb)) {
-            jb_free(jb);
-            break;
-        }
-        jb_close(jb);
-
-        OutputJsonBuilderBuffer(jb, td->ctx);
-        jb_free(jb);
+    if (!SCDnsLogEnabled(txptr, td->dnslog_ctx->flags)) {
+        return TM_ECODE_OK;
     }
+
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+    if (unlikely(jb == NULL)) {
+        return TM_ECODE_OK;
+    }
+
+    jb_open_object(jb, "dns");
+    SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb);
+    jb_close(jb);
+
+    OutputJsonBuilderBuffer(jb, td->ctx);
+    jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -351,7 +354,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    if (SCDnsLogAnswerEnabled(txptr, td->dnslog_ctx->flags)) {
+    if (SCDnsLogEnabled(txptr, td->dnslog_ctx->flags)) {
         JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;

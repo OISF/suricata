@@ -649,6 +649,83 @@ pub extern "C" fn SCDnsLogJsonQuery(
     }
 }
 
+/// Common logger for DNS requests and responses.
+///
+/// It is expected that the JsonBuilder is an open object that the DNS
+/// transaction will be logged into. This function will not create the
+/// "dns" object.
+fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+    jb.set_int("version", 3)?;
+
+    let message = if let Some(request) = &tx.request {
+        jb.set_string("type", "request")?;
+        request
+    } else if let Some(response) = &tx.response {
+        jb.set_string("type", "response")?;
+        response
+    } else {
+        debug_validate_fail!("unreachable");
+        return Ok(());
+    };
+
+    // The internal Suricata transaction ID.
+    jb.set_uint("tx_id", tx.id - 1)?;
+
+    // The on the wire DNS transaction ID.
+    jb.set_uint("id", tx.tx_id() as u64)?;
+
+    // Log header fields. Should this be a sub-object?
+    let header = &message.header;
+    jb.set_string("flags", format!("{:x}", header.flags).as_str())?;
+    if header.flags & 0x8000 != 0 {
+        jb.set_bool("qr", true)?;
+    }
+    if header.flags & 0x0400 != 0 {
+        jb.set_bool("aa", true)?;
+    }
+    if header.flags & 0x0200 != 0 {
+        jb.set_bool("tc", true)?;
+    }
+    if header.flags & 0x0100 != 0 {
+        jb.set_bool("rd", true)?;
+    }
+    if header.flags & 0x0080 != 0 {
+        jb.set_bool("ra", true)?;
+    }
+    if header.flags & 0x0040 != 0 {
+        jb.set_bool("z", true)?;
+    }
+    let opcode = ((header.flags >> 11) & 0xf) as u8;
+    jb.set_uint("opcode", opcode as u64)?;
+    jb.set_string("rcode", &dns_rcode_string(header.flags))?;
+
+    if !message.queries.is_empty() {
+        jb.open_array("queries")?;
+        for query in &message.queries {
+            if dns_log_rrtype_enabled(query.rrtype, flags) {
+                jb.start_object()?
+                    .set_string_from_bytes("rrname", &query.name)?
+                    .set_string("rrtype", &dns_rrtype_string(query.rrtype))?
+                    .close()?;
+            }
+        }
+        jb.close()?;
+    }
+
+    // TODO:
+    // - answers
+    // - authorities
+    // - additionals
+
+    Ok(())
+}
+
+/// Log a DNS record.
+#[no_mangle]
+pub extern "C" fn SCDnsLogJson(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> bool {
+    log_json(tx, flags, jb).is_ok()
+}
+
 #[no_mangle]
 pub extern "C" fn SCDnsLogJsonAnswer(
     tx: &mut DNSTransaction, flags: u64, js: &mut JsonBuilder,
@@ -664,12 +741,19 @@ pub extern "C" fn SCDnsLogJsonAnswer(
 }
 
 #[no_mangle]
-pub extern "C" fn SCDnsLogAnswerEnabled(tx: &mut DNSTransaction, flags: u64) -> bool {
-    if let Some(response) = &tx.response {
-        for query in &response.queries {
-            if dns_log_rrtype_enabled(query.rrtype, flags) {
-                return true;
-            }
+pub extern "C" fn SCDnsLogEnabled(tx: &mut DNSTransaction, flags: u64) -> bool {
+    let message = if let Some(request) = &tx.request {
+        request
+    } else if let Some(response) = &tx.response {
+        response
+    } else {
+        // Should be unreachable...
+        return false;
+    };
+
+    for query in &message.queries {
+        if dns_log_rrtype_enabled(query.rrtype, flags) {
+            return true;
         }
     }
     return false;

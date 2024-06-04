@@ -1101,7 +1101,7 @@
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
                 },
-                "query": {
+                "queries": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
