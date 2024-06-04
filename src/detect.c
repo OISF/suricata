@@ -1610,9 +1610,9 @@ static void DetectRunTx(ThreadVars *tv,
 
             StoreDetectFlags(&tx, flow_flags, ipproto, alproto, new_detect_flags);
         }
-next:
         InspectionBufferClean(det_ctx);
 
+    next:
         if (!ires.has_next)
             break;
     }
