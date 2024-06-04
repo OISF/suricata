@@ -94,6 +94,7 @@ typedef struct FlowWorkerThreadData_ {
     } cnt;
     FlowEndCounters fec;
 
+    AppLayerCleanupTxList app_tx_list;
 } FlowWorkerThreadData;
 
 static void FlowWorkerFlowTimeout(
@@ -333,6 +334,7 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
         FlowFree(f);
     }
 
+    SCFree(fw->app_tx_list.tx_id_free_list);
     SCFree(fw);
     return TM_ECODE_OK;
 }
@@ -455,7 +457,7 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
 
     /* run tx cleanup last */
-    AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
+    AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p), &fw->app_tx_list);
 
     FlowDeReference(&p->flow);
     /* flow is unlocked later in FlowFinish() */
@@ -668,13 +670,15 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             if ((p->flags & PKT_STREAM_EST) || p->proto != IPPROTO_TCP) {
                 if (PKT_IS_TOSERVER(p)) {
                     if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
-                        AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
+                        AppLayerParserTransactionsCleanup(
+                                p->flow, STREAM_TOSERVER, &fw->app_tx_list);
                         p->flow->flags &= ~FLOW_TS_APP_UPDATED;
                         SCLogDebug("~FLOW_TS_APP_UPDATED");
                     }
                 } else {
                     if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TC_APP_UPDATED))) {
-                        AppLayerParserTransactionsCleanup(p->flow, STREAM_TOCLIENT);
+                        AppLayerParserTransactionsCleanup(
+                                p->flow, STREAM_TOCLIENT, &fw->app_tx_list);
                         p->flow->flags &= ~FLOW_TC_APP_UPDATED;
                         SCLogDebug("~FLOW_TC_APP_UPDATED");
                     }

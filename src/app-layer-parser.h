@@ -147,6 +147,12 @@ typedef struct AppLayerGetTxIterState {
     } un;
 } AppLayerGetTxIterState;
 
+typedef struct AppLayerCleanupTxList {
+    uint64_t *tx_id_free_list;
+    // size of tx_id_free_list
+    uint32_t max_tx;
+} AppLayerCleanupTxList;
+
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
        (const uint8_t ipproto, const AppProto alproto,
@@ -307,7 +313,7 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
 AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);
 
-void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir);
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir, AppLayerCleanupTxList *txl);
 
 /***** Unittests *****/
 

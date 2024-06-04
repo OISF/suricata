@@ -136,6 +136,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     alsize = size - HEADER_LEN;
     uint8_t flags = STREAM_START;
     int flip = 0;
+    AppLayerCleanupTxList app_tx_list = { 0 };
     alnext = memmem(albuffer, alsize, separator, 4);
     while (alnext) {
         if (flip) {
@@ -173,7 +174,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 break;
             }
 
-            AppLayerParserTransactionsCleanup(f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+            AppLayerParserTransactionsCleanup(
+                    f, flags & (STREAM_TOSERVER | STREAM_TOCLIENT), &app_tx_list);
         }
         alsize -= alnext - albuffer + 4;
         albuffer = alnext + 4;
