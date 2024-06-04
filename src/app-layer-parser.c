@@ -741,8 +741,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     const AppProto alproto = f->alproto;
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
-    AppLayerGetTxIterState state;
-    memset(&state, 0, sizeof(state));
+    AppLayerGetTxIterState state = { 0 };
 
     SCLogDebug("called: %s, tag_txs_as_inspected %s",direction==0?"toserver":"toclient",
             tag_txs_as_inspected?"true":"false");

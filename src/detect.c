@@ -1402,8 +1402,7 @@ static void DetectRunTx(ThreadVars *tv,
     const int tx_end_state = AppLayerParserGetStateProgressCompletionStatus(alproto, flow_flags);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
-    AppLayerGetTxIterState state;
-    memset(&state, 0, sizeof(state));
+    AppLayerGetTxIterState state = { 0 };
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
