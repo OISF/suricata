@@ -373,7 +373,9 @@ fn mime_smtp_find_url_strings(ctx: &mut MimeStateSMTP, input_new: &[u8]) {
         } else {
             ctx.decoded_line.extend_from_slice(&input_new[x..]);
         }
-    } // else  no end of line, already buffered for next input...
+    } else if ctx.decoded_line.is_empty() {
+        ctx.decoded_line.extend_from_slice(input_new);
+    }
 }
 
 fn mime_base64_map(input: u8) -> io::Result<u8> {
@@ -614,9 +616,30 @@ fn mime_smtp_parse_line(
                     || ctx.content_type == MimeSmtpContentType::Html
                     || ctx.content_type == MimeSmtpContentType::Message
                 {
-                    mime_smtp_find_url_strings(ctx, full);
+                    match ctx.encoding {
+                        MimeSmtpEncoding::Plain => {
+                            mime_smtp_find_url_strings(ctx, full);
+                        }
+                        MimeSmtpEncoding::QuotedPrintable => {
+                            mime_smtp_find_url_strings(ctx, full);
+                        }
+                        MimeSmtpEncoding::Base64 => {
+                            if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
+                                if let Some(ref mut decoder) = &mut ctx.decoder {
+                                    if i.len() > MAX_ENC_LINE_LEN {
+                                        warnings |= MIME_ANOM_LONG_ENC_LINE;
+                                    }
+                                    if let Ok(dec) = mime_base64_decode(decoder, i) {
+                                        mime_smtp_find_url_strings(ctx, &dec);
+                                    } else {
+                                        warnings |= MIME_ANOM_INVALID_BASE64;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
+                return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
             }
             match ctx.encoding {
                 MimeSmtpEncoding::Plain => {
@@ -735,6 +758,8 @@ fn mime_smtp_complete(ctx: &mut MimeStateSMTP) {
         ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Completed;
         ctx.md5_result = ctx.md5.finalize_reset();
     }
+    // look for url in the last unfinished line
+    mime_smtp_find_url_strings(ctx, &[b'\n']);
 }
 
 #[no_mangle]
