@@ -935,6 +935,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
     // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
+    uint64_t tofree_stack[total_txs];
+    size_t tofree_nb = 0;
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -1028,7 +1030,9 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
 
         /* if we are here, the tx can be freed. */
-        p->StateTransactionFree(alstate, i);
+        tofree_stack[tofree_nb] = i;
+        // do not remove the tx while iterating over the list
+        tofree_nb++;
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
@@ -1051,6 +1055,10 @@ next:
             break;
         }
         i++;
+    }
+
+    for (i = 0; i < tofree_nb; i++) {
+        p->StateTransactionFree(alstate, tofree_stack[i]);
     }
 
     /* see if we need to bring all trackers up to date. */
