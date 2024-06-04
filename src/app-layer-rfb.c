@@ -132,14 +132,15 @@ static int RFBParserTest(void)
             NULL, alp_tctx, f, ALPROTO_RFB, STREAM_TOCLIENT, (uint8_t *)server_init, sizeof(server_init));
     FAIL_IF_NOT(r == 0);
 
-    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
+    AppLayerCleanupTxList app_tx_list = { 0 };
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT, &app_tx_list);
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 1); // inspect_id[0]
     FAIL_IF_NOT(ret[1] == 1); // inspect_id[1]
     FAIL_IF_NOT(ret[2] == 1); // log_id
     FAIL_IF_NOT(ret[3] == 1); // min_id
 
-    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT, &app_tx_list);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);

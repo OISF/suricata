@@ -657,7 +657,7 @@ pub trait State<Tx: Transaction> {
                 index += 1;
                 continue;
             }
-            *state = index as u64;
+            *state = (index + 1) as u64;
             return AppLayerGetTxIterTuple::with_values(
                 tx as *const _ as *mut _,
                 tx.id() - 1,
