@@ -82,7 +82,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install Cargo Audit
         run: cargo install cargo-audit
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
       - name: Configure Suricata
         run: |
           ./scripts/bundle.sh libhtp
@@ -164,7 +164,7 @@ jobs:
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
       - name: Configure Suricata
         run: |
           ./scripts/bundle.sh libhtp
