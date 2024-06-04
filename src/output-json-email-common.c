@@ -97,27 +97,49 @@ static inline char *SkipWhiteSpaceTill(char *p, char *savep)
 
 static bool EveEmailJsonArrayFromCommaList(JsonBuilder *js, const uint8_t *val, size_t len)
 {
-    char *savep = NULL;
-    char *p;
-    char *sp;
-    char *to_line = BytesToString((uint8_t *)val, len);
-    if (likely(to_line != NULL)) {
-        p = strtok_r(to_line, ",", &savep);
-        if (p == NULL) {
-            SCFree(to_line);
-            return false;
+    bool has_not_empty_field = false;
+    size_t start = 0;
+    int state = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        switch (state) {
+            case 0:
+                if (val[i] == ' ' || val[i] == '\t') {
+                    // skip leading space
+                    start += 1;
+                } else if (val[i] == '"') {
+                    // quoted state
+                    state = 2;
+                } else {
+                    // field
+                    state = 1;
+                }
+                break;
+            case 1: // field
+                if (val[i] == ',') {
+                    if (i > start) {
+                        jb_append_string_from_bytes(js, val + start, i - start);
+                        has_not_empty_field = true;
+                    }
+                    start = i + 1;
+                    state = 0;
+                } else if (val[i] == '"') {
+                    // quoted
+                    state = 2;
+                }
+                break;
+            case 2: // quoted
+                if (val[i] == '"') {
+                    // out of quotes, back to field
+                    state = 1;
+                }
         }
-        sp = SkipWhiteSpaceTill(p, savep);
-        jb_append_string(js, sp);
-        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-            sp = SkipWhiteSpaceTill(p, savep);
-            jb_append_string(js, sp);
-        }
-    } else {
-        return false;
     }
-    SCFree(to_line);
-    return true;
+    if (len > start) {
+        jb_append_string_from_bytes(js, val + start, len - start);
+        has_not_empty_field = true;
+    }
+    return has_not_empty_field;
 }
 
 static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
