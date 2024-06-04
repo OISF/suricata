@@ -6347,7 +6347,8 @@ static int HTPParserTest25(void)
             NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
 
-    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
+    AppLayerCleanupTxList app_tx_list = { 0 };
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT, &app_tx_list);
 
     uint64_t ret[4];
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
@@ -6359,7 +6360,7 @@ static int HTPParserTest25(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_EOF,
             (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT, &app_tx_list);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 8); // inspect_id[0] not updated by ..Cleanup() until full tx is done
@@ -6370,7 +6371,7 @@ static int HTPParserTest25(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF,
             (uint8_t *)str, strlen(str));
     FAIL_IF_NOT(r == 0);
-    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
+    AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT, &app_tx_list);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
     FAIL_IF_NOT(ret[0] == 9); // inspect_id[0]

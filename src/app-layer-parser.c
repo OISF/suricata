@@ -882,7 +882,7 @@ extern bool g_filedata_logger_enabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir, AppLayerCleanupTxList *txl)
 {
     SCEnter();
     DEBUG_ASSERT_FLOW_LOCKED(f);
@@ -918,6 +918,23 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
     // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
+    uint32_t tofree_nb = 0;
+    if (total_txs > UINT32_MAX) {
+        SCFree(txl->tx_id_free_list);
+        txl->tx_id_free_list = NULL;
+        txl->max_tx = 0;
+    } else if (txl->max_tx < total_txs) {
+        uint64_t *tmp = SCRealloc(txl->tx_id_free_list, total_txs * sizeof(uint64_t));
+        if (tmp == NULL) {
+            SCLogDebug("allocation failed for %" PRIu64, total_txs);
+            SCFree(txl->tx_id_free_list);
+            txl->tx_id_free_list = NULL;
+            txl->max_tx = 0;
+        } else {
+            txl->tx_id_free_list = tmp;
+            txl->max_tx = (uint32_t)total_txs;
+        }
+    }
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -1008,7 +1025,11 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
 
         /* if we are here, the tx can be freed. */
-        p->StateTransactionFree(alstate, i);
+        if (txl->tx_id_free_list) {
+            // do not remove the tx while iterating over the list
+            txl->tx_id_free_list[tofree_nb] = i;
+            tofree_nb++;
+        }
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
@@ -1031,6 +1052,17 @@ next:
             break;
         }
         i++;
+    }
+
+    if (txl->tx_id_free_list) {
+        for (i = 0; i < tofree_nb; i++) {
+            p->StateTransactionFree(alstate, txl->tx_id_free_list[i]);
+        }
+    } else {
+        // we are oom, try to free all txs
+        for (i = min; i < min + total_txs; i++) {
+            p->StateTransactionFree(alstate, i);
+        }
     }
 
     /* see if we need to bring all trackers up to date. */
