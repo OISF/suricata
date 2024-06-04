@@ -593,7 +593,7 @@ DefragTracker *DefragGetTrackerFromHash (Packet *p)
                 return dt;
             }
 
-            if (DefragTrackerCompare(dt, p) != 0) {
+            if (!dt->remove && DefragTrackerCompare(dt, p) != 0) {
                 /* we found our tracker, lets put it on top of the
                  * hash list -- this rewards active trackers */
                 if (dt->hnext) {
