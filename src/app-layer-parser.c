@@ -882,7 +882,7 @@ extern bool g_filedata_logger_enabled;
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
+void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir, AppLayerCleanupTxList *txl)
 {
     SCEnter();
     DEBUG_ASSERT_FLOW_LOCKED(f);
@@ -901,7 +901,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         SCReturn;
 
     const uint64_t min = alparser->min_id;
-    const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
+    // AppLayerParserGetTxCnt is not named correctly, behaves as GetMaxId
+    const uint64_t max_id = AppLayerParserGetTxCnt(f, alstate);
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
     const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
@@ -918,9 +919,30 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     SCLogDebug("start min %"PRIu64, min);
     bool skipped = false;
     // const bool support_files = AppLayerParserSupportsFiles(f->proto, f->alproto);
+    uint32_t tofree_nb = 0;
+    bool free_all = false;
+#define TX_LIST_STEP 0x100
+    if (max_id - min > UINT32_MAX - TX_LIST_STEP) {
+        // We have way too many transactions, free them all
+        free_all = true;
+    } else if (txl->max_tx < max_id - min) {
+        // roundup to the next multiplier of 256
+        uint32_t capacity = TX_LIST_STEP + (((uint32_t)(max_id - min)) & (~(TX_LIST_STEP - 1)));
+#undef TX_LIST_STEP
+        uint64_t *tmp = SCRealloc(txl->tx_id_free_list, capacity * sizeof(uint64_t));
+        if (tmp == NULL) {
+            SCLogDebug("allocation failed for %" PRIu64, capacity);
+            SCFree(txl->tx_id_free_list);
+            txl->tx_id_free_list = NULL;
+            txl->max_tx = 0;
+        } else {
+            txl->tx_id_free_list = tmp;
+            txl->max_tx = capacity;
+        }
+    }
 
     while (1) {
-        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, max_id, &state);
         if (ires.tx_ptr == NULL)
             break;
 
@@ -1008,7 +1030,11 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
 
         /* if we are here, the tx can be freed. */
-        p->StateTransactionFree(alstate, i);
+        if (txl->tx_id_free_list && !free_all) {
+            // do not remove the tx while iterating over the list
+            txl->tx_id_free_list[tofree_nb] = i;
+            tofree_nb++;
+        }
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
@@ -1022,15 +1048,27 @@ next:
             /* this was the last tx. See if we skipped any. If not
              * we removed all and can update the minimum to the max
              * id. */
-            SCLogDebug("no next: cur tx i %"PRIu64", total %"PRIu64, i, total_txs);
+            SCLogDebug("no next: cur tx i %" PRIu64 ", max %" PRIu64, i, max_id);
             if (!skipped) {
-                new_min = total_txs;
-                SCLogDebug("no next: cur tx i %"PRIu64", total %"PRIu64": "
-                        "new_min updated to %"PRIu64, i, total_txs, new_min);
+                new_min = max_id;
+                SCLogDebug("no next: cur tx i %" PRIu64 ", max %" PRIu64 ": "
+                           "new_min updated to %" PRIu64,
+                        i, max_id, new_min);
             }
             break;
         }
         i++;
+    }
+
+    if (txl->tx_id_free_list && !free_all) {
+        for (i = 0; i < tofree_nb; i++) {
+            p->StateTransactionFree(alstate, txl->tx_id_free_list[i]);
+        }
+    } else {
+        // we are oom, try to free all txs
+        for (i = min; i < max_id; i++) {
+            p->StateTransactionFree(alstate, i);
+        }
     }
 
     /* see if we need to bring all trackers up to date. */
