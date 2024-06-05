@@ -593,7 +593,7 @@ static AppLayerResult SMTPGetLine(Flow *f, StreamSlice *slice, SMTPState *state,
     }
 }
 
-static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state, Flow *f)
+static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
 {
     SCEnter();
     void *ptmp;
@@ -637,8 +637,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
     return 0;
 }
 
-static int SMTPProcessCommandBDAT(
-        SMTPState *state, Flow *f, AppLayerParserState *pstate, const SMTPLine *line)
+static int SMTPProcessCommandBDAT(SMTPState *state, const SMTPLine *line)
 {
     SCEnter();
 
@@ -698,8 +697,8 @@ static inline void SMTPTransactionComplete(SMTPState *state)
  *  \retval 0 ok
  *  \retval -1 error
  */
-static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f,
-        AppLayerParserState *pstate, const SMTPLine *line)
+static int SMTPProcessCommandDATA(
+        SMTPState *state, SMTPTransaction *tx, Flow *f, const SMTPLine *line)
 {
     SCEnter();
     DEBUG_VALIDATE_BUG_ON(tx == NULL);
@@ -715,7 +714,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
          * acknowledged with a reply.  We insert a dummy command to
          * the command buffer to be used by the reply handler to match
          * the reply received */
-        SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
+        SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state);
         if (smtp_config.raw_extraction) {
             /* we use this as the signal that message data is complete. */
             FileCloseFile(&tx->files_ts, &smtp_config.sbcfg, NULL, 0, 0);
@@ -819,20 +818,14 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
     return 0;
 }
 
-static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
-                                      AppLayerParserState *pstate)
-{
-    return 0;
-}
-
 static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
 {
     return (state->cmds_idx < state->cmds_buffer_len &&
             state->cmds[state->cmds_idx] == cmd);
 }
 
-static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *pstate,
-        SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
+static int SMTPProcessReply(
+        SMTPState *state, Flow *f, SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
 {
     SCEnter();
 
@@ -1107,8 +1100,8 @@ static int NoNewTx(SMTPState *state, const SMTPLine *line)
  *         -1 for errors and inconsistent states
  *         -2 if MIME state could not be allocated
  * */
-static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *pstate,
-        SMTPInput *input, const SMTPLine *line, const StreamSlice *slice)
+static int SMTPProcessRequest(
+        SMTPState *state, Flow *f, SMTPInput *input, const SMTPLine *line, const StreamSlice *slice)
 {
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
@@ -1233,8 +1226,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
 
         /* Every command is inserted into a command buffer, to be matched
          * against reply(ies) sent by the server */
-        if (SMTPInsertCommandIntoCommandBuffer(state->current_command,
-                                               state, f) == -1) {
+        if (SMTPInsertCommandIntoCommandBuffer(state->current_command, state) == -1) {
             SCReturnInt(-1);
         }
 
@@ -1242,14 +1234,11 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     }
 
     switch (state->current_command) {
-        case SMTP_COMMAND_STARTTLS:
-            return SMTPProcessCommandSTARTTLS(state, f, pstate);
-
         case SMTP_COMMAND_DATA:
-            return SMTPProcessCommandDATA(state, tx, f, pstate, line);
+            return SMTPProcessCommandDATA(state, tx, f, line);
 
         case SMTP_COMMAND_BDAT:
-            return SMTPProcessCommandBDAT(state, f, pstate, line);
+            return SMTPProcessCommandBDAT(state, line);
 
         default:
             /* we have nothing to do with any other command at this instant.
@@ -1287,8 +1276,8 @@ static inline void ResetLine(SMTPLine *line)
  *          1 for handing control over to GetLine
  *         -1 for errors and inconsistent states
  * */
-static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate,
-        StreamSlice *slice, SMTPInput *input, SMTPLine *line)
+static int SMTPPreProcessCommands(
+        SMTPState *state, Flow *f, StreamSlice *slice, SMTPInput *input, SMTPLine *line)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
     DEBUG_VALIDATE_BUG_ON(line->len != 0);
@@ -1341,7 +1330,7 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
             input->consumed = total_consumed;
             input->len -= current_line_consumed;
             DEBUG_VALIDATE_BUG_ON(input->consumed + input->len != input->orig_len);
-            if (SMTPProcessRequest(state, f, pstate, input, line, slice) == -1) {
+            if (SMTPProcessRequest(state, f, input, line, slice) == -1) {
                 return -1;
             }
             line_complete = false;
@@ -1387,7 +1376,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         if (((state->current_command == SMTP_COMMAND_DATA) ||
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-            int ret = SMTPPreProcessCommands(state, f, pstate, &stream_slice, &input, &line);
+            int ret = SMTPPreProcessCommands(state, f, &stream_slice, &input, &line);
             DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
             if (ret == 0 && input.consumed == input.orig_len) {
                 SCReturnStruct(APP_LAYER_OK);
@@ -1397,7 +1386,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         }
         AppLayerResult res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         while (res.status == 0) {
-            int retval = SMTPProcessRequest(state, f, pstate, &input, &line, &stream_slice);
+            int retval = SMTPProcessRequest(state, f, &input, &line, &stream_slice);
             if (retval != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
@@ -1418,7 +1407,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
              * In case of another boundary, the control should be passed to SMTPGetLine */
             if ((input.len > 0) && (state->current_command == SMTP_COMMAND_DATA) &&
                     (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-                int ret = SMTPPreProcessCommands(state, f, pstate, &stream_slice, &input, &line);
+                int ret = SMTPPreProcessCommands(state, f, &stream_slice, &input, &line);
                 DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
                 if (ret == 0 && input.consumed == input.orig_len) {
                     SCReturnStruct(APP_LAYER_OK);
@@ -1434,7 +1423,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     } else {
         AppLayerResult res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         while (res.status == 0) {
-            if (SMTPProcessReply(state, f, pstate, thread_data, &input, &line) != 0)
+            if (SMTPProcessReply(state, f, thread_data, &input, &line) != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
                 if (!line.lf_found) {

@@ -45,8 +45,7 @@ extern StreamingBufferConfig htp_sbcfg;
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
-                       const uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -97,7 +96,7 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
  * \param body pointer to the HtpBody holding the list
  * \retval none
  */
-void HtpBodyFree(const HTPCfgDir *hcfg, HtpBody *body)
+void HtpBodyFree(HtpBody *body)
 {
     SCEnter();
 

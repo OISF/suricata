@@ -66,9 +66,9 @@ static inline bool FrameConfigTypeIsEnabled(const AppProto p, const uint8_t type
     return enabled;
 }
 
+#ifdef DEBUG
 static void FrameDebug(const char *prefix, const Frames *frames, const Frame *frame)
 {
-#ifdef DEBUG
     const char *type_name = "unknown";
     if (frame->type == FRAME_STREAM_TYPE) {
         type_name = "stream";
@@ -80,8 +80,10 @@ static void FrameDebug(const char *prefix, const Frames *frames, const Frame *fr
             prefix, frames, frame, frame->type, type_name, frame->id, frame->flags, frame->offset,
             frame->len, frame->inspect_progress, frame->event_cnt, frame->events[0],
             frame->events[1], frame->events[2], frame->events[3]);
-#endif
 }
+#else
+#define FrameDebug(prefix, frames, frame)
+#endif
 
 /**
  * \note "open" means a frame that has no length set (len == -1)
@@ -223,6 +225,7 @@ static void FrameCopy(Frame *dst, Frame *src)
     memcpy(dst, src, sizeof(*dst));
 }
 
+#ifdef DEBUG
 static void AppLayerFrameDumpForFrames(const char *prefix, const Frames *frames)
 {
     SCLogDebug("prefix: %s", prefix);
@@ -238,6 +241,7 @@ static void AppLayerFrameDumpForFrames(const char *prefix, const Frames *frames)
     }
     SCLogDebug("prefix: %s", prefix);
 }
+#endif
 
 static inline uint64_t FrameLeftEdge(const TcpStream *stream, const Frame *frame)
 {
@@ -567,6 +571,7 @@ Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice
 
 void AppLayerFrameDump(Flow *f)
 {
+#ifdef DEBUG
     if (f->proto == IPPROTO_TCP && f->protoctx && f->alparser) {
         FramesContainer *frames_container = AppLayerFramesGetContainer(f);
         if (frames_container != NULL) {
@@ -574,6 +579,7 @@ void AppLayerFrameDump(Flow *f)
             AppLayerFrameDumpForFrames("toclient::dump", &frames_container->toclient);
         }
     }
+#endif
 }
 
 /** \brief create new frame using the absolute offset from the start of the stream
