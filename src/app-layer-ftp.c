@@ -345,7 +345,7 @@ typedef struct FtpInput_ {
 } FtpInput;
 
 static AppLayerResult FTPGetLineForDirection(
-        FtpState *state, FtpLineState *line, FtpInput *input, bool *current_line_truncated)
+        FtpLineState *line, FtpInput *input, bool *current_line_truncated)
 {
     SCEnter();
 
@@ -507,7 +507,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     uint8_t direction = STREAM_TOSERVER;
     AppLayerResult res;
     while (1) {
-        res = FTPGetLineForDirection(state, &line, &ftpi, &state->current_line_truncated_ts);
+        res = FTPGetLineForDirection(&line, &ftpi, &state->current_line_truncated_ts);
         if (res.status == 1) {
             return res;
         } else if (res.status == -1) {
@@ -630,7 +630,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     SCReturnStruct(APP_LAYER_OK);
 }
 
-static int FTPParsePassiveResponse(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponse(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
     uint16_t dyn_port = rs_ftp_pasv_response(input, input_len);
     if (dyn_port == 0) {
@@ -645,7 +645,7 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, const uint8_t *inpu
     return 0;
 }
 
-static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponseV6(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
     uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
     if (dyn_port == 0) {
@@ -700,7 +700,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     AppLayerResult res;
     while (1) {
-        res = FTPGetLineForDirection(state, &line, &ftpi, &state->current_line_truncated_tc);
+        res = FTPGetLineForDirection(&line, &ftpi, &state->current_line_truncated_tc);
         if (res.status == 1) {
             return res;
         } else if (res.status == -1) {
@@ -754,13 +754,13 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
 
             case FTP_COMMAND_PASV:
                 if (line.len >= 4 && SCMemcmp("227 ", line.buf, 4) == 0) {
-                    FTPParsePassiveResponse(f, ftp_state, line.buf, line.len);
+                    FTPParsePassiveResponse(ftp_state, line.buf, line.len);
                 }
                 break;
 
             case FTP_COMMAND_EPSV:
                 if (line.len >= 4 && SCMemcmp("229 ", line.buf, 4) == 0) {
-                    FTPParsePassiveResponseV6(f, ftp_state, line.buf, line.len);
+                    FTPParsePassiveResponseV6(ftp_state, line.buf, line.len);
                 }
                 break;
             default:
