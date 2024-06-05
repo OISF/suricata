@@ -251,6 +251,9 @@ outputs:
             # output TLS transaction where the session is resumed using a
             # session id
             #session-resumption: no
+            # ja4 hashes in tls records will never be logged unless
+            # the following is set to on. (Default off)
+            # ja4: off
             # custom controls which TLS fields that are included in eve-log
             #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4]
         - files:
@@ -291,7 +294,10 @@ outputs:
         - snmp
         - rfb
         - sip
-        - quic
+        - quic:
+            # ja4 hashes in quic records will never be logged unless
+            # the following is set to on. (Default off)
+            # ja4: off
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
