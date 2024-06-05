@@ -88,7 +88,7 @@ typedef struct AppLayerParserProtoCtx_
 
     /** get FileContainer reference from the TX. MUST return a non-NULL reference if the TX
      *  has or may have files in the requested direction at some point. */
-    AppLayerGetFileState (*GetTxFiles)(void *, void *, uint8_t);
+    AppLayerGetFileState (*GetTxFiles)(void *, uint8_t);
 
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -441,8 +441,8 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetTxFilesFunc(uint8_t ipproto, AppProto alproto,
-        AppLayerGetFileState (*GetTxFiles)(void *, void *, uint8_t))
+void AppLayerParserRegisterGetTxFilesFunc(
+        uint8_t ipproto, AppProto alproto, AppLayerGetFileState (*GetTxFiles)(void *, uint8_t))
 {
     SCEnter();
 
@@ -868,13 +868,12 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
     SCReturnPtr(ptr, "AppLayerDecoderEvents *");
 }
 
-AppLayerGetFileState AppLayerParserGetTxFiles(
-        const Flow *f, void *state, void *tx, const uint8_t direction)
+AppLayerGetFileState AppLayerParserGetTxFiles(const Flow *f, void *tx, const uint8_t direction)
 {
     SCEnter();
 
     if (alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles != NULL) {
-        return alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles(state, tx, direction);
+        return alp_ctx.ctxs[f->protomap][f->alproto].GetTxFiles(tx, direction);
     }
 
     AppLayerGetFileState files = { .fc = NULL, .cfg = NULL };
@@ -884,7 +883,7 @@ AppLayerGetFileState AppLayerParserGetTxFiles(
 static void AppLayerParserFileTxHousekeeping(
         const Flow *f, void *tx, const uint8_t pkt_dir, const bool trunc)
 {
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, FlowGetAppState(f), tx, pkt_dir);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, tx, pkt_dir);
     if (files.fc) {
         FilesPrune(files.fc, files.cfg, trunc);
     }

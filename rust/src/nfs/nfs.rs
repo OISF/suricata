@@ -159,7 +159,7 @@ impl NFSTransactionFile {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_gettxfiles(_state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
+pub unsafe extern "C" fn rs_nfs_gettxfiles(tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, NFSTransaction);
     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
         let tx_dir : u8 = tdf.direction.into();

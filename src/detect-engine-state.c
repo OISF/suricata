@@ -711,7 +711,7 @@ static int DeStateSigTest03(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
 
@@ -791,7 +791,7 @@ static int DeStateSigTest04(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -866,7 +866,7 @@ static int DeStateSigTest05(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -952,7 +952,7 @@ static int DeStateSigTest06(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -1040,7 +1040,7 @@ static int DeStateSigTest07(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -1139,7 +1139,7 @@ static int DeStateSigTest08(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -1166,7 +1166,7 @@ static int DeStateSigTest08(void)
     tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     fc = files.fc;
     FAIL_IF_NULL(fc);
     file = fc->head;
@@ -1267,7 +1267,7 @@ static int DeStateSigTest09(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -1294,7 +1294,7 @@ static int DeStateSigTest09(void)
     tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     fc = files.fc;
     FAIL_IF_NULL(fc);
     file = fc->head;
@@ -1393,7 +1393,7 @@ static int DeStateSigTest10(void)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     FileContainer *fc = files.fc;
     FAIL_IF_NULL(fc);
     File *file = fc->head;
@@ -1420,7 +1420,7 @@ static int DeStateSigTest10(void)
     tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
-    files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
+    files = AppLayerParserGetTxFiles(p->flow, tx, STREAM_TOSERVER);
     fc = files.fc;
     FAIL_IF_NULL(fc);
     file = fc->head;
