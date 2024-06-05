@@ -28,8 +28,8 @@
 #ifndef SURICATA_APP_LAYER_HTP_BODY_H
 #define SURICATA_APP_LAYER_HTP_BODY_H
 
-int HtpBodyAppendChunk(const HTPCfgDir *, HtpBody *, const uint8_t *, uint32_t);
-void HtpBodyFree(const HTPCfgDir *, HtpBody *);
+int HtpBodyAppendChunk(HtpBody *, const uint8_t *, uint32_t);
+void HtpBodyFree(HtpBody *);
 void HtpBodyPrune(HtpState *, HtpBody *, int);
 
 #endif /* SURICATA_APP_LAYER_HTP_BODY_H */
