@@ -59,6 +59,8 @@ Security changes
   <datasets_security>` and :ref:`Datasets File Locations
   <datasets_file_locations>` for more information.
 - Lua rules are now disabled by default (change also introduced in 6.0.13), see :ref:`lua-detection`.
+- Support for JA4 has been added. JA4 hashes will be computed when explicitly enabled or a rule uses
+  `ja4.hash`. JA4 hashes are output under a restricted set of conditions (see below):
 
 Removals
 ~~~~~~~~
@@ -132,6 +134,12 @@ Logging changes
 
      For more information, refer to:
      https://redmine.openinfosecfoundation.org/issues/1275.
+
+-  JA4 hashes are output under a restricted set of conditions when JA4 is dynamically or explicitly enabled:
+
+   - Alerts: The signature causing the alert contains the `ja4.hash` keyword
+   - Logs: With QUIC logs iff outputs.quic.ja4 is enabled (default off)
+   - Logs: With TLS logs iff outputs.tls.ja4 is enabled (default off)
 
 Deprecations
 ~~~~~~~~~~~~

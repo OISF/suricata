@@ -133,6 +133,9 @@ outputs:
             # output TLS transaction where the session is resumed using a
             # session id
             #session-resumption: no
+            # ja4 hashes in tls records will never be logged unless
+            # the following is set to on. (Default off)
+            # ja4: off
             # custom allows to control which tls fields that are included
             # in eve-log
             #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
@@ -164,6 +167,10 @@ outputs:
         - ike
         # BitTorrent DHT logging.
         - bittorrent-dht
+        - quic:
+            # ja4 hashes in crecords will never be logged unless
+            # the following is set to on. (Default off)
+            # ja4: off
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together

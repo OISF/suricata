@@ -29,6 +29,6 @@ void JsonTlsLogRegister(void);
 #include "app-layer-ssl.h"
 
 void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
-void JsonTlsLogJSONExtended(JsonBuilder *js, SSLState *ssl_state, bool is_alert);
+void JsonTlsLogJSONExtended(JsonBuilder *js, SSLState *ssl_state, bool log_ja4);
 
 #endif /* __OUTPUT_JSON_TLS_H__ */
