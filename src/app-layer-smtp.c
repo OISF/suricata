@@ -1732,7 +1732,7 @@ static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
     return tx->done;
 }
 
-static AppLayerGetFileState SMTPGetTxFiles(void *state, void *txv, uint8_t direction)
+static AppLayerGetFileState SMTPGetTxFiles(void *txv, uint8_t direction)
 {
     AppLayerGetFileState files = { .fc = NULL, .cfg = &smtp_config.sbcfg };
     SMTPTransaction *tx = (SMTPTransaction *)txv;

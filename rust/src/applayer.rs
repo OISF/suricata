@@ -424,7 +424,7 @@ pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
-pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, *mut c_void, u8) -> AppLayerGetFileState;
+pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
 pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
                                              min_tx_id: u64,

@@ -2641,7 +2641,7 @@ void AppLayerHtpPrintStats(void)
  *  \param direction flow direction
  *  \retval files files ptr
  */
-static AppLayerGetFileState HTPGetTxFiles(void *state, void *txv, uint8_t direction)
+static AppLayerGetFileState HTPGetTxFiles(void *txv, uint8_t direction)
 {
     AppLayerGetFileState files = { .fc = NULL, .cfg = &htp_sbcfg };
     htp_tx_t *tx = (htp_tx_t *)txv;
