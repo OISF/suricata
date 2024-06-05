@@ -364,8 +364,8 @@ static void *HTPStateAlloc(void *orig_state, AppProto proto_orig)
 static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
 {
     if (likely(htud)) {
-        HtpBodyFree(&state->cfg->request, &htud->request_body);
-        HtpBodyFree(&state->cfg->response, &htud->response_body);
+        HtpBodyFree(&htud->request_body);
+        HtpBodyFree(&htud->response_body);
         bstr_free(htud->request_uri_normalized);
         if (htud->request_headers_raw)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
@@ -1487,7 +1487,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                                                      (uint32_t)d->len);
         BUG_ON(len > (uint32_t)d->len);
 
-        HtpBodyAppendChunk(&hstate->cfg->request, &tx_ud->request_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
 
         const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1604,7 +1604,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
                                                      (uint32_t)d->len);
         BUG_ON(len > (uint32_t)d->len);
 
-        HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->response_body, d->data, len);
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
     } else {
@@ -5590,9 +5590,9 @@ static int HTPBodyReassemblyTest01(void)
     uint8_t chunk1[] = "--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
     uint8_t chunk2[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
 
-    int r = HtpBodyAppendChunk(NULL, &htud.request_body, chunk1, sizeof(chunk1)-1);
+    int r = HtpBodyAppendChunk(&htud.request_body, chunk1, sizeof(chunk1) - 1);
     BUG_ON(r != 0);
-    r = HtpBodyAppendChunk(NULL, &htud.request_body, chunk2, sizeof(chunk2)-1);
+    r = HtpBodyAppendChunk(&htud.request_body, chunk2, sizeof(chunk2) - 1);
     BUG_ON(r != 0);
 
     const uint8_t *chunks_buffer = NULL;
