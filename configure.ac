@@ -2263,7 +2263,7 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
-    AC_ARG_ENABLE(enable_warnings,
+    AC_ARG_ENABLE(warnings,
            AS_HELP_STRING([--enable-warnings], [Enable supported C compiler warnings]),[enable_warnings=$enableval],[enable_warnings=no])
     AS_IF([test "x$enable_warnings" = "xyes"], [
         # check if our compiler supports -Wunused-macros
