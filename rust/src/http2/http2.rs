@@ -1319,7 +1319,6 @@ pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
-    _state: *mut std::os::raw::c_void,
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
