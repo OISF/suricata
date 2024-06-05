@@ -237,7 +237,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
                 p->flow->proto, p->flow->alproto, alstate, det_ctx->filestore[u].tx_id);
         DEBUG_VALIDATE_BUG_ON(txv == NULL);
         if (txv) {
-            AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, alstate, txv, flags);
+            AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, txv, flags);
             FileContainer *ffc_tx = files.fc;
             DEBUG_VALIDATE_BUG_ON(ffc_tx == NULL);
             if (ffc_tx) {

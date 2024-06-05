@@ -187,7 +187,7 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
     DEBUG_VALIDATE_BUG_ON(f->alstate != alstate);
 
     const uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, alstate, tx, direction);
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, tx, direction);
     FileContainer *ffc = files.fc;
     SCLogDebug("tx %p tx_id %" PRIu64 " ffc %p ffc->head %p sid %u", tx, tx_id, ffc,
             ffc ? ffc->head : NULL, s->id);

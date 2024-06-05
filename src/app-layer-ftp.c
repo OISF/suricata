@@ -1216,7 +1216,7 @@ static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
         return FTPDATA_STATE_FINISHED;
 }
 
-static AppLayerGetFileState FTPDataStateGetTxFiles(void *_state, void *tx, uint8_t direction)
+static AppLayerGetFileState FTPDataStateGetTxFiles(void *tx, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)tx;
     AppLayerGetFileState files = { .fc = NULL, .cfg = &sbcfg };

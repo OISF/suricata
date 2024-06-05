@@ -2637,7 +2637,7 @@ void AppLayerHtpPrintStats(void)
  *  \param direction flow direction
  *  \retval files files ptr
  */
-static AppLayerGetFileState HTPGetTxFiles(void *state, void *txv, uint8_t direction)
+static AppLayerGetFileState HTPGetTxFiles(void *txv, uint8_t direction)
 {
     AppLayerGetFileState files = { .fc = NULL, .cfg = &htp_sbcfg };
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -6502,7 +6502,7 @@ libhtp:\n\
     void *tx_ptr = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx_ptr);
 
-    AppLayerGetFileState files = HTPGetTxFiles(http_state, tx_ptr, STREAM_TOCLIENT);
+    AppLayerGetFileState files = HTPGetTxFiles(tx_ptr, STREAM_TOCLIENT);
     FileContainer *ffc = files.fc;
     FAIL_IF_NULL(ffc);
 
