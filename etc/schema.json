@@ -5507,27 +5507,39 @@
                             "type": "object",
                             "properties": {
                                 "flows_checked": {
+                                    "description":
+                                            "number of flows checked for timeout in the last pass",
                                     "type": "integer"
                                 },
                                 "flows_evicted": {
+                                    "description": "number of flows that were evicted",
                                     "type": "integer"
                                 },
                                 "flows_evicted_needs_work": {
+                                    "description":
+                                            "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work",
                                     "type": "integer"
                                 },
                                 "flows_notimeout": {
+                                    "description": "number of flows that did not time out",
                                     "type": "integer"
                                 },
                                 "flows_timeout": {
+                                    "description": "number of flows that reached the time out",
                                     "type": "integer"
                                 },
                                 "full_hash_pass": {
+                                    "description":
+                                            "number of times a full pass of the hash table was done",
                                     "type": "integer"
                                 },
                                 "rows_maxlen": {
+                                    "description": "size of the biggest row in the hash table",
                                     "type": "integer"
                                 },
                                 "rows_per_sec": {
+                                    "description":
+                                            "number of rows to be scanned every second by a worker",
                                     "type": "integer"
                                 }
                             },
@@ -5537,12 +5549,15 @@
                             "type": "object",
                             "properties": {
                                 "recycled": {
+                                    "description": "number of recycled flows",
                                     "type": "integer"
                                 },
                                 "queue_avg": {
+                                    "description": "average number of recycled flows per queue",
                                     "type": "integer"
                                 },
                                 "queue_max": {
+                                    "description": "maximum number of recycled flows per queue",
                                     "type": "integer"
                                 }
                             },
