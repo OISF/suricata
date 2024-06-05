@@ -99,10 +99,6 @@ StreamingBufferConfig htp_sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 /** Limit to the number of libhtp messages that can be handled */
 #define HTP_MAX_MESSAGES 512
 
-/** a boundary should be smaller in size */
-// RFC 2046 states that max boundary size is 70
-#define HTP_BOUNDARY_MAX 200U
-
 SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
 
 #ifdef DEBUG
