@@ -6506,7 +6506,7 @@ libhtp:\n\
     void *tx_ptr = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx_ptr);
 
-    AppLayerGetFileState files = HTPGetTxFiles(http_state, tx_ptr, STREAM_TOCLIENT);
+    AppLayerGetFileState files = HTPGetTxFiles(tx_ptr, STREAM_TOCLIENT);
     FileContainer *ffc = files.fc;
     FAIL_IF_NULL(ffc);
 
