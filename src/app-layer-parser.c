@@ -937,7 +937,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     size_t tofree_nb = 0;
     uint64_t *tofree = SCMalloc(total_txs * sizeof(uint64_t));
     if (tofree == NULL) {
-        tofree_nb = total_txs;
+        SCLogDebug("allocation failed for %" PRIu64, total_txs);
     }
 
     while (1) {
