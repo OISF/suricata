@@ -479,11 +479,14 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
     /* log extended */
     else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        JsonTlsLogJSONExtended(js, ssl_state, false);
+        JsonTlsLogJSONExtended(js, ssl_state, tls_ctx->fields & LOG_TLS_FIELD_JA4);
     }
     /* log basic */
     else {
         JsonTlsLogJSONBasic(js, ssl_state);
+        /* add ja4 hash */
+        if (tls_ctx->fields & LOG_TLS_FIELD_JA4)
+            JsonTlsLogSCJA4(js, ssl_state);
     }
 
     /* print original application level protocol when it have been changed
@@ -584,6 +587,12 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
                 SCLogWarning("eve.tls: unknown 'custom' field '%s'", field->val);
             }
         }
+    }
+
+    /* In 7.0.x, ja4 hash is only logged when requested */
+    const char *ja4 = ConfNodeLookupChildValue(conf, "ja4");
+    if (ja4 && ConfValIsTrue(ja4)) {
+        tls_ctx->fields = LOG_TLS_FIELD_JA4;
     }
 
     const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");

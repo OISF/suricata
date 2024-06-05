@@ -35,6 +35,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "app-layer.h"
+#include "app-layer-ssl.h"
 #include "app-layer-parser.h"
 #include "output-json-quic.h"
 #include "rust.h"
@@ -42,6 +43,7 @@
 typedef struct LogQuicFileCtx_ {
     LogFileCtx *file_ctx;
     OutputJsonCtx *eve_ctx;
+    bool    log_ja4;
 } LogQuicFileCtx;
 
 typedef struct JsonQuicLogThread_ {
@@ -59,7 +61,9 @@ static int JsonQuicLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
-    if (!rs_quic_to_json(tx, false, js)) {
+
+    LogQuicFileCtx *quic_ctx = thread->quiclog_ctx;
+    if (!rs_quic_to_json(tx, quic_ctx->log_ja4, js)) {
         jb_free(js);
         return TM_ECODE_FAILED;
     }
@@ -92,6 +96,13 @@ static OutputInitResult OutputQuicLogInitSub(ConfNode *conf, OutputCtx *parent_c
     if (unlikely(output_ctx == NULL)) {
         SCFree(quiclog_ctx);
         return result;
+    }
+
+    /* In 7.0.x, ja4 hash is only logged when requested */
+    quiclog_ctx->log_ja4 = false;;
+    const char *ja4 = ConfNodeLookupChildValue(conf, "ja4");
+    if (ja4 &&ConfValIsTrue(ja4)) {
+        quiclog_ctx->log_ja4 = true;
     }
     output_ctx->data = quiclog_ctx;
     output_ctx->DeInit = OutputQuicLogDeInitCtxSub;
