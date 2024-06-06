@@ -39,6 +39,7 @@ Suricata Rules
    websocket-keywords
    app-layer
    xbits
+   noalert
    thresholding
    ip-reputation-rules
    ipaddr
