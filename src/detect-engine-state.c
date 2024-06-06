@@ -248,7 +248,7 @@ static inline void ResetTxState(DetectEngineState *s)
             s->dir_state[i].filestore_cnt = 0;
             s->dir_state[i].flags = 0;
             /* reset 'cur' back to the list head */
-            s->dir_state[i].cur = s->dir_state[0].head;
+            s->dir_state[i].cur = s->dir_state[i].head;
         }
     }
 }
