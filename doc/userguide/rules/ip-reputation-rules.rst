@@ -17,16 +17,15 @@ The iprep directive matches on the IP reputation information for a host.
 
 side to check: <any|src|dst|both>
 
-category: the category short name
+``category``: the category short name
 
-operator: <, >, =
+``operator``: <, <=, >, >=, =
 
-reputation score: 0-127
+``reputation score``: 0-127
 
 Example:
 
 ::
-
 
   alert ip $HOME_NET any -> any any (msg:"IPREP internal host talking to CnC server"; flow:to_server; iprep:dst,CnC,>,30; sid:1; rev:1;)
 
