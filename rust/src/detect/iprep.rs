@@ -147,7 +147,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseEr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_iprep_parse(
+pub unsafe extern "C" fn SCDetectIPRepParse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectIPRepData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -161,7 +161,7 @@ pub unsafe extern "C" fn rs_detect_iprep_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_iprep_free(ctx: &mut DetectIPRepData) {
+pub unsafe extern "C" fn SCDetectIPRepFree(ctx: &mut DetectIPRepData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }

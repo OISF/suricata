@@ -257,7 +257,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectIPRepData *cd = rs_detect_iprep_parse(rawstr);
+    DetectIPRepData *cd = SCDetectIPRepParse(rawstr);
     if (cd == NULL) {
         SCLogError("\"%s\" is not a valid setting for iprep", rawstr);
         goto error;
@@ -287,7 +287,7 @@ void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
     if (fd == NULL)
         return;
 
-    rs_detect_iprep_free(fd);
+    SCDetectIPRepFree(fd);
 }
 
 #ifdef UNITTESTS
