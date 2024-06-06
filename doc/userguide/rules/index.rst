@@ -35,6 +35,7 @@ Suricata Rules
    quic-keywords
    app-layer
    xbits
+   noalert
    thresholding
    ip-reputation-rules
    ipaddr
