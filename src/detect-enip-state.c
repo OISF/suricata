@@ -78,7 +78,7 @@ static int DetectEnipStateMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t
 
 {
     uint8_t value;
-    if (!ScEnipTxGetState(txv, &value))
+    if (!SCEnipTxGetState(txv, &value))
         SCReturnInt(0);
     const DetectU8Data *du8 = (const DetectU8Data *)ctx;
     return DetectU8Match(value, du8);

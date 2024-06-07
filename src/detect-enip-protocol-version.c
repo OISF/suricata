@@ -79,7 +79,7 @@ static int DetectEnipProtocolVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *
 
 {
     uint16_t value;
-    if (!ScEnipTxGetProtocolVersion(txv, flags, &value))
+    if (!SCEnipTxGetProtocolVersion(txv, flags, &value))
         SCReturnInt(0);
     const DetectU16Data *du16 = (const DetectU16Data *)ctx;
     return DetectU16Match(value, du16);

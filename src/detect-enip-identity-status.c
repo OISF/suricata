@@ -78,7 +78,7 @@ static int DetectEnipIdentityStatusMatch(DetectEngineThreadCtx *det_ctx, Flow *f
 
 {
     uint16_t value;
-    if (!ScEnipTxGetIdentityStatus(txv, &value))
+    if (!SCEnipTxGetIdentityStatus(txv, &value))
         SCReturnInt(0);
     const DetectU16Data *du16 = (const DetectU16Data *)ctx;
     return DetectU16Match(value, du16);
