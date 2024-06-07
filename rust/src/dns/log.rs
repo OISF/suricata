@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -652,6 +652,96 @@ fn dns_log_json_answer(
     Ok(())
 }
 
+fn dns_log_json_answers(
+    jb: &mut JsonBuilder, response: &DNSMessage, flags: u64,
+) -> Result<(), JsonError> {
+    if !response.answers.is_empty() {
+        let mut js_answers = JsonBuilder::try_new_array()?;
+
+        // For grouped answers we use a HashMap keyed by the rrtype.
+        let mut answer_types = HashMap::new();
+
+        for answer in &response.answers {
+            if flags & LOG_FORMAT_GROUPED != 0 {
+                let type_string = dns_rrtype_string(answer.rrtype);
+                match &answer.data {
+                    DNSRData::A(addr) | DNSRData::AAAA(addr) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_string(&dns_print_addr(addr))?;
+                        }
+                    }
+                    DNSRData::CNAME(bytes)
+                    | DNSRData::MX(bytes)
+                    | DNSRData::NS(bytes)
+                    | DNSRData::TXT(bytes)
+                    | DNSRData::NULL(bytes)
+                    | DNSRData::PTR(bytes) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_string_from_bytes(bytes)?;
+                        }
+                    }
+                    DNSRData::SOA(soa) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_object(&dns_log_soa(soa)?)?;
+                        }
+                    }
+                    DNSRData::SSHFP(sshfp) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_object(&dns_log_sshfp(sshfp)?)?;
+                        }
+                    }
+                    DNSRData::SRV(srv) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_object(&dns_log_srv(srv)?)?;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if flags & LOG_FORMAT_DETAILED != 0 {
+                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
+            }
+        }
+
+        js_answers.close()?;
+
+        if flags & LOG_FORMAT_DETAILED != 0 {
+            jb.set_object("answers", &js_answers)?;
+        }
+
+        if flags & LOG_FORMAT_GROUPED != 0 {
+            jb.open_object("grouped")?;
+            for (k, mut v) in answer_types.drain() {
+                v.close()?;
+                jb.set_object(&k, &v)?;
+            }
+            jb.close()?;
+        }
+    }
+    Ok(())
+}
+
 fn dns_log_query(
     tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
 ) -> Result<bool, JsonError> {
@@ -755,9 +845,27 @@ fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result
         jb.close()?;
     }
 
+    // For now, stop logging if a request to limit changes from 7.0
+    // behavior. But revisit as it could be useful to log this data
+    // when its part of a request.
+    if tx.is_request() {
+        return Ok(());
+    }
+
+    if !message.answers.is_empty() {
+        dns_log_json_answers(jb, message, flags)?;
+    }
+
+    if !message.authorities.is_empty() {
+        jb.open_array("authorities")?;
+        for auth in &message.authorities {
+            let auth_detail = dns_log_json_answer_detail(auth)?;
+            jb.append_object(&auth_detail)?;
+        }
+        jb.close()?;
+    }
+
     // TODO:
-    // - answers
-    // - authorities
     // - additionals
 
     Ok(())

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -311,16 +311,22 @@ bool AlertJsonDns(void *txptr, JsonBuilder *js)
     return r;
 }
 
-static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
+        void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
 
-    if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
-        return TM_ECODE_OK;
+    if (SCDnsTxIsRequest(txptr)) {
+        if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
+            return TM_ECODE_OK;
+        }
+    } else if (SCDnsTxIsResponse(txptr)) {
+        if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
+            return TM_ECODE_OK;
+        }
     }
 
     if (!SCDnsLogEnabled(txptr, td->dnslog_ctx->flags)) {
@@ -340,45 +346,6 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
-}
-
-static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
-{
-    SCEnter();
-
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-
-    if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
-        return TM_ECODE_OK;
-    }
-
-    if (SCDnsLogEnabled(txptr, td->dnslog_ctx->flags)) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
-        if (unlikely(jb == NULL)) {
-            return TM_ECODE_OK;
-        }
-
-        jb_open_object(jb, "dns");
-        SCDnsLogJsonAnswer(txptr, td->dnslog_ctx->flags, jb);
-        jb_close(jb);
-        OutputJsonBuilderBuffer(jb, td->ctx);
-        jb_free(jb);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
-        void *txptr, uint64_t tx_id)
-{
-    if (SCDnsTxIsRequest(txptr)) {
-        return JsonDnsLoggerToServer(tv, thread_data, p, f, alstate, txptr, tx_id);
-    } else if (SCDnsTxIsResponse(txptr)) {
-        return JsonDnsLoggerToClient(tv, thread_data, p, f, alstate, txptr, tx_id);
-    }
-    return TM_ECODE_OK;
 }
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
