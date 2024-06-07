@@ -65,6 +65,9 @@ Major changes
 - Datasets of type String now include the length of the strings to determine if the memcap value is reached.
   This may lead to memcaps being hit for older setups that didn't take that into account.
   For more details, check https://redmine.openinfosecfoundation.org/issues/3910
+- DNS logging has been modified to be more consistent across requests,
+  responses and alerts. See :doc:`DNS Logging Changes for 8.0
+  <upgrade/8.0-dns-logging-changes>`.
 
 Upgrading 6.0 to 7.0
 --------------------
