@@ -1,0 +1,260 @@
+:orphan: Document not referenced in a toctree, so add this.
+
+DNS EVE Logging Changes for 8.0
+===============================
+
+Suricata 8.0 modifies the DNS logging in ``dns`` and ``alert`` records
+to a version ``3`` logging format. These changes address a lack of
+fidelity in alerts for DNS responses, as well as unify the format of
+the ``dns`` object accross ``dns`` and ``alert`` objects.
+
+Ticket: https://redmine.openinfosecfoundation.org/issues/6281
+
+The changes are summarized below:
+
+* DNS requests now have a type of ``request`` instead of ``query``.
+
+* DNS responses now have a type of ``response`` instead of ``answer``.
+
+* DNS requests will now log the queries in an array instead of logging
+  multiple request events in the case where the request contained
+  multiple queries. This was already done for DNS requests logged as
+  part of an ``alert``.
+
+  .. list-table::
+     :widths: 50 50
+     :header-rows: 1
+
+     * - 7.0
+       - 8.0
+     * - .. code-block::
+
+             {
+               "event_type": "dns",
+               "dns": {
+                 "type": "query",
+                 "id": 0,
+                 "rrname": "www.suricata.io",
+                 "rrtype": "A",
+                 "tx_id": 0,
+                 "opcode": 0
+               }
+             }
+
+       - .. code-block::
+
+             {
+               "event_type": "dns",
+               "dns": {
+                 "version": 3,
+                 "type": "request",
+                 "tx_id": 0,
+                 "id": 0,
+                 "flags": "100",
+                 "rd": true,
+                 "opcode": 0,
+                 "rcode": "NOERROR",
+                 "queries": [
+                   {
+                     "rrname": "www.suricata.io",
+                     "rrtype": "A"
+                   }
+                 ]
+               }
+             }
+
+* DNS responses now log the queries in a ``queries`` array instead of
+  logging the first ``rrname`` and ``rrtype`` directly in the ``dns``
+  object.
+
+  .. list-table::
+     :header-rows: 1
+
+     * - 7.0
+       - 8.0
+     * - .. code-block::
+
+           {
+             "event_type": "dns",
+             "dns": {
+               "version": 2,
+               "type": "answer",
+               "id": 0,
+               "flags": "8180",
+               "qr": true,
+               "rd": true,
+               "ra": true,
+               "opcode": 0,
+               "rrname": "www.suricata.io",
+               "rrtype": "A",
+               "rcode": "NOERROR",
+               "answers": [
+                 {
+                   "rrname": "www.suricata.io",
+                   "rrtype": "CNAME",
+                   "ttl": 3597,
+                   "rdata": "suricata.io"
+                 },
+                 {
+                   "rrname": "suricata.io",
+                   "rrtype": "A",
+                   "ttl": 597,
+                   "rdata": "35.212.0.44"
+                 }
+               ]
+             }
+           }
+       - .. code-block::
+
+             {
+               "event_type": "dns",
+               "dns": {
+                 "version": 3,
+                 "type": "response",
+                 "tx_id": 1,
+                 "id": 0,
+                 "flags": "8180",
+                 "qr": true,
+                 "rd": true,
+                 "ra": true,
+                 "opcode": 0,
+                 "rcode": "NOERROR",
+                 "queries": [
+                   {
+                     "rrname": "www.suricata.io",
+                     "rrtype": "A"
+                   }
+                 ],
+                 "answers": [
+                   {
+                     "rrname": "www.suricata.io",
+                     "rrtype": "CNAME",
+                     "ttl": 3597,
+                     "rdata": "suricata.io"
+                   },
+                   {
+                     "rrname": "suricata.io",
+                     "rrtype": "A",
+                     "ttl": 597,
+                     "rdata": "35.212.0.44"
+                   }
+                 ],
+               }
+             }
+
+* DNS requests logged in an alert object will now log the ``answers``
+  as an array. See above 8.0 example for the format. The ``dns``
+  object is now consistent across DNS requests and responses, as well
+  as in ``alerts``.
+
+  * Example of alert on DNS request
+
+    .. list-table::
+       :header-rows: 1
+
+       * - 7.0
+         - 8.0
+       * - .. code-block::
+
+               {
+                 "event_type": "alert",
+                 "dns": {
+                   "query": [
+                     {
+                       "type": "query",
+                       "id": 0,
+                       "rrname": "www.suricata.io",
+                       "rrtype": "A",
+                       "tx_id": 0,
+                       "opcode": 0
+                     }
+                   ]
+                 }
+               }
+
+         - .. code-block::
+
+               {
+                 "event_type": "alert",
+                 "dns": {
+                   "version": 3,
+                   "type": "request",
+                   "tx_id": 0,
+                   "id": 0,
+                   "flags": "100",
+                   "rd": true,
+                   "opcode": 0,
+                   "rcode": "NOERROR",
+                   "queries": [
+                     {
+                       "rrname": "www.suricata.io",
+                       "rrtype": "A"
+                     }
+                   ]
+                 },
+               }
+
+  * Example of alert on DNS response
+  
+    .. list-table::
+      :header-rows: 1
+
+      * - 7.0
+        - 8.0
+      * - .. code-block::
+
+              {
+                "event_type": "alert",
+                "dns": {
+                  "answer": {
+                    "version": 2,
+                    "type": "answer",
+                    "id": 0,
+                    "flags": "8180",
+                    "qr": true,
+                    "rd": true,
+                    "ra": true,
+                    "opcode": 0,
+                    "rrname": "www.suricata.io",
+                    "rrtype": "A",
+                    "rcode": "NOERROR"
+                  }
+                }
+              }
+
+        - .. code-block::
+
+              {
+                "event_type": "alert",
+                "dns": {
+                  "version": 3,
+                  "type": "response",
+                  "tx_id": 1,
+                  "id": 0,
+                  "flags": "8180",
+                  "qr": true,
+                  "rd": true,
+                  "ra": true,
+                  "opcode": 0,
+                  "rcode": "NOERROR",
+                  "queries": [
+                    {
+                      "rrname": "www.suricata.io",
+                      "rrtype": "A"
+                  ],
+                  "answers": [
+                    {
+                      "rrname": "www.suricata.io",
+                      "rrtype": "CNAME",
+                      "ttl": 3597,
+                      "rdata": "suricata.io"
+                    },
+                    {
+                      "rrname": "suricata.io",
+                      "rrtype": "A",
+                      "ttl": 597,
+                      "rdata": "35.212.0.44"
+                    }
+                  ]
+                },
+              }
