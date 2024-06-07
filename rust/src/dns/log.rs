@@ -498,160 +498,6 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
     return Ok(jsa);
 }
 
-fn dns_log_json_answer(
-    js: &mut JsonBuilder, response: &DNSMessage, flags: u64,
-) -> Result<(), JsonError> {
-    let header = &response.header;
-
-    js.set_uint("version", 2)?;
-    js.set_string("type", "answer")?;
-    js.set_uint("id", header.tx_id as u64)?;
-    js.set_string("flags", format!("{:x}", header.flags).as_str())?;
-    if header.flags & 0x8000 != 0 {
-        js.set_bool("qr", true)?;
-    }
-    if header.flags & 0x0400 != 0 {
-        js.set_bool("aa", true)?;
-    }
-    if header.flags & 0x0200 != 0 {
-        js.set_bool("tc", true)?;
-    }
-    if header.flags & 0x0100 != 0 {
-        js.set_bool("rd", true)?;
-    }
-    if header.flags & 0x0080 != 0 {
-        js.set_bool("ra", true)?;
-    }
-    if header.flags & 0x0040 != 0 {
-        js.set_bool("z", true)?;
-    }
-
-    let opcode = ((header.flags >> 11) & 0xf) as u8;
-    js.set_uint("opcode", opcode as u64)?;
-
-    if let Some(query) = response.queries.first() {
-        js.set_string_from_bytes("rrname", &query.name)?;
-        js.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
-    }
-    js.set_string("rcode", &dns_rcode_string(header.flags))?;
-
-    if !response.answers.is_empty() {
-        let mut js_answers = JsonBuilder::try_new_array()?;
-
-        // For grouped answers we use a HashMap keyed by the rrtype.
-        let mut answer_types = HashMap::new();
-
-        for answer in &response.answers {
-            if flags & LOG_FORMAT_GROUPED != 0 {
-                let type_string = dns_rrtype_string(answer.rrtype);
-                match &answer.data {
-                    DNSRData::A(addr) | DNSRData::AAAA(addr) => {
-                        if !answer_types.contains_key(&type_string) {
-                            answer_types
-                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
-                        }
-                        if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string(&dns_print_addr(addr))?;
-                        }
-                    }
-                    DNSRData::CNAME(bytes)
-                    | DNSRData::MX(bytes)
-                    | DNSRData::NS(bytes)
-                    | DNSRData::TXT(bytes)
-                    | DNSRData::NULL(bytes)
-                    | DNSRData::PTR(bytes) => {
-                        if !answer_types.contains_key(&type_string) {
-                            answer_types
-                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
-                        }
-                        if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string_from_bytes(bytes)?;
-                        }
-                    }
-                    DNSRData::SOA(soa) => {
-                        if !answer_types.contains_key(&type_string) {
-                            answer_types
-                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
-                        }
-                        if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_soa(soa)?)?;
-                        }
-                    }
-                    DNSRData::SSHFP(sshfp) => {
-                        if !answer_types.contains_key(&type_string) {
-                            answer_types
-                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
-                        }
-                        if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_sshfp(sshfp)?)?;
-                        }
-                    }
-                    DNSRData::SRV(srv) => {
-                        if !answer_types.contains_key(&type_string) {
-                            answer_types
-                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
-                        }
-                        if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_object(&dns_log_srv(srv)?)?;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
-            }
-        }
-
-        js_answers.close()?;
-
-        if flags & LOG_FORMAT_DETAILED != 0 {
-            js.set_object("answers", &js_answers)?;
-        }
-
-        if flags & LOG_FORMAT_GROUPED != 0 {
-            js.open_object("grouped")?;
-            for (k, mut v) in answer_types.drain() {
-                v.close()?;
-                js.set_object(&k, &v)?;
-            }
-            js.close()?;
-        }
-    }
-
-    if !response.authorities.is_empty() {
-        js.open_array("authorities")?;
-        for auth in &response.authorities {
-            let auth_detail = dns_log_json_answer_detail(auth)?;
-            js.append_object(&auth_detail)?;
-        }
-        js.close()?;
-    }
-
-    if !response.additionals.is_empty() {
-        let mut is_js_open = false;
-        for add in &response.additionals {
-            if let DNSRData::OPT(rdata) = &add.data {
-                if rdata.is_empty() {
-                    continue;
-                }
-            }
-            if !is_js_open {
-                js.open_array("additionals")?;
-                is_js_open = true;
-            }
-            let add_detail = dns_log_json_answer_detail(add)?;
-            js.append_object(&add_detail)?;
-        }
-        if is_js_open {
-            js.close()?;
-        }
-    }
-
-    Ok(())
-}
-
 fn dns_log_json_answers(
     jb: &mut JsonBuilder, response: &DNSMessage, flags: u64,
 ) -> Result<(), JsonError> {
@@ -742,46 +588,6 @@ fn dns_log_json_answers(
     Ok(())
 }
 
-fn dns_log_query(
-    tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
-) -> Result<bool, JsonError> {
-    let index = i as usize;
-    if let Some(request) = &tx.request {
-        if index < request.queries.len() {
-            let query = &request.queries[index];
-            if dns_log_rrtype_enabled(query.rrtype, flags) {
-                jb.set_string("type", "query")?;
-                jb.set_uint("id", request.header.tx_id as u64)?;
-                jb.set_string_from_bytes("rrname", &query.name)?;
-                jb.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
-                jb.set_uint("tx_id", tx.id - 1)?;
-                if request.header.flags & 0x0040 != 0 {
-                    jb.set_bool("z", true)?;
-                }
-                let opcode = ((request.header.flags >> 11) & 0xf) as u8;
-                jb.set_uint("opcode", opcode as u64)?;
-                return Ok(true);
-            }
-        }
-    }
-
-    return Ok(false);
-}
-
-#[no_mangle]
-pub extern "C" fn SCDnsLogJsonQuery(
-    tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
-) -> bool {
-    match dns_log_query(tx, i, flags, jb) {
-        Ok(false) | Err(_) => {
-            return false;
-        }
-        Ok(true) => {
-            return true;
-        }
-    }
-}
-
 /// Common logger for DNS requests and responses.
 ///
 /// It is expected that the JsonBuilder is an open object that the DNS
@@ -865,8 +671,25 @@ fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result
         jb.close()?;
     }
 
-    // TODO:
-    // - additionals
+    if !message.additionals.is_empty() {
+        let mut is_jb_open = false;
+        for add in &message.additionals {
+            if let DNSRData::OPT(rdata) = &add.data {
+                if rdata.is_empty() {
+                    continue;
+                }
+            }
+            if !is_jb_open {
+                jb.open_array("additionals")?;
+                is_jb_open = true;
+            }
+            let add_detail = dns_log_json_answer_detail(add)?;
+            jb.append_object(&add_detail)?;
+        }
+        if is_jb_open {
+            jb.close()?;
+        }
+    }
 
     Ok(())
 }
@@ -879,20 +702,6 @@ pub extern "C" fn SCDnsLogJson(tx: &mut DNSTransaction, flags: u64, jb: &mut Jso
 
 /// Check if a DNS transaction should be logged based on the
 /// configured flags.
-#[no_mangle]
-pub extern "C" fn SCDnsLogJsonAnswer(
-    tx: &DNSTransaction, flags: u64, js: &mut JsonBuilder,
-) -> bool {
-    if let Some(response) = &tx.response {
-        for query in &response.queries {
-            if dns_log_rrtype_enabled(query.rrtype, flags) {
-                return dns_log_json_answer(js, response, flags).is_ok();
-            }
-        }
-    }
-    return false;
-}
-
 #[no_mangle]
 pub extern "C" fn SCDnsLogEnabled(tx: &DNSTransaction, flags: u64) -> bool {
     let message = if let Some(request) = &tx.request {
