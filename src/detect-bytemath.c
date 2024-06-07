@@ -219,7 +219,7 @@ static DetectByteMathData *DetectByteMathParse(
         DetectEngineCtx *de_ctx, const char *arg, char **nbytes, char **rvalue)
 {
     DetectByteMathData *bmd;
-    if ((bmd = ScByteMathParse(arg)) == NULL) {
+    if ((bmd = SCByteMathParse(arg)) == NULL) {
         SCLogError("invalid bytemath values");
         return NULL;
     }
@@ -428,7 +428,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
  */
 static void DetectByteMathFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    ScByteMathFree(ptr);
+    SCByteMathFree(ptr);
 }
 
 /**

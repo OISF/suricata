@@ -576,7 +576,7 @@ pub enum EnipFrameType {
 }
 
 export_tx_data_get!(rs_enip_get_tx_data, EnipTransaction);
-export_state_data_get!(ScEnipTxGetState_data, EnipState);
+export_state_data_get!(SCEnipTxGetState_data, EnipState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"enip\0";
@@ -609,7 +609,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<EnipState, EnipTransaction>),
         get_tx_data: rs_enip_get_tx_data,
-        get_state_data: ScEnipTxGetState_data,
+        get_state_data: SCEnipTxGetState_data,
         apply_tx_config: None,
         flags: 0,
         truncate: None,

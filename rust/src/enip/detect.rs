@@ -64,7 +64,7 @@ pub unsafe extern "C" fn SCEnipParseStatus(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetCommand(
+pub unsafe extern "C" fn SCEnipTxGetCommand(
     tx: &mut EnipTransaction, direction: u8, value: *mut u16,
 ) -> bool {
     let direction: Direction = direction.into();
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn SCEnipTxHasCipAttribute(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetStatus(
+pub unsafe extern "C" fn SCEnipTxGetStatus(
     tx: &mut EnipTransaction, direction: u8, value: *mut u32,
 ) -> bool {
     if let Some(x) = enip_get_status(tx, direction.into()) {
@@ -491,7 +491,7 @@ fn enip_tx_get_protocol_version(tx: &mut EnipTransaction, direction: Direction) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetProtocolVersion(
+pub unsafe extern "C" fn SCEnipTxGetProtocolVersion(
     tx: &mut EnipTransaction, direction: u8, value: *mut u16,
 ) -> bool {
     if let Some(val) = enip_tx_get_protocol_version(tx, direction.into()) {
@@ -502,7 +502,7 @@ pub unsafe extern "C" fn ScEnipTxGetProtocolVersion(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetCapabilities(
+pub unsafe extern "C" fn SCEnipTxGetCapabilities(
     tx: &mut EnipTransaction, value: *mut u16,
 ) -> bool {
     if let Some(ref response) = tx.response {
@@ -519,7 +519,7 @@ pub unsafe extern "C" fn ScEnipTxGetCapabilities(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetRevision(tx: &mut EnipTransaction, value: *mut u16) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetRevision(tx: &mut EnipTransaction, value: *mut u16) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn ScEnipTxGetRevision(tx: &mut EnipTransaction, value: *m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetIdentityStatus(
+pub unsafe extern "C" fn SCEnipTxGetIdentityStatus(
     tx: &mut EnipTransaction, value: *mut u16,
 ) -> bool {
     if let Some(ref response) = tx.response {
@@ -551,7 +551,7 @@ pub unsafe extern "C" fn ScEnipTxGetIdentityStatus(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetState(tx: &mut EnipTransaction, value: *mut u8) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetState(tx: &mut EnipTransaction, value: *mut u8) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -566,7 +566,7 @@ pub unsafe extern "C" fn ScEnipTxGetState(tx: &mut EnipTransaction, value: *mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetSerial(tx: &mut EnipTransaction, value: *mut u32) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetSerial(tx: &mut EnipTransaction, value: *mut u32) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn ScEnipTxGetSerial(tx: &mut EnipTransaction, value: *mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetProductCode(tx: &mut EnipTransaction, value: *mut u16) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetProductCode(tx: &mut EnipTransaction, value: *mut u16) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -596,7 +596,7 @@ pub unsafe extern "C" fn ScEnipTxGetProductCode(tx: &mut EnipTransaction, value:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetDeviceType(tx: &mut EnipTransaction, value: *mut u16) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetDeviceType(tx: &mut EnipTransaction, value: *mut u16) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -611,7 +611,7 @@ pub unsafe extern "C" fn ScEnipTxGetDeviceType(tx: &mut EnipTransaction, value: 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScEnipTxGetVendorId(tx: &mut EnipTransaction, value: *mut u16) -> bool {
+pub unsafe extern "C" fn SCEnipTxGetVendorId(tx: &mut EnipTransaction, value: *mut u16) -> bool {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {

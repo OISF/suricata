@@ -78,7 +78,7 @@ static int DetectEnipSerialMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_
 
 {
     uint32_t value;
-    if (!ScEnipTxGetSerial(txv, &value))
+    if (!SCEnipTxGetSerial(txv, &value))
         SCReturnInt(0);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     return DetectU32Match(value, du32);
