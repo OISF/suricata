@@ -83,7 +83,7 @@ static int DetectEnipStatusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_
 
 {
     uint32_t status;
-    if (!ScEnipTxGetStatus(txv, flags, &status))
+    if (!SCEnipTxGetStatus(txv, flags, &status))
         SCReturnInt(0);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     return DetectU32Match(status, du32);

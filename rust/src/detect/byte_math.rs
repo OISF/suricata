@@ -420,7 +420,7 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
 
 /// Intermediary function between the C code and the parsing functions.
 #[no_mangle]
-pub unsafe extern "C" fn ScByteMathParse(c_arg: *const c_char) -> *mut DetectByteMathData {
+pub unsafe extern "C" fn SCByteMathParse(c_arg: *const c_char) -> *mut DetectByteMathData {
     if c_arg.is_null() {
         return std::ptr::null_mut();
     }
@@ -438,7 +438,7 @@ pub unsafe extern "C" fn ScByteMathParse(c_arg: *const c_char) -> *mut DetectByt
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScByteMathFree(ptr: *mut DetectByteMathData) {
+pub unsafe extern "C" fn SCByteMathFree(ptr: *mut DetectByteMathData) {
     if !ptr.is_null() {
         let _ = Box::from_raw(ptr);
     }
