@@ -3475,6 +3475,10 @@
             "properties": {
                 "linktype": {
                     "type": "integer"
+                },
+                "linktype_name": {
+                    "type": "string",
+                    "description": "the descriptive name of the linktype"
                 }
             },
             "additionalProperties": false
