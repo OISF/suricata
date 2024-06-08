@@ -276,12 +276,190 @@ void AffinitySetupLoadFromConfig(void)
 #endif /* OS_WIN32 and __OpenBSD__ */
 }
 
+static hwloc_topology_t topology = NULL;
+
+int DeviceGetNumaID(hwloc_topology_t topology, hwloc_obj_t obj) {
+    hwloc_obj_t numa_node = NULL;
+    while ((numa_node = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_NUMANODE, numa_node)) != NULL) {
+        SCLogNotice("another numa");
+    }
+
+    hwloc_obj_t parent = obj->parent;
+    while (parent) {
+        printf("Object type: %s\n", hwloc_obj_type_string(parent->type));
+        if (parent->type == HWLOC_OBJ_NUMANODE) {
+            return parent->logical_index;
+        }
+        parent = parent->parent;
+    }
+
+    return -1;
+}
+
+// Static function to find the NUMA node of a given hwloc object
+static hwloc_obj_t find_numa_node(hwloc_topology_t topology, hwloc_obj_t obj) {
+    if (!obj) {
+        fprintf(stderr, "Invalid hwloc object.\n");
+        return NULL;
+    }
+
+    hwloc_obj_t parent = obj->parent;
+    while (parent) {
+        printf("Object type: %s\n", hwloc_obj_type_string(parent->type));
+        if (parent->type == HWLOC_PACKAGE || parent->type == HWLOC_NUMANODE) {
+            break;
+        }
+        parent = parent->parent;
+    }
+
+    if (parent == NULL) {
+        fprintf(stderr, "No parent found for the given object.\n");
+        return NULL;
+    }
+
+    // Iterate over all NUMA nodes and check if they intersect with the given object
+    hwloc_obj_t numa_node = NULL;
+    while ((numa_node = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_NUMANODE, numa_node)) != NULL) {
+        if (hwloc_bitmap_intersects(parent->cpuset, numa_node->cpuset)) {
+            return numa_node;
+        }
+    }
+
+    return NULL;
+}
+
+hwloc_obj_t find_pcie_address(hwloc_topology_t topology, const char *interface_name) {
+    hwloc_obj_t obj = NULL;
+
+    while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
+        if (obj->attr->osdev.type == HWLOC_OBJ_OSDEV_NETWORK && strcmp(obj->name, interface_name) == 0) {
+            hwloc_obj_t parent = obj->parent;
+            while (parent) {
+                if (parent->type == HWLOC_OBJ_PCI_DEVICE) {
+                    return parent;
+                }
+                parent = parent->parent;
+            }
+        }
+    }
+    return NULL;
+}
+
+// Static function to deparse PCIe interface string name to individual components
+static void deparse_pcie_address(const char *pcie_address, unsigned int *domain, unsigned int *bus, unsigned int *device, unsigned int *function) {
+    *domain = 0; // Default domain to 0 if not provided
+
+    // Handle both full and short PCIe address formats
+    if (sscanf(pcie_address, "%x:%x:%x.%x", domain, bus, device, function) != 4) {
+        if (sscanf(pcie_address, "%x:%x.%x", bus, device, function) != 3) {
+            fprintf(stderr, "Error parsing PCIe address: %s\n", pcie_address);
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+// Function to convert PCIe address to hwloc object
+hwloc_obj_t get_hwloc_object_from_pcie_address(hwloc_topology_t topology, const char *pcie_address) {
+    hwloc_obj_t obj = NULL;
+    unsigned int domain, bus, device, function;
+    deparse_pcie_address(pcie_address, &domain, &bus, &device, &function);
+    while ((obj = hwloc_get_next_pcidev(topology, obj)) != NULL) {
+        if (obj->attr->pcidev.domain == domain && obj->attr->pcidev.bus == bus && obj->attr->pcidev.dev == device && obj->attr->pcidev.func == function) {
+            return obj;
+        }
+    }
+    return NULL;
+}
+
+// Function to print hwloc object attributes
+void print_hwloc_object(hwloc_obj_t obj) {
+    if (!obj) {
+        printf("No object found for the given PCIe address.\n");
+        return;
+    }
+
+    printf("Object type: %s\n", hwloc_obj_type_string(obj->type));
+    printf("Logical index: %u\n", obj->logical_index);
+    printf("Depth: %u\n", obj->depth);
+    printf("Attributes:\n");
+    if (obj->type == HWLOC_OBJ_PCI_DEVICE) {
+        printf("  Domain: %04x\n", obj->attr->pcidev.domain);
+        printf("  Bus: %02x\n", obj->attr->pcidev.bus);
+        printf("  Device: %02x\n", obj->attr->pcidev.dev);
+        printf("  Function: %01x\n", obj->attr->pcidev.func);
+        printf("  Class ID: %04x\n", obj->attr->pcidev.class_id);
+        printf("  Vendor ID: %04x\n", obj->attr->pcidev.vendor_id);
+        printf("  Device ID: %04x\n", obj->attr->pcidev.device_id);
+        printf("  Subvendor ID: %04x\n", obj->attr->pcidev.subvendor_id);
+        printf("  Subdevice ID: %04x\n", obj->attr->pcidev.subdevice_id);
+        printf("  Revision: %02x\n", obj->attr->pcidev.revision);
+        printf("  Link speed: %f GB/s\n", obj->attr->pcidev.linkspeed);
+    } else {
+        printf("  No PCI device attributes available.\n");
+    }
+}
+
+
 /**
  * \brief Return next cpu to use for a given thread family
  * \retval the cpu to used given by its id
  */
 uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
+    if (topology == NULL) {
+        if (hwloc_topology_init(&topology) == -1) {
+            FatalError("Failed to initialize topology");
+        }
+
+        // hwloc_topology_get_flags
+
+        int ret = hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
+        ret = hwloc_topology_set_io_types_filter(topology,  HWLOC_TYPE_FILTER_KEEP_ALL);
+        if (ret == -1) {
+            FatalError("Failed to set topology flags");
+            hwloc_topology_destroy(topology);
+        }
+
+        if (hwloc_topology_load(topology) == -1) {
+            FatalError("Failed to load topology");
+            hwloc_topology_destroy(topology);
+        }
+    }
+
+    // hwloc_topology_export_xml(topology, "/tmp/hwloc_topology.xml", HWLOC_TOPOLOGY_EXPORT_XML_FLAG_V1);
+    
+
+    hwloc_obj_t obj1 = NULL;
+    // while ((obj1 = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE, obj1)) != NULL) {
+    //     // print out all attributes
+    //     if (obj1->name != NULL && strncmp(obj1->name, "ens1f0", MIN(strlen(obj1->name), strlen("ens1f0"))) == 0) {
+    //         SCLogNotice("Found PCI device: %s\n", obj1->name);
+    //         SCLogNotice("Domain: %d\n", obj1->attr->pcidev.domain);
+    //         SCLogNotice("Bus: %d\n", obj1->attr->pcidev.bus);
+    //         SCLogNotice("Dev: %d\n", obj1->attr->pcidev.dev);
+    //     }
+    //     // infos = hwloc_obj_get_info_by_name(obj1, "PCIBusID");
+    // }
+
+    obj1 = get_hwloc_object_from_pcie_address(topology, "0000:3b:00.0");
+    print_hwloc_object(obj1);
+    SCLogNotice("PCI device not found,  went over all devices");
+
+    obj1 = find_pcie_address(topology, "ens1f0");
+    if (obj1 != NULL) {
+        static char pcie_address[32];
+        snprintf(pcie_address, sizeof(pcie_address), "%04x:%02x:%02x.%x", obj1->attr->pcidev.domain, obj1->attr->pcidev.bus, obj1->attr->pcidev.dev, obj1->attr->pcidev.func);
+        SCLogNotice("PCIe addr of ens1f0 is %s with NUMA id %d or %p", pcie_address, DeviceGetNumaID(topology, obj1), find_numa_node(topology, obj1));
+    }
+    
+
+
+    // if (topology != NULL) {
+    //     int numa = get_numa_node_for_net_device(topology, "ens1f0");
+    //     FatalError("NUMA node for ens1f0: %d\n", numa);
+    // }
+    // hwloc_topology_destroy(topology);
+
     uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     int iter = 0;
@@ -307,105 +485,50 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
     return ncpu;
 }
 
-static hwloc_topology_t topology;
 
-// Function to get the NUMA node of a network device using hwloc
-int get_numa_node_for_net_device(hwloc_topology_t topology, const char *net_device) {
-    hwloc_obj_t obj = NULL;
-    char sysfs_path[256];
-    char pci_address[256];
-    FILE *fp;
+// uint16_t AffinityGetNextCPUFromNUMANode(ThreadsAffinityType *taf, int numa_node) {
+//     uint16_t ncpu = 0;
+// #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+//     int iter = 0;
+//     SCMutexLock(&taf->taf_mutex);
+//     ncpu = taf->lcpu;
 
-    // Get the PCI address of the network device
-    snprintf(sysfs_path, sizeof(sysfs_path), "/sys/class/net/%s/device/uevent", net_device);
-    fp = fopen(sysfs_path, "r");
-    if (!fp) {
-        perror("fopen");
-        return -1;
-    }
+//     // Check for CPUs within the preferred NUMA node first
+//     while (!CPU_ISSET(ncpu, &taf->cpu_set) || hwloc_get_obj_by_os_index(topology, HWLOC_OBJ_PU, ncpu)->nodeset->first != numa_node) {
+//         ncpu++;
+//         if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
+//             ncpu = 0;
+//             iter++;
+//         }
+//         if (iter >= 2) {
+//             break;
+//         }
+//     }
 
-    while (fgets(pci_address, sizeof(pci_address), fp)) {
-        if (strncmp(pci_address, "PCI_SLOT_NAME=", 14) == 0) {
-            strcpy(pci_address, pci_address + 14);
-            pci_address[strcspn(pci_address, "\n")] = '\0'; // Remove newline character
-            break;
-        }
-    }
-    fclose(fp);
+//     if (iter == 2) {
+//         // Fallback to any available CPU if no CPU found within the preferred NUMA node
+//         ncpu = taf->lcpu;
+//         while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {
+//             ncpu++;
+//             if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
+//                 ncpu = 0;
+//                 iter++;
+//             }
+//         }
+//         if (iter == 2) {
+//             SCLogError("cpu_set does not contain "
+//                        "available cpus, cpu affinity conf is invalid");
+//         }
+//     }
 
-    if (strlen(pci_address) == 0) {
-        fprintf(stderr, "Failed to get PCI address for device %s\n", net_device);
-        return -1;
-    }
-
-    // Iterate through PCI devices to find the matching one
-    while ((obj = hwloc_get_next_pcidev(topology, obj)) != NULL) {
-        char pci_name[128];
-        hwloc_obj_snprintf(pci_name, sizeof(pci_name), topology, obj, "#", 0);
-
-        if (strcmp(pci_name, pci_address) == 0) {
-            // Find the NUMA node associated with this PCI device
-            hwloc_obj_t parent = obj;
-            while (parent && parent->type != HWLOC_OBJ_NUMANODE) {
-                parent = parent->parent;
-            }
-
-            if (parent) {
-                return parent->logical_index;
-            } else {
-                fprintf(stderr, "No NUMA node found for device %s\n", net_device);
-                return -1;
-            }
-        }
-    }
-
-    fprintf(stderr, "No matching PCI device found for %s\n", net_device);
-    return -1;
-}
-
-uint16_t AffinityGetNextCPUFromNUMANode(ThreadsAffinityType *taf, int numa_node) {
-    uint16_t ncpu = 0;
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    int iter = 0;
-    SCMutexLock(&taf->taf_mutex);
-    ncpu = taf->lcpu;
-
-    // Check for CPUs within the preferred NUMA node first
-    while (!CPU_ISSET(ncpu, &taf->cpu_set) || hwloc_get_obj_by_os_index(topology, HWLOC_OBJ_PU, ncpu)->nodeset->first != numa_node) {
-        ncpu++;
-        if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
-            ncpu = 0;
-            iter++;
-        }
-        if (iter >= 2) {
-            break;
-        }
-    }
-
-    if (iter == 2) {
-        // Fallback to any available CPU if no CPU found within the preferred NUMA node
-        ncpu = taf->lcpu;
-        while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {
-            ncpu++;
-            if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
-                ncpu = 0;
-                iter++;
-            }
-        }
-        if (iter == 2) {
-            SCLogError("cpu_set does not contain "
-                       "available cpus, cpu affinity conf is invalid");
-        }
-    }
-
-    taf->lcpu = ncpu + 1;
-    if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
-        taf->lcpu = 0;
-    SCMutexUnlock(&taf->taf_mutex);
-    SCLogDebug("Setting affinity on CPU %d", ncpu);
-#endif /* OS_WIN32 and __OpenBSD__ */
-    return ncpu;
-}
+//     taf->lcpu = ncpu + 1;
+//     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
+//         taf->lcpu = 0;
+//     SCMutexUnlock(&taf->taf_mutex);
+//     SCLogDebug("Setting affinity on CPU %d", ncpu);
+// #endif /* OS_WIN32 and __OpenBSD__ */
+//     return ncpu;
+// }
 
 /**
  * \brief Return the total number of CPUs in a given affinity
