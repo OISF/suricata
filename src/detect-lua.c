@@ -523,6 +523,18 @@ static void *DetectLuaThreadInit(void *data)
         goto error;
     }
 
+    /* thread_init call */
+    lua_getglobal(t->luastate, "thread_init");
+    if (lua_isfunction(t->luastate, -1)) {
+        if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
+            SCLogError("couldn't run script 'thread_init' function: %s",
+                    lua_tostring(t->luastate, -1));
+            goto error;
+        }
+    } else {
+        lua_pop(t->luastate, 1);
+    }
+
     return (void *)t;
 
 error:
