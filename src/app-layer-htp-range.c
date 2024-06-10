@@ -131,7 +131,7 @@ static inline bool ContainerValueRangeTimeout(void *data, const SCTime_t ts)
 {
     HttpRangeContainerFile *cu = data;
     // we only timeout if we have no flow referencing us
-    if ((uint32_t)SCTIME_SECS(ts) > cu->expire || cu->error) {
+    if ((uint32_t)SCTIME_SECS(ts) >= cu->expire || cu->error) {
         if (SC_ATOMIC_GET(cu->hdata->use_cnt) == 0) {
             DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
             return true;
