@@ -276,6 +276,11 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
         HRLOCK_INIT(&ctx->array[i]);
     }
     (void)SC_ATOMIC_ADD(ctx->memuse, (ctx->config.hash_size * sizeof(THashHashRow)));
+    SCLogNotice("memuse: %" PRIu64, SC_ATOMIC_GET(ctx->memuse));
+    SCLogNotice("config->data_size: %u, thash_data_size: %" PRIu64, (ctx)->config.data_size,
+            (uint64_t)THASH_DATA_SIZE(ctx));
+    SCLogNotice("sizeof(THashHashRow): %lu", sizeof(THashHashRow));
+    SCLogNotice("memcap: %" PRIu64, ctx->config.memcap);
 
     /* pre allocate prealloc */
     for (i = 0; i < ctx->config.prealloc; i++) {
@@ -330,6 +335,7 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         ctx->config.memcap = reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP;
     }
 #endif
+    SCLogNotice("memcap: %" PRIu64, ctx->config.memcap);
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
     SC_ATOMIC_INIT(ctx->counter);
@@ -381,6 +387,7 @@ void THashShutdown(THashTableContext *ctx)
     }
     (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
+    SCLogNotice("FINAL memuse: %" PRIu64, SC_ATOMIC_GET(ctx->memuse));
     DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(ctx->memuse) != 0);
     SCFree(ctx);
 }
@@ -589,6 +596,13 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
         /* data is initialized (recycled) but *unlocked* */
         /* the recycled data was THashData and again does not include
          * the size of current data to be added */
+        SCLogNotice("memuse: %" PRIu64, SC_ATOMIC_GET(ctx->memuse));
+        SCLogNotice("config->data_size: %u, thash_data_size: %" PRIu64, (ctx)->config.data_size,
+                (uint64_t)THASH_DATA_SIZE(ctx));
+        SCLogNotice("sizeof(THashHashRow): %lu", sizeof(THashHashRow));
+        SCLogNotice("data_size: %u", data_size);
+        SCLogNotice("memuse + data_size: %" PRIu64, SC_ATOMIC_GET(ctx->memuse) + data_size);
+        SCLogNotice("memcap: %" PRIu64, ctx->config.memcap);
         if (data_size > 0) {
             /* Since it is prealloc'd data, it already has THashData in its memuse */
             (void)SC_ATOMIC_ADD(ctx->memuse, data_size);
@@ -602,6 +616,7 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
         }
     }
 
+    SCLogNotice("memuse: %" PRIu64, SC_ATOMIC_GET(ctx->memuse));
     // setup the data
     BUG_ON(ctx->config.DataSet(h->data, data) != 0);
     (void) SC_ATOMIC_ADD(ctx->counter, 1);
