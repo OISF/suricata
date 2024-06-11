@@ -634,13 +634,11 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for UDP.");
-        unsafe {
-            AppLayerParserRegisterParserAcceptableDataDirection(
-                IPPROTO_UDP,
-                ALPROTO_ENIP,
-                STREAM_TOSERVER | STREAM_TOCLIENT,
-            );
-        }
+        AppLayerParserRegisterParserAcceptableDataDirection(
+            IPPROTO_UDP,
+            ALPROTO_ENIP,
+            STREAM_TOSERVER | STREAM_TOCLIENT,
+        );
         AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_ENIP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for ENIP on UDP.");
@@ -661,13 +659,11 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for TCP.");
-        unsafe {
-            AppLayerParserRegisterParserAcceptableDataDirection(
-                IPPROTO_TCP,
-                ALPROTO_ENIP,
-                STREAM_TOSERVER | STREAM_TOCLIENT,
-            );
-        }
+        AppLayerParserRegisterParserAcceptableDataDirection(
+            IPPROTO_TCP,
+            ALPROTO_ENIP,
+            STREAM_TOSERVER | STREAM_TOCLIENT,
+        );
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_ENIP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for ENIP on TCP.");
