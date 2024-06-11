@@ -87,7 +87,7 @@ typedef struct THashData_ {
     SCMutex m;
 
     /** use cnt, reference counter */
-    SC_ATOMIC_DECLARE(unsigned int, use_cnt);
+    SC_ATOMIC_DECLARE(uint32_t, use_cnt);
 
     void *data;
 
