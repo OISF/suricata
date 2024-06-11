@@ -20,25 +20,31 @@ use nom7::combinator::{map_opt, opt, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::IResult;
 
-use std::ffi::c_void;
+use std::os::raw::{c_int, c_void};
 
-use crate::enip::constant::{EnipCommand, EnipStatus};
-use crate::enip::enip::EnipTransaction;
-use crate::enip::parser::{
+use super::constant::{EnipCommand, EnipStatus};
+use super::enip::{EnipTransaction, ALPROTO_ENIP};
+use super::parser::{
     CipData, CipDir, EnipCipRequestPayload, EnipCipResponsePayload, EnipItemPayload, EnipPayload,
     CIP_MULTIPLE_SERVICE,
 };
 
-use crate::detect::uint::{detect_match_uint, detect_parse_uint_enum, DetectUintData};
+use crate::detect::uint::{
+    detect_match_uint, detect_parse_uint_enum, rs_detect_u16_free, rs_detect_u16_match,
+    rs_detect_u16_parse, rs_detect_u32_free, rs_detect_u32_match, rs_detect_u32_parse,
+    rs_detect_u8_free, rs_detect_u8_match, rs_detect_u8_parse, DetectUintData,
+};
+use crate::detect::{
+    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+};
 
 use crate::core::Direction;
 
 use std::ffi::CStr;
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipParseCommand(
-    raw: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u16> {
+unsafe fn parse_command(raw: *const std::os::raw::c_char) -> *mut DetectUintData<u16> {
     let raw: &CStr = CStr::from_ptr(raw); //unsafe
     if let Ok(s) = raw.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u16, EnipCommand>(s) {
@@ -49,10 +55,7 @@ pub unsafe extern "C" fn SCEnipParseCommand(
     return std::ptr::null_mut();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipParseStatus(
-    raw: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u32> {
+unsafe fn parse_status(raw: *const std::os::raw::c_char) -> *mut DetectUintData<u32> {
     let raw: &CStr = CStr::from_ptr(raw); //unsafe
     if let Ok(s) = raw.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u32, EnipStatus>(s) {
@@ -61,23 +64,6 @@ pub unsafe extern "C" fn SCEnipParseStatus(
         }
     }
     return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetCommand(
-    tx: &mut EnipTransaction, direction: u8, value: *mut u16,
-) -> bool {
-    let direction: Direction = direction.into();
-    if direction == Direction::ToServer {
-        if let Some(req) = &tx.request {
-            *value = req.header.cmd;
-            return true;
-        }
-    } else if let Some(resp) = &tx.response {
-        *value = resp.header.cmd;
-        return true;
-    }
-    return false;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -126,23 +112,6 @@ fn enip_parse_cip_service(i: &str) -> IResult<&str, DetectCipServiceData> {
             attribute,
         },
     ));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipParseCipService(raw: *const std::os::raw::c_char) -> *mut c_void {
-    let raw: &CStr = CStr::from_ptr(raw); //unsafe
-    if let Ok(s) = raw.to_str() {
-        if let Ok((_, ctx)) = enip_parse_cip_service(s) {
-            let boxed = Box::new(ctx);
-            return Box::into_raw(boxed) as *mut _;
-        }
-    }
-    return std::ptr::null_mut();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipCipServiceFree(ctx: *mut c_void) {
-    std::mem::drop(Box::from_raw(ctx as *mut DetectCipServiceData));
 }
 
 fn enip_cip_has_attribute(cipdir: &CipDir, attr: u32) -> std::os::raw::c_int {
@@ -242,14 +211,6 @@ fn enip_tx_has_cip_service(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipService(
-    tx: &mut EnipTransaction, direction: u8, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectCipServiceData);
-    return enip_tx_has_cip_service(tx, direction.into(), ctx);
-}
-
 fn enip_cip_match_status(d: &CipData, ctx: &DetectUintData<u8>) -> std::os::raw::c_int {
     if let CipDir::Response(resp) = &d.cipdir {
         if detect_match_uint(ctx, resp.status) {
@@ -279,14 +240,6 @@ fn enip_tx_has_cip_status(
         }
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipStatus(
-    tx: &mut EnipTransaction, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    return enip_tx_has_cip_status(tx, ctx);
 }
 
 fn enip_cip_match_extendedstatus(d: &CipData, ctx: &DetectUintData<u16>) -> std::os::raw::c_int {
@@ -321,14 +274,6 @@ fn enip_tx_has_cip_extendedstatus(
         }
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipExtendedstatus(
-    tx: &mut EnipTransaction, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    return enip_tx_has_cip_extendedstatus(tx, ctx);
 }
 
 fn enip_get_status(tx: &mut EnipTransaction, direction: Direction) -> Option<u32> {
@@ -375,22 +320,6 @@ fn enip_tx_has_cip_segment(
         }
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipClass(
-    tx: &mut EnipTransaction, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    return enip_tx_has_cip_segment(tx, ctx, 8);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipInstance(
-    tx: &mut EnipTransaction, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    return enip_tx_has_cip_segment(tx, ctx, 9);
 }
 
 fn enip_cip_match_attribute(d: &CipData, ctx: &DetectUintData<u32>) -> std::os::raw::c_int {
@@ -443,26 +372,7 @@ fn enip_tx_has_cip_attribute(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxHasCipAttribute(
-    tx: &mut EnipTransaction, ctx: *const c_void,
-) -> std::os::raw::c_int {
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    return enip_tx_has_cip_attribute(tx, ctx);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetStatus(
-    tx: &mut EnipTransaction, direction: u8, value: *mut u32,
-) -> bool {
-    if let Some(x) = enip_get_status(tx, direction.into()) {
-        *value = x;
-        return true;
-    }
-    return false;
-}
-
-fn enip_tx_get_protocol_version(tx: &mut EnipTransaction, direction: Direction) -> Option<u16> {
+fn tx_get_protocol_version(tx: &mut EnipTransaction, direction: Direction) -> Option<u16> {
     if direction == Direction::ToServer {
         if let Some(req) = &tx.request {
             if let EnipPayload::RegisterSession(rs) = &req.payload {
@@ -490,181 +400,1305 @@ fn enip_tx_get_protocol_version(tx: &mut EnipTransaction, direction: Direction) 
     return None;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetProtocolVersion(
-    tx: &mut EnipTransaction, direction: u8, value: *mut u16,
-) -> bool {
-    if let Some(val) = enip_tx_get_protocol_version(tx, direction.into()) {
-        *value = val;
-        return true;
+static mut G_ENIP_CIPSERVICE_KW_ID: c_int = 0;
+static mut G_ENIP_CIPSERVICE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CAPABILITIES_KW_ID: c_int = 0;
+static mut G_ENIP_CAPABILITIES_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CIP_ATTRIBUTE_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_ATTRIBUTE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CIP_CLASS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_CLASS_BUFFER_ID: c_int = 0;
+static mut G_ENIP_VENDOR_ID_KW_ID: c_int = 0;
+static mut G_ENIP_VENDOR_ID_BUFFER_ID: c_int = 0;
+static mut G_ENIP_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_STATUS_BUFFER_ID: c_int = 0;
+static mut G_ENIP_STATE_KW_ID: c_int = 0;
+static mut G_ENIP_STATE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_SERIAL_KW_ID: c_int = 0;
+static mut G_ENIP_SERIAL_BUFFER_ID: c_int = 0;
+static mut G_ENIP_REVISION_KW_ID: c_int = 0;
+static mut G_ENIP_REVISION_BUFFER_ID: c_int = 0;
+static mut G_ENIP_PROTOCOL_VERSION_KW_ID: c_int = 0;
+static mut G_ENIP_PROTOCOL_VERSION_BUFFER_ID: c_int = 0;
+static mut G_ENIP_PRODUCT_CODE_KW_ID: c_int = 0;
+static mut G_ENIP_PRODUCT_CODE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_IDENTITY_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_IDENTITY_STATUS_BUFFER_ID: c_int = 0;
+static mut G_ENIP_DEVICE_TYPE_KW_ID: c_int = 0;
+static mut G_ENIP_DEVICE_TYPE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_COMMAND_KW_ID: c_int = 0;
+static mut G_ENIP_COMMAND_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CIP_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_STATUS_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CIP_INSTANCE_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_INSTANCE_BUFFER_ID: c_int = 0;
+static mut G_ENIP_CIP_EXTENDEDSTATUS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID: c_int = 0;
+static mut G_ENIP_PRODUCT_NAME_BUFFER_ID: c_int = 0;
+static mut G_ENIP_SERVICE_NAME_BUFFER_ID: c_int = 0;
+
+unsafe fn parse_cip_service(raw: *const std::os::raw::c_char) -> *mut c_void {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Ok((_, ctx)) = enip_parse_cip_service(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
     }
-    return false;
+    return std::ptr::null_mut();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetCapabilities(
-    tx: &mut EnipTransaction, value: *mut u16,
-) -> bool {
+unsafe extern "C" fn cipservice_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = parse_cip_service(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIPSERVICE_KW_ID,
+        ctx,
+        G_ENIP_CIPSERVICE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cipservice_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cipservice_free(_de: *mut c_void, ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut DetectCipServiceData));
+}
+
+unsafe extern "C" fn cipservice_match(
+    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectCipServiceData);
+    return enip_tx_has_cip_service(tx, flags.into(), ctx);
+}
+
+unsafe extern "C" fn capabilities_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CAPABILITIES_KW_ID,
+        ctx,
+        G_ENIP_CAPABILITIES_BUFFER_ID,
+    )
+    .is_null()
+    {
+        capabilities_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_capabilities(tx: &mut EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListServices(lsp) = &response.payload {
             if !lsp.is_empty() {
                 if let EnipItemPayload::Services(ls) = &lsp[0].payload {
-                    *value = ls.capabilities;
-                    return true;
+                    return Some(ls.capabilities);
                 }
             }
         }
     }
-    return false;
+    return None;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetRevision(tx: &mut EnipTransaction, value: *mut u16) -> bool {
+unsafe extern "C" fn capabilities_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(v) = tx_get_capabilities(tx) {
+        return rs_detect_u16_match(v, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn capabilities_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn cip_attribute_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIP_ATTRIBUTE_KW_ID,
+        ctx,
+        G_ENIP_CIP_ATTRIBUTE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cip_attribute_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cip_attribute_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    return enip_tx_has_cip_attribute(tx, ctx);
+}
+
+unsafe extern "C" fn cip_attribute_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
+unsafe extern "C" fn cip_class_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIP_CLASS_KW_ID,
+        ctx,
+        G_ENIP_CIP_CLASS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cip_class_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cip_class_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    return enip_tx_has_cip_segment(tx, ctx, 8);
+}
+
+unsafe extern "C" fn cip_class_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
+unsafe extern "C" fn vendor_id_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_VENDOR_ID_KW_ID,
+        ctx,
+        G_ENIP_VENDOR_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        vendor_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_vendor_id(tx: &mut EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
                 if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = ((li.revision_major as u16) << 8) | (li.revision_minor as u16);
-                    return true;
+                    return Some(li.vendor_id);
                 }
             }
         }
     }
-    return false;
+    return None;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetIdentityStatus(
-    tx: &mut EnipTransaction, value: *mut u16,
+unsafe extern "C" fn vendor_id_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_vendor_id(tx) {
+        return rs_detect_u16_match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn vendor_id_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn status_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = parse_status(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(de, s, G_ENIP_STATUS_KW_ID, ctx, G_ENIP_STATUS_BUFFER_ID).is_null() {
+        status_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn status_match(
+    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    if let Some(x) = enip_get_status(tx, flags.into()) {
+        return rs_detect_u32_match(x, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn status_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
+unsafe extern "C" fn state_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(de, s, G_ENIP_STATE_KW_ID, ctx, G_ENIP_STATE_BUFFER_ID).is_null() {
+        state_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_state(tx: &mut EnipTransaction) -> Option<u8> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(li.state);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn state_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(val) = tx_get_state(tx) {
+        return rs_detect_u8_match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn state_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    rs_detect_u8_free(ctx);
+}
+
+unsafe extern "C" fn serial_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(de, s, G_ENIP_SERIAL_KW_ID, ctx, G_ENIP_SERIAL_BUFFER_ID).is_null() {
+        serial_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_serial(tx: &mut EnipTransaction) -> Option<u32> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(li.serial);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn serial_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    if let Some(val) = tx_get_serial(tx) {
+        return rs_detect_u32_match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn serial_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
+unsafe extern "C" fn revision_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(de, s, G_ENIP_REVISION_KW_ID, ctx, G_ENIP_REVISION_BUFFER_ID)
+        .is_null()
+    {
+        revision_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_revision(tx: &mut EnipTransaction) -> Option<u16> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(((li.revision_major as u16) << 8) | (li.revision_minor as u16));
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn revision_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_revision(tx) {
+        return rs_detect_u16_match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn revision_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn protocol_version_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_PROTOCOL_VERSION_KW_ID,
+        ctx,
+        G_ENIP_PROTOCOL_VERSION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        protocol_version_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_version_match(
+    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_protocol_version(tx, flags.into()) {
+        return rs_detect_u16_match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_version_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn product_code_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_PRODUCT_CODE_KW_ID,
+        ctx,
+        G_ENIP_PRODUCT_CODE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        product_code_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_product_code(tx: &mut EnipTransaction) -> Option<u16> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(li.product_code);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn product_code_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(v) = tx_get_product_code(tx) {
+        return rs_detect_u16_match(v, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn product_code_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn identity_status_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_IDENTITY_STATUS_KW_ID,
+        ctx,
+        G_ENIP_IDENTITY_STATUS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        identity_status_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_identity_status(tx: &mut EnipTransaction) -> Option<u16> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(li.status);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn identity_status_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(v) = tx_get_identity_status(tx) {
+        return rs_detect_u16_match(v, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn identity_status_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn device_type_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_DEVICE_TYPE_KW_ID,
+        ctx,
+        G_ENIP_DEVICE_TYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        device_type_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_device_type(tx: &mut EnipTransaction) -> Option<u16> {
+    if let Some(ref response) = tx.response {
+        if let EnipPayload::ListIdentity(lip) = &response.payload {
+            if !lip.is_empty() {
+                if let EnipItemPayload::Identity(li) = &lip[0].payload {
+                    return Some(li.device_type);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn device_type_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(v) = tx_get_device_type(tx) {
+        return rs_detect_u16_match(v, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn device_type_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn command_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = parse_command(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(de, s, G_ENIP_COMMAND_KW_ID, ctx, G_ENIP_COMMAND_BUFFER_ID).is_null()
+    {
+        command_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn tx_get_command(tx: &mut EnipTransaction, direction: u8) -> Option<u16> {
+    let direction: Direction = direction.into();
+    if direction == Direction::ToServer {
+        if let Some(req) = &tx.request {
+            return Some(req.header.cmd);
+        }
+    } else if let Some(resp) = &tx.response {
+        return Some(resp.header.cmd);
+    }
+    return None;
+}
+
+unsafe extern "C" fn command_match(
+    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(v) = tx_get_command(tx, flags) {
+        return rs_detect_u16_match(v, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn command_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+unsafe extern "C" fn cip_status_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIP_STATUS_KW_ID,
+        ctx,
+        G_ENIP_CIP_STATUS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cip_status_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cip_status_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    return enip_tx_has_cip_status(tx, ctx);
+}
+
+unsafe extern "C" fn cip_status_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    rs_detect_u8_free(ctx);
+}
+
+unsafe extern "C" fn cip_instance_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIP_INSTANCE_KW_ID,
+        ctx,
+        G_ENIP_CIP_INSTANCE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cip_instance_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cip_instance_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    return enip_tx_has_cip_segment(tx, ctx, 9);
+}
+
+unsafe extern "C" fn cip_instance_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
+unsafe extern "C" fn cip_extendedstatus_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_CIP_EXTENDEDSTATUS_KW_ID,
+        ctx,
+        G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        cip_extendedstatus_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn cip_extendedstatus_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, EnipTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    return enip_tx_has_cip_extendedstatus(tx, ctx);
+}
+
+unsafe extern "C" fn cip_extendedstatus_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    rs_detect_u16_free(ctx);
+}
+
+pub unsafe extern "C" fn product_name_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_ENIP_PRODUCT_NAME_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn product_name_get(
+    tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.status;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetState(tx: &mut EnipTransaction, value: *mut u8) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.state;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetSerial(tx: &mut EnipTransaction, value: *mut u32) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.serial;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetProductCode(tx: &mut EnipTransaction, value: *mut u16) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.product_code;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetDeviceType(tx: &mut EnipTransaction, value: *mut u16) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.device_type;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetVendorId(tx: &mut EnipTransaction, value: *mut u16) -> bool {
-    if let Some(ref response) = tx.response {
-        if let EnipPayload::ListIdentity(lip) = &response.payload {
-            if !lip.is_empty() {
-                if let EnipItemPayload::Identity(li) = &lip[0].payload {
-                    *value = li.vendor_id;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetProductName(
-    tx: &EnipTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    let tx = cast_pointer!(tx, EnipTransaction);
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
                 if let EnipItemPayload::Identity(li) = &lip[0].payload {
                     *buffer = li.product_name.as_ptr();
                     *buffer_len = li.product_name.len() as u32;
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-
     *buffer = std::ptr::null();
     *buffer_len = 0;
+    return false;
+}
+
+unsafe extern "C" fn product_name_get_data(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        product_name_get,
+    );
+}
+
+pub unsafe extern "C" fn service_name_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_ENIP_SERVICE_NAME_BUFFER_ID) < 0 {
+        return -1;
+    }
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCEnipTxGetServiceName(
-    tx: &EnipTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn service_name_get(
+    tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, EnipTransaction);
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListServices(lsp) = &response.payload {
             if !lsp.is_empty() {
                 if let EnipItemPayload::Services(ls) = &lsp[0].payload {
                     *buffer = ls.service_name.as_ptr();
                     *buffer_len = ls.service_name.len() as u32;
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-
     *buffer = std::ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
+}
+
+unsafe extern "C" fn service_name_get_data(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        service_name_get,
+    );
+}
+#[no_mangle]
+pub unsafe extern "C" fn ScDetectEnipRegister() {
+    let kw = SCSigTableElmt {
+        name: b"cip_service\0".as_ptr() as *const libc::c_char,
+        desc: b"match on CIP Service, and optionnally class and attribute\0".as_ptr()
+            as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#cip_service\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cipservice_match),
+        Setup: cipservice_setup,
+        Free: Some(cipservice_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIPSERVICE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIPSERVICE_BUFFER_ID = DetectHelperBufferRegister(
+            b"cip\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.capabilities\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP capabilities\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-capabilities\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(capabilities_match),
+        Setup: capabilities_setup,
+        Free: Some(capabilities_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CAPABILITIES_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CAPABILITIES_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.capabilities\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP cip_attribute\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-cip-attribute\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cip_attribute_match),
+        Setup: cip_attribute_setup,
+        Free: Some(cip_attribute_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIP_ATTRIBUTE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.cip_class\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP cip_class\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-cip-class\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cip_class_match),
+        Setup: cip_class_setup,
+        Free: Some(cip_class_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIP_CLASS_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIP_CLASS_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.cip_class\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP vendor_id\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-vendor-id\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(vendor_id_match),
+        Setup: vendor_id_setup,
+        Free: Some(vendor_id_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_VENDOR_ID_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_VENDOR_ID_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.status\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP status\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-status\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(status_match),
+        Setup: status_setup,
+        Free: Some(status_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.status\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.state\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP state\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-state\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(state_match),
+        Setup: state_setup,
+        Free: Some(state_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_STATE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_STATE_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.state\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.serial\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP serial\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-serial\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(serial_match),
+        Setup: serial_setup,
+        Free: Some(serial_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_SERIAL_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_SERIAL_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.serial\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.revision\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP revision\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-revision\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(revision_match),
+        Setup: revision_setup,
+        Free: Some(revision_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_REVISION_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_REVISION_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.revision\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP protocol_version\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-protocol-version\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(protocol_version_match),
+        Setup: protocol_version_setup,
+        Free: Some(protocol_version_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_PROTOCOL_VERSION_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.product_code\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP product_code\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-product-code\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(product_code_match),
+        Setup: product_code_setup,
+        Free: Some(product_code_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_PRODUCT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_PRODUCT_CODE_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.product_code\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip_command\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(command_match),
+        Setup: command_setup,
+        Free: Some(command_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.command\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.identity_status\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP identity_status\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-identity-status\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(identity_status_match),
+        Setup: identity_status_setup,
+        Free: Some(identity_status_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_IDENTITY_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_IDENTITY_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.identity_status\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.device_type\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP device_type\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-device-type\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(device_type_match),
+        Setup: device_type_setup,
+        Free: Some(device_type_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_DEVICE_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_DEVICE_TYPE_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.device_type\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip_command\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(command_match),
+        Setup: command_setup,
+        Free: Some(command_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.command\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.cip_status\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP cip_status\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-cip-status\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cip_status_match),
+        Setup: cip_status_setup,
+        Free: Some(cip_status_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.cip_status\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP cip_instance\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-cip-instance\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cip_instance_match),
+        Setup: cip_instance_setup,
+        Free: Some(cip_instance_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIP_INSTANCE_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIP_INSTANCE_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
+        desc: b"rules for detecting EtherNet/IP cip_extendedstatus\0".as_ptr()
+            as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-cip-extendedstatus\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(cip_extendedstatus_match),
+        Setup: cip_extendedstatus_setup,
+        Free: Some(cip_extendedstatus_free),
+        flags: 0,
+    };
+    unsafe {
+        G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+        G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = DetectHelperBufferRegister(
+            b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.product_name\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match EtherNet/IP product name\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-product-name\0".as_ptr() as *const libc::c_char,
+        Setup: product_name_setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    unsafe {
+        let _g_enip_product_name_kw_id = DetectHelperKeywordRegister(&kw);
+        G_ENIP_PRODUCT_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+            b"enip.product_name\0".as_ptr() as *const libc::c_char,
+            b"ENIP product name\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+            product_name_get_data,
+        );
+    }
+    let kw = SCSigTableElmt {
+        name: b"enip.service_name\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match EtherNet/IP service name\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-service-name\0".as_ptr() as *const libc::c_char,
+        Setup: service_name_setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    unsafe {
+        let _g_enip_service_name_kw_id = DetectHelperKeywordRegister(&kw);
+        G_ENIP_SERVICE_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+            b"enip.service_name\0".as_ptr() as *const libc::c_char,
+            b"ENIP service name\0".as_ptr() as *const libc::c_char,
+            ALPROTO_ENIP,
+            true,
+            true,
+            service_name_get_data,
+        );
+    }
 }
 
 #[cfg(test)]
