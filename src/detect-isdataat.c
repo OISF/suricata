@@ -85,7 +85,7 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         SCLogError("unhandled value for absent keyword: %s", optstr);
         return -1;
     }
-    if (s->init_data->curbuf == NULL || s->init_data->list != s->init_data->curbuf->id) {
+    if (s->init_data->curbuf == NULL || s->init_data->list != (int)s->init_data->curbuf->id) {
         SCLogError("unspected buffer for absent keyword");
         return -1;
     }
