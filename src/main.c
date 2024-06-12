@@ -19,6 +19,14 @@
 
 int main(int argc, char **argv)
 {
+#ifdef __sparc
+    /*
+     * 'ta 6' tells the kernel to synthesize any unaligned accesses this process
+     * makes, instead of just signalling an error and terminating the process.
+     */
+    __asm("ta 6");
+#endif
+
     /* Pre-initialization tasks: initialize global context and variables. */
     SuricataPreInit(argv[0]);
 

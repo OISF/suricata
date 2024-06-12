@@ -33,7 +33,9 @@ SCEnumCharMap sc_syslog_facility_map[] = {
     { "authpriv",       LOG_AUTHPRIV },
     { "cron",           LOG_CRON },
     { "daemon",         LOG_DAEMON },
+#if defined(LOG_FTP)
     { "ftp",            LOG_FTP },
+#endif
     { "kern",           LOG_KERN },
     { "lpr",            LOG_LPR },
     { "mail",           LOG_MAIL },

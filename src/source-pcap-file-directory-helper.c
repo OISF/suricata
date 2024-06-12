@@ -302,7 +302,7 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
     PendingFile *file_to_add = NULL;
 
     while ((dir = readdir(pv->directory)) != NULL) {
-#ifndef OS_WIN32
+#if defined(DT_REG)
         if (dir->d_type != DT_REG) {
             continue;
         }
