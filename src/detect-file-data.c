@@ -403,7 +403,7 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
-        if (ffc->head == NULL) {
+        if (ffc != NULL) {
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
         }
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
