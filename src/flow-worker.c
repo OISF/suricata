@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2020 Open Information Security Foundation
+/* Copyright (C) 2016-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -166,8 +166,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
 
         if (f->proto == IPPROTO_TCP) {
             if (!(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
-                    !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) == 1 &&
-                    f->ffr != 0) {
+                    !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) && f->ffr != 0) {
                 /* read detect thread in case we're doing a reload */
                 void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
                 int cnt = FlowFinish(tv, f, fw, detect_thread);
