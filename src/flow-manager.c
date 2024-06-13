@@ -566,6 +566,7 @@ static uint32_t FlowCleanupHash(void)
             FlowWakeupFlowRecyclerThread();
         }
     }
+    DEBUG_VALIDATE_BUG_ON(local_queue.len >= 25);
     FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
     FlowWakeupFlowRecyclerThread();
 
