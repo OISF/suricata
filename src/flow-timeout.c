@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -281,14 +281,14 @@ Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSess
  *
  *  \param f *LOCKED* flow
  *
- *  \retval 0 no
- *  \retval 1 yes
+ *  \retval false no
+ *  \retval true yes
  */
-int FlowForceReassemblyNeedReassembly(Flow *f)
+bool FlowForceReassemblyNeedReassembly(Flow *f)
 {
 
     if (f == NULL || f->protoctx == NULL) {
-        SCReturnInt(0);
+        return false;
     }
 
     TcpSession *ssn = (TcpSession *)f->protoctx;
@@ -320,12 +320,12 @@ int FlowForceReassemblyNeedReassembly(Flow *f)
     /* nothing to do */
     if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE &&
         server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
-        SCReturnInt(0);
+        return false;
     }
 
     f->ffr_ts = client;
     f->ffr_tc = server;
-    SCReturnInt(1);
+    return true;
 }
 
 /**
@@ -392,7 +392,7 @@ static inline void FlowForceReassemblyForHash(void)
 
             /* in case of additional work, we pull the flow out of the
              * hash and xfer ownership to the injected packet(s) */
-            if (FlowForceReassemblyNeedReassembly(f) == 1) {
+            if (FlowForceReassemblyNeedReassembly(f)) {
                 RemoveFromHash(f, prev_f);
                 f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
                 FlowForceReassemblyForFlow(f);
