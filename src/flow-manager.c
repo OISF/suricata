@@ -175,10 +175,10 @@ again:
  *  \param f flow
  *  \param ts timestamp
  *
- *  \retval 0 not timed out
- *  \retval 1 timed out
+ *  \retval false not timed out
+ *  \retval true timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const bool emerg)
+static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const bool emerg)
 {
     uint32_t flow_times_out_at = f->timeout_at;
     if (emerg) {
@@ -190,10 +190,10 @@ static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const
 
     /* do the timeout check */
     if ((uint64_t)flow_times_out_at >= SCTIME_SECS(ts)) {
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 /** \internal
@@ -203,14 +203,14 @@ static int FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const
  *  \param ts timestamp
  *  \param counters Flow timeout counters
  *
- *  \retval 0 not timeout
- *  \retval 1 timeout (or not capture bypassed)
+ *  \retval false not timeout
+ *  \retval true timeout (or not capture bypassed)
  */
-static inline int FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
+static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
 {
 #ifdef CAPTURE_OFFLOAD
     if (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
-        return 1;
+        return true;
     }
 
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
@@ -233,22 +233,20 @@ static inline int FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters 
             }
             counters->bypassed_pkts += pkts_tosrc + pkts_todst;
             counters->bypassed_bytes += bytes_tosrc + bytes_todst;
-            return 0;
-        } else {
-            SCLogDebug("No new packet, dead flow %"PRId64"", FlowGetId(f));
-            if (f->livedev) {
-                if (FLOW_IS_IPV4(f)) {
-                    LiveDevSubBypassStats(f->livedev, 1, AF_INET);
-                } else if (FLOW_IS_IPV6(f)) {
-                    LiveDevSubBypassStats(f->livedev, 1, AF_INET6);
-                }
-            }
-            counters->bypassed_count++;
-            return 1;
+            return false;
         }
+        SCLogDebug("No new packet, dead flow %"PRId64"", FlowGetId(f));
+        if (f->livedev) {
+            if (FLOW_IS_IPV4(f)) {
+                LiveDevSubBypassStats(f->livedev, 1, AF_INET);
+            } else if (FLOW_IS_IPV6(f)) {
+                LiveDevSubBypassStats(f->livedev, 1, AF_INET6);
+            }
+        }
+        counters->bypassed_count++;
     }
 #endif /* CAPTURE_OFFLOAD */
-    return 1;
+    return true;
 }
 
 typedef struct FlowManagerTimeoutThread {
@@ -319,8 +317,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
          * be modified when we have both the flow and hash row lock */
 
         /* timeout logic goes here */
-        if (FlowManagerFlowTimeout(f, ts, next_ts, emergency) == 0) {
-
+        if (FlowManagerFlowTimeout(f, ts, next_ts, emergency) == false) {
             counters->flows_notimeout++;
 
             prev_f = f;
