@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,7 +27,7 @@
 #include "stream-tcp-private.h"
 
 void FlowForceReassemblyForFlow(Flow *f);
-int FlowForceReassemblyNeedReassembly(Flow *f);
+bool FlowForceReassemblyNeedReassembly(Flow *f);
 void FlowForceReassembly(void);
 Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
 
