@@ -378,8 +378,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
  * \param td FM timeout thread instance
  * \param f head of the evicted list
  */
-static void FlowManagerHashRowClearEvictedList(
-        FlowManagerTimeoutThread *td, Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
+static void FlowManagerHashRowClearEvictedList(FlowManagerTimeoutThread *td, Flow *f)
 {
     do {
         FLOWLOCK_WRLOCK(f);
@@ -464,7 +463,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
                 FBLOCK_UNLOCK(fb);
                 /* processed evicted list */
                 if (evicted) {
-                    FlowManagerHashRowClearEvictedList(td, evicted, ts, counters);
+                    FlowManagerHashRowClearEvictedList(td, evicted);
                 }
             } else {
                 rows_skipped++;
