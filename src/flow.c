@@ -334,7 +334,7 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
-static inline void FlowUpdateTtlTS(Flow *f, Packet *p, uint8_t ttl)
+static inline void FlowUpdateTtlTS(Flow *f, uint8_t ttl)
 {
     if (f->min_ttl_toserver == 0) {
         f->min_ttl_toserver = ttl;
@@ -344,7 +344,7 @@ static inline void FlowUpdateTtlTS(Flow *f, Packet *p, uint8_t ttl)
     f->max_ttl_toserver = MAX(f->max_ttl_toserver, ttl);
 }
 
-static inline void FlowUpdateTtlTC(Flow *f, Packet *p, uint8_t ttl)
+static inline void FlowUpdateTtlTC(Flow *f, uint8_t ttl)
 {
     if (f->min_ttl_toclient == 0) {
         f->min_ttl_toclient = ttl;
@@ -437,10 +437,10 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
-            FlowUpdateTtlTS(f, p, IPV4_GET_RAW_IPTTL(ip4h));
+            FlowUpdateTtlTS(f, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
             const IPV6Hdr *ip6h = PacketGetIPv6(p);
-            FlowUpdateTtlTS(f, p, IPV6_GET_RAW_HLIM(ip6h));
+            FlowUpdateTtlTS(f, IPV6_GET_RAW_HLIM(ip6h));
         }
     } else {
         f->tosrcpktcnt++;
@@ -461,10 +461,10 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         /* update flow's ttl fields if needed */
         if (PacketIsIPv4(p)) {
             const IPV4Hdr *ip4h = PacketGetIPv4(p);
-            FlowUpdateTtlTC(f, p, IPV4_GET_RAW_IPTTL(ip4h));
+            FlowUpdateTtlTC(f, IPV4_GET_RAW_IPTTL(ip4h));
         } else if (PacketIsIPv6(p)) {
             const IPV6Hdr *ip6h = PacketGetIPv6(p);
-            FlowUpdateTtlTC(f, p, IPV6_GET_RAW_HLIM(ip6h));
+            FlowUpdateTtlTC(f, IPV6_GET_RAW_HLIM(ip6h));
         }
     }
 
