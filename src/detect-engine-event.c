@@ -28,6 +28,8 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -56,6 +58,69 @@ static void DetectEngineEventFree (DetectEngineCtx *, void *);
 void EngineEventRegisterTests(void);
 #endif
 
+static bool PrefilterEventIsPrefilterable(const Signature *s, int smtype)
+{
+    const SigMatch *sm;
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == smtype) {
+            return true;
+        }
+    }
+    return false;
+}
+static bool PrefilterEngineEventIsPrefilterable(const Signature *s)
+{
+    return PrefilterEventIsPrefilterable(s, DETECT_ENGINE_EVENT);
+}
+
+static bool PrefilterDecodeEventIsPrefilterable(const Signature *s)
+{
+    return PrefilterEventIsPrefilterable(s, DETECT_DECODE_EVENT);
+}
+
+static void PrefilterPacketEventSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectEngineEventData *a = smctx;
+    v->u8[0] = PREFILTER_U8HASH_MODE_EQ;
+    v->u8[1] = a->event; // arg1
+    v->u8[2] = 0;        // arg2
+}
+
+static bool PrefilterPacketEventCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectEngineEventData *a = smctx;
+    DetectUintData_u8 du8;
+    du8.mode = DETECT_UINT_EQ;
+    du8.arg1 = a->event;
+    du8.arg2 = 0;
+    return PrefilterPacketU8Compare(v, &du8);
+}
+
+static void PrefilterPacketEventMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketU8HashCtx *h = pectx;
+    for (uint8_t u = 0; u < p->events.cnt; u++) {
+        const SigsArray *sa = h->array[p->events.events[u]];
+        if (sa) {
+            PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
+        }
+    }
+}
+
+static int PrefilterSetupEngineEvent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ENGINE_EVENT,
+            SIG_MASK_REQUIRE_ENGINE_EVENT, PrefilterPacketEventSet, PrefilterPacketEventCompare,
+            PrefilterPacketEventMatch);
+}
+
+static int PrefilterSetupDecodeEvent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_DECODE_EVENT,
+            SIG_MASK_REQUIRE_ENGINE_EVENT, PrefilterPacketEventSet, PrefilterPacketEventCompare,
+            PrefilterPacketEventMatch);
+}
+
 /**
  * \brief Registration function for decode-event: keyword
  */
@@ -74,11 +139,15 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = DetectEngineEventFree;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
+    sigmatch_table[DETECT_DECODE_EVENT].SupportsPrefilter = PrefilterDecodeEventIsPrefilterable;
+    sigmatch_table[DETECT_DECODE_EVENT].SetupPrefilter = PrefilterSetupDecodeEvent;
 
     sigmatch_table[DETECT_STREAM_EVENT].name = "stream-event";
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_STREAM_EVENT].SupportsPrefilter = PrefilterEngineEventIsPrefilterable;
+    sigmatch_table[DETECT_STREAM_EVENT].SetupPrefilter = PrefilterSetupEngineEvent;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
