@@ -651,13 +651,6 @@ fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result
         jb.close()?;
     }
 
-    // For now, stop logging if a request to limit changes from 7.0
-    // behavior. But revisit as it could be useful to log this data
-    // when its part of a request.
-    if tx.is_request() {
-        return Ok(());
-    }
-
     if !message.answers.is_empty() {
         dns_log_json_answers(jb, message, flags)?;
     }

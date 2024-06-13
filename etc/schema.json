@@ -1053,6 +1053,9 @@
                             "ttl": {
                                 "type": "integer"
                             },
+                            "soa": {
+                                "$ref": "#/$defs/dns.soa"
+                            },
                             "srv": {
                                 "type": "object",
                                 "properties": {
@@ -1164,6 +1167,13 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "SOA": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/dns.soa"
                             }
                         },
                         "SRV": {
@@ -6217,6 +6227,33 @@
         }
     },
     "$defs": {
+        "dns.soa": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "integer"
+                },
+                "minimum": {
+                    "type": "integer"
+                },
+                "mname": {
+                    "type": "string"
+                },
+                "refresh": {
+                    "type": "integer"
+                },
+                "retry": {
+                    "type": "integer"
+                },
+                "rname": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
         "dns.authorities": {
             "type": "array",
             "minItems": 1,
@@ -6236,31 +6273,7 @@
                         "type": "integer"
                     },
                     "soa": {
-                        "type": "object",
-                        "properties": {
-                            "expire": {
-                                "type": "integer"
-                            },
-                            "minimum": {
-                                "type": "integer"
-                            },
-                            "mname": {
-                                "type": "string"
-                            },
-                            "refresh": {
-                                "type": "integer"
-                            },
-                            "retry": {
-                                "type": "integer"
-                            },
-                            "rname": {
-                                "type": "string"
-                            },
-                            "serial": {
-                                "type": "integer"
-                            }
-                        },
-                        "additionalProperties": false
+                        "$ref": "#/$defs/dns.soa"
                     }
                 },
                 "additionalProperties": false
