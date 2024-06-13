@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -251,10 +251,23 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
 
 typedef struct FlowManagerTimeoutThread {
     /* used to temporarily store flows that have timed out and are
-     * removed from the hash */
+     * removed from the hash to reduce locking contention */
     FlowQueuePrivate aside_queue;
 } FlowManagerTimeoutThread;
 
+/**
+ * \internal
+ *
+ * \brief Process the temporary Aside Queue
+ *        This means that as long as a flow f is not waiting on detection
+ *        engine to finish dealing with it, f will be put in the recycle
+ *        queue for further processing later on.
+ *
+ * \param td FM Timeout Thread instance
+ * \param counters Flow Timeout counters to be updated
+ *
+ * \retval Number of flows that were recycled
+ */
 static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCounters *counters)
 {
     FlowQueuePrivate recycle = { NULL, NULL, 0 };
@@ -271,7 +284,7 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
             /* Send the flow to its thread */
             FlowForceReassemblyForFlow(f);
             FLOWLOCK_UNLOCK(f);
-            /* flow ownership is passed to the worker thread */
+            /* flow ownership is already passed to the worker thread */
 
             counters->flows_aside_needs_work++;
             continue;
@@ -355,6 +368,16 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
         counters->rows_maxlen = checked;
 }
 
+/**
+ * \internal
+ *
+ * \brief Clear evicted list from Flow Manager.
+ *        All the evicted flows are removed from the Flow bucket and added
+ *        to the temporary Aside Queue.
+ *
+ * \param td FM timeout thread instance
+ * \param f head of the evicted list
+ */
 static void FlowManagerHashRowClearEvictedList(
         FlowManagerTimeoutThread *td, Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
 {
@@ -431,6 +454,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
                             SC_ATOMIC_SET(fb->next_ts, next_ts);
                     }
                     if (fb->evicted == NULL && fb->head == NULL) {
+                        /* row is empty */
                         SC_ATOMIC_SET(fb->next_ts, UINT_MAX);
                     }
                 } else {
@@ -464,8 +488,19 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
 }
 
 /** \internal
+ *
  *  \brief handle timeout for a slice of hash rows
- *  If we wrap around we call FlowTimeoutHash twice */
+ *         If we wrap around we call FlowTimeoutHash twice
+ *  \param td FM timeout thread
+ *  \param ts timeout in seconds
+ *  \param hash_min lower bound of the row slice
+ *  \param hash_max upper bound of the row slice
+ *  \param counters Flow timeout counters to be passed
+ *  \param rows number of rows for this worker unit
+ *  \param pos position of the beginning of row slice in the hash table
+ *
+ *  \retval number of successfully timed out flows
+ */
 static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td, SCTime_t ts,
         const uint32_t hash_min, const uint32_t hash_max, FlowTimeoutCounters *counters,
         const uint32_t rows, uint32_t *pos)
@@ -500,8 +535,10 @@ again:
  *  \brief move all flows out of a hash row
  *
  *  \param f last flow in the hash row
+ *  \param recycle_q Flow recycle queue
+ *  \param mode emergency or not
  *
- *  \retval cnt removed out flows
+ *  \retval cnt number of flows removed from the hash and added to the recycle queue
  */
 static uint32_t FlowManagerHashRowCleanup(Flow *f, FlowQueuePrivate *recycle_q, const int mode)
 {
@@ -707,6 +744,13 @@ static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
  *  a rapid increase of the busy score, which could lead to the flow manager
  *  suddenly scanning a much larger slice of the hash leading to a burst
  *  in scan/eviction work.
+ *
+ *  \param rows number of rows for the work unit
+ *  \param mp current memcap pressure value
+ *  \param emergency emergency mode is set or not
+ *  \param wu_sleep holds value of sleep time per worker unit
+ *  \param wu_rows holds value of calculated rows to be processed per second
+ *  \param rows_sec same as wu_rows, only used for counter updates
  */
 static void GetWorkUnitSizing(const uint32_t rows, const uint32_t mp, const bool emergency,
         uint64_t *wu_sleep, uint32_t *wu_rows, uint32_t *rows_sec)
