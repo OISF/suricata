@@ -1018,12 +1018,6 @@
                 "rd": {
                     "type": "boolean"
                 },
-                "rrname": {
-                    "type": "string"
-                },
-                "rrtype": {
-                    "type": "string"
-                },
                 "tx_id": {
                     "type": "integer"
                 },
@@ -1110,77 +1104,15 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
                             "rrname": {
                                 "type": "string"
                             },
                             "rrtype": {
                                 "type": "string"
-                            },
-                            "tx_id": {
-                                "type": "integer"
-                            },
-                            "type": {
-                                "type": "string"
-                            },
-                            "z": {
-                                "type": "boolean"
-                            },
-                            "opcode": {
-                                "description": "DNS opcode as an integer",
-                                "type": "integer"
                             }
                         },
                         "additionalProperties": false
                     }
-                },
-                "answer": {
-                    "type": "object",
-                    "properties": {
-                        "flags": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "integer"
-                        },
-                        "qr": {
-                            "type": "boolean"
-                        },
-                        "ra": {
-                            "type": "boolean"
-                        },
-                        "rcode": {
-                            "type": "string"
-                        },
-                        "rd": {
-                            "type": "boolean"
-                        },
-                        "rrname": {
-                            "type": "string"
-                        },
-                        "rrtype": {
-                            "type": "string"
-                        },
-                        "type": {
-                            "type": "string"
-                        },
-                        "version": {
-                            "type": "integer"
-                        },
-                        "opcode": {
-                            "description": "DNS opcode as an integer",
-                            "type": "integer"
-                        },
-                        "authorities": {
-                            "$ref": "#/$defs/dns.authorities"
-                        },
-                        "additionals": {
-                            "$ref": "#/$defs/dns.additionals"
-                        }
-                    },
-                    "additionalProperties": false
                 },
                 "grouped": {
                     "type": "object",
