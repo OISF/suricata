@@ -28,6 +28,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -56,6 +57,67 @@ static void DetectEngineEventFree (DetectEngineCtx *, void *);
 void EngineEventRegisterTests(void);
 #endif
 
+static bool PrefilterEventIsPrefilterable(const Signature *s, int smtype)
+{
+    const SigMatch *sm;
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ENGINE_EVENT:
+                return true;
+        }
+    }
+    return false;
+}
+static bool PrefilterEngineEventIsPrefilterable(const Signature *s)
+{
+    return PrefilterEventIsPrefilterable(s, DETECT_ENGINE_EVENT);
+}
+
+static bool PrefilterDecodeEventIsPrefilterable(const Signature *s)
+{
+    return PrefilterEventIsPrefilterable(s, DETECT_DECODE_EVENT);
+}
+
+static void PrefilterPacketEventSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectEngineEventData *a = smctx;
+    v->u8[0] = a->event;
+}
+
+static bool PrefilterPacketEventCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectEngineEventData *a = smctx;
+    return (v.u8[0] == a->event);
+}
+
+static void PrefilterPacketEventMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
+        return;
+
+    DetectEngineEventData de;
+    de.event = ctx->v1.u8[0];
+
+    if (ENGINE_ISSET_EVENT(p, de.event)) {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static int PrefilterSetupEngineEvent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ENGINE_EVENT,
+            SIG_MASK_REQUIRE_ENGINE_EVENT, PrefilterPacketEventSet, PrefilterPacketEventCompare,
+            PrefilterPacketEventMatch);
+}
+
+static int PrefilterSetupDecodeEvent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_DECODE_EVENT,
+            SIG_MASK_REQUIRE_ENGINE_EVENT, PrefilterPacketEventSet, PrefilterPacketEventCompare,
+            PrefilterPacketEventMatch);
+}
+
 /**
  * \brief Registration function for decode-event: keyword
  */
@@ -68,17 +130,23 @@ void DetectEngineEventRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
 #endif
+    sigmatch_table[DETECT_ENGINE_EVENT].SupportsPrefilter = PrefilterEngineEventIsPrefilterable;
+    sigmatch_table[DETECT_ENGINE_EVENT].SetupPrefilter = PrefilterSetupEngineEvent;
 
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = DetectEngineEventFree;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
+    sigmatch_table[DETECT_DECODE_EVENT].SupportsPrefilter = PrefilterDecodeEventIsPrefilterable;
+    sigmatch_table[DETECT_DECODE_EVENT].SetupPrefilter = PrefilterSetupDecodeEvent;
 
     sigmatch_table[DETECT_STREAM_EVENT].name = "stream-event";
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_STREAM_EVENT].SupportsPrefilter = PrefilterEngineEventIsPrefilterable;
+    sigmatch_table[DETECT_STREAM_EVENT].SetupPrefilter = PrefilterSetupEngineEvent;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
