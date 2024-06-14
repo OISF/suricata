@@ -69,8 +69,6 @@ pub struct IsakmpHeader {
 
 pub struct IsakmpPayloadHeader {
     pub next_payload: u8,
-    pub reserved: u8,
-    pub payload_length: u16,
 }
 
 pub struct IsakmpPayload<'a> {
@@ -83,24 +81,16 @@ pub struct IsakmpPayload<'a> {
 // 1 -> Security Association
 pub struct SecurityAssociationPayload<'a> {
     pub domain_of_interpretation: u32,
-    pub situation: Option<&'a [u8]>,
     pub data: Option<&'a [u8]>,
 }
 
 // 2 -> Proposal
 pub struct ProposalPayload<'a> {
-    pub proposal_number: u8,
-    pub proposal_type: u8,
-    pub spi_size: u8,
-    pub number_transforms: u8,
-    pub spi: &'a [u8],
     pub data: &'a [u8],
 }
 
 // 3 -> Transform
 pub struct TransformPayload<'a> {
-    pub transform_number: u8,
-    pub transform_type: u8,
     pub sa_attributes: &'a [u8],
 }
 
@@ -278,7 +268,7 @@ pub fn parse_isakmp_header(i: &[u8]) -> IResult<&[u8], IsakmpHeader> {
 pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociationPayload> {
     let start_i = i;
     let (i, domain_of_interpretation) = be_u32(i)?;
-    let (i, situation) = cond(domain_of_interpretation == 1, take(4_usize))(i)?;
+    let (i, _situation) = cond(domain_of_interpretation == 1, take(4_usize))(i)?;
     let (i, data) = cond(domain_of_interpretation == 1 && start_i.len() >= 8, |b| {
         take(start_i.len() - 8)(b)
     })(i)?;
@@ -286,7 +276,6 @@ pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociatio
         i,
         SecurityAssociationPayload {
             domain_of_interpretation,
-            situation,
             data,
         },
     ))
@@ -299,35 +288,28 @@ pub fn parse_key_exchange(i: &[u8], length: u16) -> IResult<&[u8], KeyExchangePa
 
 pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
     let start_i = i;
-    let (i, proposal_number) = be_u8(i)?;
-    let (i, proposal_type) = be_u8(i)?;
+    let (i, _proposal_number) = be_u8(i)?;
+    let (i, _proposal_type) = be_u8(i)?;
     let (i, spi_size) = be_u8(i)?;
-    let (i, number_transforms) = be_u8(i)?;
-    let (i, spi) = take(spi_size as usize)(i)?;
+    let (i, _number_transforms) = be_u8(i)?;
+    let (i, _spi) = take(spi_size as usize)(i)?;
     let (i, payload_data) = cond((start_i.len() - 4) >= spi_size.into(), |b| {
         take((start_i.len() - 4) - spi_size as usize)(b)
     })(i)?;
     let payload = ProposalPayload {
-        proposal_number,
-        proposal_type,
-        spi_size,
-        number_transforms,
-        spi,
         data: payload_data.unwrap_or_default(),
     };
     Ok((i, payload))
 }
 
 pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload> {
-    let (i, transform_number) = be_u8(i)?;
-    let (i, transform_type) = be_u8(i)?;
+    let (i, _transform_number) = be_u8(i)?;
+    let (i, _transform_type) = be_u8(i)?;
     let (i, _) = be_u16(i)?;
     let (i, payload_data) = cond(length >= 4, |b| take(length - 4)(b))(i)?;
     Ok((
         i,
         TransformPayload {
-            transform_number,
-            transform_type,
             sa_attributes: payload_data.unwrap_or_default(),
         },
     ))
@@ -487,7 +469,7 @@ pub fn parse_nonce(i: &[u8], length: u16) -> IResult<&[u8], NoncePayload> {
 pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload>> {
     fn parse_payload(i: &[u8]) -> IResult<&[u8], IsakmpPayload> {
         let (i, next_payload) = be_u8(i)?;
-        let (i, reserved) = be_u8(i)?;
+        let (i, _reserved) = be_u8(i)?;
         let (i, payload_length) = be_u16(i)?;
         let (i, payload_data) = cond(payload_length >= 4, |b| take(payload_length - 4)(b))(i)?;
         Ok((
@@ -495,8 +477,6 @@ pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload>> 
             IsakmpPayload {
                 payload_header: IsakmpPayloadHeader {
                     next_payload,
-                    reserved,
-                    payload_length,
                 },
                 data: payload_data.unwrap_or_default(),
             },
