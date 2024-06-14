@@ -2297,6 +2297,12 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
 {
     SCEnter();
 
+#ifdef UNSAFE_DUMMY_SVTEST_CONVERSION
+    // append sigstr to "test.rules"
+    FILE *f = fopen("test.rules", "a");
+    fprintf(f, "%s\n", sigstr);
+    fclose(f);
+#endif
     uint32_t oldsignum = de_ctx->signum;
     de_ctx->sigerror_ok = false;
     de_ctx->sigerror_silent = false;

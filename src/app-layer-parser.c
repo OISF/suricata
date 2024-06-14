@@ -1296,6 +1296,20 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     uint32_t consumed = input_len;
     const uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
+#ifdef UNSAFE_DUMMY_SVTEST_CONVERSION
+    FILE *tf = fopen("test.fpc", "a");
+    // header fpc to port 80
+    if (flags & STREAM_TOSERVER) {
+        fwrite("\x00", 1, 1, tf);
+    } else {
+        // s2c
+        fwrite("\x01", 1, 1, tf);
+    }
+    fwrite(input, input_len, 1, tf);
+    fwrite("FPC0", 4, 1, tf);
+    fclose(tf);
+#endif
+
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL) {
         if (f->proto == IPPROTO_TCP) {

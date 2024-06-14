@@ -38,6 +38,9 @@
 #include "util-debug.h"
 #include "util-time.h"
 #include "conf.h"
+#ifdef UNSAFE_DUMMY_SVTEST_CONVERSION
+#include "util-path.h"
+#endif
 
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
@@ -209,8 +212,45 @@ uint32_t UtRunTests(const char *regex_arg)
                 TimeModeSetOffline();
                 TimeSetToCurrentTime();
 
+#ifdef UNSAFE_DUMMY_SVTEST_CONVERSION
+                if ((chdir("lolt")) < 0) {
+                    printf("fail chdir\n");
+                    break;
+                }
+                SCDefaultMkDir(ut->name);
+                if ((chdir(ut->name)) < 0) {
+                    printf("fail chdir2\n");
+                    break;
+                }
+                remove("test.rules");
+                remove("test.fpc");
+                remove("README.md");
+                remove("test.yaml");
+                FILE *f = fopen("test.fpc", "wb");
+                // header fpc to port 80
+                fwrite("FPC\x80\x12\x34\x00\x50", 8, 1, f);
+                fclose(f);
+                f = fopen("README.md", "wb");
+                // header fpc to port 80
+                fprintf(f, "# Description\n\nTranslation of unit test %s\n", ut->name);
+                fclose(f);
+                f = fopen("test.yaml", "wb");
+                // header fpc to port 80
+                fprintf(f, "requires:\n  min-version: 8.0.0\n\n");
+                fprintf(f, "args:\n  - -k none --set stream.inline=true\n\n");
+                fprintf(f, "checks:\n  - filter:\n      count: 1\n      match:\n        "
+                           "event_type: alert\n        alert.signature_id: 1\n");
+                fclose(f);
+#endif
                 ret = ut->TestFn();
-
+#ifdef UNSAFE_DUMMY_SVTEST_CONVERSION
+                // run ../bounty/fuzzpcap/build/fpc_bin lolt/UriTestSig01/test.fpc >
+                // lolt/UriTestSig01/test.pcap
+                if ((chdir("../..")) < 0) {
+                    printf("fail chdir\n");
+                    break;
+                }
+#endif
                 if (StreamTcpMemuseCounter() != 0) {
                     printf("STREAM MEMORY IN USE %"PRIu64"\n", StreamTcpMemuseCounter());
                     ret = 0;
