@@ -174,43 +174,30 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 }
 
 #[inline]
-#[allow(clippy::type_complexity)]
-fn parse_connect_variable_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8, u8, u8, u8)> {
-    bits(tuple((
-        take_bits(1u8),
-        take_bits(1u8),
-        take_bits(1u8),
-        take_bits(2u8),
-        take_bits(1u8),
-        take_bits(1u8),
-        take_bits(1u8),
-    )))(i)
-}
-
-#[inline]
 fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
     let (i, protocol_string) = parse_mqtt_string(i)?;
     let (i, protocol_version) = be_u8(i)?;
-    let (i, flags) = parse_connect_variable_flags(i)?;
+    let (i, rawflags) = be_u8(i)?;
     let (i, keepalive) = be_u16(i)?;
     let (i, properties) = parse_properties(i, protocol_version == 5)?;
     let (i, client_id) = parse_mqtt_string(i)?;
-    let (i, will_properties) = parse_properties(i, protocol_version == 5 && flags.4 != 0)?;
-    let (i, will_topic) = cond(flags.4 != 0, parse_mqtt_string)(i)?;
-    let (i, will_message) = cond(flags.4 != 0, parse_mqtt_binary_data)(i)?;
-    let (i, username) = cond(flags.0 != 0, parse_mqtt_string)(i)?;
-    let (i, password) = cond(flags.1 != 0, parse_mqtt_binary_data)(i)?;
+    let (i, will_properties) = parse_properties(i, protocol_version == 5 && rawflags & 0x4 != 0)?;
+    let (i, will_topic) = cond(rawflags & 0x4 != 0, parse_mqtt_string)(i)?;
+    let (i, will_message) = cond(rawflags & 0x4 != 0, parse_mqtt_binary_data)(i)?;
+    let (i, username) = cond(rawflags & 0x80 != 0, parse_mqtt_string)(i)?;
+    let (i, password) = cond(rawflags & 0x40 != 0, parse_mqtt_binary_data)(i)?;
     Ok((
         i,
         MQTTConnectData {
             protocol_string,
             protocol_version,
-            username_flag: flags.0 != 0,
-            password_flag: flags.1 != 0,
-            will_retain: flags.2 != 0,
-            will_qos: flags.3,
-            will_flag: flags.4 != 0,
-            clean_session: flags.5 != 0,
+            rawflags,
+            username_flag: rawflags & 0x80 != 0,
+            password_flag: rawflags & 0x40 != 0,
+            will_retain: rawflags & 0x20 != 0,
+            will_qos: (rawflags & 0x18) >> 3,
+            will_flag: rawflags & 0x4 != 0,
+            clean_session: rawflags & 0x2 != 0,
             keepalive,
             client_id,
             will_topic,
