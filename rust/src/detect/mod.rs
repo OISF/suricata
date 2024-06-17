@@ -28,7 +28,7 @@ pub mod requires;
 pub mod tojson;
 
 use crate::core::AppProto;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -102,6 +102,44 @@ extern {
     pub fn SigMatchAppendSMToList(
         de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
+}
+
+// needed for calls to DetectAppLayerMultiRegister
+pub const SIG_FLAG_TOSERVER: u32 = 0x80000; // BIT_U32(19)
+
+extern {
+    // in detect-engine-helper.h
+    pub fn DetectHelperGetMultiData(
+        de: *mut c_void,
+        transforms: *const c_void,
+        flow: *const c_void,
+        flow_flags: u8,
+        tx: *const c_void,
+        list_id: c_int,
+        local_id: u32,
+        get_buf: unsafe extern "C" fn(*const c_void, u8, u32, *mut *const u8, *mut u32) -> bool,
+    ) -> *mut c_void;
+    // in detect-engine.h
+    pub fn DetectAppLayerMultiRegister(
+        name: *const c_char,
+        alproto: AppProto,
+        dir: u32,
+        progress: c_int,
+        get_data: unsafe extern "C" fn(
+            *mut c_void,
+            *const c_void,
+            *const c_void,
+            u8,
+            *const c_void,
+            i32,
+            u32,
+        ) -> *mut c_void,
+        priority: c_int,
+        tx_min_progress: c_int,
+    );
+    pub fn DetectBufferTypeSetDescriptionByName(name: *const c_char, desc: *const c_char);
+    pub fn DetectBufferTypeSupportsMultiInstance(name: *const c_char);
+    pub fn DetectBufferTypeGetByName(name: *const c_char) -> c_int;
 }
 
 #[cfg(test)]

@@ -103,7 +103,8 @@ static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flags, void *txv,
         int list_id, uint32_t local_id)
 {
-    return DetectHelperGetMultiData(det_ctx, transforms, _f, flags, txv, list_id, local_id, (MultiGetTxBuffer) rs_http2_tx_get_header_name);
+    return DetectHelperGetMultiData(det_ctx, transforms, _f, flags, txv, list_id, local_id,
+            (MultiGetTxBuffer)rs_http2_tx_get_header_name);
 }
 
 void DetectHttp2Register(void)

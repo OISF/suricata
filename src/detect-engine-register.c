@@ -212,23 +212,6 @@
 #include "detect-rfb-name.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
-#include "detect-mqtt-type.h"
-#include "detect-mqtt-flags.h"
-#include "detect-mqtt-qos.h"
-#include "detect-mqtt-protocol-version.h"
-#include "detect-mqtt-reason-code.h"
-#include "detect-mqtt-connect-flags.h"
-#include "detect-mqtt-connect-clientid.h"
-#include "detect-mqtt-connect-username.h"
-#include "detect-mqtt-connect-password.h"
-#include "detect-mqtt-connect-protocol-string.h"
-#include "detect-mqtt-connect-willtopic.h"
-#include "detect-mqtt-connect-willmessage.h"
-#include "detect-mqtt-connack-sessionpresent.h"
-#include "detect-mqtt-publish-topic.h"
-#include "detect-mqtt-publish-message.h"
-#include "detect-mqtt-subscribe-topic.h"
-#include "detect-mqtt-unsubscribe-topic.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
 #include "detect-quic-version.h"
@@ -691,23 +674,6 @@ void SigTableSetup(void)
     DetectRfbNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
-    DetectMQTTTypeRegister();
-    DetectMQTTFlagsRegister();
-    DetectMQTTQosRegister();
-    DetectMQTTProtocolVersionRegister();
-    DetectMQTTReasonCodeRegister();
-    DetectMQTTConnectFlagsRegister();
-    DetectMQTTConnectClientIDRegister();
-    DetectMQTTConnectUsernameRegister();
-    DetectMQTTConnectPasswordRegister();
-    DetectMQTTConnectProtocolStringRegister();
-    DetectMQTTConnectWillTopicRegister();
-    DetectMQTTConnectWillMessageRegister();
-    DetectMQTTConnackSessionPresentRegister();
-    DetectMQTTPublishTopicRegister();
-    DetectMQTTPublishMessageRegister();
-    DetectMQTTSubscribeTopicRegister();
-    DetectMQTTUnsubscribeTopicRegister();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
     DetectQuicVersionRegister();
@@ -738,12 +704,15 @@ void SigTableSetup(void)
     ScDetectDHCPRegister();
     ScDetectWebsocketRegister();
     ScDetectEnipRegister();
+    ScDetectMqttRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
 }
 
 #ifdef UNITTESTS
+#include "tests/detect-mqtt.c"
+
 void SigTableRegisterTests(void)
 {
     /* register the tests */
@@ -762,5 +731,7 @@ void SigTableRegisterTests(void)
                         sigmatch_table[i].name);
         }
     }
+    // Tests with whole mqtt signature and not just unit testing the keyword
+    MQTTProtocolVersionRegisterTests();
 }
 #endif
