@@ -433,11 +433,11 @@ pub fn http2_frames_get_header_value_vec(
                     if found == 0 {
                         vec.extend_from_slice(&block.value);
                         found = 1;
-                    } else if found == 1 {
+                    } else if found == 1 && Rc::strong_count(&block.name) <= 2 {
                         vec.extend_from_slice(&[b',', b' ']);
                         vec.extend_from_slice(&block.value);
                         found = 2;
-                    } else {
+                    } else if Rc::strong_count(&block.name) <= 2 {
                         vec.extend_from_slice(&[b',', b' ']);
                         vec.extend_from_slice(&block.value);
                     }
@@ -470,14 +470,14 @@ fn http2_frames_get_header_value<'a>(
                     if found == 0 {
                         single = Ok(&block.value);
                         found = 1;
-                    } else if found == 1 {
+                    } else if found == 1 && Rc::strong_count(&block.name) <= 2 {
                         if let Ok(s) = single {
                             vec.extend_from_slice(s);
                         }
                         vec.extend_from_slice(&[b',', b' ']);
                         vec.extend_from_slice(&block.value);
                         found = 2;
-                    } else {
+                    } else if Rc::strong_count(&block.name) <= 2 {
                         vec.extend_from_slice(&[b',', b' ']);
                         vec.extend_from_slice(&block.value);
                     }
