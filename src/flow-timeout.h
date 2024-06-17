@@ -26,9 +26,9 @@
 
 #include "stream-tcp-private.h"
 
-void FlowForceReassemblyForFlow(Flow *f);
-bool FlowForceReassemblyNeedReassembly(Flow *f);
-void FlowForceReassembly(void);
-Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
+void FlowSendToLocalThread(Flow *f);
+bool FlowNeedsReassembly(Flow *f);
+void FlowWorkToDoCleanup(void);
+Packet *FlowPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
 
 #endif /* SURICATA_FLOW_TIMEOUT_H */
