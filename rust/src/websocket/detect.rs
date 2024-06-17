@@ -287,15 +287,13 @@ pub unsafe extern "C" fn ScDetectWebsocketRegister() {
         Free: Some(websocket_detect_opcode_free),
         flags: 0,
     };
-    unsafe {
-        G_WEBSOCKET_OPCODE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_WEBSOCKET_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
-            b"websocket.opcode\0".as_ptr() as *const libc::c_char,
-            ALPROTO_WEBSOCKET,
-            true,
-            true,
-        );
-    }
+    G_WEBSOCKET_OPCODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
+        b"websocket.opcode\0".as_ptr() as *const libc::c_char,
+        ALPROTO_WEBSOCKET,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"websocket.mask\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket mask\0".as_ptr() as *const libc::c_char,
@@ -305,15 +303,13 @@ pub unsafe extern "C" fn ScDetectWebsocketRegister() {
         Free: Some(websocket_detect_mask_free),
         flags: 0,
     };
-    unsafe {
-        G_WEBSOCKET_MASK_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_WEBSOCKET_MASK_BUFFER_ID = DetectHelperBufferRegister(
-            b"websocket.mask\0".as_ptr() as *const libc::c_char,
-            ALPROTO_WEBSOCKET,
-            true,
-            true,
-        );
-    }
+    G_WEBSOCKET_MASK_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_MASK_BUFFER_ID = DetectHelperBufferRegister(
+        b"websocket.mask\0".as_ptr() as *const libc::c_char,
+        ALPROTO_WEBSOCKET,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"websocket.flags\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket flags\0".as_ptr() as *const libc::c_char,
@@ -323,15 +319,13 @@ pub unsafe extern "C" fn ScDetectWebsocketRegister() {
         Free: Some(websocket_detect_flags_free),
         flags: 0,
     };
-    unsafe {
-        G_WEBSOCKET_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_WEBSOCKET_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
-            b"websocket.flags\0".as_ptr() as *const libc::c_char,
-            ALPROTO_WEBSOCKET,
-            true,
-            true,
-        );
-    }
+    G_WEBSOCKET_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
+        b"websocket.flags\0".as_ptr() as *const libc::c_char,
+        ALPROTO_WEBSOCKET,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"websocket.payload\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket payload\0".as_ptr() as *const libc::c_char,
@@ -341,15 +335,13 @@ pub unsafe extern "C" fn ScDetectWebsocketRegister() {
         AppLayerTxMatch: None,
         Free: None,
     };
-    unsafe {
-        let _g_ws_payload_kw_id = DetectHelperKeywordRegister(&kw);
-        G_WEBSOCKET_PAYLOAD_BUFFER_ID = DetectHelperBufferMpmRegister(
-            b"websocket.payload\0".as_ptr() as *const libc::c_char,
-            b"WebSocket payload\0".as_ptr() as *const libc::c_char,
-            ALPROTO_WEBSOCKET,
-            true,
-            true,
-            websocket_detect_payload_get_data,
-        );
-    }
+    let _g_ws_payload_kw_id = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_PAYLOAD_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"websocket.payload\0".as_ptr() as *const libc::c_char,
+        b"WebSocket payload\0".as_ptr() as *const libc::c_char,
+        ALPROTO_WEBSOCKET,
+        true,
+        true,
+        websocket_detect_payload_get_data,
+    );
 }
