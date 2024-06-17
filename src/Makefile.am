@@ -241,23 +241,6 @@ noinst_HEADERS = \
 	detect-quic-version.h \
 	detect-quic-cyu-hash.h \
 	detect-quic-cyu-string.h \
-	detect-mqtt-connack-sessionpresent.h \
-	detect-mqtt-connect-clientid.h \
-	detect-mqtt-connect-flags.h \
-	detect-mqtt-connect-password.h \
-	detect-mqtt-connect-protocol-string.h \
-	detect-mqtt-connect-username.h \
-	detect-mqtt-connect-willmessage.h \
-	detect-mqtt-connect-willtopic.h \
-	detect-mqtt-flags.h \
-	detect-mqtt-protocol-version.h \
-	detect-mqtt-publish-message.h \
-	detect-mqtt-publish-topic.h \
-	detect-mqtt-qos.h \
-	detect-mqtt-reason-code.h \
-	detect-mqtt-subscribe-topic.h \
-	detect-mqtt-type.h \
-	detect-mqtt-unsubscribe-topic.h \
 	detect-msg.h \
 	detect-nfs-procedure.h \
 	detect-nfs-version.h \
@@ -842,23 +825,6 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-version.c \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \
-	detect-mqtt-connack-sessionpresent.c \
-	detect-mqtt-connect-clientid.c \
-	detect-mqtt-connect-flags.c \
-	detect-mqtt-connect-password.c \
-	detect-mqtt-connect-protocol-string.c \
-	detect-mqtt-connect-username.c \
-	detect-mqtt-connect-willmessage.c \
-	detect-mqtt-connect-willtopic.c \
-	detect-mqtt-flags.c \
-	detect-mqtt-protocol-version.c \
-	detect-mqtt-publish-message.c \
-	detect-mqtt-publish-topic.c \
-	detect-mqtt-qos.c \
-	detect-mqtt-reason-code.c \
-	detect-mqtt-subscribe-topic.c \
-	detect-mqtt-type.c \
-	detect-mqtt-unsubscribe-topic.c \
 	detect-msg.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
@@ -1213,6 +1179,7 @@ EXTRA_DIST = \
 	tests/detect-http2.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
+	tests/detect-mqtt.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \

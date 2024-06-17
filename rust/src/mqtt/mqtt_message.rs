@@ -20,6 +20,7 @@
 use crate::mqtt::mqtt_property::*;
 use crate::mqtt::parser::*;
 use std::fmt;
+use suricata_derive::EnumStringU8;
 
 #[derive(Debug)]
 pub struct MQTTMessage {
@@ -52,7 +53,7 @@ pub enum MQTTOperation {
 }
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, FromPrimitive, Debug, EnumStringU8)]
 pub enum MQTTTypeCode {
     UNASSIGNED = 0,
     CONNECT = 1,
@@ -81,32 +82,6 @@ impl MQTTTypeCode {
 impl fmt::Display for MQTTTypeCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-impl std::str::FromStr for MQTTTypeCode {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let su = s.to_uppercase();
-        let su_slice: &str = &su;
-        match su_slice {
-            "CONNECT" => Ok(MQTTTypeCode::CONNECT),
-            "CONNACK" => Ok(MQTTTypeCode::CONNACK),
-            "PUBLISH" => Ok(MQTTTypeCode::PUBLISH),
-            "PUBACK" => Ok(MQTTTypeCode::PUBACK),
-            "PUBREC" => Ok(MQTTTypeCode::PUBREC),
-            "PUBREL" => Ok(MQTTTypeCode::PUBREL),
-            "PUBCOMP" => Ok(MQTTTypeCode::PUBCOMP),
-            "SUBSCRIBE" => Ok(MQTTTypeCode::SUBSCRIBE),
-            "SUBACK" => Ok(MQTTTypeCode::SUBACK),
-            "UNSUBSCRIBE" => Ok(MQTTTypeCode::UNSUBSCRIBE),
-            "UNSUBACK" => Ok(MQTTTypeCode::UNSUBACK),
-            "PINGREQ" => Ok(MQTTTypeCode::PINGREQ),
-            "PINGRESP" => Ok(MQTTTypeCode::PINGRESP),
-            "DISCONNECT" => Ok(MQTTTypeCode::DISCONNECT),
-            "AUTH" => Ok(MQTTTypeCode::AUTH),
-            _ => Err(format!("'{}' is not a valid value for MQTTTypeCode", s)),
-        }
     }
 }
 
