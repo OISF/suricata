@@ -104,6 +104,30 @@ extern {
     pub fn SigMatchAppendSMToList(
         de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
+    // in detect-engine-helper.h
+    pub fn DetectHelperGetMultiData(
+        de: *mut c_void,
+        transforms: *const c_void,
+        flow: *const c_void,
+        flow_flags: u8,
+        tx: *const c_void,
+        list_id: c_int,
+        local_id: u32,
+        get_buf: unsafe extern "C" fn(*const c_void, u8, u32, *mut *const u8, *mut u32) -> bool,
+    ) -> *mut c_void;
+    pub fn DetectHelperMultiBufferMpmRegister(
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
+        toserver: bool,
+        get_multi_data: unsafe extern "C" fn(
+            *mut c_void,
+            *const c_void,
+            *const c_void,
+            u8,
+            *const c_void,
+            i32,
+            u32,
+        ) -> *mut c_void,
+    ) -> c_int;
 }
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
