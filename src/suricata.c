@@ -2273,14 +2273,14 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
-    /* needed by FlowForceReassembly */
+    /* needed by FlowWorkToDoCleanup */
     PacketPoolInit();
 
     /* handle graceful shutdown of the flow engine, it's helper
      * threads and the packet threads */
     FlowDisableFlowManagerThread();
     TmThreadDisableReceiveThreads();
-    FlowForceReassembly();
+    FlowWorkToDoCleanup();
     TmThreadDisablePacketThreads();
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();

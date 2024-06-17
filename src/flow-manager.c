@@ -280,9 +280,9 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
 
         if (f->proto == IPPROTO_TCP &&
                 !(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
-                !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f)) {
+                !FlowIsBypassed(f) && FlowNeedsReassembly(f)) {
             /* Send the flow to its thread */
-            FlowForceReassemblyForFlow(f);
+            FlowSendToLocalThread(f);
             FLOWLOCK_UNLOCK(f);
             /* flow ownership is already passed to the worker thread */
 
