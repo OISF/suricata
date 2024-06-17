@@ -110,6 +110,9 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
 
 /// Transform names such as "OneTwoThree" to "one_two_three".
 pub fn transform_name(in_name: &str) -> String {
+    if in_name.to_uppercase() == in_name {
+        return in_name.to_lowercase();
+    }
     let mut out = String::new();
     for (i, c) in in_name.chars().enumerate() {
         if i == 0 {
@@ -159,5 +162,7 @@ mod test {
             transform_name("UnassignedMsgType"),
             "unassigned_msg_type".to_string()
         );
+        assert_eq!(transform_name("SAMECASE"), "samecase".to_string());
+        assert_eq!(transform_name("ZFlagSet"), "z_flag_set".to_string());
     }
 }
