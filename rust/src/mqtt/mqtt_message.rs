@@ -114,6 +114,7 @@ impl std::str::FromStr for MQTTTypeCode {
 pub struct MQTTConnectData {
     pub protocol_string: String,
     pub protocol_version: u8,
+    pub rawflags: u8,
     pub username_flag: bool,
     pub password_flag: bool,
     pub will_retain: bool,
