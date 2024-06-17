@@ -175,7 +175,7 @@ impl SIPState {
                     let tx_id = tx.id;
                     sip_frames_ts(flow, &stream_slice, &request, tx_id);
                     tx.request = Some(request);
-                    if let Ok((_, req_line)) = sip_take_line(input) {
+                    if let Ok((_, req_line)) = sip_take_line(start) {
                         tx.request_line = req_line;
                     }
                     self.transactions.push_back(tx);
@@ -270,7 +270,7 @@ impl SIPState {
                     let tx_id = tx.id;
                     sip_frames_tc(flow, &stream_slice, &response, tx_id);
                     tx.response = Some(response);
-                    if let Ok((_, resp_line)) = sip_take_line(input) {
+                    if let Ok((_, resp_line)) = sip_take_line(start) {
                         tx.response_line = resp_line;
                     }
                     self.transactions.push_back(tx);
