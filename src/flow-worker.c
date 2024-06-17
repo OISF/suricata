@@ -120,7 +120,7 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
 
     /* insert a pseudo packet in the toserver direction */
     if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-        Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn);
+        Packet *p = FlowPseudoPacketGet(0, f, ssn);
         if (p != NULL) {
             PKT_SET_SRC(p, PKT_SRC_FFR);
             if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
@@ -134,7 +134,7 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
 
     /* handle toclient */
     if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-        Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn);
+        Packet *p = FlowPseudoPacketGet(1, f, ssn);
         if (p != NULL) {
             PKT_SET_SRC(p, PKT_SRC_FFR);
             p->flowflags |= FLOW_PKT_LAST_PSEUDO;
@@ -166,7 +166,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
 
         if (f->proto == IPPROTO_TCP) {
             if (!(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
-                    !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) && f->ffr != 0) {
+                    !FlowIsBypassed(f) && FlowNeedsReassembly(f) && f->ffr != 0) {
                 /* read detect thread in case we're doing a reload */
                 void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
                 int cnt = FlowFinish(tv, f, fw, detect_thread);
