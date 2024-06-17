@@ -1343,15 +1343,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cipservice_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIPSERVICE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIPSERVICE_BUFFER_ID = DetectHelperBufferRegister(
-            b"cip\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIPSERVICE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIPSERVICE_BUFFER_ID = DetectHelperBufferRegister(
+        b"cip\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.capabilities\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP capabilities\0".as_ptr() as *const libc::c_char,
@@ -1361,15 +1359,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(capabilities_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CAPABILITIES_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CAPABILITIES_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.capabilities\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CAPABILITIES_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CAPABILITIES_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.capabilities\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_attribute\0".as_ptr() as *const libc::c_char,
@@ -1379,15 +1375,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cip_attribute_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIP_ATTRIBUTE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIP_ATTRIBUTE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.cip_class\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_class\0".as_ptr() as *const libc::c_char,
@@ -1397,15 +1391,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cip_class_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIP_CLASS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIP_CLASS_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.cip_class\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIP_CLASS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_CLASS_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.cip_class\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP vendor_id\0".as_ptr() as *const libc::c_char,
@@ -1415,15 +1407,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(vendor_id_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_VENDOR_ID_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_VENDOR_ID_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_VENDOR_ID_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_VENDOR_ID_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP status\0".as_ptr() as *const libc::c_char,
@@ -1433,15 +1423,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(status_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.status\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.status\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.state\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP state\0".as_ptr() as *const libc::c_char,
@@ -1451,15 +1439,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(state_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_STATE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_STATE_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.state\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_STATE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_STATE_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.state\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.serial\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP serial\0".as_ptr() as *const libc::c_char,
@@ -1469,15 +1455,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(serial_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_SERIAL_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_SERIAL_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.serial\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_SERIAL_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_SERIAL_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.serial\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.revision\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP revision\0".as_ptr() as *const libc::c_char,
@@ -1487,15 +1471,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(revision_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_REVISION_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_REVISION_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.revision\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_REVISION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_REVISION_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.revision\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP protocol_version\0".as_ptr() as *const libc::c_char,
@@ -1505,15 +1487,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(protocol_version_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_PROTOCOL_VERSION_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_PROTOCOL_VERSION_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.product_code\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP product_code\0".as_ptr() as *const libc::c_char,
@@ -1523,15 +1503,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(product_code_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_PRODUCT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_PRODUCT_CODE_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.product_code\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_PRODUCT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_PRODUCT_CODE_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.product_code\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip_command\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
@@ -1541,15 +1519,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(command_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.command\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.command\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.identity_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP identity_status\0".as_ptr() as *const libc::c_char,
@@ -1559,15 +1535,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(identity_status_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_IDENTITY_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_IDENTITY_STATUS_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.identity_status\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_IDENTITY_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_IDENTITY_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.identity_status\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.device_type\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP device_type\0".as_ptr() as *const libc::c_char,
@@ -1577,15 +1551,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(device_type_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_DEVICE_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_DEVICE_TYPE_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.device_type\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_DEVICE_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_DEVICE_TYPE_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.device_type\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip_command\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
@@ -1595,15 +1567,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(command_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.command\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.command\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.cip_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_status\0".as_ptr() as *const libc::c_char,
@@ -1613,15 +1583,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cip_status_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.cip_status\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_STATUS_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.cip_status\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_instance\0".as_ptr() as *const libc::c_char,
@@ -1631,15 +1599,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cip_instance_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIP_INSTANCE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIP_INSTANCE_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIP_INSTANCE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_INSTANCE_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_extendedstatus\0".as_ptr()
@@ -1650,15 +1616,13 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         Free: Some(cip_extendedstatus_free),
         flags: 0,
     };
-    unsafe {
-        G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = DetectHelperBufferRegister(
-            b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-        );
-    }
+    G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = DetectHelperBufferRegister(
+        b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.product_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match EtherNet/IP product name\0".as_ptr() as *const libc::c_char,
@@ -1668,17 +1632,15 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         AppLayerTxMatch: None,
         Free: None,
     };
-    unsafe {
-        let _g_enip_product_name_kw_id = DetectHelperKeywordRegister(&kw);
-        G_ENIP_PRODUCT_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
-            b"enip.product_name\0".as_ptr() as *const libc::c_char,
-            b"ENIP product name\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-            product_name_get_data,
-        );
-    }
+    let _g_enip_product_name_kw_id = DetectHelperKeywordRegister(&kw);
+    G_ENIP_PRODUCT_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"enip.product_name\0".as_ptr() as *const libc::c_char,
+        b"ENIP product name\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+        product_name_get_data,
+    );
     let kw = SCSigTableElmt {
         name: b"enip.service_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match EtherNet/IP service name\0".as_ptr() as *const libc::c_char,
@@ -1688,17 +1650,15 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         AppLayerTxMatch: None,
         Free: None,
     };
-    unsafe {
-        let _g_enip_service_name_kw_id = DetectHelperKeywordRegister(&kw);
-        G_ENIP_SERVICE_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
-            b"enip.service_name\0".as_ptr() as *const libc::c_char,
-            b"ENIP service name\0".as_ptr() as *const libc::c_char,
-            ALPROTO_ENIP,
-            true,
-            true,
-            service_name_get_data,
-        );
-    }
+    let _g_enip_service_name_kw_id = DetectHelperKeywordRegister(&kw);
+    G_ENIP_SERVICE_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"enip.service_name\0".as_ptr() as *const libc::c_char,
+        b"ENIP service name\0".as_ptr() as *const libc::c_char,
+        ALPROTO_ENIP,
+        true,
+        true,
+        service_name_get_data,
+    );
 }
 
 #[cfg(test)]

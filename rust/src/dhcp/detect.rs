@@ -175,15 +175,13 @@ pub unsafe extern "C" fn ScDetectDHCPRegister() {
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    unsafe {
-        G_DHCP_LEASE_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_DHCP_LEASE_TIME_BUFFER_ID = DetectHelperBufferRegister(
-            b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
-            ALPROTO_DHCP,
-            true,
-            true,
-        );
-    }
+    G_DHCP_LEASE_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_LEASE_TIME_BUFFER_ID = DetectHelperBufferRegister(
+        b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DHCP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"dhcp.rebinding_time\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP rebinding time\0".as_ptr() as *const libc::c_char,
@@ -193,15 +191,13 @@ pub unsafe extern "C" fn ScDetectDHCPRegister() {
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    unsafe {
-        G_DHCP_REBINDING_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_DHCP_REBINDING_TIME_BUFFER_ID = DetectHelperBufferRegister(
-            b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
-            ALPROTO_DHCP,
-            true,
-            true,
-        );
-    }
+    G_DHCP_REBINDING_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_REBINDING_TIME_BUFFER_ID = DetectHelperBufferRegister(
+        b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DHCP,
+        true,
+        true,
+    );
     let kw = SCSigTableElmt {
         name: b"dhcp.renewal_time\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP renewal time\0".as_ptr() as *const libc::c_char,
@@ -211,13 +207,11 @@ pub unsafe extern "C" fn ScDetectDHCPRegister() {
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    unsafe {
-        G_DHCP_RENEWAL_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_DHCP_RENEWAL_TIME_BUFFER_ID = DetectHelperBufferRegister(
-            b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
-            ALPROTO_DHCP,
-            true,
-            true,
-        );
-    }
+    G_DHCP_RENEWAL_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_RENEWAL_TIME_BUFFER_ID = DetectHelperBufferRegister(
+        b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DHCP,
+        true,
+        true,
+    );
 }

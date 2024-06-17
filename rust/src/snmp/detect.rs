@@ -193,15 +193,13 @@ pub unsafe extern "C" fn ScDetectSNMPRegister() {
         Free: Some(snmp_detect_version_free),
         flags: 0,
     };
-    unsafe {
-        G_SNMP_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_SNMP_VERSION_BUFFER_ID = DetectHelperBufferRegister(
-            b"snmp.version\0".as_ptr() as *const libc::c_char,
-            ALPROTO_SNMP,
-            true,
-            true,
-        );
-    }
+    G_SNMP_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_SNMP_VERSION_BUFFER_ID = DetectHelperBufferRegister(
+        b"snmp.version\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        true,
+        true,
+    );
 
     let kw = SCSigTableElmt {
         name: b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
@@ -212,15 +210,13 @@ pub unsafe extern "C" fn ScDetectSNMPRegister() {
         Free: Some(snmp_detect_pdutype_free),
         flags: 0,
     };
-    unsafe {
-        G_SNMP_PDUTYPE_KW_ID = DetectHelperKeywordRegister(&kw);
-        G_SNMP_PDUTYPE_BUFFER_ID = DetectHelperBufferRegister(
-            b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
-            ALPROTO_SNMP,
-            true,
-            true,
-        );
-    }
+    G_SNMP_PDUTYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_SNMP_PDUTYPE_BUFFER_ID = DetectHelperBufferRegister(
+        b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        true,
+        true,
+    );
 
     let kw = SCSigTableElmt {
         name: b"snmp.usm\0".as_ptr() as *const libc::c_char,
@@ -231,17 +227,15 @@ pub unsafe extern "C" fn ScDetectSNMPRegister() {
         AppLayerTxMatch: None,
         Free: None,
     };
-    unsafe {
-        let _g_snmp_usm_kw_id = DetectHelperKeywordRegister(&kw);
-        G_SNMP_USM_BUFFER_ID = DetectHelperBufferMpmRegister(
-            b"snmp.usm\0".as_ptr() as *const libc::c_char,
-            b"SNMP USM\0".as_ptr() as *const libc::c_char,
-            ALPROTO_SNMP,
-            true,
-            true,
-            snmp_detect_usm_get_data,
-        );
-    }
+    let _g_snmp_usm_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SNMP_USM_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"snmp.usm\0".as_ptr() as *const libc::c_char,
+        b"SNMP USM\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        true,
+        true,
+        snmp_detect_usm_get_data,
+    );
 
     let kw = SCSigTableElmt {
         name: b"snmp.community\0".as_ptr() as *const libc::c_char,
@@ -253,15 +247,13 @@ pub unsafe extern "C" fn ScDetectSNMPRegister() {
         AppLayerTxMatch: None,
         Free: None,
     };
-    unsafe {
-        let _g_snmp_community_kw_id = DetectHelperKeywordRegister(&kw);
-        G_SNMP_COMMUNITY_BUFFER_ID = DetectHelperBufferMpmRegister(
-            b"snmp.community\0".as_ptr() as *const libc::c_char,
-            b"SNMP Community identifier\0".as_ptr() as *const libc::c_char,
-            ALPROTO_SNMP,
-            true,
-            true,
-            snmp_detect_community_get_data,
-        );
-    }
+    let _g_snmp_community_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SNMP_COMMUNITY_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"snmp.community\0".as_ptr() as *const libc::c_char,
+        b"SNMP Community identifier\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        true,
+        true,
+        snmp_detect_community_get_data,
+    );
 }
