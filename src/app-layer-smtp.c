@@ -1741,8 +1741,8 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
     if (!AppLayerProtoDetectPPParseConfPorts(
                 "tcp", IPPROTO_TCP, "smtp", ALPROTO_SMTP, 0, 5, NULL, SMTPServerProbingParser)) {
         // STREAM_TOSERVER means here use 25 as flow destination port
-        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "25", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER, NULL,
-                SMTPServerProbingParser);
+        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "25,465", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER,
+                NULL, SMTPServerProbingParser);
     }
 
     return 0;
