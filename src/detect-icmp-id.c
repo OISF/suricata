@@ -75,9 +75,6 @@ void DetectIcmpIdRegister (void)
 
 static inline bool GetIcmpId(Packet *p, uint16_t *id)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return false;
-
     uint16_t pid;
     if (PacketIsICMPv4(p)) {
         switch (p->icmp_s.type) {
