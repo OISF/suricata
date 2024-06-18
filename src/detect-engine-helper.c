@@ -109,9 +109,7 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id, uint32_t index,
-        bool (*GetBuf)(void *txv, const uint8_t flow_flags, uint32_t index, const uint8_t **buf,
-                uint32_t *buf_len))
+        const int list_id, uint32_t index, MultiGetTxBuffer GetBuf)
 {
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, index);
     if (buffer == NULL) {
