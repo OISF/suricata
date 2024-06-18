@@ -1506,7 +1506,7 @@
                                 "class_name": {
                                     "type": "string"
                                 },
-                                "multiple" : {
+                                "multiple": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
@@ -1628,7 +1628,7 @@
                                 "status_extended_meaning": {
                                     "type": "string"
                                 },
-                                "multiple" : {
+                                "multiple": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
