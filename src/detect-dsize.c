@@ -173,10 +173,6 @@ void DetectDsizeFree(DetectEngineCtx *de_ctx, void *de_ptr)
 static void
 PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturn;
-    }
-
     const PrefilterPacketHeaderCtx *ctx = pectx;
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
