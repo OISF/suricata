@@ -4,6 +4,7 @@ on:
   schedule:
     # Run on Monday mornings, 11AM UTC.
     - cron: '0 11 * * 1'
+  pull_request:
   # Enable push for testing when working on this file.
   #push:
   workflow_dispatch:
@@ -13,9 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 permissions: read-all
-
-env:
-  RUST_VERSION_MIN: "1.63.0"
 
 jobs:
 
@@ -160,11 +158,11 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - name: Install Minimum Supported Rust Version
         run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(awk -F '"' '/rust-version/ { print $2 }' rust/Cargo.toml.in)
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - name: Configure Suricata
         run: |
           ./scripts/bundle.sh libhtp
