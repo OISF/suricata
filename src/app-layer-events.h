@@ -74,7 +74,6 @@ static inline int AppLayerDecoderEventsIsEventSet(
     return 0;
 }
 
-void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
 void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type);
 

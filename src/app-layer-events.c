@@ -121,15 +121,6 @@ void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t e
     (*sevents)->events[(*sevents)->cnt++] = event;
 }
 
-void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)
-{
-    if (events != NULL) {
-        events->cnt = 0;
-        events->event_last_logged = 0;
-    }
-}
-
-
 void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
 {
     if (events && *events != NULL) {

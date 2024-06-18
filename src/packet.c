@@ -128,7 +128,7 @@ void PacketReinit(Packet *p)
     p->tunnel_rtv_cnt = 0;
     p->tunnel_tpr_cnt = 0;
     p->events.cnt = 0;
-    AppLayerDecoderEventsResetEvents(p->app_layer_events);
+    AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     p->next = NULL;
     p->prev = NULL;
     p->tunnel_verdicted = false;
