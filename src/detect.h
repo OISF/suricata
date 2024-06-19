@@ -957,7 +957,6 @@ typedef struct DetectEngineCtx_ {
     struct {
         uint32_t content_limit;
         uint32_t content_inspect_min_size;
-        uint32_t content_inspect_window;
     } filedata_config[ALPROTO_MAX];
 
 #ifdef PROFILE_RULES
