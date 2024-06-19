@@ -80,14 +80,11 @@ static bool PrefilterDecodeEventIsPrefilterable(const Signature *s)
 
 static void PrefilterPacketEventSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
-    const DetectEngineEventData *a = smctx;
-    v->u8[0] = a->event;
 }
 
 static bool PrefilterPacketEventCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
-    const DetectEngineEventData *a = smctx;
-    return (v.u8[0] == a->event);
+    return true;
 }
 
 static void PrefilterPacketEventMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
@@ -96,10 +93,7 @@ static void PrefilterPacketEventMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    DetectEngineEventData de;
-    de.event = ctx->v1.u8[0];
-
-    if (ENGINE_ISSET_EVENT(p, de.event)) {
+    if (p->events.cnt > 0) {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
