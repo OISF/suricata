@@ -101,15 +101,14 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     for (int i = 0; i < (int)ALPROTO_MAX; i++) {
         de_ctx->filedata_config[i].content_limit = FILEDATA_CONTENT_LIMIT;
         de_ctx->filedata_config[i].content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
-        de_ctx->filedata_config[i].content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
     }
 
     /* add protocol specific settings here */
 
     /* SMTP */
     de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
-    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size = smtp_config.content_inspect_min_size;
-    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size =
+            smtp_config.content_inspect_min_size;
 
     de_ctx->filedata_config_initialized = true;
 }
