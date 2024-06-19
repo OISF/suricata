@@ -21,7 +21,7 @@ use crate::sdp::parser::{sdp_parse_message, SdpMessage};
 use nom7::bytes::streaming::{tag, take, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
 use nom7::character::{is_alphabetic, is_alphanumeric, is_digit, is_space};
-use nom7::combinator::{map_res, opt};
+use nom7::combinator::{map, map_res, opt};
 use nom7::sequence::delimited;
 use nom7::{Err, IResult, Needed};
 use std;
@@ -38,7 +38,7 @@ pub struct Request {
     pub method: String,
     pub path: String,
     pub version: String,
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<String, Vec<String>>,
 
     pub request_line_len: u16,
     pub headers_len: u16,
@@ -95,6 +95,22 @@ fn is_header_name(b: u8) -> bool {
 
 fn is_header_value(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
+}
+
+fn expand_header_name(h: &str) -> &str {
+    match h {
+        "i" => "Call-ID",
+        "m" => "Contact",
+        "e" => "Content-Encoding",
+        "l" => "Content-Length",
+        "c" => "Content-Type",
+        "f" => "From",
+        "s" => "Subject",
+        "k" => "Supported",
+        "t" => "To",
+        "v" => "Via",
+        _ => h,
+    }
 }
 
 pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
@@ -199,7 +215,7 @@ fn hcolon(i: &[u8]) -> IResult<&[u8], char> {
 }
 
 fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
-    let (i, n) = header_name(i)?;
+    let (i, n) = map(header_name, expand_header_name)(i)?;
     let (i, _) = hcolon(i)?;
     let (i, v) = header_value(i)?;
     let (i, _) = crlf(i)?;
@@ -217,8 +233,8 @@ pub fn sip_take_line(i: &[u8]) -> IResult<&[u8], Option<String>> {
     Ok((i, Some(line.into())))
 }
 
-pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>> {
-    let mut headers_map: HashMap<String, String> = HashMap::new();
+pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, Vec<String>>> {
+    let mut headers_map: HashMap<String, Vec<String>> = HashMap::new();
     loop {
         match crlf(input) as IResult<&[u8], _> {
             Ok((_, _)) => {
@@ -229,7 +245,10 @@ pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>
             Err(Err::Incomplete(e)) => return Err(Err::Incomplete(e)),
         };
         let (rest, header) = message_header(input)?;
-        headers_map.insert(header.name, header.value);
+        headers_map
+            .entry(header.name)
+            .or_default()
+            .push(header.value);
         input = rest;
     }
 
@@ -292,7 +311,7 @@ mod tests {
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
-        assert_eq!(req.headers["Content-Length"], "0");
+        assert_eq!(req.headers["Content-Length"].first().unwrap(), "0");
     }
 
     #[test]
@@ -308,7 +327,7 @@ mod tests {
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
-        assert_eq!(req.headers["Content-Length"], "4");
+        assert_eq!(req.headers["Content-Length"].first().unwrap(), "4");
         assert_eq!(body, "ABCD".as_bytes());
     }
 
