@@ -37,6 +37,7 @@
 #include "detect-flow.h"
 #include "detect-config.h"
 #include "detect-flowbits.h"
+#include "app-layer-events.h"
 
 #include "util-port-interval-tree.h"
 #include "util-profiling.h"
@@ -410,7 +411,8 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
-    if (p->events.cnt > 0 || app_decoder_events != 0 || p->app_layer_events != NULL) {
+    if (p->events.cnt > 0 || app_decoder_events != 0 ||
+            (p->app_layer_events != NULL && p->app_layer_events->cnt)) {
         SCLogDebug("packet/flow has events set");
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
