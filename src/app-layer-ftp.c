@@ -984,6 +984,12 @@ static AppProto FTPServerProbingParser(
         // only validates FTP if client side was FTP
         // or if client side is unknown despite having received bytes
         if (memchr(input + 4, '\n', len - 4) != NULL) {
+            char srcip[46] = { 0 }, dstip[46] = { 0 };
+            if (FLOW_IS_IPV4(f)) {
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+            }
+            printf("lolftp %s:%d %s:%d\n", srcip, f->sp, dstip, f->dp);
             return ALPROTO_FTP;
         }
     }

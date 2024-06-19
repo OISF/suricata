@@ -1700,6 +1700,12 @@ static AppProto SMTPServerProbingParser(
     // so that server banner can be parsed first.
     if (f->alproto_ts == ALPROTO_SMTP) {
         if (memchr(input + 4, '\n', len - 4) != NULL) {
+            char srcip[46] = { 0 }, dstip[46] = { 0 };
+            if (FLOW_IS_IPV4(f)) {
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+            }
+            printf("lolsmtp1 %s:%d %s:%d\n", srcip, f->sp, dstip, f->dp);
             return ALPROTO_SMTP;
         }
         return ALPROTO_UNKNOWN;
@@ -1708,6 +1714,12 @@ static AppProto SMTPServerProbingParser(
     if (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN) {
         // Only validates SMTP if client side is unknown
         // despite having received bytes.
+        char srcip[46] = { 0 }, dstip[46] = { 0 };
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        }
+        printf("lolsmtp2 %s:%d %s:%d\n", srcip, f->sp, dstip, f->dp);
         r = ALPROTO_SMTP;
     }
     uint32_t offset = SCValidateDomain(input + 4, len - 4);
@@ -1715,6 +1727,12 @@ static AppProto SMTPServerProbingParser(
         return ALPROTO_FAILED;
     }
     if (r != ALPROTO_UNKNOWN && memchr(input + 4, '\n', len - 4) != NULL) {
+        char srcip[46] = { 0 }, dstip[46] = { 0 };
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        }
+        printf("lolsmtp3 %s:%d %s:%d %s\n", srcip, f->sp, dstip, f->dp, AppProtoToString(r));
         return r;
     }
     // This should not go forever because of engine limiting probing parsers.
