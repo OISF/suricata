@@ -536,9 +536,12 @@ static int SignatureCreateMask(Signature *s)
                 }
                 break;
             }
+            case DETECT_DECODE_EVENT:
+                // fallthrough
+            case DETECT_STREAM_EVENT:
+                // fallthrough
             case DETECT_AL_APP_LAYER_EVENT:
-                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
-                break;
+                // fallthrough
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
