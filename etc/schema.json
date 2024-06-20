@@ -66,6 +66,9 @@
         "payload": {
             "type": "string"
         },
+        "payload_length": {
+            "type": "integer"
+        },
         "payload_printable": {
             "type": "string"
         },
