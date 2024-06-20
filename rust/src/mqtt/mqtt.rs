@@ -142,7 +142,7 @@ impl MQTTState {
             connected: false,
             skip_request: 0,
             skip_response: 0,
-            max_msg_len: unsafe { MAX_MSG_LEN},
+            max_msg_len: unsafe { MAX_MSG_LEN },
             tx_index_completed: 0,
         }
     }
@@ -597,7 +597,14 @@ impl MQTTState {
     ) {
         let hdr = stream_slice.as_slice();
         //MQTT payload has a fixed header of 2 bytes
-        let _mqtt_hdr = Frame::new(flow, stream_slice, hdr, 2, MQTTFrameType::Header as u8, None);
+        let _mqtt_hdr = Frame::new(
+            flow,
+            stream_slice,
+            hdr,
+            2,
+            MQTTFrameType::Header as u8,
+            None,
+        );
         SCLogDebug!("mqtt_hdr Frame {:?}", _mqtt_hdr);
         let rem_length = input.header.remaining_length as usize;
         let data = &hdr[2..rem_length + 2];

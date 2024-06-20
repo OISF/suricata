@@ -242,8 +242,7 @@ fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTC
 
 #[inline]
 fn parse_publish(
-    protocol_version: u8,
-    has_id: bool,
+    protocol_version: u8, has_id: bool,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData> {
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
@@ -414,8 +413,7 @@ fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTT
 
 #[inline]
 fn parse_disconnect(
-    remaining_len: usize,
-    protocol_version: u8,
+    remaining_len: usize, protocol_version: u8,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTDisconnectData> {
     move |input: &[u8]| {
         if protocol_version < 5 {
@@ -486,11 +484,7 @@ fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
 
 #[inline]
 fn parse_remaining_message<'a>(
-    full: &'a [u8],
-    len: usize,
-    skiplen: usize,
-    header: FixedHeader,
-    message_type: MQTTTypeCode,
+    full: &'a [u8], len: usize, skiplen: usize, header: FixedHeader, message_type: MQTTTypeCode,
     protocol_version: u8,
 ) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], MQTTMessage> {
     move |input: &'a [u8]| {
@@ -632,9 +626,7 @@ fn parse_remaining_message<'a>(
 }
 
 pub fn parse_message(
-    input: &[u8],
-    protocol_version: u8,
-    max_msg_size: u32,
+    input: &[u8], protocol_version: u8, max_msg_size: u32,
 ) -> IResult<&[u8], MQTTMessage> {
     // Parse the fixed header first. This is identical across versions and can
     // be between 2 and 5 bytes long.
@@ -939,7 +931,7 @@ mod tests {
     #[test]
     fn test_parse_msgidonly_v5() {
         let buf = [
-            0x00, 0x01,   /* Message Identifier: 1 */
+            0x00, 0x01, /* Message Identifier: 1 */
             0x00, /* Reason Code: 0 */
             0x00, /* Properties */
             0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30,
