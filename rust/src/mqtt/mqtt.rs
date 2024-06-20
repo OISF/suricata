@@ -33,7 +33,7 @@ use std::ffi::CString;
 // packet in a connection. Note that there is no risk of collision with a
 // parsed packet identifier because in the protocol these are only 16 bit
 // unsigned.
-const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
+const MQTT_CONNECT_PKT_ID: u32 = u32::MAX;
 // Maximum message length in bytes. If the length of a message exceeds
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;

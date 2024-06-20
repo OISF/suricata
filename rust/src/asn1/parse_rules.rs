@@ -153,7 +153,7 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
             tag("relative_offset"),
             multispace1,
             verify(parse_i32_number, |v| {
-                *v >= -i32::from(std::u16::MAX) && *v <= i32::from(std::u16::MAX)
+                *v >= -i32::from(u16::MAX) && *v <= i32::from(u16::MAX)
             }),
         )(i)
     }
