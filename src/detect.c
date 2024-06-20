@@ -150,7 +150,13 @@ static void DetectRun(ThreadVars *th_v,
                 goto end;
             }
             const TcpSession *ssn = p->flow->protoctx;
-            if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
+            bool setting_nopayload = p->flow->alparser &&
+                                     AppLayerParserStateIssetFlag(
+                                             p->flow->alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
+                                     !(p->flags & PKT_NOPAYLOAD_INSPECTION);
+            // we may be right after disabling app-layer (ssh)
+            if (ssn &&
+                    ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0 || setting_nopayload)) {
                 // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
                 DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
                 // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
