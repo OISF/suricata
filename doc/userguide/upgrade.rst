@@ -69,6 +69,10 @@ Major changes
   responses and alerts. See :doc:`DNS Logging Changes for 8.0
   <upgrade/8.0-dns-logging-changes>`.
 
+Removals
+~~~~~~~~
+- The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+
 Upgrading 6.0 to 7.0
 --------------------
 
