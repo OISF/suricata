@@ -69,8 +69,8 @@ pub struct IsakmpHeader {
 
 pub struct IsakmpPayloadHeader {
     pub next_payload: u8,
-    pub reserved: u8,
-    pub payload_length: u16,
+    pub _reserved: u8,
+    pub _payload_length: u16,
 }
 
 pub struct IsakmpPayload<'a> {
@@ -83,24 +83,24 @@ pub struct IsakmpPayload<'a> {
 // 1 -> Security Association
 pub struct SecurityAssociationPayload<'a> {
     pub domain_of_interpretation: u32,
-    pub situation: Option<&'a [u8]>,
+    pub _situation: Option<&'a [u8]>,
     pub data: Option<&'a [u8]>,
 }
 
 // 2 -> Proposal
 pub struct ProposalPayload<'a> {
-    pub proposal_number: u8,
-    pub proposal_type: u8,
-    pub spi_size: u8,
-    pub number_transforms: u8,
-    pub spi: &'a [u8],
+    pub _proposal_number: u8,
+    pub _proposal_type: u8,
+    pub _spi_size: u8,
+    pub _number_transforms: u8,
+    pub _spi: &'a [u8],
     pub data: &'a [u8],
 }
 
 // 3 -> Transform
 pub struct TransformPayload<'a> {
-    pub transform_number: u8,
-    pub transform_type: u8,
+    pub _transform_number: u8,
+    pub _transform_type: u8,
     pub sa_attributes: &'a [u8],
 }
 
@@ -286,7 +286,7 @@ pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociatio
         i,
         SecurityAssociationPayload {
             domain_of_interpretation,
-            situation,
+            _situation: situation,
             data,
         },
     ))
@@ -308,11 +308,11 @@ pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
         take((start_i.len() - 4) - spi_size as usize)(b)
     })(i)?;
     let payload = ProposalPayload {
-        proposal_number,
-        proposal_type,
-        spi_size,
-        number_transforms,
-        spi,
+        _proposal_number: proposal_number,
+        _proposal_type: proposal_type,
+        _spi_size: spi_size,
+        _number_transforms: number_transforms,
+        _spi: spi,
         data: payload_data.unwrap_or_default(),
     };
     Ok((i, payload))
@@ -326,8 +326,8 @@ pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload
     Ok((
         i,
         TransformPayload {
-            transform_number,
-            transform_type,
+            _transform_number: transform_number,
+            _transform_type: transform_type,
             sa_attributes: payload_data.unwrap_or_default(),
         },
     ))
@@ -495,8 +495,8 @@ pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload>> 
             IsakmpPayload {
                 payload_header: IsakmpPayloadHeader {
                     next_payload,
-                    reserved,
-                    payload_length,
+                    _reserved: reserved,
+                    _payload_length: payload_length,
                 },
                 data: payload_data.unwrap_or_default(),
             },
