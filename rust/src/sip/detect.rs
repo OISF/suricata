@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
 
 use crate::core::Direction;
 use crate::sip::sip::SIPTransaction;
+use std::ffi::CStr;
 use std::ptr;
 
 #[no_mangle]
@@ -157,6 +158,35 @@ pub unsafe extern "C" fn rs_sip_tx_get_response_line(
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
             return 1;
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_header_value(
+    tx: &mut SIPTransaction, i: u32, direction: u8, strname: *const std::os::raw::c_char,
+    buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let hname: &CStr = CStr::from_ptr(strname);
+    if let Ok(s) = hname.to_str() {
+        let headers = match direction.into() {
+            Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
+            Direction::ToClient => tx.response.as_ref().map(|r| &r.headers),
+        };
+        if let Some(headers) = headers {
+            if let Some(header_vals) = headers.get(s) {
+                if (i as usize) < header_vals.len() {
+                    let value = &header_vals[i as usize];
+                    *buffer = value.as_ptr();
+                    *buffer_len = value.len() as u32;
+                    return 1;
+                }
+            }
         }
     }
 

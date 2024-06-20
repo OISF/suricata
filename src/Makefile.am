@@ -281,13 +281,21 @@ noinst_HEADERS = \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
+	detect-sip-content-length.h \
+	detect-sip-content-type.h \
+	detect-sip-headers.h \
+	detect-sip-headers-stub.h \
+	detect-sip-from.h \
 	detect-sip-method.h \
 	detect-sip-protocol.h \
 	detect-sip-request-line.h \
 	detect-sip-response-line.h \
 	detect-sip-stat-code.h \
 	detect-sip-stat-msg.h \
+	detect-sip-to.h \
+	detect-sip-ua.h \
 	detect-sip-uri.h \
+	detect-sip-via.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
 	detect-smb-version.h \
@@ -881,13 +889,20 @@ libsuricata_c_a_SOURCES = \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
+	detect-sip-content-length.c \
+	detect-sip-content-type.c \
+	detect-sip-headers.c \
+	detect-sip-from.c \
 	detect-sip-method.c \
 	detect-sip-protocol.c \
 	detect-sip-request-line.c \
 	detect-sip-response-line.c \
 	detect-sip-stat-code.c \
 	detect-sip-stat-msg.c \
+	detect-sip-to.c \
+	detect-sip-ua.c \
 	detect-sip-uri.c \
+	detect-sip-via.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
 	detect-smb-version.c \
