@@ -21,12 +21,20 @@ use crate::core::*;
 use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
+use crate::frames::Frame;
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
+}
+
+#[derive(AppLayerFrameType)]
+pub enum SshFrameType {
+    RecordHdr,
+    RecordData,
+    RecordPdu,
 }
 
 #[derive(AppLayerEvent)]
@@ -109,6 +117,7 @@ impl SSHState {
 
     fn parse_record(
         &mut self, mut input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void,
+        flow: *const Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let (hdr, ohdr) = if !resp {
             (&mut self.transaction.cli_hdr, &self.transaction.srv_hdr)
@@ -149,6 +158,30 @@ impl SSHState {
         while !input.is_empty() {
             match parser::ssh_parse_record(input) {
                 Ok((rem, head)) => {
+                    let _pdu = Frame::new(
+                        flow,
+                        stream_slice,
+                        input,
+                        SSH_RECORD_HEADER_LEN as i64,
+                        SshFrameType::RecordHdr as u8,
+                        Some(0),
+                    );
+                    let _pdu = Frame::new(
+                        flow,
+                        stream_slice,
+                        &input[SSH_RECORD_HEADER_LEN..],
+                        (head.pkt_len - 2) as i64,
+                        SshFrameType::RecordData as u8,
+                        Some(0),
+                    );
+                    let _pdu = Frame::new(
+                        flow,
+                        stream_slice,
+                        input,
+                        (head.pkt_len + 4) as i64,
+                        SshFrameType::RecordPdu as u8,
+                        Some(0),
+                    );
                     SCLogDebug!("SSH valid record {}", head);
                     match head.msg_code {
                         parser::MessageCode::Kexinit if hassh_is_enabled() => {
@@ -180,6 +213,30 @@ impl SSHState {
                 Err(Err::Incomplete(_)) => {
                     match parser::ssh_parse_record_header(input) {
                         Ok((rem, head)) => {
+                            let _pdu = Frame::new(
+                                flow,
+                                stream_slice,
+                                input,
+                                SSH_RECORD_HEADER_LEN as i64,
+                                SshFrameType::RecordHdr as u8,
+                                Some(0),
+                            );
+                            let _pdu = Frame::new(
+                                flow,
+                                stream_slice,
+                                &input[SSH_RECORD_HEADER_LEN..],
+                                (head.pkt_len - 2) as i64,
+                                SshFrameType::RecordData as u8,
+                                Some(0),
+                            );
+                            let _pdu = Frame::new(
+                                flow,
+                                stream_slice,
+                                input,
+                                (head.pkt_len + 4) as i64,
+                                SshFrameType::RecordPdu as u8,
+                                Some(0),
+                            );
                             SCLogDebug!("SSH valid record header {}", head);
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
@@ -239,6 +296,7 @@ impl SSHState {
 
     fn parse_banner(
         &mut self, input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void,
+        flow: *const Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let hdr = if !resp {
             &mut self.transaction.cli_hdr
@@ -248,7 +306,7 @@ impl SSHState {
         if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
-                    let mut r = self.parse_record(rem, resp, pstate);
+                    let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
                     if r.is_incomplete() {
                         //adds bytes consumed by banner to incomplete result
                         r.consumed += (input.len() - rem.len()) as u32;
@@ -288,7 +346,7 @@ impl SSHState {
                     );
                     self.set_event(SSHEvent::LongBanner);
                 }
-                let mut r = self.parse_record(rem, resp, pstate);
+                let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
                 if r.is_incomplete() {
                     //adds bytes consumed by banner to incomplete result
                     r.consumed += (input.len() - rem.len()) as u32;
@@ -352,7 +410,7 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
@@ -360,15 +418,15 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, false, pstate);
+        return state.parse_banner(buf, false, pstate, flow, &stream_slice);
     } else {
-        return state.parse_record(buf, false, pstate);
+        return state.parse_record(buf, false, pstate, flow, &stream_slice);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
@@ -376,9 +434,9 @@ pub unsafe extern "C" fn rs_ssh_parse_response(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, true, pstate);
+        return state.parse_banner(buf, true, pstate, flow, &stream_slice);
     } else {
-        return state.parse_record(buf, true, pstate);
+        return state.parse_record(buf, true, pstate, flow, &stream_slice);
     }
 }
 
@@ -464,8 +522,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_state_data: rs_ssh_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
