@@ -6,6 +6,26 @@ Suricata has several rule keywords to match on different elements of SSH
 connections.
 
 
+Frames
+------
+
+The SSH parser supports the following frames:
+
+* ssh.record_hdr
+* ssh.record_data
+* ssh.record_pdu
+
+These are header + data = pdu for SSH records, after the banner and before encryption.
+The SSH record header is 6 bytes long : 4 bytes length, 1 byte passing, 1 byte message code.
+
+Example:
+
+.. container:: example-rule
+
+  alert ssh any any -> any any (msg:"hdr frame new keys"; frame:ssh.record.hdr; content: "|15|"; endswith; bsize: 6; sid:2;)
+
+This rule matches like Wireshark ``ssh.message_code == 0x15``.
+
 ssh.proto
 ---------
 Match on the version of the SSH protocol used. ``ssh.proto`` is a sticky buffer,
