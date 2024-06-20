@@ -87,6 +87,7 @@
 #define LOG_JSON_VERDICT           BIT_U16(10)
 #define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
+#define LOG_JSON_PAYLOAD_LENGTH           BIT_U16(13)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -272,6 +273,9 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, JsonBuilder *js
 {
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
         jb_set_base64(js, "payload", p->payload, p->payload_len);
+    }
+    if (json_output_ctx->flags & LOG_JSON_PAYLOAD_LENGTH) {
+        jb_set_uint(js, "payload_length", p->payload_len);
     }
 
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
@@ -549,6 +553,9 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
         if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
             jb_set_base64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
         }
+        if (json_output_ctx->flags & LOG_JSON_PAYLOAD_LENGTH) {
+            jb_set_uint(jb, "payload_length", cbd.payload->offset);
+        }
 
         if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
             uint8_t printable_buf[cbd.payload->offset + 1];
@@ -667,7 +674,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         /* payload */
-        if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
+        if (json_output_ctx->flags &
+                (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
@@ -894,6 +902,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "websocket-payload-printable", LOG_JSON_WEBSOCKET_PAYLOAD, &flags);
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
+        SetFlag(conf, "payload-length", LOG_JSON_PAYLOAD_LENGTH, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
