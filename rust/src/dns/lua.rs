@@ -180,6 +180,16 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                     lua.pushstring(&String::from_utf8_lossy(&srv.target));
                     lua.settable(-3);
                 }
+                DNSRData::OPT(ref opt) => {
+                    if !opt.is_empty() {
+                        lua.pushstring("addr");
+                        for option in opt.iter() {
+                            lua.pushstring(&String::from_utf8_lossy(&option.code.to_be_bytes()));
+                            lua.pushstring(&String::from_utf8_lossy(&option.data));
+                        }
+                        lua.settable(-3);
+                    }
+                }
             }
             lua.settable(-3);
         }

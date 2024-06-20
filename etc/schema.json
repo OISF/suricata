@@ -1018,12 +1018,6 @@
                 "rd": {
                     "type": "boolean"
                 },
-                "rrname": {
-                    "type": "string"
-                },
-                "rrtype": {
-                    "type": "string"
-                },
                 "tx_id": {
                     "type": "integer"
                 },
@@ -1058,6 +1052,9 @@
                             },
                             "ttl": {
                                 "type": "integer"
+                            },
+                            "soa": {
+                                "$ref": "#/$defs/dns.soa"
                             },
                             "srv": {
                                 "type": "object",
@@ -1101,80 +1098,24 @@
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
                 },
-                "query": {
+                "additionals": {
+                    "$ref": "#/$defs/dns.additionals"
+                },
+                "queries": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id": {
-                                "type": "integer"
-                            },
                             "rrname": {
                                 "type": "string"
                             },
                             "rrtype": {
                                 "type": "string"
-                            },
-                            "tx_id": {
-                                "type": "integer"
-                            },
-                            "type": {
-                                "type": "string"
-                            },
-                            "z": {
-                                "type": "boolean"
-                            },
-                            "opcode": {
-                                "description": "DNS opcode as an integer",
-                                "type": "integer"
                             }
                         },
                         "additionalProperties": false
                     }
-                },
-                "answer": {
-                    "type": "object",
-                    "properties": {
-                        "flags": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "integer"
-                        },
-                        "qr": {
-                            "type": "boolean"
-                        },
-                        "ra": {
-                            "type": "boolean"
-                        },
-                        "rcode": {
-                            "type": "string"
-                        },
-                        "rd": {
-                            "type": "boolean"
-                        },
-                        "rrname": {
-                            "type": "string"
-                        },
-                        "rrtype": {
-                            "type": "string"
-                        },
-                        "type": {
-                            "type": "string"
-                        },
-                        "version": {
-                            "type": "integer"
-                        },
-                        "opcode": {
-                            "description": "DNS opcode as an integer",
-                            "type": "integer"
-                        },
-                        "authorities": {
-                            "$ref": "#/$defs/dns.authorities"
-                        }
-                    },
-                    "additionalProperties": false
                 },
                 "grouped": {
                     "type": "object",
@@ -1226,6 +1167,13 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "SOA": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/dns.soa"
                             }
                         },
                         "SRV": {
@@ -6293,6 +6241,33 @@
         }
     },
     "$defs": {
+        "dns.soa": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "integer"
+                },
+                "minimum": {
+                    "type": "integer"
+                },
+                "mname": {
+                    "type": "string"
+                },
+                "refresh": {
+                    "type": "integer"
+                },
+                "retry": {
+                    "type": "integer"
+                },
+                "rname": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
         "dns.authorities": {
             "type": "array",
             "minItems": 1,
@@ -6312,31 +6287,45 @@
                         "type": "integer"
                     },
                     "soa": {
-                        "type": "object",
-                        "properties": {
-                            "expire": {
-                                "type": "integer"
+                        "$ref": "#/$defs/dns.soa"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "dns.additionals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "rdata": {
+                        "type": "string"
+                    },
+                    "rrname": {
+                        "type": "string"
+                    },
+                    "rrtype": {
+                        "type": "string"
+                    },
+                    "ttl": {
+                        "type": "integer"
+                    },
+                    "opt": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "integer"
+                                },
+                                "data": {
+                                    "type": "string"
+                                }
                             },
-                            "minimum": {
-                                "type": "integer"
-                            },
-                            "mname": {
-                                "type": "string"
-                            },
-                            "refresh": {
-                                "type": "integer"
-                            },
-                            "retry": {
-                                "type": "integer"
-                            },
-                            "rname": {
-                                "type": "string"
-                            },
-                            "serial": {
-                                "type": "integer"
-                            }
-                        },
-                        "additionalProperties": false
+                            "additionalProperties": false
+                        }
                     }
                 },
                 "additionalProperties": false
