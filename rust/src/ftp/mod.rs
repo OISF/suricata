@@ -56,9 +56,9 @@ pub fn ftp_active_port(i: &[u8]) -> IResult<&[u8], u16> {
         digit1,
         tag(","),
     ))(i)?;
-    let (i, part1) = verify(parse_u16, |&v| v <= std::u8::MAX as u16)(i)?;
+    let (i, part1) = verify(parse_u16, |&v| v <= u8::MAX as u16)(i)?;
     let (i, _) = tag(",")(i)?;
-    let (i, part2) = verify(parse_u16, |&v| v <= std::u8::MAX as u16)(i)?;
+    let (i, part2) = verify(parse_u16, |&v| v <= u8::MAX as u16)(i)?;
     Ok((i, part1 * 256 + part2))
 }
 
@@ -77,9 +77,9 @@ pub fn ftp_pasv_response(i: &[u8]) -> IResult<&[u8], u16> {
         digit1,
         tag(","),
     ))(i)?;
-    let (i, part1) = verify(getu16, |&v| v <= std::u8::MAX as u16)(i)?;
+    let (i, part1) = verify(getu16, |&v| v <= u8::MAX as u16)(i)?;
     let (i, _) = tag(",")(i)?;
-    let (i, part2) = verify(getu16, |&v| v <= std::u8::MAX as u16)(i)?;
+    let (i, part2) = verify(getu16, |&v| v <= u8::MAX as u16)(i)?;
     // may also be completed by a final point
     let (i, _) = tag(")")(i)?;
     let (i, _) = opt(complete(tag(".")))(i)?;

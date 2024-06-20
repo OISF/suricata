@@ -63,9 +63,9 @@ pub struct DetectModbusRust {
 fn check_match_range(sig_range: &Range<u16>, trans_range: RangeInclusive<u16>) -> bool {
     if sig_range.start == sig_range.end {
         sig_range.start >= *trans_range.start() && sig_range.start <= *trans_range.end()
-    } else if sig_range.start == std::u16::MIN {
+    } else if sig_range.start == u16::MIN {
         sig_range.end > *trans_range.start()
-    } else if sig_range.end == std::u16::MAX {
+    } else if sig_range.end == u16::MAX {
         sig_range.start < *trans_range.end()
     } else {
         sig_range.start < *trans_range.end() && *trans_range.start() < sig_range.end
@@ -78,9 +78,9 @@ fn check_match_range(sig_range: &Range<u16>, trans_range: RangeInclusive<u16>) -
 fn check_match(sig_range: &Range<u16>, value: u16) -> bool {
     if sig_range.start == sig_range.end {
         sig_range.start == value
-    } else if sig_range.start == std::u16::MIN {
+    } else if sig_range.start == u16::MIN {
         sig_range.end > value
-    } else if sig_range.end == std::u16::MAX {
+    } else if sig_range.end == u16::MAX {
         sig_range.start < value
     } else {
         sig_range.start < value && value < sig_range.end
@@ -90,8 +90,8 @@ fn check_match(sig_range: &Range<u16>, value: u16) -> bool {
 /// Gets the min/max range of an alert signature from the respective capture groups.
 /// In the case where the max is not given, it is set based on the first char of the min str
 /// which indicates what range we are looking for:
-///     '<' = std::u16::MIN..min
-///     '>' = min..std::u16::MAX
+///     '<' = u16::MIN..min
+///     '>' = min..u16::MAX
 ///     _ = min..min
 /// If the max is given, the range returned is min..max
 fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
@@ -100,8 +100,8 @@ fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
             debug_validate_bug_on!(!sign.is_ascii_digit() && sign != '<' && sign != '>');
             match min_str[!sign.is_ascii_digit() as usize..].parse::<u16>() {
                 Ok(num) => match sign {
-                    '>' => Ok(num..std::u16::MAX),
-                    '<' => Ok(std::u16::MIN..num),
+                    '>' => Ok(num..u16::MAX),
+                    '<' => Ok(u16::MIN..num),
                     _ => Ok(num..num),
                 },
                 Err(_) => {
@@ -524,7 +524,7 @@ mod test {
             parse_access("access write coils, address <500"),
             Ok(DetectModbusRust {
                 access_type: Some(AccessType::WRITE | AccessType::COILS),
-                address: Some(std::u16::MIN..500),
+                address: Some(u16::MIN..500),
                 ..Default::default()
             })
         );
@@ -532,7 +532,7 @@ mod test {
             parse_access("access write coils, address >500"),
             Ok(DetectModbusRust {
                 access_type: Some(AccessType::WRITE | AccessType::COILS),
-                address: Some(500..std::u16::MAX),
+                address: Some(500..u16::MAX),
                 ..Default::default()
             })
         );
@@ -541,7 +541,7 @@ mod test {
             Ok(DetectModbusRust {
                 access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                 address: Some(100..100),
-                value: Some(std::u16::MIN..1000),
+                value: Some(u16::MIN..1000),
                 ..Default::default()
             })
         );
@@ -583,7 +583,7 @@ mod test {
         assert_eq!(
             parse_unit_id("unit <11"),
             Ok(DetectModbusRust {
-                unit_id: Some(std::u16::MIN..11),
+                unit_id: Some(u16::MIN..11),
                 ..Default::default()
             })
         );
@@ -649,7 +649,7 @@ mod test {
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                     address: Some(15..15),
-                    value: Some(std::u16::MIN..4660),
+                    value: Some(u16::MIN..4660),
                     ..Default::default()
                 }
             ),
@@ -701,7 +701,7 @@ mod test {
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                     address: Some(15..15),
-                    value: Some(4660..std::u16::MAX),
+                    value: Some(4660..u16::MAX),
                     ..Default::default()
                 }
             ),
@@ -714,7 +714,7 @@ mod test {
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                     address: Some(16..16),
-                    value: Some(std::u16::MIN..22137),
+                    value: Some(u16::MIN..22137),
                     ..Default::default()
                 }
             ),
@@ -727,7 +727,7 @@ mod test {
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                     address: Some(16..16),
-                    value: Some(std::u16::MIN..22137),
+                    value: Some(u16::MIN..22137),
                     ..Default::default()
                 }
             ),
@@ -779,7 +779,7 @@ mod test {
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
                     address: Some(17..17),
-                    value: Some(39611..std::u16::MAX),
+                    value: Some(39611..u16::MAX),
                     ..Default::default()
                 }
             ),
@@ -823,7 +823,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    unit_id: Some(11..std::u16::MAX),
+                    unit_id: Some(11..u16::MAX),
                     ..Default::default()
                 }
             ),
@@ -834,7 +834,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    unit_id: Some(std::u16::MIN..9),
+                    unit_id: Some(u16::MIN..9),
                     ..Default::default()
                 }
             ),
@@ -867,7 +867,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    unit_id: Some(9..std::u16::MAX),
+                    unit_id: Some(9..u16::MAX),
                     ..Default::default()
                 }
             ),
@@ -878,7 +878,7 @@ mod test {
             rs_modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
-                    unit_id: Some(std::u16::MIN..11),
+                    unit_id: Some(u16::MIN..11),
                     ..Default::default()
                 }
             ),
@@ -1206,7 +1206,7 @@ mod test {
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
-                    address: Some(std::u16::MIN..9),
+                    address: Some(u16::MIN..9),
                     ..Default::default()
                 }
             ),
@@ -1230,7 +1230,7 @@ mod test {
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
-                    address: Some(104..std::u16::MAX),
+                    address: Some(104..u16::MAX),
                     ..Default::default()
                 }
             ),
@@ -1266,7 +1266,7 @@ mod test {
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
-                    address: Some(std::u16::MIN..10),
+                    address: Some(u16::MIN..10),
                     ..Default::default()
                 }
             ),
@@ -1290,7 +1290,7 @@ mod test {
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
-                    address: Some(103..std::u16::MAX),
+                    address: Some(103..u16::MAX),
                     ..Default::default()
                 }
             ),
