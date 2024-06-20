@@ -1126,7 +1126,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_IMAP, NULL },   // protocol detection only
     { ALPROTO_JABBER, NULL }, // no parser, no logging
     { ALPROTO_SMB, NULL },    // special: uses state
-    { ALPROTO_DCERPC, NULL }, // TODO missing
+    { ALPROTO_DCERPC, NULL }, // special: uses state
     { ALPROTO_IRC, NULL },    // no parser, no logging
     { ALPROTO_DNS, AlertJsonDns },
     { ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json },
