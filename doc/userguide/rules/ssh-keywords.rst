@@ -6,6 +6,15 @@ Suricata has several rule keywords to match on different elements of SSH
 connections.
 
 
+Frames
+------
+
+The SSH parser supports the following frames:
+
+* ssh.record_hdr
+* ssh.record_data
+* ssh.record_pdu
+
 ssh.proto
 ---------
 Match on the version of the SSH protocol used. ``ssh.proto`` is a sticky buffer,
