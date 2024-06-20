@@ -43,10 +43,10 @@ aes = "~0.7.5"
 aes-gcm = "~0.9.4"
 
 der-parser = "~8.2.0"
-kerberos-parser = { version = "~0.7.1", default_features = false }
+kerberos-parser = { version = "~0.7.1", default-features = false }
 
 # Kerberos parsing still depends on der-parser 6.0.1.
-der-parser6 = { package = "der-parser", version = "~6.0.1", default_features = false }
+der-parser6 = { package = "der-parser", version = "~6.0.1", default-features = false }
 
 sawp-modbus = "~0.12.1"
 sawp = "~0.12.1"
