@@ -71,6 +71,10 @@ Major changes
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
 
+Removals
+~~~~~~~~
+- The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+
 Upgrading 6.0 to 7.0
 --------------------
 
