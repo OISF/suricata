@@ -266,9 +266,7 @@
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
 #include "detect-ssh-proto.h"
-#include "detect-ssh-proto-version.h"
 #include "detect-ssh-software.h"
-#include "detect-ssh-software-version.h"
 #include "detect-ssh-hassh.h"
 #include "detect-ssh-hassh-server.h"
 #include "detect-ssh-hassh-string.h"
@@ -650,9 +648,7 @@ void SigTableSetup(void)
     DetectDetectionFilterRegister();
     DetectAsn1Register();
     DetectSshProtocolRegister();
-    DetectSshVersionRegister();
     DetectSshSoftwareRegister();
-    DetectSshSoftwareVersionRegister();
     DetectSshHasshRegister();
     DetectSshHasshServerRegister();
     DetectSshHasshStringRegister();
