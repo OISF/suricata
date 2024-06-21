@@ -35,12 +35,11 @@
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
 typedef struct OutputTxLoggerThreadData_ {
-    OutputLoggerThreadStore *store[ALPROTO_MAX];
-
     /* thread local data from file api */
     OutputFileLoggerThreadData *file;
     /* thread local data from filedata api */
     OutputFiledataLoggerThreadData *filedata;
+    OutputLoggerThreadStore *store[];
 } OutputTxLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
@@ -542,7 +541,8 @@ end:
  *  loggers */
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void **data)
 {
-    OutputTxLoggerThreadData *td = SCCalloc(1, sizeof(*td));
+    OutputTxLoggerThreadData *td =
+            SCCalloc(1, sizeof(*td) + ALPROTO_MAX * sizeof(OutputLoggerThreadStore *));
     if (td == NULL)
         return TM_ECODE_FAILED;
 
