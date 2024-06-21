@@ -151,8 +151,6 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
     return cnt;
 }
 
-extern uint32_t flow_spare_pool_block_size;
-
 /** \param[in] max_work Max flows to process. 0 if unlimited. */
 static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeoutCounters *counters,
         FlowQueuePrivate *fq, const uint32_t max_work)
@@ -190,9 +188,9 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         FlowClearMemory (f, f->protomap);
         FLOWLOCK_UNLOCK(f);
 
-        if (fw->fls.spare_queue.len >= (flow_spare_pool_block_size * 2)) {
+        if (fw->fls.spare_queue.len >= (FLOW_SPARE_POOL_BLOCK_SIZE * 2)) {
             FlowQueuePrivatePrependFlow(&ret_queue, f);
-            if (ret_queue.len == flow_spare_pool_block_size) {
+            if (ret_queue.len == FLOW_SPARE_POOL_BLOCK_SIZE) {
                 FlowSparePoolReturnFlows(&ret_queue);
             }
         } else {

@@ -573,6 +573,7 @@ static uint32_t FlowManagerHashRowCleanup(Flow *f, FlowQueuePrivate *recycle_q, 
     return cnt;
 }
 
+#define RECYCLE_MAX_QUEUE_ITEMS 25
 /**
  *  \brief remove all flows from the hash
  *
@@ -598,12 +599,12 @@ static uint32_t FlowCleanupHash(void)
         }
 
         FBLOCK_UNLOCK(fb);
-        if (local_queue.len >= 25) {
+        if (local_queue.len >= RECYCLE_MAX_QUEUE_ITEMS) {
             FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
             FlowWakeupFlowRecyclerThread();
         }
     }
-    DEBUG_VALIDATE_BUG_ON(local_queue.len >= 25);
+    DEBUG_VALIDATE_BUG_ON(local_queue.len >= RECYCLE_MAX_QUEUE_ITEMS);
     FlowQueueAppendPrivate(&flow_recycle_q, &local_queue);
     FlowWakeupFlowRecyclerThread();
 
@@ -1066,8 +1067,6 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
     FLOWLOCK_UNLOCK(f);
 }
 
-extern uint32_t flow_spare_pool_block_size;
-
 /** \brief Thread that manages timed out flows.
  *
  *  \param td ThreadVars cast to void ptr
@@ -1108,7 +1107,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
             /* for every full sized block, add it to the spare pool */
             FlowQueuePrivateAppendFlow(&ret_queue, f);
-            if (ret_queue.len == flow_spare_pool_block_size) {
+            if (ret_queue.len == FLOW_SPARE_POOL_BLOCK_SIZE) {
                 FlowSparePoolReturnFlows(&ret_queue);
             }
         }
