@@ -60,6 +60,7 @@ Major changes
 - It is possible to see an increase of alerts, for the same rule-sets, if you
   use many stream/payload rules, due to Suricata triggering TCP stream
   reassembly earlier.
+- LDAP parser and logger have been introduced.
 
 Upgrading 6.0 to 7.0
 --------------------
