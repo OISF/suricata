@@ -846,6 +846,11 @@ enum DetectEngineType
  */
 #define FLOW_STATES 2
 
+typedef struct {
+    uint32_t content_limit;
+    uint32_t content_inspect_min_size;
+} DetectFileDataCfg;
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     bool failure_fatal;
@@ -945,8 +950,6 @@ typedef struct DetectEngineCtx_ {
     /** The rule errored out due to missing requirements. */
     bool sigerror_requires;
 
-    bool filedata_config_initialized;
-
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_ctx_cnf;
 
@@ -954,10 +957,7 @@ typedef struct DetectEngineCtx_ {
     /** hash list of keywords that need thread local ctxs */
     HashListTable *keyword_hash;
 
-    struct {
-        uint32_t content_limit;
-        uint32_t content_inspect_min_size;
-    } filedata_config[ALPROTO_MAX];
+    DetectFileDataCfg *filedata_config;
 
 #ifdef PROFILE_RULES
     struct SCProfileDetectCtx_ *profile_ctx;
