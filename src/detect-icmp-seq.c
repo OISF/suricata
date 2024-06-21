@@ -249,6 +249,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
                 de_ctx, s, DETECT_ICMP_SEQ, (SigMatchCtx *)iseq, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
