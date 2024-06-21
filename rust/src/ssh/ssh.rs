@@ -170,7 +170,7 @@ impl SSHState {
                     let _pdu = Frame::new(
                         flow,
                         stream_slice,
-                        &input[SSH_RECORD_HEADER_LEN as usize..],
+                        &input[SSH_RECORD_HEADER_LEN..],
                         (head.pkt_len - 2) as i64,
                         SshFrameType::RecordData as u8,
                         Some(0),
@@ -225,7 +225,7 @@ impl SSHState {
                             let _pdu = Frame::new(
                                 flow,
                                 stream_slice,
-                                &input[SSH_RECORD_HEADER_LEN as usize..],
+                                &input[SSH_RECORD_HEADER_LEN..],
                                 (head.pkt_len - 2) as i64,
                                 SshFrameType::RecordData as u8,
                                 Some(0),
