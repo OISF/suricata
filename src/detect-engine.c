@@ -2623,6 +2623,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);
 
+    if (de_ctx->filedata_config)
+        SCFree(de_ctx->filedata_config);
+
     DetectEngineFreeFastPatternList(de_ctx);
     SCClassConfDeInitContext(de_ctx);
     SCRConfDeInitContext(de_ctx);
