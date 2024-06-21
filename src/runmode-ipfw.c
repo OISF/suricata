@@ -49,11 +49,16 @@ const char *RunModeIpsIPFWGetDefaultMode(void)
 void RunModeIpsIPFWRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "autofp",
-            "Multi threaded IPFW IPS mode with respect to flow", RunModeIpsIPFWAutoFp, NULL);
-
+            "Multi threaded IPFW IPS mode with respect to flow",
+            "default mode ipfw",
+            "autofp, workers",
+             RunModeIpsIPFWAutoFp, NULL);
+    /*
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "workers",
-            "Multi queue IPFW IPS mode with one thread per queue", RunModeIpsIPFWWorker, NULL);
-
+            "Multi queue IPFW IPS mode with one thread per queue",
+            "default mode ipfw workers",
+             RunModeIpsIPFWWorker, NULL);
+    */
     return;
 }
 

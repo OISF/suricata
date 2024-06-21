@@ -213,10 +213,16 @@ const char *RunModeIdsNflogGetDefaultMode(void)
 void RunModeIdsNflogRegister(void)
 {
     RunModeRegisterNewRunMode(
-            RUNMODE_NFLOG, "autofp", "Multi threaded nflog mode", RunModeIdsNflogAutoFp, NULL);
+            RUNMODE_NFLOG, "autofp", "Multi threaded nflog mode",
+            "default mode flog","autofp,single,workers",
+            RunModeIdsNflogAutoFp, NULL);
+    /*
     RunModeRegisterNewRunMode(
-            RUNMODE_NFLOG, "single", "Single threaded nflog mode", RunModeIdsNflogSingle, NULL);
+            RUNMODE_NFLOG, "single", "Single threaded nflog mode",
+            "default mode flog single", RunModeIdsNflogSingle, NULL);
     RunModeRegisterNewRunMode(
-            RUNMODE_NFLOG, "workers", "Workers nflog mode", RunModeIdsNflogWorkers, NULL);
+            RUNMODE_NFLOG, "workers", "Workers nflog mode",
+            "default mode flog workers", RunModeIdsNflogWorkers, NULL);
+    */
     return;
 }

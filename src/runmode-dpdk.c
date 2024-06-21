@@ -1704,7 +1704,8 @@ void RunModeDpdkRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_DPDK, "workers",
             "Workers DPDK mode, each thread does all"
-            " tasks from acquisition to logging",
+            " tasks from acquisition to logging","default mode dpdk",
+            "workers",
             RunModeIdsDpdkWorkers, DPDKRunModeEnableIPS);
 }
 

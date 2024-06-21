@@ -262,39 +262,39 @@ void RunModeRegisterRunModes(void)
  */
 void RunModeListRunmodes(void)
 {
-    printf("------------------------------------- Runmodes -------------------"
-           "-----------------------\n");
-
-    printf("| %-17s | %-17s | %-10s \n",
-           "RunMode Type", "Custom Mode ", "Description");
-    printf("|-----------------------------------------------------------------"
-           "-----------------------\n");
+    
     int i = RUNMODE_UNKNOWN + 1;
     int j = 0;
-    for ( ; i < RUNMODE_USER_MAX; i++) {
+
+    for (; i < RUNMODE_USER_MAX; i++) {
         int mode_displayed = 0;
+        char supported_runmodes[500] = "";
+
         for (j = 0; j < runmodes[i].cnt; j++) {
-            if (mode_displayed == 1) {
-                printf("|                   ----------------------------------------------"
-                       "-----------------------\n");
-                RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       "",
-                       runmode->name,
-                       runmode->description);
-            } else {
-                RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       RunModeTranslateModeToName(runmode->runmode),
-                       runmode->name,
-                       runmode->description);
+            RunMode *runmode = &runmodes[i].runmodes[j];
+
+            // Append to supported runmodes
+            if (mode_displayed > 0) {
+                strcat(supported_runmodes, ", ");
             }
-            if (mode_displayed == 0)
-                mode_displayed = 1;
+            strcat(supported_runmodes, runmode->name);
+
+            mode_displayed = 1;
         }
-        if (mode_displayed == 1) {
-            printf("|-----------------------------------------------------------------"
-                   "-----------------------\n");
+
+        if (mode_displayed) {
+            // Print the run mode type
+            printf("%s:\n", RunModeTranslateModeToName(i));
+            // Print the default run mode
+            printf("  default runmode: %s\n", runmodes[i].runmodes[0].default_runmode);
+            // Print the supported run modes
+            printf("  supported runmodes: %s\n", runmodes[i].runmodes[0].supported_runmode);
+            // Print the description
+            printf("  description: %s\n", runmodes[i].runmodes[0].description);
+            printf("  notes:\n");
+            printf("  yaml section:\n");
+            printf("  commandlin:\n");
+            printf("  supported features:\n");
         }
     }
 
@@ -494,7 +494,8 @@ int RunModeNeedsBypassManager(void)
  * \param description Description for this runmode.
  * \param RunModeFunc The function to be run for this runmode.
  */
-void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description,
+void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description, const char *default_mode,
+        const char *supported_runmode, 
         int (*RunModeFunc)(void), int (*RunModeIsIPSEnabled)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
@@ -518,6 +519,8 @@ void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const ch
 
     mode->runmode = runmode;
     mode->name = SCStrdup(name);
+    mode->default_runmode = SCStrdup(default_mode);
+    mode->supported_runmode = SCStrdup(supported_runmode);
     if (unlikely(mode->name == NULL)) {
         FatalError("Failed to allocate string");
     }

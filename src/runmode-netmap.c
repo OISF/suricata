@@ -127,16 +127,20 @@ static int NetmapRunModeEnableIPS(void)
 void RunModeIdsNetmapRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single", "Single threaded netmap mode",
+            "default mode netmap","single, workers, autofp",
             RunModeIdsNetmapSingle, NetmapRunModeEnableIPS);
+    /*
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "workers",
             "Workers netmap mode, each thread does all"
             " tasks from acquisition to logging",
+            "default mode netmap workers",
             RunModeIdsNetmapWorkers, NetmapRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "autofp",
             "Multi-threaded netmap mode.  Packets from "
             "each flow are assigned to a single detect "
-            "thread.",
+            "thread.","default mode netmap autofp",
             RunModeIdsNetmapAutoFp, NetmapRunModeEnableIPS);
+    */
     return;
 }
 

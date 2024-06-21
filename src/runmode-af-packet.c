@@ -135,17 +135,19 @@ static int AFPRunModeEnableIPS(void)
 
 void RunModeIdsAFPRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single", "Single threaded af-packet mode",
+    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single", "Single threaded af-packet mode","default for af-packet","single, workers, autofp",
             RunModeIdsAFPSingle, AFPRunModeEnableIPS);
+    /*
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "workers",
             "Workers af-packet mode, each thread does all"
-            " tasks from acquisition to logging",
+            " tasks from acquisition to logging","defaukt workers af-packet",
             RunModeIdsAFPWorkers, AFPRunModeEnableIPS);
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
             "Multi socket AF_PACKET mode.  Packets from "
             "each flow are assigned to a single detect "
-            "thread.",
+            "thread.","defautl af-packet autofp",
             RunModeIdsAFPAutoFp, AFPRunModeEnableIPS);
+    */
     return;
 }
 

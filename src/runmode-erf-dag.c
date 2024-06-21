@@ -52,17 +52,19 @@ void RunModeErfDagRegister(void)
             "each flow are assigned to a single detect "
             "thread, unlike \"dag_auto\" where packets "
             "from the same flow can be processed by any "
-            "detect thread",
+            "detect thread","default mode erfdag",
+            "autofp, single,workers",
             RunModeIdsErfDagAutoFp, NULL);
-
+    /*
     RunModeRegisterNewRunMode(
-            RUNMODE_DAG, "single", "Singled threaded DAG mode", RunModeIdsErfDagSingle, NULL);
+            RUNMODE_DAG, "single", "Singled threaded DAG mode","default mode erfdag single", RunModeIdsErfDagSingle, NULL);
 
     RunModeRegisterNewRunMode(RUNMODE_DAG, "workers",
             "Workers DAG mode, each thread does all "
             " tasks from acquisition to logging",
+            "default mode erfdag workers",
             RunModeIdsErfDagWorkers, NULL);
-
+    */
     return;
 }
 

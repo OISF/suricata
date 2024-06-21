@@ -40,12 +40,13 @@ const char *RunModeFilePcapGetDefaultMode(void)
 void RunModeFilePcapRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "single", "Single threaded pcap file mode",
-            RunModeFilePcapSingle, NULL);
+            "autofp","autofp,single",RunModeFilePcapSingle, NULL);
+    /*
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "autofp",
             "Multi-threaded pcap file mode. Packets from each flow are assigned to a consistent "
-            "detection thread",
+            "detection thread","default mode",
             RunModeFilePcapAutoFp, NULL);
-
+    */
     return;
 }
 

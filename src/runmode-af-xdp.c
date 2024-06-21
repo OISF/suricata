@@ -72,12 +72,12 @@ const char *RunModeAFXDPGetDefaultMode(void)
 void RunModeIdsAFXDPRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_AFXDP_DEV, "single", "Single threaded af-xdp mode",
-            RunModeIdsAFXDPSingle, NULL);
-    RunModeRegisterNewRunMode(RUNMODE_AFXDP_DEV, "workers",
+            "default mode afxdp","single, workers",RunModeIdsAFXDPSingle, NULL);
+    /*RunModeRegisterNewRunMode(RUNMODE_AFXDP_DEV, "workers",
             "Workers af-xdp mode, each thread does all"
-            " tasks from acquisition to logging",
+            " tasks from acquisition to logging","default mode workers afxdp",
             RunModeIdsAFXDPWorkers, NULL);
-
+    */
     return;
 }
 
