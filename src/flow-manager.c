@@ -196,6 +196,7 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
     return true;
 }
 
+#ifdef CAPTURE_OFFLOAD
 /** \internal
  *  \brief check timeout of captured bypassed flow by querying capture method
  *
@@ -208,7 +209,6 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
  */
 static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
 {
-#ifdef CAPTURE_OFFLOAD
     if (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
         return true;
     }
@@ -245,9 +245,9 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
         }
         counters->bypassed_count++;
     }
-#endif /* CAPTURE_OFFLOAD */
     return true;
 }
+#endif /* CAPTURE_OFFLOAD */
 
 typedef struct FlowManagerTimeoutThread {
     /* used to temporarily store flows that have timed out and are
@@ -342,6 +342,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
 
         Flow *next_flow = f->next;
 
+#ifdef CAPTURE_OFFLOAD
         /* never prune a flow that is used by a packet we
          * are currently processing in one of the threads */
         if (!FlowBypassedTimeout(f, ts, counters)) {
@@ -350,7 +351,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
             f = f->next;
             continue;
         }
-
+#endif
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
 
         counters->flows_timeout++;
