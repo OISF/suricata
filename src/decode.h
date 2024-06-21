@@ -355,10 +355,10 @@ typedef struct PktProfiling_ {
 
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingData flowworker[PROFILE_FLOWWORKER_SIZE];
-    PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
     PktProfilingLoggerData logger[LOGGER_SIZE];
     uint64_t proto_detect;
+    PktProfilingAppData app[];
 } PktProfiling;
 
 #endif /* PROFILING */
