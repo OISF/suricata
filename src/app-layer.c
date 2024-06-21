@@ -1139,7 +1139,6 @@ static void AppLayerSetupExceptionPolicyPerProtoCounters(
     }
 }
 
-#define IPPROTOS_MAX 2
 void AppLayerSetupCounters(void)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
@@ -1162,7 +1161,7 @@ void AppLayerSetupCounters(void)
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
-    for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
+    for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
         const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
@@ -1257,7 +1256,7 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
         }
     }
 
-    for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
+    for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
 
