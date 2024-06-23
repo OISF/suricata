@@ -163,25 +163,22 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     dd = DetectNfsProcedureParse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
     }
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
+    if (sm == NULL) {
+        DetectNfsProcedureFree(de_ctx, dd);
+        return -1;
+    }
     sm->type = DETECT_AL_NFS_PROCEDURE;
     sm->ctx = (void *)dd;
 
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
     SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
     return 0;
-
-error:
-    DetectNfsProcedureFree(de_ctx, dd);
-    return -1;
 }
 
 /**
