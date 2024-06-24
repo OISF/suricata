@@ -385,12 +385,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
-        case ALPROTO_DCERPC:
-            jb_get_mark(jb, &mark);
+        case ALPROTO_DCERPC: {
             void *state = FlowGetAppState(p->flow);
             if (state) {
                 void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
                 if (tx) {
+                    jb_get_mark(jb, &mark);
                     jb_open_object(jb, "dcerpc");
                     if (p->proto == IPPROTO_TCP) {
                         if (!rs_dcerpc_log_json_record_tcp(state, tx, jb)) {
@@ -405,6 +405,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 }
             }
             break;
+        }
         default:
             break;
     }
