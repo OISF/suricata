@@ -2,23 +2,23 @@
 #
 # SID's fall in the 2210000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
 #
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake with ack in wrong dir"; stream-event:3whs_ack_in_wrong_dir; classtype:protocol-command-decode; sid:2210000; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake async wrong sequence"; stream-event:3whs_async_wrong_seq; classtype:protocol-command-decode; sid:2210001; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake right seq wrong ack evasion"; stream-event:3whs_right_seq_wrong_ack_evasion; classtype:protocol-command-decode; sid:2210002; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK in wrong direction"; stream-event:3whs_synack_in_wrong_direction; classtype:protocol-command-decode; sid:2210003; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend with different ack"; stream-event:3whs_synack_resend_with_different_ack; classtype:protocol-command-decode; sid:2210004; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend with different seq"; stream-event:3whs_synack_resend_with_diff_seq; classtype:protocol-command-decode; sid:2210005; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK to server on SYN recv"; stream-event:3whs_synack_toserver_on_syn_recv; classtype:protocol-command-decode; sid:2210006; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK with wrong ack"; stream-event:3whs_synack_with_wrong_ack; classtype:protocol-command-decode; sid:2210007; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake with ack in wrong dir"; stream-event:3whs_ack_in_wrong_dir; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210000; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake async wrong sequence"; stream-event:3whs_async_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210001; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake right seq wrong ack evasion"; stream-event:3whs_right_seq_wrong_ack_evasion; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210002; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK in wrong direction"; stream-event:3whs_synack_in_wrong_direction; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210003; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend with different ack"; stream-event:3whs_synack_resend_with_different_ack; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210004; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend with different seq"; stream-event:3whs_synack_resend_with_diff_seq; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210005; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK to server on SYN recv"; stream-event:3whs_synack_toserver_on_syn_recv; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210006; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK with wrong ack"; stream-event:3whs_synack_with_wrong_ack; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210007; rev:3;)
 # Excessive SYNs or SYN/ACKs within a session. Limit is set in stream engine, "stream.max-synack-queued".
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYN/ACKs"; stream-event:3whs_synack_flood; classtype:protocol-command-decode; sid:2210055; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYN/ACKs"; stream-event:3whs_synack_flood; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210055; rev:3;)
 # Client sent an SYN packet with TCP fast open and data, but the server only ACK'd
 # the SYN, not the data, while still supporting TFO.
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN/ACK ignored TFO data"; stream-event:3whs_synack_tfo_data_ignored; classtype:protocol-command-decode; sid:2210064; rev:1;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYNs"; stream-event:3whs_syn_flood; classtype:protocol-command-decode; sid:2210063; rev:1;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN resend different seq on SYN recv"; stream-event:3whs_syn_resend_diff_seq_on_syn_recv; classtype:protocol-command-decode; sid:2210008; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN to client on SYN recv"; stream-event:3whs_syn_toclient_on_syn_recv; classtype:protocol-command-decode; sid:2210009; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake wrong seq wrong ack"; stream-event:3whs_wrong_seq_wrong_ack; classtype:protocol-command-decode; sid:2210010; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYNs"; stream-event:3whs_syn_flood; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210063; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN resend different seq on SYN recv"; stream-event:3whs_syn_resend_diff_seq_on_syn_recv; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210008; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN to client on SYN recv"; stream-event:3whs_syn_toclient_on_syn_recv; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210009; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake wrong seq wrong ack"; stream-event:3whs_wrong_seq_wrong_ack; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210010; rev:3;)
 # suspected data injection by sending data packet right after the SYN/ACK,
 # this to make sure network inspection reject tools reject it as it's
 # before the 3whs is complete. Only set in IPS mode. Drops unconditionally
@@ -33,51 +33,51 @@ alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT FIN out of window";
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT invalid ACK"; stream-event:closewait_invalid_ack; classtype:protocol-command-decode; sid:2210017; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING ACK wrong seq"; stream-event:closing_ack_wrong_seq; classtype:protocol-command-decode; sid:2210018; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING invalid ACK"; stream-event:closing_invalid_ack; classtype:protocol-command-decode; sid:2210019; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED packet out of window"; stream-event:est_packet_out_of_window; classtype:protocol-command-decode; sid:2210020; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend"; stream-event:est_synack_resend; classtype:protocol-command-decode; sid:2210022; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different ACK"; stream-event:est_synack_resend_with_different_ack; classtype:protocol-command-decode; sid:2210023; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different seq"; stream-event:est_synack_resend_with_diff_seq; classtype:protocol-command-decode; sid:2210024; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK to server"; stream-event:est_synack_toserver; classtype:protocol-command-decode; sid:2210025; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN resend"; stream-event:est_syn_resend; classtype:protocol-command-decode; sid:2210026; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN resend with different seq"; stream-event:est_syn_resend_diff_seq; classtype:protocol-command-decode; sid:2210027; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN to client"; stream-event:est_syn_toclient; classtype:protocol-command-decode; sid:2210028; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED invalid ack"; stream-event:est_invalid_ack; classtype:protocol-command-decode; sid:2210029; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED packet out of window"; stream-event:est_packet_out_of_window; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210020; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend"; stream-event:est_synack_resend; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210022; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different ACK"; stream-event:est_synack_resend_with_different_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210023; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different seq"; stream-event:est_synack_resend_with_diff_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210024; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK to server"; stream-event:est_synack_toserver; threshold:type backoff, track by_flow, count 1, multiplier 10;  classtype:protocol-command-decode; sid:2210025; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN resend"; stream-event:est_syn_resend; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210026; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN resend with different seq"; stream-event:est_syn_resend_diff_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210027; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYN to client"; stream-event:est_syn_toclient; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210028; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED invalid ack"; stream-event:est_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210029; rev:3;)
 
 # ACK received for Zero Window Probe segment.
-#alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED ack for ZWP data"; stream-event:est_invalid_ack; classtype:protocol-command-decode; sid:2210065; rev:1;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED ack for ZWP data"; stream-event:est_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210065; rev:2;)
 
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN invalid ack"; stream-event:fin_invalid_ack; classtype:protocol-command-decode; sid:2210030; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 ack with wrong seq"; stream-event:fin1_ack_wrong_seq; classtype:protocol-command-decode; sid:2210031; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 FIN with wrong seq"; stream-event:fin1_fin_wrong_seq; classtype:protocol-command-decode; sid:2210032; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 invalid ack"; stream-event:fin1_invalid_ack; classtype:protocol-command-decode; sid:2210033; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 ack with wrong seq"; stream-event:fin2_ack_wrong_seq; classtype:protocol-command-decode; sid:2210034; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 FIN with wrong seq"; stream-event:fin2_fin_wrong_seq; classtype:protocol-command-decode; sid:2210035; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 invalid ack"; stream-event:fin2_invalid_ack; classtype:protocol-command-decode; sid:2210036; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN invalid ack"; stream-event:fin_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210030; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 ack with wrong seq"; stream-event:fin1_ack_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210031; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 FIN with wrong seq"; stream-event:fin1_fin_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210032; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN1 invalid ack"; stream-event:fin1_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210033; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 ack with wrong seq"; stream-event:fin2_ack_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210034; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 FIN with wrong seq"; stream-event:fin2_fin_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210035; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN2 invalid ack"; stream-event:fin2_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210036; rev:3;)
 # very common when looking at midstream traffic after IDS started
-#alert tcp any any -> any any (msg:"SURICATA STREAM FIN recv but no session"; stream-event:fin_but_no_session; classtype:protocol-command-decode; sid:2210037; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN out of window"; stream-event:fin_out_of_window; classtype:protocol-command-decode; sid:2210038; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM Last ACK with wrong seq"; stream-event:lastack_ack_wrong_seq; classtype:protocol-command-decode; sid:2210039; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM Last ACK invalid ACK"; stream-event:lastack_invalid_ack; classtype:protocol-command-decode; sid:2210040; rev:2;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM FIN recv but no session"; stream-event:fin_but_no_session; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210037; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN out of window"; stream-event:fin_out_of_window; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210038; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM Last ACK with wrong seq"; stream-event:lastack_ack_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210039; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM Last ACK invalid ACK"; stream-event:lastack_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210040; rev:3;)
 # very common when looking at midstream traffic after IDS started
-#alert tcp any any -> any any (msg:"SURICATA STREAM RST recv but no session"; stream-event:rst_but_no_session; classtype:protocol-command-decode; sid:2210041; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM TIMEWAIT ACK with wrong seq"; stream-event:timewait_ack_wrong_seq; classtype:protocol-command-decode; sid:2210042; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM TIMEWAIT invalid ack"; stream-event:timewait_invalid_ack; classtype:protocol-command-decode; sid:2210043; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM Packet with invalid timestamp"; stream-event:pkt_invalid_timestamp; classtype:protocol-command-decode; sid:2210044; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM Packet with invalid ack"; stream-event:pkt_invalid_ack; classtype:protocol-command-decode; sid:2210045; rev:2;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM RST recv but no session"; stream-event:rst_but_no_session; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210041; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM TIMEWAIT ACK with wrong seq"; stream-event:timewait_ack_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210042; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM TIMEWAIT invalid ack"; stream-event:timewait_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210043; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM Packet with invalid timestamp"; stream-event:pkt_invalid_timestamp; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210044; rev:2;)
+alert tcp any any -> any any (msg:"SURICATA STREAM Packet with invalid ack"; stream-event:pkt_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210045; rev:2;)
 # Broken TCP: ack field non 0, but ACK flag not set. http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set
 # Often result of broken load balancers, firewalls and such.
-#alert tcp any any -> any any (msg:"SURICATA STREAM Packet with broken ack"; stream-event:pkt_broken_ack; classtype:protocol-command-decode; sid:2210051; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; stream-event:rst_invalid_ack; classtype:protocol-command-decode; sid:2210046; rev:2;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM Packet with broken ack"; stream-event:pkt_broken_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210051; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; stream-event:rst_invalid_ack; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210046; rev:3;)
 # SYN (re)send during shutdown (closing, closewait, finwait1, finwait2, lastack, timewait states)
-#alert tcp any any -> any any (msg:"SURICATA STREAM SYN resend"; stream-event:shutdown_syn_resend; classtype:protocol-command-decode; sid:2210049; rev:2;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM SYN resend"; stream-event:shutdown_syn_resend; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210049; rev:3;)
 # Sequence gap: missing data in the reassembly engine. Usually due to packet loss. Will be very noisy on a overloaded link / sensor.
-#alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; classtype:protocol-command-decode; sid:2210048; rev:2;)
-alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; classtype:protocol-command-decode; sid:2210050; rev:2;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210048; rev:3;)
+alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210050; rev:3;)
 # Bad Window Update: see bug 1238 for an explanation
-alert tcp any any -> any any (msg:"SURICATA STREAM bad window update"; stream-event:pkt_bad_window_update; classtype:protocol-command-decode; sid:2210056; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA STREAM bad window update"; stream-event:pkt_bad_window_update; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210056; rev:2;)
 # RST injection suspected. Alerts on packets *after* the RST, as these indicate the target
 # rejected/ignored the RST.
-alert tcp any any -> any any (msg:"SURICATA STREAM suspected RST injection"; stream-event:suspected_rst_inject; classtype:protocol-command-decode; sid:2210058; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA STREAM suspected RST injection"; stream-event:suspected_rst_inject; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210058; rev:2;)
 
 # retransmission detection
 #
@@ -97,14 +97,14 @@ alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; st
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
 # Packet on wrong thread. Fires at most once per flow.
-alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; sid:2210059; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; threshold:type backoff, track by_flow, count 1, multiplier 10; sid:2210059; rev:2;)
 
 # Packet with FIN+SYN set
-alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:fin_syn; classtype:protocol-command-decode; sid:2210060; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA STREAM FIN SYN reuse"; stream-event:fin_syn; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210060; rev:2;)
 
 # Packet is a spurious retransmission, so a retransmission of already ACK'd data.
 # Disabled by default as this quite common and not malicious.
-#alert tcp any any -> any any (msg:"SURICATA STREAM spurious retransmission"; stream-event:pkt_spurious_retransmission; classtype:protocol-command-decode; sid:2210061; rev:1;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM spurious retransmission"; stream-event:pkt_spurious_retransmission; threshold:type backoff, track by_flow, count 1, multiplier 10; classtype:protocol-command-decode; sid:2210061; rev:2;)
 
 # Depth setting reached for a stream. Very common in normal traffic, so disable by default.
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly depth reached"; stream-event:reassembly_depth_reached; classtype:protocol-command-decode; sid:2210062; rev:1;)
