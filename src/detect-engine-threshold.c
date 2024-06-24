@@ -87,10 +87,17 @@ typedef struct ThresholdEntry_ {
     uint32_t seconds;       /**< Event seconds */
     uint32_t current_count; /**< Var for count control */
 
-    SCTime_t tv1; /**< Var for time control */
+    union {
+        struct {
+            uint32_t next_value;
+        } backoff;
+        struct {
+            SCTime_t tv1;  /**< Var for time control */
+            Address addr;  /* used for src/dst/either tracking */
+            Address addr2; /* used for both tracking */
+        };
+    };
 
-    Address addr;  /* used for src/dst/either tracking */
-    Address addr2; /* used for both tracking */
 } ThresholdEntry;
 
 static int ThresholdEntrySet(void *dst, void *src)
@@ -634,6 +641,11 @@ static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
     }
 }
 
+/**
+ *  \retval 2 silent match (no alert but apply actions)
+ *  \retval 1 normal match
+ *  \retval 0 no match
+ */
 static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
         const SCTime_t packet_time, const uint32_t sid, const uint32_t gid, const uint32_t rev,
         const uint32_t tenant_id)
@@ -643,11 +655,19 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
     te->key[REV] = rev;
     te->key[TRACK] = td->track;
     te->key[TENANT] = tenant_id;
-    te->seconds = td->seconds;
 
+    te->seconds = td->seconds;
     te->current_count = 1;
-    te->tv1 = packet_time;
-    te->tv_timeout = 0;
+
+    switch (td->type) {
+        case TYPE_BACKOFF:
+            te->backoff.next_value = td->count;
+            break;
+        default:
+            te->tv1 = packet_time;
+            te->tv_timeout = 0;
+            break;
+    }
 
     switch (td->type) {
         case TYPE_LIMIT:
@@ -657,6 +677,12 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
         case TYPE_BOTH:
             if (td->count == 1)
                 return 1;
+            return 0;
+        case TYPE_BACKOFF:
+            if (td->count == 1) {
+                te->backoff.next_value *= td->multiplier;
+                return 1;
+            }
             return 0;
         case TYPE_DETECTION:
             return 0;
@@ -775,6 +801,18 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
                     te->tv1 = packet_time;
                     te->current_count = 1;
                 }
+            }
+            break;
+        case TYPE_BACKOFF:
+            SCLogDebug("backoff");
+
+            te->current_count++;
+            if (te->backoff.next_value == te->current_count) {
+                te->backoff.next_value *= td->multiplier;
+                SCLogDebug("te->backoff.next_value %u", te->backoff.next_value);
+                ret = 1;
+            } else {
+                ret = 2;
             }
             break;
     }

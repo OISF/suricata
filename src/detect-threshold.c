@@ -60,8 +60,9 @@
 #include "util-cpu.h"
 #endif
 
-#define PARSE_REGEX_NAME  "(track|type|count|seconds)"
-#define PARSE_REGEX_VALUE "(limit|both|threshold|by_dst|by_src|by_both|by_rule|by_flow|\\d+)"
+#define PARSE_REGEX_NAME "(track|type|count|seconds|multiplier)"
+#define PARSE_REGEX_VALUE                                                                          \
+    "(limit|both|threshold|backoff|by_dst|by_src|by_both|by_rule|by_flow|\\d+)"
 
 #define PARSE_REGEX                                                                                \
     "^\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME                 \
@@ -124,7 +125,8 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     char *copy_str = NULL, *threshold_opt = NULL;
     int second_found = 0, count_found = 0;
     int type_found = 0, track_found = 0;
-    int second_pos = 0, count_pos = 0;
+    int multiplier_found = 0;
+    int second_pos = 0, count_pos = 0, multiplier_pos = 0;
     size_t pos = 0;
     int i = 0;
     pcre2_match_data *match = NULL;
@@ -146,15 +148,19 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
             type_found++;
         if (strstr(threshold_opt, "track"))
             track_found++;
+        if (strstr(threshold_opt, "multiplier"))
+            multiplier_found++;
     }
     SCFree(copy_str);
     copy_str = NULL;
 
-    if (count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
+    if (!(count_found == 1 && (second_found == 1 || multiplier_found == 1) && track_found == 1 &&
+                type_found == 1)) {
         goto error;
+    }
 
     ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 5) {
+    if (ret < 5 || ret > 9) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
@@ -180,6 +186,8 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
             de->type = TYPE_BOTH;
         if (strncasecmp(args[i], "threshold", strlen("threshold")) == 0)
             de->type = TYPE_THRESHOLD;
+        if (strcasecmp(args[i], "backoff") == 0)
+            de->type = TYPE_BACKOFF;
         if (strncasecmp(args[i], "by_dst", strlen("by_dst")) == 0)
             de->track = TRACK_DST;
         if (strncasecmp(args[i], "by_src", strlen("by_src")) == 0)
@@ -194,18 +202,48 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
             count_pos = i + 1;
         if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
             second_pos = i + 1;
+        if (strcasecmp(args[i], "multiplier") == 0)
+            multiplier_pos = i + 1;
     }
 
-    if (args[count_pos] == NULL || args[second_pos] == NULL) {
-        goto error;
-    }
+    if (de->type != TYPE_BACKOFF) {
+        if (args[count_pos] == NULL || args[second_pos] == NULL) {
+            goto error;
+        }
 
-    if (StringParseUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
-        goto error;
-    }
+        if (StringParseUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
+            goto error;
+        }
+        if (StringParseUint32(&de->seconds, 10, strlen(args[second_pos]), args[second_pos]) <= 0) {
+            goto error;
+        }
+    } else {
+        if (args[count_pos] == NULL || args[multiplier_pos] == NULL) {
+            goto error;
+        }
 
-    if (StringParseUint32(&de->seconds, 10, strlen(args[second_pos]), args[second_pos]) <= 0) {
-        goto error;
+        if (second_found) {
+            goto error;
+        }
+
+        if (StringParseUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
+            goto error;
+        }
+        if (StringParseUint32(
+                    &de->multiplier, 10, strlen(args[multiplier_pos]), args[multiplier_pos]) <= 0) {
+            goto error;
+        }
+
+        if (!(de->count > 0 && de->multiplier > 0)) {
+            goto error;
+        }
+
+        if (de->track != TRACK_FLOW) {
+            SCLogError("type backoff only supported for track by_flow");
+            goto error;
+        }
+
+        SCLogDebug("TYPE_BACKOFF count %u multiplier %u", de->count, de->multiplier);
     }
 
     for (i = 0; i < (ret - 1); i++) {
@@ -489,6 +527,20 @@ static int ThresholdTestParse07(void)
     FAIL_IF_NOT(de->track == TRACK_RULE);
     FAIL_IF_NOT(de->count == 10);
     FAIL_IF_NOT(de->seconds == 60);
+    DetectThresholdFree(NULL, de);
+    PASS;
+}
+
+/** \test backoff by_flow */
+static int ThresholdTestParse08(void)
+{
+    DetectThresholdData *de =
+            DetectThresholdParse("count 10, track by_flow, multiplier 2, type backoff");
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_BACKOFF);
+    FAIL_IF_NOT(de->track == TRACK_FLOW);
+    FAIL_IF_NOT(de->count == 10);
+    FAIL_IF_NOT(de->multiplier == 2);
     DetectThresholdFree(NULL, de);
     PASS;
 }
@@ -1666,6 +1718,7 @@ static void ThresholdRegisterTests(void)
     UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05);
     UtRegisterTest("ThresholdTestParse06", ThresholdTestParse06);
     UtRegisterTest("ThresholdTestParse07", ThresholdTestParse07);
+    UtRegisterTest("ThresholdTestParse08", ThresholdTestParse08);
     UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1);
     UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2);
     UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3);
