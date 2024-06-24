@@ -60,12 +60,13 @@
 #include "util-cpu.h"
 #endif
 
+#define PARSE_REGEX_NAME  "(track|type|count|seconds)"
+#define PARSE_REGEX_VALUE "(limit|both|threshold|by_dst|by_src|by_both|by_rule|by_flow|\\d+)"
+
 #define PARSE_REGEX                                                                                \
-    "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|by_"   \
-    "flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_"     \
-    "both|by_rule|by_flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_"   \
-    "dst|by_src|by_both|by_rule|by_flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|"  \
-    "threshold|by_dst|by_src|by_both|by_rule|by_flow|\\d+)\\s*"
+    "^\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME                 \
+    "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE                 \
+    "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*"
 
 static DetectParseRegex parse_regex;
 
