@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,7 @@
 #define TYPE_DETECTION 4
 #define TYPE_RATE      5
 #define TYPE_SUPPRESS  6
+#define TYPE_BACKOFF   7
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
@@ -59,6 +60,7 @@ typedef struct DetectThresholdData_ {
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
+    uint32_t multiplier; /**< backoff multiplier */
     DetectAddressHead addrs;
 } DetectThresholdData;
 
