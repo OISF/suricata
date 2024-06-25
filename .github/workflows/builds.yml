@@ -308,6 +308,81 @@ jobs:
         run: cargo clippy --all-features
         working-directory: rust
 
+  almalinux-9-non-bundled-libhtp:
+    name: AlmaLinux 9 Non-Bundled LibHTP
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    needs: [prepare-deps, debian-12-dist]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                cbindgen \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                rust-toolset \
+                sudo \
+                which \
+                zlib-devel
+
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        with:
+          name: dist
+
+      - run: tar xf suricata-*.tar.gz --strip-components=1
+      - run: cd libhtp && ./configure --prefix=/usr/local
+      - run: cd libhtp && make -j ${{ env.CPUS }}
+      - run: cd libhtp && make install
+
+      - run: PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-non-bundled-htp --with-libhtp-includes=/usr/local/include --with-libhtp-libraries=/usr/local/lib
+
   almalinux-8:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
