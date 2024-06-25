@@ -67,12 +67,6 @@ static int DetectDnsOpcodeMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
 {
-    if (f->alproto == ALPROTO_DOH2) {
-        txv = SCDoH2GetDnsTx(txv, flags);
-        if (txv == NULL) {
-            return 0;
-        }
-    }
     return SCDnsDetectOpcodeMatch(txv, (void *)ctx, flags);
 }
 

@@ -87,16 +87,6 @@ static inline bool AppProtoIsValid(AppProto a)
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
 }
 
-// whether an engine proto works on a flow proto
-static inline bool AppProtoCompatible(AppProto eng_proto, AppProto alproto)
-{
-    switch (alproto) {
-        case ALPROTO_DOH2:
-            return (eng_proto == ALPROTO_HTTP2) || (eng_proto == ALPROTO_DNS);
-    }
-    return (eng_proto == alproto);
-}
-
 // whether a signature AppProto matches a flow (or signature) AppProto
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {

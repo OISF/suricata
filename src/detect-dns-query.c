@@ -73,12 +73,6 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    if (f->alproto == ALPROTO_DOH2) {
-        txv = SCDoH2GetDnsTx(txv, flags);
-        if (txv == NULL) {
-            return NULL;
-        }
-    }
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
