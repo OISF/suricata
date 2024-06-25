@@ -282,9 +282,9 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     js.close()?; // http2
     js.close()?; // http
 
-    if tx.dns_request_tx.is_some() || tx.dns_response_tx.is_some() {
+    if let Some(doh) = &tx.doh {
         js.open_object("dns")?;
-        if let Some(dtx) = &tx.dns_request_tx {
+        if let Some(dtx) = &doh.dns_request_tx {
             let mark = js.get_mark();
             let mut has_dns_query = false;
             js.open_array("query")?;
@@ -303,7 +303,7 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
                 js.restore_mark(&mark)?;
             }
         }
-        if let Some(dtx) = &tx.dns_response_tx {
+        if let Some(dtx) = &doh.dns_response_tx {
             if SCDnsLogAnswerEnabled(dtx, 0xFFFFFFFFFFFFFFFF) {
                 // logging at root of dns object
                 SCDnsLogJsonAnswer(dtx, 0xFFFFFFFFFFFFFFFF, js);
