@@ -1,0 +1,121 @@
+on:
+  workflow_call:
+
+env:
+  DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
+  DEFAULT_SV_BRANCH: master
+
+jobs:
+
+  prepare-deps:
+    name: Prepare dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dumping github context for debugging
+        run: echo $JSON
+        env:
+          JSON: ${{ toJSON(github) }}
+      - run: sudo apt update && sudo apt -y install jq curl
+      - name: Parse repo and branch information
+        env:
+          # We fetch the actual pull request to get the latest body as
+          # github.event.pull_request.body has the body from the
+          # initial pull request.
+          PR_HREF: ${{ github.event.pull_request._links.self.href }}
+        run: |
+          if test "${PR_HREF}"; then
+              body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
+
+              echo "Parsing branch and PR info from:"
+              echo "${body}"
+
+              LIBHTP_REPO=$(echo "${body}" | awk -F = '/^LIBHTP_REPO=/ { print $2 }')
+              LIBHTP_BRANCH=$(echo "${body}" | awk -F = '/^LIBHTP_BRANCH=/ { print $2 }')
+
+              SU_REPO=$(echo "${body}" | awk -F = '/^SU_REPO=/ { print $2 }')
+              SU_BRANCH=$(echo "${body}" | awk -F = '/^SU_BRANCH=/ { print $2 }')
+
+              SV_REPO=$(echo "${body}" | awk -F = '/^SV_REPO=/ { print $2 }')
+              SV_BRANCH=$(echo "${body}" | awk -F = '/^SV_BRANCH=/ { print $2 }')
+          else
+              echo "No pull request body, will use inputs or defaults."
+              LIBHTP_REPO=${{ inputs.LIBHTP_REPO }}
+              LIBHTP_BRANCH=${{ inputs.LIBHTP_BRANCH }}
+              SU_REPO=${{ inputs.SU_REPO }}
+              SU_BRANCH=${{ inputs.SU_BRANCH }}
+              SV_REPO=${{ inputs.SV_REPO }}
+              SV_BRANCH=${{ inputs.SV_BRANCH }}
+          fi
+
+          # If the _REPO variables don't contain a full URL, add GitHub.
+          if [ "${LIBHTP_REPO}" ] && ! echo "${LIBHTP_REPO}" | grep -q '^https://'; then
+              LIBHTP_REPO="https://github.com/${LIBHTP_REPO}"
+          fi
+          if [ "${SU_REPO}" ] && ! echo "${SU_REPO}" | grep -q '^https://'; then
+              SU_REPO="https://github.com/${SU_REPO}"
+          fi
+          if [ "${SV_REPO}" ] && ! echo "${SV_REPO}" | grep -q '^https://'; then
+              SV_REPO="https://github.com/${SV_REPO}"
+          fi
+
+          echo LIBHTP_REPO=${LIBHTP_REPO} | tee -a ${GITHUB_ENV}
+          echo LIBHTP_BRANCH=${LIBHTP_BRANCH} | tee -a ${GITHUB_ENV}
+
+          echo SU_REPO=${SU_REPO} | tee -a ${GITHUB_ENV}
+          echo SU_BRANCH=${SU_BRANCH} | tee -a ${GITHUB_ENV}
+
+          echo SV_REPO=${SV_REPO:-${DEFAULT_SV_REPO}} | tee -a ${GITHUB_ENV}
+          echo SV_BRANCH=${SV_BRANCH:-${DEFAULT_SV_BRANCH}} | tee -a ${GITHUB_ENV}
+
+      - name: Annotate output
+        run: |
+          echo "::notice:: LIBHTP_REPO=${LIBHTP_REPO}"
+          echo "::notice:: LIBHTP_BRANCH=${LIBHTP_BRANCH}"
+          echo "::notice:: SU_REPO=${SU_REPO}"
+          echo "::notice:: SU_BRANCH=${SU_BRANCH}"
+          echo "::notice:: SV_REPO=${SV_REPO}"
+          echo "::notice:: SV_BRANCH=${SV_BRANCH}"
+
+      # Now checkout Suricata for the bundle script.
+      - name: Checking out Suricata
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      - name: Fetching libhtp
+        run: |
+          DESTDIR=./bundle ./scripts/bundle.sh libhtp
+          tar zcf libhtp.tar.gz -C bundle libhtp
+      - name: Fetching suricata-update
+        run: |
+          DESTDIR=./bundle ./scripts/bundle.sh suricata-update
+          tar zcf suricata-update.tar.gz -C bundle suricata-update
+
+      - name: Fetching suricata-verify
+        run: |
+          # Looking for a pull request number. in the SV_BRANCH
+          # value. This could be "pr/NNN", "pull/NNN" or a link to an
+          # OISF/suricata-verify pull request.
+          pr=$(echo "${SV_BRANCH}" | sed -n \
+              -e 's/^https:\/\/github.com\/OISF\/suricata-verify\/pull\/\([0-9]*\)$/\1/p' \
+              -e 's/^pull\/\([0-9]*\)$/\1/p' \
+              -e 's/^pr\/\([0-9]*\)$/\1/p')
+          if [ "${pr}" ]; then
+              SV_BRANCH="refs/pull/${pr}/head"
+              echo "Using suricata-verify pull-request ${SV_BRANCH}"
+          else
+              echo "Using suricata-verify branch ${SV_BRANCH}"
+          fi
+          git clone --depth 1 ${SV_REPO} suricata-verify
+          cd suricata-verify
+          git fetch --depth 1 origin ${SV_BRANCH}
+          git -c advice.detachedHead=false checkout FETCH_HEAD
+          cd ..
+          tar zcf suricata-verify.tar.gz suricata-verify
+      - name: Uploading prep archive
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: prep
+          path: |
+            libhtp.tar.gz
+            suricata-update.tar.gz
+            suricata-verify.tar.gz
