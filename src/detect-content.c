@@ -453,6 +453,22 @@ void SigParseRequiredContentSize(
  */
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
+    bool has_pcre = false;
+    bool has_other = false;
+    for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_PCRE) {
+            has_pcre = true;
+        } else {
+            has_other = true;
+        }
+    }
+    if (has_pcre && !has_other && s->init_data->sm_cnt == 1) {
+        SCLogWarning("signature id %d uses pcre on raw stream", s->id);
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        return false;
+#endif
+    }
+
     if (!(s->flags & SIG_FLAG_DSIZE)) {
         return true;
     }
