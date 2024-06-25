@@ -1,0 +1,108 @@
+name: docs
+
+on:
+  push:
+    paths:
+      # Something has to change in doc/ for thos workflow to be run.
+      - "doc/**"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      LIBHTP_REPO:
+      LIBHTP_BRANCH:
+      SU_REPO:
+      SU_BRANCH:
+      SV_REPO:
+      SV_BRANCH:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+env:
+  DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
+
+  # Apt sometimes likes to ask for user input, this will prevent that.
+  DEBIAN_FRONTEND: "noninteractive"
+
+jobs:
+
+  prepare-deps:
+    name: Prepare dependencies
+    uses: ./.github/workflows/prepare-deps.yml
+
+  debian-12-dist:
+    name: Debian 12 Dist Builder
+    runs-on: ubuntu-latest
+    container: debian:12
+    needs: [prepare-deps]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - run: apt update
+      - run: |
+          apt -y install \
+              autoconf \
+              automake \
+              build-essential \
+              cargo \
+              cbindgen \
+              cmake \
+              curl \
+              git \
+              jq \
+              make \
+              libpcre3 \
+              libpcre3-dbg \
+              libpcre3-dev \
+              libpcre2-dev \
+              libtool \
+              libpcap-dev \
+              libnet1-dev \
+              libyaml-0-2 \
+              libyaml-dev \
+              libcap-ng-dev \
+              libcap-ng0 \
+              libmagic-dev \
+              libjansson-dev \
+              libjansson4 \
+              liblz4-dev \
+              libssl-dev \
+              liblzma-dev \
+              pkg-config \
+              python3 \
+              python3-yaml \
+              rustc \
+              sphinx-doc \
+              sphinx-common \
+              texlive-latex-base \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              texlive-latex-extra \
+              zlib1g \
+              zlib1g-dev
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make dist
+      - run: test -e doc/userguide/suricata.1
+      - run: test -e doc/userguide/userguide.pdf
+      - name: Building HTML documentation
+        run: cd doc/userguide && make html
