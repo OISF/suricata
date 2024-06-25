@@ -453,6 +453,25 @@ void SigParseRequiredContentSize(
  */
 bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    bool has_pcre = false;
+    bool has_content = false;
+    for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_PCRE) {
+            has_pcre = true;
+        } else if (sm->type == DETECT_CONTENT) {
+            has_content = true;
+            break;
+        }
+    }
+    if (has_pcre && !has_content) {
+        // Fuzzing does not allow rules with pcre and without content on payload
+        // as it is known to be a bad rule for performance causing possible timeouts
+        // Engine analysis has more generic warn_pcre_no_content about this
+        return false;
+    }
+#endif
+
     if (!(s->flags & SIG_FLAG_DSIZE)) {
         return true;
     }
