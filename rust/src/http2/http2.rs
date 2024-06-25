@@ -128,6 +128,15 @@ pub struct HTTP2Frame {
     pub data: HTTP2FrameTypeData,
 }
 
+#[derive(Debug, Default)]
+pub struct DohHttp2Tx {
+    is_doh_data: [bool; 2],
+    // dns response buffer
+    pub data_buf: [Vec<u8>; 2],
+    pub dns_request_tx: Option<DNSTransaction>,
+    pub dns_response_tx: Option<DNSTransaction>,
+}
+
 #[derive(Debug)]
 pub struct HTTP2Transaction {
     tx_id: u64,
@@ -151,11 +160,7 @@ pub struct HTTP2Transaction {
     pub req_line: Vec<u8>,
     pub resp_line: Vec<u8>,
 
-    is_doh_data: [bool; 2],
-    // dns response buffer
-    pub doh_data_buf: [Vec<u8>; 2],
-    pub dns_request_tx: Option<DNSTransaction>,
-    pub dns_response_tx: Option<DNSTransaction>,
+    pub doh: Option<DohHttp2Tx>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -187,10 +192,7 @@ impl HTTP2Transaction {
             escaped: Vec::with_capacity(16),
             req_line: Vec::new(),
             resp_line: Vec::new(),
-            is_doh_data: [false; 2],
-            doh_data_buf: Default::default(),
-            dns_request_tx: None,
-            dns_response_tx: None,
+            doh: None,
         }
     }
 
@@ -235,7 +237,13 @@ impl HTTP2Transaction {
                 }
             } else if block.name.as_ref() == b"content-type" {
                 if block.value.as_ref() == b"application/dns-message" {
-                    self.is_doh_data[dir.index()] = true;
+                    if let Some(doh) = &mut self.doh {
+                        doh.is_doh_data[dir.index()] = true;
+                    } else {
+                        let mut doh = DohHttp2Tx::default();
+                        doh.is_doh_data[dir.index()] = true;
+                        self.doh = Some(doh);
+                    }
                 }
             } else if block.name.as_ref() == b":path" {
                 path = Some(&block.value);
@@ -347,9 +355,11 @@ impl HTTP2Transaction {
         };
         if unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             // we store DNS response, and process it when complete
-            if self.is_doh_data[dir.index()] && self.doh_data_buf[dir.index()].len() < 0xFFFF {
-                // a DNS message is U16_MAX
-                self.doh_data_buf[dir.index()].extend_from_slice(decompressed);
+            if let Some(doh) = &mut self.doh {
+                if doh.is_doh_data[dir.index()] && doh.data_buf[dir.index()].len() < 0xFFFF {
+                    // a DNS message is U16_MAX
+                    doh.data_buf[dir.index()].extend_from_slice(decompressed);
+                }
             }
         }
         return Ok(());
@@ -433,21 +443,23 @@ impl HTTP2Transaction {
         return r;
     }
 
-    fn handle_dns_data(&mut self, over: bool, dir: Direction, flow: *const Flow) {
-        if !self.doh_data_buf[dir.index()].is_empty() && over {
-            if dir.is_to_client() {
-                if let Ok(mut dtx) = dns_parse_response(&self.doh_data_buf[dir.index()]) {
+    fn handle_dns_data(&mut self, dir: Direction, flow: *const Flow) {
+        if let Some(doh) = &mut self.doh {
+            if !doh.data_buf[dir.index()].is_empty() {
+                if dir.is_to_client() {
+                    if let Ok(mut dtx) = dns_parse_response(&doh.data_buf[dir.index()]) {
+                        dtx.id = 1;
+                        doh.dns_response_tx = Some(dtx);
+                        unsafe {
+                            AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                        }
+                    }
+                } else if let Ok(mut dtx) = dns_parse_request(&doh.data_buf[dir.index()]) {
                     dtx.id = 1;
-                    self.dns_response_tx = Some(dtx);
+                    doh.dns_request_tx = Some(dtx);
                     unsafe {
                         AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                     }
-                }
-            } else if let Ok(mut dtx) = dns_parse_request(&self.doh_data_buf[dir.index()]) {
-                dtx.id = 1;
-                self.dns_request_tx = Some(dtx);
-                unsafe {
-                    AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                 }
             }
         }
@@ -1131,9 +1143,14 @@ impl HTTP2State {
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf) {
                             dtx.id = 1;
-                            tx.dns_request_tx = Some(dtx);
                             unsafe {
                                 AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                            }
+                            if let Some(doh) = &mut tx.doh {
+                                doh.dns_request_tx = Some(dtx);
+                            } else {
+                                let mut doh = DohHttp2Tx { dns_request_tx: Some(dtx), ..Default::default() };
+                                tx.doh = Some(doh);
                             }
                         }
                     }
@@ -1141,7 +1158,6 @@ impl HTTP2State {
                         tx.tx_data
                             .set_event(HTTP2Event::ReassemblyLimitReached as u8);
                     }
-                    tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
@@ -1185,7 +1201,9 @@ impl HTTP2State {
                                         flow,
                                     ) {
                                         Ok(_) => {
-                                            tx_same.handle_dns_data(over, dir, flow);
+                                            if over {
+                                                tx_same.handle_dns_data(dir, flow);
+                                            }
                                         }
                                         _ => {
                                             self.set_event(HTTP2Event::FailedDecompression);
@@ -1288,13 +1306,15 @@ impl HTTP2State {
 pub unsafe extern "C" fn SCDoH2GetDnsTx(
     tx: &HTTP2Transaction, flags: u8,
 ) -> *mut std::os::raw::c_void {
-    if flags & Direction::ToServer as u8 != 0 {
-        if let Some(ref dtx) = &tx.dns_request_tx {
-            return dtx as *const _ as *mut _;
-        }
-    } else if flags & Direction::ToClient as u8 != 0 {
-        if let Some(ref dtx) = &tx.dns_response_tx {
-            return dtx as *const _ as *mut _;
+    if let Some(doh) = &tx.doh {
+        if flags & Direction::ToServer as u8 != 0 {
+            if let Some(ref dtx) = &doh.dns_request_tx {
+                return dtx as *const _ as *mut _;
+            }
+        } else if flags & Direction::ToClient as u8 != 0 {
+            if let Some(ref dtx) = &doh.dns_response_tx {
+                return dtx as *const _ as *mut _;
+            }
         }
     }
     std::ptr::null_mut()
