@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -100,32 +100,45 @@ pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let orig_i = i;
     let record_len = i.len() + NTLMSSP_IDTYPE_LEN; // identifier (8) and type (4) are cut before we are called
 
+    // track start of the data offset
     let (i, _lm_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _lm_blob_maxlen) = le_u16(i)?;
-    let (i, _lm_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    let (i, lm_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    let mut data_start = lm_blob_offset;
 
     let (i, _ntlmresp_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _ntlmresp_blob_maxlen) = le_u16(i)?;
-    let (i, _ntlmresp_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    let (i, ntlmresp_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    data_start = std::cmp::min(data_start, ntlmresp_blob_offset);
 
     let (i, domain_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _domain_blob_maxlen) = le_u16(i)?;
     let (i, domain_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    data_start = std::cmp::min(data_start, domain_blob_offset);
 
     let (i, user_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _user_blob_maxlen) = le_u16(i)?;
     let (i, user_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    data_start = std::cmp::min(data_start, user_blob_offset);
 
     let (i, host_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _host_blob_maxlen) = le_u16(i)?;
     let (i, host_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    data_start = std::cmp::min(data_start, host_blob_offset);
 
     let (i, _ssnkey_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _ssnkey_blob_maxlen) = le_u16(i)?;
-    let (i, _ssnkey_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    let (i, ssnkey_blob_offset) = verify(le_u32, |&v| (v as usize) < record_len)(i)?;
+    data_start = std::cmp::min(data_start, ssnkey_blob_offset);
 
     let (i, nego_flags) = parse_ntlm_auth_nego_flags(i)?;
-    let (_, version) = cond(nego_flags.version, parse_ntlm_auth_version)(i)?;
+
+    // Check if we have space for the version before the "data" starts.
+    let consumed = orig_i.len() - i.len() + NTLMSSP_IDTYPE_LEN;
+    let has_space_for_version = data_start as usize >= consumed as usize + 8 &&
+        nego_flags.version == true;
+
+    let (_, version) = cond(has_space_for_version, parse_ntlm_auth_version)(i)?;
 
     // Caller does not care about remaining input...
     let (_, domain_blob) = extract_ntlm_substring(orig_i, domain_blob_offset, domain_blob_len)?;
