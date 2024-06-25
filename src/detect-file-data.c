@@ -98,7 +98,7 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
         return;
 
     de_ctx->filedata_config = SCMalloc(ALPROTO_MAX * sizeof(DetectFileDataCfg));
-    if (unlikely(de_ctx->filedata_config))
+    if (unlikely(de_ctx->filedata_config == NULL))
         return;
     /* initialize default */
     for (AppProto i = 0; i < ALPROTO_MAX; i++) {
