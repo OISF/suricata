@@ -201,6 +201,22 @@ ConfNode *ConfGetNode(const char *name)
     return node;
 }
 
+ConfNode * ConfGetFirstNode(const ConfNode *parent) {
+    return TAILQ_FIRST(&parent->head);
+}
+
+ConfNode * ConfGetNextNode(const ConfNode *node) {
+    return TAILQ_NEXT(node, next);
+}
+
+const char * ConfGetNameNode(const ConfNode *node) {
+    return node->name;
+}
+
+const char * ConfGetValueNode(const ConfNode *node) {
+    return node->val;
+}
+
 /**
  * \brief Get the root configuration node.
  */

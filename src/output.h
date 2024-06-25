@@ -197,5 +197,6 @@ typedef struct EveJsonSimpleAppLayerLogger {
 } EveJsonSimpleAppLayerLogger;
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
+void RegisterAppProtoAppLayerLogger(AppProto alproto, EveJsonSimpleTxLogFunc log);
 
 #endif /* ! SURICATA_OUTPUT_H */

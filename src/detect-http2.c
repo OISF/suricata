@@ -33,6 +33,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-helper.h"
 
 #include "detect-http2.h"
 #include "util-byte.h"
@@ -102,30 +103,7 @@ static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flags, void *txv,
         int list_id, uint32_t local_id)
 {
-    SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
-
-    uint32_t b_len = 0;
-    const uint8_t *b = NULL;
-
-    if (rs_http2_tx_get_header_name(txv, flags, local_id, &b, &b_len) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-    if (b == NULL || b_len == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(buffer, transforms, b, b_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
+    return DetectHelperGetMultiData(det_ctx, transforms, _f, flags, txv, list_id, local_id, (MultiGetTxBuffer) rs_http2_tx_get_header_name);
 }
 
 void DetectHttp2Register(void)

@@ -253,6 +253,13 @@ pub extern "C" fn rs_init(context: &'static SuricataContext)
     init_ffi(context);
 }
 
+#[no_mangle]
+pub extern "C" fn rs_update_alproto_failed(alproto: AppProto) {
+    unsafe {
+        ALPROTO_FAILED = alproto;
+    }
+}
+
 /// DetectEngineStateFree wrapper.
 pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
 {

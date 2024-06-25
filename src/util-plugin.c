@@ -22,6 +22,7 @@
 #include "util-plugin.h"
 #include "util-debug.h"
 #include "conf.h"
+#include "app-layer-protos.h"
 
 #ifdef HAVE_PLUGINS
 
@@ -147,5 +148,33 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
         }
     }
     return plugin;
+}
+
+#ifdef ALPROTO_DYNAMIC_NB
+static SCAppLayerPlugin *app_layer_plugins[ALPROTO_DYNAMIC_NB];
+static size_t app_layer_plugins_nb = 0;
+#endif
+
+int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
+{
+#ifdef ALPROTO_DYNAMIC_NB
+    if (app_layer_plugins_nb < ALPROTO_DYNAMIC_NB) {
+        app_layer_plugins[app_layer_plugins_nb] = plugin;
+        RegisterAppProtoString((AppProto)(ALPROTO_MAX_STATIC + app_layer_plugins_nb), plugin->name);
+        app_layer_plugins_nb++;
+        return 0;
+    }
+#endif
+    return 1;
+}
+
+SCAppLayerPlugin *SCPluginFindAppLayerByIndex(size_t i)
+{
+#ifdef ALPROTO_DYNAMIC_NB
+    if (i < ALPROTO_DYNAMIC_NB) {
+        return app_layer_plugins[i];
+    }
+#endif
+    return NULL;
 }
 #endif
