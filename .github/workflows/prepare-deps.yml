@@ -1,85 +1,21 @@
-name: build-centos-7
-
 on:
-  push:
-    paths-ignore:
-      # Don't run this workflow if only files under doc/ have been
-      # modified.
-      - "doc/**"
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      LIBHTP_REPO:
-      LIBHTP_BRANCH:
-      SU_REPO:
-      SU_BRANCH:
-      SV_REPO:
-      SV_BRANCH:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions: read-all
+  workflow_call:
 
 env:
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
   DEFAULT_SV_BRANCH: master
-  DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
 jobs:
-  centos-7:
+
+  prepare-deps:
+    name: Prepare dependencies
     runs-on: ubuntu-latest
-    container: centos:7
     steps:
-      - name: Cache cargo registry
-        uses: actions/cache@v3.3.3
-        with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
-
-      - name: Cache RPMs
-        uses: actions/cache@v3.3.3
-        with:
-          path: /var/cache/yum
-          key: ${{ github.job }}-yum
-
-      - name: Determine number of CPUs
-        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
-
-      - run: |
-          yum -y install epel-release
-          yum -y install \
-                autoconf \
-                automake \
-                cargo \
-                curl \
-                diffutils \
-                file-devel \
-                gcc \
-                gcc-c++ \
-                git \
-                jansson-devel \
-                jq \
-                libtool \
-                libyaml-devel \
-                libnfnetlink-devel \
-                libnetfilter_queue-devel \
-                libnet-devel \
-                libcap-ng-devel \
-                libevent-devel \
-                libmaxminddb-devel \
-                libpcap-devel \
-                lz4-devel \
-                make \
-                nss-devel \
-                pcre2-devel \
-                pkgconfig \
-                python36-PyYAML \
-                rust \
-                sudo \
-                which \
-                zlib-devel
+      - name: Dumping github context for debugging
+        run: echo $JSON
+        env:
+          JSON: ${{ toJSON(github) }}
+      - run: sudo apt update && sudo apt -y install jq curl
       - name: Parse repo and branch information
         env:
           # We fetch the actual pull request to get the latest body as
@@ -140,16 +76,19 @@ jobs:
           echo "::notice:: SV_REPO=${SV_REPO}"
           echo "::notice:: SV_BRANCH=${SV_BRANCH}"
 
-      - name: Install cbindgen
-        run: |
-          cargo install --debug cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       # Now checkout Suricata for the bundle script.
       - name: Checking out Suricata
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: git config --global --add safe.directory /__w/suricata/suricata
 
-      - run: ./scripts/bundle.sh
+      - name: Fetching libhtp
+        run: |
+          DESTDIR=./bundle ./scripts/bundle.sh libhtp
+          tar zcf libhtp.tar.gz -C bundle libhtp
+      - name: Fetching suricata-update
+        run: |
+          DESTDIR=./bundle ./scripts/bundle.sh suricata-update
+          tar zcf suricata-update.tar.gz -C bundle suricata-update
 
       - name: Fetching suricata-verify
         run: |
@@ -170,11 +109,13 @@ jobs:
           cd suricata-verify
           git fetch --depth 1 origin ${SV_BRANCH}
           git -c advice.detachedHead=false checkout FETCH_HEAD
-
-      - run: ./autogen.sh
-      - run: ./configure --enable-warnings
-      - run: make -j ${{ env.CPUS }}
-      - run: python3 ./suricata-verify/run.py -q --debug-failed
-      - run: make install-full
-      - run: suricata-update -V
-      - run: suricatasc -h
+          cd ..
+          tar zcf suricata-verify.tar.gz suricata-verify
+      - name: Uploading prep archive
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: prep
+          path: |
+            libhtp.tar.gz
+            suricata-update.tar.gz
+            suricata-verify.tar.gz
