@@ -196,9 +196,33 @@ impl AppLayerTxData {
     pub fn update_file_flags(&mut self, state_flags: u16) {
         if (self.file_flags & state_flags) != state_flags {
             SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
-            self.file_flags |= state_flags;
+            let mut nf = state_flags;
+            // With keyword filestore:both,flow :
+            // There may be some opened unclosed file in one direction without filestore
+            // As such it has tx file_flags had FLOWFILE_NO_STORE_TS or TC
+            // But a new file in the other direction may trigger filestore:both,flow
+            // And thus set state_flags FLOWFILE_STORE_TS
+            // If the file was opened without storing it, do not try to store just the end of it
+            if (self.file_flags & FLOWFILE_NO_STORE_TS) != 0 && (state_flags & FLOWFILE_STORE_TS) != 0 {
+                nf &= !FLOWFILE_STORE_TS;
+            }
+            if (self.file_flags & FLOWFILE_NO_STORE_TC) != 0 && (state_flags & FLOWFILE_STORE_TC) != 0 {
+                nf &= !FLOWFILE_STORE_TC;
+            }
+            self.file_flags |= nf;
         }
     }
+}
+
+// need to keep in sync with C flow.h
+pub const FLOWFILE_NO_STORE_TS: u16 = BIT_U16!(2);
+pub const FLOWFILE_NO_STORE_TC: u16 = BIT_U16!(3);
+pub const FLOWFILE_STORE_TS: u16 = BIT_U16!(12);
+pub const FLOWFILE_STORE_TC: u16 = BIT_U16!(13);
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut AppLayerTxData, state_flags: u16) {
+    txd.update_file_flags(state_flags);
 }
 
 #[macro_export]

@@ -832,6 +832,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
     SCEnter();
     DEBUG_VALIDATE_BUG_ON(tx == NULL);
 
+    SCTxDataUpdateFileFlags(&tx->tx_data, state->state_data.file_flags);
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         /* looks like are still waiting for a confirmation from the server */
         return 0;
