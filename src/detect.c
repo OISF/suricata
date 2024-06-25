@@ -1052,6 +1052,24 @@ DetectRunTxSortHelper(const void *a, const void *b)
 #define TRACE_SID_TXS(sid,txs,...)
 #endif
 
+// Get inner transaction for engine
+void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
+{
+    if (alproto == ALPROTO_DOH2) {
+        if (engine_alproto == ALPROTO_DNS) {
+            // need to get the dns tx pointer
+            tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
+        } else if (engine_alproto != ALPROTO_HTTP2) {
+            // incompatible engine->alproto with flow alproto
+            tx_ptr = NULL;
+        }
+    } else if (engine_alproto != alproto) {
+        // incompatible engine->alproto with flow alproto
+        tx_ptr = NULL;
+    }
+    return tx_ptr;
+}
+
 /** \internal
  *  \brief inspect a rule against a transaction
  *
@@ -1112,12 +1130,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
-            const bool skip_engine =
-                    (engine->alproto != 0 && !AppProtoCompatible(engine->alproto, f->alproto));
-
-            /* special case: file_data on 'alert tcp' will have engines
-             * in the list that are not for us. */
-            if (unlikely(skip_engine)) {
+            void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
+            if (tx_ptr == NULL) {
+                /* special case: file_data on 'alert tcp' will have engines
+                 * in the list that are not for us. */
                 engine = engine->next;
                 continue;
             }
@@ -1154,7 +1170,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
                 match = engine->v2.Callback(
-                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;

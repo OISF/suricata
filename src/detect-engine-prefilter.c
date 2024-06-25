@@ -107,8 +107,12 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
-        if (!AppProtoCompatible(engine->alproto, alproto))
+        // based on flow alproto, and engine, we get right tx_ptr
+        void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, alproto, engine->alproto, flow_flags);
+        if (tx_ptr == NULL) {
+            // incompatible engine->alproto with flow alproto
             goto next;
+        }
         if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
         if (tx->tx_progress > engine->ctx.tx_min_progress) {
@@ -118,8 +122,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         PREFILTER_PROFILING_START(det_ctx);
-        engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx->tx_ptr, tx->tx_id,
-                tx->tx_data_ptr, flow_flags);
+        engine->cb.PrefilterTx(
+                det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id, tx->tx_data_ptr, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {

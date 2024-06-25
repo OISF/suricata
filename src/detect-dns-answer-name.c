@@ -56,12 +56,6 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
         return buffer;
     }
 
-    if (f->alproto == ALPROTO_DOH2) {
-        txv = SCDoH2GetDnsTx(txv, flags);
-        if (txv == NULL) {
-            return NULL;
-        }
-    }
     bool to_client = (flags & STREAM_TOSERVER) == 0;
     const uint8_t *data = NULL;
     uint32_t data_len = 0;
