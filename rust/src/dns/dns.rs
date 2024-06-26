@@ -930,7 +930,7 @@ unsafe extern "C" fn c_probe_tcp(
         } else {
             Direction::ToClient
         };
-        if (direction & DIR_BOTH) != dir.into() {
+        if (direction & DIR_BOTH) != dir as u8 {
             *rdir = dir as u8;
         }
         return ALPROTO_DNS;

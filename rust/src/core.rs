@@ -44,7 +44,7 @@ pub const DIR_BOTH:        u8 = 0b0000_1100;
 const DIR_TOSERVER:        u8 = 0b0000_0100;
 const DIR_TOCLIENT:        u8 = 0b0000_1000;
 
-#[repr(C)]
+#[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Direction {
     ToServer = 0x04,

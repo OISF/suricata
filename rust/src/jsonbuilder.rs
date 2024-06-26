@@ -1061,12 +1061,16 @@ mod test {
         assert_eq!(jb.buf, r#"{"first":true"#);
         jb.set_bool("second", false).unwrap();
         assert_eq!(jb.buf, r#"{"first":true,"second":false"#);
+	jb.close().unwrap();
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
 
         let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_bool("first", false).unwrap();
         assert_eq!(jb.buf, r#"{"first":false"#);
         jb.set_bool("second", true).unwrap();
         assert_eq!(jb.buf, r#"{"first":false,"second":true"#);
+	jb.close().unwrap();
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1089,6 +1093,8 @@ mod test {
         assert_eq!(js.current_state(), State::None);
         assert_eq!(js.buf, r#"{"object":{"one":"one"}}"#);
 
+	let _value: serde_json::Value = serde_json::from_str(&js.buf).unwrap();
+
         Ok(())
     }
 
@@ -1105,6 +1111,8 @@ mod test {
 
         js.close()?;
         assert_eq!(js.buf, r#"{"array":[]}"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&js.buf).unwrap();
 
         Ok(())
     }
@@ -1143,6 +1151,8 @@ mod test {
         assert_eq!(js.current_state(), State::None);
         assert_eq!(js.buf, r#"{"array":["one","two",3]}"#);
 
+	let _value: serde_json::Value = serde_json::from_str(&js.buf).unwrap();
+
         Ok(())
     }
 
@@ -1164,6 +1174,8 @@ mod test {
         assert_eq!(js.current_state(), State::None);
         assert_eq!(js.buf, r#"{"one":"one","two":"two"}"#);
 
+	let _value: serde_json::Value = serde_json::from_str(&js.buf).unwrap();
+
         Ok(())
     }
 
@@ -1182,6 +1194,8 @@ mod test {
         main.close()?;
 
         assert_eq!(main.buf, r#"{"object":{},"array":["one",2]}"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&main.buf).unwrap();
 
         Ok(())
     }
@@ -1211,6 +1225,8 @@ mod test {
 
         js.close()?;
         assert_eq!(js.buf, r#"[{"uid":"0"},{"username":"root"}]"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&js.buf).unwrap();
 
         Ok(())
     }
@@ -1257,6 +1273,9 @@ mod test {
         jb.append_string_from_bytes(s)?;
         assert_eq!(jb.buf, r#"["\u0000\u0001\u0002\u0003""#);
 
+	jb.close().unwrap();
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
+
         Ok(())
     }
 
@@ -1267,6 +1286,9 @@ mod test {
         assert_eq!(jb.buf, r#"{"first":"""#);
         jb.set_string_from_bytes("second", &[]).unwrap();
         assert_eq!(jb.buf, r#"{"first":"","second":"""#);
+
+	jb.close().unwrap();
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1329,6 +1351,8 @@ mod test {
         assert_eq!(jb.buf, r#"{"foo":"bar","bar":"foo""#);
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"{"foo":"bar","bar":"foo"}"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1338,6 +1362,8 @@ mod test {
         jb.set_float("two", 2.2).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"{"one":1.1,"two":2.2}"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1347,6 +1373,8 @@ mod test {
         jb.append_float(2.2).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[1.1,2.2]"#);
+
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1355,6 +1383,7 @@ mod test {
         jb.set_float("nan", f64::NAN).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"{"nan":null}"#);
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1363,6 +1392,7 @@ mod test {
         jb.append_float(f64::NAN).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[null]"#);
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 
     #[test]
@@ -1371,12 +1401,14 @@ mod test {
         jb.set_float("inf", f64::INFINITY).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"{"inf":null}"#);
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
 
         let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_float("inf", f64::NEG_INFINITY).unwrap();
         jb.close().unwrap();
-        assert_eq!(jb.buf, r#"{"inf":null}"#);
-    }
+        assert_eq!(jb.buf, r#"{"inf":null}"#); 
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
+   }
 
     #[test]
     fn test_append_inf() {
@@ -1384,11 +1416,13 @@ mod test {
         jb.append_float(f64::INFINITY).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[null]"#);
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
 
         let mut jb = JsonBuilder::try_new_array().unwrap();
         jb.append_float(f64::NEG_INFINITY).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[null]"#);
+	let _value: serde_json::Value = serde_json::from_str(&jb.buf).unwrap();
     }
 }
 
