@@ -4,30 +4,13 @@
  * fuzz target for signature file and pcap file
  */
 
-#include "suricata-common.h"
-#include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 #include "detect-engine.h"
-#include "util-classification-config.h"
-#include "util-reference-config.h"
-#include "app-layer.h"
-#include "tm-queuehandlers.h"
-#include "util-cidr.h"
-#include "util-profiling.h"
-#include "util-proto-name.h"
-#include "detect-engine-tag.h"
-#include "detect-engine-threshold.h"
-#include "host-bit.h"
-#include "ippair-bit.h"
-#include "app-layer-htp.h"
-#include "detect-fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
-#include "pkt-var.h"
-#include "flow-util.h"
 #include "flow-worker.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
-#include "util-file.h"
 #include "util-conf.h"
 #include "packet.h"
 
@@ -171,7 +154,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (r > 0) {
         if (PacketCopyData(p, pkt, header->caplen) == 0) {
             // DecodePcapFile
-            TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(&tv, p, dtv);
+            TmEcode ecode = DecodePcapFile(&tv, p, dtv);
             if (ecode == TM_ECODE_FAILED) {
                 break;
             }

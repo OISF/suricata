@@ -48,6 +48,7 @@ typedef struct PcapFileSharedVars_
     bool should_delete;
 
     ThreadVars *tv;
+    DecodeThreadVars *dtv;
     TmSlot *slot;
 
     /* counters */
@@ -113,5 +114,10 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 const char *PcapFileGetFilename(void);
+
+/**
+ * PCAP file decoder. Mainly exposed for fuzz targets.
+ */
+TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, DecodeThreadVars *dtv);
 
 #endif /* SURICATA_SOURCE_PCAP_FILE_HELPER_H */
