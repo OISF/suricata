@@ -1,3 +1,11 @@
+6.0.20 -- 2024-06-26
+
+Security #7041: defrag: id reuse can lead to invalid reassembly (6.0.x backport)(CVE 2024-37151)
+Security #7112: http2: oom from duplicate headers (6.0.x backport)
+Bug #7014: rust: build with rust 1.78 with slice::from_raw_parts now requiring the pointer to be non-null (6.0.x backport)
+Bug #7007: rust: fails to build for msrv
+Bug #5578: rules: stateful drop on dsize sig with app proto set
+
 6.0.19 -- 2024-04-23
 
 Security #6978: http2: timeout logging headers (6.0.x backport)(CVE 2024-32663)
