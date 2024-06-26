@@ -19,7 +19,7 @@ frequency. It has 3 modes: threshold, limit and both.
 
 Syntax::
 
-  threshold: type <threshold|limit|both>, track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>
+  threshold: type <threshold|limit|both|backoff>, track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, <seconds <T>|multiplier <M>>
 
 type "threshold"
 ~~~~~~~~~~~~~~~~
@@ -87,6 +87,44 @@ If a signature sets a flowbit, flowint, etc. those actions are still
 performed for each of the matches.
 
   *Rule actions drop (IPS mode) and reject are applied to each packet.*
+
+type "backoff"
+~~~~~~~~~~~~~~
+
+Allow limiting of alert output by using a backoff algorithm.
+
+Syntax::
+
+    threshold: type backoff, track by_flow, count <C>, multiplier <M>;
+
+``track``: backoff is only supported for ``by_flow``
+``count``: number of alerts before the first match is logged
+``multiplier``: value to multiply ``count`` with each time the next value is reached
+
+A count of 1 with a multiplier of 10 would generate alerts for matching packets::
+
+    1, 10, 100, 1000, 10000, 100000, etc.
+
+A count of 1 with a multiplier of 2 would generate alerts for matching packets::
+
+    1, 2, 4, 8, 16, 32, 64, etc.
+
+A count of 5 with multiplier 5 would generate alerts for matching packets::
+
+    5, 25, 125, 625, 3125, 15625, etc
+
+In the following example, the ``pkt_invalid_ack`` would only lead to alerts the 1st, 10th, 100th, etc.
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (stream-event:pkt_invalid_ack; \
+        :example-rule-options:`threshold:type backoff, track by_flow, count 1, multiplier 10;`
+        sid:2210045; rev:2;)
+
+If a signature sets a flowbit, flowint, etc. those actions are still
+performed for each of the matches.
+
+  *Rule actions drop (IPS mode) and reject are applied to each matching packet.*
 
 
 track
