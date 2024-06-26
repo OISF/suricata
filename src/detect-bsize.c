@@ -157,6 +157,7 @@ int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eo
     return 0;
 }
 
+#if UNITTESTS
 /**
  * \brief This function is used to parse bsize options passed via bsize: keyword
  *
@@ -170,6 +171,7 @@ static DetectU64Data *DetectBsizeParse(const char *str)
 {
     return DetectU64Parse(str);
 }
+#endif
 
 static int SigParseGetMaxBsize(const DetectU64Data *bsz)
 {
@@ -185,6 +187,7 @@ static int SigParseGetMaxBsize(const DetectU64Data *bsz)
     }
     SCReturnInt(-1);
 }
+
 
 /**
  * \brief this function is used to parse bsize data into the current signature
@@ -207,11 +210,35 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (list == DETECT_SM_LIST_NOTSET)
         SCReturnInt(-1);
 
-    DetectU64Data *bsz = DetectBsizeParse(sizestr);
+    DetectU64Data *bsz = DetectU64Parse(sizestr);
     if (bsz == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) == NULL) {
+    SigMatch *prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+
+    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT) {
+        SCLogNotice("applying to content");
+        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
+        if (bsz->mode == DETECT_UINT_EQ) {
+            if (bsz->arg1 == cd->content_len) {
+                SCLogNotice("adding end_with");
+                cd->flags |= DETECT_CONTENT_ENDS_WITH;
+            } else if (cd->depth == 0 || cd->depth > bsz->arg1) {
+                SCLogNotice("adding depth");
+                cd->depth = bsz->arg1;
+                cd->flags |= DETECT_CONTENT_DEPTH;
+            } else {
+                goto add_sm;
+            }
+            DetectBsizeFree(de_ctx, bsz);
+            // $3 = {content = 0x5555578d3ed8 "yundol0727.kro.kr", content_len = 0x11, replace_len = 0x0, fp_chop_len = 0x0, fp_chop_offset = 0x0, flags = 0x400, id = 0x0, depth = 0x0, offset = 0x0, distance = 0x0, within = 0x0, spm_ctx = 0x55555678a070, replace = 0x0}
+            SCReturnInt(0);
+        }
+    }
+add_sm:
+
+    SigMatch *sm = SigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list);
+    if (sm == NULL) {
         goto error;
     }
 
