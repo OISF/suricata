@@ -24,8 +24,7 @@
 #ifndef SURICATA_SOURCE_PCAP_H
 #define SURICATA_SOURCE_PCAP_H
 
-void TmModuleReceivePcapRegister (void);
-void TmModuleDecodePcapRegister (void);
+void TmModuleReceivePcapRegister(void);
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 
 #define LIBPCAP_COPYWAIT    500
