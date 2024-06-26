@@ -2,6 +2,12 @@ bin_PROGRAMS = simple
 
 simple_SOURCES = main.c
 
+# Sources for the capture and runmode.
+simple_SOURCES += source.c runmode.c
+
+# Custom EVE output.
+simple_SOURCES += output.c
+
 AM_CPPFLAGS = -I$(top_srcdir)/src
 
 simple_LDFLAGS = $(all_libraries) $(SECLDFLAGS)
