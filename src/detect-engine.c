@@ -200,6 +200,11 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     } else {
         direction = 1;
     }
+    // every DNS or HTTP2 can be accessed from DOH2
+    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
+        AppLayerInspectEngineRegisterInternal(
+                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetMultiData);
+    }
 
     DetectEngineAppInspectionEngine *new_engine =
             SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));

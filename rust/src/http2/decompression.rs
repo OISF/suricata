@@ -178,10 +178,12 @@ impl HTTP2DecoderHalf {
         if self.encoding == HTTP2ContentEncoding::Unknown {
             if input == b"gzip" {
                 self.encoding = HTTP2ContentEncoding::Gzip;
-                self.decoder = HTTP2Decompresser::Gzip(Box::new(GzDecoder::new(HTTP2cursor::new())));
+                self.decoder =
+                    HTTP2Decompresser::Gzip(Box::new(GzDecoder::new(HTTP2cursor::new())));
             } else if input == b"deflate" {
                 self.encoding = HTTP2ContentEncoding::Deflate;
-                self.decoder = HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
+                self.decoder =
+                    HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
             } else if input == b"br" {
                 self.encoding = HTTP2ContentEncoding::Br;
                 self.decoder = HTTP2Decompresser::Brotli(Box::new(brotli::Decompressor::new(

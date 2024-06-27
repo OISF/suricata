@@ -170,13 +170,12 @@ PktProfiling *SCProfilePacketStart(void);
         (dp)->alproto = (id);                                       \
     }
 
-#define PACKET_PROFILING_APP_END(dp, id)                            \
-    if (profiling_packets_enabled) {                                \
-        BUG_ON((id) != (dp)->alproto);                              \
-        (dp)->ticks_end = UtilCpuGetTicks();                        \
-        if ((dp)->ticks_start != 0 && (dp)->ticks_start < ((dp)->ticks_end)) {  \
-            (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);  \
-        }                                                           \
+#define PACKET_PROFILING_APP_END(dp)                                                               \
+    if (profiling_packets_enabled) {                                                               \
+        (dp)->ticks_end = UtilCpuGetTicks();                                                       \
+        if ((dp)->ticks_start != 0 && (dp)->ticks_start < ((dp)->ticks_end)) {                     \
+            (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);                             \
+        }                                                                                          \
     }
 
 #define PACKET_PROFILING_APP_PD_START(dp)                           \
@@ -340,7 +339,7 @@ void SCProfilingDump(void);
 #define PACKET_PROFILING_RESET(p)
 
 #define PACKET_PROFILING_APP_START(dp, id)
-#define PACKET_PROFILING_APP_END(dp, id)
+#define PACKET_PROFILING_APP_END(d)
 #define PACKET_PROFILING_APP_RESET(dp)
 #define PACKET_PROFILING_APP_STORE(dp, p)
 
