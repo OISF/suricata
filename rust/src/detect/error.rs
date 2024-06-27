@@ -27,6 +27,7 @@ pub enum RuleParseError<I> {
     InvalidByteMath(String),
     InvalidIPRep(String),
     InvalidTransformBase64(String),
+    InvalidByteExtract(String),
 
     Nom(I, ErrorKind),
 }
