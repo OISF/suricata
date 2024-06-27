@@ -300,11 +300,9 @@ unsafe extern "C" fn unsub_topic_get_data(
         if let MQTTOperation::UNSUBSCRIBE(ref unsubv) = msg.op {
             if (local_id as usize) < unsubv.topics.len() + offset {
                 let topic = &unsubv.topics[(local_id as usize) - offset];
-                if !topic.is_empty() {
-                    *buffer_len = topic.len() as u32;
-                    *buffer = topic.as_ptr();
-                    return true;
-                }
+                *buffer_len = topic.len() as u32;
+                *buffer = topic.as_ptr();
+                return true;
             } else {
                 offset += unsubv.topics.len();
             }
@@ -358,11 +356,9 @@ unsafe extern "C" fn sub_topic_get_data(
         if let MQTTOperation::SUBSCRIBE(ref subv) = msg.op {
             if (local_id as usize) < subv.topics.len() + offset {
                 let topic = &subv.topics[(local_id as usize) - offset];
-                if !topic.topic_name.is_empty() {
-                    *buffer_len = topic.topic_name.len() as u32;
-                    *buffer = topic.topic_name.as_ptr();
-                    return true;
-                }
+                *buffer_len = topic.topic_name.len() as u32;
+                *buffer = topic.topic_name.as_ptr();
+                return true;
             } else {
                 offset += subv.topics.len();
             }
