@@ -42,7 +42,7 @@ static int MQTTProtocolVersionTestParse01(void)
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:3; sid:2; rev:1;)");
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:5; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
