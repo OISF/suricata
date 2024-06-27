@@ -290,7 +290,7 @@ static mut G_MQTT_CONN_FLAGS_BUFFER_ID: c_int = 0;
 unsafe extern "C" fn unsub_topic_get_data(
     tx: *const c_void, _flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    let ml = unsafe { UNSUB_TOPIC_MATCH_LIMIT };
+    let ml = UNSUB_TOPIC_MATCH_LIMIT;
     if ml > 0 && local_id >= ml as u32 {
         return false;
     }
@@ -346,7 +346,7 @@ unsafe extern "C" fn unsub_topic_setup(
 unsafe extern "C" fn sub_topic_get_data(
     tx: *const c_void, _flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    let ml = unsafe { SUB_TOPIC_MATCH_LIMIT };
+    let ml = SUB_TOPIC_MATCH_LIMIT;
     if ml > 0 && local_id >= ml as u32 {
         return false;
     }
