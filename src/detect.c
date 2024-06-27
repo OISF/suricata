@@ -1130,10 +1130,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         {
             void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
-                /* special case: file_data on 'alert tcp' will have engines
-                 * in the list that are not for us. */
-                engine = engine->next;
-                continue;
+                if (engine->alproto != 0) {
+                    /* special case: file_data on 'alert tcp' will have engines
+                     * in the list that are not for us. */
+                    engine = engine->next;
+                    continue;
+                } else {
+                    tx_ptr = tx->tx_ptr;
+                }
             }
 
             /* engines are sorted per progress, except that the one with
