@@ -756,6 +756,15 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             for (const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines; t != NULL;
                     t = t->next) {
                 if (t->sm_list == s->init_data->buffers[x].id) {
+                    if (s->flags & SIG_FLAG_BOTHDIR) {
+                        // ambiguous keywords have app engines in both directions
+                        // so we skip the wrong direction for this buffer
+                        if (s->init_data->buffers[x].only_tc && t->dir == 0) {
+                            continue;
+                        } else if (s->init_data->buffers[x].only_ts && t->dir == 1) {
+                            continue;
+                        }
+                    }
                     AppendAppInspectEngine(
                             de_ctx, t, s, smd, mpm_list, files_id, &last_id, &head_is_mpm);
                 }
@@ -1346,6 +1355,30 @@ bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id)
     return false;
 }
 
+static bool DetectEngineBufferAmbiguousDir(
+        DetectEngineCtx *de_ctx, const int list, AppProto alproto)
+{
+    bool has_ts = false;
+    bool has_tc = false;
+    const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+    for (; app != NULL; app = app->next) {
+        if (app->sm_list == list && (AppProtoEquals(alproto, app->alproto) || alproto == 0)) {
+            if (app->dir == 0) {
+                if (has_tc) {
+                    return true;
+                }
+                has_ts = true;
+            } else if (app->dir == 1) {
+                if (has_ts) {
+                    return true;
+                }
+                has_tc = true;
+            }
+        }
+    }
+    return false;
+}
+
 int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
@@ -1384,7 +1417,12 @@ int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int l
 
             } else if (DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, list)) {
                 // fall through
+            } else if (b->only_tc && (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOSERVER)) {
+                // fall through
+            } else if (b->only_ts && (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT)) {
+                // fall through
             } else {
+                // we create a new buffer for the same id but forced different direction
                 SCLogWarning("duplicate instance for %s in '%s'",
                         DetectEngineBufferTypeGetNameById(de_ctx, list), s->sig_str);
                 s->init_data->curbuf = b;
@@ -1408,6 +1446,13 @@ int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int l
     s->init_data->curbuf->tail = NULL;
     s->init_data->curbuf->multi_capable =
             DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, list);
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) {
+        s->init_data->curbuf->only_tc = DetectEngineBufferAmbiguousDir(de_ctx, list, s->alproto);
+    }
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOSERVER) {
+        s->init_data->curbuf->only_ts = DetectEngineBufferAmbiguousDir(de_ctx, list, s->alproto);
+    }
+
     SCLogDebug("new: idx %u list %d set up curbuf %p", s->init_data->buffer_index - 1, list,
             s->init_data->curbuf);
 

@@ -1378,6 +1378,8 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
 
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
+    } else if (strcmp(parser->direction, "=>") == 0) {
+        s->flags |= SIG_FLAG_BOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
                    "\"->\" and \"<>\" are supported.",
@@ -1933,6 +1935,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } bufdir[nlists + 1];
     memset(&bufdir, 0, (nlists + 1) * sizeof(struct BufferVsDir));
 
+    int ts_excl = 0;
+    int tc_excl = 0;
+
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SignatureInitDataBuffer *b = &s->init_data->buffers[x];
         const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, b->id);
@@ -1970,8 +1975,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                         DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
                         app->alproto);
                 SCLogDebug("b->id %d nlists %d", b->id, nlists);
-                bufdir[b->id].ts += (app->dir == 0);
-                bufdir[b->id].tc += (app->dir == 1);
+                if (b->only_tc) {
+                    if (app->dir == 1)
+                        tc_excl++;
+                } else if (b->only_ts) {
+                    if (app->dir == 0)
+                        ts_excl++;
+                } else {
+                    bufdir[b->id].ts += (app->dir == 0);
+                    bufdir[b->id].tc += (app->dir == 1);
+                }
             }
         }
 
@@ -1984,8 +1997,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    int ts_excl = 0;
-    int tc_excl = 0;
     int dir_amb = 0;
     for (int x = 0; x < nlists; x++) {
         if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
@@ -1997,8 +2008,21 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
                 bufdir[x].tc);
     }
-    if (ts_excl && tc_excl) {
-        SCLogError("rule %u mixes keywords with conflicting directions", s->id);
+    if (s->flags & SIG_FLAG_BOTHDIR) {
+        if (!ts_excl || !tc_excl) {
+            SCLogError("rule %u should use both directions, but does not", s->id);
+            SCReturnInt(0);
+        }
+        if (dir_amb) {
+            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about "
+                       "directions",
+                    s->id);
+            SCReturnInt(0);
+        }
+    } else if (ts_excl && tc_excl) {
+        SCLogError("rule %u mixes keywords with conflicting directions, a bidirection rule with => "
+                   "should be used",
+                s->id);
         SCReturnInt(0);
     } else if (ts_excl) {
         SCLogDebug("%u: implied rule direction is toserver", s->id);
