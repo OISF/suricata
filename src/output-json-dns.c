@@ -246,65 +246,10 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-static JsonBuilder *JsonDNSLogQuery(void *txptr)
-{
-    JsonBuilder *queryjb = jb_new_array();
-    if (queryjb == NULL) {
-        return NULL;
-    }
-    bool has_query = false;
-
-    for (uint16_t i = 0; i < UINT16_MAX; i++) {
-        JsonBuilder *js = jb_new_object();
-        if (!SCDnsLogJsonQuery((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
-            jb_free(js);
-            break;
-        }
-        jb_close(js);
-        has_query = true;
-        jb_append_object(queryjb, js);
-        jb_free(js);
-    }
-
-    if (!has_query) {
-        jb_free(queryjb);
-        return NULL;
-    }
-
-    jb_close(queryjb);
-    return queryjb;
-}
-
-static JsonBuilder *JsonDNSLogAnswer(void *txptr)
-{
-    if (!SCDnsLogAnswerEnabled(txptr, LOG_ALL_RRTYPES)) {
-        return NULL;
-    } else {
-        JsonBuilder *js = jb_new_object();
-        SCDnsLogJsonAnswer(txptr, LOG_ALL_RRTYPES, js);
-        jb_close(js);
-        return js;
-    }
-}
-
 bool AlertJsonDns(void *txptr, JsonBuilder *js)
 {
-    bool r = false;
-    jb_open_object(js, "dns");
-    JsonBuilder *qjs = JsonDNSLogQuery(txptr);
-    if (qjs != NULL) {
-        jb_set_object(js, "query", qjs);
-        jb_free(qjs);
-        r = true;
-    }
-    JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
-    if (ajs != NULL) {
-        jb_set_object(js, "answer", ajs);
-        jb_free(ajs);
-        r = true;
-    }
-    jb_close(js);
-    return r;
+    return SCDnsLogJson(
+            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
