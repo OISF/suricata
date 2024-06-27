@@ -5550,10 +5550,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
          * we care about reassembly here. */
         if (p->flags & PKT_PSEUDO_STREAM_END) {
             if (PKT_IS_TOCLIENT(p)) {
-                ssn->client.last_ack = TCP_GET_RAW_ACK(tcph);
+                // ssn->client.last_ack = TCP_GET_RAW_ACK(tcph);
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             } else {
-                ssn->server.last_ack = TCP_GET_RAW_ACK(tcph);
+                // ssn->server.last_ack = TCP_GET_RAW_ACK(tcph);
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             }
             /* straight to 'skip' as we already handled reassembly */
