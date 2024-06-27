@@ -239,7 +239,7 @@ fn mqtt_tx_get_reason_code(tx: &MQTTTransaction) -> Option<u8> {
                     return Some(rcode);
                 }
             }
-            _ => return None,
+            _ => {}
         }
     }
     return None;
