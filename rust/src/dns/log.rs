@@ -85,6 +85,11 @@ pub const LOG_FORMAT_GROUPED: u64 = BIT_U64!(60);
 pub const LOG_FORMAT_DETAILED: u64 = BIT_U64!(61);
 pub const LOG_HTTPS: u64 = BIT_U64!(62);
 
+pub const DNS_LOG_VERSION_1: u8 = 1;
+pub const DNS_LOG_VERSION_2: u8 = 2;
+pub const DNS_LOG_VERSION_3: u8 = 3;
+pub const DNS_LOG_VERSION_DEFAULT: u8 = DNS_LOG_VERSION_3;
+
 fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
     if flags == !0 {
         return true;
@@ -887,6 +892,28 @@ pub extern "C" fn SCDnsLogJson(tx: &mut DNSTransaction, flags: u64, jb: &mut Jso
     log_json(tx, flags, jb).is_ok()
 }
 
+/// Check if a DNS transaction should be logged based on the
+/// configured flags.
+#[no_mangle]
+pub extern "C" fn SCDnsLogEnabled(tx: &DNSTransaction, flags: u64) -> bool {
+    let message = if let Some(request) = &tx.request {
+        request
+    } else if let Some(response) = &tx.response {
+        response
+    } else {
+        // Should be unreachable...
+        return false;
+    };
+    
+    for query in &message.queries {
+        if dns_log_rrtype_enabled(query.rrtype, flags) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Note: For v2 style logging.
 #[no_mangle]
 pub extern "C" fn SCDnsLogJsonAnswer(
     tx: &DNSTransaction, flags: u64, js: &mut JsonBuilder,
@@ -901,6 +928,7 @@ pub extern "C" fn SCDnsLogJsonAnswer(
     return false;
 }
 
+/// Note: For v2 style logging.
 #[no_mangle]
 pub extern "C" fn SCDnsLogAnswerEnabled(tx: &DNSTransaction, flags: u64) -> bool {
     if let Some(response) = &tx.response {
