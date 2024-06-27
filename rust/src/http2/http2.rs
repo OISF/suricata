@@ -1149,7 +1149,7 @@ impl HTTP2State {
                             if let Some(doh) = &mut tx.doh {
                                 doh.dns_request_tx = Some(dtx);
                             } else {
-                                let mut doh = DohHttp2Tx { dns_request_tx: Some(dtx), ..Default::default() };
+                                let doh = DohHttp2Tx { dns_request_tx: Some(dtx), ..Default::default() };
                                 tx.doh = Some(doh);
                             }
                         }
