@@ -46,16 +46,21 @@ Valid values are :
 
 where ``UNASSIGNED`` refers to message type code 0.
 
+mqtt.type uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
 Examples::
 
   mqtt.type:CONNECT;
   mqtt.type:PUBLISH;
+  mqtt.type:2;
 
 
 mqtt.flags
 ----------
 
 Match on a combination of MQTT header flags, separated by commas (``,``). Flags may be prefixed by ``!`` to indicate negation, i.e. a flag prefixed by ``!`` must `not` be set to match.
+
+mqtt.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
 
 Valid flags are:
 
@@ -88,6 +93,8 @@ mqtt.reason_code
 ----------------
 
 Match on the numeric value of the reason code that is used in MQTT 5.0 for some message types. Please refer to the specification for the meaning of these values, which are often specific to the message type in question.
+
+mqtt.reason_code uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
 
 Examples::
 
@@ -136,6 +143,8 @@ mqtt.connect.flags
 ------------------
 
 Match on a combination of MQTT CONNECT flags, separated by commas (``,``). Flags may be prefixed by ``!`` to indicate negation, i.e. a flag prefixed by ``!`` must `not` be set to match.
+
+mqtt.connect.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
 
 Valid flags are:
 

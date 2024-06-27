@@ -109,6 +109,7 @@ exclude = [
     "IPPROTO_TCP",
     "IPPROTO_UDP",
     "SRepCatGetByShortname",
+    "SIG_FLAG_TOSERVER",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.

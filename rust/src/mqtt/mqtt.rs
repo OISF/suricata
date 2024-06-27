@@ -40,7 +40,7 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut MQTT_MAX_TX: usize = 1024;
 
-static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
 pub enum MQTTFrameType {
@@ -701,9 +701,8 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(
-    tx: *const std::os::raw::c_void,
+    tx:  &MQTTTransaction,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
         return 1;
     }
