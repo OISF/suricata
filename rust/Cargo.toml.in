@@ -61,6 +61,7 @@ lazy_static = "~1.4.0"
 base64 = "~0.13.0"
 bendy = { version = "~0.3.3", default-features = false }
 asn1-rs = { version = "~0.6.1" }
+ldap-parser = { version = "~0.4.0" }
 
 # last version to work with MSRV 1.63
 time = "=0.3.20"
