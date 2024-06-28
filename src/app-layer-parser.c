@@ -201,9 +201,6 @@ FramesContainer *AppLayerFramesSetupContainer(Flow *f)
     return f->alparser->frames;
 }
 
-static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
-        const AppProto alproto, void *alstate, const uint8_t direction);
-
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
 {
@@ -947,11 +944,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (txd != NULL && AppLayerParserHasFilesInDir(txd, pkt_dir)) {
             if (pkt_dir_trunc == -1)
-                pkt_dir_trunc =
-                        AppLayerParserStateIssetFlag(f->alparser,
-                                (pkt_dir == STREAM_TOSERVER) ? APP_LAYER_PARSER_TRUNC_TS
-                                                             : APP_LAYER_PARSER_TRUNC_TC) != 0;
-
+                pkt_dir_trunc = IS_DISRUPTED(
+                        (pkt_dir == STREAM_TOSERVER) ? ts_disrupt_flags : tc_disrupt_flags);
             AppLayerParserFileTxHousekeeping(f, tx, pkt_dir, (bool)pkt_dir_trunc);
         }
 
@@ -1308,7 +1302,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
             if (f->alstate != NULL && !FlowChangeProto(f)) {
-                AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
+                AppLayerParserTriggerRawStreamReassembly(f, direction);
             }
             AppLayerIncGapErrorCounter(tv, f);
             goto error;
@@ -1467,10 +1461,6 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (cur_tx_cnt > p_tx_cnt && tv) {
         AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
     }
-
-    /* stream truncated, inform app layer */
-    if (flags & STREAM_DEPTH)
-        AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
 
  end:
     /* update app progress */
@@ -1794,24 +1784,6 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
 {
     SCEnter();
     SCReturnUInt(pstate->flags & flag);
-}
-
-static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
-        const AppProto alproto, void *alstate, const uint8_t direction)
-{
-    SCEnter();
-
-    if (direction & STREAM_TOSERVER) {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TS);
-    } else {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TC);
-    }
-
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate != NULL) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate(alstate, direction);
-    }
-
-    SCReturn;
 }
 
 /***** Unittests *****/
