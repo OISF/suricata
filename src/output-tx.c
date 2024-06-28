@@ -377,10 +377,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
 
     const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
-    const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser,
-                                (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_TRUNC_TS)) != 0;
-    const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser,
-                                (APP_LAYER_PARSER_EOF_TC | APP_LAYER_PARSER_TRUNC_TC)) != 0;
+    const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
+    const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC) != 0;
 
     const bool eof = last_pseudo || (ts_eof && tc_eof);
     SCLogDebug("eof %d last_pseudo %d ts_eof %d tc_eof %d", eof, last_pseudo, ts_eof, tc_eof);
