@@ -25,6 +25,8 @@ use std::{
 };
 use time::OffsetDateTime;
 
+const HTTP09_MAX_JUNK_LEN: usize = 16;
+
 /// Enumerate HTTP methods.
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -618,8 +620,8 @@ impl ConnectionParser {
             req.request_progress = HtpRequestProgress::HEADERS;
             self.request_state = State::HEADERS
         } else {
-            if let Ok((rem, _)) = take_is_space(input.as_slice()) {
-                if !rem.is_empty() {
+            if let Ok((rem, sp)) = take_is_space(input.as_slice()) {
+                if !rem.is_empty() || sp.len() > HTTP09_MAX_JUNK_LEN {
                     // we have more than spaces, no HTTP/0.9
                     req.is_protocol_0_9 = false;
                     req.request_progress = HtpRequestProgress::HEADERS;
