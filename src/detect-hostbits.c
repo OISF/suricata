@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "action-globals.h"
 #include "detect.h"
 #include "threads.h"
 #include "flow.h"
@@ -378,7 +379,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_XBITS_CMD_NOALERT:
             if (strlen(fb_name) != 0)
                 goto error;
-            s->flags |= SIG_FLAG_NOALERT;
+            s->action &= ~ACTION_ALERT;
             return 0;
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:

@@ -53,15 +53,22 @@ uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_
 uint8_t ActionOrderVal(uint8_t action)
 {
     /* reject_both and reject_dst have the same prio as reject */
-    if( (action & ACTION_REJECT) ||
-        (action & ACTION_REJECT_BOTH) ||
-        (action & ACTION_REJECT_DST)) {
+    if (action & ACTION_REJECT_ANY) {
         action = ACTION_REJECT;
+    } else if (action & ACTION_DROP) {
+        action = ACTION_DROP;
+    } else if (action & ACTION_PASS) {
+        action = ACTION_PASS;
+    } else if (action & ACTION_ALERT) {
+        action = ACTION_ALERT;
+    } else if (action == 0) {
+        action = ACTION_ALERT;
     }
-    uint8_t i = 0;
-    for (; i < 4; i++) {
-        if (action_order_sigs[i] == action)
+
+    for (uint8_t i = 0; i < 4; i++) {
+        if (action_order_sigs[i] == action) {
             return i;
+        }
     }
     /* Unknown action, set just a low prio (high val) */
     return 10;

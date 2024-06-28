@@ -30,8 +30,7 @@
 #define DETECT_FLOWBITS_CMD_UNSET    2
 #define DETECT_FLOWBITS_CMD_ISNOTSET 3
 #define DETECT_FLOWBITS_CMD_ISSET    4
-#define DETECT_FLOWBITS_CMD_NOALERT  5
-#define DETECT_FLOWBITS_CMD_MAX      6
+#define DETECT_FLOWBITS_CMD_MAX      5
 
 typedef struct DetectFlowbitsData_ {
     uint32_t idx;

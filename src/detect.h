@@ -240,7 +240,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_SP_ANY                 BIT_U32(2)  /**< source port is any */
 #define SIG_FLAG_DP_ANY                 BIT_U32(3)  /**< destination port is any */
 
-#define SIG_FLAG_NOALERT                BIT_U32(4)  /**< no alert flag is set */
+// vacancy
+
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 
