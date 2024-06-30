@@ -100,7 +100,7 @@ gen/htp/htp_rs.h: $(RUST_SURICATA_LIB)
 		cbindgen --config $(abs_top_srcdir)/rust/libhtp-rs/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h || true
 else
-gen/rust-bindings.h:
+gen/htp/htp_rs.h:
 endif
 
 doc:
