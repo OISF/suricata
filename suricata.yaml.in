@@ -164,7 +164,7 @@ outputs:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # payload-length: yes      # enable dumping payload length
+            # payload-length: yes      # enable dumping payload length, including the gaps
             # packet: yes              # enable dumping of packet (without stream segments)
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64

@@ -295,8 +295,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
     const AppProto proto = FlowGetAppProtocol(p->flow);
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
     JsonBuilderMark mark = { 0, 0, 0 };
+    void *state;
     if (al && al->LogTx) {
-        void *state = FlowGetAppState(p->flow);
+        state = FlowGetAppState(p->flow);
         if (state) {
             void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
             if (tx) {
@@ -386,11 +387,11 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             }
             break;
         case ALPROTO_DCERPC:
-            jb_get_mark(jb, &mark);
-            void *state = FlowGetAppState(p->flow);
+            state = FlowGetAppState(p->flow);
             if (state) {
                 void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
                 if (tx) {
+                    jb_get_mark(jb, &mark);
                     jb_open_object(jb, "dcerpc");
                     if (p->proto == IPPROTO_TCP) {
                         if (!rs_dcerpc_log_json_record_tcp(state, tx, jb)) {
