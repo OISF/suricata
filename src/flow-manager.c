@@ -421,7 +421,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
 #define TYPE uint32_t
 #endif
 
-    const uint32_t ts_secs = SCTIME_SECS(ts);
+    const time_t ts_secs = SCTIME_SECS(ts);
     for (uint32_t idx = hash_min; idx < hash_max; idx+=BITS) {
         TYPE check_bits = 0;
         const uint32_t check = MIN(BITS, (hash_max - idx));
@@ -947,7 +947,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             gettimeofday(&cond_tv, NULL);
             struct timeval add_tv;
             add_tv.tv_sec = 0;
-            add_tv.tv_usec = (sleep_per_wu * 1000);
+            DEBUG_VALIDATE_BUG_ON(sleep_per_wu > UINT32_MAX / 1000);
+            add_tv.tv_usec = (uint32_t)(sleep_per_wu * 1000);
             timeradd(&cond_tv, &add_tv, &cond_tv);
 
             struct timespec cond_time = FROM_TIMEVAL(cond_tv);
