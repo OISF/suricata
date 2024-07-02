@@ -140,7 +140,7 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     dd = DetectSNMPVersionParse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
     }
 
     /* okay so far so good, lets get this into a SigMatch
