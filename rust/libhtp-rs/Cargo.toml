@@ -1,0 +1,44 @@
+[package]
+name = "htp"
+authors = ["ivanr = Ivan Ristic <ivanr@webkreator.com>", "cccs = Canadian Centre for Cyber Security"]
+version = "2.0.0"
+publish = false
+edition = "2018"
+autobins = false
+license-file = "LICENSE"
+description = "Security Aware HTP Protocol parsing library"
+readme = "README.md"
+repository = "https://github.com/CybercentreCanada/libhtp-rs-internal"
+homepage = "https://github.com/CybercentreCanada/libhtp-rs-internal"
+keywords = ["parser", "HTTP", "protocol", "network", "api"]
+categories = ["parsing", "network-programming"]
+include = [
+    "Cargo.toml",
+    "LICENSE",
+    "README.md",
+    "src/**/*.rs",
+    "cbindgen.toml",
+]
+
+[lib]
+crate-type = ["staticlib", "rlib", "cdylib"]
+
+[features]
+default = ["cbindgen"]
+
+[dependencies]
+base64 = "0.12.3"
+bstr = "0.2"
+libc = "0.2"
+nom = "7.1.1"
+lzma-rs = { version = "0.2.0", features = ["stream"] }
+flate2 = "1.0"
+lazy_static = "1.4.0"
+time = "=0.3.20"
+
+[dev-dependencies]
+rstest = "0.12.0"
+
+[build-dependencies]
+cbindgen = { version = "0.14.1", optional = true }
+cdylib-link-lines = "0.1.1"
