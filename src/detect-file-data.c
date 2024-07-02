@@ -94,11 +94,14 @@ void DetectFiledataRegister(void)
 }
 
 static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
-    if (de_ctx->filedata_config_initialized)
+    if (de_ctx->filedata_config)
         return;
 
+    de_ctx->filedata_config = SCMalloc(ALPROTO_MAX * sizeof(DetectFileDataCfg));
+    if (unlikely(de_ctx->filedata_config == NULL))
+        return;
     /* initialize default */
-    for (int i = 0; i < (int)ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
         de_ctx->filedata_config[i].content_limit = FILEDATA_CONTENT_LIMIT;
         de_ctx->filedata_config[i].content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
     }
@@ -109,8 +112,6 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
     de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size =
             smtp_config.content_inspect_min_size;
-
-    de_ctx->filedata_config_initialized = true;
 }
 
 /**
@@ -220,9 +221,12 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
 
     const uint64_t file_size = FileDataSize(cur_file);
     const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    const uint32_t content_limit = de_ctx->filedata_config[f->alproto].content_limit;
-    const uint32_t content_inspect_min_size =
-            de_ctx->filedata_config[f->alproto].content_inspect_min_size;
+    uint32_t content_limit = FILEDATA_CONTENT_LIMIT;
+    uint32_t content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+    if (de_ctx->filedata_config) {
+        content_limit = de_ctx->filedata_config[f->alproto].content_limit;
+        content_inspect_min_size = de_ctx->filedata_config[f->alproto].content_inspect_min_size;
+    }
 
     SCLogDebug("[list %d] content_limit %u, content_inspect_min_size %u", list_id, content_limit,
             content_inspect_min_size);

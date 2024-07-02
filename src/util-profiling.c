@@ -1195,9 +1195,8 @@ PktProfiling *SCProfilePacketStart(void)
 {
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
     if (sample % rate == 0)
-        return SCCalloc(1, sizeof(PktProfiling));
-    else
-        return NULL;
+        return SCCalloc(1, sizeof(PktProfiling) + ALPROTO_MAX * sizeof(PktProfilingAppData));
+    return NULL;
 }
 
 /* see if we want to profile rules for this packet */
