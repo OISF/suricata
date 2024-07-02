@@ -72,3 +72,10 @@ suricata-lua-sys = { git = "https://github.com/jasonish/suricata-lua-sys", versi
 [dev-dependencies]
 test-case = "~3.3.1"
 hex = "~0.4.3"
+
+[patch.crates-io]
+# Use custom branch of time as 0.3.20 is required for our MSRV of
+# 1.63, but 0.3.20 also fails to build on latest Rust.
+#
+# With Rust 1.67+ we can move to time 0.3.35 and not worry about this.
+time = { version = "=0.3.20", git = "https://github.com/jasonish/time", branch = "0.3.20-suricata" }
