@@ -98,6 +98,12 @@ uint32_t StringHash(void *s)
     return hash;
 }
 
+uint32_t StringGetLength(void *s)
+{
+    StringType *str = s;
+    return str->len;
+}
+
 // base data stays in hash
 void StringFree(void *s)
 {

@@ -131,7 +131,7 @@ static inline bool ContainerValueRangeTimeout(void *data, const SCTime_t ts)
 {
     HttpRangeContainerFile *cu = data;
     // we only timeout if we have no flow referencing us
-    if (SCTIME_CMP_GT(ts, cu->expire) || cu->error) {
+    if (SCTIME_CMP_GTE(ts, cu->expire) || cu->error) {
         DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
         return true;
     }
@@ -172,8 +172,8 @@ void HttpRangeContainersInit(void)
 
     ContainerUrlRangeList.ht = THashInit("app-layer.protocols.http.byterange",
             sizeof(HttpRangeContainerFile), ContainerUrlRangeSet, ContainerUrlRangeFree,
-            ContainerUrlRangeHash, ContainerUrlRangeCompare, ContainerValueRangeTimeout, false,
-            memcap, CONTAINER_URLRANGE_HASH_SIZE);
+            ContainerUrlRangeHash, ContainerUrlRangeCompare, ContainerValueRangeTimeout, NULL,
+            false, memcap, CONTAINER_URLRANGE_HASH_SIZE);
     ContainerUrlRangeList.timeout = timeout;
 
     SCLogDebug("containers started");

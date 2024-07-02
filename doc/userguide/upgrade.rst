@@ -62,6 +62,9 @@ Major changes
   reassembly earlier.
 - New transform ``from_base64`` that base64 decodes a buffer and passes the
   decoded buffer. It's recommended that ``from_base64`` be used instead of ``base64_decode``
+- Datasets of type String now include the length of the strings to determine if the memcap value is reached.
+  This may lead to memcaps being hit for older setups that didn't take that into account.
+  For more details, check https://redmine.openinfosecfoundation.org/issues/3910
 
 Upgrading 6.0 to 7.0
 --------------------

@@ -35,6 +35,7 @@ typedef struct StringType {
 int StringSet(void *dst, void *src);
 bool StringCompare(void *a, void *b);
 uint32_t StringHash(void *s);
+uint32_t StringGetLength(void *s);
 void StringFree(void *s);
 int StringAsBase64(const void *s, char *out, size_t out_size);
 
