@@ -113,13 +113,13 @@ pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T
 pub fn detect_parse_uint_value<T: DetectIntType>(i: &str) -> IResult<&str, T> {
     let (i, arg1) = alt((
         detect_parse_uint_value_hex,
-        map_opt(digit1, |s: &str| s.parse::<T>().ok()),
+        detect_parse_uint_with_unit,
     ))(i)?;
     Ok((i, arg1))
 }
 
 pub fn detect_parse_uint_with_unit<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = detect_parse_uint_value::<T>(i)?;
+    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
     let (i, unit) = opt(detect_parse_uint_unit)(i)?;
     if arg1 >= T::one() {
         if let Some(u) = unit {
@@ -138,7 +138,7 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 ) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(tag("="))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg1) = detect_parse_uint_with_unit(i)?;
+    let (i, arg1) = detect_parse_uint_value(i)?;
     Ok((
         i,
         DetectUintData {
@@ -578,7 +578,7 @@ mod tests {
 
         assert!(detect_parse_uint::<u8>("2kb").is_err());
 
-        let (_, val) = detect_parse_uint::<u32>("3MB").unwrap();
+        let (_, val) = detect_parse_uint::<u32>("> 3MB").unwrap();
         assert_eq!(val.arg1, 3 * 1024 * 1024);
     }
 }
