@@ -53,7 +53,7 @@ void RunModeErfDagRegister(void)
             "thread, unlike \"dag_auto\" where packets "
             "from the same flow can be processed by any "
             "detect thread","default mode erfdag",
-            "autofp, single,workers",
+            "autofp, single,workers", " ",
             RunModeIdsErfDagAutoFp, NULL);
     /*
     RunModeRegisterNewRunMode(

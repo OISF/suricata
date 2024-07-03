@@ -127,7 +127,7 @@ static int NetmapRunModeEnableIPS(void)
 void RunModeIdsNetmapRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single", "Single threaded netmap mode",
-            "default mode netmap","single, workers, autofp",
+            "default mode netmap","single, workers, autofp", "netmap",
             RunModeIdsNetmapSingle, NetmapRunModeEnableIPS);
     /*
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "workers",

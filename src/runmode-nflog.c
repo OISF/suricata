@@ -214,7 +214,7 @@ void RunModeIdsNflogRegister(void)
 {
     RunModeRegisterNewRunMode(
             RUNMODE_NFLOG, "autofp", "Multi threaded nflog mode",
-            "default mode flog","autofp,single,workers",
+            "default mode flog","autofp,single,workers", "nflog",
             RunModeIdsNflogAutoFp, NULL);
     /*
     RunModeRegisterNewRunMode(

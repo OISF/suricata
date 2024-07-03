@@ -40,7 +40,7 @@ void RunModeErfFileRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "single", "Single threaded ERF file mode",
             "default mode erf",
-            "single, autofp",
+            "single, autofp", " ",
             RunModeErfFileSingle, NULL);
     /*
     RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "autofp",

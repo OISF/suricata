@@ -58,6 +58,7 @@ void RunModeIdsPfringRegister(void)
             "detect thread",
             "default mode",
             "autofp,single,workers",
+            "pfring",
             RunModeIdsPfringAutoFp, NULL);
     /*RunModeRegisterNewRunMode(
             RUNMODE_PFRING, "single", "Single threaded pfring mode","default mode", RunModeIdsPfringSingle, NULL);

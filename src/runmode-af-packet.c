@@ -135,8 +135,8 @@ static int AFPRunModeEnableIPS(void)
 
 void RunModeIdsAFPRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single", "Single threaded af-packet mode","default for af-packet","single, workers, autofp",
-            RunModeIdsAFPSingle, AFPRunModeEnableIPS);
+    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single", "Single threaded af-packet mode","default for af-packet","single, workers, autofp", 
+            "af-packet", RunModeIdsAFPSingle, AFPRunModeEnableIPS);
     /*
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "workers",
             "Workers af-packet mode, each thread does all"

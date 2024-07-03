@@ -292,7 +292,7 @@ void RunModeListRunmodes(void)
             // Print the description
             printf("  description: %s\n", runmodes[i].runmodes[0].description);
             printf("  notes:\n");
-            printf("  yaml section:\n");
+            printf("  yaml section: %s\n", runmodes[i].runmodes[0].yaml_section);
             printf("  commandlin:\n");
             printf("  supported features:\n");
         }
@@ -495,7 +495,7 @@ int RunModeNeedsBypassManager(void)
  * \param RunModeFunc The function to be run for this runmode.
  */
 void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description, const char *default_mode,
-        const char *supported_runmode, 
+        const char *supported_runmode, const char *yaml_section,
         int (*RunModeFunc)(void), int (*RunModeIsIPSEnabled)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
@@ -521,6 +521,7 @@ void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const ch
     mode->name = SCStrdup(name);
     mode->default_runmode = SCStrdup(default_mode);
     mode->supported_runmode = SCStrdup(supported_runmode);
+    mode->yaml_section = SCStrdup(yaml_section);
     if (unlikely(mode->name == NULL)) {
         FatalError("Failed to allocate string");
     }

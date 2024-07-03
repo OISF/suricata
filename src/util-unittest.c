@@ -282,7 +282,7 @@ void UtCleanup(void)
 
 void UtRunModeRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_UNITTEST, "unittest", "Unittest mode","default mode teste","single", NULL, NULL);
+    RunModeRegisterNewRunMode(RUNMODE_UNITTEST, "unittest", "Unittest mode","default mode teste","single", " ", NULL, NULL);
 
     return;
 }

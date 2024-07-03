@@ -48,7 +48,7 @@ void RunModeIpsNFQRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_NFQ, "autofp",
             "Multi threaded NFQ IPS mode with respect to flow",
-            "default mode","autofp,workers", RunModeIpsNFQAutoFp, NULL);
+            "default mode","autofp,workers", "nfq",RunModeIpsNFQAutoFp, NULL);
     /*
     RunModeRegisterNewRunMode(RUNMODE_NFQ, "workers",
             "Multi queue NFQ IPS mode with one thread per queue",

@@ -51,7 +51,7 @@ void RunModeIpsIPFWRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "autofp",
             "Multi threaded IPFW IPS mode with respect to flow",
             "default mode ipfw",
-            "autofp, workers",
+            "autofp, workers", "ipfw",
              RunModeIpsIPFWAutoFp, NULL);
     /*
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "workers",

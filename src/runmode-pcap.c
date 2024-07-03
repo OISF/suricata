@@ -39,7 +39,7 @@ int RunModeIdsPcapWorkers(void);
 void RunModeIdsPcapRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "single", "Single threaded pcap live mode",
-            "default mode","autofp,single,workers",RunModeIdsPcapSingle, NULL);
+            "default mode", "autofp,single,workers", "pcap", RunModeIdsPcapSingle, NULL);
     /*RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "autofp",
             "Multi-threaded pcap live mode. Packets from each flow are assigned to a consistent "
             "detection thread","default mode",

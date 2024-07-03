@@ -584,7 +584,7 @@ void RunModeUnixSocketRegister(void)
 #ifdef BUILD_UNIX_SOCKET
     /* a bit of a hack, but register twice to --list-runmodes shows both */
     RunModeRegisterNewRunMode(
-            RUNMODE_UNIX_SOCKET, "single", "Unix socket mode","default mode","autofp,single", RunModeUnixSocketMaster, NULL);
+            RUNMODE_UNIX_SOCKET, "single", "Unix socket mode","default mode","autofp,single"," ", RunModeUnixSocketMaster, NULL);
     /*RunModeRegisterNewRunMode(
             RUNMODE_UNIX_SOCKET, "autofp", "Unix socket mode","default mode", RunModeUnixSocketMaster, NULL);*/
 #endif
