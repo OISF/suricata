@@ -71,6 +71,7 @@ alert pkthdr any any -> any any (msg:"SURICATA UDP header length too small"; dec
 alert pkthdr any any -> any any (msg:"SURICATA UDP invalid length field in the header"; decode-event:udp.len_invalid; classtype:protocol-command-decode; sid:2200120; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA SLL packet too small"; decode-event:sll.pkt_too_small; classtype:protocol-command-decode; sid:2200041; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA Ethernet packet too small"; decode-event:ethernet.pkt_too_small; classtype:protocol-command-decode; sid:2200042; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA Ehtertype Unknown"; decode-event:ethernet.unknown_ethertype; classtype:protocol-command-decode; sid:2200121; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA PPP packet too small"; decode-event:ppp.pkt_too_small; classtype:protocol-command-decode; sid:2200043; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA PPP VJU packet too small"; decode-event:ppp.vju_pkt_too_small; classtype:protocol-command-decode; sid:2200044; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA PPP IPv4 packet too small"; decode-event:ppp.ip4_pkt_too_small; classtype:protocol-command-decode; sid:2200045; rev:2;)
@@ -151,5 +152,5 @@ alert pkthdr any any -> any any (msg:"SURICATA CHDLC packet too small"; decode-e
 
 alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; decode-event:too_many_layers; classtype:protocol-command-decode; sid:2200116; rev:1;)
 
-# next sid is 2200121
+# next sid is 2200122
 
