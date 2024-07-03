@@ -5364,6 +5364,9 @@
                                     "properties": {
                                         "pkt_too_small": {
                                             "type": "integer"
+                                        },
+                                        "unknown_ethertype": {
+                                            "type": "integer"
                                         }
                                     },
                                     "additionalProperties": false
