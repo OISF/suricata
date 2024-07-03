@@ -286,6 +286,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.ethernet.pkt_too_small",
             ETHERNET_PKT_TOO_SMALL,
     },
+    {
+            "decoder.ethernet.unknown_ethertype",
+            ETHERNET_UNKNOWN_ETHERTYPE,
+    },
 
     /* PPP EVENTS */
     {
