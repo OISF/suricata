@@ -3,11 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag as complete_tag,
     bytes::streaming::{tag, take_till, take_while, take_while1},
-    character::{
-        complete::one_of as complete_one_of,
-        is_space,
-        streaming::{one_of, space0},
-    },
+    character::{complete::one_of as complete_one_of, is_space, streaming::space0},
     combinator::{complete, map, not, opt, peek},
     sequence::tuple,
     Err::Incomplete,
@@ -18,8 +14,6 @@ use nom::{
 pub type ParsedBytes<'a> = (&'a [u8], u64);
 // Helper for Parsed Headers and corresonding termination
 pub type ParsedHeaders = (Vec<Header>, bool);
-// Helper for matched leading whitespace, byes, and trailing whitespace
-pub type SurroundedBytes<'a> = (&'a [u8], &'a [u8], &'a [u8]);
 // Helper for matched eol+ folding bytes + flags
 pub type FoldingBytes<'a> = (&'a [u8], &'a [u8], u64);
 // Helper for folding or terminator bytes
@@ -43,9 +37,6 @@ impl HeaderFlags {
     pub const NULL_TERMINATED: u64 = 0x0100;
     pub const MISSING_COLON: u64 = (0x0200 | Self::NAME_EMPTY);
     pub const DEFORMED_EOL: u64 = 0x0400;
-    pub const TERMINATOR_SPECIAL_CASE: u64 = 0x0800;
-    pub const DEFORMED_SEPARATOR: u64 = (0x1000 | Self::NAME_NON_TOKEN_CHARS);
-    pub const FOLDING_EMPTY: u64 = (0x2000 | Self::DEFORMED_EOL);
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -235,12 +226,7 @@ impl Parser {
                     complete_one_of("\t "),
                     self.complete_eol_regular(),
                 )),
-                |(eol1, _spaces, eol2)| {
-                    (
-                        &input[..eol1.len() + 1 + eol2.len()],
-                        HeaderFlags::FOLDING_EMPTY,
-                    )
-                },
+                |(eol1, _spaces, eol2)| (&input[..eol1.len() + 1 + eol2.len()], 0),
             )(input)
         }
     }
@@ -250,11 +236,10 @@ impl Parser {
             if self.side == Side::Response {
                 map(
                     tuple((
-                        not(self.folding_empty()),
                         map(self.complete_eol_regular(), |eol| (eol, 0)),
                         folding_lws,
                     )),
-                    |(_, (eol, flags), (lws, other_flags))| (eol, lws, flags | other_flags),
+                    |((eol, flags), (lws, other_flags))| (eol, lws, flags | other_flags),
                 )(input)
             } else {
                 map(
@@ -265,56 +250,17 @@ impl Parser {
         }
     }
 
-    /// Special case check for end of headers with space or tab seperating the EOLs
-    fn terminator_special_case(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| {
-            //Treat the empty folding as a single EOL when it is followed by another eol.
-            alt((
-                map(
-                    tuple((self.folding_empty(), peek(self.complete_eol_regular()))),
-                    |((eol, flags), _)| (eol, HeaderFlags::TERMINATOR_SPECIAL_CASE | flags),
-                ),
-                map(
-                    tuple((
-                        self.complete_eol_regular(),
-                        one_of("\t "),
-                        peek(tuple((
-                            self.complete_eol_regular(),
-                            not(tuple((token_chars, separator_regular))),
-                        ))),
-                    )),
-                    |(eol, _space, _)| {
-                        (
-                            &input[..eol.len() + 1],
-                            HeaderFlags::TERMINATOR_SPECIAL_CASE,
-                        )
-                    },
-                ),
-            ))(input)
-        }
-    }
-
     /// Parse complete folding bytes or a value terminator (eol or null)
     fn complete_folding_or_terminator(
         &self,
     ) -> impl Fn(&[u8]) -> IResult<&[u8], FoldingOrTerminator> + '_ {
         move |input| {
-            if self.side == Side::Response {
-                alt((
-                    complete(map(self.terminator_special_case(), |result| (result, None))),
-                    complete(map(self.folding(), |(end, fold, flags)| {
-                        ((end, flags), Some(fold))
-                    })),
-                    map(self.complete_null_or_eol(), |end| (end, None)),
-                ))(input)
-            } else {
-                alt((
-                    complete(map(self.folding(), |(end, fold, flags)| {
-                        ((end, flags), Some(fold))
-                    })),
-                    map(self.complete_null_or_eol(), |end| (end, None)),
-                ))(input)
-            }
+            alt((
+                complete(map(self.folding(), |(end, fold, flags)| {
+                    ((end, flags), Some(fold))
+                })),
+                map(self.complete_null_or_eol(), |end| (end, None)),
+            ))(input)
         }
     }
 
@@ -323,22 +269,12 @@ impl Parser {
         &self,
     ) -> impl Fn(&[u8]) -> IResult<&[u8], FoldingOrTerminator> + '_ {
         move |input| {
-            if self.side == Side::Response {
-                alt((
-                    map(self.terminator_special_case(), |result| (result, None)),
-                    map(self.folding(), |(end, fold, flags)| {
-                        ((end, flags), Some(fold))
-                    }),
-                    map(self.null_or_eol(), |end| (end, None)),
-                ))(input)
-            } else {
-                alt((
-                    map(self.folding(), |(end, fold, flags)| {
-                        ((end, flags), Some(fold))
-                    }),
-                    map(self.null_or_eol(), |end| (end, None)),
-                ))(input)
-            }
+            alt((
+                map(self.folding(), |(end, fold, flags)| {
+                    ((end, flags), Some(fold))
+                }),
+                map(self.null_or_eol(), |end| (end, None)),
+            ))(input)
         }
     }
 
@@ -371,7 +307,7 @@ impl Parser {
     /// Parse a complete header value, including any folded headers
     fn value(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Value> + '_ {
         move |input| {
-            let (rest, (val_bytes, ((_eol, mut flags), fold))) = self.value_bytes()(input)?;
+            let (mut rest, (val_bytes, ((_eol, mut flags), fold))) = self.value_bytes()(input)?;
             let mut value = val_bytes.to_vec();
             if let Some(fold) = fold {
                 let mut i = rest;
@@ -394,8 +330,8 @@ impl Parser {
                             _ => {}
                         }
                     }
-                    let (rest, (val_bytes, ((_eol, other_flags), fold))) = self.value_bytes()(i)?;
-                    i = rest;
+                    let (rest2, (val_bytes, ((eol, other_flags), fold))) = self.value_bytes()(i)?;
+                    i = rest2;
                     flags.set(other_flags);
                     //If the value is empty, the value started with a fold and we don't want to push back a space
                     if !value.is_empty() {
@@ -405,7 +341,18 @@ impl Parser {
                             value.push(b' ');
                         }
                     }
-                    value.extend(val_bytes);
+                    if !val_bytes.is_empty() || eol.len() > 1 {
+                        // we keep empty folding as a future new eol
+                        rest = rest2;
+                        value.extend(val_bytes);
+                    } else if val_bytes.is_empty()
+                        && eol.len() == 1
+                        && !rest2.is_empty()
+                        && rest2[0] == b'\n'
+                    {
+                        // eol empty fold double eol is enfo of headers
+                        rest = rest2;
+                    }
                     if let Some(fold) = fold {
                         ofold = fold;
                     } else {
@@ -421,127 +368,57 @@ impl Parser {
         }
     }
 
-    /// Parse one header name, incluing the : and trailing whitespace
+    /// Parse one header name
     fn name(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Name> + '_ {
         move |input| {
-            //We first attempt to parse a token name before we attempt a non token name
-            map(
-                alt((self.token_name(), self.non_token_name())),
-                |(name, flags)| Name::new(name, flags),
-            )(input)
-        }
-    }
-
-    /// Parse name containing non token characters with either regular separator or deformed separator
-    fn non_token_name(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| {
-            map(
-                tuple((
-                    take_till(|c| {
-                        c == b':'
-                            || self.is_terminator(c)
-                            || (self.side == Side::Response && c == b'\r')
-                    }),
-                    peek(self.separator()),
-                )),
-                |(name, _): (&[u8], _)| {
-                    let mut flags = HeaderFlags::NAME_NON_TOKEN_CHARS;
-                    if !name.is_empty() {
-                        if is_space(name[0]) {
-                            flags.set(HeaderFlags::NAME_LEADING_WHITESPACE)
-                        }
-                        if let Some(end) = name.last() {
-                            if is_space(*end) {
-                                flags.set(HeaderFlags::NAME_TRAILING_WHITESPACE);
-                            }
-                        }
-                    } else {
-                        flags.set(HeaderFlags::NAME_EMPTY)
+            let mut terminated = false;
+            let mut offset = 0;
+            for i in 0..input.len() {
+                if !terminated {
+                    if input[i] == b':' {
+                        offset = i;
+                        break;
+                    } else if input[i] == b'\n' {
+                        terminated = true;
                     }
-                    (name, flags)
-                },
-            )(input)
-        }
-    }
-
-    /// Check if the byte is a line ending character
-    fn is_terminator(&self, c: u8) -> bool {
-        c == b'\n'
-    }
-
-    /// Handles accepted deformed separators
-    fn separator_deformed(&self) -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> + '_ {
-        move |input| {
-            map(
-                tuple((
-                    not(tuple((self.complete_eol(), self.complete_eol()))),
-                    alt((
-                        map(
-                            tuple((
-                                take_while1(is_special_whitespace),
-                                complete_tag(":"),
-                                space0,
-                                not(tuple((self.complete_eol(), self.complete_eol()))),
-                                take_while(is_special_whitespace),
-                            )),
-                            |(_, tagged, _, _, _)| tagged,
-                        ),
-                        map(
-                            tuple((
-                                take_while(is_special_whitespace),
-                                complete_tag(":"),
-                                space0,
-                                not(tuple((self.complete_eol(), self.complete_eol()))),
-                                take_while1(is_special_whitespace),
-                            )),
-                            |(_, tagged, _, _, _)| tagged,
-                        ),
-                    )),
-                )),
-                |(_, sep)| sep,
-            )(input)
+                } else {
+                    if input[i] == b' ' {
+                        terminated = false;
+                    } else {
+                        offset = i - 1;
+                        break;
+                    }
+                }
+            }
+            let (name, rem) = input.split_at(offset);
+            let mut flags = 0;
+            if !name.is_empty() {
+                if is_space(name[0]) {
+                    flags.set(HeaderFlags::NAME_LEADING_WHITESPACE)
+                }
+                if let Some(end) = name.last() {
+                    if is_space(*end) {
+                        flags.set(HeaderFlags::NAME_TRAILING_WHITESPACE);
+                    }
+                }
+                match token_chars(name) {
+                    Ok((rem, _)) => {
+                        if !rem.is_empty() {
+                            flags.set(HeaderFlags::NAME_NON_TOKEN_CHARS);
+                        }
+                    }
+                    _ => {}
+                }
+            } else {
+                flags.set(HeaderFlags::NAME_EMPTY)
+            }
+            return Ok((rem, Name::new(name, flags)));
         }
     }
 
     /// Parse a separator between header name and value
     fn separator(&self) -> impl Fn(&[u8]) -> IResult<&[u8], u64> + '_ {
-        move |input| {
-            if self.side == Side::Response {
-                alt((
-                    map(self.separator_deformed(), |_| {
-                        HeaderFlags::DEFORMED_SEPARATOR
-                    }),
-                    map(separator_regular, |_| 0),
-                ))(input)
-            } else {
-                map(separator_regular, |_| 0)(input)
-            }
-        }
-    }
-
-    /// Parse name containing only token characters
-    fn token_name(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| {
-            // The name should consist only of token characters (i.e., no spaces, seperators, control characters, etc)
-            map(
-                tuple((token_chars, peek(self.separator()))),
-                |((leading_spaces, name, trailing_spaces), _): (SurroundedBytes, _)| {
-                    let mut flags = 0;
-                    if !name.is_empty() {
-                        if !leading_spaces.is_empty() {
-                            flags.set(HeaderFlags::NAME_LEADING_WHITESPACE)
-                        }
-                        if !trailing_spaces.is_empty() {
-                            flags.set(HeaderFlags::NAME_TRAILING_WHITESPACE)
-                        }
-                    } else {
-                        flags.set(HeaderFlags::NAME_EMPTY)
-                    }
-                    let slice_len = leading_spaces.len() + name.len() + trailing_spaces.len();
-                    (&input[..slice_len], flags)
-                },
-            )(input)
-        }
+        move |input| map(separator_regular, |_| 0)(input)
     }
 
     /// Parse data before an eol with no colon as an empty name with the data as the value
@@ -623,7 +500,7 @@ fn null(input: &[u8]) -> IResult<&[u8], ParsedBytes> {
 
 /// Extracts folding lws (whitespace only)
 fn folding_lws(input: &[u8]) -> IResult<&[u8], ParsedBytes> {
-    map(alt((tag(" "), tag("\t"))), |fold| {
+    map(alt((tag(" "), tag("\t"), tag("\0"))), |fold| {
         (fold, HeaderFlags::FOLDING)
     })(input)
 }
@@ -639,17 +516,12 @@ fn token_chars(input: &[u8]) -> IResult<&[u8], leading_token_trailing> {
     tuple((space0, take_while(is_token), space0))(input)
 }
 
-/// Check if the input is a space, HT, VT, CR, LF, or FF
-fn is_special_whitespace(c: u8) -> bool {
-    c == b' ' || c == b'\t' || c == b'\n' || c == b'\r' || c == b'\x0b' || c == b'\x0c'
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::error::NomError;
     use nom::{
-        error::ErrorKind::{Not, Space, Tag},
+        error::ErrorKind::{Not, Tag},
         Err::{Error, Incomplete},
         Needed,
     };
@@ -659,6 +531,8 @@ mod test {
             $b.as_bytes()
         };
     }
+    // Helper for matched leading whitespace, byes, and trailing whitespace
+    pub type SurroundedBytes<'a> = (&'a [u8], &'a [u8], &'a [u8]);
 
     #[rstest]
     #[case::null_does_not_terminate(b"k1:v1\r\nk2:v2 before\0v2 after\r\n\r\n",Ok((b!(""), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0), Header::new_with_flags(b"k2", 0, b"v2 before\0v2 after", 0)], true))), None)]
@@ -676,10 +550,9 @@ mod test {
                 Header::new_with_flags(b"", HeaderFlags::NAME_EMPTY, b"v2 v2+", HeaderFlags::FOLDING),
                 Header::new_with_flags(b"k3", 0, b"v3", 0),
                 Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"k4 v4", HeaderFlags::MISSING_COLON),
-                Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"k", HeaderFlags::MISSING_COLON),
-                Header::new_with_flags(b"5", 0, b"v", 0),
+                Header::new_with_flags(b"k\r5", HeaderFlags::NAME_NON_TOKEN_CHARS, b"v", 0),
                 Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"5", HeaderFlags::MISSING_COLON),
-                Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"more", HeaderFlags::MISSING_COLON)
+                Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"more", HeaderFlags::MISSING_COLON),
                 ], true)))))]
     #[case::incomplete_eoh(b"k1:v1\r\nk2:v2\r", Ok((b!("k2:v2\r"), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0)], false))), None)]
     #[case::incomplete_eoh_null(b"k1:v1\nk2:v2\0v2\r\nk3:v3\r", Ok((b!("k3:v3\r"), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0), Header::new_with_flags(b"k2", 0, b"v2\0v2", 0)], false))), None)]
@@ -835,13 +708,9 @@ mod test {
     #[case::deformed_folding_1(b"K:deformed folded\n\r V\n\r\r\n\n", Ok((b!("\r V\n\r\r\n\n"), Header::new_with_flags(b"K", 0, b"deformed folded", 0))), Some(Ok((b!("\n"), Header::new_with_flags(b"K", 0, b"deformed folded V", HeaderFlags::FOLDING | HeaderFlags::DEFORMED_EOL)))))]
     #[case::deformed_folding_2(b"K:deformed folded\n\r V\r\n\r\n", Ok(( b!("\r V\r\n\r\n"), Header::new_with_flags(b"K", 0, b"deformed folded", 0))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", 0, b"deformed folded V", HeaderFlags::FOLDING)))))]
     #[case::deformed_folding_3(b"K:deformed folded\n\r\r V\r\n\r\n", Ok(( b!("\r\r V\r\n\r\n"), Header::new_with_flags(b"K", 0, b"deformed folded", 0))), Some(Ok((b!("\r V\r\n\r\n"), Header::new_with_flags(b"K", 0, b"deformed folded", 0)))))]
-    #[case::non_token_trailing_ws(b"K\r \r :\r V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\r \r ", HeaderFlags::NAME_NON_TOKEN_CHARS | HeaderFlags::NAME_TRAILING_WHITESPACE, b"\r V", 0))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"V", HeaderFlags::DEFORMED_SEPARATOR)))))]
-    #[case::deformed_sep_1(b"K\n\r \r\n :\r\n V\r\n\r\n", Ok((b!("\r \r\n :\r\n V\r\n\r\n"), Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"K", HeaderFlags::MISSING_COLON))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"V", HeaderFlags::DEFORMED_SEPARATOR)))))]
-    #[case::deformed_sep_2(b"K\r\n \r\n :\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"", HeaderFlags::MISSING_COLON | HeaderFlags::FOLDING, b"K  : V", HeaderFlags::MISSING_COLON | HeaderFlags::FOLDING))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"V", HeaderFlags::DEFORMED_SEPARATOR)))))]
-    #[case::empty_value_deformed(b"K:\r\n\0Value\r\n V\r\n\r\n", Ok((b!("\0Value\r\n V\r\n\r\n"), Header::new_with_flags(b"K", 0, b"", HeaderFlags::VALUE_EMPTY))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"\0Value V", HeaderFlags::DEFORMED_SEPARATOR | HeaderFlags::FOLDING)))))]
-    #[case::missing_colon(b"K\r\n:Value\r\n V\r\n\r\n", Ok((b!(":Value\r\n V\r\n\r\n"), Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"K", HeaderFlags::MISSING_COLON))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"Value V", HeaderFlags::DEFORMED_SEPARATOR | HeaderFlags::FOLDING)))))]
-    #[case::non_token(b"K\x0c:Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\x0c", HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"Value V", HeaderFlags::DEFORMED_SEPARATOR | HeaderFlags::FOLDING)))))]
-    #[case::non_token_trailing(b"K\r :Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\r ", HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::DEFORMED_SEPARATOR, b"Value V", HeaderFlags::DEFORMED_SEPARATOR | HeaderFlags::FOLDING)))))]
+    #[case::non_token_trailing_ws(b"K\r \r :\r V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\r \r ", HeaderFlags::NAME_NON_TOKEN_CHARS | HeaderFlags::NAME_TRAILING_WHITESPACE, b"\r V", 0))), Some(Ok((b!("\r\n"), Header::new_with_flags(b"K", HeaderFlags::NAME_NON_TOKEN_CHARS | HeaderFlags::NAME_TRAILING_WHITESPACE, b"V", HeaderFlags::FOLDING)))))]
+    #[case::non_token(b"K\x0c:Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\x0c", HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), None)]
+    #[case::non_token_trailing(b"K\r :Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\r ", HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), None)]
     fn test_header(
         #[case] input: &[u8],
         #[case] expected: IResult<&[u8], Header>,
@@ -859,14 +728,10 @@ mod test {
     }
 
     #[rstest]
-    #[case::incomplete(b" : ", Err(Error(NomError::new(b!(" : "), Tag))), Some(Err(Incomplete(Needed::new(1)))))]
-    #[case::incomplete(b" ", Err(Error(NomError::new(b!(" "), Tag))), Some(Err(Incomplete(Needed::new(1)))))]
+    #[case::not_a_separator(b"\n", Err(Error(NomError::new(b!("\n"), Tag))), None)]
     #[case::colon(b":value", Ok((b!("value"), 0)), None)]
     #[case::colon_whitespace(b": value", Ok((b!("value"), 0)), None)]
     #[case::colon_tab(b":\t value", Ok((b!("value"), 0)), None)]
-    #[case::deformed_sep(b"\r\n \n:\t\r\n value", Err(Error(NomError::new(b!("\r\n \n:\t\r\n value"), Tag))), Some(Ok((b!("value"), HeaderFlags::DEFORMED_SEPARATOR))))]
-    #[case::deformed_sep(b"\x0c:\t value", Err(Error(NomError::new(b!("\x0c:\t value"), Tag))), Some(Ok((b!("value"), HeaderFlags::DEFORMED_SEPARATOR))))]
-    #[case::deformed_sep(b"\r: value", Err(Error(NomError::new(b!("\r: value"), Tag))), Some(Ok((b!("value"), HeaderFlags::DEFORMED_SEPARATOR))))]
     fn test_separators(
         #[case] input: &[u8],
         #[case] expected: IResult<&[u8], u64>,
@@ -893,65 +758,6 @@ mod test {
     }
 
     #[rstest]
-    #[case::incomplete(b"Hello", Err(Incomplete(Needed::new(1))), None)]
-    #[case::name(b"Hello: world", Ok((b!(": world"), (b!("Hello"), 0))), None)]
-    #[case::leading_whitespace(b" Hello: world", Ok((b!(": world"), (b!(" Hello"), HeaderFlags::NAME_LEADING_WHITESPACE))), None)]
-    #[case::trailing_whitespace(b"Hello : world", Ok((b!(": world"), (b!("Hello "), HeaderFlags::NAME_TRAILING_WHITESPACE))), None)]
-    #[case::surrounding_whitespace(b" Hello : world", Ok((b!(": world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE))), None)]
-    #[case::surrounding_whitespace_response(b" Hello \r\n \n:\n world", Err(Error(NomError::new(b!("\r\n \n:\n world"), Tag))), Some(Ok((b!("\r\n \n:\n world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE)))))]
-    #[case::surrounding_whitespace_response(b" Hello \n\r \n:\n world", Err(Error(NomError::new(b!("\n\r \n:\n world"), Tag))), Some(Ok((b!("\n\r \n:\n world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE)))))]
-    #[case::invalid_space(b"Hello Invalid: world", Err(Error(NomError::new(b!("Invalid: world"), Tag))), None)]
-    #[case::invalid_semicolon(b"Hello;Invalid: world", Err(Error(NomError::new(b!(";Invalid: world"), Tag))), None)]
-    #[case::invalid_cr(b"Hello\rInvalid: world", Err(Error(NomError::new(b!("\rInvalid: world"), Tag))), None)]
-    #[case::invalid_lf(b"Hello\nInvalid: world", Err(Error(NomError::new(b!("\nInvalid: world"), Tag))), None)]
-    #[case::invalid_null(b"Hello\0Invalid: world", Err(Error(NomError::new(b!("\0Invalid: world"), Tag))), None)]
-    fn test_token_name(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ParsedBytes>,
-        #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
-    ) {
-        let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.token_name()(input), expected);
-
-        let res_parser = Parser::new(Side::Response);
-        if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.token_name()(input), res_expected);
-        } else {
-            assert_eq!(res_parser.token_name()(input), expected);
-        }
-    }
-
-    #[rstest]
-    #[case::incomplete(b"Hello", Err(Incomplete(Needed::new(1))), None)]
-    #[case::name(b"Hello: world", Ok((b!(": world"), (b!("Hello"), HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::leading_whitespace(b" Hello: world", Ok((b!(": world"), (b!(" Hello"), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::trailing_whitespace(b"Hello : world", Ok((b!(": world"), (b!("Hello "), HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::surrounding_whitespace(b" Hello : world", Ok((b!(": world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::surrounding_whitespace_response(b" Hello \r\n \n:\n world", Err(Error(NomError::new(b!("\n \n:\n world"), Tag))), Some(Ok((b!("\r\n \n:\n world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS)))))]
-    #[case::surrounding_whitespace_response(b" Hello \n\r \n:\n world", Err(Error(NomError::new(b!("\n\r \n:\n world"), Tag))), Some(Ok((b!("\n\r \n:\n world"), (b!(" Hello "), HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS)))))]
-    #[case::space(b"Hello Invalid: world", Ok((b!(": world"), (b!("Hello Invalid"), HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::semicolon(b"Hello;Invalid: world", Ok((b!(": world"), (b!("Hello;Invalid"), HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    #[case::invalid_cr(b"Hello\rInvalid: world", Ok((b!(": world"), (b!("Hello\rInvalid"), HeaderFlags::NAME_NON_TOKEN_CHARS))), Some(Err(Error(NomError::new(b!("\rInvalid: world"), Tag)))))]
-    #[case::invalid_lf(b"Hello\nInvalid: world", Err(Error(NomError::new(b!("\nInvalid: world"), Tag))), None)]
-    #[case::invalid_null(b"Hello\0Invalid: world", Ok((b!(": world"), (b!("Hello\0Invalid"), HeaderFlags::NAME_NON_TOKEN_CHARS))), None)]
-    fn test_non_token_name(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ParsedBytes>,
-        #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
-    ) {
-        let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.non_token_name()(input), expected);
-
-        let res_parser = Parser::new(Side::Response);
-        if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.non_token_name()(input), res_expected);
-        } else {
-            assert_eq!(res_parser.non_token_name()(input), expected);
-        }
-    }
-
-    #[rstest]
-    #[case::incomplete(b"Hello", Err(Incomplete(Needed::new(1))), None)]
     #[case::name(b"Hello: world", Ok((b!(": world"), Name {name: b"Hello".to_vec(), flags: 0})), None)]
     #[case::name(b"Host:www.google.com\rName: Value", Ok((b!(":www.google.com\rName: Value"), Name {name: b"Host".to_vec(), flags: 0})), None)]
     #[case::trailing_whitespace(b"Hello : world", Ok((b!(": world"), Name {name: b"Hello".to_vec(), flags: HeaderFlags::NAME_TRAILING_WHITESPACE})), None)]
@@ -959,9 +765,7 @@ mod test {
     #[case::semicolon(b"Hello;invalid: world", Ok((b!(": world"), Name {name: b"Hello;invalid".to_vec(), flags: HeaderFlags::NAME_NON_TOKEN_CHARS})), None)]
     #[case::space(b"Hello invalid: world", Ok((b!(": world"), Name {name: b"Hello invalid".to_vec(), flags: HeaderFlags::NAME_NON_TOKEN_CHARS})), None)]
     #[case::surrounding_internal_space(b" Hello invalid : world", Ok((b!(": world"), Name {name: b"Hello invalid".to_vec(), flags: HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS})), None)]
-    #[case::empty_name(b"   : world", Ok((b!(": world"), Name {name: b"".to_vec(), flags: HeaderFlags::NAME_EMPTY})), None)]
-    #[case::empty_name_response(b"\r\n \r\n:\r\n world", Err(Error(NomError::new(b!("\n \r\n:\r\n world"), Tag))), Some(Ok((b!("\r\n \r\n:\r\n world"), Name {name: b"".to_vec(), flags : HeaderFlags::NAME_EMPTY}))))]
-    #[case::surrounding_whitespace_response(b" Hello \r\n \n: \nworld", Err(Error(NomError::new(b!("\n \n: \nworld"), Tag))), Some(Ok((b!("\r\n \n: \nworld"), Name {name: b"Hello".to_vec(), flags: HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE}))))]
+    #[case::only_space_name(b"   : world", Ok((b!(": world"), Name {name: b"".to_vec(), flags: HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE })), None)]
     fn test_name(
         #[case] input: &[u8],
         #[case] expected: IResult<&[u8], Name>,
@@ -1058,19 +862,6 @@ mod test {
     }
 
     #[rstest]
-    #[case(b'\n', true)]
-    #[case(b'\0', false)]
-    #[case(b'\t', false)]
-    #[case(b' ', false)]
-    #[case(b'\r', false)]
-    fn test_terminator(#[case] input: u8, #[case] expected: bool) {
-        let req_parser = Parser::new(Side::Request);
-        let res_parser = Parser::new(Side::Response);
-        assert_eq!(req_parser.is_terminator(input), expected);
-        assert_eq!(res_parser.is_terminator(input), expected);
-    }
-
-    #[rstest]
     #[case::no_fold_tag(b"test", Err(Error(NomError::new(b!("test"), Tag))), None)]
     #[case::cr(b"\r", Err(Error(NomError::new(b!("\r"), Tag))), Some(Err(Incomplete(Needed::new(1)))))]
     #[case::crcr(b"\r\r",  Err(Error(NomError::new(b!("\r\r"), Tag))), Some(Err(Error(NomError::new(b!("\r"), Tag)))))]
@@ -1121,14 +912,7 @@ mod test {
     #[case::req_deformed_eol(b"\n\r\r\na", Ok((b!("\r\na"), ((b!("\n\r"), HeaderFlags::DEFORMED_EOL), None))), Some(Ok((b!("\r\na"), ((b!("\n\r"), 0), None)))))]
     #[case::null_terminated(b"\0a", Ok((b!("a"), ((b!("\0"), HeaderFlags::NULL_TERMINATED), None))), None)]
     #[case::res_fold(b"\r a", Err(Error(NomError::new(b!("\r a"), Tag))), Some(Ok((b!("a"), ((b!("\r"), HeaderFlags::FOLDING), Some(b!(" ")))))))]
-    #[case::req_fold_res_empty_1(b"\n\r \na:b", Ok((b!("\r \na:b"), ((b!("\n"), 0), None))), Some(Ok((b!("a:b"), ((b!("\n\r \n"), HeaderFlags::FOLDING_EMPTY), None)))))]
-    #[case::req_fold_res_empty_2(b"\n \na:b", Ok((b!("\na:b"), ((b!("\n"), HeaderFlags::FOLDING), Some(b!(" "))))), Some(Ok((b!("a:b"), ((b!("\n \n"), HeaderFlags::FOLDING_EMPTY), None)))))]
-    #[case::req_fold_res_empty_3(b"\r\n \na:b", Ok((b!("\na:b"), ((b!("\r\n"), HeaderFlags::FOLDING), Some(b!(" "))))), Some(Ok((b!("a:b"), ((b!("\r\n \n"), HeaderFlags::FOLDING_EMPTY), None)))))]
-    #[case::req_fold_res_empty_4(b"\r\n \r\na:b", Ok((b!("\r\na:b"), ((b!("\r\n"), HeaderFlags::FOLDING), Some(b!(" "))))), Some(Ok((b!("a:b"), ((b!("\r\n \r\n"), HeaderFlags::FOLDING_EMPTY), None)))))]
-    #[case::req_fold_res_term(b"\n \r\na\n", Ok((b!("\r\na\n"), ((b!("\n"), HeaderFlags::FOLDING), Some(b!(" "))))), Some(Ok((b!("\r\na\n"), ((b!("\n "), HeaderFlags::TERMINATOR_SPECIAL_CASE), None)))))]
-    #[case::req_fold_res_empty_term(b"\n \r\n\n", Ok((b!("\r\n\n"), ((b!("\n"), HeaderFlags::FOLDING), Some(b!(" "))))), Some(Ok((b!("\n"), ((b!("\n \r\n"), HeaderFlags::FOLDING_EMPTY | HeaderFlags::TERMINATOR_SPECIAL_CASE), None)))))]
     #[case::multi_space_line(b"\n  \r\n\n", Ok((b!(" \r\n\n"), ((b!("\n"), HeaderFlags::FOLDING), Some(b!(" "))))), None)]
-    #[case::req_fold_special_res_empty(b"\n\r \na:b", Ok((b!("\r \na:b"), ((b!("\n"), 0), None))), Some(Ok((b!("a:b"), ((b!("\n\r \n"), HeaderFlags::FOLDING_EMPTY), None)))))]
     fn test_folding_or_terminator(
         #[case] input: &[u8],
         #[case] expected: IResult<&[u8], FoldingOrTerminator>,
