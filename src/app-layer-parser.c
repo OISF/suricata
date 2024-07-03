@@ -83,8 +83,6 @@ typedef struct AppLayerParserProtoCtx_
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
 
-    void (*Truncate)(void *, uint8_t);
-
     /** get FileContainer reference from the TX. MUST return a non-NULL reference if the TX
      *  has or may have files in the requested direction at some point. */
     AppLayerGetFileState (*GetTxFiles)(void *, uint8_t);
@@ -461,16 +459,6 @@ void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger = true;
-
-    SCReturn;
-}
-
-void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
-                                        void (*Truncate)(void *, uint8_t))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate = Truncate;
 
     SCReturn;
 }
