@@ -1160,8 +1160,6 @@ void DecodeUnregisterCounters(void);
     ENGINE_SET_EVENT(p, e); \
 } while(0)
 
-
-
 #define ENGINE_ISSET_EVENT(p, e) ({ \
     int r = 0; \
     uint8_t u; \
@@ -1504,6 +1502,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         default:
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
             StatsIncr(tv, dtv->counter_ethertype_unknown);
+            ENGINE_SET_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE);
             return false;
     }
     return true;
