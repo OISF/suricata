@@ -985,7 +985,6 @@ pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
         get_state_data: rs_dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(DnsFrameType::ffi_name_from_id),
     };
@@ -1031,7 +1030,6 @@ pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
         get_state_data: rs_dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        truncate: None,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(DnsFrameType::ffi_name_from_id),
     };

@@ -406,7 +406,6 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_state_data     : rs_snmp_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
-        truncate           : None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };

@@ -282,7 +282,6 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         get_state_data: rs_bittorrent_dht_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };

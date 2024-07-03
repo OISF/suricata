@@ -182,8 +182,6 @@ void AppLayerParserRegisterGetTxFilesFunc(
         uint8_t ipproto, AppProto alproto, AppLayerGetFileState (*GetTxFiles)(void *, uint8_t));
 void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits);
-void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
-                             void (*Truncate)(void *, uint8_t));
 void AppLayerParserRegisterGetStateProgressFunc(uint8_t ipproto, AppProto alproto,
     int (*StateGetStateProgress)(void *alstate, uint8_t direction));
 void AppLayerParserRegisterTxFreeFunc(uint8_t ipproto, AppProto alproto,

@@ -44,7 +44,6 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::SESSIONSETUP(
                     SMBTransactionSessionSetup::new()));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SESSIONSETUP created: ID {}", tx.id);
         self.transactions.push_back(tx);

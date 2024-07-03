@@ -336,7 +336,6 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(
                         filename, fid, subcmd, loi, delete_on_close)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
@@ -355,7 +354,6 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(filename, fid,
                         subcmd, loi, delete_on_close)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
@@ -388,7 +386,6 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::RENAME(
                     SMBTransactionRename::new(fuid, oldname, newname)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
         self.transactions.push_back(tx);
@@ -713,9 +710,6 @@ pub struct SMBState<> {
     pub ts_gap: bool, // last TS update was gap
     pub tc_gap: bool, // last TC update was gap
 
-    pub ts_trunc: bool, // no more data for TOSERVER
-    pub tc_trunc: bool, // no more data for TOCLIENT
-
     /// true as long as we have file txs that are in a post-gap
     /// state. It means we'll do extra house keeping for those.
     check_post_gap_file_txs: bool,
@@ -775,8 +769,6 @@ impl SMBState {
             tc_ssn_gap: false,
             ts_gap: false,
             tc_gap: false,
-            ts_trunc: false,
-            tc_trunc: false,
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             transactions: VecDeque::new(),
@@ -894,7 +886,6 @@ impl SMBState {
 
         tx.type_data = None;
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
         tx.hdr = key;
 
         SCLogDebug!("SMB: TX GENERIC created: ID {} tx list {} {:?}",
@@ -966,7 +957,6 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::NEGOTIATE(
                     SMBTransactionNegotiate::new(smb_ver)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
         self.transactions.push_back(tx);
@@ -1000,7 +990,6 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::TREECONNECT(
                     SMBTransactionTreeConnect::new(name.to_vec())));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX TREECONNECT created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(&name));
@@ -1036,7 +1025,6 @@ impl SMBState {
                                 file_name.to_vec(), disposition,
                                 del, dir)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
@@ -1259,7 +1247,6 @@ impl SMBState {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
                         SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
-                        self.trunc_ts();
                         return 0;
                     }
                 }
@@ -1595,7 +1582,6 @@ impl SMBState {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
                         SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
-                        self.trunc_tc();
                         return 0;
                     }
                 }
@@ -1899,28 +1885,6 @@ impl SMBState {
         return AppLayerResult::ok();
     }
 
-    pub fn trunc_ts(&mut self) {
-        SCLogDebug!("TRUNC TS");
-        self.ts_trunc = true;
-
-        for tx in &mut self.transactions {
-            if !tx.request_done {
-                SCLogDebug!("TRUNCATING TX {} in TOSERVER direction", tx.id);
-                tx.request_done = true;
-            }
-       }
-    }
-    pub fn trunc_tc(&mut self) {
-        SCLogDebug!("TRUNC TC");
-        self.tc_trunc = true;
-
-        for tx in &mut self.transactions {
-            if !tx.response_done {
-                SCLogDebug!("TRUNCATING TX {} in TOCLIENT direction", tx.id);
-                tx.response_done = true;
-            }
-        }
-    }
 }
 
 /// Returns *mut SMBState
@@ -2203,22 +2167,6 @@ pub unsafe extern "C" fn rs_smb_get_tx_data(
 
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_truncate(
-        state: *mut std::ffi::c_void,
-        direction: u8)
-{
-    let state = cast_pointer!(state, SMBState);
-    match direction.into() {
-        Direction::ToServer => {
-            state.trunc_ts();
-        }
-        Direction::ToClient => {
-            state.trunc_tc();
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
@@ -2327,7 +2275,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         get_state_data: rs_smb_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        truncate: Some(rs_smb_state_truncate),
         get_frame_id_by_name: Some(SMBFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SMBFrameType::ffi_name_from_id),
     };

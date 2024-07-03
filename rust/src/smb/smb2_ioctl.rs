@@ -46,7 +46,6 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::IOCTL(
                     SMBTransactionIoctl::new(func)));
         tx.request_done = true;
-        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX IOCTL created: ID {} FUNC {:08x}: {}",
                 tx.id, func, &fsctl_func_to_string(func));
