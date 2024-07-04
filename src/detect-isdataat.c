@@ -130,7 +130,7 @@ bool DetectAbsentValidateContentCallback(Signature *s, const SignatureInitDataBu
             has_other = true;
             if (sm->type == DETECT_CONTENT) {
                 const DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                if (has_absent && (cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
                     SCLogError("signature can't have absent and fast_pattern on the same buffer");
                     return false;
                 }
