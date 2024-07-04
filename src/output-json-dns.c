@@ -28,6 +28,7 @@
 
 #include "threadvars.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-parser.h"
@@ -447,46 +448,61 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
     }
 }
 
-static uint8_t JsonDnsCheckVersion(ConfNode *conf)
+static uint8_t GetDnsLogVersion(ConfNode *conf)
 {
-    // TODO: Convert to _DEFAULT.
-    uint8_t default_version = DNS_LOG_VERSION_2;
-
     if (conf == NULL) {
-        SCLogConfig("EVE DNS default to DNS log version %d", DNS_LOG_VERSION_DEFAULT);
-        return default_version;
+        return DNS_LOG_VERSION_DEFAULT;
     }
 
+    char *version_string = NULL;
+    const ConfNode *version_node = ConfNodeLookupChild(conf, "version");
+    if (version_node != NULL) {
+        version_string = version_node->val;
+    }
+
+    if (version_string == NULL) {
+        version_string = getenv("SURICATA_EVE_DNS_VERSION");
+    }
+
+    if (version_string == NULL) {
+        return DNS_LOG_VERSION_DEFAULT;
+    }
+
+    uint8_t version;
+    if (StringParseUint8(&version, 10, 0, version_string) >= 0) {
+        return version;
+    }
+    SCLogWarning("Failed to parse EVE DNS log version of \"%s\"", version_string);
+    return DNS_LOG_VERSION_DEFAULT;
+}
+
+static uint8_t JsonDnsCheckVersion(ConfNode *conf)
+{
+    const uint8_t default_version = DNS_LOG_VERSION_DEFAULT;
+    const uint8_t version = GetDnsLogVersion(conf);
     static bool v1_deprecation_warned = false;
     static bool v2_deprecation_warned = false;
 
-    const ConfNode *has_version = ConfNodeLookupChild(conf, "version");
-    if (has_version != NULL) {
-        intmax_t config_version;
-        if (ConfGetChildValueInt(conf, "version", &config_version)) {
-            switch(config_version) {
-                case 3:
-                    SCLogNotice("DNS EVE v3 not implemented yet, using v2");
-                    return DNS_LOG_VERSION_2;
-                case 2:
-                    if (!v2_deprecation_warned) {
-                        SCLogNotice("DNS EVE v2 logging has been deprecated and will be removed in "
-                                    "Suricata 9.0");
-                        v2_deprecation_warned = true;
-                    }
-                    return DNS_LOG_VERSION_2;
-                case 1:
-                    if (!v1_deprecation_warned) {
-                        SCLogWarning("DNS EVE v1 logging has been removed, will use v2");
-                        v1_deprecation_warned = true;
-                    }
-                    return default_version;
-                default:
-                    SCLogWarning("Invalid EVE DNS version \"%s\", will use v%d", has_version->val,
-                            DNS_LOG_VERSION_DEFAULT);
-                    return default_version;
+    switch (version) {
+        case 3:
+            return DNS_LOG_VERSION_3;
+        case 2:
+            if (!v2_deprecation_warned) {
+                SCLogNotice("DNS EVE v2 logging has been deprecated and will be removed in "
+                            "Suricata 9.0");
+                v2_deprecation_warned = true;
             }
-        }
+            return DNS_LOG_VERSION_2;
+        case 1:
+            if (!v1_deprecation_warned) {
+                SCLogWarning("DNS EVE v1 logging has been removed, will use v2");
+                v1_deprecation_warned = true;
+            }
+            return default_version;
+        default:
+            SCLogWarning(
+                    "Invalid EVE DNS version %d, will use v%d", version, DNS_LOG_VERSION_DEFAULT);
+            return default_version;
     }
 
     return default_version;
