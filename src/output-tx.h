@@ -49,4 +49,7 @@ void OutputTxLoggerRegister (void);
 
 void OutputTxShutdown(void);
 
+// destroy global variables
+void OutputTxDestroy(void);
+
 #endif /* SURICATA_OUTPUT_TX_H */

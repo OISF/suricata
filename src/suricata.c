@@ -387,6 +387,7 @@ void GlobalsDestroy(void)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
+    OutputTxDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
