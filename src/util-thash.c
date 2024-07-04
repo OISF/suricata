@@ -368,8 +368,8 @@ void THashShutdown(THashTableContext *ctx)
         }
         SCFreeAligned(ctx->array);
         ctx->array = NULL;
+        (void)SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     }
-    (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
     SCFree(ctx);
     return;
