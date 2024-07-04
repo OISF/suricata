@@ -669,6 +669,8 @@ OutputModule *OutputGetModuleByConfName(const char *conf_name)
     return NULL;
 }
 
+static EveJsonSimpleAppLayerLogger *simple_json_applayer_loggers;
+
 /**
  * \brief Deregister all modules.  Useful for a memory clean exit.
  */
@@ -680,6 +682,8 @@ void OutputDeregisterAll(void)
         TAILQ_REMOVE(&output_modules, module, entries);
         SCFree(module);
     }
+    SCFree(simple_json_applayer_loggers);
+    simple_json_applayer_loggers = NULL;
 }
 
 static int drop_loggers = 0;
@@ -895,11 +899,62 @@ void TmModuleLoggerRegister(void)
     OutputRegisterLoggers();
 }
 
+EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto)
+{
+    if (alproto < ALPROTO_MAX) {
+        return &simple_json_applayer_loggers[alproto];
+    }
+    return NULL;
+}
+
+static void RegisterSimpleJsonApplayerLogger(AppProto alproto, EveJsonSimpleTxLogFunc LogTx)
+{
+    simple_json_applayer_loggers[alproto].LogTx = LogTx;
+}
+
 /**
  * \brief Register all root loggers.
  */
 void OutputRegisterRootLoggers(void)
 {
+    simple_json_applayer_loggers = SCCalloc(ALPROTO_MAX, sizeof(EveJsonSimpleAppLayerLogger));
+    if (unlikely(simple_json_applayer_loggers == NULL)) {
+        FatalError("Failed to allocate simple_json_applayer_loggers");
+    }
+    // ALPROTO_HTTP1 special: uses some options flags
+    RegisterSimpleJsonApplayerLogger(ALPROTO_FTP, EveFTPLogCommand);
+    // ALPROTO_SMTP special: uses state
+    RegisterSimpleJsonApplayerLogger(ALPROTO_TLS, JsonTlsLogJSONExtended);
+    // no cast here but done in rust for SSHTransaction
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SSH, rs_ssh_log_json);
+    // ALPROTO_SMB special: uses state
+    // ALPROTO_DCERPC special: uses state
+    RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, AlertJsonDns);
+    // either need a cast here or in rust for ModbusTransaction, done here
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, SCEnipLoggerLog);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_DNP3, AlertJsonDnp3);
+    // ALPROTO_NFS special: uses state
+    RegisterSimpleJsonApplayerLogger(ALPROTO_FTPDATA, EveFTPDataAddMetadata);
+    RegisterSimpleJsonApplayerLogger(
+            ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)rs_tftp_log_json_request);
+    // ALPROTO_IKE special: uses state
+    RegisterSimpleJsonApplayerLogger(
+            ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, rs_quic_to_json);
+    // ALPROTO_DHCP TODO missing
+    RegisterSimpleJsonApplayerLogger(
+            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, rs_rfb_logger_log);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MQTT, JsonMQTTAddMetadata);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_PGSQL, JsonPgsqlAddMetadata);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_WEBSOCKET, rs_websocket_logger_log);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_TEMPLATE, rs_template_logger_log);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_HTTP2, rs_http2_log_json);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log);
+
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();
     OutputFileLoggerRegister();
@@ -917,7 +972,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     const char *name;
-    switch (al->proto) {
+    switch (f->proto) {
         case ALPROTO_HTTP2:
             // special case
             name = "http";
@@ -931,7 +986,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
             name = "bittorrent_dht";
             break;
         default:
-            name = AppProtoToString(al->proto);
+            name = AppProtoToString(f->proto);
     }
     JsonBuilder *js = CreateEveHeader(p, dir, name, NULL, thread->ctx);
     if (unlikely(js == NULL)) {
@@ -1114,56 +1169,4 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
-}
-
-static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
-    { ALPROTO_UNKNOWN, NULL },
-    { ALPROTO_HTTP1, NULL }, // special: uses some options flags
-    { ALPROTO_FTP, EveFTPLogCommand },
-    { ALPROTO_SMTP, NULL }, // special: uses state
-    { ALPROTO_TLS, JsonTlsLogJSONExtended },
-    { ALPROTO_SSH, rs_ssh_log_json },
-    { ALPROTO_IMAP, NULL },   // protocol detection only
-    { ALPROTO_JABBER, NULL }, // no parser, no logging
-    { ALPROTO_SMB, NULL },    // special: uses state
-    { ALPROTO_DCERPC, NULL }, // special: uses state
-    { ALPROTO_IRC, NULL },    // no parser, no logging
-    { ALPROTO_DNS, AlertJsonDns },
-    { ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json },
-    { ALPROTO_ENIP, SCEnipLoggerLog },
-    { ALPROTO_DNP3, AlertJsonDnp3 },
-    { ALPROTO_NFS, NULL }, // special: uses state
-    { ALPROTO_NTP, NULL }, // no logging
-    { ALPROTO_FTPDATA, EveFTPDataAddMetadata },
-    { ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)rs_tftp_log_json_request },
-    { ALPROTO_IKE, NULL }, // special: uses state
-    { ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response },
-    { ALPROTO_QUIC, rs_quic_to_json },
-    { ALPROTO_DHCP, NULL }, // TODO missing
-    { ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response },
-    { ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json },
-    { ALPROTO_RFB, rs_rfb_logger_log },
-    { ALPROTO_MQTT, JsonMQTTAddMetadata },
-    { ALPROTO_PGSQL, JsonPgsqlAddMetadata },
-    { ALPROTO_TELNET, NULL }, // no logging
-    { ALPROTO_WEBSOCKET, rs_websocket_logger_log },
-    { ALPROTO_TEMPLATE, rs_template_logger_log },
-    { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
-    { ALPROTO_HTTP2, rs_http2_log_json },
-    { ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log },
-    { ALPROTO_POP3, NULL }, // protocol detection only
-    { ALPROTO_HTTP, NULL }, // signature protocol, not for app-layer logging
-    { ALPROTO_FAILED, NULL },
-#ifdef UNITTESTS
-    { ALPROTO_TEST, NULL },
-#endif /* UNITESTS */
-};
-
-EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto)
-{
-    if (alproto < ALPROTO_MAX) {
-        BUG_ON(simple_json_applayer_loggers[alproto].proto != alproto);
-        return &simple_json_applayer_loggers[alproto];
-    }
-    return NULL;
 }

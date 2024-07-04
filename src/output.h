@@ -192,7 +192,6 @@ void OutputClearActiveLoggers(void);
 typedef bool (*EveJsonSimpleTxLogFunc)(void *, struct JsonBuilder *);
 
 typedef struct EveJsonSimpleAppLayerLogger {
-    AppProto proto;
     EveJsonSimpleTxLogFunc LogTx;
 } EveJsonSimpleAppLayerLogger;
 
