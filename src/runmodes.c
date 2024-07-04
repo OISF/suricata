@@ -525,7 +525,6 @@ static void RunOutputFreeList(void)
 
 static int file_logger_count = 0;
 static int filedata_logger_count = 0;
-static LoggerId logger_bits[ALPROTO_MAX];
 
 int RunModeOutputFiledataEnabled(void)
 {
@@ -596,7 +595,8 @@ static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
 }
 
 /** \brief Turn output into thread module */
-static void SetupOutput(const char *name, OutputModule *module, OutputCtx *output_ctx)
+static void SetupOutput(
+        const char *name, OutputModule *module, OutputCtx *output_ctx, LoggerId *logger_bits)
 {
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
@@ -657,7 +657,7 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
     }
 }
 
-static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
+static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
 {
     ConfNode *types = ConfNodeLookupChild(conf, "types");
     SCLogDebug("types %p", types);
@@ -710,8 +710,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                 }
 
                 AddOutputToFreeList(sub_module, result.ctx);
-                SetupOutput(sub_module->name, sub_module,
-                        result.ctx);
+                SetupOutput(sub_module->name, sub_module, result.ctx, logger_bits);
             }
         }
 
@@ -724,7 +723,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
     }
 }
 
-static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
+static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
 {
     OutputModule *lua_module = OutputGetModuleByConfName("lua");
     BUG_ON(lua_module == NULL);
@@ -752,7 +751,7 @@ static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
         }
 
         AddOutputToFreeList(m, result.ctx);
-        SetupOutput(m->name, m, result.ctx);
+        SetupOutput(m->name, m, result.ctx, logger_bits);
     }
 }
 
@@ -775,8 +774,8 @@ void RunModeInitializeOutputs(void)
     char tls_log_enabled = 0;
     char tls_store_present = 0;
 
-    memset(&logger_bits, 0, sizeof(logger_bits));
-
+    // ALPROTO_MAX is set to its final value
+    LoggerId logger_bits[ALPROTO_MAX] = { 0 };
     TAILQ_FOREACH(output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
@@ -842,7 +841,7 @@ void RunModeInitializeOutputs(void)
 
             // TODO if module == parent, find it's children
             if (strcmp(output->val, "eve-log") == 0) {
-                RunModeInitializeEveOutput(output_config, output_ctx);
+                RunModeInitializeEveOutput(output_config, output_ctx, logger_bits);
 
                 /* add 'eve-log' to free list as it's the owner of the
                  * main output ctx from which the sub-modules share the
@@ -852,11 +851,11 @@ void RunModeInitializeOutputs(void)
                 SCLogDebug("handle lua");
                 if (output_ctx == NULL)
                     continue;
-                RunModeInitializeLuaOutput(output_config, output_ctx);
+                RunModeInitializeLuaOutput(output_config, output_ctx, logger_bits);
                 AddOutputToFreeList(module, output_ctx);
             } else {
                 AddOutputToFreeList(module, output_ctx);
-                SetupOutput(module->name, module, output_ctx);
+                SetupOutput(module->name, module, output_ctx, logger_bits);
             }
         }
         if (count == 0) {
@@ -895,7 +894,7 @@ void RunModeInitializeOutputs(void)
                 }
 
                 AddOutputToFreeList(module, output_ctx);
-                SetupOutput(module->name, module, output_ctx);
+                SetupOutput(module->name, module, output_ctx, logger_bits);
             }
         }
     }
