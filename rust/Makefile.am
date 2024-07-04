@@ -2,6 +2,7 @@ EXTRA_DIST =	src derive libhtp-rs \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
+		dist/htp/htp_rs.h \
 		vendor \
 		Cargo.toml Cargo.lock \
 		derive/Cargo.toml \
@@ -112,6 +113,14 @@ dist/rust-bindings.h:
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
+endif
+
+if HAVE_CBINDGEN
+dist/htp/htp_rs.h:
+	cbindgen --config $(abs_top_srcdir)/rust/libhtp-rs/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h
+else
+dist/htp/htp_rs.h:
 endif
 
 Cargo.toml: Cargo.toml.in
