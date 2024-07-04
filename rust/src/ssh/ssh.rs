@@ -268,15 +268,12 @@ impl SSHState {
                         }
                         Err(Err::Incomplete(_)) => {
                             //we may have consumed data from previous records
-                            if input.len() < SSH_RECORD_HEADER_LEN {
-                                //do not trust nom incomplete value
-                                return AppLayerResult::incomplete(
-                                    (il - input.len()) as u32,
-                                    SSH_RECORD_HEADER_LEN as u32,
-                                );
-                            } else {
-                                panic!("SSH invalid length record header");
-                            }
+                            debug_validate_bug_on!(input.len() >= SSH_RECORD_HEADER_LEN);
+                            //do not trust nom incomplete value
+                            return AppLayerResult::incomplete(
+                                (il - input.len()) as u32,
+                                SSH_RECORD_HEADER_LEN as u32,
+                            );
                         }
                         Err(_e) => {
                             SCLogDebug!("SSH invalid record header {}", _e);
