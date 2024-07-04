@@ -61,7 +61,7 @@ typedef struct OutputTxLogger_ {
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
-static OutputTxLogger *list[ALPROTO_MAX] = { NULL };
+static OutputTxLogger **list = NULL;
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            TxLogger LogFunc,
@@ -668,6 +668,11 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
+    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+    if (unlikely(list == NULL)) {
+        FatalError("Failed to allocate OutputTx list");
+    }
+
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
@@ -683,4 +688,6 @@ void OutputTxShutdown(void)
         }
         list[alproto] = NULL;
     }
+    SCFree(list);
+    list = NULL;
 }
