@@ -61,7 +61,7 @@ typedef struct OutputTxLogger_ {
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
-static OutputTxLogger *list[ALPROTO_MAX] = { NULL };
+static OutputTxLogger **list = NULL;
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            TxLogger LogFunc,
@@ -71,6 +71,14 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
+    if (list == NULL) {
+        list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+        if (unlikely(list == NULL)) {
+            SCLogError("Failed to allocate OutputTx list");
+            return -1;
+        }
+    }
+
     if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsEnabled(alproto))) {
         SCLogDebug(
                 "%s logger not enabled: protocol %s is disabled", name, AppProtoToString(alproto));
@@ -666,12 +674,21 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
+    BUG_ON(list);
+    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+    if (unlikely(list == NULL)) {
+        FatalError("Failed to allocate OutputTx list");
+    }
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)
 {
+    // called in different places because of unix socket mode, and engine-analysis mode
+    if (list == NULL) {
+        return;
+    }
     for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
         OutputTxLogger *logger = list[alproto];
         while (logger) {
@@ -681,4 +698,6 @@ void OutputTxShutdown(void)
         }
         list[alproto] = NULL;
     }
+    SCFree(list);
+    list = NULL;
 }
