@@ -540,7 +540,7 @@ static void RunOutputFreeList(void)
 
 static int file_logger_count = 0;
 static int filedata_logger_count = 0;
-static LoggerId logger_bits[ALPROTO_MAX];
+static LoggerId *logger_bits = NULL;
 
 int RunModeOutputFiledataEnabled(void)
 {
@@ -592,6 +592,7 @@ void RunModeShutDown(void)
 
     OutputClearActiveLoggers();
 
+    SCFree(logger_bits);
     /* Reset logger counts. */
     file_logger_count = 0;
     filedata_logger_count = 0;
@@ -790,8 +791,11 @@ void RunModeInitializeOutputs(void)
     char tls_log_enabled = 0;
     char tls_store_present = 0;
 
-    memset(&logger_bits, 0, sizeof(logger_bits));
-
+    // ALPROTO_MAX is set to its final value
+    logger_bits = SCCalloc(ALPROTO_MAX, sizeof(LoggerId));
+    if (unlikely(logger_bits == NULL)) {
+        FatalError("Failed to allocate logger_bits");
+    }
     TAILQ_FOREACH(output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
