@@ -570,7 +570,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_state_data: rs_sip_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: Some(SIPFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SIPFrameType::ffi_name_from_id),
     };
