@@ -71,8 +71,6 @@ typedef struct AppLayerParser {
 
     uint32_t flags;
 
-    void (*Truncate)(void *state, uint8_t direction);
-
     AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
     AppLayerParserGetFrameNameByIdFn GetFrameNameById;
 

@@ -322,8 +322,6 @@ pub struct DCERPCState {
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
     pub tc_ssn_gap: bool,
-    pub ts_ssn_trunc: bool, /// true if Truncated in this direction
-    pub tc_ssn_trunc: bool,
     pub flow: Option<*const core::Flow>,
     state_data: AppLayerStateData,
 }
@@ -354,8 +352,6 @@ impl DCERPCState {
         tx.call_id = call_id;
         tx.endianness = endianness;
         self.tx_id += 1;
-        tx.req_done = self.ts_ssn_trunc;
-        tx.resp_done = self.tc_ssn_trunc;
         if self.transactions.len() > unsafe { DCERPC_MAX_TX } {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
@@ -1188,33 +1184,6 @@ pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::r
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_trunc(state: *mut std::os::raw::c_void, direction: u8) {
-    let dce_state = cast_pointer!(state, DCERPCState);
-    match direction.into() {
-        Direction::ToServer =>  {
-            dce_state.ts_ssn_trunc = true;
-            for tx in &mut dce_state.transactions {
-                tx.req_done = true;
-                if let Some(flow) = dce_state.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
-                }
-            }
-            SCLogDebug!("dce_state.ts_ssn_trunc = true; txs {}", dce_state.transactions.len());
-        }
-        Direction::ToClient => {
-            dce_state.tc_ssn_trunc = true;
-            for tx in &mut dce_state.transactions {
-                tx.resp_done = true;
-                if let Some(flow) = dce_state.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
-                }
-            }
-            SCLogDebug!("dce_state.tc_ssn_trunc = true; txs {}", dce_state.transactions.len());
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -1367,7 +1336,6 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         get_state_data: rs_dcerpc_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };
