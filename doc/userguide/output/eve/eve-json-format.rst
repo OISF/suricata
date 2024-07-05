@@ -757,27 +757,32 @@ Event with ``dump-all-headers`` set to "both":
 Event type: DNS
 ---------------
 
-A new version of dns logging has been introduced to improve how dns answers
-are logged.
-
-With that new version, dns answers are logged in one event
-rather than an event for each answer.
-
-It's possible to customize how a dns answer will be logged with the following
-formats:
+DNS has 2 logging style that can be used together or independently:
 
 * "detailed": "rrname", "rrtype", "rdata" and "ttl" fields are logged for each answer
 * "grouped": answers logged are aggregated by their type (A, AAAA, NS, ...)
 
+If no format is chosen, "detailed" will be used by default.
+
 It will be still possible to use the old DNS logging format, you can control it
 with "version" option in dns configuration section.
+
+Suricata 8.0.0 introduces version 3 of the DNS logging format. This
+update unifies the DNS logging style used by ``dns`` events as well as
+the ``dns`` object in ``alert`` records. See :doc:`DNS Logging Changes
+for 8.0 <../../upgrade/8.0-dns-logging-changes>` for more details on the
+changes to logging format.
+
+.. note:: Suricata 7 style DNS logging can be retained by setting the
+          ``version`` field to 2, however this will be removed in
+          Suricata 9.
 
 Fields
 ~~~~~~
 
 Outline of fields seen in the different kinds of DNS events:
 
-* "type": Indicating DNS message type, can be "answer" or "query".
+* "type": Indicating DNS message type, can be "request" or "response".
 * "id": Identifier field
 * "version": Indicating DNS logging version in use
 * "flags": Indicating DNS answer flag, in hexadecimal (ex: 8180 , please note 0x is not output)
@@ -788,10 +793,11 @@ Outline of fields seen in the different kinds of DNS events:
 * "ra": Indicating in case of DNS answer flag, Recursion Available flag (ex: true if set)
 * "z": Indicating in case of DNS answer flag, Reserved bit (ex: true if set)
 * "rcode": (ex: NOERROR)
-* "rrname": Resource Record Name (ex: a domain name)
-* "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
-* "rdata": Resource Data (ex: IP that domain name resolves to)
 * "ttl": Time-To-Live for this resource record
+* "queries": A list of query objects
+* "answers": A list of answer objects
+* "authorities": A list of authority objects
+* "additionals": A list of additional objects
 
 More complex DNS record types may log additional fields for resource data:
 
@@ -822,9 +828,7 @@ One can control which RR types are logged by using the "types" field in the
 suricata.yaml file. If this field is not specified, all RR types are logged.
 More than 50 values can be specified with this field as shown below:
 
-
-::
-
+Configuration::
 
     - eve-log:
         enabled: yes
@@ -838,6 +842,11 @@ More than 50 values can be specified with this field as shown below:
         types:
           - alert
           - dns:
+
+            # Logging format. In 8.0 version 3 is the default. Can be
+            # set to 2 to keep compatibility with Suricata 7.0.
+            # version: 3
+
             # Control logging of requests and responses:
             # - requests: enable logging of DNS queries
             # - responses: enable logging of DNS answers
@@ -859,25 +868,24 @@ More than 50 values can be specified with this field as shown below:
 Examples
 ~~~~~~~~
 
-Example of a DNS query for the IPv4 address of "twitter.com" (resource record type 'A'):
-
-::
-
+Example of a DNS query for the IPv4 address of "twitter.com" (resource record type 'A')::
 
   "dns": {
-      "type": "query",
+      "version": 3,
+      "type": "request",
       "id": 16000,
-      "rrname": "twitter.com",
-      "rrtype":"A"
+      "queries": [
+        {
+          "rrname": "twitter.com",
+          "rrtype": "A"
+        }
+      ]
   }
 
-Example of a DNS answer with "detailed" format:
-
-::
-
+Example of a DNS answer with "detailed" format::
 
   "dns": {
-      "version": 2,
+      "version": 3,
       "type": "answer",
       "id": 45444,
       "flags": "8180",
@@ -885,6 +893,12 @@ Example of a DNS answer with "detailed" format:
       "rd": true,
       "ra": true,
       "rcode": "NOERROR",
+      "queries": [
+        {
+          "rrname": "www.suricata.io",
+          "rrtype": "A"
+        }
+      ],
       "answers": [
         {
           "rrname": "www.suricata.io",
@@ -907,12 +921,10 @@ Example of a DNS answer with "detailed" format:
       ]
   }
 
-Example of a DNS answer with "grouped" format:
-
-::
+Example of a DNS answer with "grouped" format::
 
   "dns": {
-      "version": 2,
+      "version": 3,
       "type": "answer",
       "id": 18523,
       "flags": "8180",
@@ -929,26 +941,6 @@ Example of a DNS answer with "grouped" format:
           "suricata.io"
         ]
       }
-  }
-
-
-Example of a old DNS answer with an IPv4 (resource record type 'A') return:
-
-::
-
-
-  "dns": {
-      "type": "answer",
-      "id":16000,
-      "flags":"8180",
-      "qr":true,
-      "rd":true,
-      "ra":true,
-      "rcode":"NOERROR"
-      "rrname": "twitter.com",
-      "rrtype":"A",
-      "ttl":8,
-      "rdata": "199.16.156.6"
   }
 
 Event type: FTP
