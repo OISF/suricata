@@ -219,7 +219,11 @@ In the ``custom`` option values from both columns can be used. The
 DNS
 ~~~
 
-.. note:: As of Suricata 7.0 the v1 EVE DNS format has been removed.
+.. note:: 
+
+   As of Suricata 7.0 the v1 EVE DNS format has been removed.
+
+   Version 2 EVE DNS will be removed in Suricata 9.
 
 DNS records are logged as one entry for the request, and one entry for
 the response.
@@ -227,7 +231,7 @@ the response.
 YAML::
 
         - dns:
-            #version: 2
+            #version: 3
 
             # Enable/disable this logger. Default: enabled.
             #enabled: yes
