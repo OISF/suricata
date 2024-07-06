@@ -2621,6 +2621,9 @@ Example:
   Original content: abc
   Final content: bc
 
+
+.. _rule-and-packet-profiling-settings:
+
 Rule and Packet Profiling settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
