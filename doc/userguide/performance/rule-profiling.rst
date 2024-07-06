@@ -1,6 +1,14 @@
 Rule Profiling
 ==============
 
+Suricata can generate a rules performance report at the end of each session, if
+built with the ``enable-profiling`` option (see configuring :ref:`Rule profiling<rule-and-packet-profiling-settings>`).
+
+Rule profiling can also be enabled by building the engine with ``enable-profiling-rules``
+and using the unix socket to dumpt the report (see :ref:`rule-management-rules-profiling`).
+
+Once the report is generated, it is stored in the default log directory used by
+Suricata. If not changed, the filename will be ``rule_perf.log``.
 ::
 
   --------------------------------------------------------------------------
