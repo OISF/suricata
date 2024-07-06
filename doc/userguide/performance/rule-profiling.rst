@@ -1,6 +1,14 @@
 Rule Profiling
 ==============
 
+Suricata can generate a rules performance report at the end of each session, if
+built with the ``enable-profiling`` option (see configuring :ref:`Rule profiling<rule-and-packet-profiling-settings>`).
+
+Rule profiling can also be enabled by building the engine with ``enable-profiling-rules``
+and using the unix socket to dump the report (see :ref:`rule-management-rules-profiling`).
+
+Once the report is generated, it is stored in the default log directory used by
+Suricata. If not changed, the filename will be ``rule_perf.log``.
 ::
 
   --------------------------------------------------------------------------
@@ -22,7 +30,7 @@ Rule Profiling
 The meaning of the individual fields:
 
 * Ticks -- total ticks spent on this rule, so a sum of all inspections
-* % -- share of this single sig in the total cost of inspection
+* % -- share of this single signature in the total cost of inspection
 * Checks -- number of times a signature was inspected
 * Matches -- number of times it matched. This may not have resulted in an alert due to suppression and thresholding.
 * Max ticks -- single most expensive inspection
