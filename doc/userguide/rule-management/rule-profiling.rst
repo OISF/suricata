@@ -1,3 +1,5 @@
+.. _rule-management-rules-profiling:
+
 Rules Profiling
 ===============
 
