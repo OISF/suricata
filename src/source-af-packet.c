@@ -118,7 +118,7 @@ struct bpf_program {
 
 #endif /* HAVE_AF_PACKET */
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 #ifndef HAVE_AF_PACKET
 

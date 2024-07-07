@@ -59,7 +59,7 @@
 #include "source-af-packet.h"
 #include "util-bpf.h"
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 const char *RunModeAFPGetDefaultMode(void)
 {
@@ -685,7 +685,7 @@ finalize:
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->ring_size != 0) {
-        if (aconf->ring_size * aconf->threads < max_pending_packets) {
+        if (aconf->ring_size * aconf->threads < (int)max_pending_packets) {
             aconf->ring_size = max_pending_packets / aconf->threads + 1;
             SCLogWarning("%s: inefficient setup: ring-size < max_pending_packets. "
                          "Resetting to decent value %d.",
