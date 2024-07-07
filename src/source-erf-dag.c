@@ -89,7 +89,7 @@ NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
 /* Number of bytes per loop to process before fetching more data. */
 #define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 typedef struct ErfDagThreadVars_ {
     ThreadVars *tv;

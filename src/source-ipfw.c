@@ -98,7 +98,7 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define IPFW_SOCKET_POLL_MSEC 300
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 /**
  * \brief Structure to hold thread specific variables.

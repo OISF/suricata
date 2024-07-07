@@ -59,7 +59,7 @@ TmEcode DecodePfringThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePfring(ThreadVars *, Packet *, void *);
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 #include <pfring.h>
 
