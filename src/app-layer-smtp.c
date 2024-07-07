@@ -1004,7 +1004,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
         /* decoder event */
         return -1;
     }
-    // copy in temporary null-terminated buffer to call StringParseUint32
+    // copy in temporary null-terminated buffer for conversion
     char strbuf[24];
     int len = 23;
     if (line->len - i < len) {
@@ -1012,7 +1012,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
     }
     memcpy(strbuf, line->buf + i, len);
     strbuf[len] = '\0';
-    if (StringParseUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
+    if (ByteExtractStringUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
         /* decoder event */
         return -1;
     }
