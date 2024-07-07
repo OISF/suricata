@@ -33,7 +33,7 @@
 #include "suricata.h"
 #include "conf.h"
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
 
 /**
