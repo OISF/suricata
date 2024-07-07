@@ -179,7 +179,7 @@ static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 
 /** Maximum packets to simultaneously process. */
-uint16_t max_pending_packets;
+uint32_t max_pending_packets;
 
 /** global indicating if detection is enabled */
 int g_detect_disabled = 0;
@@ -2434,16 +2434,16 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     intmax_t tmp_max_pending_packets;
     if (ConfGetInt("max-pending-packets", &tmp_max_pending_packets) != 1)
         tmp_max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
-    if (tmp_max_pending_packets < 1 || tmp_max_pending_packets >= UINT16_MAX) {
-        SCLogError("Maximum max-pending-packets setting is 65534 and must be greater than 0. "
+    if (tmp_max_pending_packets < 1 || tmp_max_pending_packets > 2147483648) {
+        SCLogError("Maximum max-pending-packets setting is 2147483648 and must be greater than 0. "
                    "Please check %s for errors",
                 suri->conf_filename);
         return TM_ECODE_FAILED;
     } else {
-        max_pending_packets = (uint16_t)tmp_max_pending_packets;
+        max_pending_packets = (uint32_t)tmp_max_pending_packets;
     }
 
-    SCLogDebug("Max pending packets set to %" PRIu16, max_pending_packets);
+    SCLogDebug("Max pending packets set to %" PRIu32, max_pending_packets);
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */

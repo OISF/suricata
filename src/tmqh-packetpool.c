@@ -35,7 +35,7 @@
 #include "util-validate.h"
 #include "action-globals.h"
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
@@ -259,8 +259,7 @@ void PacketPoolInit(void)
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
                (uintmax_t)SIZE_OF_PACKET);
-    int i = 0;
-    for (i = 0; i < max_pending_packets; i++) {
+    for (uint32_t i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
         if (unlikely(p == NULL)) {
             FatalError("Fatal error encountered while allocating a packet. Exiting...");
@@ -459,8 +458,8 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
  */
 void PacketPoolPostRunmodes(void)
 {
-    extern uint16_t max_pending_packets;
-    uint16_t pending_packets = max_pending_packets;
+    extern uint32_t max_pending_packets;
+    uint32_t pending_packets = max_pending_packets;
     if (pending_packets < RESERVED_PACKETS) {
         FatalError("'max-pending-packets' setting "
                    "must be at least %d",
