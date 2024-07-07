@@ -985,7 +985,9 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
     }
     memcpy(strbuf, line->buf + i, len);
     strbuf[len] = '\0';
-    if (StringParseUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
+    char **endptr = NULL;
+    state->bdat_chunk_len = strtoul((const char *) strbuf, (char **) &endptr, 10);
+    if (((uint8_t *) endptr == line->buf + i) || errno != 0) {
         /* decoder event */
         return -1;
     }
