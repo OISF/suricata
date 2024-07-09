@@ -1338,6 +1338,12 @@
         fi
     ])
 
+    if test "x$enable_pfring" = "xyes"; then
+        AM_CONDITIONAL([BUILD_PFRING], [true])
+    else
+        AM_CONDITIONAL([BUILD_PFRING], [false])
+    fi
+
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),
@@ -2482,6 +2488,8 @@ AC_CONFIG_FILES(libsuricata-config)
 AC_CONFIG_FILES(examples/plugins/c-json-filetype/Makefile)
 AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
+AC_CONFIG_FILES(plugins/Makefile)
+AC_CONFIG_FILES(plugins/pfring/Makefile)
 
 AC_OUTPUT
 
