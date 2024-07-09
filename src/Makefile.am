@@ -441,7 +441,6 @@ noinst_HEADERS = \
 	runmode-nfq.h \
 	runmode-pcap-file.h \
 	runmode-pcap.h \
-	runmode-pfring.h \
 	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
@@ -463,7 +462,6 @@ noinst_HEADERS = \
 	source-pcap-file.h \
 	source-pcap-file-helper.h \
 	source-pcap.h \
-	source-pfring.h \
 	source-windivert.h \
 	source-windivert-prototypes.h \
 	stream.h \
@@ -1041,7 +1039,6 @@ libsuricata_c_a_SOURCES = \
 	runmode-nfq.c \
 	runmode-pcap.c \
 	runmode-pcap-file.c \
-	runmode-pfring.c \
 	runmodes.c \
 	runmode-unittests.c \
 	runmode-unix-socket.c \
@@ -1061,7 +1058,6 @@ libsuricata_c_a_SOURCES = \
 	source-pcap-file.c \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
-	source-pfring.c \
 	source-windivert.c \
 	stream.c \
 	stream-tcp.c \

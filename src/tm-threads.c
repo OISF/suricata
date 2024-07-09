@@ -210,8 +210,6 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
         callback
             process_pkt
 
-    pfring
-
     pkt read
         process_pkt
 
