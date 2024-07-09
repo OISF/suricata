@@ -860,6 +860,8 @@ pcap-file:
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
+  # Read buffer size set using setvbuf. Max value is 64 MiB. Linux only.
+  #buffer-size: 128 KiB
 
 # See "Advanced Capture Options" below for more options, including Netmap
 # and PF_RING.
