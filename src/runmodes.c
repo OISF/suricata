@@ -41,7 +41,6 @@
 #include "runmode-nfq.h"
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
-#include "runmode-pfring.h"
 #include "runmode-unix-socket.h"
 #include "runmode-windivert.h"
 #include "util-unittest.h"
@@ -49,8 +48,6 @@
 #include "util-plugin.h"
 
 #include "output.h"
-
-#include "source-pfring.h"
 
 #include "tmqh-flow.h"
 #include "flow-manager.h"
@@ -124,12 +121,6 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "PCAP_DEV";
         case RUNMODE_PCAP_FILE:
             return "PCAP_FILE";
-        case RUNMODE_PFRING:
-#ifdef HAVE_PFRING
-            return "PFRING";
-#else
-            return "PFRING(DISABLED)";
-#endif
         case RUNMODE_PLUGIN:
             return "PLUGIN";
         case RUNMODE_NFQ:
@@ -231,7 +222,6 @@ void RunModeRegisterRunModes(void)
 
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
-    RunModeIdsPfringRegister();
     RunModeIpsNFQRegister();
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
@@ -309,11 +299,6 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
             case RUNMODE_PCAP_FILE:
                 custom_mode = RunModeFilePcapGetDefaultMode();
                 break;
-#ifdef HAVE_PFRING
-            case RUNMODE_PFRING:
-                custom_mode = RunModeIdsPfringGetDefaultMode();
-                break;
-#endif
             case RUNMODE_PLUGIN: {
 #ifdef HAVE_PLUGINS
                 SCCapturePlugin *plugin = SCPluginFindCaptureByName(capture_plugin_name);

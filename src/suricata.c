@@ -93,7 +93,6 @@
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
-#include "source-pfring.h"
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
 #include "source-napatech.h"
@@ -648,12 +647,6 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_NETMAP
     printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select interfaces from suricata.yaml\n");
 #endif
-#ifdef HAVE_PFRING
-    printf("\t--pfring[=<dev>]                     : run in pfring mode, use interfaces from suricata.yaml\n");
-    printf("\t--pfring-int <dev>                   : run in pfring mode, use interface <dev>\n");
-    printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
-    printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
-#endif /* HAVE_PFRING */
     printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
 #ifdef HAVE_LIBCAP_NG
     printf("\t--user <user>                        : run suricata as this user after init\n");
@@ -710,9 +703,6 @@ static void PrintBuildInfo(void)
 #endif
 #ifdef HAVE_PCAP_SET_BUFF
     strlcat(features, "PCAP_SET_BUFF ", sizeof(features));
-#endif
-#ifdef HAVE_PFRING
-    strlcat(features, "PF_RING ", sizeof(features));
 #endif
 #ifdef HAVE_AF_PACKET
     strlcat(features, "AF_PACKET ", sizeof(features));
@@ -920,9 +910,6 @@ void RegisterAllModules(void)
     /* netmap */
     TmModuleReceiveNetmapRegister();
     TmModuleDecodeNetmapRegister();
-    /* pfring */
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
     /* dag file */
     TmModuleReceiveErfFileRegister();
     TmModuleDecodeErfFileRegister();
@@ -993,18 +980,6 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCLogError("No interface found in config for pcap");
                 SCReturnInt(TM_ECODE_FAILED);
             }
-        }
-    } else if (runmode == RUNMODE_PFRING) {
-        /* FIXME add backward compat support */
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
-                SCLogError("Failed to set pfring.live-interface");
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-        } else {
-            /* not an error condition if we have a 1.0 config */
-            LiveBuildDeviceList("pfring");
         }
 #ifdef HAVE_DPDK
     } else if (runmode == RUNMODE_DPDK) {
@@ -1342,10 +1317,6 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
         {"dump-features", 0, &dump_features, 1},
-        {"pfring", optional_argument, 0, 0},
-        {"pfring-int", required_argument, 0, 0},
-        {"pfring-cluster-id", required_argument, 0, 0},
-        {"pfring-cluster-type", required_argument, 0, 0},
 #ifdef HAVE_DPDK
         {"dpdk", 0, 0, 0},
 #endif
@@ -1428,52 +1399,10 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
         case 0:
-            if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
-                strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
-#ifdef HAVE_PFRING
-                suri->run_mode = RUNMODE_PFRING;
-                if (optarg != NULL) {
-                    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                    strlcpy(suri->pcap_dev, optarg,
-                            ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                             (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDeviceName(optarg);
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            }
-            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
-#ifdef HAVE_PFRING
-                if (ConfSetFinal("pfring.cluster-id", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-id");
-                    return TM_ECODE_FAILED;
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            }
-            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
-#ifdef HAVE_PFRING
-                if (ConfSetFinal("pfring.cluster-type", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-type");
-                    return TM_ECODE_FAILED;
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            }
-            else if (strcmp((long_opts[option_index]).name , "capture-plugin") == 0){
+            if (strcmp((long_opts[option_index]).name, "capture-plugin") == 0) {
                 suri->run_mode = RUNMODE_PLUGIN;
                 suri->capture_plugin_name = optarg;
-            }
-            else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "capture-plugin-args") == 0) {
                 suri->capture_plugin_args = optarg;
             } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
                 if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
@@ -1848,29 +1777,19 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 return TM_ECODE_FAILED;
             }
 #else /* not afpacket */
-            /* warn user if netmap or pf-ring are available */
-#if defined HAVE_PFRING || HAVE_NETMAP
+            /* warn user if netmap is available */
+#if defined HAVE_NETMAP
             int i = 0;
-#ifdef HAVE_PFRING
-            i++;
-#endif
 #ifdef HAVE_NETMAP
             i++;
 #endif
             SCLogWarning("faster capture "
                          "option%s %s available:"
-#ifdef HAVE_PFRING
-                         " PF_RING (--pfring-int=%s)"
-#endif
 #ifdef HAVE_NETMAP
                          " NETMAP (--netmap=%s)"
 #endif
                          ". Use --pcap=%s to suppress this warning",
                     i == 1 ? "" : "s", i == 1 ? "is" : "are"
-#ifdef HAVE_PFRING
-                    ,
-                    optarg
-#endif
 #ifdef HAVE_NETMAP
                     ,
                     optarg
@@ -2475,7 +2394,6 @@ static int ConfigGetCaptureValue(SCInstance *suri)
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_AFXDP_DEV:
-            case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
                     const char *live_dev = LiveGetDeviceName(lthread);
