@@ -36,7 +36,6 @@ pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 
-// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum WebSocketFrameType {
     Header,
