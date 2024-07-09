@@ -565,7 +565,6 @@ unsafe extern "C" fn rs_enip_tx_get_alstate_progress(tx: *mut c_void, direction:
     return 0;
 }
 
-// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum EnipFrameType {
     Hdr,
