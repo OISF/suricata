@@ -32,6 +32,7 @@ typedef struct PcapFileGlobalVars_ {
     ChecksumValidationMode conf_checksum_mode;
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
+    int read_buffer_size;
 } PcapFileGlobalVars;
 
 /**
@@ -81,7 +82,11 @@ typedef struct PcapFileFileVars_
     struct pcap_pkthdr *first_pkt_hdr;
     struct timeval first_pkt_ts;
 
-    char buffer[131072];
+    /** flex array member for the libc io read buffer. Size controlled by
+     * PcapFileGlobalVars::read_buffer_size. */
+#if defined(HAVE_SETVBUF) && !defined(OS_WIN32)
+    char buffer[];
+#endif
 } PcapFileFileVars;
 
 /**

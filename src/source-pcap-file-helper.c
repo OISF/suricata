@@ -208,10 +208,15 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    errno = 0;
-    if (setvbuf(pcap_file(pfv->pcap_handle), pfv->buffer, _IOFBF, sizeof(pfv->buffer)) < 0) {
-        SCLogWarning("Failed to setvbuf on PCAP file handle: %s", strerror(errno));
+#if defined(HAVE_SETVBUF) && !defined(OS_WIN32)
+    if (pcap_g.read_buffer_size > 0) {
+        errno = 0;
+        if (setvbuf(pcap_file(pfv->pcap_handle), pfv->buffer, _IOFBF, pcap_g.read_buffer_size) <
+                0) {
+            SCLogWarning("Failed to setvbuf on PCAP file handle: %s", strerror(errno));
+        }
     }
+#endif
 
     if (pfv->shared != NULL && pfv->shared->bpf_string != NULL) {
         SCLogInfo("using bpf-filter \"%s\"", pfv->shared->bpf_string);

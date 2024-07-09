@@ -45,6 +45,8 @@ static TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv,
 static TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                                                  struct timespec *older_than);
 
+extern PcapFileGlobalVars pcap_g;
+
 void GetTime(struct timespec *tm)
 {
     struct timeval now;
@@ -414,7 +416,8 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
             } else {
                 SCLogDebug("Processing file %s", current_file->filename);
 
-                PcapFileFileVars *pftv = SCCalloc(1, sizeof(PcapFileFileVars));
+                const size_t toalloc = sizeof(PcapFileFileVars) + pcap_g.read_buffer_size;
+                PcapFileFileVars *pftv = SCCalloc(1, toalloc);
                 if (unlikely(pftv == NULL)) {
                     SCLogError("Failed to allocate PcapFileFileVars");
                     SCReturnInt(TM_ECODE_FAILED);
