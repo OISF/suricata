@@ -43,8 +43,9 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 {
     unsigned long rev = 0;
     char *endptr = NULL;
+    errno = 0;
     rev = strtoul(rawstr, &endptr, 10);
-    if (endptr == NULL || *endptr != '\0') {
+    if (errno == ERANGE || endptr == NULL || *endptr != '\0') {
         SCLogError("invalid character as arg "
                    "to rev keyword");
         goto error;
@@ -68,4 +69,4 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 
  error:
     return -1;
-}
+ }
