@@ -1340,9 +1340,12 @@
 
     if test "x$enable_pfring" = "xyes"; then
         AM_CONDITIONAL([BUILD_PFRING], [true])
+        pfring_comment=""
     else
         AM_CONDITIONAL([BUILD_PFRING], [false])
+        pfring_comment="#"
     fi
+    AC_SUBST([pfring_comment])
 
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
