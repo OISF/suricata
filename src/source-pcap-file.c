@@ -32,6 +32,7 @@
 #include "runmode-unix-socket.h"
 #include "suricata.h"
 #include "conf.h"
+#include "util-misc.h"
 
 extern uint32_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
@@ -136,10 +137,31 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
+#define PCAP_FILE_BUFFER_SIZE_DEFAULT 131072
+#define PCAP_FILE_BUFFER_SIZE_MAX     64 * 1024 * 1024
+
 void PcapFileGlobalInit(void)
 {
     memset(&pcap_g, 0x00, sizeof(pcap_g));
     SC_ATOMIC_INIT(pcap_g.invalid_checksums);
+#ifdef HAVE_SETVBUF
+    pcap_g.read_buffer_size = PCAP_FILE_BUFFER_SIZE_DEFAULT;
+
+    const char *str = NULL;
+    if (ConfGet("pcap-file.buffer-size", &str) == 1) {
+        uint32_t value = 0;
+        if (ParseSizeStringU32(str, &value) < 0) {
+            SCLogWarning("failed to parse pcap-file.buffer-size %s", str);
+        }
+        if (value > 4096 && value <= PCAP_FILE_BUFFER_SIZE_MAX) {
+            SCLogInfo("Pcap-file will use %d buffer size", (int)value);
+            pcap_g.read_buffer_size = (int)value;
+        } else {
+            SCLogWarning("pcap-file.buffer-size value of %u is invalid. Valid range is 4096-%d",
+                    value, PCAP_FILE_BUFFER_SIZE_MAX);
+        }
+    }
+#endif
 }
 
 TmEcode PcapFileExit(TmEcode status, struct timespec *last_processed)
@@ -250,7 +272,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
     if(directory == NULL) {
         SCLogDebug("argument %s was a file", (char *)initdata);
-        PcapFileFileVars *pv = SCCalloc(1, sizeof(PcapFileFileVars));
+        const size_t toalloc = sizeof(PcapFileFileVars) + pcap_g.read_buffer_size;
+        PcapFileFileVars *pv = SCCalloc(1, toalloc);
         if (unlikely(pv == NULL)) {
             SCLogError("Failed to allocate file vars");
             CleanupPcapFileThreadVars(ptv);
