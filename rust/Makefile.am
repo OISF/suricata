@@ -1,4 +1,4 @@
-EXTRA_DIST =	src derive libhtp-rs \
+EXTRA_DIST =	src derive htp \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
@@ -6,7 +6,7 @@ EXTRA_DIST =	src derive libhtp-rs \
 		vendor \
 		Cargo.toml Cargo.lock \
 		derive/Cargo.toml \
-		libhtp-rs/Cargo.toml
+		htp/Cargo.toml
 
 if !DEBUG
 RELEASE = --release
@@ -97,8 +97,8 @@ endif
 
 if HAVE_CBINDGEN
 gen/htp/htp_rs.h: $(RUST_SURICATA_LIB)
-	cd $(abs_top_srcdir)/rust/libhtp-rs && \
-		cbindgen --config $(abs_top_srcdir)/rust/libhtp-rs/cbindgen.toml \
+	cd $(abs_top_srcdir)/rust/htp && \
+		cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h || true
 else
 gen/htp/htp_rs.h:
@@ -117,7 +117,7 @@ endif
 
 if HAVE_CBINDGEN
 dist/htp/htp_rs.h:
-	cbindgen --config $(abs_top_srcdir)/rust/libhtp-rs/cbindgen.toml \
+	cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h
 else
 dist/htp/htp_rs.h:
