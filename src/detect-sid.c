@@ -53,8 +53,9 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
 {
     unsigned long id = 0;
     char *endptr = NULL;
+    errno = 0;
     id = strtoul(sidstr, &endptr, 10);
-    if (endptr == NULL || *endptr != '\0') {
+    if (errno == ERANGE || endptr == NULL || *endptr != '\0') {
         SCLogError("invalid character as arg "
                    "to sid keyword");
         goto error;
