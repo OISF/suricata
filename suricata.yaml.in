@@ -80,7 +80,8 @@ stats:
 
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:
-#   - /path/to/plugin.so
+  @pfring_comment@- @prefix@/lib/@PACKAGE_NAME@/pfring.so
+# - /path/to/plugin.so
 
 # Configure the type of alert (and other) logging you would like.
 outputs:
