@@ -1266,6 +1266,13 @@
     AC_ARG_ENABLE(pfring,
            AS_HELP_STRING([--enable-pfring], [Enable Native PF_RING support]),[enable_pfring=$enableval],[enable_pfring=no])
     AS_IF([test "x$enable_pfring" = "xyes"], [
+        if test "x$enable_shared" = "xno"; then
+            echo
+            echo "   ERROR! pfring cannot be enabled with --disable-shared"
+            echo
+            exit 1
+        fi
+
         AC_DEFINE([HAVE_PFRING],[1],(PF_RING support enabled))
 
         #We have to set CFLAGS for AC_COMPILE_IFELSE as it doesn't pay attention to CPPFLAGS
