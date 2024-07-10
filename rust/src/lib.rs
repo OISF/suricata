@@ -84,6 +84,7 @@ pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
 pub mod detect;
+pub mod utils;
 
 pub mod ja4;
 

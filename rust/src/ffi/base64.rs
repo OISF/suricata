@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,8 +15,9 @@
  * 02110-1301, USA.
  */
 
-use std::os::raw::c_uchar;
+use crate::utils::base64::{decode_rfc4648, decode_rfc2045, Decoder};
 use libc::c_ulong;
+use std::os::raw::c_uchar;
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -24,6 +25,131 @@ pub enum Base64ReturnCode {
     SC_BASE64_OK = 0,
     SC_BASE64_INVALID_ARG,
     SC_BASE64_OVERFLOW,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Base64Mode {
+    /* If the following strings were to be passed to the decoder with RFC2045 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC2045 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("foobar") = "Zm 9v Ym Fy"   <-- Notice how the spaces are ignored
+     * BASE64("foobar") = "Zm$9vYm.Fy"    # According to RFC 2045, All line breaks or *other
+     * characters* not found in base64 alphabet must be ignored by decoding software
+     * */
+    Base64ModeRFC2045 = 0, /* SPs are allowed during transfer but must be skipped by Decoder */
+    Base64ModeStrict,
+    /* If the following strings were to be passed to the decoder with RFC4648 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC4648 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("f") = "Zm 9v Ym Fy"   <-- Notice how the processing stops once space is encountered
+     * BASE64("f") = "Zm$9vYm.Fy"    <-- Notice how the processing stops once an invalid char is
+     * encountered
+     * */
+    Base64ModeRFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
+}
+
+#[repr(C)]
+pub struct Base64Decoded {
+    decoded: *mut u8,
+    decoded_len: u32,
+}
+
+impl Default for Base64Decoded {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Base64Decoded {
+    pub fn new() -> Base64Decoded {
+        Base64Decoded {
+            decoded: std::ptr::null_mut(),
+            decoded_len: 0,
+        }
+    }
+}
+
+impl Drop for Base64Decoded {
+    fn drop(&mut self) {
+        unsafe {
+            if !self.decoded.is_null() {
+                let _ = Vec::from_raw_parts(
+                    self.decoded,
+                    self.decoded_len as usize,
+                    self.decoded_len as usize,
+                );
+            }
+        }
+    }
+}
+
+/// Base64 decode a buffer.
+///
+/// This method exposes the Rust base64 decoder to C and should not be called from
+/// Rust code.
+///
+/// It allows decoding in the modes described by ``Base64Mode`` enum.
+#[no_mangle]
+pub unsafe extern "C" fn Base64Decode(
+    input: *const u8, len: usize, max_decoded: u32, mode: Base64Mode, output: *mut u8, decoded_bytes: *mut u32
+) -> bool {
+    if input.is_null() || len == 0 {
+        return false;
+    }
+
+    let in_vec: &[u8] = std::slice::from_raw_parts(input as *mut u8, len);
+    let out_vec = std::slice::from_raw_parts_mut(output, len);
+    let mut decoder = Decoder::new();
+    match mode {
+        Base64Mode::Base64ModeRFC2045 => {
+            let mut num_decoded: u32 = 0;
+            if decode_rfc2045(&mut decoder, in_vec, out_vec, &mut num_decoded).is_err() {
+                return false;
+            }
+            *decoded_bytes = num_decoded;
+        }
+        Base64Mode::Base64ModeRFC4648 => {
+            let mut num_decoded: u32 = 0;
+            if decode_rfc4648(&mut decoder, in_vec, out_vec, &mut num_decoded, max_decoded).is_err() {
+                return false;
+            }
+            *decoded_bytes = num_decoded;
+        }
+        Base64Mode::Base64ModeStrict => {
+            if let Ok(fin_str) = base64::decode(in_vec) {
+                for (i, val) in fin_str.iter().enumerate() {
+                    out_vec[i] = *val;
+                }
+                *decoded_bytes = fin_str.len() as u32;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Base64DecodeFree(b64d: *mut std::os::raw::c_void) {
+    std::mem::drop(Box::from_raw(b64d as *mut Base64Decoded));
 }
 
 /// Base64 encode a buffer.
