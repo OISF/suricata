@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2022 Open Information Security Foundation
+/* Copyright (C) 2013-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -78,7 +78,6 @@
 #include "util-memcmp.h"
 #include "util-misc.h"
 #include "util-signal.h"
-#include "util-base64.h"
 
 #include "reputation.h"
 #include "util-atomic.h"
@@ -181,7 +180,6 @@ static void RegisterUnittests(void)
     ThreadMacrosRegisterTests();
     UtilSpmSearchRegistertests();
     UtilActionRegisterTests();
-    Base64RegisterTests();
     SCClassConfRegisterTests();
     SCThresholdConfRegisterTests();
     SCRConfRegisterTests();
