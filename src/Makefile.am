@@ -478,7 +478,6 @@ noinst_HEADERS = \
 	util-action.h \
 	util-affinity.h \
 	util-atomic.h \
-	util-base64.h \
 	util-bpf.h \
 	util-buffer.h \
 	util-byte.h \
@@ -1048,7 +1047,6 @@ libsuricata_c_a_SOURCES = \
 	util-action.c \
 	util-affinity.c \
 	util-atomic.c \
-	util-base64.c \
 	util-bpf.c \
 	util-buffer.c \
 	util-byte.c \

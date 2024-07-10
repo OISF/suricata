@@ -34,7 +34,6 @@
 
 #include "detect-transform-base64.h"
 
-#include "util-base64.h"
 #include "util-unittest.h"
 #include "util-print.h"
 
@@ -119,15 +118,9 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     SCDetectTransformFromBase64Data *b64d = options;
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
-    /*
-     * The output buffer is larger than needed. On average,
-     * a base64 encoded string is 75% of the encoded
-     * string.
-     */
-    uint8_t output[input_len];
     uint32_t decode_length = input_len;
 
-    DetectBase64Mode mode = b64d->mode;
+    Base64Mode mode = b64d->mode;
     uint32_t offset = b64d->offset;
     uint32_t nbytes = b64d->nbytes;
 
@@ -149,15 +142,17 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
         decode_length = nbytes;
     }
 
+    uint8_t decoded[input_len];
+    uint32_t num_decoded = 0;
+
     // PrintRawDataFp(stdout, input, input_len);
-    uint32_t decoded_length = 0;
-    uint32_t consumed = 0;
-    Base64Ecode code =
-            DecodeBase64(output, input_len, input, decode_length, &consumed, &decoded_length, mode);
-    if (code != BASE64_ECODE_ERR) {
-        // PrintRawDataFp(stdout, output, decoded_length);
-        if (decoded_length) {
-            InspectionBufferCopy(buffer, output, decoded_length);
+    bool b64decoded = Base64Decode(
+            (const uint8_t *)input, decode_length, input_len, mode, decoded, &num_decoded);
+    if (b64decoded) {
+        DEBUG_VALIDATE_BUG_ON(num_decoded >= decode_length);
+        if (num_decoded > 0) {
+            //            PrintRawDataFp(stdout, output, b64data->decoded_len);
+            InspectionBufferCopy(buffer, decoded, num_decoded);
         }
     }
 }

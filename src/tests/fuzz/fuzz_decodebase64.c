@@ -6,7 +6,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "util-base64.h"
+#include "rust.h"
 
 #define BLK_SIZE 2
 
@@ -14,20 +14,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static int initialized = 0;
 
-static void Base64FuzzTest(const uint8_t *src, size_t len, size_t dest_size)
+static void Base64FuzzTest(const uint8_t *src, size_t len)
 {
-    uint8_t *dest = malloc(dest_size);
-    if (dest == NULL)
-        return;
+    uint8_t decoded[len];
+    uint32_t num_decoded = 0;
 
-    for (uint8_t mode = Base64ModeRelax; mode <= Base64ModeRFC4648; mode++) {
-        uint32_t consumed_bytes = 0;
-        uint32_t decoded_bytes = 0;
-
-        DecodeBase64(dest, dest_size, src, len, &consumed_bytes, &decoded_bytes, mode);
+    for (uint8_t mode = Base64ModeRFC2045; mode <= Base64ModeStrict; mode++) {
+        (void)Base64Decode(src, len, 0, mode, decoded, &num_decoded);
     }
-
-    free(dest);
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -45,8 +39,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (size < BLK_SIZE)
         return 0;
 
-    uint32_t dest_size = (uint32_t)(data[0] << 8) | (uint32_t)(data[1]);
-    Base64FuzzTest(data + BLK_SIZE, size - BLK_SIZE, dest_size);
+    Base64FuzzTest(data, size);
 
     return 0;
 }
