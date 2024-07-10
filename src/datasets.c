@@ -35,7 +35,6 @@
 #include "util-conf.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-base64.h"    // decode base64
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-path.h"
@@ -521,10 +520,18 @@ static int DatasetLoadString(Dataset *set)
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint32_t num_decoded = 0;
+            Base64Decoded *b64d =
+                    Base64Decode((const uint8_t *)line, strlen(line), 0, Base64ModeStrict);
+            if (b64d == NULL) {
+                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
+                continue;
+            }
+            DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= strlen(line));
+            memcpy(decoded, b64d->decoded, b64d->decoded_len);
+            num_decoded = b64d->decoded_len;
+            Base64DecodeFree(b64d);
+            if (num_decoded == 0 && strlen(line) > 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
@@ -542,10 +549,18 @@ static int DatasetLoadString(Dataset *set)
 
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint32_t num_decoded = 0;
+            Base64Decoded *b64d =
+                    Base64Decode((const uint8_t *)line, strlen(line), 0, Base64ModeStrict);
+            if (b64d == NULL) {
+                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
+                continue;
+            }
+            DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= strlen(line));
+            memcpy(decoded, b64d->decoded, b64d->decoded_len);
+            num_decoded = b64d->decoded_len;
+            Base64DecodeFree(b64d);
+            if (num_decoded == 0 && strlen(line) > 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
@@ -1609,10 +1624,16 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
         case DATASET_TYPE_STRING: {
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint32_t num_decoded = 0;
+            Base64Decoded *b64d =
+                    Base64Decode((const uint8_t *)string, strlen(string), 0, Base64ModeStrict);
+            if (b64d == NULL)
+                return -2;
+            DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= strlen(string));
+            memcpy(decoded, b64d->decoded, b64d->decoded_len);
+            num_decoded = b64d->decoded_len;
+            Base64DecodeFree(b64d);
+            if (num_decoded == 0 && strlen(string) > 0) {
                 return -2;
             }
 

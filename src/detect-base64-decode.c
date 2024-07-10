@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,10 +19,10 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-base64-decode.h"
-#include "util-base64.h"
 #include "util-byte.h"
 #include "util-print.h"
 #include "detect-engine-build.h"
+#include "rust.h"
 
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
@@ -89,17 +89,21 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 
     decode_len = MIN(payload_len, data->bytes);
 
+    DEBUG_VALIDATE_BUG_ON(decode_len < 0);
 #if 0
     printf("Decoding:\n");
     PrintRawDataFp(stdout, payload, decode_len);
 #endif
 
-    uint32_t consumed = 0, num_decoded = 0;
-    (void)DecodeBase64(det_ctx->base64_decoded, det_ctx->base64_decoded_len_max, payload,
-            decode_len, &consumed, &num_decoded, Base64ModeRFC4648);
-    det_ctx->base64_decoded_len = num_decoded;
-    SCLogDebug("Decoded %d bytes from base64 data.",
-        det_ctx->base64_decoded_len);
+    Base64Decoded *b64d =
+            Base64Decode(payload, decode_len, det_ctx->base64_decoded_len_max, Base64ModeRFC4648);
+    if (b64d != NULL) {
+        DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= (uint32_t)decode_len);
+        memcpy(det_ctx->base64_decoded, b64d->decoded, b64d->decoded_len);
+        det_ctx->base64_decoded_len = b64d->decoded_len;
+        SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
+        Base64DecodeFree(b64d);
+    }
 #if 0
     if (det_ctx->base64_decoded_len) {
         printf("Decoded data:\n");
