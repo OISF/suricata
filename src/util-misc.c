@@ -252,128 +252,128 @@ static int UtilMiscParseSizeStringTest01(void)
 
     str = "10";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = "10kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = "10gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240UL);
 
     /* space start */
 
     str = " 10";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = " 10kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = " 10gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space end */
 
     str = "10 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = "10kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = "10gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space start - space end */
 
     str = " 10 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = " 10kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = " 10gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space between number and scale */
@@ -382,256 +382,256 @@ static int UtilMiscParseSizeStringTest01(void)
 
     str = "10";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = "10 kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = "10 gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space start */
 
     str = " 10";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = " 10 kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = " 10 gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space end */
 
     str = "10 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = "10 kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = "10 mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = "10 gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* space start - space end */
 
     str = " 10 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10);
 
     str = " 10 kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024);
 
     str = " 10 mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10 * 1024 * 1024);
 
     str = " 10 gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10737418240);
 
     /* no space */
 
     str = "10.5";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = "10.5kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = "10.5gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space start */
 
     str = " 10.5";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = " 10.5kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = " 10.5gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space end */
 
     str = "10.5 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = "10.5kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = "10.5gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space start - space end */
 
     str = " 10.5 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = " 10.5kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = " 10.5gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space between number and scale */
@@ -640,132 +640,132 @@ static int UtilMiscParseSizeStringTest01(void)
 
     str = "10.5";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = "10.5 kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = "10.5 gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space start */
 
     str = " 10.5";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = " 10.5 kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 Kb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 KB";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 mb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = " 10.5 gb";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space end */
 
     str = "10.5 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = "10.5 kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = "10.5 mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = "10.5 gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* space start - space end */
 
     str = " 10.5 ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5);
 
     str = " 10.5 kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 Kb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 KB ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024);
 
     str = " 10.5 mb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024);
 
     str = " 10.5 gb ";
     result = 0;
-    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(ParseSizeString(str, &result) != 0);
     FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
 
     /* Should fail on unknown units. */
-    FAIL_IF(ParseSizeString("32eb", &result) > 0);
+    FAIL_IF(ParseSizeString("32eb", &result) == 0);
 
     PASS;
 }
