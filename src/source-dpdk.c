@@ -198,7 +198,8 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
         if (retval != 0) {
             SCLogError("%s: unable to flush rte_flow rules: %s Flush error msg: %s",
-                    ptv->livedev->dev, rte_strerror(-retval), flush_error.message);
+                    ptv->livedev ? ptv->livedev->dev : "<unknown>", rte_strerror(-retval),
+                    flush_error.message);
         }
 #endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
     }
@@ -562,6 +563,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->pkts = 0;
     ptv->bytes = 0;
     ptv->livedev = LiveGetDevice(dpdk_config->iface);
+    if (ptv->livedev == NULL) {
+        SCLogError("getting 'livedev' for '%s' failed", dpdk_config->iface);
+        goto fail;
+    }
 
     ptv->capture_dpdk_packets = StatsRegisterCounter("capture.packets", ptv->tv);
     ptv->capture_dpdk_rx_errs = StatsRegisterCounter("capture.rx_errors", ptv->tv);
@@ -724,17 +729,18 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
+    if (ptv == NULL)
+        SCReturnInt(TM_ECODE_OK);
 
     if (ptv->queue_id == 0) {
         struct rte_eth_dev_info dev_info;
         int retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
-        if (retval != 0) {
-            SCLogError("%s: error (%s) when getting device info", ptv->livedev->dev,
-                    rte_strerror(-retval));
-            SCReturnInt(TM_ECODE_FAILED);
+        if (retval == 0) {
+            DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
+        } else {
+            SCLogWarning("%s: error (%s) when getting device info",
+                    ptv->livedev ? ptv->livedev->dev : "<unknown>", rte_strerror(-retval));
         }
-
-        DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
 
         if (ptv->workers_sync) {
             SCFree(ptv->workers_sync);
