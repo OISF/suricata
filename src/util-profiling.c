@@ -36,6 +36,7 @@
 #include "util-byte.h"
 #include "util-profiling-locks.h"
 #include "util-conf.h"
+#include "util-path.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -172,11 +173,14 @@ SCProfilingInit(void)
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-                const char *log_dir;
-                log_dir = ConfigGetLogDirectory();
-
-                snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
-                        "%s/%s", log_dir, filename);
+                if (PathIsAbsolute(filename)) {
+                    strlcpy(profiling_packets_file_name, filename,
+                            sizeof(profiling_packets_file_name));
+                } else {
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
+                            "%s/%s", log_dir, filename);
+                }
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
@@ -196,14 +200,20 @@ SCProfilingInit(void)
                 if (filename == NULL) {
                     filename = "packet_profile.csv";
                 }
+                if (PathIsAbsolute(filename)) {
+                    profiling_csv_file_name = SCStrdup(filename);
+                    if (unlikely(profiling_csv_file_name == NULL)) {
+                        FatalError("out of memory");
+                    }
+                } else {
+                    profiling_csv_file_name = SCMalloc(PATH_MAX);
+                    if (unlikely(profiling_csv_file_name == NULL)) {
+                        FatalError("out of memory");
+                    }
 
-                const char *log_dir = ConfigGetLogDirectory();
-
-                profiling_csv_file_name = SCMalloc(PATH_MAX);
-                if (unlikely(profiling_csv_file_name == NULL)) {
-                    FatalError("out of memory");
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
                 }
-                snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
                 packet_profile_csv_fp = fopen(profiling_csv_file_name, "w");
                 if (packet_profile_csv_fp == NULL) {
