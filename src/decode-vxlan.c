@@ -47,10 +47,16 @@
 #define VXLAN_DEFAULT_PORT      4789
 #define VXLAN_DEFAULT_PORT_S    "4789"
 
+enum TunnelPacketMode {
+    TUNNEL_PACKET_MODE_SPLIT = 0, /* split encap and envelope into separate packets */
+    TUNNEL_PACKET_MODE_STRIP_ENV, /* strip envelope, encap packet takes over orig packet */
+};
+
 static bool g_vxlan_enabled = true;
 static int g_vxlan_ports_idx = 0;
 static int g_vxlan_ports[VXLAN_MAX_PORTS] = { VXLAN_DEFAULT_PORT, VXLAN_UNSET_PORT,
     VXLAN_UNSET_PORT, VXLAN_UNSET_PORT };
+static enum TunnelPacketMode g_vxlan_tunnel_pkt_mode = TUNNEL_PACKET_MODE_SPLIT;
 
 typedef struct VXLANHeader_ {
     uint8_t flags[2];
@@ -113,6 +119,12 @@ void DecodeVXLANConfig(void)
         } else {
             DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
         }
+        node = ConfGetNode("decoder.vxlan.mode");
+        if (node) {
+            if (strcmp(node->val, "strip") == 0) {
+                g_vxlan_tunnel_pkt_mode = TUNNEL_PACKET_MODE_STRIP_ENV;
+            }
+        }
     }
 }
 
@@ -153,37 +165,60 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     uint16_t eth_type = SCNtohs(ethh->eth_type);
     SCLogDebug("VXLAN ethertype 0x%04x", eth_type);
 
-    switch (eth_type) {
-        case ETHERNET_TYPE_ARP:
-            SCLogDebug("VXLAN found ARP");
-            break;
-        case ETHERNET_TYPE_IP:
-            SCLogDebug("VXLAN found IPv4");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV4;
-            break;
-        case ETHERNET_TYPE_IPV6:
-            SCLogDebug("VXLAN found IPv6");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV6;
-            break;
-        case ETHERNET_TYPE_VLAN:
-        case ETHERNET_TYPE_8021AD:
-        case ETHERNET_TYPE_8021QINQ:
-            SCLogDebug("VXLAN found VLAN");
-            decode_tunnel_proto = DECODE_TUNNEL_VLAN;
-            break;
-        default:
-            SCLogDebug("VXLAN found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
-            ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);
+    /* TODO check further that we strip only once per real packet */
+    enum TunnelPacketMode m = TUNNEL_PACKET_MODE_SPLIT;
+    if ((p->flags & PKT_TUNNEL_STRIPPED) == 0 &&
+            g_vxlan_tunnel_pkt_mode == TUNNEL_PACKET_MODE_STRIP_ENV) {
+        m = TUNNEL_PACKET_MODE_STRIP_ENV;
     }
 
-    /* Set-up and process inner packet if it is a supported ethertype */
-    if (decode_tunnel_proto != DECODE_TUNNEL_UNSET) {
-        Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto);
-        if (tp != NULL) {
-            PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-            PacketEnqueueNoLock(&tv->decode_pq, tp);
+    if (m == TUNNEL_PACKET_MODE_SPLIT) {
+        switch (eth_type) {
+            case ETHERNET_TYPE_ARP:
+                SCLogDebug("VXLAN found ARP");
+                break;
+            case ETHERNET_TYPE_IP:
+                SCLogDebug("VXLAN found IPv4");
+                decode_tunnel_proto = DECODE_TUNNEL_IPV4;
+                break;
+            case ETHERNET_TYPE_IPV6:
+                SCLogDebug("VXLAN found IPv6");
+                decode_tunnel_proto = DECODE_TUNNEL_IPV6;
+                break;
+            case ETHERNET_TYPE_VLAN:
+            case ETHERNET_TYPE_8021AD:
+            case ETHERNET_TYPE_8021QINQ:
+                SCLogDebug("VXLAN found VLAN");
+                decode_tunnel_proto = DECODE_TUNNEL_VLAN;
+                break;
+            default:
+                SCLogDebug("VXLAN found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
+                ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);
         }
+
+        /* Set-up and process inner packet if it is a supported ethertype */
+        if (decode_tunnel_proto != DECODE_TUNNEL_UNSET) {
+            Packet *tp =
+                    PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                            len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
+            }
+        }
+    } else if (m == TUNNEL_PACKET_MODE_STRIP_ENV) {
+        uint32_t encap_size = len - VXLAN_HEADER_LEN;
+        const uint8_t *encap_pkt = pkt + VXLAN_HEADER_LEN;
+
+        /* reset existing layers */
+        PacketClearL2(p);
+        PacketClearL3(p);
+        PacketClearL4(p);
+        // TODO clear things more: tuple, events?
+
+        p->pkt_src = PKT_SRC_DECODER_VXLAN;
+        p->flags |= PKT_TUNNEL_STRIPPED;
+        return DecodeEthernet(tv, dtv, p, encap_pkt, encap_size);
     }
 
     return TM_ECODE_OK;
