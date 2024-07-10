@@ -28,7 +28,7 @@
 #include "util-unittest.h"
 #include "util-misc.h"
 
-#define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
+#define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2,3})?\\s*$"
 static pcre2_code *parse_regex = NULL;
 static pcre2_match_data *parse_regex_match = NULL;
 
@@ -70,12 +70,8 @@ static int ParseSizeString(const char *size, double *res)
     *res = 0;
 
     if (size == NULL) {
-        SCLogError("invalid size argument - NULL. Valid size "
-                   "argument should be in the format - \n"
-                   "xxx <- indicates it is just bytes\n"
-                   "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
-                   "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
-                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n");
+        SCLogError("invalid size argument: NULL. Valid input is <number><unit>. Unit is case "
+                   "insensitive and can be kb/KiB, mb/MiB or gb/GiB");
         retval = -2;
         goto end;
     }
@@ -84,12 +80,8 @@ static int ParseSizeString(const char *size, double *res)
             parse_regex, (PCRE2_SPTR8)size, strlen(size), 0, 0, parse_regex_match, NULL);
 
     if (!(pcre2_match_ret == 2 || pcre2_match_ret == 3)) {
-        SCLogError("invalid size argument - %s. Valid size "
-                   "argument should be in the format - \n"
-                   "xxx <- indicates it is just bytes\n"
-                   "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
-                   "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
-                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n",
+        SCLogError("invalid size argument: '%s'. Valid input is <number><unit>. Unit is case "
+                   "insensitive and can be kb/KiB, mb/MiB or gb/GiB",
                 size);
         retval = -2;
         goto end;
@@ -126,11 +118,11 @@ static int ParseSizeString(const char *size, double *res)
             goto end;
         }
 
-        if (strcasecmp(str2, "kb") == 0) {
+        if (strcasecmp(str2, "kb") == 0 || strcasecmp(str2, "KiB") == 0) {
             *res *= 1024;
-        } else if (strcasecmp(str2, "mb") == 0) {
+        } else if (strcasecmp(str2, "mb") == 0 || strcasecmp(str2, "MiB") == 0) {
             *res *= 1024 * 1024;
-        } else if (strcasecmp(str2, "gb") == 0) {
+        } else if (strcasecmp(str2, "gb") == 0 || strcasecmp(str2, "GiB") == 0) {
             *res *= 1024 * 1024 * 1024;
         } else {
             /* Bad unit. */
@@ -770,9 +762,80 @@ static int UtilMiscParseSizeStringTest01(void)
     PASS;
 }
 
+static int UtilMiscParseSizeStringTest02(void)
+{
+    const char *str;
+    double result;
+
+    /* no space */
+
+    str = "10kib";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10 * 1024);
+
+    str = "10Kib";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10 * 1024);
+
+    str = "10KiB";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10 * 1024);
+
+    str = "10mib";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10 * 1024 * 1024);
+
+    str = "10gib";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10737418240UL);
+
+    /* space start - space end */
+
+    str = " 10.5 ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5);
+
+    str = " 10.5 kib ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5 * 1024);
+
+    str = " 10.5 Kib ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5 * 1024);
+
+    str = " 10.5 KiB ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5 * 1024);
+
+    str = " 10.5 mib ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5 * 1024 * 1024);
+
+    str = " 10.5 gib ";
+    result = 0;
+    FAIL_IF(ParseSizeString(str, &result) > 0);
+    FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
+
+    /* Should fail on unknown units. */
+    FAIL_IF(ParseSizeString("32eb", &result) > 0);
+
+    PASS;
+}
+
 void UtilMiscRegisterTests(void)
 {
     UtRegisterTest("UtilMiscParseSizeStringTest01",
                    UtilMiscParseSizeStringTest01);
+    UtRegisterTest("UtilMiscParseSizeStringTest02", UtilMiscParseSizeStringTest02);
 }
 #endif /* UNITTESTS */
