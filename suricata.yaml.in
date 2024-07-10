@@ -314,8 +314,8 @@ outputs:
         - ssh
         - mqtt:
             # passwords: yes           # enable output of passwords
-            # string-log-limit: 1kb    # limit size of logged strings in bytes.
-                                       # Can be specified in kb, mb, gb. Just a number
+            # string-log-limit: 1KiB   # limit size of logged strings in bytes.
+                                       # Can be specified in KiB, MiB, GiB. Just a number
                                        # is parsed as bytes. Default is 1KB.
                                        # Use a value of 0 to disable limiting.
                                        # Note that the size is also bounded by
@@ -397,7 +397,7 @@ outputs:
   # per thread directory.
   #
   # Also note that the limit and max-files settings are enforced per thread.
-  # So the size limit when using 8 threads with 1000mb files and 2000 files
+  # So the size limit when using 8 threads with 1000 MiB files and 2000 files
   # is: 8*1000*2000 ~ 16TiB.
   #
   # By default all packets are logged except:
@@ -410,7 +410,7 @@ outputs:
 
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
       # is parsed as bytes.
-      limit: 1000mb
+      limit: 1000 MiB
 
       # If set to a value, ring buffer mode is enabled. Will keep maximum of
       # "max-files" of size "limit"
@@ -890,7 +890,7 @@ app-layer:
         dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
     mqtt:
       enabled: yes
-      # max-msg-length: 1mb
+      # max-msg-length: 1 MiB
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
       # Maximum number of live MQTT transactions per flow
@@ -939,11 +939,11 @@ app-layer:
       # max-tx: 1024
     ftp:
       enabled: yes
-      # memcap: 64mb
+      # memcap: 64 MiB
     websocket:
       #enabled: yes
       # Maximum used payload size, the rest is skipped
-      # max-payload-size: 65535
+      # max-payload-size: 64 KiB
     rdp:
       #enabled: yes
     ssh:
@@ -1027,7 +1027,7 @@ app-layer:
 
       # Byte Range Containers default settings
       # byterange:
-      #   memcap: 100mb
+      #   memcap: 100 MiB
       #   timeout: 60
 
       # memcap:                   Maximum memory capacity for HTTP
@@ -1056,16 +1056,16 @@ app-layer:
          default-config:
            personality: IDS
 
-           # Can be specified in kb, mb, gb.  Just a number indicates
+           # Can be specified in KiB, MiB, GiB.  Just a number indicates
            # it's in bytes.
-           request-body-limit: 100kb
-           response-body-limit: 100kb
+           request-body-limit: 100 KiB
+           response-body-limit: 100 KiB
 
            # inspection limits
-           request-body-minimal-inspect-size: 32kb
-           request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 40kb
-           response-body-inspect-window: 16kb
+           request-body-minimal-inspect-size: 32 KiB
+           request-body-inspect-window: 4 KiB
+           response-body-minimal-inspect-size: 40 KiB
+           response-body-inspect-window: 16 KiB
 
            # response body decompression (0 disables)
            response-body-decompress-layer-limit: 2
@@ -1084,8 +1084,8 @@ app-layer:
            swf-decompression:
              enabled: no
              type: both
-             compress-depth: 100kb
-             decompress-depth: 100kb
+             compress-depth: 100 KiB
+             decompress-depth: 100 KiB
 
            # Use a random value for inspection sizes around the specified value.
            # This lowers the risk of some evasion techniques but could lead
@@ -1105,10 +1105,10 @@ app-layer:
            #lzma-enabled: false
            # Memory limit usage for LZMA decompression dictionary
            # Data is decompressed until dictionary reaches this size
-           #lzma-memlimit: 1mb
+           #lzma-memlimit: 1 MiB
            # Maximum decompressed size with a compression ratio
            # above 2048 (only LZMA can reach this ratio, deflate cannot)
-           #compression-bomb-limit: 1mb
+           #compression-bomb-limit: 1 MiB
            # Maximum time spent decompressing a single transaction in usec
            #decompression-time-limit: 100000
            # Maximum number of live transactions per flow
@@ -1119,7 +1119,7 @@ app-layer:
            #- apache:
            #    address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
            #    personality: Apache_2
-           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # Can be specified in KiB, MiB, GiB.  Just a number indicates
            #    # it's in bytes.
            #    request-body-limit: 4096
            #    response-body-limit: 4096
@@ -1131,7 +1131,7 @@ app-layer:
            #      - 192.168.0.0/24
            #      - 192.168.10.0/24
            #    personality: IIS_7_0
-           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # Can be specified in KiB, MiB, GiB.  Just a number indicates
            #    # it's in bytes.
            #    request-body-limit: 4096
            #    response-body-limit: 4096
@@ -1406,7 +1406,7 @@ host-os-policy:
 # The exception policy memcap-policy value can be "drop-packet", "pass-packet",
 #  "reject" or "ignore" (which is the default).
 defrag:
-  memcap: 32mb
+  memcap: 32 MiB
   # memcap-policy: ignore
   hash-size: 65536
   trackers: 65535 # number of defragmented flows to follow
@@ -1451,7 +1451,7 @@ defrag:
 #  "reject" or "ignore" (which is the default).
 
 flow:
-  memcap: 128mb
+  memcap: 128 MiB
   #memcap-policy: ignore
   hash-size: 65536
   prealloc: 10000
@@ -1529,7 +1529,7 @@ flow-timeouts:
 # engine is configured.
 #
 # stream:
-#   memcap: 64mb                # Can be specified in kb, mb, gb.  Just a
+#   memcap: 64 MiB              # Can be specified in KiB, MiB, GiB.  Just a
 #                               # number indicates it's in bytes.
 #   memcap-policy: ignore       # The exception policy value can be "drop-flow",
 #                               # "pass-flow", "bypass", "drop-packet",
@@ -1560,19 +1560,19 @@ flow-timeouts:
 #                               # means it's slightly more permissive. Enabled by default.
 #
 #   reassembly:
-#     memcap: 256mb             # Can be specified in kb, mb, gb.  Just a number
+#     memcap: 256 MiB           # Can be specified in KiB, MiB, GiB. Just a number
 #                               # indicates it's in bytes.
 #     memcap-policy: ignore     # The exception policy value can be "drop-flow",
 #                               # "pass-flow", "bypass", "drop-packet", "pass-packet",
 #                               # "reject" or "ignore" default is "ignore"
-#     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
+#     depth: 1 MiB               # Can be specified in KiB, MiB, GiB.  Just a number
 #                               # indicates it's in bytes.
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
-#                               # this size.  Can be specified in kb, mb,
-#                               # gb.  Just a number indicates it's in bytes.
+#                               # this size.  Can be specified in KiB, MiB, GiB.
+#                               # Just a number indicates it's in bytes.
 #     toclient-chunk-size: 2560 # inspect raw stream in chunks of at least
-#                               # this size.  Can be specified in kb, mb,
-#                               # gb.  Just a number indicates it's in bytes.
+#                               # this size.  Can be specified in KiB, MiB, GiB.
+#                               # Just a number indicates it's in bytes.
 #     randomize-chunk-size: yes # Take a random value for chunk size around the specified value.
 #                               # This lowers the risk of some evasion techniques but could lead
 #                               # to detection change between runs. It is set to 'yes' by default.
@@ -1597,16 +1597,16 @@ flow-timeouts:
 #                               # is used in a rule.
 #
 stream:
-  memcap: 64mb
+  memcap: 64 MiB
   #memcap-policy: ignore
   checksum-validation: yes      # reject incorrect csums
   #midstream: false
   #midstream-policy: ignore
   inline: auto                  # auto will use inline mode in IPS mode, yes or no set it statically
   reassembly:
-    memcap: 256mb
+    memcap: 256 MiB
     #memcap-policy: ignore
-    depth: 1mb                  # reassemble 1mb into a stream
+    depth: 1 MiB                # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
     randomize-chunk-size: yes
@@ -1622,7 +1622,7 @@ stream:
 host:
   hash-size: 4096
   prealloc: 1000
-  memcap: 32mb
+  memcap: 32 MiB
 
 # IP Pair table:
 #
@@ -1631,7 +1631,7 @@ host:
 #ippair:
 #  hash-size: 4096
 #  prealloc: 1000
-#  memcap: 32mb
+#  memcap: 32 MiB
 
 # Decoder settings
 
@@ -1710,7 +1710,7 @@ detect:
   # Thresholding hash table settings.
   thresholds:
     hash-size: 16384
-    memcap: 16mb
+    memcap: 16 MiB
 
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
@@ -1804,7 +1804,7 @@ threading:
   # set to this value, a fatal error occurs.
   #
   # Generally, the per-thread stack-size should not exceed 8MB.
-  #stack-size: 8mb
+  #stack-size: 8 MiB
 
 # Profiling settings. Only effective if Suricata has been built with
 # the --enable-profiling configure flag.
