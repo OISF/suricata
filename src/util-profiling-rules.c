@@ -29,6 +29,7 @@
 
 #include "util-byte.h"
 #include "util-conf.h"
+#include "util-path.h"
 #include "util-time.h"
 
 #ifdef PROFILE_RULES
@@ -139,12 +140,14 @@ void SCProfilingRulesGlobalInit(void)
             }
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-
-                const char *log_dir;
-                log_dir = ConfigGetLogDirectory();
-
-                snprintf(profiling_file_name, sizeof(profiling_file_name),
-                        "%s/%s", log_dir, filename);
+                if (PathIsAbsolute(filename)) {
+                    strlcpy(profiling_file_name, filename,
+                            sizeof(profiling_file_name));
+                } else {
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_file_name, sizeof(profiling_file_name),
+                            "%s/%s", log_dir, filename);
+                }
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {

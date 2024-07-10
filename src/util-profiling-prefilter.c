@@ -30,6 +30,7 @@
 #ifdef PROFILING
 #include "detect-engine-prefilter.h"
 #include "util-conf.h"
+#include "util-path.h"
 #include "util-time.h"
 
 typedef struct SCProfilePrefilterData_ {
@@ -67,11 +68,14 @@ void SCProfilingPrefilterGlobalInit(void)
             profiling_prefilter_enabled = 1;
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-                const char *log_dir;
-                log_dir = ConfigGetLogDirectory();
-
-                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s",
-                        log_dir, filename);
+                if (PathIsAbsolute(filename)) {
+                    strlcpy(profiling_file_name, filename,
+                            sizeof(profiling_file_name));
+                } else {
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_file_name, sizeof(profiling_file_name),
+                            "%s/%s", log_dir, filename);
+                }
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
