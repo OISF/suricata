@@ -562,6 +562,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->pkts = 0;
     ptv->bytes = 0;
     ptv->livedev = LiveGetDevice(dpdk_config->iface);
+    if (ptv->livedev == NULL) {
+        SCLogError("getting 'livedev' for '%s' failed", dpdk_config->iface);
+        goto fail;
+    }
 
     ptv->capture_dpdk_packets = StatsRegisterCounter("capture.packets", ptv->tv);
     ptv->capture_dpdk_rx_errs = StatsRegisterCounter("capture.rx_errors", ptv->tv);
@@ -724,17 +728,18 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
+    if (ptv == NULL)
+        SCReturnInt(TM_ECODE_OK);
 
     if (ptv->queue_id == 0) {
         struct rte_eth_dev_info dev_info;
         int retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
-        if (retval != 0) {
-            SCLogError("%s: error (%s) when getting device info", ptv->livedev->dev,
+        if (retval == 0) {
+            DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
+        } else {
+            SCLogWarning("%s: error (%s) when getting device info", ptv->livedev->dev,
                     rte_strerror(-retval));
-            SCReturnInt(TM_ECODE_FAILED);
         }
-
-        DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
 
         if (ptv->workers_sync) {
             SCFree(ptv->workers_sync);
