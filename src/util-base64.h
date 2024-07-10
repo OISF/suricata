@@ -40,7 +40,7 @@ typedef enum {
 
 /* Function prototypes */
 Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, uint32_t len,
-        uint32_t *consumed_bytes, uint32_t *decoded_bytes, DetectBase64Mode mode);
+        uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode);
 bool IsBase64Alphabet(uint8_t encoded_byte);
 
 #endif

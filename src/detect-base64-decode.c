@@ -23,6 +23,7 @@
 #include "util-byte.h"
 #include "util-print.h"
 #include "detect-engine-build.h"
+#include "rust.h"
 
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
@@ -94,12 +95,14 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     PrintRawDataFp(stdout, payload, decode_len);
 #endif
 
-    uint32_t consumed = 0, num_decoded = 0;
-    (void)DecodeBase64(det_ctx->base64_decoded, det_ctx->base64_decoded_len_max, payload,
-            decode_len, &consumed, &num_decoded, Base64ModeRFC4648);
-    det_ctx->base64_decoded_len = num_decoded;
-    SCLogDebug("Decoded %d bytes from base64 data.",
-        det_ctx->base64_decoded_len);
+    Base64Decoded *b64d = rs_base64_decode(
+            payload, decode_len, det_ctx->base64_decoded_len_max, Base64ModeRFC4648);
+    if (b64d != NULL) {
+        memcpy(det_ctx->base64_decoded, b64d->decoded, b64d->decoded_len);
+        det_ctx->base64_decoded_len = b64d->decoded_len;
+        SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
+        rs_base64_decode_free(b64d);
+    }
 #if 0
     if (det_ctx->base64_decoded_len) {
         printf("Decoded data:\n");
