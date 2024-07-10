@@ -39,8 +39,8 @@ pub enum Base64Mode {
      * BASE64("foobar") = "Zm$9vYm.Fy"    # According to RFC 2045, All line breaks or *other
      * characters* not found in base64 alphabet must be ignored by decoding software
      * */
-    RFC2045 = 0, /* SPs are allowed during transfer but must be skipped by Decoder */
-    Strict,
+    Base64ModeRFC2045 = 0, /* SPs are allowed during transfer but must be skipped by Decoder */
+    Base64ModeStrict,
     /* If the following strings were to be passed to the decoder with RFC4648 mode,
      * the results would be as follows. See the unittest B64TestVectorsRFC4648 in
      * src/util-base64.c
@@ -56,7 +56,7 @@ pub enum Base64Mode {
      * BASE64("f") = "Zm$9vYm.Fy"    <-- Notice how the processing stops once an invalid char is
      * encountered
      * */
-    RFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
+    Base64ModeRFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
 }
 
 fn base64_map(input: u8) -> Result<u8> {
@@ -282,17 +282,17 @@ pub unsafe extern "C" fn rs_base64_decode(input: *const u8, len: u32, max_decode
     let mut decoder = Decoder::new();
     let mut decoded_string = Vec::new();
     match mode {
-        Base64Mode::RFC2045 => {
+        Base64Mode::Base64ModeRFC2045 => {
             if let Ok(fin_str) = decode_rfc2045(&mut decoder, in_vec) {
                 decoded_string = fin_str;
             }
         },
-        Base64Mode::RFC4648 => {
+        Base64Mode::Base64ModeRFC4648 => {
             if let Ok(fin_str) = decode_rfc4648(&mut decoder, in_vec, max_decoded) {
                 decoded_string = fin_str;
             }
         },
-        Base64Mode::Strict => {
+        Base64Mode::Base64ModeStrict => {
             if let Ok(fin_str) = base64::decode(in_vec) {
                 decoded_string = fin_str;
             }

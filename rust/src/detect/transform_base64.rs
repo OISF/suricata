@@ -21,6 +21,7 @@ use crate::detect::error::RuleParseError;
 use crate::detect::parser::{parse_var, take_until_whitespace, ResultValue};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use crate::utils::scbase64;
 
 use nom7::bytes::complete::tag;
 use nom7::character::complete::multispace0;
@@ -28,46 +29,7 @@ use nom7::sequence::preceded;
 use nom7::{Err, IResult};
 use std::str;
 
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum DetectBase64Mode {
-    Base64ModeRelax = 0,
-    /* If the following strings were to be passed to the decoder with RFC2045 mode,
-     * the results would be as follows. See the unittest B64TestVectorsRFC2045 in
-     * src/util-base64.c
-     *
-     * BASE64("") = ""
-     * BASE64("f") = "Zg=="
-     * BASE64("fo") = "Zm8="
-     * BASE64("foo") = "Zm9v"
-     * BASE64("foob") = "Zm9vYg=="
-     * BASE64("fooba") = "Zm9vYmE="
-     * BASE64("foobar") = "Zm9vYmFy"
-     * BASE64("foobar") = "Zm 9v Ym Fy"   <-- Notice how the spaces are ignored
-     * BASE64("foobar") = "Zm$9vYm.Fy"    # According to RFC 2045, All line breaks or *other
-     * characters* not found in base64 alphabet must be ignored by decoding software
-     * */
-    Base64ModeRFC2045, /* SPs are allowed during transfer but must be skipped by Decoder */
-    Base64ModeStrict,
-    /* If the following strings were to be passed to the decoder with RFC4648 mode,
-     * the results would be as follows. See the unittest B64TestVectorsRFC4648 in
-     * src/util-base64.c
-     *
-     * BASE64("") = ""
-     * BASE64("f") = "Zg=="
-     * BASE64("fo") = "Zm8="
-     * BASE64("foo") = "Zm9v"
-     * BASE64("foob") = "Zm9vYg=="
-     * BASE64("fooba") = "Zm9vYmE="
-     * BASE64("foobar") = "Zm9vYmFy"
-     * BASE64("f") = "Zm 9v Ym Fy"   <-- Notice how the processing stops once space is encountered
-     * BASE64("f") = "Zm$9vYm.Fy"    <-- Notice how the processing stops once an invalid char is
-     * encountered
-     * */
-    Base64ModeRFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
-}
-
-pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: DetectBase64Mode = DetectBase64Mode::Base64ModeRFC4648;
+pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: scbase64::Base64Mode = scbase64::Base64Mode::Base64ModeRFC4648;
 
 const DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT: usize = 3;
 pub const DETECT_TRANSFORM_BASE64_FLAG_MODE: u8 = 0x01;
@@ -84,7 +46,7 @@ pub struct SCDetectTransformFromBase64Data {
     nbytes_str: *const c_char,
     offset: u32,
     offset_str: *const c_char,
-    mode: DetectBase64Mode,
+    mode: scbase64::Base64Mode,
 }
 
 impl Drop for SCDetectTransformFromBase64Data {
@@ -120,11 +82,11 @@ impl SCDetectTransformFromBase64Data {
     }
 }
 
-fn get_mode_value(value: &str) -> Option<DetectBase64Mode> {
+fn get_mode_value(value: &str) -> Option<scbase64::Base64Mode> {
     let res = match value {
-        "rfc4648" => Some(DetectBase64Mode::Base64ModeRFC4648),
-        "rfc2045" => Some(DetectBase64Mode::Base64ModeRFC2045),
-        "strict" => Some(DetectBase64Mode::Base64ModeStrict),
+        "rfc4648" => Some(scbase64::Base64Mode::Base64ModeRFC4648),
+        "rfc2045" => Some(scbase64::Base64Mode::Base64ModeRFC2045),
+        "strict" => Some(scbase64::Base64Mode::Base64ModeStrict),
         _ => None,
     };
 
