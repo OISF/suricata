@@ -127,7 +127,7 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     uint8_t output[input_len];
     uint32_t decode_length = input_len;
 
-    DetectBase64Mode mode = b64d->mode;
+    Base64Mode mode = b64d->mode;
     uint32_t offset = b64d->offset;
     uint32_t nbytes = b64d->nbytes;
 
@@ -151,14 +151,17 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
 
     // PrintRawDataFp(stdout, input, input_len);
     uint32_t decoded_length = 0;
-    uint32_t consumed = 0;
-    Base64Ecode code =
-            DecodeBase64(output, input_len, input, decode_length, &consumed, &decoded_length, mode);
-    if (code != BASE64_ECODE_ERR) {
-        // PrintRawDataFp(stdout, output, decoded_length);
-        if (decoded_length) {
-            InspectionBufferCopy(buffer, output, decoded_length);
+    Base64Decoded *b64data = rs_base64_decode((const uint8_t *)input, input_len, 0, mode);
+    if (b64data != NULL) {
+        memcpy(output, b64data->decoded, b64data->decoded_len);
+        decoded_length = b64data->decoded_len;
+        if (decoded_length == 0 && decode_length > 0) {
+            // PrintRawDataFp(stdout, output, decoded_length);
+            if (decoded_length) {
+                InspectionBufferCopy(buffer, output, decoded_length);
+            }
         }
+        rs_base64_decode_free(b64data);
     }
 }
 
