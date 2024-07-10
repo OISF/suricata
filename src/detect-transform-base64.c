@@ -34,7 +34,6 @@
 
 #include "detect-transform-base64.h"
 
-#include "util-base64.h"
 #include "util-unittest.h"
 #include "util-print.h"
 
@@ -127,7 +126,7 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     uint8_t output[input_len];
     uint32_t decode_length = input_len;
 
-    DetectBase64Mode mode = b64d->mode;
+    Base64Mode mode = b64d->mode;
     uint32_t offset = b64d->offset;
     uint32_t nbytes = b64d->nbytes;
 
@@ -150,15 +149,15 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     }
 
     // PrintRawDataFp(stdout, input, input_len);
-    uint32_t decoded_length = 0;
-    uint32_t consumed = 0;
-    Base64Ecode code =
-            DecodeBase64(output, input_len, input, decode_length, &consumed, &decoded_length, mode);
-    if (code != BASE64_ECODE_ERR) {
-        // PrintRawDataFp(stdout, output, decoded_length);
-        if (decoded_length) {
-            InspectionBufferCopy(buffer, output, decoded_length);
+    Base64Decoded *b64data = Base64Decode((const uint8_t *)input, decode_length, input_len, mode);
+    if (b64data != NULL) {
+        DEBUG_VALIDATE_BUG_ON(b64data->decoded_len >= decode_length);
+        memcpy(output, b64data->decoded, b64data->decoded_len);
+        if (b64data->decoded_len > 0) {
+            //            PrintRawDataFp(stdout, output, b64data->decoded_len);
+            InspectionBufferCopy(buffer, output, b64data->decoded_len);
         }
+        Base64DecodeFree(b64data);
     }
 }
 
@@ -187,7 +186,7 @@ static int DetectTransformFromBase64DecodeTest01(void)
     PASS;
 }
 
-/* Simple success case with RFC2045 -- check buffer */
+/* Simple success case with Base64ModeBase64ModeRFC2045 -- check buffer */
 static int DetectTransformFromBase64DecodeTest01a(void)
 {
     const uint8_t *input = (const uint8_t *)"Zm 9v Ym Fy";
