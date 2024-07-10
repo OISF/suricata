@@ -274,19 +274,19 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
  * \return Error code indicating success or failures with parsing
  */
 Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, uint32_t len,
-        uint32_t *consumed_bytes, uint32_t *decoded_bytes, DetectBase64Mode mode)
+        uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode)
 {
     *decoded_bytes = 0;
     Base64Ecode ret = BASE64_ECODE_OK;
     switch (mode) {
-        case Base64ModeRFC4648:
+        case RFC4648:
             ret = DecodeBase64RFC4648(
                     dest, dest_size, src, len, consumed_bytes, decoded_bytes, false);
             break;
-        case Base64ModeRFC2045:
+        case RFC2045:
             ret = DecodeBase64RFC2045(dest, dest_size, src, len, consumed_bytes, decoded_bytes);
             break;
-        case Base64ModeStrict:
+        case Strict:
             ret = DecodeBase64RFC4648(
                     dest, dest_size, src, len, consumed_bytes, decoded_bytes, true);
             break;
