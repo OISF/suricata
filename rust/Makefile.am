@@ -118,7 +118,7 @@ endif
 if HAVE_CBINDGEN
 dist/htp/htp_rs.h:
 	cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
-		--quiet --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h
+		--quiet --output $(abs_top_builddir)/dist/htp/htp_rs.h
 else
 dist/htp/htp_rs.h:
 endif
