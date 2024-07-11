@@ -227,13 +227,10 @@ outputs:
             # to dump all HTTP headers for every HTTP request and/or response
             # dump-all-headers: none
         - dns:
-            # This configuration uses the new DNS logging format,
-            # the old configuration is still available:
-            # https://docs.suricata.io/en/latest/output/eve/eve-json-output.html#dns-v1-format
-
-            # As of Suricata 5.0, version 2 of the eve dns output
-            # format is the default.
-            #version: 2
+            # Suricata 8.0 uses a new DNS logging format, to keep with
+            # the old format while you upgrade the version can be set
+            # to 2. See https://docs.suricata.io/en/latest/upgrade/8.0-dns-logging-changes.html
+            #version: 3
 
             # Enable/disable this logger. Default: enabled.
             #enabled: yes
