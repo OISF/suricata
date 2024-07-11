@@ -26,6 +26,7 @@
 // written by Victor Julien
 
 use std;
+use std::sync::Mutex;
 use std::mem;
 use std::str;
 use std::ffi::{self, CString};
@@ -502,7 +503,7 @@ impl Default for SMBTransaction {
 
 impl SMBTransaction {
     pub fn new() -> Self {
-        memory_usage().inc_tx(1);
+        memory_usage().lock().unwrap().inc_tx(1);
         return Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
@@ -527,7 +528,7 @@ impl SMBTransaction {
         SCLogDebug!("SMB TX {:p} free ID {}", &self, self.id);
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
-        memory_usage().dec_tx(1);
+        memory_usage().lock().unwrap().dec_tx(1);
     }
 }
 
@@ -803,9 +804,9 @@ impl SMBState {
 
         let tx_mem = tx_queue_memory(&self.transactions);
 
-        memory_usage().inc_state(1);
-        memory_usage().inc_hashmap(hm_memusage);
-        memory_usage().inc_tx_mem(tx_mem);
+        memory_usage().lock().unwrap().inc_state(1);
+        memory_usage().lock().unwrap().inc_hashmap(hm_memusage);
+        memory_usage().lock().unwrap().inc_tx_mem(tx_mem);
     }
 
     pub fn free(&mut self) {
@@ -2335,7 +2336,7 @@ struct MemoryUsage {
     tx_mem: u64,
 }
 
-static mut SMB_MEMORY_USAGE: Option<&'static mut MemoryUsage> = None;
+static mut SMB_MEMORY_USAGE: Option<Mutex<MemoryUsage>> = None;
 
 impl MemoryUsage {
     fn new() -> Self {
@@ -2371,19 +2372,18 @@ impl MemoryUsage {
 
 fn init_memory_usage() {
     unsafe {
-        let memory_usage = MemoryUsage::new();
-        SMB_MEMORY_USAGE = Some(Box::leak(Box::new(memory_usage)));
+        SMB_MEMORY_USAGE = Some(Mutex::new(MemoryUsage::new()));
     }
 }
-fn memory_usage() -> &'static mut MemoryUsage {
+fn memory_usage() -> &'static Mutex<MemoryUsage> {
     unsafe {
-        SMB_MEMORY_USAGE.as_mut().unwrap()
+        SMB_MEMORY_USAGE.as_ref().unwrap()
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_memory_stats() {
-    memory_usage().display();
+    memory_usage().lock().unwrap().display();
 }
 
 #[no_mangle]
