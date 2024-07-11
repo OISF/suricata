@@ -52,6 +52,11 @@ void RegisterSMBParsers(void)
 #endif
 }
 
+void SMBParserCleanup(void)
+{
+    rs_smb_memory_stats();
+}
+
 #ifdef UNITTESTS
 #include "stream-tcp.h"
 #include "util-unittest-helper.h"

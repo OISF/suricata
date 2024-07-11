@@ -272,6 +272,7 @@ int AppLayerParserDeSetup(void)
     SCEnter();
 
     FTPParserCleanup();
+    SMBParserCleanup();
     SMTPParserCleanup();
 
     SCReturnInt(0);
@@ -463,6 +464,18 @@ void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
 
     SCReturn;
 }
+
+#if 0
+void AppLayerParserRegisterCleanupFunc(uint8_t ipproto, AppProto alproto,
+                                        void (*Cleanup)(void *))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Cleanup = Cleanup;
+
+    SCReturn;
+}
+#endif
 
 void AppLayerParserRegisterGetStateProgressFunc(uint8_t ipproto, AppProto alproto,
     int (*StateGetProgress)(void *alstate, uint8_t direction))

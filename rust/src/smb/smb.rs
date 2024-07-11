@@ -20,18 +20,19 @@
  */
 
 /*  GAP processing:
- *  - if post-gap we've seen a succesful tx req/res: we consider "re-sync'd"
+ *  - if post-gap we've seen a successful tx req/res: we consider "re-sync'd"
  */
 
 // written by Victor Julien
 
 use std;
+use std::mem;
 use std::str;
 use std::ffi::{self, CString};
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
- 
+
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
@@ -268,7 +269,7 @@ impl SMBVerCmdStat {
 /// Coordinated Universal Time (UTC)."
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct SMBFiletime {
-    ts: u64, 
+    ts: u64,
 }
 
 impl SMBFiletime {
@@ -501,6 +502,7 @@ impl Default for SMBTransaction {
 
 impl SMBTransaction {
     pub fn new() -> Self {
+        memory_usage().inc_tx(1);
         return Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
@@ -525,6 +527,7 @@ impl SMBTransaction {
         SCLogDebug!("SMB TX {:p} free ID {}", &self, self.id);
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
+        memory_usage().dec_tx(1);
     }
 }
 
@@ -755,8 +758,9 @@ impl State<SMBTransaction> for SMBState {
     }
 }
 
+
 impl SMBState {
-    /// Allocation function for a new TLS parser instance
+    /// Allocation function for a new SMB state instance
     pub fn new() -> Self {
         Self {
             state_data:AppLayerStateData::new(),
@@ -790,7 +794,22 @@ impl SMBState {
         }
     }
 
+    fn state_stats (&mut self) {
+        let mut hm_memusage = hashmap_mem(&self.ssn2vec_map);
+        hm_memusage += hashmap_mem(&self.guid2name_map);
+        hm_memusage += hashmap_mem(&self.ssn2vecoffset_map);
+        hm_memusage += hashmap_mem(&self.ssn2tree_map);
+        hm_memusage += hashmap_mem(&self.ssnguid2vec_map);
+
+        let tx_mem = tx_queue_memory(&self.transactions);
+
+        memory_usage().inc_state(1);
+        memory_usage().inc_hashmap(hm_memusage);
+        memory_usage().inc_tx_mem(tx_mem);
+    }
+
     pub fn free(&mut self) {
+        self.state_stats();
         //self._debug_state_stats();
         self._debug_tx_stats();
     }
@@ -2278,6 +2297,95 @@ fn register_pattern_probe() -> i8 {
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"smb\0";
 
+fn tx_queue_memory<X>(vdq: &VecDeque<X>) -> u64
+{
+    let mut total_size = 0;
+    for key in vdq {
+        total_size += mem::size_of_val(key);
+    }
+    total_size += mem::size_of::<VecDeque<X>>();
+    total_size as u64
+}
+// Memory related stuff -- likely temporary
+fn hashmap_mem<K, V>(map: &HashMap<K, V>) -> u64
+{
+    let mut total_size = 0;
+
+    // Add the size of the HashMap structure itself
+    total_size += mem::size_of_val(map);
+
+    // Iterate over each key-value pair
+    for (key, value) in map {
+        // Add the size of the key
+        total_size += mem::size_of_val(key);
+
+        // Add the size of the value
+        total_size += mem::size_of_val(value);
+    }
+
+    total_size as u64
+}
+
+#[derive(Default)]
+struct MemoryUsage {
+    hashmap_mem: u64,
+    state_structs: u64,
+    tx_alloc_count: u64,
+    tx_free_count: u64,
+    tx_mem: u64,
+}
+
+static mut SMB_MEMORY_USAGE: Option<&'static mut MemoryUsage> = None;
+
+impl MemoryUsage {
+    fn new() -> Self {
+        Default::default()
+    }
+
+    fn inc_hashmap(&mut self, amount: u64) {
+        self.hashmap_mem += amount;
+    }
+    fn inc_state(&mut self, amount: u64) {
+        self.state_structs += amount;
+    }
+
+    fn inc_tx_mem(&mut self, amount: u64) {
+        self.tx_mem += amount;
+    }
+    fn inc_tx(&mut self, amount: u64) {
+        self.tx_alloc_count += amount;
+    }
+    fn dec_tx(&mut self, amount: u64) {
+        self.tx_free_count += amount;
+    }
+
+    fn display(&self) {
+        SCLogNotice!("SMB state hashmap memory {}", self.hashmap_mem);
+        SCLogNotice!("SMB state structs {}", self.state_structs);
+        SCLogNotice!("SMB tx: alloc count {} free count: {} memory used: {}",
+            self.tx_alloc_count,
+            self.tx_free_count,
+            self.tx_mem);
+    }
+}
+
+fn init_memory_usage() {
+    unsafe {
+        let memory_usage = MemoryUsage::new();
+        SMB_MEMORY_USAGE = Some(Box::leak(Box::new(memory_usage)));
+    }
+}
+fn memory_usage() -> &'static mut MemoryUsage {
+    unsafe {
+        SMB_MEMORY_USAGE.as_mut().unwrap()
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_memory_stats() {
+    memory_usage().display();
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_register_parser() {
     let default_port = CString::new("445").unwrap();
@@ -2408,4 +2516,5 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
+    init_memory_usage();
 }
