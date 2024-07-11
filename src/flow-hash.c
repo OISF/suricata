@@ -24,6 +24,8 @@
  *  Flow Hashing functions.
  */
 
+// junk
+
 #include "suricata-common.h"
 #include "threads.h"
 
