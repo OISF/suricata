@@ -22,7 +22,7 @@ Example:
 
 .. container:: example-rule
 
-  alert ssh any any -> any any (msg:"hdr frame new keys"; frame:ssh.record.hdr; content: "|15|"; endswith; bsize: 6; sid:2;)
+  alert ssh any any -> any any (msg:"hdr frame new keys"; :example-rule-emphasis:`frame:ssh.record.hdr; content: "|15|"; endswith;` bsize: 6; sid:2;)
 
 This rule matches like Wireshark ``ssh.message_code == 0x15``.
 
