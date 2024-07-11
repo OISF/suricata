@@ -5101,12 +5101,42 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         ssn->tcp_packet_flags |= p->tcph->th_flags;
         if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags |= p->tcph->th_flags;
-            if (unlikely(ssn->client.tcp_init_flags == 0))
+            if (unlikely(ssn->client.tcp_init_flags == 0)) {
+                /* This is the first to-server packet in the flow to be seen by
+                 * suricata. Set tcp_init_flags flags.
+                 */
                 ssn->client.tcp_init_flags = p->tcph->th_flags;
+            } else if (unlikely(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn))) {
+                /* This is the first to-server packet in the flow, but not the first to
+                 * be seen by suricata. This can happen when the ACK in the 3-way
+                 * handshake is seen before the SYN. Update tcp_init_flags flags.
+                 */
+                ssn->client.tcp_init_flags = p->tcph->th_flags;
+            }
         } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags |= p->tcph->th_flags;
-            if (unlikely(ssn->server.tcp_init_flags == 0))
+            if (unlikely(ssn->server.tcp_init_flags == 0)) {
+                /* This is the first to-client packet in the flow to be seen by
+                 * suricata. Set tcp_init_flags flags.
+                 */
                 ssn->server.tcp_init_flags = p->tcph->th_flags;
+            } else if (unlikely(SEQ_EQ(TCP_GET_SEQ(p), ssn->server.isn))) {
+                /* This is the first to-client packet in the flow, but not the first to
+                 * be seen by suricata. Update tcp_init_flags flags.
+                 */
+                ssn->server.tcp_init_flags = p->tcph->th_flags;
+            }
+        }
+
+        /* If the first packets in both directions have now been seen in what was
+         * previously considered a midstream-pickup, then the STREAMTCP_FLAG_MIDSTREAM
+         * flag can be cleared
+         */
+        if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) &&
+                ((ssn->server.tcp_init_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) &&
+                ((ssn->client.tcp_init_flags & TH_SYN) == TH_SYN)) {
+            SCLogDebug("ssn %p: removing MIDSTREAM flag as 1st packets have been seen on both sides", ssn);
+            ssn->flags &= ~STREAMTCP_FLAG_MIDSTREAM;
         }
 
         /* check if we need to unset the ASYNC flag */
