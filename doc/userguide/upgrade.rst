@@ -68,6 +68,8 @@ Major changes
 - DNS logging has been modified to be more consistent across requests,
   responses and alerts. See :doc:`DNS Logging Changes for 8.0
   <upgrade/8.0-dns-logging-changes>`.
+- PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
+  <upgrade/8.0-pfring-plugin>`.
 
 Upgrading 6.0 to 7.0
 --------------------
