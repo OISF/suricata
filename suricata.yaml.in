@@ -1696,6 +1696,9 @@ detect:
     toclient-groups: 3
     toserver-groups: 25
   sgh-mpm-context: auto
+  # Cache MPM contexts to the disk for avoid rule compilation at the startup.
+  # Cache files are created in the default logging directory.
+  # sgh-mpm-caching: yes
   inspection-recursion-limit: 3000
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.

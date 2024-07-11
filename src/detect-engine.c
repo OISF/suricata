@@ -2978,6 +2978,17 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+bool DetectEngineMpmCachingEnabled(void)
+{
+    const char *strval = NULL;
+    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
+        return true;
+
+    int sgh_mpm_caching = 1;
+    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    return (bool)sgh_mpm_caching;
+}
+
 /*
  * getting & (re)setting the internal sig i
  */
