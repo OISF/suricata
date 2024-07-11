@@ -211,9 +211,7 @@ static int DetectTransformFromBase64DecodeTest02(void)
 {
     const uint8_t *input = (const uint8_t *)"This is Suricata\n";
     uint32_t input_len = strlen((char *)input);
-    SCDetectTransformFromBase64Data b64d = {
-        .nbytes = input_len,
-    };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeStrict };
     InspectionBuffer buffer;
     InspectionBuffer buffer_orig;
     InspectionBufferInit(&buffer, input_len);
