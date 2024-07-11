@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,6 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-base64-decode.h"
-#include "util-base64.h"
 #include "util-byte.h"
 #include "util-print.h"
 #include "detect-engine-build.h"

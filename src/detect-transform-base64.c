@@ -34,7 +34,6 @@
 
 #include "detect-transform-base64.h"
 
-#include "util-base64.h"
 #include "util-unittest.h"
 #include "util-print.h"
 
@@ -45,7 +44,7 @@ static void DetectTransformFromBase64DecodeRegisterTests(void);
 #endif
 static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options);
 
-#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) Base64ModeRFC4648
+#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) RFC4648
 
 void DetectTransformFromBase64DecodeRegister(void)
 {
@@ -150,16 +149,12 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     }
 
     // PrintRawDataFp(stdout, input, input_len);
-    uint32_t decoded_length = 0;
-    Base64Decoded *b64data = rs_base64_decode((const uint8_t *)input, input_len, 0, mode);
+    Base64Decoded *b64data = rs_base64_decode((const uint8_t *)input, decode_length, 0, mode);
     if (b64data != NULL) {
         memcpy(output, b64data->decoded, b64data->decoded_len);
-        decoded_length = b64data->decoded_len;
-        if (decoded_length > 0) {
-            // PrintRawDataFp(stdout, output, decoded_length);
-            if (decoded_length) {
-                InspectionBufferCopy(buffer, output, decoded_length);
-            }
+        if (b64data->decoded_len > 0) {
+            PrintRawDataFp(stdout, output, b64data->decoded_len);
+            InspectionBufferCopy(buffer, output, b64data->decoded_len);
         }
         rs_base64_decode_free(b64data);
     }
@@ -197,7 +192,7 @@ static int DetectTransformFromBase64DecodeTest01a(void)
     uint32_t input_len = strlen((char *)input);
     const char *result = "foobar";
     uint32_t result_len = strlen((char *)result);
-    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeRFC2045 };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = RFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
@@ -335,7 +330,7 @@ static int DetectTransformFromBase64DecodeTest07(void)
     uint32_t result_len = strlen((char *)result);
 
     SCDetectTransformFromBase64Data b64d = { .nbytes = input_len - 4, /* NB: stop early */
-        .mode = Base64ModeRFC2045 };
+        .mode = RFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
@@ -356,7 +351,7 @@ static int DetectTransformFromBase64DecodeTest08(void)
     const uint8_t *input = (const uint8_t *)"This is not base64-encoded";
     uint32_t input_len = strlen((char *)input);
 
-    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeRFC2045 };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = RFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
