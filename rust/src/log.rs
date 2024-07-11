@@ -202,6 +202,22 @@ pub fn sc_log_message(level: Level,
     return 0;
 }
 
+// Convert a Vec into a CString by first stripping NUL bytes.
+pub fn vec_to_safe_cstring(val: Vec<u8>) -> CString {
+    let mut safe = Vec::with_capacity(val.len());
+    for c in val {
+        if c != 0 {
+            safe.push(c);
+        }
+    }
+    match CString::new(safe) {
+        Ok(cstr) => cstr,
+        _ => {
+            CString::new("<failed to encode vector>").unwrap()
+        }
+    }
+}
+
 // Convert a &str into a CString by first stripping NUL bytes.
 fn to_safe_cstring(val: &str) -> CString {
     let mut safe = Vec::with_capacity(val.len());

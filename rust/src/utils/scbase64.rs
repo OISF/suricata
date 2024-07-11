@@ -20,6 +20,7 @@
 use std::io::{Result, Error, ErrorKind};
 use std::ffi::CString;
 use std::os::raw::c_char;
+use crate::log::vec_to_safe_cstring;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -303,7 +304,7 @@ pub unsafe extern "C" fn rs_base64_decode(input: *const u8, len: u32, max_decode
     if b64_decoded.decoded_len == 0 {
         return std::ptr::null_mut();
     } else {
-        b64_decoded.decoded = CString::new(decoded_string).unwrap().into_raw();
+        b64_decoded.decoded = vec_to_safe_cstring(decoded_string).into_raw();
     }
     return Box::into_raw(Box::new(b64_decoded));
 }
