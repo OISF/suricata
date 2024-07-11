@@ -21,7 +21,7 @@ use crate::detect::error::RuleParseError;
 use crate::detect::parser::{parse_var, take_until_whitespace, ResultValue};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use crate::utils::scbase64;
+use crate::utils::scbase64::Base64Mode;
 
 use nom7::bytes::complete::tag;
 use nom7::character::complete::multispace0;
@@ -29,7 +29,7 @@ use nom7::sequence::preceded;
 use nom7::{Err, IResult};
 use std::str;
 
-pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: scbase64::Base64Mode = scbase64::Base64Mode::Base64ModeRFC4648;
+pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: Base64Mode = Base64Mode::Base64ModeRFC4648;
 
 const DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT: usize = 3;
 pub const DETECT_TRANSFORM_BASE64_FLAG_MODE: u8 = 0x01;
@@ -46,7 +46,7 @@ pub struct SCDetectTransformFromBase64Data {
     nbytes_str: *const c_char,
     offset: u32,
     offset_str: *const c_char,
-    mode: scbase64::Base64Mode,
+    mode: Base64Mode,
 }
 
 impl Drop for SCDetectTransformFromBase64Data {
@@ -82,11 +82,11 @@ impl SCDetectTransformFromBase64Data {
     }
 }
 
-fn get_mode_value(value: &str) -> Option<scbase64::Base64Mode> {
+fn get_mode_value(value: &str) -> Option<Base64Mode> {
     let res = match value {
-        "rfc4648" => Some(scbase64::Base64Mode::Base64ModeRFC4648),
-        "rfc2045" => Some(scbase64::Base64Mode::Base64ModeRFC2045),
-        "strict" => Some(scbase64::Base64Mode::Base64ModeStrict),
+        "rfc4648" => Some(Base64Mode::Base64ModeRFC4648),
+        "rfc2045" => Some(Base64Mode::Base64ModeRFC2045),
+        "strict" => Some(Base64Mode::Base64ModeStrict),
         _ => None,
     };
 
@@ -269,7 +269,7 @@ mod tests {
         nbytes_str: &str,
         offset: u32,
         offset_str: &str,
-        mode: DetectBase64Mode,
+        mode: Base64Mode,
         flags: u8,
     ) {
         let tbd = SCDetectTransformFromBase64Data {
@@ -327,7 +327,7 @@ mod tests {
         assert_eq!(val, tbd);
 
         tbd.flags = DETECT_TRANSFORM_BASE64_FLAG_MODE;
-        tbd.mode = DetectBase64Mode::Base64ModeRFC2045;
+        tbd.mode = Base64Mode::Base64ModeRFC2045;
         tbd.offset = 0;
         tbd.nbytes = 0;
         let (_, val) = parse_transform_base64("mode rfc2045").unwrap();
@@ -344,7 +344,7 @@ mod tests {
             "",
             3933,
             "",
-            DetectBase64Mode::Base64ModeStrict,
+            Base64Mode::Base64ModeStrict,
             DETECT_TRANSFORM_BASE64_FLAG_NBYTES
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
                 | DETECT_TRANSFORM_BASE64_FLAG_MODE,
@@ -356,7 +356,7 @@ mod tests {
             "",
             3933,
             "",
-            DetectBase64Mode::Base64ModeRFC2045,
+            Base64Mode::Base64ModeRFC2045,
             DETECT_TRANSFORM_BASE64_FLAG_NBYTES
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
                 | DETECT_TRANSFORM_BASE64_FLAG_MODE,
@@ -368,7 +368,7 @@ mod tests {
             "",
             3933,
             "",
-            DetectBase64Mode::Base64ModeRFC4648,
+            Base64Mode::Base64ModeRFC4648,
             DETECT_TRANSFORM_BASE64_FLAG_NBYTES
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
                 | DETECT_TRANSFORM_BASE64_FLAG_MODE,
@@ -380,7 +380,7 @@ mod tests {
             "",
             0,
             "var",
-            DetectBase64Mode::Base64ModeRFC4648,
+            Base64Mode::Base64ModeRFC4648,
             DETECT_TRANSFORM_BASE64_FLAG_NBYTES
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET_VAR
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
@@ -393,7 +393,7 @@ mod tests {
             "var",
             3933,
             "",
-            DetectBase64Mode::Base64ModeRFC4648,
+            Base64Mode::Base64ModeRFC4648,
             DETECT_TRANSFORM_BASE64_FLAG_NBYTES
                 | DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
