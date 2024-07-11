@@ -215,9 +215,12 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         PacketClearL3(p);
         PacketClearL4(p);
         // TODO clear things more: tuple, events?
+        p->sp = p->dp = p->proto = 0;
 
-        p->pkt_src = PKT_SRC_DECODER_VXLAN;
+        PKT_SET_SRC(p, PKT_SRC_DECODER_VXLAN);
         p->flags |= PKT_TUNNEL_STRIPPED;
+        p->flags &= ~PKT_WANTS_FLOW;
+        p->flow_hash = 0;
         return DecodeEthernet(tv, dtv, p, encap_pkt, encap_size);
     }
 
