@@ -208,7 +208,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-#if defined(HAVE_SETVBUF) && !defined(OS_WIN32)
+#if defined(HAVE_SETVBUF) && defined(OS_LINUX)
     if (pcap_g.read_buffer_size > 0) {
         errno = 0;
         if (setvbuf(pcap_file(pfv->pcap_handle), pfv->buffer, _IOFBF, pcap_g.read_buffer_size) <
