@@ -323,6 +323,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
 
         jb_open_object(jb, "dns");
+        jb_set_int(jb, "version", 2);
         if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
             jb_free(jb);
             break;
@@ -355,6 +356,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         }
 
         jb_open_object(jb, "dns");
+        jb_set_int(jb, "version", 2);
         rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
         jb_close(jb);
         OutputJsonBuilderBuffer(jb, td->ctx);
