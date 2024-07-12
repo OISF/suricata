@@ -146,7 +146,7 @@ void PcapFileGlobalInit(void)
     memset(&pcap_g, 0x00, sizeof(pcap_g));
     SC_ATOMIC_INIT(pcap_g.invalid_checksums);
 
-#if defined(HAVE_SETVBUF) && !defined(OS_WIN32)
+#if defined(HAVE_SETVBUF) && defined(OS_LINUX)
     pcap_g.read_buffer_size = PCAP_FILE_BUFFER_SIZE_DEFAULT;
 
     const char *str = NULL;
