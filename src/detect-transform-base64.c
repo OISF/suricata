@@ -149,7 +149,8 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     }
 
     // PrintRawDataFp(stdout, input, input_len);
-    Base64Decoded *b64data = rs_base64_decode((const uint8_t *)input, decode_length, 0, mode);
+    Base64Decoded *b64data =
+            rs_base64_decode((const uint8_t *)input, decode_length, input_len, mode);
     if (b64data != NULL) {
         memcpy(output, b64data->decoded, b64data->decoded_len);
         if (b64data->decoded_len > 0) {
