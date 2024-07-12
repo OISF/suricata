@@ -274,7 +274,7 @@
             ;;
         *-*-linux*)
             # Always compile with -fPIC on Linux for shared library support.
-            CFLAGS="${CFLAGS} -fPIC"
+            CFLAGS="${CFLAGS} -fPIC -DOS_LINUX"
             RUST_LDADD="-ldl -lrt -lm"
             can_build_shared_library="yes"
             AC_DEFINE([SYSTEMD_NOTIFY], [1], [make Suricata notify systemd on startup])

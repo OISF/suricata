@@ -84,7 +84,7 @@ typedef struct PcapFileFileVars_
 
     /** flex array member for the libc io read buffer. Size controlled by
      * PcapFileGlobalVars::read_buffer_size. */
-#if defined(HAVE_SETVBUF) && !defined(OS_WIN32)
+#if defined(HAVE_SETVBUF) && defined(OS_LINUX)
     char buffer[];
 #endif
 } PcapFileFileVars;
