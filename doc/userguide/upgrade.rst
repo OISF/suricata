@@ -69,6 +69,10 @@ Major changes
   responses and alerts. See :doc:`DNS Logging Changes for 8.0
   <upgrade/8.0-dns-logging-changes>`.
 
+Other Changes
+~~~~~~~~~~~~~
+- libhtp has been replaced with a rust version. This means libhtp is no longer built and linked as a shared library, and the libhtp dependency is now built directly into suricata.
+
 Upgrading 6.0 to 7.0
 --------------------
 
