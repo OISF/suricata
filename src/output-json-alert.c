@@ -230,6 +230,7 @@ static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
                                           dns_state, tx_id);
         if (txptr) {
             jb_open_object(js, "dns");
+            jb_set_int(js, "version", 2);
             JsonBuilder *qjs = JsonDNSLogQuery(txptr);
             if (qjs != NULL) {
                 jb_set_object(js, "query", qjs);
