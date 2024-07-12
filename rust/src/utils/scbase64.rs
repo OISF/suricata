@@ -185,6 +185,7 @@ pub fn decode_rfc4648(decoder: &mut Decoder, input: &[u8], max_decoded: u32) -> 
     if max_decoded > 0 && max_decoded < maxlen {
         maxlen = max_decoded;
     }
+    let max_dest_size = std::cmp::max(maxlen, max_decoded);
     let mut r = vec![0; maxlen as usize];
     let mut offset = 0;
     let mut stop = false;
@@ -194,7 +195,7 @@ pub fn decode_rfc4648(decoder: &mut Decoder, input: &[u8], max_decoded: u32) -> 
                 decoder.tmp[decoder.nb as usize] = i[0];
                 decoder.nb += 1;
             } else {
-                while decoder.nb > 0 && decoder.nb < 4 && offset < maxlen as usize {
+                while decoder.nb > 0 && decoder.nb < 4 && (offset + decoder.nb as usize) <= max_dest_size as usize {
                     decoder.tmp[decoder.nb as usize] = b'=';
                     decoder.nb += 1;
                 }
@@ -304,7 +305,10 @@ pub unsafe extern "C" fn rs_base64_decode(input: *const u8, len: u32, max_decode
     if b64_decoded.decoded_len == 0 {
         return std::ptr::null_mut();
     } else {
-        b64_decoded.decoded = vec_to_safe_cstring(decoded_string).into_raw();
+        let safe_cstring = vec_to_safe_cstring(decoded_string);
+        let safe_cstring_len = safe_cstring.clone().into_bytes().len() as u32;
+        b64_decoded.decoded_len -= b64_decoded.decoded_len - safe_cstring_len;
+        b64_decoded.decoded = safe_cstring.into_raw();
     }
     return Box::into_raw(Box::new(b64_decoded));
 }
