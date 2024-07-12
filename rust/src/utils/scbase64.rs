@@ -307,7 +307,7 @@ pub unsafe extern "C" fn rs_base64_decode(input: *const u8, len: u32, max_decode
     } else {
         let safe_cstring = vec_to_safe_cstring(decoded_string);
         let safe_cstring_len = safe_cstring.clone().into_bytes().len() as u32;
-        b64_decoded.decoded_len -= b64_decoded.decoded_len - safe_cstring_len;
+        b64_decoded.decoded_len = safe_cstring_len;
         b64_decoded.decoded = safe_cstring.into_raw();
     }
     return Box::into_raw(Box::new(b64_decoded));
