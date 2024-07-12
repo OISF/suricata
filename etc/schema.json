@@ -999,6 +999,9 @@
         },
         "dns": {
             "type": "object",
+            "required": [
+                "version"
+            ],
             "properties": {
                 "aa": {
                     "type": "boolean"
@@ -1034,6 +1037,7 @@
                     "type": "string"
                 },
                 "version": {
+                    "description": "The version of this EVE DNS event",
                     "type": "integer"
                 },
                 "opcode": {
