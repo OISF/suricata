@@ -503,7 +503,6 @@ fn dns_log_json_answer(
 ) -> Result<(), JsonError> {
     let header = &response.header;
 
-    js.set_uint("version", 2)?;
     js.set_string("type", "answer")?;
     js.set_uint("id", header.tx_id as u64)?;
     js.set_string("flags", format!("{:x}", header.flags).as_str())?;
