@@ -71,6 +71,8 @@ Major changes
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
 - LDAP parser and logger have been introduced.
+- Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
+  <upgrade/8.0-napatech-plugin>`.
 
 Removals
 ~~~~~~~~
