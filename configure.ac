@@ -1903,9 +1903,12 @@
 
     if test "x$enable_napatech" = "xyes"; then
         AM_CONDITIONAL([BUILD_NAPATECH], [true])
+        napatech_comment=""
     else
         AM_CONDITIONAL([BUILD_NAPATECH], [false])
+        napatech_comment="#"
     fi
+    AC_SUBST([napatech_comment])
 
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
