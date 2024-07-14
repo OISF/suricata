@@ -95,7 +95,6 @@
 #include "source-pcap-file-helper.h"
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
-#include "source-napatech.h"
 #include "source-af-packet.h"
 #include "source-af-xdp.h"
 #include "source-netmap.h"
@@ -664,9 +663,6 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_DAG
     printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, stream Y\n");
 #endif
-#ifdef HAVE_NAPATECH
-    printf("\t--napatech                           : run Napatech Streams using the API\n");
-#endif
 #ifdef BUILD_UNIX_SOCKET
     printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
 #endif
@@ -927,9 +923,6 @@ void RegisterAllModules(void)
     /* dag live */
     TmModuleReceiveErfDagRegister();
     TmModuleDecodeErfDagRegister();
-    /* napatech */
-    TmModuleNapatechStreamRegister();
-    TmModuleNapatechDecodeRegister();
 
     /* flow worker */
     TmModuleFlowWorkerRegister();
@@ -1386,7 +1379,6 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"group", required_argument, 0, 0},
         {"erf-in", required_argument, 0, 0},
         {"dag", required_argument, 0, 0},
-        {"napatech", 0, 0, 0},
         {"build-info", 0, &build_info, 1},
         {"data-dir", required_argument, 0, 0},
 #ifdef WINDIVERT
@@ -1653,14 +1645,6 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            " to receive packets using --dag.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
-            } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
-#ifdef HAVE_NAPATECH
-                suri->run_mode = RUNMODE_NAPATECH;
-#else
-                SCLogError("libntapi and a Napatech adapter are required"
-                           " to capture packets using --napatech.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_NAPATECH */
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
