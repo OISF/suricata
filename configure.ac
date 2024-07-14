@@ -1846,60 +1846,68 @@
                 AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
                 [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
-    AC_ARG_ENABLE(napatech_bypass,
-                AS_HELP_STRING([--disable-napatech-bypass],[Disable Bypass feature on Napatech cards]),
-                [ napatech_bypass=$enableval ],
-                [ napatech_bypass=yes])
-    AC_ARG_WITH(napatech_includes,
-                [  --with-napatech-includes=DIR   napatech include directory],
-                [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
-    AC_ARG_WITH(napatech_libraries,
-                [  --with-napatech-libraries=DIR  napatech library directory],
-                [with_napatech_libraries="$withval"],[with_napatech_libraries="/opt/napatech3/lib"])
-
-    if test "$enable_napatech" = "yes"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
-        LDFLAGS="${LDFLAGS} -L${with_napatech_libraries}"
-        LIBS="${LIBS} -lntapi"
-        AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
-        if test "$NAPATECH" != "no"; then
-            NAPATECH=""
-            AC_CHECK_LIB(ntapi, NT_Init,NAPATECH="yes",NAPATECH="no")
-        fi
-
-        if test "$NAPATECH" = "no"; then
+    AS_IF([test "x$enable_napatech" = "xyes"], [
+        if test "x$enable_shared" = "xno"; then
             echo
-            echo "  ERROR! libntapi library not found"
+            echo "   ERROR! napatech cannot be enabled with --disable-shared"
             echo
             exit 1
-        else
-            AC_CHECK_LIB(numa, numa_available,, LIBNUMA="no")
-            if test "$LIBNUMA" = "no"; then
+        fi
+        AC_ARG_ENABLE(napatech_bypass,
+                    AS_HELP_STRING([--disable-napatech-bypass],[Disable Bypass feature on Napatech cards]),
+                    [ napatech_bypass=$enableval ],
+                    [ napatech_bypass=yes])
+        AC_ARG_WITH(napatech_includes,
+                    [  --with-napatech-includes=DIR   napatech include directory],
+                    [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
+        AC_ARG_WITH(napatech_libraries,
+                    [  --with-napatech-libraries=DIR  napatech library directory],
+                    [with_napatech_libraries="$withval"],[with_napatech_libraries="/opt/napatech3/lib"])
+
+        if test "$enable_napatech" = "yes"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
+            LDFLAGS="${LDFLAGS} -L${with_napatech_libraries}"
+            LIBS="${LIBS} -lntapi"
+            AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
+            if test "$NAPATECH" != "no"; then
+                NAPATECH=""
+                AC_CHECK_LIB(ntapi, NT_Init,NAPATECH="yes",NAPATECH="no")
+            fi
+
+            if test "$NAPATECH" = "no"; then
                 echo
-                echo "  WARNING: libnuma is required to use Napatech auto-config"
-                echo "      libnuma is not found.  Go get it"
-                echo "      from http://github.com/numactl/numactl or your distribution:"
-                echo "          Ubuntu: apt-get install libnuma-dev"
-                echo "          Fedora: dnf install numactl-devel"
-                echo "          CentOS/RHEL: yum install numactl-devel"
+                echo "  ERROR! libntapi library not found"
                 echo
                 exit 1
-            fi
-        fi
-
-        AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
-        if test "$napatech_bypass" = "yes"; then
-            AC_CHECK_LIB(ntapi, NT_FlowOpenAttrInit,NTFLOW="yes",NTFLOW="no")
-            if test "$NTFLOW" = "yes"; then
-                echo "   Napatech Flow Processing is Enabled (--disable-napatech-bypass if not needed)"
-                AC_DEFINE([NAPATECH_ENABLE_BYPASS],[1],(Napatech flowdirector support))
             else
-                echo "Napatech Flow Processing is not available"
+                AC_CHECK_LIB(numa, numa_available,, LIBNUMA="no")
+                if test "$LIBNUMA" = "no"; then
+                    echo
+                    echo "  WARNING: libnuma is required to use Napatech auto-config"
+                    echo "      libnuma is not found.  Go get it"
+                    echo "      from http://github.com/numactl/numactl or your distribution:"
+                    echo "          Ubuntu: apt-get install libnuma-dev"
+                    echo "          Fedora: dnf install numactl-devel"
+                    echo "          CentOS/RHEL: yum install numactl-devel"
+                    echo
+                    exit 1
+                fi
             fi
-        else
-            echo "Napatech Flow Processing is Disabled."
+
+            AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
+            if test "$napatech_bypass" = "yes"; then
+                AC_CHECK_LIB(ntapi, NT_FlowOpenAttrInit,NTFLOW="yes",NTFLOW="no")
+                if test "$NTFLOW" = "yes"; then
+                    echo "   Napatech Flow Processing is Enabled (--disable-napatech-bypass if not needed)"
+                    AC_DEFINE([NAPATECH_ENABLE_BYPASS],[1],(Napatech flowdirector support))
+                else
+                    echo "Napatech Flow Processing is not available"
+                fi
+            else
+                echo "Napatech Flow Processing is Disabled."
+            fi
         fi
-    fi
+        ])
 
     if test "x$enable_napatech" = "xyes"; then
         AM_CONDITIONAL([BUILD_NAPATECH], [true])
