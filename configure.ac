@@ -1901,6 +1901,12 @@
         fi
     fi
 
+    if test "x$enable_napatech" = "xyes"; then
+        AM_CONDITIONAL([BUILD_NAPATECH], [true])
+    else
+        AM_CONDITIONAL([BUILD_NAPATECH], [false])
+    fi
+
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
             AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
@@ -2513,6 +2519,7 @@ AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
 AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/pfring/Makefile)
+AC_CONFIG_FILES(plugins/napatech/Makefile)
 
 AC_OUTPUT
 
