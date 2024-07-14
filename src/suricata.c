@@ -710,6 +710,9 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_PFRING
     strlcat(features, "PF_RING ", sizeof(features));
 #endif
+#ifdef HAVE_NAPATECH
+    strlcat(features, "NAPATECH ", sizeof(features));
+#endif
 #ifdef HAVE_AF_PACKET
     strlcat(features, "AF_PACKET ", sizeof(features));
 #endif
@@ -1643,6 +1646,14 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            " to receive packets using --dag.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
+            } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
+#ifdef HAVE_NAPATECH
+                suri->run_mode = RUNMODE_PLUGIN;
+#else
+                SCLogError("libntapi and a Napatech adapter are required"
+                           " to capture packets using --napatech.");
+                return TM_ECODE_FAILED;
+#endif /* HAVE_NAPATECH */
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
