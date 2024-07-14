@@ -35,7 +35,6 @@
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
 #include "runmode-ipfw.h"
-#include "runmode-napatech.h"
 #include "runmode-netmap.h"
 #include "runmode-nflog.h"
 #include "runmode-nfq.h"
@@ -133,8 +132,6 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "ERF_FILE";
         case RUNMODE_DAG:
             return "ERF_DAG";
-        case RUNMODE_NAPATECH:
-            return "NAPATECH";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
         case RUNMODE_AFP_DEV:
@@ -226,7 +223,6 @@ void RunModeRegisterRunModes(void)
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
     RunModeErfDagRegister();
-    RunModeNapatechRegister();
     RunModeIdsAFPRegister();
     RunModeIdsAFXDPRegister();
     RunModeIdsNetmapRegister();
@@ -320,9 +316,6 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
-                break;
-            case RUNMODE_NAPATECH:
-                custom_mode = RunModeNapatechGetDefaultMode();
                 break;
             case RUNMODE_AFP_DEV:
                 custom_mode = RunModeAFPGetDefaultMode();

@@ -410,7 +410,6 @@ noinst_HEADERS = \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
-	runmode-napatech.h \
 	runmode-netmap.h \
 	runmode-nflog.h \
 	runmode-nfq.h \
@@ -428,7 +427,6 @@ noinst_HEADERS = \
 	source-erf-dag.h \
 	source-erf-file.h \
 	source-ipfw.h \
-	source-napatech.h \
 	source-netmap.h \
 	source-nflog.h \
 	source-nfq.h \
@@ -540,7 +538,6 @@ noinst_HEADERS = \
 	util-mpm-ac-ks.h \
 	util-mpm.h \
 	util-mpm-hs.h \
-	util-napatech.h \
 	util-optimize.h \
 	util-pages.h \
 	util-path.h \
@@ -983,7 +980,6 @@ libsuricata_c_a_SOURCES = \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
 	runmode-ipfw.c \
-	runmode-napatech.c \
 	runmode-netmap.c \
 	runmode-nflog.c \
 	runmode-nfq.c \
@@ -1000,7 +996,6 @@ libsuricata_c_a_SOURCES = \
 	source-erf-dag.c \
 	source-erf-file.c \
 	source-ipfw.c \
-	source-napatech.c \
 	source-netmap.c \
 	source-nflog.c \
 	source-nfq.c \
@@ -1097,7 +1092,6 @@ libsuricata_c_a_SOURCES = \
 	util-mpm-ac-ks-small.c \
 	util-mpm.c \
 	util-mpm-hs.c \
-	util-napatech.c \
 	util-pages.c \
 	util-path.c \
 	util-pidfile.c \
