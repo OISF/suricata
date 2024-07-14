@@ -1,0 +1,42 @@
+:orphan: Document only referenced from upgrade.rst
+
+Napatech as a Plugin
+====================
+
+Suricata 8.0 moves Napatech packet capture support to a dynamically loaded
+plugin. For convenience, this plugin is still bundled with Suricata, but it
+may be removed from the Suricata source tree into its own repository in a
+future release.
+
+Upgrading
+---------
+
+Suricata 8.0 continues to respect the ``--enable-napatech`` compile time
+option, as well as the ``--napatech`` command-line options, and also
+the ``napatech`` section of the configuration file.
+
+.. note:: When the Napatech capture plugin is eventually removed from the
+          Suricata source tree these options may be removed and/or changed
+          as this would allow the Napatech capture plugin to have its own
+          release cycle and make changes independent of Suricata.
+
+However, the ``napatech`` capture plugin must be loaded before it can be
+used. If doing a fresh build of Suricata with Napatech support, the
+``suricata.yaml`` configuration file should be configured to load the
+plugin already, for example::
+
+  plugins:
+    - /usr/lib/suricata/napatech.so
+
+If you are upgrading, you will need to add the location of
+``napatech.so`` to the ``plugins`` section of your ``suricata.yaml``
+manually, as shown above.
+
+Existing Napatech command-line options and configuration should continue to work.
+
+Caveats
+-------
+
+Currently building the Napatech capture plugin is not compatible with the
+``--disable-shared`` configure argument.
+
