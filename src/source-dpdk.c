@@ -91,8 +91,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
-#define BURST_SIZE 32
-static struct timeval machine_start_time = { 0, 0 };
+#define BURST_SIZE                   32
 // interrupt mode constants
 #define MIN_ZERO_POLL_COUNT          10U
 #define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U
@@ -145,11 +144,7 @@ static TmEcode DecodeDPDKThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeDPDKThreadDeinit(ThreadVars *tv, void *data);
 static TmEcode DecodeDPDK(ThreadVars *, Packet *, void *);
 
-static uint64_t CyclesToMicroseconds(uint64_t cycles);
-static uint64_t CyclesToSeconds(uint64_t cycles);
 static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, uint16_t offset);
-static uint64_t DPDKGetSeconds(void);
-
 static bool InterruptsRXEnable(uint16_t port_id, uint16_t queue_id)
 {
     uint32_t event_data = port_id << UINT16_WIDTH | queue_id;
@@ -189,57 +184,6 @@ static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, u
     for (int i = offset; i < mbuf_cnt; i++) {
         rte_pktmbuf_free(mbuf_array[i]);
     }
-}
-
-static uint64_t CyclesToMicroseconds(const uint64_t cycles)
-{
-    const uint64_t ticks_per_us = rte_get_tsc_hz() / 1000000;
-    if (ticks_per_us == 0) {
-        return 0;
-    }
-    return cycles / ticks_per_us;
-}
-
-static uint64_t CyclesToSeconds(const uint64_t cycles)
-{
-    const uint64_t ticks_per_s = rte_get_tsc_hz();
-    if (ticks_per_s == 0) {
-        return 0;
-    }
-    return cycles / ticks_per_s;
-}
-
-static void CyclesAddToTimeval(
-        const uint64_t cycles, struct timeval *orig_tv, struct timeval *new_tv)
-{
-    uint64_t usec = CyclesToMicroseconds(cycles) + orig_tv->tv_usec;
-    new_tv->tv_sec = orig_tv->tv_sec + usec / 1000000;
-    new_tv->tv_usec = (usec % 1000000);
-}
-
-void DPDKSetTimevalOfMachineStart(void)
-{
-    gettimeofday(&machine_start_time, NULL);
-    machine_start_time.tv_sec -= DPDKGetSeconds();
-}
-
-/**
- * Initializes real_tv to the correct real time. Adds TSC counter value to the timeval of
- * the machine start
- * @param machine_start_tv - timestamp when the machine was started
- * @param real_tv
- */
-static SCTime_t DPDKSetTimevalReal(struct timeval *machine_start_tv)
-{
-    struct timeval real_tv;
-    CyclesAddToTimeval(rte_get_tsc_cycles(), machine_start_tv, &real_tv);
-    return SCTIME_FROM_TIMEVAL(&real_tv);
-}
-
-/* get number of seconds from the reset of TSC counter (typically from the machine start) */
-static uint64_t DPDKGetSeconds(void)
-{
-    return CyclesToSeconds(rte_get_tsc_cycles());
 }
 
 static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -401,10 +345,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     SCEnter();
     Packet *p;
     uint16_t nb_rx;
-    time_t last_dump = 0;
-    time_t current_time;
+    SCTime_t last_dump = { 0 };
+    SCTime_t current_time;
     bool segmented_mbufs_warned = 0;
-    SCTime_t t = DPDKSetTimevalReal(&machine_start_time);
+    SCTime_t t = TimeGet();
     uint64_t last_timeout_msec = SCTIME_MSECS(t);
 
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
@@ -439,7 +383,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
         nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
         if (unlikely(nb_rx == 0)) {
-            t = DPDKSetTimevalReal(&machine_start_time);
+            t = TimeGet();
             uint64_t msecs = SCTIME_MSECS(t);
             if (msecs > last_timeout_msec + 100) {
                 TmThreadsCaptureHandleTimeout(tv, NULL);
@@ -480,7 +424,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
 
-            p->ts = DPDKSetTimevalReal(&machine_start_time);
+            p->ts = TimeGet();
             p->dpdk_v.mbuf = ptv->received_mbufs[i];
             p->ReleasePacket = DPDKReleasePacket;
             p->dpdk_v.copy_mode = ptv->copy_mode;
@@ -536,8 +480,8 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         /* Trigger one dump of stats every second */
-        current_time = DPDKGetSeconds();
-        if (current_time != last_dump) {
+        current_time = TimeGet();
+        if (current_time.secs != last_dump.secs) {
             DPDKDumpCounters(ptv);
             last_dump = current_time;
         }
