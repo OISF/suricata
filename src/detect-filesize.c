@@ -127,7 +127,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     fsd = DetectU64Parse(str);
     if (fsd == NULL)
-        goto error;
+        SCReturnInt(-1);
 
     sm = SigMatchAlloc();
     if (sm == NULL)

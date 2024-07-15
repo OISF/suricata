@@ -19,7 +19,7 @@
 
 #define TEST_OK(str, m, lo, hi)                                                                    \
     {                                                                                              \
-        DetectU64Data *bsz = DetectBsizeParse((str));                                              \
+        DetectU64Data *bsz = DetectU64Parse((str));                                                \
         FAIL_IF_NULL(bsz);                                                                         \
         FAIL_IF_NOT(bsz->mode == (m));                                                             \
         DetectBsizeFree(NULL, bsz);                                                                \
@@ -27,7 +27,7 @@
     }
 #define TEST_FAIL(str)                                                                             \
     {                                                                                              \
-        DetectU64Data *bsz = DetectBsizeParse((str));                                              \
+        DetectU64Data *bsz = DetectU64Parse((str));                                                \
         FAIL_IF_NOT_NULL(bsz);                                                                     \
     }
 

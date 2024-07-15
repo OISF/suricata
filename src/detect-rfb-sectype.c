@@ -91,20 +91,6 @@ static int DetectRfbSectypeMatch (DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \internal
- * \brief Function to parse options passed via rfb.sectype keywords.
- *
- * \param rawstr Pointer to the user provided options.
- *
- * \retval dd pointer to DetectU32Data on success.
- * \retval NULL on failure.
- */
-static DetectU32Data *DetectRfbSectypeParse(const char *rawstr)
-{
-    return DetectU32Parse(rawstr);
-}
-
-/**
  * \brief Function to add the parsed RFB security type field into the current signature.
  *
  * \param de_ctx Pointer to the Detection Engine Context.
@@ -119,10 +105,10 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0)
         return -1;
 
-    DetectU32Data *dd = DetectRfbSectypeParse(rawstr);
+    DetectU32Data *dd = DetectU32Parse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
     }
 
     /* okay so far so good, lets get this into a SigMatch

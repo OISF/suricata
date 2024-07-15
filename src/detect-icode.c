@@ -121,7 +121,8 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     SigMatch *sm = NULL;
 
     icd = DetectU8Parse(icodestr);
-    if (icd == NULL) goto error;
+    if (icd == NULL)
+        return -1;
 
     sm = SigMatchAlloc();
     if (sm == NULL) goto error;
