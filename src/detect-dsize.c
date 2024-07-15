@@ -121,7 +121,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError("Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
-        goto error;
+        return -1;
     }
 
     SCLogDebug("\'%s\'", rawstr);
@@ -129,7 +129,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     dd = DetectU16Parse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
     }
 
     /* Okay so far so good, lets get this into a SigMatch
@@ -138,7 +138,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
             de_ctx, s, DETECT_DSIZE, (SigMatchCtx *)dd, DETECT_SM_LIST_MATCH);
     if (sm == NULL) {
         rs_detect_u16_free(dd);
-        goto error;
+        return -1;
     }
 
     SCLogDebug("dd->arg1 %" PRIu16 ", dd->arg2 %" PRIu16 ", dd->mode %" PRIu8 "", dd->arg1,
@@ -152,9 +152,6 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     }
 
     return 0;
-
-error:
-    return -1;
 }
 
 /**

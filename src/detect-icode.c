@@ -120,20 +120,17 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectU8Data *icd = NULL;
 
     icd = DetectU8Parse(icodestr);
-    if (icd == NULL) goto error;
+    if (icd == NULL)
+        return -1;
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
             NULL) {
-        goto error;
+        rs_detect_u8_free(icd);
+        return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
-
-error:
-    if (icd != NULL)
-        rs_detect_u8_free(icd);
-    return -1;
 }
 
 /**
