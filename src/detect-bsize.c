@@ -157,20 +157,6 @@ int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eo
     return 0;
 }
 
-/**
- * \brief This function is used to parse bsize options passed via bsize: keyword
- *
- * \param bsizestr Pointer to the user provided bsize options
- *
- * \retval bsized pointer to DetectU64Data on success
- * \retval NULL on failure
- */
-
-static DetectU64Data *DetectBsizeParse(const char *str)
-{
-    return DetectU64Parse(str);
-}
-
 static int SigParseGetMaxBsize(DetectU64Data *bsz)
 {
     switch (bsz->mode) {
@@ -208,9 +194,9 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (list == DETECT_SM_LIST_NOTSET)
         SCReturnInt(-1);
 
-    DetectU64Data *bsz = DetectBsizeParse(sizestr);
+    DetectU64Data *bsz = DetectU64Parse(sizestr);
     if (bsz == NULL)
-        goto error;
+        SCReturnInt(-1);
 
     sm = SigMatchAlloc();
     if (sm == NULL)
