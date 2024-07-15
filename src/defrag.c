@@ -856,7 +856,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         }
     }
 
-    if (ltrim > data_len) {
+    if (ltrim >= data_len) {
         /* Full packet has been trimmed due to the overlap policy. Overlap
          * already set. */
         goto done;
