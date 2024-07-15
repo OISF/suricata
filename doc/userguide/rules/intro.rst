@@ -229,15 +229,13 @@ Direction
 The directional arrow indicates which way the signature will be evaluated.
 In most signatures an arrow to the right (``->``) is used. This means that only
 packets with the same direction can match.
-It is also possible to have a double arrow (``=>``) which means that the
-directionality for adresses and ports is used,
-but such a rule can match a bidirectional transaction, using keywords
-matching in each direction.
-However, it is also possible to have a rule match both directions (``<>``)::
+There is also the double arrow (``=>``), which respects the directionality as ``->``,
+but allows matching on bidirectional transactions, used with keywords matching each direction.
+Finally, it is also possible to have a rule match either directions (``<>``)::
 
   source -> destination
   source => destination
-  source <> destination  (both directions)
+  source <> destination  (either directions)
 
 The following example illustrates direction. In this example there is a client
 with IP address 1.2.3.4 using port 1024. A server with IP address 5.6.7.8,
@@ -253,9 +251,21 @@ Now, let's say we have a rule with the following header::
 Only the traffic from the client to the server will be matched by this rule,
 as the direction specifies that we do not want to evaluate the response packet.
 
+Now,if we have a rule with the following header::
+
+    alert tcp 1.2.3.4 any <> 5.6.7.8 80
+
+Suricata will duplicate it and use the same rule with headers in both directions :
+
+    alert tcp 1.2.3.4 any -> 5.6.7.8 80
+    alert tcp 5.6.7.8 80 -> 1.2.3.4 any
+
 .. warning::
 
    There is no 'reverse' style direction, i.e. there is no ``<-``.
+
+Bidirectional rules
+~~~~~~~~~~~~~~~~~~~
 
 Here is an example of a bidirectional rule:
 
@@ -268,7 +278,7 @@ And it will match on a full transaction, using both the uri from the request,
 and the stat_code from the response.
 As such, it will match only when Suricata got both request and response.
 
-Bidirectional rules can use direction-abmibuous keywords, by first using
+Bidirectional rules can use direction-ambiguous keywords, by first using
 ``bidir.toclient`` or ``bidir.toserver`` keywords.
 
 .. container:: example-rule
@@ -277,10 +287,10 @@ Bidirectional rules can use direction-abmibuous keywords, by first using
 
 Bidirectional rules have some limitations :
 - They are only meant to work on transactions with first a request to the server,
-and then a response to the client, and not the other way around.
-- They cann have ``fast_pattern`` or ``prefilter`` on a keyword which is on
-the direction to client only if they do not have any have streaming buffers
-for detection on the other side.
+and then a response to the client, and not the other way around (not tested).
+- They cannot have ``fast_pattern`` or ``prefilter`` on a keyword which is on
+the direction to client only if they do have any streaming buffers for detection
+on the other side.
 - They will refuse to load if a single directional rule is enough.
 
 Rule options
