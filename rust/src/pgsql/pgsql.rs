@@ -36,17 +36,27 @@ static mut PGSQL_MAX_TX: usize = 1024;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
-pub enum PgsqlTransactionState {
-    Init = 0,
-    RequestReceived,
-    ResponseDone,
-    FlushedOut,
+pub enum PgsqlTxReqProgress {
+    TxReqInit = 0,
+    TxReqReceived,
+    TxReqDone,
+    TxReqFlushedOut,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+pub enum PgsqlTxResProgress {
+    TxResInit = 0,
+    TxResReceived,
+    TxResDone,
+    TxResFlushedOut,
 }
 
 #[derive(Debug)]
 pub struct PgsqlTransaction {
     pub tx_id: u64,
-    pub tx_state: PgsqlTransactionState,
+    pub tx_req_state: PgsqlTxReqProgress,
+    pub tx_res_state: PgsqlTxResProgress,
     pub request: Option<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
@@ -72,7 +82,8 @@ impl PgsqlTransaction {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            tx_state: PgsqlTransactionState::Init,
+            tx_req_state: PgsqlTxReqProgress::TxReqInit,
+            tx_res_state: PgsqlTxResProgress::TxResInit,
             request: None,
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
@@ -97,28 +108,30 @@ impl PgsqlTransaction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PgsqlStateProgress {
     IdleState,
+// Related to Frontend-received messages //
     SSLRequestReceived,
-    SSLRejectedReceived,
     StartupMessageReceived,
-    SASLAuthenticationReceived,
     SASLInitialResponseReceived,
-    // SSPIAuthenticationReceived, // TODO implement
     SASLResponseReceived,
+    PasswordMessageReceived,
+    SimpleQueryReceived,
+    CancelRequestReceived,
+    ConnectionTerminated,
+// Related to Backend-received messages //
+    SSLRejectedReceived,
+    // SSPIAuthenticationReceived, // TODO implement
+    SASLAuthenticationReceived,
     SASLAuthenticationContinueReceived,
     SASLAuthenticationFinalReceived,
     SimpleAuthenticationReceived,
-    PasswordMessageReceived,
     AuthenticationOkReceived,
     ParameterSetup,
     BackendKeyReceived,
     ReadyForQueryReceived,
-    SimpleQueryReceived,
     RowDescriptionReceived,
     DataRowReceived,
     CommandCompletedReceived,
     ErrorMessageReceived,
-    CancelRequestReceived,
-    ConnectionTerminated,
     #[cfg(test)]
     UnknownState,
     Finished,
@@ -203,8 +216,9 @@ impl PgsqlState {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
-                if tx_old.tx_state < PgsqlTransactionState::ResponseDone {
-                    tx_old.tx_state = PgsqlTransactionState::FlushedOut;
+                if tx_old.tx_req_state < PgsqlTxReqProgress::TxReqDone && tx_old.tx_res_state < PgsqlTxResProgress::TxResDone {
+                    tx_old.tx_req_state = PgsqlTxReqProgress::TxReqFlushedOut;
+                    tx_old.tx_res_state = PgsqlTxResProgress::TxResFlushedOut;
                     //TODO set event
                     break;
                 }
@@ -244,16 +258,29 @@ impl PgsqlState {
     ///
     /// As Pgsql transactions are bidirectional and may be comprised of several
     /// responses, we must track State progress to decide on tx completion
-    fn is_tx_completed(&self) -> bool {
-        if let PgsqlStateProgress::ReadyForQueryReceived
-        | PgsqlStateProgress::SSLRejectedReceived
-        | PgsqlStateProgress::SimpleAuthenticationReceived
-        | PgsqlStateProgress::SASLAuthenticationReceived
-        | PgsqlStateProgress::SASLAuthenticationContinueReceived
-        | PgsqlStateProgress::SASLAuthenticationFinalReceived
-        | PgsqlStateProgress::ConnectionTerminated
-        | PgsqlStateProgress::Finished = self.state_progress
+    fn is_tx_completed(&self, direction: Direction) -> bool {
+        if direction == Direction::ToClient
         {
+            if let PgsqlStateProgress::ReadyForQueryReceived
+            | PgsqlStateProgress::SSLRejectedReceived
+            | PgsqlStateProgress::SimpleAuthenticationReceived
+            | PgsqlStateProgress::SASLAuthenticationReceived
+            | PgsqlStateProgress::SASLAuthenticationContinueReceived
+            | PgsqlStateProgress::SASLAuthenticationFinalReceived
+            | PgsqlStateProgress::Finished = self.state_progress
+            {
+                true
+            } else {
+                false
+            }
+        } else if let PgsqlStateProgress::SSLRequestReceived
+        | PgsqlStateProgress::StartupMessageReceived
+        | PgsqlStateProgress::SimpleQueryReceived
+        | PgsqlStateProgress::PasswordMessageReceived
+        | PgsqlStateProgress::SASLInitialResponseReceived
+        | PgsqlStateProgress::SASLResponseReceived
+        | PgsqlStateProgress::CancelRequestReceived
+        | PgsqlStateProgress::ConnectionTerminated = self.state_progress {
             true
         } else {
             false
@@ -343,14 +370,21 @@ impl PgsqlState {
                 Ok((rem, request)) => {
                     sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                     start = rem;
+                    let mut temp_state = PgsqlStateProgress::IdleState;
                     if let Some(state) = PgsqlState::request_next_state(&request) {
                         self.state_progress = state;
+                        temp_state = state;
                     };
-                    let tx_completed = self.is_tx_completed();
+                    let tx_completed = self.is_tx_completed(Direction::ToServer);
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.request = Some(request);
                         if tx_completed {
-                            tx.tx_state = PgsqlTransactionState::ResponseDone;
+                            if temp_state == PgsqlStateProgress::ConnectionTerminated || temp_state == PgsqlStateProgress::CancelRequestReceived { 
+                                tx.tx_req_state = PgsqlTxReqProgress::TxReqDone;
+                                tx.tx_res_state = PgsqlTxResProgress::TxResDone;
+                            } else {
+                                tx.tx_req_state = PgsqlTxReqProgress::TxReqDone;
+                            }
                         }
                     } else {
                         // If there isn't a new transaction, we'll consider Suri should move on
@@ -477,9 +511,12 @@ impl PgsqlState {
                     if let Some(state) = self.response_process_next_state(&response, flow) {
                         self.state_progress = state;
                     };
-                    let tx_completed = self.is_tx_completed();
+                    let tx_completed = self.is_tx_completed(Direction::ToClient);
                     let curr_state = self.state_progress;
                     if let Some(tx) = self.find_or_create_tx() {
+                        if tx.tx_res_state == PgsqlTxResProgress::TxResInit {
+                            tx.tx_res_state = PgsqlTxResProgress::TxResReceived;
+                        }
                         if curr_state == PgsqlStateProgress::DataRowReceived {
                             tx.incr_row_cnt();
                         } else if curr_state == PgsqlStateProgress::CommandCompletedReceived
@@ -497,7 +534,9 @@ impl PgsqlState {
                         } else {
                             tx.responses.push(response);
                             if tx_completed {
-                                tx.tx_state = PgsqlTransactionState::ResponseDone;
+                                tx.tx_req_state = PgsqlTxReqProgress::TxReqDone;
+                                tx.tx_res_state = PgsqlTxResProgress::TxResDone;
+                                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                             }
                         }
                     } else {
@@ -706,19 +745,33 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
+pub extern "C" fn rs_pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> PgsqlTxReqProgress {
     let tx_safe: &mut PgsqlTransaction;
     unsafe {
         tx_safe = cast_pointer!(tx, PgsqlTransaction);
     }
-    return tx_safe.tx_state;
+    return tx_safe.tx_req_state;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_pgsql_tx_get_res_state(tx: *mut std::os::raw::c_void) -> PgsqlTxResProgress {
+    let tx_safe: &mut PgsqlTransaction;
+    unsafe {
+        tx_safe = cast_pointer!(tx, PgsqlTransaction);
+    }
+    return tx_safe.tx_res_state;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void, _direction: u8,
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_pgsql_tx_get_state(tx) as i32;
+    if direction == Direction::ToServer as u8 {
+        return rs_pgsql_tx_get_req_state(tx) as i32;
+    }
+
+    // Direction has only two possible values, so we don't need to check for the other one
+    return rs_pgsql_tx_get_res_state(tx) as i32;
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
@@ -746,8 +799,8 @@ pub unsafe extern "C" fn rs_pgsql_register_parser() {
         parse_tc: rs_pgsql_parse_response,
         get_tx_count: rs_pgsql_state_get_tx_count,
         get_tx: rs_pgsql_state_get_tx,
-        tx_comp_st_ts: PgsqlTransactionState::RequestReceived as i32,
-        tx_comp_st_tc: PgsqlTransactionState::ResponseDone as i32,
+        tx_comp_st_ts: PgsqlTxReqProgress::TxReqDone as i32,
+        tx_comp_st_tc: PgsqlTxResProgress::TxResDone as i32,
         tx_get_progress: rs_pgsql_tx_get_alstate_progress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
