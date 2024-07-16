@@ -1,0 +1,13 @@
+# Suricata commit template
+# See https://docs.suricata.io/en/latest/devguide/contributing/code-submission-process.html
+# Commit Title
+
+# Description
+# Provide a description of the changes in this commit that
+# gives the "why" for the change(s). Optionally, provide the
+# actual changes (the "what").
+# - List main changes
+# - List the motivation for each change
+# - Optionally, include the specific changes
+
+Ticket: <Redmine ticket number>
