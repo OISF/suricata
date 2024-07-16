@@ -25,12 +25,10 @@
 #ifndef SURICATA_RUNMODE_NAPATECH_H
 #define SURICATA_RUNMODE_NAPATECH_H
 
-#ifdef HAVE_NAPATECH
 #include <nt.h>
-#endif /* HAVE_NAPATECH */
 
 int RunModeNapatechWorkers(void);
-void RunModeNapatechRegister(void);
+void RunModeNapatechRegister(int slot);
 const char *RunModeNapatechGetDefaultMode(void);
 
 uint16_t NapatechGetNumConfiguredStreams(void);
