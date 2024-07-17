@@ -678,6 +678,10 @@ void OutputTxLoggerRegister (void)
 
 void OutputTxShutdown(void)
 {
+    // called in different places because of unix socket mode, and engine-analysis mode
+    if (list == NULL) {
+        return;
+    }
     for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
         OutputTxLogger *logger = list[alproto];
         while (logger) {

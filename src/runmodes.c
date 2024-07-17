@@ -582,6 +582,7 @@ void RunModeShutDown(void)
     RunOutputFreeList();
 
     OutputPacketShutdown();
+    OutputTxShutdown();
     OutputFileShutdown();
     OutputFiledataShutdown();
     OutputStreamingShutdown();
