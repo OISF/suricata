@@ -313,6 +313,27 @@ int DeviceGetNumaID(hwloc_topology_t topology, hwloc_obj_t obj) {
     return -1;
 }
 
+void get_numa_nodes_from_pcie(hwloc_topology_t topology, hwloc_obj_t pcie_obj) {
+    hwloc_obj_t nodes[16]; // Assuming a maximum of 16 NUMA nodes
+    unsigned num_nodes = 16;
+    struct hwloc_location location;
+    
+    location.type = HWLOC_LOCATION_TYPE_OBJECT;
+    location.location.object = pcie_obj;
+
+    int result = hwloc_get_local_numanode_objs(topology, &location, &num_nodes, nodes, 0);
+    if (result == 0 && num_nodes > 0) {
+        printf("NUMA nodes for PCIe device:\n");
+        for (unsigned i = 0; i < num_nodes; i++) {
+            printf("NUMA node %d\n", nodes[i]->logical_index);
+        }
+    } else {
+        printf("No NUMA node found for PCIe device.\n");
+    }
+}
+
+
+
 // Static function to find the NUMA node of a given hwloc object
 static hwloc_obj_t find_numa_node(hwloc_topology_t topology, hwloc_obj_t obj) {
     if (!obj) {
@@ -443,24 +464,8 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
         }
     }
 
-    // hwloc_topology_export_xml(topology, "/tmp/hwloc_topology.xml", HWLOC_TOPOLOGY_EXPORT_XML_FLAG_V1);
-    
-
-    hwloc_obj_t obj1 = NULL;
-    // while ((obj1 = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE, obj1)) != NULL) {
-    //     // print out all attributes
-    //     if (obj1->name != NULL && strncmp(obj1->name, "ens1f0", MIN(strlen(obj1->name), strlen("ens1f0"))) == 0) {
-    //         SCLogNotice("Found PCI device: %s\n", obj1->name);
-    //         SCLogNotice("Domain: %d\n", obj1->attr->pcidev.domain);
-    //         SCLogNotice("Bus: %d\n", obj1->attr->pcidev.bus);
-    //         SCLogNotice("Dev: %d\n", obj1->attr->pcidev.dev);
-    //     }
-    //     // infos = hwloc_obj_get_info_by_name(obj1, "PCIBusID");
-    // }
-
-    obj1 = get_hwloc_object_from_pcie_address(topology, "0000:17:00.0");
-    print_hwloc_object(obj1);
-    SCLogNotice("PCI device not found,  went over all devices");
+    hwloc_obj_t obj1 = get_hwloc_object_from_pcie_address(topology, "0000:17:00.0");
+    // print_hwloc_object(obj1);
 
     obj1 = find_pcie_address(topology, "ens1f1");
     if (obj1 != NULL) {
@@ -468,35 +473,9 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
         snprintf(pcie_address, sizeof(pcie_address), "%04x:%02x:%02x.%x", obj1->attr->pcidev.domain, obj1->attr->pcidev.bus, obj1->attr->pcidev.dev, obj1->attr->pcidev.func);
         SCLogNotice("PCIe addr of ens1f0 is %s with NUMA id %d or %p", pcie_address, DeviceGetNumaID(topology, obj1), find_numa_node(topology, obj1));
     }
+
+    get_numa_nodes_from_pcie(topology, obj1);
     
-    // hwloc_obj_t ancestor = hwloc_get_non_io_ancestor_obj(topology, obj1);
-    // if (ancestor && ancestor->type == HWLOC_OBJ_NUMANODE) {
-    //     printf("NUMA node: %d\n", ancestor->logical_index);
-    // } else {
-    //     // Traverse further up to ensure finding the NUMA node
-    //     while (ancestor && ancestor->type != HWLOC_OBJ_NUMANODE) {
-    //         ancestor = ancestor->parent;
-    //     }
-    //     if (ancestor && ancestor->type == HWLOC_OBJ_NUMANODE) {
-    //         printf("NUMA node: %d\n", ancestor->logical_index);
-    //     } else {
-    //         printf("No NUMA node found for the given PCI device.\n");
-    //     }    }
-
-    hwloc_obj_t ancestor = obj1;
-    while (ancestor) {
-        if (ancestor->type == HWLOC_OBJ_NUMANODE) {
-            printf("NUMA node: %d\n", ancestor->logical_index);
-            break;
-        }
-        ancestor = ancestor->parent;
-    }
-
-    // Step 6: Handle the case where no NUMA node is found
-    if (!ancestor || ancestor->type != HWLOC_OBJ_NUMANODE) {
-        printf("No NUMA node found for the given PCI device.\n");
-    }
-
     int core_id = 3; // Example core ID
     int depth = hwloc_get_type_depth(topology, HWLOC_OBJ_NUMANODE);
     hwloc_obj_t numa_node = NULL;
