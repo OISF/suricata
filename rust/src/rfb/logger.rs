@@ -17,7 +17,9 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
+use super::parser::RFBSecurityResultStatus;
 use super::rfb::RFBTransaction;
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 use std::fmt::Write;
@@ -67,15 +69,14 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         _ => (),
     }
     if let Some(security_result) = &tx.tc_security_result {
-        let _ = match security_result.status {
-            0 => js.set_string("security_result", "OK")?,
-            1 => js.set_string("security-result", "FAIL")?,
-            2 => js.set_string("security_result", "TOOMANY")?,
-            _ => js.set_string(
+        if let Some(status) = RFBSecurityResultStatus::from_u(security_result.status) {
+            js.set_string("security_result", &status.to_str().to_uppercase())?;
+        } else {
+            js.set_string(
                 "security_result",
                 &format!("UNKNOWN ({})", security_result.status),
-            )?,
-        };
+            )?;
+        }
     }
     js.close()?; // Close authentication.
 

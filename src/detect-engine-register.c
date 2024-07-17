@@ -208,9 +208,6 @@
 #include "detect-sip-stat-msg.h"
 #include "detect-sip-request-line.h"
 #include "detect-sip-response-line.h"
-#include "detect-rfb-secresult.h"
-#include "detect-rfb-sectype.h"
-#include "detect-rfb-name.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
 #include "detect-quic-sni.h"
@@ -672,9 +669,6 @@ void SigTableSetup(void)
     DetectSipStatMsgRegister();
     DetectSipRequestLineRegister();
     DetectSipResponseLineRegister();
-    DetectRfbSecresultRegister();
-    DetectRfbSectypeRegister();
-    DetectRfbNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
     DetectQuicSniRegister();
@@ -709,6 +703,7 @@ void SigTableSetup(void)
     ScDetectWebsocketRegister();
     ScDetectEnipRegister();
     ScDetectMqttRegister();
+    ScDetectRfbRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
