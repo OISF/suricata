@@ -881,9 +881,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                         spare_pool_len, flow_config.prealloc,
                         spare_pool_len * 100 / MAX(flow_config.prealloc, 1));
 
+                uint64_t flows_in_memory = FlowGetMemuse()/(flow_config.hash_size * sizeof(FlowBucket));
                 /* only if we have pruned this "emergency_recovery" percentage
                  * of flows, we will unset the emergency bit */
-                if ((spare_pool_len * 100 / MAX(flow_config.prealloc, 1)) >
+                if ((spare_pool_len * 100 / MAX(flows_in_memory, 1)) >
                         flow_config.emergency_recovery) {
                     emerg_over_cnt++;
                 } else {
