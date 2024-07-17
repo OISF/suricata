@@ -674,6 +674,11 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
+    BUG_ON(list);
+    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+    if (unlikely(list == NULL)) {
+        FatalError("Failed to allocate OutputTx list");
+    }
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
