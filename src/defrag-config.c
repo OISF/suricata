@@ -124,7 +124,7 @@ static void DefragParseParameters(ConfNode *n)
     }
 }
 
-void DefragSetDefaultTimeout(intmax_t timeout)
+void DefragSetDefaultTimeout(int timeout)
 {
     default_timeout = timeout;
     SCLogDebug("default timeout %d", default_timeout);
