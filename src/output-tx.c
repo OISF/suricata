@@ -687,10 +687,6 @@ void OutputTxShutdown(void)
         }
         list[alproto] = NULL;
     }
-}
-
-void OutputTxDestroy(void)
-{
     SCFree(list);
     list = NULL;
 }
