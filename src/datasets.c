@@ -522,8 +522,8 @@ static int DatasetLoadString(Dataset *set)
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, Base64ModeStrict);
+            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
+                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -543,8 +543,8 @@ static int DatasetLoadString(Dataset *set)
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, Base64ModeStrict);
+            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
+                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -1012,7 +1012,7 @@ static int SaveCallback(void *ctx, const uint8_t *data, const uint32_t data_len)
     FILE *fp = ctx;
     //PrintRawDataFp(fp, data, data_len);
     if (fp) {
-        return fwrite(data, data_len, 1, fp);
+        return (int)fwrite(data, data_len, 1, fp);
     }
     return 0;
 }
@@ -1024,7 +1024,7 @@ static int Md5AsAscii(const void *s, char *out, size_t out_size)
     PrintHexString(str, sizeof(str), (uint8_t *)md5->md5, sizeof(md5->md5));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int Sha256AsAscii(const void *s, char *out, size_t out_size)
@@ -1034,7 +1034,7 @@ static int Sha256AsAscii(const void *s, char *out, size_t out_size)
     PrintHexString(str, sizeof(str), (uint8_t *)sha->sha256, sizeof(sha->sha256));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int IPv4AsAscii(const void *s, char *out, size_t out_size)
@@ -1044,7 +1044,7 @@ static int IPv4AsAscii(const void *s, char *out, size_t out_size)
     PrintInet(AF_INET, ip4->ipv4, str, sizeof(str));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int IPv6AsAscii(const void *s, char *out, size_t out_size)
@@ -1065,7 +1065,7 @@ static int IPv6AsAscii(const void *s, char *out, size_t out_size)
     }
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 void DatasetsSave(void)
@@ -1610,8 +1610,9 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, Base64ModeStrict);
+            Base64Ecode code =
+                    DecodeBase64(decoded, (uint32_t)strlen(string), (const uint8_t *)string,
+                            (uint32_t)strlen(string), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 return -2;
             }

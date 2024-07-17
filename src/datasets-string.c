@@ -55,7 +55,7 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
 
     strlcpy(out, (const char *)encoded_data, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 int StringSet(void *dst, void *src)
