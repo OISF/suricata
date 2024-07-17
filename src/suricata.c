@@ -520,7 +520,7 @@ static void SetBpfStringFromFile(char *filename)
         SCLogError("Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
-    if (st.st_size > UINT32_MAX - 1) {
+    if ((uint64_t)st.st_size > UINT32_MAX - 1) {
         SCLogError("Too big file %s", filename);
         exit(EXIT_FAILURE);
     }
