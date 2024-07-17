@@ -37,7 +37,6 @@ noinst_HEADERS = \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-register.h \
-	app-layer-rfb.h \
 	app-layer-smb.h \
 	app-layer-smtp.h \
 	app-layer-ssh.h \
@@ -618,7 +617,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-register.c \
-	app-layer-rfb.c \
 	app-layer-smb.c \
 	app-layer-smtp.c \
 	app-layer-ssh.c \
