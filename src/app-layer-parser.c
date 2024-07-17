@@ -52,7 +52,6 @@
 #include "app-layer-nfs-udp.h"
 #include "app-layer-tftp.h"
 #include "app-layer-ike.h"
-#include "app-layer-rfb.h"
 #include "app-layer-http2.h"
 #include "app-layer-imap.h"
 
@@ -1726,7 +1725,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_websocket_register_parser();
     rs_ldap_register_parser();
     rs_template_register_parser();
-    RegisterRFBParsers();
+    SCRfbRegisterParser();
     SCMqttRegisterParser();
     rs_pgsql_register_parser();
     rs_rdp_register_parser();
