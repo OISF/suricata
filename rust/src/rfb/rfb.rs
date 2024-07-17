@@ -26,6 +26,7 @@ use crate::frames::*;
 use nom7::Err;
 use std;
 use std::ffi::CString;
+use std::os::raw::c_char;
 
 pub(super) static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
@@ -831,7 +832,7 @@ export_tx_data_get!(rs_rfb_get_tx_data, RFBTransaction);
 export_state_data_get!(rs_rfb_get_state_data, RFBState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_register_parser() {
+pub unsafe extern "C" fn SCRfbRegisterParser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -874,6 +875,28 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         }
         SCLogDebug!("Rust rfb parser registered.");
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
+        if AppLayerProtoDetectPMRegisterPatternCI(
+            IPPROTO_TCP,
+            ALPROTO_RFB,
+            b"RFB \0".as_ptr() as *const c_char,
+            b"RFB ".len() as u16,
+            0,
+            crate::core::Direction::ToServer.into(),
+        ) < 0
+        {
+            SCLogDebug!("Failed to register protocol detection pattern for direction TOSERVER");
+        };
+        if AppLayerProtoDetectPMRegisterPatternCI(
+            IPPROTO_TCP,
+            ALPROTO_RFB,
+            b"RFB \0".as_ptr() as *const c_char,
+            b"RFB ".len() as u16,
+            0,
+            crate::core::Direction::ToClient.into(),
+        ) < 0
+        {
+            SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");
+        }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for RFB.");
     }
