@@ -154,6 +154,9 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_RECORD);
     }
 #endif
+    #ifdef PROFILING
+    det_ctx->mtc.mpm_checks = 0;
+    #endif
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
         /* run packet engines */
@@ -198,6 +201,9 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
+    #ifdef PROFILING
+        SCProfilingSghUpdateMPMCounters(det_ctx, sgh);
+    #endif
     SCReturn;
 }
 

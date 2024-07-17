@@ -48,6 +48,9 @@ typedef struct MpmThreadCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
+#ifdef PROFILING
+    uint64_t mpm_checks;
+#endif
 
 } MpmThreadCtx;
 

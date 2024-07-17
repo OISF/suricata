@@ -945,6 +945,7 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         exit(EXIT_FAILURE);
     } else {
         ret = cctx.match_count;
+        mpm_thread_ctx->mpm_checks += pd->pattern_cnt;
     }
 
     return ret;

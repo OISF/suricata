@@ -24,8 +24,10 @@
  * An API for rule profiling operations.
  */
 
+#include "detect.h"
 #include "suricata-common.h"
 #include "util-profiling.h"
+#include <stdint.h>
 
 #ifdef PROFILING
 #include "util-conf.h"
@@ -37,13 +39,14 @@
  */
 typedef struct SCProfileSghData_ {
     uint64_t checks;
-
+    
     uint64_t non_mpm_generic;
     uint64_t non_mpm_syn;
 
     uint64_t post_prefilter_sigs_total;
     uint64_t post_prefilter_sigs_max;
-
+    
+    uint64_t mpm_checks;
     uint64_t mpm_match_cnt_total;
     uint64_t mpm_match_cnt_max;
 
@@ -178,15 +181,16 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
     fprintf(fp, "  ----------------------------------------------"
             "------------------------------------------------------"
             "----------------------------\n");
-    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Sgh", "Checks", "Non-MPM(gen)", "Non-Mpm(syn)", "MPM Matches", "MPM Match Max", "Post-Filter", "Post-Filter Max");
+    fprintf(fp, "  %-16s %-18s %-18s %-18s %-18s %-18s %-18s %-18s %-18s\n", "Sgh", "Checks", "Non-MPM(gen)", "Non-Mpm(syn)", "MPM Matches", "MPM Match Max", "Post-Filter", "Post-Filter Max", "MPM Checks (HS)");
     fprintf(fp, "  ---------------- "
-                "--------------- "
-                "--------------- "
-                "--------------- "
-                "--------------- "
-                "--------------- "
-                "--------------- "
-                "--------------- "
+                "------------------ "
+                "------------------ "
+                "------------------ "
+                "------------------ "
+                "------------------ "
+                "------------------ "
+                "------------------ "
+                "------------------ "
         "\n");
     for (i = 0; i < rules_ctx->cnt; i++) {
         SCProfileSghData *d = &rules_ctx->data[i];
@@ -204,7 +208,7 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
         }
 
         fprintf(fp,
-            "  %-16u %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f %-15"PRIu64" %-15.2f %-15"PRIu64"\n",
+            "  %-16u %-18"PRIu64" %-18"PRIu64" %-18"PRIu64" %-18.2f %-18"PRIu64" %-18.2f %-18"PRIu64" %-18"PRIu64"\n",
             i,
             d->checks,
             d->non_mpm_generic,
@@ -212,7 +216,8 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
             avgmpms,
             d->mpm_match_cnt_max,
             avgsigs,
-            d->post_prefilter_sigs_max);
+            d->post_prefilter_sigs_max,
+            d->mpm_checks);
     }
     fprintf(fp,"\n");
 }
@@ -278,6 +283,16 @@ SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *
             p->mpm_match_cnt_max = det_ctx->pmq.rule_id_array_cnt;
     }
 }
+/**
+ * \brief Update the prefilter MPM stats for a specific SigGroupHead 
+ * \param det_ctx the current thread context
+ * \param sgh pointer to the specific group head
+ * \param mpm_checks the number of mpm checks to add
+ */
+void
+SCProfilingSghUpdateMPMCounters(DetectEngineThreadCtx *det_ctx, const SigGroupHead * sgh) {
+    det_ctx->sgh_perf_data[sgh->id].mpm_checks += det_ctx->mtc.mpm_checks;
+}
 
 static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
 {
@@ -338,6 +353,7 @@ static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngin
         ADD(non_mpm_syn);
         ADD(post_prefilter_sigs_total);
         ADD(mpm_match_cnt_total);
+        ADD(mpm_checks);
 
         if (det_ctx->sgh_perf_data[i].mpm_match_cnt_max > de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max)
             de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max = det_ctx->sgh_perf_data[i].mpm_match_cnt_max;

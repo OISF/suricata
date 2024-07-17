@@ -69,3 +69,7 @@ test.sh
 /libsuricata-config
 !/libsuricata-config.in
 !/.readthedocs.yaml
+
+.cache/**
+libhtp/**
+dist/**

@@ -28,6 +28,7 @@
 #include "util-cpu.h"
 
 #include "detect.h"
+#include <stdint.h>
 
 #ifdef PROFILING
 
@@ -45,7 +46,7 @@ extern thread_local int profiling_keyword_entered;
 
 #define KEYWORD_PROFILING_SET_LIST(ctx, list) { \
     (ctx)->keyword_perf_list = (list); \
-}
+    }
 
 #define KEYWORD_PROFILING_START                                                                    \
     uint64_t profile_keyword_start_ = 0;                                                           \
@@ -108,18 +109,18 @@ PktProfiling *SCProfilePacketStart(void);
     } while (0)
 
 #define PACKET_PROFILING_COPY_LOCKS(p, id) do {                     \
-            (p)->profile->tmm[(id)].mutex_lock_cnt = mutex_lock_cnt;                \
-            (p)->profile->tmm[(id)].mutex_lock_wait_ticks = mutex_lock_wait_ticks;  \
-            (p)->profile->tmm[(id)].mutex_lock_contention = mutex_lock_contention;  \
-            (p)->profile->tmm[(id)].spin_lock_cnt = spin_lock_cnt;                  \
-            (p)->profile->tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks;    \
-            (p)->profile->tmm[(id)].spin_lock_contention = spin_lock_contention;    \
-            (p)->profile->tmm[(id)].rww_lock_cnt = rww_lock_cnt;                    \
-            (p)->profile->tmm[(id)].rww_lock_wait_ticks = rww_lock_wait_ticks;      \
-            (p)->profile->tmm[(id)].rww_lock_contention = rww_lock_contention;      \
-            (p)->profile->tmm[(id)].rwr_lock_cnt = rwr_lock_cnt;                    \
-            (p)->profile->tmm[(id)].rwr_lock_wait_ticks = rwr_lock_wait_ticks;      \
-            (p)->profile->tmm[(id)].rwr_lock_contention = rwr_lock_contention;      \
+        (p)->profile->tmm[(id)].mutex_lock_cnt = mutex_lock_cnt;                \
+        (p)->profile->tmm[(id)].mutex_lock_wait_ticks = mutex_lock_wait_ticks;  \
+        (p)->profile->tmm[(id)].mutex_lock_contention = mutex_lock_contention;  \
+        (p)->profile->tmm[(id)].spin_lock_cnt = spin_lock_cnt;                  \
+        (p)->profile->tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks;    \
+        (p)->profile->tmm[(id)].spin_lock_contention = spin_lock_contention;    \
+        (p)->profile->tmm[(id)].rww_lock_cnt = rww_lock_cnt;                    \
+        (p)->profile->tmm[(id)].rww_lock_wait_ticks = rww_lock_wait_ticks;      \
+        (p)->profile->tmm[(id)].rww_lock_contention = rww_lock_contention;      \
+        (p)->profile->tmm[(id)].rwr_lock_cnt = rwr_lock_cnt;                    \
+        (p)->profile->tmm[(id)].rwr_lock_wait_ticks = rwr_lock_wait_ticks;      \
+        (p)->profile->tmm[(id)].rwr_lock_contention = rwr_lock_contention;      \
         record_locks = 0;                                                           \
         SCProfilingAddPacketLocks((p));                                             \
     } while(0)
@@ -189,7 +190,7 @@ PktProfiling *SCProfilePacketStart(void);
         (dp)->proto_detect_ticks_end = UtilCpuGetTicks();           \
         if ((dp)->proto_detect_ticks_start != 0 && (dp)->proto_detect_ticks_start < ((dp)->proto_detect_ticks_end)) {  \
             (dp)->proto_detect_ticks_spent =                        \
-                ((dp)->proto_detect_ticks_end - (dp)->proto_detect_ticks_start);  \
+                    ((dp)->proto_detect_ticks_end - (dp)->proto_detect_ticks_start);  \
         }                                                           \
     }
 
@@ -226,7 +227,7 @@ PktProfiling *SCProfilePacketStart(void);
             if ((p)->profile->detect[(id)].ticks_start != 0 &&       \
                     (p)->profile->detect[(id)].ticks_start < (p)->profile->detect[(id)].ticks_end) {  \
                 (p)->profile->detect[(id)].ticks_spent +=            \
-                ((p)->profile->detect[(id)].ticks_end - (p)->profile->detect[(id)].ticks_start);  \
+                        ((p)->profile->detect[(id)].ticks_end - (p)->profile->detect[(id)].ticks_start);  \
             }                                                       \
         }                                                           \
     }
@@ -245,7 +246,7 @@ PktProfiling *SCProfilePacketStart(void);
             if ((p)->profile->logger[(id)].ticks_start != 0 &&       \
                     (p)->profile->logger[(id)].ticks_start < (p)->profile->logger[(id)].ticks_end) {  \
                 (p)->profile->logger[(id)].ticks_spent +=            \
-                ((p)->profile->logger[(id)].ticks_end - (p)->profile->logger[(id)].ticks_start);  \
+                        ((p)->profile->logger[(id)].ticks_end - (p)->profile->logger[(id)].ticks_start);  \
             }                                                       \
         }                                                           \
     }
@@ -316,6 +317,8 @@ void SCProfilingSghsGlobalInit(void);
 void SCProfilingSghDestroyCtx(DetectEngineCtx *);
 void SCProfilingSghInitCounters(DetectEngineCtx *);
 void SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh);
+void SCProfilingSghUpdateMPMCounters(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh);
+
 void SCProfilingSghThreadSetup(struct SCProfileSghDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *);
 
