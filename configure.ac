@@ -2302,6 +2302,15 @@ fi
                 AC_MSG_RESULT([yes]),
                 [AC_MSG_RESULT([no])
                 CFLAGS="$OCFLAGS"])
+        # check if our compiler supports -Wimplicit-int-float-conversion
+        AC_MSG_CHECKING(for -Wimplicit-int-float-conversion)
+        OCFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -Wimplicit-int-float-conversion"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                    [[]])],
+                AC_MSG_RESULT([yes]),
+                [AC_MSG_RESULT([no])
+                CFLAGS="$OCFLAGS"])
     ])
 
     AC_CHECK_LIB(fuzzpcap, FPC_IsFuzzPacketCapture, HAS_FUZZPCAP="yes")
