@@ -71,6 +71,14 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
+    if (list == NULL) {
+        list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+        if (unlikely(list == NULL)) {
+            SCLogError("Failed to allocate OutputTx list");
+            return -1;
+        }
+    }
+
     if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsEnabled(alproto))) {
         SCLogDebug(
                 "%s logger not enabled: protocol %s is disabled", name, AppProtoToString(alproto));
@@ -666,12 +674,6 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
-    BUG_ON(list);
-    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
-    if (unlikely(list == NULL)) {
-        FatalError("Failed to allocate OutputTx list");
-    }
-
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
