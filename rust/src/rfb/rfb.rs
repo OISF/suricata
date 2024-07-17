@@ -27,7 +27,7 @@ use nom7::Err;
 use std;
 use std::ffi::CString;
 
-static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum RFBEvent {
