@@ -78,6 +78,16 @@ pub struct ServerSecurityType {
     pub security_type: u32,
 }
 
+#[derive(Clone, Debug, Default, EnumStringU32)]
+#[repr(u32)]
+pub enum RFBSecurityResultStatus {
+    #[default]
+    Ok = 0,
+    Fail = 1,
+    TooMany = 2,
+    Unknown = 3,
+}
+
 pub struct SecurityResult {
     pub status: u32,
 }
