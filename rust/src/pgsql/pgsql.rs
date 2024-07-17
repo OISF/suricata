@@ -358,7 +358,6 @@ impl PgsqlState {
             );
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                     start = rem;
                     let mut temp_state = PgsqlStateProgress::IdleState;
                     if let Some(state) = PgsqlState::request_next_state(&request) {
@@ -374,6 +373,7 @@ impl PgsqlState {
                             } else {
                                 tx.tx_state = PgsqlTransactionState::RequestDone;
                             }
+                            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                         }
                     } else {
                         // If there isn't a new transaction, we'll consider Suri should move on
@@ -494,7 +494,6 @@ impl PgsqlState {
         while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
                     if let Some(state) = self.response_process_next_state(&response, flow) {
@@ -524,6 +523,7 @@ impl PgsqlState {
                             tx.responses.push(response);
                             if tx_completed {
                                 tx.tx_state = PgsqlTransactionState::ResponseDone;
+                                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                             }
                         }
                     } else {
