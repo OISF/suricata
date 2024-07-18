@@ -4637,8 +4637,12 @@
                                             "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
-                                "ldap": {
-                                    "description": "Errors encountered parsing LDAP protocol",
+                                "ldap_tcp": {
+                                    "description": "Errors encountered parsing LDAP/TCP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ldap_udp": {
+                                    "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "modbus": {
@@ -4805,8 +4809,12 @@
                                     "description": "Number of flows for Kerberos v5/UDP protocol",
                                     "type": "integer"
                                 },
-                                "ldap": {
-                                    "description": "Number of flows for LDAP protocol",
+                                "ldap_tcp": {
+                                    "description": "Number of flows for LDAP/TCP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_udp": {
+                                    "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
@@ -4968,8 +4976,12 @@
                                             "Number of transactions for Kerberos v5/UDP protocol",
                                     "type": "integer"
                                 },
-                                "ldap": {
-                                    "description": "Number of transactions for LDAP protocol",
+                                "ldap_tcp": {
+                                    "description": "Number of transactions for LDAP/TCP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_udp": {
+                                    "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
