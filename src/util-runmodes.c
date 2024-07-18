@@ -310,6 +310,13 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
         TmThreadSetCPU(tv, WORKER_CPU_SET);
 
+        if (tv->type == TVT_PPT) {
+            tv->iface_name = strdup(live_dev);
+            SCLogNotice("Duplicated livedev %s to %s", live_dev, tv->iface_name);
+        } else {
+            tv->iface_name = NULL;
+        }
+
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
             FatalError("TmThreadSpawn failed");
         }

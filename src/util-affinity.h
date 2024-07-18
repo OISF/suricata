@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "threads.h"
+#include "threadvars.h"
 
 #include <hwloc.h>
 
@@ -88,7 +89,7 @@ extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 void AffinitySetupLoadFromConfig(void);
 ThreadsAffinityType * GetAffinityTypeFromName(const char *name);
 
-uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf);
+uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf);
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
 #ifdef HAVE_DPDK
 uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);

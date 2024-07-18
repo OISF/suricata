@@ -135,6 +135,8 @@ typedef struct ThreadVars_ {
     struct FlowQueue_ *flow_queue;
     bool break_loop;
 
+    char *iface_name; // set if the TV is TVT_PPT
+
 } ThreadVars;
 
 /** Thread setup flags: */

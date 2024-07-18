@@ -860,7 +860,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
-            uint16_t cpu = AffinityGetNextCPU(taf);
+            uint16_t cpu = AffinityGetNextCPU(tv, taf);
             SetCPUAffinity(cpu);
             /* If CPU is in a set overwrite the default thread prio */
             if (CPU_ISSET(cpu, &taf->lowprio_cpu)) {

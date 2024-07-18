@@ -278,24 +278,7 @@ void AffinitySetupLoadFromConfig(void)
 
 static hwloc_topology_t topology = NULL;
 
-// int DeviceGetNumaID(hwloc_topology_t topology, hwloc_obj_t obj) {
-//     hwloc_obj_t numa_node = NULL;
-//     while ((numa_node = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_NUMANODE, numa_node)) != NULL) {
-//         SCLogNotice("another numa");
-//     }
-
-//     hwloc_obj_t parent = obj->parent;
-//     while (parent) {
-//         printf("Object type: %s\n", hwloc_obj_type_string(parent->type));
-//         if (parent->type == HWLOC_OBJ_NUMANODE) {
-//             return parent->logical_index;
-//         }
-//         parent = parent->parent;
-//     }
-
-//     return -1;
-// }
-int DeviceGetNumaID(hwloc_topology_t topology, hwloc_obj_t obj) {
+int HwLocDeviceNumaGet(hwloc_topology_t topology, hwloc_obj_t obj) {
     hwloc_obj_t non_io_ancestor = hwloc_get_non_io_ancestor_obj(topology, obj);
     if (non_io_ancestor == NULL) {
         fprintf(stderr, "Failed to find non-IO ancestor object.\n");
@@ -313,6 +296,7 @@ int DeviceGetNumaID(hwloc_topology_t topology, hwloc_obj_t obj) {
     return -1;
 }
 
+// can only be used from hwloc version 2.5 and up
 void get_numa_nodes_from_pcie(hwloc_topology_t topology, hwloc_obj_t pcie_obj) {
     hwloc_obj_t nodes[16]; // Assuming a maximum of 16 NUMA nodes
     unsigned num_nodes = 16;
@@ -331,8 +315,6 @@ void get_numa_nodes_from_pcie(hwloc_topology_t topology, hwloc_obj_t pcie_obj) {
         printf("No NUMA node found for PCIe device.\n");
     }
 }
-
-
 
 // Static function to find the NUMA node of a given hwloc object
 static hwloc_obj_t find_numa_node(hwloc_topology_t topology, hwloc_obj_t obj) {
@@ -366,7 +348,7 @@ static hwloc_obj_t find_numa_node(hwloc_topology_t topology, hwloc_obj_t obj) {
     return NULL;
 }
 
-hwloc_obj_t find_pcie_address(hwloc_topology_t topology, const char *interface_name) {
+static hwloc_obj_t HwLocDeviceGetByKernelName(hwloc_topology_t topology, const char *interface_name) {
     hwloc_obj_t obj = NULL;
 
     while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
@@ -397,7 +379,7 @@ static void deparse_pcie_address(const char *pcie_address, unsigned int *domain,
 }
 
 // Function to convert PCIe address to hwloc object
-hwloc_obj_t get_hwloc_object_from_pcie_address(hwloc_topology_t topology, const char *pcie_address) {
+static hwloc_obj_t HwLocDeviceGetByPcie(hwloc_topology_t topology, const char *pcie_address) {
     hwloc_obj_t obj = NULL;
     unsigned int domain, bus, device, function;
     deparse_pcie_address(pcie_address, &domain, &bus, &device, &function);
@@ -437,46 +419,9 @@ void print_hwloc_object(hwloc_obj_t obj) {
     }
 }
 
-
-/**
- * \brief Return next cpu to use for a given thread family
- * \retval the cpu to used given by its id
- */
-uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
+static bool CPUIsFromNuma(uint16_t ncpu, uint16_t numa)
 {
-    if (topology == NULL) {
-        if (hwloc_topology_init(&topology) == -1) {
-            FatalError("Failed to initialize topology");
-        }
-
-        // hwloc_topology_get_flags
-
-        int ret = hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
-        ret = hwloc_topology_set_io_types_filter(topology,  HWLOC_TYPE_FILTER_KEEP_ALL);
-        if (ret == -1) {
-            FatalError("Failed to set topology flags");
-            hwloc_topology_destroy(topology);
-        }
-
-        if (hwloc_topology_load(topology) == -1) {
-            FatalError("Failed to load topology");
-            hwloc_topology_destroy(topology);
-        }
-    }
-
-    hwloc_obj_t obj1 = get_hwloc_object_from_pcie_address(topology, "0000:17:00.0");
-    // print_hwloc_object(obj1);
-
-    obj1 = find_pcie_address(topology, "ens1f1");
-    if (obj1 != NULL) {
-        static char pcie_address[32];
-        snprintf(pcie_address, sizeof(pcie_address), "%04x:%02x:%02x.%x", obj1->attr->pcidev.domain, obj1->attr->pcidev.bus, obj1->attr->pcidev.dev, obj1->attr->pcidev.func);
-        SCLogNotice("PCIe addr of ens1f0 is %s with NUMA id %d or %p", pcie_address, DeviceGetNumaID(topology, obj1), find_numa_node(topology, obj1));
-    }
-
-    get_numa_nodes_from_pcie(topology, obj1);
-    
-    int core_id = 3; // Example core ID
+    int core_id = ncpu;
     int depth = hwloc_get_type_depth(topology, HWLOC_OBJ_NUMANODE);
     hwloc_obj_t numa_node = NULL;
 
@@ -492,10 +437,76 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
         hwloc_bitmap_free(cpuset);
     }
 
-    FatalError("ok enough");
+    if (numa == numa_node->logical_index)
+        return true;
+
+    return false;
+}
+
+
+/**
+ * \brief Return next cpu to use for a given thread family
+ * \retval the cpu to used given by its id
+ */
+uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf)
+{
+    // todo: instead of adding iface to the threadvars 
+    //   add a preffered NUMA node - that can be filled out in prior and it is more universal
+    int iface_numa = -1;
+
+    // threading.cpu-assignment:
+    //   - legacy - assign as usual
+    //   - auto - use hwloc to determine NUMA locality of the NIC and try to assign a core from this NUMA node.
+    //            If it fails then use the other NUMA node.
+    //            Using this approach e.g. on bonded devices/aliased and any other will not work
+    //            Warn/Notify a user when device's NUMA node cannot be determined.
+    //            Mention in the docs that NUMA locatity supports PCIe addresses and Kernel interfaces
+    //   - manual - in workers CPU set either:
+    //              - Specify in one line ([ "eth0@1,2,3,4,7-9", "eth1@10,11" ])
+    //              - Specify threading in a list:
+    //              - worker-cpu-set:
+    //                - interface: eth0
+    //                    cpu: [ 1,2,3,4 ]
+    //                    mode: "exclusive"
+    //                    prio:
+    //                      high: [ 3 ]
+    //                      default: "medium"
+
+    if (tv->type == TVT_PPT && tv->iface_name) {
+        if (topology == NULL) {
+            if (hwloc_topology_init(&topology) == -1) {
+                FatalError("Failed to initialize topology");
+            }
+            int ret = hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_WHOLE_SYSTEM);
+            ret = hwloc_topology_set_io_types_filter(topology,  HWLOC_TYPE_FILTER_KEEP_ALL);
+            if (ret == -1) {
+                FatalError("Failed to set topology flags");
+                hwloc_topology_destroy(topology);
+            }
+            if (hwloc_topology_load(topology) == -1) {
+                FatalError("Failed to load topology");
+                hwloc_topology_destroy(topology);
+            }
+        }
+
+        // try kernel inteface first
+        hwloc_obj_t obj1 = HwLocDeviceGetByKernelName(topology, tv->iface_name);
+        if (obj1 == NULL) {
+            // if unsuccessful try PCIe search
+            obj1 = HwLocDeviceGetByPcie(topology, tv->iface_name);
+        }
+
+        if (obj1 != NULL) {
+            static char pcie_address[32];
+            snprintf(pcie_address, sizeof(pcie_address), "%04x:%02x:%02x.%x", obj1->attr->pcidev.domain, obj1->attr->pcidev.bus, obj1->attr->pcidev.dev, obj1->attr->pcidev.func);
+            SCLogNotice("PCIe addr of ens1f0 is %s with NUMA id %d or %p", pcie_address, HwLocDeviceNumaGet(topology, obj1), find_numa_node(topology, obj1));
+        }
+
+        iface_numa = HwLocDeviceNumaGet(topology, obj1);
+        // can be combined with newer api in get_numa_nodes_from_pcie(topology, obj1);
+
+    }
     
-
-
     // if (topology != NULL) {
     //     int numa = get_numa_node_for_net_device(topology, "ens1f0");
     //     FatalError("NUMA node for ens1f0: %d\n", numa);
@@ -507,6 +518,26 @@ uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf)
     int iter = 0;
     SCMutexLock(&taf->taf_mutex);
     ncpu = taf->lcpu;
+
+    // not ideal cuz if you have one if and threads 1,2,3,4
+    // then 1,3 are double assigned
+
+    // probably divide configured CPU sets into NUMA nodes and operate on that independently
+    // e.g. for NICs on NUMA 1 primarily use corres from NUMA 1,
+    //   when exhausted start using cores from NUMA 0. 
+    //   when exhausted use cores from other NUMAs(?)
+    //   when exhausted reset counters on NUMAs and use the cores again
+
+    if (iface_numa != -1) {
+        while ((!CPU_ISSET(ncpu, &taf->cpu_set) || !CPUIsFromNuma(ncpu, iface_numa))) {
+            ncpu++;
+            if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
+                ncpu = 0;
+                break;
+            }
+        }
+    }
+
     while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {
         ncpu++;
         if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
