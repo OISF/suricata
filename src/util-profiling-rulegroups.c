@@ -447,10 +447,12 @@ static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngin
             de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max = det_ctx->sgh_perf_data[i].mpm_match_cnt_max;
         if (det_ctx->sgh_perf_data[i].post_prefilter_sigs_max > de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max)
             de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max = det_ctx->sgh_perf_data[i].post_prefilter_sigs_max;
-        SCProfileSghDataSizeDist * sgh_profile_dist = 
-            de_ctx->profile_sgh_ctx->data[i].size_dist;
-        for (int j = 0; j < sgh_profile_dist->bin_cnt; j++) {
-            sgh_profile_dist->bins[j] += det_ctx->sgh_perf_data[i].size_dist->bins[j];
+        if (profiling_size_dist) { 
+            SCProfileSghDataSizeDist * sgh_profile_dist = 
+                de_ctx->profile_sgh_ctx->data[i].size_dist;
+            for (int j = 0; j < sgh_profile_dist->bin_cnt; j++) {
+                sgh_profile_dist->bins[j] += det_ctx->sgh_perf_data[i].size_dist->bins[j];
+            }
         }
     }
 #undef ADD
