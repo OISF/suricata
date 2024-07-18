@@ -353,8 +353,17 @@ static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
 static void DetroyCtx(SCProfileSghDetectCtx *ctx)
 {
     if (ctx) {
-        if (ctx->data != NULL)
+        if (ctx->data != NULL) {
+            if (profiling_size_dist) {
+                for (int i = 0; i < ctx->cnt; i++) {
+                    SCProfileSghDataSizeDist * sgh_profile_dist = ctx->data[i].size_dist;
+                    SCFree(sgh_profile_dist->bins);
+                    SCFree(sgh_profile_dist);
+                }
+            }
             SCFree(ctx->data);
+        }
+            
         pthread_mutex_destroy(&ctx->data_m);
         SCFree(ctx);
     }
