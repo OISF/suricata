@@ -28,7 +28,9 @@ use std::os::raw::{c_char, c_int, c_void};
 
 use crate::ldap::types::*;
 
-static mut LDAP_MAX_TX: usize = 256;
+static LDAP_MAX_TX_DEFAULT: usize = 256;
+
+static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
 
 static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -373,9 +375,9 @@ export_state_data_get!(SCLdapGetStateData, LdapState);
 const PARSER_NAME: &[u8] = b"ldap\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ldap_register_parser() {
+pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
     let default_port = CString::new("389").unwrap();
-    let parser = RustParser {
+    let  parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
@@ -408,7 +410,6 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_LDAP = alproto;
@@ -417,13 +418,72 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
         }
         if let Some(val) = conf_get("app-layer.protocols.ldap.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
-                LDAP_MAX_TX = v;
+                if LDAP_MAX_TX == LDAP_MAX_TX_DEFAULT {
+                    LDAP_MAX_TX = v;
+                }
             } else {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
     } else {
-        SCLogDebug!("Protocol detection and parser disabled for LDAP.");
+        SCLogDebug!("Protocol detection and parser disabled for LDAP/TCP.");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
+    let default_port = CString::new("389").unwrap();
+    let  parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_UDP,
+        probe_ts: Some(SCLdapProbingParser),
+        probe_tc: Some(SCLdapProbingParser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: SCLdapStateNew,
+        state_free: SCLdapStateFree,
+        tx_free: SCLdapStateTxFree,
+        parse_ts: SCLdapParseRequest,
+        parse_tc: SCLdapParseResponse,
+        get_tx_count: SCLdapStateGetTxCount,
+        get_tx: SCLdapStateGetTx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: SCLdapTxGetAlstateProgress,
+        get_eventinfo: Some(LdapEvent::get_event_info),
+        get_eventinfo_byid: Some(LdapEvent::get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_tx_files: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<LdapState, LdapTransaction>),
+        get_tx_data: SCLdapGetTxData,
+        get_state_data: SCLdapGetStateData,
+        apply_tx_config: None,
+        flags: 0,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
+    };
+
+    let ip_proto_str = CString::new("udp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_LDAP = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.ldap.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                if LDAP_MAX_TX == LDAP_MAX_TX_DEFAULT {
+                    LDAP_MAX_TX = v;
+                }
+            } else {
+                SCLogError!("Invalid value for ldap.max-tx");
+            }
+        }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);
+    } else {
+        SCLogDebug!("Protocol detection and parser disabled for LDAP/UDP.");
     }
 }
