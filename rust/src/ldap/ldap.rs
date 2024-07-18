@@ -375,7 +375,7 @@ const PARSER_NAME: &[u8] = b"ldap\0";
 #[no_mangle]
 pub unsafe extern "C" fn rs_ldap_register_parser() {
     let default_port = CString::new("389").unwrap();
-    let parser = RustParser {
+    let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
@@ -423,6 +423,26 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
             }
         }
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
+    } else {
+        SCLogDebug!("Protocol detection and parser disabled for LDAP.");
+    }
+
+    parser.ipproto = IPPROTO_UDP;
+    let ip_proto_str = CString::new("udp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_LDAP = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.ldap.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                LDAP_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for ldap.max-tx");
+            }
+        }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for LDAP.");
     }
