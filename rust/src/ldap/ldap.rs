@@ -28,7 +28,9 @@ use std::os::raw::{c_char, c_int, c_void};
 
 use crate::ldap::types::*;
 
-static mut LDAP_MAX_TX: usize = 256;
+static LDAP_MAX_TX_DEFAULT: usize = 256;
+
+static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
 
 static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -37,6 +39,7 @@ enum LdapEvent {
     TooManyTransactions,
     InvalidData,
     RequestNotFound,
+    IncompleteData,
 }
 
 #[derive(Debug)]
@@ -171,10 +174,7 @@ impl LdapState {
                     start = rem;
                     let mut tx = self.new_tx();
                     let request = LdapMessage::from(msg);
-                    tx.complete = match request.protocol_op {
-                        ProtocolOp::UnbindRequest => true,
-                        _ => false,
-                    };
+                    tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
                 }
@@ -204,17 +204,7 @@ impl LdapState {
 
                     let response = LdapMessage::from(msg);
                     if let Some(tx) = self.find_request(response.message_id) {
-                        tx.complete = match response.protocol_op {
-                            ProtocolOp::SearchResultDone(_)
-                            | ProtocolOp::BindResponse(_)
-                            | ProtocolOp::ModifyResponse(_)
-                            | ProtocolOp::AddResponse(_)
-                            | ProtocolOp::DelResponse(_)
-                            | ProtocolOp::ModDnResponse(_)
-                            | ProtocolOp::CompareResponse(_)
-                            | ProtocolOp::ExtendedResponse(_) => true,
-                            _ => false,
-                        };
+                        tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
                         tx.responses.push_back(response);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
                         // this is an unsolicited notification, which means
@@ -244,6 +234,98 @@ impl LdapState {
         }
 
         return AppLayerResult::ok();
+    }
+
+    fn parse_request_udp(
+        &mut self, _flow: *const Flow, stream_slice: StreamSlice,
+    ) -> AppLayerResult {
+        let input = stream_slice.as_slice();
+
+        match ldap_parse_msg(input) {
+            Ok((_, msg)) => {
+                let mut tx = self.new_tx();
+                let request = LdapMessage::from(msg);
+                tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
+                tx.request = Some(request);
+                self.transactions.push_back(tx);
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                self.set_event(LdapEvent::IncompleteData);
+                return AppLayerResult::err();
+            }
+            Err(_) => {
+                self.set_event(LdapEvent::InvalidData);
+                return AppLayerResult::err();
+            }
+        }
+
+        return AppLayerResult::ok();
+    }
+
+    fn parse_response_udp(
+        &mut self, _flow: *const Flow, stream_slice: StreamSlice,
+    ) -> AppLayerResult {
+        let input = stream_slice.as_slice();
+        if input.is_empty() {
+            return AppLayerResult::ok();
+        }
+
+        let mut start = input;
+        while !start.is_empty() {
+            match ldap_parse_msg(start) {
+                Ok((rem, msg)) => {
+                    let response = LdapMessage::from(msg);
+                    if let Some(tx) = self.find_request(response.message_id) {
+                        tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
+                        tx.responses.push_back(response);
+                    } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
+                        // this is an unsolicited notification, which means
+                        // there is no request
+                        let mut tx = self.new_tx();
+                        tx.complete = true;
+                        tx.responses.push_back(response);
+                        self.transactions.push_back(tx);
+                    } else {
+                        let mut tx = self.new_tx();
+                        tx.complete = true;
+                        tx.responses.push_back(response);
+                        self.transactions.push_back(tx);
+                        self.set_event(LdapEvent::RequestNotFound);
+                    };
+                    start = rem;
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    self.set_event(LdapEvent::IncompleteData);
+                    return AppLayerResult::err();
+                }
+                Err(_) => {
+                    self.set_event(LdapEvent::InvalidData);
+                    return AppLayerResult::err();
+                }
+            }
+        }
+
+        return AppLayerResult::ok();
+    }
+}
+
+fn tx_is_complete(op: &ProtocolOp, dir: Direction) -> bool {
+    match dir {
+        Direction::ToServer => match op {
+            ProtocolOp::UnbindRequest => true,
+            _ => false,
+        },
+        Direction::ToClient => match op {
+            ProtocolOp::SearchResultDone(_)
+            | ProtocolOp::BindResponse(_)
+            | ProtocolOp::ModifyResponse(_)
+            | ProtocolOp::AddResponse(_)
+            | ProtocolOp::DelResponse(_)
+            | ProtocolOp::ModDnResponse(_)
+            | ProtocolOp::CompareResponse(_)
+            | ProtocolOp::ExtendedResponse(_) => true,
+            _ => false,
+        },
     }
 }
 
@@ -341,6 +423,24 @@ unsafe extern "C" fn SCLdapParseResponse(
 }
 
 #[no_mangle]
+unsafe extern "C" fn SCLdapParseRequestUDP(
+    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    _data: *const c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, LdapState);
+    state.parse_request_udp(flow, stream_slice)
+}
+
+#[no_mangle]
+unsafe extern "C" fn SCLdapParseResponseUDP(
+    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    _data: *const c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, LdapState);
+    state.parse_response_udp(flow, stream_slice)
+}
+
+#[no_mangle]
 unsafe extern "C" fn SCLdapStateGetTx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, LdapState);
     match state.get_tx(tx_id) {
@@ -374,7 +474,7 @@ export_state_data_get!(SCLdapGetStateData, LdapState);
 const PARSER_NAME: &[u8] = b"ldap\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ldap_register_parser() {
+pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
     let default_port = CString::new("389").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
@@ -409,7 +509,6 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_LDAP = alproto;
@@ -418,13 +517,72 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
         }
         if let Some(val) = conf_get("app-layer.protocols.ldap.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
-                LDAP_MAX_TX = v;
+                if LDAP_MAX_TX == LDAP_MAX_TX_DEFAULT {
+                    LDAP_MAX_TX = v;
+                }
             } else {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
     } else {
-        SCLogDebug!("Protocol detection and parser disabled for LDAP.");
+        SCLogDebug!("Protocol detection and parser disabled for LDAP/TCP.");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
+    let default_port = CString::new("389").unwrap();
+    let parser = RustParser {
+        name: PARSER_NAME.as_ptr() as *const c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: IPPROTO_UDP,
+        probe_ts: Some(SCLdapProbingParser),
+        probe_tc: Some(SCLdapProbingParser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: SCLdapStateNew,
+        state_free: SCLdapStateFree,
+        tx_free: SCLdapStateTxFree,
+        parse_ts: SCLdapParseRequestUDP,
+        parse_tc: SCLdapParseResponseUDP,
+        get_tx_count: SCLdapStateGetTxCount,
+        get_tx: SCLdapStateGetTx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: SCLdapTxGetAlstateProgress,
+        get_eventinfo: Some(LdapEvent::get_event_info),
+        get_eventinfo_byid: Some(LdapEvent::get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_tx_files: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<LdapState, LdapTransaction>),
+        get_tx_data: SCLdapGetTxData,
+        get_state_data: SCLdapGetStateData,
+        apply_tx_config: None,
+        flags: 0,
+        get_frame_id_by_name: None,
+        get_frame_name_by_id: None,
+    };
+
+    let ip_proto_str = CString::new("udp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_LDAP = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.ldap.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                if LDAP_MAX_TX == LDAP_MAX_TX_DEFAULT {
+                    LDAP_MAX_TX = v;
+                }
+            } else {
+                SCLogError!("Invalid value for ldap.max-tx");
+            }
+        }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);
+    } else {
+        SCLogDebug!("Protocol detection and parser disabled for LDAP/UDP.");
     }
 }
