@@ -1094,7 +1094,7 @@ void OutputRegisterLoggers(void)
             JsonLogThreadDeinit, NULL);
     /* Ldap JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonLdapLog", "eve-log.ldap",
-            OutputJsonLogInitSub, ALPROTO_LDAP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            OutputJsonLogInitSub, ALPROTO_LDAP, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit, NULL);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
