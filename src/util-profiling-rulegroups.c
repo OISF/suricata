@@ -101,15 +101,17 @@ void SCProfilingSghsGlobalInit(void)
             }
             if (ConfNodeChildValueIsTrue(conf, "json")) {
                 profiling_rulegroup_json = 1;
-                if (ConfNodeChildValueIsTrue(conf, "size_dist")) {
+                ConfNode * sd_conf;
+                sd_conf = ConfGetNode("profiling.rulegroups.size-dist");
+                if (sd_conf && ConfNodeChildValueIsTrue(sd_conf, "enabled")) {
                     profiling_size_dist = 1;
                     int ret = ConfGetChildValueInt(
-                            conf, "size_dist_bin_size", &profiling_size_dist_bin_size);
+                            sd_conf, "bin-size", &profiling_size_dist_bin_size);
                     if (!ret) {
                         profiling_size_dist_bin_size = 1024;
                     }
                     ret = ConfGetChildValueInt(
-                            conf, "size_dist_n_bins", &profiling_size_dist_n_bins);
+                            sd_conf, "n-bins", &profiling_size_dist_n_bins);
                     if (!ret) {
                         profiling_size_dist_n_bins = 20;
                     }
@@ -156,15 +158,6 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
 
         json_t *jsm = json_object();
         if (jsm) {
-            json_object_set_new(jsm, "id", json_integer(i));
-            json_object_set_new(jsm, "checks", json_integer(d->checks));
-            json_object_set_new(jsm, "non_mpm_generic", json_integer(d->non_mpm_generic));
-            json_object_set_new(jsm, "non_mpm_syn", json_integer(d->non_mpm_syn));
-            json_object_set_new(jsm, "avgmpms", json_real(avgmpms));
-            json_object_set_new(jsm, "mpm_match_cnt_max", json_integer(d->mpm_match_cnt_max));
-            json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
-            json_object_set_new(jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
-            json_object_set_new(jsm, "mpm_checks", json_integer(d->mpm_checks));
             if (profiling_size_dist) {
                 SCProfileSghDataSizeDist * size_dist = d->size_dist;
                 json_t * js_size_dist = json_object();
@@ -183,6 +176,16 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
                     json_object_set_new(jsm, "size_dist", js_size_dist);
                 }
             }
+            json_object_set_new(jsm, "id", json_integer(i));
+            json_object_set_new(jsm, "checks", json_integer(d->checks));
+            json_object_set_new(jsm, "non_mpm_generic", json_integer(d->non_mpm_generic));
+            json_object_set_new(jsm, "non_mpm_syn", json_integer(d->non_mpm_syn));
+            json_object_set_new(jsm, "avgmpms", json_real(avgmpms));
+            json_object_set_new(jsm, "mpm_match_cnt_max", json_integer(d->mpm_match_cnt_max));
+            json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
+            json_object_set_new(jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
+            json_object_set_new(jsm, "mpm_checks", json_integer(d->mpm_checks));
+            
             json_array_append_new(jsa, jsm);
         }
     }
