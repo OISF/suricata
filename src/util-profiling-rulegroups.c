@@ -24,16 +24,25 @@
  * An API for rule profiling operations.
  */
 
+#include "conf.h"
 #include "detect.h"
 #include "suricata-common.h"
 #include "util-profiling.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifdef PROFILING
 #include "util-conf.h"
 #include "util-path.h"
 #include "util-time.h"
 
+typedef struct SCProfileSghDataSizeDist_ {
+    uint64_t bin_size;
+    uint64_t max_size;
+    int bin_cnt;
+    uint64_t *bins;
+    uint64_t out_of_range_cnt;
+} SCProfileSghDataSizeDist;
 /**
  * Extra data for rule profiling.
  */
@@ -49,6 +58,7 @@ typedef struct SCProfileSghData_ {
     uint64_t mpm_checks;
     uint64_t mpm_match_cnt_total;
     uint64_t mpm_match_cnt_max;
+    SCProfileSghDataSizeDist * size_dist;
 
 } SCProfileSghData;
 
@@ -63,7 +73,9 @@ int profiling_sghs_enabled = 0;
 static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 static int profiling_rulegroup_json = 0;
-
+static int profiling_size_dist = 0; 
+static uint64_t profiling_size_dist_bin_size = 1024;
+static uint64_t profiling_size_dist_n_bins = 20;
 void SCProfilingSghsGlobalInit(void)
 {
     ConfNode *conf;
@@ -93,6 +105,20 @@ void SCProfilingSghsGlobalInit(void)
             }
             if (ConfNodeChildValueIsTrue(conf, "json")) {
                 profiling_rulegroup_json = 1;
+                if (ConfNodeChildValueIsTrue(conf, "size_dist")) {
+                    profiling_size_dist = 1;
+                    int ret = ConfGetChildValueIntWithDefault(
+                            conf, "size_dist_bin_size", &profiling_size_dist_bin_size);
+                    if (!ret) {
+                        profiling_size_dist_bin_size = 1024;
+                    }
+                    ret = ConfGetChildValueIntWithDefault(
+                            conf, "size_dist_n_bins", &profiling_size_dist_n_bins);
+                    if (!ret) {
+                        profiling_size_dist_n_bins = 20;
+                    }
+                    
+                }
             }
         }
     }
@@ -324,7 +350,23 @@ void SCProfilingSghDestroyCtx(DetectEngineCtx *de_ctx)
         DetroyCtx(de_ctx->profile_sgh_ctx);
     }
 }
+/**
+ * \brief For a given rule group, initialize the size_distribution_counter
+ * \param sgh_prof_data The current sgh prof data structure
+ */
+void 
+SCProfilingSghDistInit(SCProfileSghData * sgh_prof_data) {
+    SCProfileSghDataSizeDist * size_dist = 
+        SCCalloc(1, sizeof(SCProfileSghDataSizeDist));
+    BUG_ON(size_dist == NULL);
+    size_dist->bin_size = profiling_size_dist_bin_size;
+    size_dist->max_size = profiling_size_dist_n_bins * profiling_size_dist_bin_size;
+    size_dist->bin_cnt = profiling_size_dist_n_bins;
+    size_dist->bins = SCCalloc(profiling_size_dist_n_bins, sizeof(uint64_t));
+    BUG_ON(size_dist->bins == NULL);
+    sgh_prof_data->size_dist = size_dist;
 
+}
 void SCProfilingSghThreadSetup(SCProfileSghDetectCtx *ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (ctx == NULL)
@@ -335,6 +377,11 @@ void SCProfilingSghThreadSetup(SCProfileSghDetectCtx *ctx, DetectEngineThreadCtx
     SCProfileSghData *a = SCCalloc(array_size, sizeof(SCProfileSghData));
     if (a != NULL) {
         det_ctx->sgh_perf_data = a;
+    }
+    if (profiling_size_dist) {
+        for (int i = 0; i < array_size; i++) {
+            SCProfilingSghDistInit(&a[i]);
+        }
     }
 }
 
@@ -359,6 +406,11 @@ static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngin
             de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max = det_ctx->sgh_perf_data[i].mpm_match_cnt_max;
         if (det_ctx->sgh_perf_data[i].post_prefilter_sigs_max > de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max)
             de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max = det_ctx->sgh_perf_data[i].post_prefilter_sigs_max;
+        SCProfileSghDataSizeDist * sgh_profile_dist = 
+            de_ctx->profile_sgh_ctx->data[i].size_dist;
+        for (int j = 0; j < sgh_profile_dist->bin_cnt; j++) {
+            sgh_profile_dist->bins[j] += det_ctx->sgh_perf_data[i].size_dist->bins[j];
+        }
     }
 #undef ADD
 }
@@ -371,10 +423,32 @@ void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *det_ctx)
     pthread_mutex_lock(&det_ctx->de_ctx->profile_sgh_ctx->data_m);
     SCProfilingSghThreadMerge(det_ctx->de_ctx, det_ctx);
     pthread_mutex_unlock(&det_ctx->de_ctx->profile_sgh_ctx->data_m);
-
+    if (profiling_size_dist) {
+        for (int i = 0; i < det_ctx->de_ctx->sgh_array_cnt; i++) {
+            SCProfileSghDataSizeDist * sgh_profile_dist = det_ctx->sgh_perf_data[i].size_dist;
+            SCFree(sgh_profile_dist->bins);
+            SCFree(sgh_profile_dist);
+        }
+    }
     SCFree(det_ctx->sgh_perf_data);
     det_ctx->sgh_perf_data = NULL;
+
 }
+
+/**
+ * \brief Initialize the size distribution counters per rule group.
+ * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
+ */
+void 
+SCPRofilingSghSizeDistInit(DetectEngineCtx * de_ctx) {
+    if (profiling_size_dist == 0)
+        return;
+    SCProfileSghData * profile_data_arr = de_ctx->profile_sgh_ctx->data;
+    int n_sgh = de_ctx->sgh_array_cnt;
+    for (int i = 0; i < n_sgh; i++) {
+        SCProfilingSghDistInit(&profile_data_arr[i]);
+    }
+} 
 
 /**
  * \brief Register the keyword profiling counters.
@@ -394,6 +468,7 @@ SCProfilingSghInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(de_ctx->profile_sgh_ctx->data == NULL);
 
     de_ctx->profile_sgh_ctx->cnt = de_ctx->sgh_array_cnt;
+    SCPRofilingSghSizeDistInit(de_ctx);
 
     SCLogPerf("Registered %"PRIu32" rulegroup profiling counters.", de_ctx->sgh_array_cnt);
 }
