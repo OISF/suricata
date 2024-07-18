@@ -169,6 +169,24 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
             json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
             json_object_set_new(jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
             json_object_set_new(jsm, "mpm_checks", json_integer(d->mpm_checks));
+            if (profiling_size_dist) {
+                SCProfileSghDataSizeDist * size_dist = d->size_dist;
+                json_t * js_size_dist = json_object();
+                if (js_size_dist) {
+                    json_object_set_new(js_size_dist, "bin_size", json_integer(size_dist->bin_size));
+                    json_object_set_new(js_size_dist, "max_size", json_integer(size_dist->max_size));
+                    json_object_set_new(js_size_dist, "bin_cnt", json_integer(size_dist->bin_cnt));
+                    json_t * js_bins = json_array();
+                    if (js_bins) {
+                        for (int j = 0; j < size_dist->bin_cnt; j++) {
+                            json_array_append_new(js_bins, json_integer(size_dist->bins[j]));
+                        }
+                        json_object_set_new(js_size_dist, "bins", js_bins);
+                    }
+                    json_object_set_new(js_size_dist, "out_of_range_cnt", json_integer(size_dist->out_of_range_cnt));
+                    json_object_set_new(jsm, "size_dist", js_size_dist);
+                }
+            }
             json_array_append_new(jsa, jsm);
         }
     }
