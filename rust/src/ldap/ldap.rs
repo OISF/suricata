@@ -19,7 +19,8 @@
 
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::*;
+use crate::core::{Flow, *};
+use crate::frames::*;
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
@@ -33,6 +34,11 @@ static LDAP_MAX_TX_DEFAULT: usize = 256;
 static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
 
 static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
+
+#[derive(AppLayerFrameType)]
+pub enum LdapFrameType {
+    Pdu,
+}
 
 #[derive(AppLayerEvent)]
 enum LdapEvent {
@@ -82,6 +88,8 @@ pub struct LdapState {
     tx_id: u64,
     transactions: VecDeque<LdapTransaction>,
     tx_index_completed: usize,
+    request_frame: Option<Frame>,
+    response_frame: Option<Frame>,
 }
 
 impl State<LdapTransaction> for LdapState {
@@ -101,6 +109,8 @@ impl LdapState {
             tx_id: 0,
             transactions: VecDeque::new(),
             tx_index_completed: 0,
+            request_frame: None,
+            response_frame: None,
         }
     }
 
@@ -162,21 +172,36 @@ impl LdapState {
         })
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
         }
 
         let mut start = input;
         while !start.is_empty() {
+            if self.request_frame.is_none() {
+                self.request_frame = Frame::new(
+                    flow,
+                    &stream_slice,
+                    start,
+                    -1_i64,
+                    LdapFrameType::Pdu as u8,
+                    None,
+                );
+                SCLogDebug!("ts: pdu {:?}", self.request_frame);
+            }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
-                    start = rem;
                     let mut tx = self.new_tx();
+                    let tx_id = tx.id();
                     let request = LdapMessage::from(msg);
                     tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
+                    let consumed = start.len() - rem.len();
+                    start = rem;
+                    self.set_frame_ts(flow, tx_id, consumed as i64);
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     let consumed = input.len() - start.len();
@@ -192,34 +217,55 @@ impl LdapState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+        let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
         }
+
         let mut start = input;
         while !start.is_empty() {
+            if self.response_frame.is_none() {
+                self.response_frame = Frame::new(
+                    flow,
+                    &stream_slice,
+                    start,
+                    -1_i64,
+                    LdapFrameType::Pdu as u8,
+                    None,
+                );
+                SCLogDebug!("tc: pdu {:?}", self.response_frame);
+            }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
-                    start = rem;
-
                     let response = LdapMessage::from(msg);
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
+                        let tx_id = tx.id();
                         tx.responses.push_back(response);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
                         // this is an unsolicited notification, which means
                         // there is no request
                         let mut tx = self.new_tx();
+                        let tx_id = tx.id();
                         tx.complete = true;
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else {
                         let mut tx = self.new_tx();
                         tx.complete = true;
+                        let tx_id = tx.id();
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
                         self.set_event(LdapEvent::RequestNotFound);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     };
+                    start = rem;
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     let consumed = input.len() - start.len();
@@ -237,9 +283,18 @@ impl LdapState {
     }
 
     fn parse_request_udp(
-        &mut self, _flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
+        let _pdu = Frame::new(
+            flow,
+            &stream_slice,
+            input,
+            input.len() as i64,
+            LdapFrameType::Pdu as u8,
+            None,
+        );
+        SCLogDebug!("ts: pdu {:?}", self.request_frame);
 
         match ldap_parse_msg(input) {
             Ok((_, msg)) => {
@@ -263,7 +318,7 @@ impl LdapState {
     }
 
     fn parse_response_udp(
-        &mut self, _flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
@@ -272,25 +327,45 @@ impl LdapState {
 
         let mut start = input;
         while !start.is_empty() {
+            if self.response_frame.is_none() {
+                self.response_frame = Frame::new(
+                    flow,
+                    &stream_slice,
+                    start,
+                    -1_i64,
+                    LdapFrameType::Pdu as u8,
+                    None,
+                );
+                SCLogDebug!("tc: pdu {:?}", self.response_frame);
+            }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
                     let response = LdapMessage::from(msg);
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
+                        let tx_id = tx.id();
                         tx.responses.push_back(response);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
                         // this is an unsolicited notification, which means
                         // there is no request
                         let mut tx = self.new_tx();
                         tx.complete = true;
+                        let tx_id = tx.id();
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else {
                         let mut tx = self.new_tx();
                         tx.complete = true;
+                        let tx_id = tx.id();
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
                         self.set_event(LdapEvent::RequestNotFound);
+                        let consumed = start.len() - rem.len();
+                        self.set_frame_tc(flow, tx_id, consumed as i64);
                     };
                     start = rem;
                 }
@@ -306,6 +381,22 @@ impl LdapState {
         }
 
         return AppLayerResult::ok();
+    }
+
+    fn set_frame_ts(&mut self, flow: *const Flow, tx_id: u64, consumed: i64) {
+        if let Some(frame) = &self.request_frame {
+            frame.set_len(flow, consumed);
+            frame.set_tx(flow, tx_id);
+            self.request_frame = None;
+        }
+    }
+
+    fn set_frame_tc(&mut self, flow: *const Flow, tx_id: u64, consumed: i64) {
+        if let Some(frame) = &self.response_frame {
+            frame.set_len(flow, consumed);
+            frame.set_tx(flow, tx_id);
+            self.response_frame = None;
+        }
     }
 }
 
@@ -388,7 +479,7 @@ unsafe extern "C" fn SCLdapStateTxFree(state: *mut c_void, tx_id: u64) {
 
 #[no_mangle]
 unsafe extern "C" fn SCLdapParseRequest(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -399,14 +490,12 @@ unsafe extern "C" fn SCLdapParseRequest(
         }
     }
     let state = cast_pointer!(state, LdapState);
-    state.parse_request(stream_slice.as_slice());
-
-    AppLayerResult::ok()
+    state.parse_request(flow, stream_slice)
 }
 
 #[no_mangle]
 unsafe extern "C" fn SCLdapParseResponse(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -417,9 +506,7 @@ unsafe extern "C" fn SCLdapParseResponse(
         }
     }
     let state = cast_pointer!(state, LdapState);
-    state.parse_response(stream_slice.as_slice());
-
-    AppLayerResult::ok()
+    state.parse_response(flow, stream_slice)
 }
 
 #[no_mangle]
@@ -504,8 +591,8 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
         get_state_data: SCLdapGetStateData,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(LdapFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -561,8 +648,8 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
         get_state_data: SCLdapGetStateData,
         apply_tx_config: None,
         flags: 0,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(LdapFrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
