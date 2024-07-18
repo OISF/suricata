@@ -28,7 +28,6 @@
 #include "util-cpu.h"
 
 #include "detect.h"
-#include <stdint.h>
 
 #ifdef PROFILING
 

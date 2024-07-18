@@ -24,12 +24,8 @@
  * An API for rule profiling operations.
  */
 
-#include "conf.h"
-#include "detect.h"
 #include "suricata-common.h"
 #include "util-profiling.h"
-#include <stdint.h>
-#include <stdlib.h>
 
 #ifdef PROFILING
 #include "util-conf.h"
@@ -107,12 +103,12 @@ void SCProfilingSghsGlobalInit(void)
                 profiling_rulegroup_json = 1;
                 if (ConfNodeChildValueIsTrue(conf, "size_dist")) {
                     profiling_size_dist = 1;
-                    int ret = ConfGetChildValueIntWithDefault(
+                    int ret = ConfGetChildValueInt(
                             conf, "size_dist_bin_size", &profiling_size_dist_bin_size);
                     if (!ret) {
                         profiling_size_dist_bin_size = 1024;
                     }
-                    ret = ConfGetChildValueIntWithDefault(
+                    ret = ConfGetChildValueInt(
                             conf, "size_dist_n_bins", &profiling_size_dist_n_bins);
                     if (!ret) {
                         profiling_size_dist_n_bins = 20;
