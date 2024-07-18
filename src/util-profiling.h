@@ -318,7 +318,8 @@ void SCProfilingSghDestroyCtx(DetectEngineCtx *);
 void SCProfilingSghInitCounters(DetectEngineCtx *);
 void SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh);
 void SCProfilingSghUpdateMPMCounters(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh);
-
+void SCProfilingSghUpdateSizeDist(DetectEngineThreadCtx *det_ctx, const SigGroupHead * sgh,
+        uint64_t size);
 void SCProfilingSghThreadSetup(struct SCProfileSghDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *);
 

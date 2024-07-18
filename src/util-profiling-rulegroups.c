@@ -319,6 +319,23 @@ void
 SCProfilingSghUpdateMPMCounters(DetectEngineThreadCtx *det_ctx, const SigGroupHead * sgh) {
     det_ctx->sgh_perf_data[sgh->id].mpm_checks += det_ctx->mtc.mpm_checks;
 }
+/**
+ * \brief Update the prefilter size distribution statistics for a specific SigGroupHead
+ * \param det_ctx the current thread context
+ * \param sgh pointer to the specific group head
+ * \param size the size of the seen buffer
+ */
+void
+SCProfilingSghUpdateSizeDist(DetectEngineThreadCtx *det_ctx, const SigGroupHead * sgh, uint64_t size) {
+    if (!profiling_size_dist)
+        return;
+    SCProfileSghDataSizeDist * dist = det_ctx->sgh_perf_data[sgh->id].size_dist;
+    if (size > dist->max_size) {
+        dist->out_of_range_cnt++;
+    } else {
+        dist->bins[size / (dist->bin_size)]++;
+    }
+}
 
 static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
 {

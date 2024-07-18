@@ -156,6 +156,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
 #endif
     #ifdef PROFILING
     det_ctx->mtc.mpm_checks = 0;
+    det_ctx->mtc.mpm_check_buffer_size = 0;
     #endif
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
@@ -165,12 +166,18 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
             if ((engine->ctx.pkt_mask & mask) == engine->ctx.pkt_mask) {
                 PREFILTER_PROFILING_START(det_ctx);
                 engine->cb.Prefilter(det_ctx, p, engine->pectx);
+#ifdef PROFILING
+                SCProfilingSghUpdateSizeDist(det_ctx, sgh, 
+                    det_ctx->mtc.mpm_check_buffer_size);
+                det_ctx->mtc.mpm_check_buffer_size = 0;
+#endif
                 PREFILTER_PROFILING_END(det_ctx, engine->gid);
             }
 
             if (engine->is_last)
                 break;
             engine++;
+
         } while (1);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PKT);
     }
@@ -185,6 +192,11 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
         while (1) {
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
+            #ifdef PROFILING
+                SCProfilingSghUpdateSizeDist(det_ctx, sgh, 
+                    det_ctx->mtc.mpm_check_buffer_size);
+                det_ctx->mtc.mpm_check_buffer_size = 0;
+            #endif
             PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
@@ -733,7 +745,7 @@ static void PrefilterMpm(DetectEngineThreadCtx *det_ctx, const void *pectx, Pack
 
     const uint32_t data_len = buffer->inspect_len;
     const uint8_t *data = buffer->inspect;
-
+    
     SCLogDebug("mpm'ing buffer:");
     //PrintRawDataFp(stdout, data, data_len);
 

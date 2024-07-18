@@ -945,7 +945,11 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         exit(EXIT_FAILURE);
     } else {
         ret = cctx.match_count;
+#ifdef PROFILING
         mpm_thread_ctx->mpm_checks += pd->pattern_cnt;
+        mpm_thread_ctx->mpm_check_buffer_size = buflen;
+#endif
+       
     }
 
     return ret;
