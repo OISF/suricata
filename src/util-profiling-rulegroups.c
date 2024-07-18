@@ -168,6 +168,7 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
             json_object_set_new(jsm, "mpm_match_cnt_max", json_integer(d->mpm_match_cnt_max));
             json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
             json_object_set_new(jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
+            json_object_set_new(jsm, "mpm_checks", json_integer(d->mpm_checks));
             json_array_append_new(jsa, jsm);
         }
     }
