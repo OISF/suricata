@@ -6018,36 +6018,51 @@
                     "type": "object",
                     "properties": {
                         "active": {
+                            "description": "Number of currently active flows",
                             "type": "integer"
                         },
                         "emerg_mode_entered": {
+                            "description": "Number of times emergency mode was entered",
                             "type": "integer"
                         },
                         "emerg_mode_over": {
+                            "description": "Number of times recovery was made from emergency mode",
                             "type": "integer"
                         },
                         "get_used": {
+                            "description": "Number of reused flows",
                             "type": "integer"
                         },
                         "get_used_eval": {
+                            "description":
+                                    "Number of attempts at getting a flow directly from the hash",
                             "type": "integer"
                         },
                         "get_used_eval_busy": {
+                            "description":
+                                    "Number of times a flow was found in the hash but the lock for hash bucket could not be obtained",
                             "type": "integer"
                         },
                         "get_used_eval_reject": {
+                            "description":
+                                    "Number of flows that were successfully retrieved from hash but were still alive",
                             "type": "integer"
                         },
                         "get_used_failed": {
+                            "description":
+                                    "Number of times retrieval of flow from hash was attempted but was unsuccessful",
                             "type": "integer"
                         },
                         "icmpv4": {
+                            "description": "Number of ICMPv4 flows",
                             "type": "integer"
                         },
                         "icmpv6": {
+                            "description": "Number of ICMPv6 flows",
                             "type": "integer"
                         },
                         "memcap": {
+                            "description": "Number of times memcap was reached for flows",
                             "type": "integer"
                         },
                         "memcap_exception_policy": {
@@ -6056,21 +6071,27 @@
                             "$ref": "#/$defs/exceptionPolicy"
                         },
                         "memuse": {
+                            "description": "Memory currently in use by the flows",
                             "type": "integer"
                         },
                         "spare": {
+                            "description": "Number of flows in the spare pool",
                             "type": "integer"
                         },
                         "tcp": {
+                            "description": "Number of TCP flows",
                             "type": "integer"
                         },
                         "tcp_reuse": {
+                            "description": "Number of reused TCP flows",
                             "type": "integer"
                         },
                         "total": {
+                            "description": "Numbor of total flows",
                             "type": "integer"
                         },
                         "udp": {
+                            "description": "Number of UDP flows",
                             "type": "integer"
                         },
                         "end": {
