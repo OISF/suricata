@@ -70,8 +70,8 @@ static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 static int profiling_rulegroup_json = 0;
 static int profiling_size_dist = 0; 
-static uint64_t profiling_size_dist_bin_size = 1024;
-static uint64_t profiling_size_dist_n_bins = 20;
+static intmax_t profiling_size_dist_bin_size = 1024;
+static intmax_t profiling_size_dist_n_bins = 20;
 void SCProfilingSghsGlobalInit(void)
 {
     ConfNode *conf;
@@ -372,7 +372,7 @@ static void DetroyCtx(SCProfileSghDetectCtx *ctx)
     if (ctx) {
         if (ctx->data != NULL) {
             if (profiling_size_dist) {
-                for (int i = 0; i < ctx->cnt; i++) {
+                for (uint32_t i = 0; i < ctx->cnt; i++) {
                     SCProfileSghDataSizeDist * sgh_profile_dist = ctx->data[i].size_dist;
                     SCFree(sgh_profile_dist->bins);
                     SCFree(sgh_profile_dist);
@@ -398,7 +398,7 @@ void SCProfilingSghDestroyCtx(DetectEngineCtx *de_ctx)
  * \brief For a given rule group, initialize the size_distribution_counter
  * \param sgh_prof_data The current sgh prof data structure
  */
-void 
+static inline void 
 SCProfilingSghDistInit(SCProfileSghData * sgh_prof_data) {
     SCProfileSghDataSizeDist * size_dist = 
         SCCalloc(1, sizeof(SCProfileSghDataSizeDist));
@@ -423,7 +423,7 @@ void SCProfilingSghThreadSetup(SCProfileSghDetectCtx *ctx, DetectEngineThreadCtx
         det_ctx->sgh_perf_data = a;
     }
     if (profiling_size_dist) {
-        for (int i = 0; i < array_size; i++) {
+        for (uint32_t i = 0; i < array_size; i++) {
             SCProfilingSghDistInit(&a[i]);
         }
     }
@@ -470,7 +470,7 @@ void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *det_ctx)
     SCProfilingSghThreadMerge(det_ctx->de_ctx, det_ctx);
     pthread_mutex_unlock(&det_ctx->de_ctx->profile_sgh_ctx->data_m);
     if (profiling_size_dist) {
-        for (int i = 0; i < det_ctx->de_ctx->sgh_array_cnt; i++) {
+        for (uint32_t i = 0; i < det_ctx->de_ctx->sgh_array_cnt; i++) {
             SCProfileSghDataSizeDist * sgh_profile_dist = det_ctx->sgh_perf_data[i].size_dist;
             SCFree(sgh_profile_dist->bins);
             SCFree(sgh_profile_dist);
@@ -485,7 +485,7 @@ void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *det_ctx)
  * \brief Initialize the size distribution counters per rule group.
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-void 
+inline static void 
 SCPRofilingSghSizeDistInit(DetectEngineCtx * de_ctx) {
     if (profiling_size_dist == 0)
         return;
