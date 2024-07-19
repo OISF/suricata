@@ -1115,7 +1115,8 @@
                     "$ref": "#/$defs/dns.additionals"
                 },
                 "query": {
-                    "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
+                    "$comment":
+                            "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
                     "type": "array",
                     "minItems": 1,
                     "items": {
