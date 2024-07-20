@@ -115,6 +115,7 @@ impl LdapState {
             }
         }
         if found {
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
