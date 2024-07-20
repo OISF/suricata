@@ -439,26 +439,16 @@ static int FTPParseRequestCommand(
     SCReturnInt(0);
 }
 
-struct FtpTransferCmd {
-    /** Need to look like a ExpectationData so DFree must
-     *  be first field . */
-    void (*DFree)(void *);
-    uint64_t flow_id;
-    uint8_t *file_name;
-    uint16_t file_len;
-    uint8_t direction; /**< direction in which the data will flow */
-    FtpRequestCommand cmd;
-};
-
 static void FtpTransferCmdFree(void *data)
 {
-    struct FtpTransferCmd *cmd = (struct FtpTransferCmd *) data;
+    FtpTransferCmd *cmd = (FtpTransferCmd *)data;
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        FTPFree(cmd->file_name, cmd->file_len + 1);
+        FTPFree((void *)cmd->file_name, cmd->file_len + 1);
     }
-    FTPFree(cmd, sizeof(struct FtpTransferCmd));
+    SCFTPTransferCmdFree(cmd);
+    FTPDecrMemuse((uint64_t)sizeof(FtpTransferCmd));
 }
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
@@ -588,10 +578,12 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 if (state->dyn_port == 0 || line.len < 6) {
                     SCReturnStruct(APP_LAYER_ERROR);
                 }
-                struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
+                FtpTransferCmd *data = SCFTPTransferCmdNew();
                 if (data == NULL)
                     SCReturnStruct(APP_LAYER_ERROR);
-                data->DFree = FtpTransferCmdFree;
+                FTPIncrMemuse((uint64_t)(sizeof *data));
+                data->data_free = FtpTransferCmdFree;
+
                 /*
                  * Min size has been checked in FTPParseRequestCommand
                  * SC_FILENAME_MAX includes the null
@@ -1071,8 +1063,8 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
     SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (input_len && ftpdata_state->files == NULL) {
-        struct FtpTransferCmd *data =
-                (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
+        FtpTransferCmd *data =
+                (FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
         }

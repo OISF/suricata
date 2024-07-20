@@ -79,3 +79,55 @@ pub const FTP_COMMAND_UMASK: u8 = 46;
 pub const FTP_COMMAND_USER: u8 = 47;
 pub const FTP_COMMAND_EPRT: u8 = 48;
 pub const FTP_COMMAND_MAX: u8 = 49;
+
+#[repr(C)]
+#[allow(dead_code)]
+pub struct FtpTransferCmd {
+    // Must be first -- required by app-layer expectation logic
+    data_free: unsafe extern "C" fn(*mut c_void),
+    pub flow_id: u64,
+    pub file_name: *mut u8,
+    pub file_len: u16,
+    pub direction: u16,
+    pub cmd: u8,
+}
+
+impl Default for FtpTransferCmd {
+    fn default() -> Self {
+        FtpTransferCmd {
+            flow_id: 0,
+            file_name: std::ptr::null_mut(),
+            file_len: 0,
+            direction: 0,
+            cmd: FTP_STATE_NONE,
+            data_free: default_free_fn,
+        }
+    }
+}
+
+unsafe extern "C" fn default_free_fn(_ptr: *mut c_void) {}
+impl FtpTransferCmd {
+    pub fn new() -> Self {
+        FtpTransferCmd {
+            ..Default::default()
+        }
+    }
+}
+
+/// Returns *mut FtpTransferCmd
+#[no_mangle]
+pub unsafe extern "C" fn SCFTPTransferCmdNew() -> *mut FtpTransferCmd {
+    SCLogDebug!("allocating ftp transfer cmd");
+    let cmd = FtpTransferCmd::new();
+    Box::into_raw(Box::new(cmd))
+}
+
+/// Params:
+/// - transfer command: *mut FTPTransferCmd as void pointer
+#[no_mangle]
+pub unsafe extern "C" fn SCFTPTransferCmdFree(cmd: *mut FtpTransferCmd) {
+    SCLogDebug!("freeing ftp transfer cmd");
+    if !cmd.is_null() {
+        let _transfer_cmd = Box::from_raw(cmd);
+    }
+}
