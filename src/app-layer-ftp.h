@@ -29,12 +29,7 @@
 
 typedef uint8_t FtpRequestCommand;
 
-typedef struct FtpCommand_ {
-    const char *command_name;
-    FtpRequestCommand command;
-    const uint8_t command_length;
-} FtpCommand;
-extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
+struct FtpCommand;
 
 typedef uint32_t FtpRequestCommandArgOfs;
 

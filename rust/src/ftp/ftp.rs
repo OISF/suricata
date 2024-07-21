@@ -16,10 +16,34 @@
  */
 
 use std;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 
 use crate::ftp::constant::*;
 
+#[repr(C)]
+//#[derive(Debug, Copy, Clone)]
+pub struct FtpCommand {
+    pub command_name: *const c_char,
+    pub command: u8,
+    pub command_length: u8,
+}
+
+impl FtpCommand {
+    pub fn new() -> Self {
+        FtpCommand {
+            ..Default::default()
+        }
+    }
+}
+impl Default for FtpCommand {
+    fn default() -> Self {
+        FtpCommand {
+            command_name: std::ptr::null_mut(),
+            command: 0,
+            command_length: 0,
+        }
+    }
+}
 
 #[repr(C)]
 #[allow(dead_code)]
