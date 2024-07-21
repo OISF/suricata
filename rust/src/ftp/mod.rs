@@ -26,6 +26,7 @@ use std;
 use std::str;
 use std::str::FromStr;
 
+pub mod constant;
 pub mod event;
 pub mod ftp;
 
