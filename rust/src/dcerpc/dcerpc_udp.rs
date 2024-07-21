@@ -294,9 +294,11 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void
 /// Probe input to see if it looks like DCERPC.
 fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_udp_header(input) {
-        Ok((_, hdr)) => {
+        Ok((leftover_bytes, hdr)) => {
             let is_request = hdr.pkt_type == 0x00;
             let is_dcerpc = hdr.rpc_vers == 0x04 &&
+                hdr.fragnum == 0 &&
+                leftover_bytes.len() >= hdr.fraglen as usize &&
                 (hdr.flags2 & 0xfc == 0) &&
                 (hdr.drep[0] & 0xee == 0) &&
                 (hdr.drep[1] <= 3);
