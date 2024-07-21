@@ -32,7 +32,7 @@
 #include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
 
-#include "rust.h"
+#include "rust-bindings.h"
 
 #include "util-misc.h"
 #include "util-mpm.h"
