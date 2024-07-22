@@ -87,15 +87,20 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
                     CAP_NET_RAW,            /* needed for pcap live mode */
                     CAP_SYS_NICE,
                     CAP_NET_ADMIN,
-                    CAP_SYS_RESOURCE,       /* These two are required to lock memory for XDP */
-                    CAP_IPC_LOCK,
+  		    CAP_SYS_RESOURCE,       /* These two are required to lock memory for XDP */
+		    CAP_IPC_LOCK,
+	  	    CAP_SYS_ADMIN,	    /* This is required for any involved XDP program 
+					       ie., if pointer arithmetic is used, you'll 
+					       need this */ 
                     -1);
-            if( has_cap_bpf ) {
-                capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_BPF);
-            }
-            else {
-                capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_SYS_ADMIN);
-            }
+	    if( has_cap_bpf ) {
+	      /* Newer kernels define this, which covers some of the simple BPF permissions
+	       * and would allow a basic program to run as non-root (without CAP_SYS_ADMIN)
+	       * but, as noted above, anything moderately complex will also require 
+	       * CAP_SYS_ADMIN
+	       */
+	      capng_update(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_BPF);
+	    }
             break;
         case RUNMODE_NFLOG:
         case RUNMODE_NFQ:
