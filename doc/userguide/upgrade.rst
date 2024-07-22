@@ -70,6 +70,11 @@ Major changes
   <upgrade/8.0-dns-logging-changes>`.
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
+- LDAP parser and logger have been introduced.
+
+Removals
+~~~~~~~~
+- The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
 
 Upgrading 6.0 to 7.0
 --------------------
