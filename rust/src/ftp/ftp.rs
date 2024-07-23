@@ -19,6 +19,7 @@ use std;
 use std::os::raw::{c_char, c_void};
 
 use crate::ftp::constant::*;
+use crate::conf::{conf_get, get_memval};
 
 #[repr(C)]
 //#[derive(Debug, Copy, Clone)]
@@ -53,7 +54,7 @@ pub struct FtpTransferCmd {
     pub flow_id: u64,
     pub file_name: *mut u8,
     pub file_len: u16,
-    pub direction: u16,
+    pub direction: u8,
     pub cmd: u8,
 }
 
@@ -75,6 +76,35 @@ impl FtpTransferCmd {
     pub fn new() -> Self {
         FtpTransferCmd {
             ..Default::default()
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCFTPGetConfigValues(memcap: *mut u64, max_tx: *mut u32, max_line_len: *mut u32) {
+    if let Some(val) = conf_get("app-layer.protocols.ftp.memcap") {
+        if let Ok(v) = get_memval(val) {
+            *memcap = v;
+            SCLogConfig!("FTP memcap: {}", v);
+        } else {
+            SCLogError!("Invalid value {} for ftp.memcap", val);
+        }
+    }
+    if let Some(val) = conf_get("app-layer.protocols.ftp.max-tx") {
+        if let Ok(v) = val.parse::<u32>() {
+            *max_tx = v;
+            SCLogConfig!("FTP max tx: {}", v);
+        } else {
+            SCLogError!("Invalid value {} for ftp.max-tx", val);
+        }
+    }
+    // This value is often expressed with a unit suffix, e.g., 5kb, hence get_memval
+    if let Some(val) = conf_get("app-layer.protocols.ftp.max-line-length") {
+        if let Ok(v) = get_memval(val) {
+            *max_line_len = v as u32;
+            SCLogConfig!("FTP max line length: {}", v);
+        } else {
+            SCLogError!("Invalid value {} for ftp.max-line-length", val);
         }
     }
 }
