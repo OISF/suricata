@@ -576,6 +576,7 @@ noinst_HEADERS = \
 	util-spm-bs.h \
 	util-spm.h \
 	util-spm-hs.h \
+	util-spm-mm.h \
 	util-storage.h \
 	util-streaming-buffer.h \
 	util-syslog.h \
@@ -1145,6 +1146,7 @@ libsuricata_c_a_SOURCES = \
 	util-spm-bs.c \
 	util-spm.c \
 	util-spm-hs.c \
+	util-spm-mm.c \
 	util-storage.c \
 	util-streaming-buffer.c \
 	util-strlcatu.c \
