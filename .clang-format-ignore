@@ -1,0 +1,3 @@
+# A list of Suricata files to be ignored by clang-format as it is unneeded.
+
+etc/schema.json
