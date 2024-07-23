@@ -67,7 +67,6 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
     DetectBase64Decode *data = (DetectBase64Decode *)smd->ctx;
-    int decode_len;
 
 #if 0
     printf("Input data:\n");
@@ -76,6 +75,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 
     if (data->relative) {
         payload += det_ctx->buffer_offset;
+        DEBUG_VALIDATE_BUG_ON(det_ctx->buffer_offset > payload_len);
         payload_len -= det_ctx->buffer_offset;
     }
 
@@ -87,9 +87,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
         payload_len -= data->offset;
     }
 
-    decode_len = MIN(payload_len, data->bytes);
-
-    DEBUG_VALIDATE_BUG_ON(decode_len < 0);
+    uint32_t decode_len = MIN(payload_len, data->bytes);
 #if 0
     printf("Decoding:\n");
     PrintRawDataFp(stdout, payload, decode_len);
@@ -98,7 +96,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     Base64Decoded *b64d =
             Base64Decode(payload, decode_len, det_ctx->base64_decoded_len_max, Base64ModeRFC4648);
     if (b64d != NULL) {
-        DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= (uint32_t)decode_len);
+        DEBUG_VALIDATE_BUG_ON(b64d->decoded_len >= decode_len);
         memcpy(det_ctx->base64_decoded, b64d->decoded, b64d->decoded_len);
         det_ctx->base64_decoded_len = b64d->decoded_len;
         SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
