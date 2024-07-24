@@ -2989,15 +2989,6 @@ bool DetectEngineMpmCachingEnabled(void)
     return (bool)sgh_mpm_caching;
 }
 
-/*
- * getting & (re)setting the internal sig i
- */
-
-//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx)
-//{
-//    return de_ctx->signum;
-//}
-
 void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
 {
     de_ctx->signum = 0;
