@@ -118,42 +118,6 @@ char *PathMergeAlloc(const char *const dir, const char *const fname)
 }
 
 /**
- * \brief Wrapper to join a directory and filename and resolve using realpath
- *   _fullpath is used for WIN32
- *
- * \param out_buf output buffer.  Up to PATH_MAX will be written.  Unchanged on exit failure.
- * \param buf_size length of output buffer, must be PATH_MAX
- * \param dir the directory
- * \param fname the filename
- *
- * \retval 0 on success
- * \retval -1 on failure
- */
-int PathJoin(char *out_buf, size_t buf_size, const char *const dir, const char *const fname)
-{
-    SCEnter();
-    if (buf_size != PATH_MAX) {
-        return -1;
-    }
-    if (PathMerge(out_buf, buf_size, dir, fname) != 0) {
-        SCLogError("Could not join filename to path");
-        return -1;
-    }
-    char *tmp_buf = SCRealPath(out_buf, NULL);
-    if (tmp_buf == NULL) {
-        SCLogError("Error resolving path: %s", strerror(errno));
-        return -1;
-    }
-    memset(out_buf, 0, buf_size);
-    size_t ret = strlcpy(out_buf, tmp_buf, buf_size);
-    free(tmp_buf);
-    if (ret >= buf_size) {
-        return -1;
-    }
-    return 0;
-}
-
-/**
  * \brief Wrapper around SCMkDir with default mode arguments.
  */
 int SCDefaultMkDir(const char *path)
