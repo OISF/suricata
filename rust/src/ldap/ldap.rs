@@ -89,6 +89,8 @@ pub struct LdapState {
     tx_index_completed: usize,
     request_frame: Option<Frame>,
     response_frame: Option<Frame>,
+    request_gap: bool,
+    response_gap: bool,
 }
 
 impl State<LdapTransaction> for LdapState {
@@ -110,6 +112,8 @@ impl LdapState {
             tx_index_completed: 0,
             request_frame: None,
             response_frame: None,
+            request_gap: false,
+            response_gap: false,
         }
     }
 
@@ -176,6 +180,22 @@ impl LdapState {
             return AppLayerResult::ok();
         }
 
+        if self.request_gap {
+            match ldap_parse_msg(input) {
+                Ok((_, msg)) => {
+                    let ldap_msg = LdapMessage::from(msg);
+                    if ldap_msg.is_unknown() {
+                        return AppLayerResult::err();
+                    }
+                    AppLayerResult::ok();
+                }
+                Err(_e) => {
+                    return AppLayerResult::err();
+                }
+            }
+            self.request_gap = false;
+        }
+
         let mut start = input;
         while !start.is_empty() {
             if self.request_frame.is_none() {
@@ -227,6 +247,22 @@ impl LdapState {
         let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
+        }
+
+        if self.response_gap {
+            match ldap_parse_msg(input) {
+                Ok((_, msg)) => {
+                    let ldap_msg = LdapMessage::from(msg);
+                    if ldap_msg.is_unknown() {
+                        return AppLayerResult::err();
+                    }
+                    AppLayerResult::ok();
+                }
+                Err(_e) => {
+                    return AppLayerResult::err();
+                }
+            }
+            self.response_gap = false;
         }
 
         let mut start = input;
@@ -309,6 +345,14 @@ impl LdapState {
 
         return AppLayerResult::ok();
     }
+
+    fn on_request_gap(&mut self, _size: u32) {
+        self.request_gap = true;
+    }
+
+    fn on_response_gap(&mut self, _size: u32) {
+        self.response_gap = true;
+    }
 }
 
 fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
@@ -381,7 +425,13 @@ unsafe extern "C" fn SCLdapParseRequest(
         }
     }
     let state = cast_pointer!(state, LdapState);
-    state.parse_request(flow, stream_slice)
+
+    if stream_slice.is_gap() {
+        state.on_request_gap(stream_slice.gap_size());
+    } else {
+        return state.parse_request(flow, stream_slice);
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -397,7 +447,12 @@ unsafe extern "C" fn SCLdapParseResponse(
         }
     }
     let state = cast_pointer!(state, LdapState);
-    state.parse_response(flow, stream_slice)
+    if stream_slice.is_gap() {
+        state.on_response_gap(stream_slice.gap_size());
+    } else {
+        state.parse_response(flow, stream_slice);
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
