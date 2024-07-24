@@ -694,7 +694,7 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
 static void DumpContent(SCJsonBuilder *js, const DetectContentData *cd)
 {
     char pattern_str[1024] = "";
-    DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
+    DetectContentPatternPrettyPrint(cd->content, cd->content_len, pattern_str, sizeof(pattern_str));
 
     SCJbSetString(js, "pattern", pattern_str);
     SCJbSetUint(js, "length", cd->content_len);
@@ -1569,7 +1569,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
             htb != NULL; htb = HashListTableGetListNext(htb)) {
         char str[1024] = "";
         DetectPatternTracker *p = HashListTableGetListData(htb);
-        DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
+        DetectContentPatternPrettyPrint(p->cd->content, p->cd->content_len, str, sizeof(str));
 
         SCJsonBuilder *jb = arrays[p->sm_list];
         if (arrays[p->sm_list] == NULL) {

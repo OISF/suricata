@@ -129,7 +129,8 @@ void DetectContentFree(DetectEngineCtx *, void *);
 bool DetectContentPMATCHValidateCallback(const Signature *s);
 void DetectContentPropagateLimits(Signature *s);
 
-void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len);
+void DetectContentPatternPrettyPrint(
+        const uint8_t *pat, const uint16_t pat_len, char *str, size_t str_len);
 void SigParseRequiredContentSize(
         const Signature *s, const uint64_t max, const SigMatch *sm, int *len, int *offset);
 int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
