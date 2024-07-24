@@ -740,18 +740,19 @@ static inline bool NeedsAsHex(uint8_t c)
     return false;
 }
 
-void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len)
+void DetectContentPatternPrettyPrint(
+        const uint8_t *pat, const uint16_t pat_len, char *str, size_t str_len)
 {
     bool hex = false;
-    for (uint16_t i = 0; i < cd->content_len; i++) {
-        if (NeedsAsHex(cd->content[i])) {
+    for (uint16_t i = 0; i < pat_len; i++) {
+        if (NeedsAsHex(pat[i])) {
             char hex_str[4];
-            snprintf(hex_str, sizeof(hex_str), "%s%02X", !hex ? "|" : " ", cd->content[i]);
+            snprintf(hex_str, sizeof(hex_str), "%s%02X", !hex ? "|" : " ", pat[i]);
             strlcat(str, hex_str, str_len);
             hex = true;
         } else {
             char p_str[3];
-            snprintf(p_str, sizeof(p_str), "%s%c", hex ? "|" : "", cd->content[i]);
+            snprintf(p_str, sizeof(p_str), "%s%c", hex ? "|" : "", pat[i]);
             strlcat(str, p_str, str_len);
             hex = false;
         }
