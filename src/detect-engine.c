@@ -3104,15 +3104,6 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-/*
- * getting & (re)setting the internal sig i
- */
-
-//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx)
-//{
-//    return de_ctx->signum;
-//}
-
 void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
 {
     de_ctx->signum = 0;
