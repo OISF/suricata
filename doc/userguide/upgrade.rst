@@ -178,6 +178,16 @@ Logging changes
      For more information, refer to:
      https://redmine.openinfosecfoundation.org/issues/1275.
 
+- Engine logging/output now uses separate defaults for ``console`` and ``file``, to provide a cleaner output on the console.
+
+  Defaults are:
+
+  * ``console``: ``%D: %S: %M``
+
+  * ``file``: ``[%i - %m] %z %d: %S: %M``
+
+  The ``console`` output also changes based on verbosity level.
+
 Deprecations
 ~~~~~~~~~~~~
 - Multiple "include" fields in the configuration file will now issue a
