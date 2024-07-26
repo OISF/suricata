@@ -1816,23 +1816,23 @@ generated alerts and events.
 
 The engine logging system has the following log levels:
 
-- error
-- warning
-- notice
-- info
-- perf
-- config
-- debug
+- ``error``
+- ``warning``
+- ``notice``
+- ``info``
+- ``perf``
+- ``config``
+- ``debug``
 
 Note that debug level logging will only be emitted if Suricata was
 compiled with the ``--enable-debug`` configure option.
 
 The first option within the logging configuration is the
-default-log-level. This option determines the severity/importance
+``default-log-level``. This option determines the severity/importance
 level of information that will be displayed. Messages of lower levels
 than the one set here, will not be shown. The default setting is
-Info. This means that error, warning and info will be shown and the
-other levels won't be.
+``Notice``. This means that ``error``, ``warning`` and ``notice`` will be shown
+and messages for the other levels won't be.
 
 Default Configuration Example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1938,15 +1938,15 @@ specified signs:
   S:      Subsystem name.
   T:      Thread name.
   M:      Log message body.
-  f:      Filename. Name of C-file (source code) where log-event is generated.
-  l:      Line-number within the filename, where the log-event is generated in the source-code.
-  n:      Function-name in the C-code (source code).
+  f:      Name of source code filename where log-event is generated.
+  l:      Line-number within the source filename, where the log-event is generated.
+  n:      Function-name in the source code.
 
 
 The last three options, f, l and n, are mainly convenient for developers.
 
 The log-format can be overridden in the command line by the
-environment variable: SC_LOG_FORMAT
+environment variable: ``SC_LOG_FORMAT``.
 
 Output Filter
 ~~~~~~~~~~~~~
@@ -1958,9 +1958,9 @@ matches.
 
 ::
 
-  default-output-filter:               #In this option the regular expression can be entered.
+  default-output-filter:    # In this option the regular expression can be entered.
 
-This value is overridden by the environment var: SC_LOG_OP_FILTER
+This value is overridden by the environment var: ``SC_LOG_OP_FILTER``.
 
 Logging Outputs
 ~~~~~~~~~~~~~~~
@@ -1974,18 +1974,18 @@ computers etc.)
 ::
 
   outputs:
-    - console:                                    #Output on your screen.
-        enabled: yes                              #This option is enabled.
-        #level: notice                            #Use a different level than the default.
-    - file:                                       #Output stored in a file.
-        enabled: no                               #This option is not enabled.
-        filename: /var/log/suricata.log           #Filename and location on disc.
-        level: info                               #Use a different level than the default.
-    - syslog:                                     #This is a program to direct log-output to several directions.
-        enabled: no                               #The use of this program is not enabled.
-        facility: local5                          #In this option you can set a syslog facility.
-        format: "[%i] <%d> -- "                   #The option to set your own format.
-        #level: notice                            #Use a different level than the default.
+    - console:                          # Output to screen (stdout/stderr).
+        enabled: yes                    # This option is enabled.
+        #level: notice                  # Use a different level than the default.
+    - file:                             # Output stored in a file.
+        enabled: no                     # This option is not enabled.
+        filename: /var/log/suricata.log # Filename and location on disc.
+        level: info                     # Use a different level than the default.
+    - syslog:                           # Output using syslog.
+        enabled: no                     # The use of this program is not enabled.
+        facility: local5                # Syslog facility to use.
+        format: "[%i] <%d> -- "         # Output format specific to syslog.
+        #level: notice                  # Use a different level than the default.
 
 Packet Acquisition
 ------------------
