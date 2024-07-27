@@ -4,7 +4,7 @@ version = "@PACKAGE_VERSION@"
 license = "GPL-2.0-only"
 description = "Suricata Rust components"
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.67.1"
 
 [workspace]
 members = [".", "./derive"]
