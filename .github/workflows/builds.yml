@@ -31,7 +31,7 @@ env:
   # A recent version of stable Rust that is known to pass build, test and other
   # verification steps in this workflow. This was added because using "stable"
   # could cause some steps to fail.
-  RUST_VERSION_KNOWN: "1.70.0"
+  RUST_VERSION_KNOWN: "1.80.0"
 
 jobs:
 
@@ -642,7 +642,7 @@ jobs:
                 zlib-devel
       # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - run: git config --global --add safe.directory /__w/suricata/suricata
@@ -1401,7 +1401,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -1530,7 +1530,7 @@ jobs:
                 wget
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -1645,7 +1645,7 @@ jobs:
                 dpdk-dev
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -1980,7 +1980,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
