@@ -312,7 +312,7 @@ jobs:
     name: AlmaLinux 9 Non-Bundled LibHTP
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, debian-12-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -491,7 +491,7 @@ jobs:
     name: CentOS Stream 9
     runs-on: ubuntu-latest
     container: quay.io/centos/centos:stream9
-    needs: [prepare-deps, debian-12-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -2128,7 +2128,7 @@ jobs:
     name: Ubuntu 20.04 (unsupported rust)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: debian-12-dist
+    needs: ubuntu-22-04-dist
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -2616,8 +2616,6 @@ jobs:
               autoconf \
               automake \
               build-essential \
-              cargo \
-              cbindgen \
               cmake \
               curl \
               dpdk-dev \
@@ -2646,7 +2644,6 @@ jobs:
               pkg-config \
               python3 \
               python3-yaml \
-              rustc \
               sphinx-doc \
               sphinx-common \
               texlive-latex-base \
@@ -2661,6 +2658,18 @@ jobs:
         with:
           name: prep
           path: prep
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: cbindgen
+          path: prep
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
@@ -2683,11 +2692,11 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  debian-12-dist:
-    name: Debian 12 Dist Builder
+  ubuntu-22-04-dist:
+    name: Ubuntu 22.04 Dist Builder
     runs-on: ubuntu-latest
-    container: debian:12
-    needs: [prepare-deps]
+    container: ubuntu:22.04
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -2706,7 +2715,6 @@ jobs:
               automake \
               build-essential \
               cargo \
-              cbindgen \
               cmake \
               curl \
               git \
@@ -2749,6 +2757,16 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: cbindgen
+          path: prep
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make dist
@@ -3221,7 +3239,7 @@ jobs:
     name: PF_RING
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, debian-12-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
