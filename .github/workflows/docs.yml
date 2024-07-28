@@ -33,11 +33,11 @@ jobs:
     name: Prepare dependencies
     uses: ./.github/workflows/prepare-deps.yml
 
-  debian-12-dist:
-    name: Debian 12 Dist Builder
+  ubuntu-22-04-dist:
+    name: Ubuntu 22.04 Dist Builder
     runs-on: ubuntu-latest
-    container: debian:12
-    needs: [prepare-deps]
+    container: ubuntu:22.04
+    needs: prepare-deps
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
