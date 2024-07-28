@@ -312,7 +312,7 @@ jobs:
     name: AlmaLinux 9 Non-Bundled LibHTP
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, ubuntu-20-04-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -491,7 +491,7 @@ jobs:
     name: CentOS Stream 9
     runs-on: ubuntu-latest
     container: quay.io/centos/centos:stream9
-    needs: [prepare-deps, ubuntu-20-04-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -2128,7 +2128,7 @@ jobs:
     name: Ubuntu 20.04 (unsupported rust)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: ubuntu-20-04-dist
+    needs: ubuntu-22-04-dist
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -2692,10 +2692,10 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  ubuntu-20-04-dist:
-    name: Ubuntu 20.04 Dist Builder
+  ubuntu-22-04-dist:
+    name: Ubuntu 22.04 Dist Builder
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
@@ -3239,7 +3239,7 @@ jobs:
     name: PF_RING
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, ubuntu-20-04-dist]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
