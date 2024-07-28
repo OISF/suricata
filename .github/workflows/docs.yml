@@ -33,34 +33,10 @@ jobs:
     name: Prepare dependencies
     uses: ./.github/workflows/prepare-deps.yml
 
-  prepare-cbindgen:
-    name: Prepare cbindgen
+  ubuntu-22-04-dist:
+    name: Ubuntu 22.04 Dist Builder
     runs-on: ubuntu-latest
-    steps:
-      - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
-        with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
-      - name: Installing Rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          rustup target add x86_64-unknown-linux-musl
-      - name: Building static cbindgen for Linux
-        run: |
-          cargo install --target x86_64-unknown-linux-musl --debug cbindgen
-          cp $HOME/.cargo/bin/cbindgen .
-      - name: Uploading prep archive
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
-        with:
-          name: cbindgen
-          path: .
-
-  ubuntu-20-04-dist:
-    name: Ubuntu 20.04 Dist Builder
-    runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
@@ -80,6 +56,7 @@ jobs:
               automake \
               build-essential \
               cargo \
+              cbindgen \
               cmake \
               curl \
               git \
@@ -122,16 +99,6 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
-      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-        with:
-          name: cbindgen
-          path: prep
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make dist
