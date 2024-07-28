@@ -56,7 +56,6 @@ jobs:
               automake \
               build-essential \
               cargo \
-              cbindgen \
               cmake \
               curl \
               git \
