@@ -31,6 +31,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-expectation.h"
 #include "app-layer-ftp.h"
+#include "app-layer-smb.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-frames.h"
 #include "stream-tcp-reassemble.h"
@@ -1112,6 +1113,7 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
     StatsRegisterGlobalCounter("ftp.memuse", FTPMemuseGlobalCounter);
     StatsRegisterGlobalCounter("ftp.memcap", FTPMemcapGlobalCounter);
+    SMBRegisterGlobalCounters();
     StatsRegisterGlobalCounter("app_layer.expectations", ExpectationGetCounter);
 }
 

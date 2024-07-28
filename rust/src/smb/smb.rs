@@ -26,7 +26,7 @@
 // written by Victor Julien
 
 use std;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::mem;
 use std::str;
 use std::ffi::{self, CString};
@@ -503,7 +503,7 @@ impl Default for SMBTransaction {
 
 impl SMBTransaction {
     pub fn new() -> Self {
-        memory_usage().lock().unwrap().inc_tx(1);
+        SMBTX_ALLOCS.fetch_add(1, Ordering::SeqCst);
         return Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
@@ -528,7 +528,7 @@ impl SMBTransaction {
         SCLogDebug!("SMB TX {:p} free ID {}", &self, self.id);
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
-        memory_usage().lock().unwrap().dec_tx(1);
+        SMBTX_FREES.fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -763,6 +763,7 @@ impl State<SMBTransaction> for SMBState {
 impl SMBState {
     /// Allocation function for a new SMB state instance
     pub fn new() -> Self {
+        SMB_STATE.fetch_add(1, Ordering::SeqCst);
         Self {
             state_data:AppLayerStateData::new(),
             ssn2vec_map:HashMap::new(),
@@ -804,9 +805,8 @@ impl SMBState {
 
         let tx_mem = tx_queue_memory(&self.transactions);
 
-        memory_usage().lock().unwrap().inc_state(1);
-        memory_usage().lock().unwrap().inc_hashmap(hm_memusage);
-        memory_usage().lock().unwrap().inc_tx_mem(tx_mem);
+        SMBHASH_MEMORY.fetch_add(hm_memusage, Ordering::SeqCst);
+        SMBTX_MEMORY.fetch_add(tx_mem, Ordering::SeqCst);
     }
 
     pub fn free(&mut self) {
@@ -2327,63 +2327,34 @@ fn hashmap_mem<K, V>(map: &HashMap<K, V>) -> u64
     total_size as u64
 }
 
-#[derive(Default)]
-struct MemoryUsage {
-    hashmap_mem: u64,
-    state_structs: u64,
-    tx_alloc_count: u64,
-    tx_free_count: u64,
-    tx_mem: u64,
+static SMBHASH_MEMORY: AtomicU64 = AtomicU64::new(0);
+static SMBTX_ALLOCS: AtomicU64 = AtomicU64::new(0);
+static SMBTX_FREES: AtomicU64 = AtomicU64::new(0);
+static SMBTX_MEMORY: AtomicU64 = AtomicU64::new(0);
+static SMB_STATE: AtomicU64 = AtomicU64::new(0);
+
+#[no_mangle]
+pub extern "C" fn SCSMB_hash_memory_get() -> u64 {
+    SMBHASH_MEMORY.load(Ordering::SeqCst)
 }
-
-static mut SMB_MEMORY_USAGE: Option<Mutex<MemoryUsage>> = None;
-
-impl MemoryUsage {
-    fn new() -> Self {
-        Default::default()
-    }
-
-    fn inc_hashmap(&mut self, amount: u64) {
-        self.hashmap_mem += amount;
-    }
-    fn inc_state(&mut self, amount: u64) {
-        self.state_structs += amount;
-    }
-
-    fn inc_tx_mem(&mut self, amount: u64) {
-        self.tx_mem += amount;
-    }
-    fn inc_tx(&mut self, amount: u64) {
-        self.tx_alloc_count += amount;
-    }
-    fn dec_tx(&mut self, amount: u64) {
-        self.tx_free_count += amount;
-    }
-
-    fn display(&self) {
-        SCLogNotice!("SMB state hashmap memory {}", self.hashmap_mem);
-        SCLogNotice!("SMB state structs {}", self.state_structs);
-        SCLogNotice!("SMB tx: alloc count {} free count: {} memory used: {}",
-            self.tx_alloc_count,
-            self.tx_free_count,
-            self.tx_mem);
-    }
-}
-
-fn init_memory_usage() {
-    unsafe {
-        SMB_MEMORY_USAGE = Some(Mutex::new(MemoryUsage::new()));
-    }
-}
-fn memory_usage() -> &'static Mutex<MemoryUsage> {
-    unsafe {
-        SMB_MEMORY_USAGE.as_ref().unwrap()
-    }
+#[no_mangle]
+pub extern "C" fn SCSMB_tx_memory_get() -> u64 {
+    SMBTX_MEMORY.load(Ordering::SeqCst)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_memory_stats() {
-    memory_usage().lock().unwrap().display();
+pub extern "C" fn SCSMB_tx_allocs_get() -> u64 {
+    SMBTX_ALLOCS.load(Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn SCSMB_tx_frees_get() -> u64 {
+    SMBTX_FREES.load(Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn SCSMB_state_get() -> u64 {
+    SMB_STATE.load(Ordering::SeqCst)
 }
 
 #[no_mangle]
@@ -2516,5 +2487,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
-    init_memory_usage();
+
+
 }

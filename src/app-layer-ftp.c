@@ -180,17 +180,17 @@ uint64_t FTPMemcapGlobalCounter(void)
  *  \retval 1 if in bounds
  *  \retval 0 if not in bounds
  */
-static int FTPCheckMemcap(uint64_t size)
+static bool FTPCheckMemcap(uint64_t size)
 {
     if (ftp_config_memcap == 0 || size + SC_ATOMIC_GET(ftp_memuse) <= ftp_config_memcap)
-        return 1;
+        return true;
     (void) SC_ATOMIC_ADD(ftp_memcap, 1);
-    return 0;
+    return false;
 }
 
 static void *FTPCalloc(size_t n, size_t size)
 {
-    if (FTPCheckMemcap((uint32_t)(n * size)) == 0) {
+    if (!FTPCheckMemcap((uint32_t)(n * size))) {
         sc_errno = SC_ELIMIT;
         return NULL;
     }
@@ -210,7 +210,7 @@ static void *FTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
     void *rptr = NULL;
 
-    if (FTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
+    if (!FTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
         sc_errno = SC_ELIMIT;
         return NULL;
     }

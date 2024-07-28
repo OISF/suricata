@@ -42,6 +42,40 @@ static SuricataFileContext sfc = { &sbcfg };
 static void SMBParserRegisterTests(void);
 #endif
 
+static uint64_t SMBHashMemoryGlobalCounter(void)
+{
+    return SCSMB_hash_memory_get();
+}
+
+static uint64_t SMBTXMemoryGlobalCounter(void)
+{
+    return SCSMB_tx_memory_get();
+}
+
+static uint64_t SMBTXAllocsGlobalCounter(void)
+{
+    return SCSMB_tx_allocs_get();
+}
+
+static uint64_t SMBTXFreesGlobalCounter(void)
+{
+    return SCSMB_tx_frees_get();
+}
+
+static uint64_t SMBStateGlobalCounter(void)
+{
+    return SCSMB_state_get();
+}
+
+void SMBRegisterGlobalCounters(void)
+{
+    StatsRegisterGlobalCounter("smb.hashmemory", SMBHashMemoryGlobalCounter);
+    StatsRegisterGlobalCounter("smb.tx_allocs", SMBTXAllocsGlobalCounter);
+    StatsRegisterGlobalCounter("smb.tx_frees", SMBTXFreesGlobalCounter);
+    StatsRegisterGlobalCounter("smb.tx_memory", SMBTXMemoryGlobalCounter);
+    StatsRegisterGlobalCounter("smb.state", SMBStateGlobalCounter);
+}
+
 void RegisterSMBParsers(void)
 {
     rs_smb_init(&sfc);
@@ -54,7 +88,6 @@ void RegisterSMBParsers(void)
 
 void SMBParserCleanup(void)
 {
-    rs_smb_memory_stats();
 }
 
 #ifdef UNITTESTS
