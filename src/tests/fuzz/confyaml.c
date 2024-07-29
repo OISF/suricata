@@ -1,4 +1,4 @@
-const char configNoChecksum[] = "\
+const char *configNoChecksum = "\
 %YAML 1.1\n\
 ---\n\
 pcap-file:\n\
