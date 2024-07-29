@@ -158,7 +158,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
     DagRecord dr;
 
-    int r = fread(&dr, sizeof(DagRecord), 1, etv->erf);
+    size_t r = fread(&dr, sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {
             SCLogInfo("End of ERF file reached");
