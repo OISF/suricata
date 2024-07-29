@@ -90,7 +90,8 @@ established
 not_established
   Match on packets that are not part of an established connection.
 stateless
-  Match on packets that are and are not part of an established connection.
+  Match on packets that are part of a flow, regarless of connection state.
+  (This means that packets that are not seen as part of a flow won't match).
 only_stream
   Match on packets that have been reassembled by the stream engine.
 no_stream
