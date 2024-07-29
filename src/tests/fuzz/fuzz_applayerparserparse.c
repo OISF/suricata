@@ -21,7 +21,7 @@ int LLVMFuzzerInitialize(int *argc, char ***argv);
 
 AppLayerParserThreadCtx *alp_tctx = NULL;
 
-#include "confyaml.c"
+extern const char *configNoChecksum;
 
 /* input buffer is structured this way :
  * 6 bytes header,
