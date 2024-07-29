@@ -42,7 +42,7 @@ void *fwd;
 SCInstance surifuzz;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
-#include "confyaml.c"
+extern const char *configNoChecksum;
 
 char *filepath = NULL;
 

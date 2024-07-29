@@ -1343,7 +1343,7 @@ if BUILD_FUZZTARGETS
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
 LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 
-fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
+fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c tests/fuzz/confyaml.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerprotodetectgetproto_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
@@ -1354,7 +1354,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 
-fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
+fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c tests/fuzz/confyaml.c
 fuzz_applayerparserparse_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerparserparse_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
@@ -1398,7 +1398,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 
-fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
+fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c tests/fuzz/confyaml.c
 fuzz_sigpcap_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_LDADD = $(LDADD_FUZZ)
 if HAS_FUZZLDFLAGS
@@ -1410,7 +1410,7 @@ endif
 nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
 
 if HAS_FUZZPCAP
-fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c
+fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c tests/fuzz/confyaml.c
 fuzz_sigpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
 if HAS_FUZZLDFLAGS
@@ -1421,7 +1421,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
 
-fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c
+fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c tests/fuzz/confyaml.c
 fuzz_predefpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_predefpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
 if HAS_FUZZLDFLAGS
