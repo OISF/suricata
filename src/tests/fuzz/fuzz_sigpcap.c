@@ -42,7 +42,7 @@ void *fwd;
 SCInstance surifuzz;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
-#include "confyaml.c"
+extern const char *configNoChecksum;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
