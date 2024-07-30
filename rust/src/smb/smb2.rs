@@ -576,6 +576,8 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
         },
         SMB2_COMMAND_CLOSE => {
             if let Ok((_, cd)) = parse_smb2_request_close(r.data) {
+                let _name = state.guid2name_map.remove(cd.guid);
+
                 let found_ts = if let Some(tx) = state.get_file_tx_by_fuid(cd.guid, Direction::ToServer) {
                     if !tx.request_done {
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
