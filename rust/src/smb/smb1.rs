@@ -535,6 +535,8 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                 Ok((_, cd)) => {
                     let mut fid = cd.fid.to_vec();
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+
+                    let _name = state.guid2name_map.remove(&fid);
                     state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
 
                     SCLogDebug!("closing FID {:?}/{:?}", cd.fid, fid);
@@ -1008,6 +1010,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
             state.set_file_left(Direction::ToServer, rd.len, rd.data.len() as u32, file_fid.to_vec());
 
             if command == SMB1_COMMAND_WRITE_AND_CLOSE {
+                let _name = state.guid2name_map.remove(&file_fid);
                 SCLogDebug!("closing FID {:?}", file_fid);
                 smb1_close_file(state, &file_fid, Direction::ToServer);
             }
