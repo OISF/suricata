@@ -307,7 +307,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
                                             let filename = match state.guid2name_map.get(&frankenfid) {
-                                                Some(n) => n.to_vec(),
+                                                Some((n, _ts)) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
                                             let tx = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
@@ -342,7 +342,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
                                             let oldname = match state.guid2name_map.get(&frankenfid) {
-                                                Some(n) => n.to_vec(),
+                                                Some((n, _ts)) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
                                             let tx = state.new_rename_tx(pd.fid.to_vec(), oldname, newname);
@@ -734,7 +734,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                             fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
                             SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
                             SCLogDebug!("fid {:?} name {:?}", fid, p);
-                            state.guid2name_map.insert(fid, p);
+                            state.guid2name_map.insert(fid, (p, state.ts));
                         } else {
                             SCLogDebug!("SMBv1 response: GUID NOT FOUND");
                         }
@@ -955,7 +955,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                     file_fid, rd.offset);
 
             let file_name = match state.guid2name_map.get(&file_fid) {
-                Some(n) => n.to_vec(),
+                Some((n, _ts)) => n.to_vec(),
                 None => b"<unknown>".to_vec(),
             };
             let mut set_event_fileoverlap = false;
@@ -1056,7 +1056,7 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                 };
                 if !is_pipe {
                     let file_name = match state.guid2name_map.get(&file_fid) {
-                        Some(n) => n.to_vec(),
+                        Some((n, _ts)) => n.to_vec(),
                         None => Vec::new(),
                     };
                     let mut set_event_fileoverlap = false;
