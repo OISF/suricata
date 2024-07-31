@@ -515,12 +515,18 @@ impl DCERPCState {
             if found {
                 match dir {
                     Direction::ToServer => {
+                        if tx.req_done || tx.req_lost {
+                            continue;
+                        }
                         let resp_cmd = get_resp_type_for_req(cmd);
                         if resp_cmd != tx.resp_cmd {
                             continue;
                         }
                     }
                     Direction::ToClient => {
+                        if tx.resp_done || tx.resp_lost {
+                            continue;
+                        }
                         let req_cmd = get_req_type_for_resp(cmd);
                         if req_cmd != tx.req_cmd {
                             continue;
