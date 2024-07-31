@@ -403,7 +403,7 @@ pub unsafe extern "C" fn rs_ldap_register_parser() {
         get_tx_data: SCLdapGetTxData,
         get_state_data: SCLdapGetStateData,
         apply_tx_config: None,
-        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+        flags: 0,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };
