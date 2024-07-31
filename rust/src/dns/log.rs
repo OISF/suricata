@@ -90,7 +90,7 @@ pub const DNS_LOG_VERSION_2: u8 = 2;
 pub const DNS_LOG_VERSION_3: u8 = 3;
 pub const DNS_LOG_VERSION_DEFAULT: u8 = DNS_LOG_VERSION_3;
 
-fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
+pub fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
     if flags == !0 {
         return true;
     }
@@ -456,7 +456,7 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
     return Ok(js);
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
+pub fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
     let mut jsa = JsonBuilder::try_new_object()?;
 
     jsa.set_string_from_bytes("rrname", &answer.name)?;
@@ -652,7 +652,7 @@ fn dns_log_json_answer(
 }
 
 /// V3 style answer logging.
-fn dns_log_json_answers(
+pub fn dns_log_json_answers(
     jb: &mut JsonBuilder, response: &DNSMessage, flags: u64,
 ) -> Result<(), JsonError> {
     if !response.answers.is_empty() {
@@ -742,7 +742,7 @@ fn dns_log_json_answers(
     Ok(())
 }
 
-fn dns_log_query(
+pub fn dns_log_query(
     tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
 ) -> Result<bool, JsonError> {
     let index = i as usize;

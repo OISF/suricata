@@ -24,10 +24,26 @@
 #ifndef SURICATA_OUTPUT_JSON_DNS_H
 #define SURICATA_OUTPUT_JSON_DNS_H
 
+#define LOG_QUERIES BIT_U64(0)
+#define LOG_ANSWERS BIT_U64(1)
+
+#define LOG_FORMAT_GROUPED  BIT_U64(60)
+#define LOG_FORMAT_DETAILED BIT_U64(61)
+#define LOG_HTTPS           BIT_U64(62)
+
+#define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED | LOG_FORMAT_DETAILED)
+#define LOG_ALL_RRTYPES                                                                            \
+    (~(uint64_t)(LOG_QUERIES | LOG_ANSWERS | LOG_FORMAT_DETAILED | LOG_FORMAT_GROUPED))
+
 void JsonDnsLogRegister(void);
 void JsonDoh2LogRegister(void);
 
 bool AlertJsonDns(void *vtx, JsonBuilder *js);
 bool AlertJsonDoh2(void *vtx, JsonBuilder *js);
+
+void JsonDnsLogParseConfig(uint64_t *logger_flags, ConfNode *conf, const char *query_key,
+        const char *answer_key, const char *answer_types_key);
+
+void JsonDnsLogInitFilters(uint64_t *logger_flags, ConfNode *conf);
 
 #endif /* SURICATA_OUTPUT_JSON_DNS_H */

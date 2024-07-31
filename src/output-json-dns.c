@@ -38,9 +38,6 @@
 #include "output-json-dns.h"
 #include "rust.h"
 
-#define LOG_QUERIES    BIT_U64(0)
-#define LOG_ANSWERS    BIT_U64(1)
-
 #define LOG_A          BIT_U64(2)
 #define LOG_NS         BIT_U64(3)
 #define LOG_MD         BIT_U64(4)
@@ -99,13 +96,6 @@
 #define LOG_MAILA      BIT_U64(57)
 #define LOG_ANY        BIT_U64(58)
 #define LOG_URI        BIT_U64(59)
-
-#define LOG_FORMAT_GROUPED     BIT_U64(60)
-#define LOG_FORMAT_DETAILED    BIT_U64(61)
-#define LOG_HTTPS              BIT_U64(62)
-
-#define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED|LOG_FORMAT_DETAILED)
-#define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS|LOG_FORMAT_DETAILED|LOG_FORMAT_GROUPED))
 
 typedef enum {
     DNS_RRTYPE_A = 0,
@@ -489,47 +479,46 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
-                                  const char *query_key, const char *answer_key,
-                                  const char *answer_types_key)
+void JsonDnsLogParseConfig(uint64_t *logger_flags, ConfNode *conf, const char *query_key,
+        const char *answer_key, const char *answer_types_key)
 {
     const char *query = ConfNodeLookupChildValue(conf, query_key);
     if (query != NULL) {
         if (ConfValIsTrue(query)) {
-            dnslog_ctx->flags |= LOG_QUERIES;
+            *logger_flags |= LOG_QUERIES;
         } else {
-            dnslog_ctx->flags &= ~LOG_QUERIES;
+            *logger_flags &= ~LOG_QUERIES;
         }
     } else {
-        dnslog_ctx->flags |= LOG_QUERIES;
+        *logger_flags |= LOG_QUERIES;
     }
 
     const char *response = ConfNodeLookupChildValue(conf, answer_key);
     if (response != NULL) {
         if (ConfValIsTrue(response)) {
-            dnslog_ctx->flags |= LOG_ANSWERS;
+            *logger_flags |= LOG_ANSWERS;
         } else {
-            dnslog_ctx->flags &= ~LOG_ANSWERS;
+            *logger_flags &= ~LOG_ANSWERS;
         }
     } else {
-        dnslog_ctx->flags |= LOG_ANSWERS;
+        *logger_flags |= LOG_ANSWERS;
     }
 
     ConfNode *custom;
     if ((custom = ConfNodeLookupChild(conf, answer_types_key)) != NULL) {
-        dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
+        *logger_flags &= ~LOG_ALL_RRTYPES;
         ConfNode *field;
         TAILQ_FOREACH (field, &custom->head, next) {
             DnsRRTypes f;
             for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++) {
                 if (strcasecmp(dns_rrtype_fields[f].config_rrtype, field->val) == 0) {
-                    dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
+                    *logger_flags |= dns_rrtype_fields[f].flags;
                     break;
                 }
             }
         }
     } else {
-        dnslog_ctx->flags |= LOG_ALL_RRTYPES;
+        *logger_flags |= LOG_ALL_RRTYPES;
     }
 }
 
@@ -593,13 +582,11 @@ static uint8_t JsonDnsCheckVersion(ConfNode *conf)
     return default_version;
 }
 
-static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
+void JsonDnsLogInitFilters(uint64_t *logger_flags, ConfNode *conf)
 {
-    dnslog_ctx->flags = ~0ULL;
-
     if (conf) {
-        JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
-        if (dnslog_ctx->flags & LOG_ANSWERS) {
+        JsonDnsLogParseConfig(logger_flags, conf, "requests", "responses", "types");
+        if (*logger_flags & LOG_ANSWERS) {
             ConfNode *format;
             if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
                 uint64_t flags = 0;
@@ -614,13 +601,13 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
                     }
                 }
                 if (flags) {
-                    dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
-                    dnslog_ctx->flags |= flags;
+                    *logger_flags &= ~LOG_FORMAT_ALL;
+                    *logger_flags |= flags;
                 } else {
                     SCLogWarning("Empty EVE DNS format array, using defaults");
                 }
             } else {
-                dnslog_ctx->flags |= LOG_FORMAT_ALL;
+                *logger_flags |= LOG_FORMAT_ALL;
             }
         }
     }
@@ -644,6 +631,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
 
     dnslog_ctx->eve_ctx = ojc;
     dnslog_ctx->version = JsonDnsCheckVersion(conf);
+    dnslog_ctx->flags = ~0ULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -654,7 +642,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtxSub;
 
-    JsonDnsLogInitFilters(dnslog_ctx, conf);
+    JsonDnsLogInitFilters(&dnslog_ctx->flags, conf);
 
     SCLogDebug("DNS log sub-module initialized");
 
