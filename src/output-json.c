@@ -445,7 +445,13 @@ void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length)
     if (!jb_open_object(js, "packet_info")) {
         return;
     }
+    /*
+     * ensure the object is closed on error. This is done defensively
+     * in case additional logic is added before the final jb_close()
+     * invocation
+     */
     if (!jb_set_uint(js, "linktype", p->datalink)) {
+        jb_close(js);
         return;
     }
     jb_close(js);
