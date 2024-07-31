@@ -186,24 +186,20 @@ fn add_proposals(
         // Rule 1: warn on weak or unknown transforms
         for xform in &transforms {
             match *xform {
-                IkeV2Transform::Encryption(ref enc) => {
-                    match *enc {
-                        IkeTransformEncType::ENCR_DES_IV64
-                        | IkeTransformEncType::ENCR_DES
-                        | IkeTransformEncType::ENCR_3DES
-                        | IkeTransformEncType::ENCR_RC5
-                        | IkeTransformEncType::ENCR_IDEA
-                        | IkeTransformEncType::ENCR_CAST
-                        | IkeTransformEncType::ENCR_BLOWFISH
-                        | IkeTransformEncType::ENCR_3IDEA
-                        | IkeTransformEncType::ENCR_DES_IV32
-                        | IkeTransformEncType::ENCR_NULL => {
-                            SCLogDebug!("Weak Encryption: {:?}", enc);
-                            // XXX send event only if direction == Direction::ToClient ?
-                            tx.set_event(IkeEvent::WeakCryptoEnc);
-                        }
-                        _ => (),
-                    }
+                IkeV2Transform::Encryption(
+                    IkeTransformEncType::ENCR_DES_IV64
+                    | IkeTransformEncType::ENCR_DES
+                    | IkeTransformEncType::ENCR_3DES
+                    | IkeTransformEncType::ENCR_RC5
+                    | IkeTransformEncType::ENCR_IDEA
+                    | IkeTransformEncType::ENCR_CAST
+                    | IkeTransformEncType::ENCR_BLOWFISH
+                    | IkeTransformEncType::ENCR_3IDEA
+                    | IkeTransformEncType::ENCR_DES_IV32
+                    | IkeTransformEncType::ENCR_NULL,
+                ) => {
+                    // XXX send event only if direction == Direction::ToClient ?
+                    tx.set_event(IkeEvent::WeakCryptoEnc);
                 }
                 IkeV2Transform::PRF(ref prf) => match *prf {
                     IkeTransformPRFType::PRF_NULL => {
@@ -276,9 +272,9 @@ fn add_proposals(
             IkeV2Transform::Auth(_) => true,
             _ => false,
         }) && !transforms.iter().any(|x| match *x {
-                IkeV2Transform::Encryption(ref enc) => enc.is_aead(),
-                _ => false,
-            }) {
+            IkeV2Transform::Encryption(ref enc) => enc.is_aead(),
+            _ => false,
+        }) {
             SCLogDebug!("No integrity transform found");
             tx.set_event(IkeEvent::WeakCryptoNoAuth);
         }
