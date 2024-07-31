@@ -1732,6 +1732,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_rdp_register_parser();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
+    SCRegisterLLMNRParser();
     RegisterIMAPParsers();
 
     /** POP3 */
