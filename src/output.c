@@ -83,6 +83,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "output-json-llmnr.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -948,6 +949,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, (EveJsonSimpleTxLogFunc)AlertJsonDns, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_MDNS, (EveJsonSimpleTxLogFunc)AlertJsonMdns, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_LLMNR, (EveJsonSimpleTxLogFunc)AlertJsonLLMNR, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
     RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)SCModbusToJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, (EveJsonSimpleTxLogFunc)SCEnipLoggerLog, NULL);
@@ -1225,6 +1227,8 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+    /* LLMNR JSON logger */
+    JsonLLMNRLogRegister();
 
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
