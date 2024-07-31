@@ -3294,6 +3294,345 @@
                 }
             }
         },
+        "llmnr": {
+            "description": "LLMNR requests and responses",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "additionals": {
+                    "description": "LLMNR additional records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "opt": {
+                                "description": "EDNS OPT records",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "code": {
+                                            "description": "EDNS option code",
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "description": "EDNS option data",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "rdata": {
+                                "description": "Response data for the record",
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "answers": {
+                    "description": "LLMNR answer records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "rdata": {
+                                "description": "Response data for the record",
+                                "type": "string"
+                            },
+                            "rdata_truncated": {
+                                "description": "Rdata was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "soa": {
+                                "description": "SOA record data",
+                                "$ref": "#/$defs/dns.soa"
+                            },
+                            "srv": {
+                                "description": "SRV record data",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "description": "Target hostname",
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "description": "Target port",
+                                        "type": "integer"
+                                    },
+                                    "priority": {
+                                        "description": "Priority value",
+                                        "type": "integer"
+                                    },
+                                    "weight": {
+                                        "description": "Weight value",
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "sshfp": {
+                                "description": "SSH fingerprint record",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "algo": {
+                                        "description": "Algorithm number",
+                                        "type": "integer"
+                                    },
+                                    "fingerprint": {
+                                        "description": "Fingerprint value",
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "description": "Fingerprint type",
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "authorities": {
+                    "description": "LLMNR authority records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "rdata": {
+                                "description": "Response data for the record",
+                                "type": "string"
+                            },
+                            "rdata_truncated": {
+                                "description": "Rdata was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "soa": {
+                                "description": "SOA record data",
+                                "$ref": "#/$defs/dns.soa"
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "c": {
+                    "description": "LLMNR conflict flag",
+                    "type": "boolean"
+                },
+                "flags": {
+                    "description": "LLMNR message flags as hex string",
+                    "type": "string"
+                },
+                "grouped": {
+                    "description": "Grouped answer records by type",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "A": {
+                            "description": "IPv4 address records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "AAAA": {
+                            "description": "IPv6 address records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "CNAME": {
+                            "description": "Canonical name records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "MX": {
+                            "description": "Mail exchange records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NS": {
+                            "description": "Name server records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NULL": {
+                            "description": "NULL record data",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "PTR": {
+                            "description": "Pointer records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "SOA": {
+                            "description": "Start of authority records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/dns.soa"
+                            }
+                        },
+                        "TXT": {
+                            "description": "Text records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "id": {
+                    "description": "LLMNR transaction ID",
+                    "type": "integer"
+                },
+                "opcode": {
+                    "description": "LLMNR opcode value",
+                    "type": "integer"
+                },
+                "queries": {
+                    "description": "LLMNR query records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "rrname": {
+                                "description": "Resource name being requested",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "type": "string",
+                                "description": "Type of resource being requested"
+                            }
+                        }
+                    }
+                },
+                "t": {
+                    "description": "LLMNR tentative flag",
+                    "type": "boolean"
+                },
+                "tc": {
+                    "description": "LLMNR truncated flag",
+                    "type": "boolean"
+                },
+                "tx_id": {
+                    "description": "Internal transaction ID",
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "Type of message, either a request or response",
+                    "type": "string",
+                    "enum": [
+                        "request",
+                        "response"
+                    ]
+                }
+            }
+        },
         "log_level": {
             "type": "string"
         },
@@ -5802,6 +6141,14 @@
                                     "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "llmnr_tcp": {
+                                    "description": "Errors encountered parsing LLMNR/TCP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "llmnr_udp": {
+                                    "description": "Errors encountered parsing LLMNR/UDP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "mdns": {
                                     "description": "Errors encountered parsing mDNS",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -5985,6 +6332,14 @@
                                     "type": "integer",
                                     "description": "Number of flows LDAP/UDP protocol"
                                 },
+                                "llmnr_tcp": {
+                                    "type": "integer",
+                                    "description": "Number of flows for LLMNR/TCP protocol"
+                                },
+                                "llmnr_udp": {
+                                    "type": "integer",
+                                    "description": "Number of flows for LLMNR/UDP protocol"
+                                },
                                 "mdns": {
                                     "description": "Number of flows for mDNS",
                                     "type": "integer"
@@ -6158,6 +6513,14 @@
                                 "ldap_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for LDAP/UDP protocol"
+                                },
+                                "llmnr_tcp": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for LLMNR/TCP protocol"
+                                },
+                                "llmnr_udp": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for LLMNR/UDP protocol"
                                 },
                                 "mdns": {
                                     "description": "Number of transactions for mDNS",
