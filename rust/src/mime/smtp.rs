@@ -759,7 +759,7 @@ fn mime_smtp_complete(ctx: &mut MimeStateSMTP) {
         ctx.md5_result = ctx.md5.finalize_reset();
     }
     // look for url in the last unfinished line
-    mime_smtp_find_url_strings(ctx, &[b'\n']);
+    mime_smtp_find_url_strings(ctx, b"\n");
 }
 
 #[no_mangle]
