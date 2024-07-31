@@ -1255,6 +1255,8 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileSghData_ *sgh_perf_data;
 
     struct SCProfilePrefilterData_ *prefilter_perf_data;
+    struct SCProfilePrefilterData_ **sgh_prefilter_perf_data;
+    uint32_t sgh_prefilter_perf_data_cnt;
     /** bytes inspected by current prefilter callback call */
     uint64_t prefilter_bytes;
     /** number of times we inspected a buffer */

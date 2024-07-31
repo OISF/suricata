@@ -49,6 +49,8 @@ typedef struct SCProfilePrefilterDetectCtx_ {
     uint32_t id;
     uint32_t size;                  /**< size in elements */
     SCProfilePrefilterData *data;
+    SCProfilePrefilterData **sgh_data;
+    uint32_t sgh_data_cnt;
     pthread_mutex_t data_m;
 } SCProfilePrefilterDetectCtx;
 
@@ -209,8 +211,39 @@ void SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, u
             p->max_bytes = bytes;
         p->total_bytes += bytes;
     }
-}
 
+}
+/**
+ * \brief Update a rule counter.
+ *
+ * \param id The ID of this counter.
+ * \param sgh the current Signature group head being prefiltered
+ * \param ticks Number of CPU ticks for this rule.
+ * \param match Did the rule match?
+ */
+void 
+SCProfilingSGHPrefilterUpdateCounter(
+    DetectEngineThreadCtx *det_ctx, int id, const SigGroupHead * sgh, uint64_t ticks,
+    uint64_t bytes, uint64_t bytes_called
+) {
+    if (
+        det_ctx != NULL && det_ctx->sgh_prefilter_perf_data != NULL &&
+        id < (int)det_ctx->de_ctx->prefilter_id
+    ) {
+        SCProfilePrefilterData *p = &det_ctx->sgh_prefilter_perf_data[sgh->id][id];
+
+        p->called++;
+        if (ticks > p->max)
+            p->max = ticks;
+        p->total += ticks;
+
+        p->bytes_called += bytes_called;
+        if (bytes > p->max_bytes)
+            p->max_bytes = bytes;
+        p->total_bytes += bytes;
+    }
+
+}
 static SCProfilePrefilterDetectCtx *SCProfilingPrefilterInitCtx(void)
 {
     SCProfilePrefilterDetectCtx *ctx = SCCalloc(1, sizeof(SCProfilePrefilterDetectCtx));
@@ -228,6 +261,12 @@ static void DetroyCtx(SCProfilePrefilterDetectCtx *ctx)
     if (ctx) {
         if (ctx->data != NULL)
             SCFree(ctx->data);
+        if (ctx->sgh_data != NULL) {
+            for (uint32_t i = 0; i < ctx->sgh_data_cnt; i++) {
+                SCFree(ctx->sgh_data[i]);
+            }
+            SCFree(ctx->sgh_data);
+        }
         pthread_mutex_destroy(&ctx->data_m);
         SCFree(ctx);
     }
@@ -253,13 +292,40 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
     if (a != NULL) {
         det_ctx->prefilter_perf_data = a;
     }
+
+
+    //Per sgh logic TODO: Make it configurable
+    uint32_t n_sgh = det_ctx->de_ctx->sgh_array_cnt;
+    BUG_ON(n_sgh == 0);
+    SCProfilePrefilterData ** sgh_pf_perf_arr = 
+        SCCalloc(n_sgh, sizeof(SCProfilePrefilterData *));
+    if (sgh_pf_perf_arr != NULL) {
+        for (uint32_t i = 0; i < n_sgh; i++) {
+            SCProfilePrefilterData *b = SCCalloc(1, sizeof(SCProfilePrefilterData) * size);
+            if (b != NULL) {
+                sgh_pf_perf_arr[i] = b;
+            } else {
+                for (uint32_t j = 0; j < i; j++) {
+                    SCFree(sgh_pf_perf_arr[j]);
+                }
+                SCFree(sgh_pf_perf_arr);
+                sgh_pf_perf_arr = NULL;
+                return;
+            }
+        }
+    } else {
+        return;
+    }
+    det_ctx->sgh_prefilter_perf_data = sgh_pf_perf_arr;
+    det_ctx->sgh_prefilter_perf_data_cnt = n_sgh;
+
 }
 
 static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx == NULL || de_ctx->profile_prefilter_ctx == NULL ||
         de_ctx->profile_prefilter_ctx->data == NULL || det_ctx == NULL ||
-        det_ctx->prefilter_perf_data == NULL)
+        det_ctx->prefilter_perf_data == NULL || det_ctx->sgh_prefilter_perf_data == NULL)
         return;
 
     for (uint32_t i = 0; i < de_ctx->prefilter_id; i++) {
@@ -276,11 +342,35 @@ static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngin
         de_ctx->profile_prefilter_ctx->data[i].bytes_called +=
                 det_ctx->prefilter_perf_data[i].bytes_called;
     }
+    for (uint32_t sgh_idx = 0; sgh_idx < det_ctx->sgh_prefilter_perf_data_cnt; sgh_idx++) {
+        for (uint32_t i = 0; i < de_ctx->prefilter_id; i++) {
+            de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].called +=
+                    det_ctx->sgh_prefilter_perf_data[sgh_idx][i].called;
+            de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].total +=
+                    det_ctx->sgh_prefilter_perf_data[sgh_idx][i].total;
+            if (det_ctx->sgh_prefilter_perf_data[sgh_idx][i].max >
+                    de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].max)
+                de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].max =
+                        det_ctx->sgh_prefilter_perf_data[sgh_idx][i].max;
+            de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].total_bytes +=
+                    det_ctx->sgh_prefilter_perf_data[sgh_idx][i].total_bytes;
+            if (det_ctx->sgh_prefilter_perf_data[sgh_idx][i].max_bytes >
+                    de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].max_bytes)
+                de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].max_bytes =
+                        det_ctx->sgh_prefilter_perf_data[sgh_idx][i].max_bytes;
+            de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].bytes_called +=
+                    det_ctx->sgh_prefilter_perf_data[sgh_idx][i].bytes_called;
+        }
+    }
+
 }
 
 void SCProfilingPrefilterThreadCleanup(DetectEngineThreadCtx *det_ctx)
 {
-    if (det_ctx == NULL || det_ctx->de_ctx == NULL || det_ctx->prefilter_perf_data == NULL)
+    if (
+        det_ctx == NULL || det_ctx->de_ctx == NULL ||
+        det_ctx->prefilter_perf_data == NULL || det_ctx->sgh_prefilter_perf_data == NULL 
+    )
         return;
 
     pthread_mutex_lock(&det_ctx->de_ctx->profile_prefilter_ctx->data_m);
@@ -289,6 +379,12 @@ void SCProfilingPrefilterThreadCleanup(DetectEngineThreadCtx *det_ctx)
 
     SCFree(det_ctx->prefilter_perf_data);
     det_ctx->prefilter_perf_data = NULL;
+
+    for (uint32_t i = 0; i < det_ctx->sgh_prefilter_perf_data_cnt; i++) {
+        SCFree(det_ctx->sgh_prefilter_perf_data[i]);
+    }
+    SCFree(det_ctx->sgh_prefilter_perf_data);
+    det_ctx->sgh_prefilter_perf_data = NULL;
 }
 
 /**
@@ -322,6 +418,28 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     SCLogDebug("size alloc'd %u", (uint32_t)size * (uint32_t)sizeof(SCProfilePrefilterData));
 
     SCLogPerf("Registered %"PRIu32" prefilter profiling counters.", size);
+    
+    //Per sgh logic
+    uint32_t n_sgh = de_ctx->sgh_array_cnt;
+    BUG_ON(n_sgh == 0);
+    SCProfilePrefilterData ** sgh_pf_perf_arr = 
+        SCCalloc(n_sgh, sizeof(SCProfilePrefilterData *));
+    BUG_ON(sgh_pf_perf_arr == NULL);
+    for (uint32_t i = 0; i < n_sgh; i++) {
+        SCProfilePrefilterData *b = SCCalloc(1, sizeof(SCProfilePrefilterData) * size);
+        BUG_ON(b != NULL);
+        sgh_pf_perf_arr[i] = b;
+    }
+
+    SCLogPerf("Registered %"PRIu32" per rule group prefilter profiling counters.", size * n_sgh);
+    de_ctx->profile_prefilter_ctx->sgh_data = sgh_pf_perf_arr;
+
+    for (uint32_t i = 0; i < n_sgh; i++) {
+        for (uint32_t j = 0; j < size; j++) {
+            de_ctx->profile_prefilter_ctx->sgh_data[i][j].name = de_ctx->profile_prefilter_ctx->data[j].name;
+        }
+    }
+    hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
 }
 
 #endif /* PROFILING */

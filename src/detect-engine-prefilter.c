@@ -120,7 +120,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PREFILTER_PROFILING_START(det_ctx);
         engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx->tx_ptr, tx->tx_id,
                 tx->tx_data_ptr, flow_flags);
-        PREFILTER_PROFILING_END(det_ctx, engine->gid);
+        PREFILTER_PROFILING_END(det_ctx, engine->gid, sgh);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
             tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
@@ -158,7 +158,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
     det_ctx->mtc.mpm_checks = 0;
     det_ctx->mtc.mpm_check_buffer_size = 0;
     #endif
-    if (sgh->pkt_engines) {
+        if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
         /* run packet engines */
         PrefilterEngine *engine = sgh->pkt_engines;
@@ -171,7 +171,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
                     det_ctx->mtc.mpm_check_buffer_size);
                 det_ctx->mtc.mpm_check_buffer_size = 0;
 #endif
-                PREFILTER_PROFILING_END(det_ctx, engine->gid);
+                PREFILTER_PROFILING_END(det_ctx, engine->gid, sgh);
             }
 
             if (engine->is_last)
@@ -192,12 +192,12 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
         while (1) {
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid, sgh);
             #ifdef PROFILING
                 SCProfilingSghUpdateSizeDist(det_ctx, sgh, 
                     det_ctx->mtc.mpm_check_buffer_size);
                 det_ctx->mtc.mpm_check_buffer_size = 0;
             #endif
-            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
                 break;

@@ -253,7 +253,7 @@ PktProfiling *SCProfilePacketStart(void);
 #define SGH_PROFILING_RECORD(det_ctx, sgh)                          \
     if (profiling_sghs_enabled) {                                   \
         SCProfilingSghUpdateCounter((det_ctx), (sgh));              \
-    }
+}
 
 extern int profiling_prefilter_enabled;
 extern thread_local int profiling_prefilter_entered;
@@ -274,13 +274,17 @@ extern thread_local int profiling_prefilter_entered;
 
 /* we allow this macro to be called if profiling_prefilter_entered == 0,
  * so that we don't have to refactor some of the detection code. */
-#define PREFILTER_PROFILING_END(ctx, profile_id)                                                   \
+#define PREFILTER_PROFILING_END(ctx, profile_id, sgh)                                              \
     if (profiling_prefilter_enabled && profiling_prefilter_entered) {                              \
         profile_prefilter_end_ = UtilCpuGetTicks();                                                \
-        if (profile_prefilter_end_ > profile_prefilter_start_)                                     \
+        if (profile_prefilter_end_ > profile_prefilter_start_) {                                   \
             SCProfilingPrefilterUpdateCounter((ctx), (profile_id),                                 \
                     (profile_prefilter_end_ - profile_prefilter_start_), (ctx)->prefilter_bytes,   \
                     (ctx)->prefilter_bytes_called);                                                \
+            SCProfilingSGHPrefilterUpdateCounter((ctx), (profile_id), (sgh),                       \
+                    (profile_prefilter_end_ - profile_prefilter_start_), (ctx)->prefilter_bytes,   \
+                    (ctx)->prefilter_bytes_called);                                                \
+        }                                                                                          \
         profiling_prefilter_entered--;                                                             \
     }
 
@@ -309,6 +313,7 @@ void SCProfilingPrefilterDestroyCtx(DetectEngineCtx *);
 void SCProfilingPrefilterInitCounters(DetectEngineCtx *);
 void SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks,
         uint64_t bytes, uint64_t bytes_called);
+void SCProfilingSGHPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, const SigGroupHead * sgh, uint64_t ticks, uint64_t bytes, uint64_t bytes_called);
 void SCProfilingPrefilterThreadSetup(struct SCProfilePrefilterDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingPrefilterThreadCleanup(DetectEngineThreadCtx *);
 
