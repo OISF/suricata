@@ -39,6 +39,8 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         const int list_id, SimpleGetTxBuffer GetBuf);
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         bool toclient, bool toserver, InspectionBufferGetDataPtr GetData);
+int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData);
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,

@@ -300,6 +300,7 @@ outputs:
         - rfb
         - sip
         - quic
+        - ldap
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
@@ -1182,6 +1183,11 @@ app-layer:
 
     sip:
       #enabled: yes
+
+    ldap:
+      enabled: yes
+      # Maximum number of live LDAP transactions per flow
+      # max-tx: 1024
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256

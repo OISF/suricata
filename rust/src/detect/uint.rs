@@ -581,4 +581,22 @@ mod tests {
         let (_, val) = detect_parse_uint::<u32>("> 3MB").unwrap();
         assert_eq!(val.arg1, 3 * 1024 * 1024);
     }
+
+    #[test]
+    fn test_parse_uint_like_mqtt_protocol_version() {
+        let (_, val) = detect_parse_uint::<u8>("3").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+        assert_eq!(val.arg1, 3);
+        let (_, val) = detect_parse_uint::<u8>("5").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+        assert_eq!(val.arg1, 5);
+        let (_, val) = detect_parse_uint::<u8>(">3").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeGt);
+        assert_eq!(val.arg1, 3);
+        let (_, val) = detect_parse_uint::<u8>("<44").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeLt);
+        assert_eq!(val.arg1, 44);
+        assert!(detect_parse_uint::<u8>("").is_err());
+        assert!(detect_parse_uint::<u8>("<444").is_err());
+    }
 }

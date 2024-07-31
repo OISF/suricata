@@ -27,13 +27,16 @@ pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenSt
     let name = input.ident;
     let mut values = Vec::new();
     let mut names = Vec::new();
+    let mut names_upper = Vec::new();
     let mut fields = Vec::new();
 
     if let syn::Data::Enum(ref data) = input.data {
         for v in (&data.variants).into_iter() {
             if let Some((_, val)) = &v.discriminant {
                 let fname = transform_name(&v.ident.to_string());
+                let fnameu = fname.to_ascii_uppercase();
                 names.push(fname);
+                names_upper.push(fnameu);
                 fields.push(v.ident.clone());
                 if let syn::Expr::Lit(l) = val {
                     if let syn::Lit::Int(li) = &l.lit {
@@ -84,8 +87,8 @@ pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenSt
                 }
             }
             fn from_str(s: &str) -> Option<Self> {
-                match s {
-                    #( #names => Some(#name::#fields) ,)*
+                match s.to_ascii_uppercase().as_str() {
+                    #( #names_upper => Some(#name::#fields) ,)*
                     _ => None
                 }
             }

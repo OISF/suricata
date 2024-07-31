@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,11 @@
 /**
  * \file
  *
- * \author Sascha Steinbiss <sascha@steinbiss.name>
+ * \author Mahmoud Maatuq <mahmoudmatook.mm@gmail.com>
+ *
  */
 
-#ifndef SURICATA_DETECT_MQTT_UNSUBSCRIBE_TOPIC_H
-#define SURICATA_DETECT_MQTT_UNSUBSCRIBE_TOPIC_H
-
-void DetectMQTTUnsubscribeTopicRegister(void);
-
-#endif /* SURICATA_DETECT_MQTT_UNSUBSCRIBE_TOPIC_H */
+#ifndef SURICATA_APP_LAYER_IMAP_H
+#define SURICATA_APP_LAYER_IMAP_H
+void RegisterIMAPParsers(void);
+#endif

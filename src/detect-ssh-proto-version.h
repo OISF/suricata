@@ -24,15 +24,6 @@
 #ifndef SURICATA_DETECT_SSH_VERSION_H
 #define SURICATA_DETECT_SSH_VERSION_H
 
-/** proto version 1.99 is considered proto version 2 */
-#define SSH_FLAG_PROTOVERSION_2_COMPAT 0x01
-
-typedef struct DetectSshVersionData_ {
-    uint8_t *ver; /** ssh version to match */
-    uint16_t len; /** ssh version length to match */
-    uint8_t flags;
-} DetectSshVersionData;
-
 /* prototypes */
 void DetectSshVersionRegister (void);
 

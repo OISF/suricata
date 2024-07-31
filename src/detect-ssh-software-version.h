@@ -24,11 +24,6 @@
 #ifndef SURICATA_DETECT_SSH_SOFTWARE_VERSION_H
 #define SURICATA_DETECT_SSH_SOFTWARE_VERSION_H
 
-typedef struct DetectSshSoftwareVersionData_ {
-    uint8_t *software_ver; /** ssh version to match */
-    uint16_t len; /** ssh version length to match */
-} DetectSshSoftwareVersionData;
-
 /* prototypes */
 void DetectSshSoftwareVersionRegister(void);
 

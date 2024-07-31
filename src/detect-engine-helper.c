@@ -81,6 +81,20 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
     return DetectBufferTypeGetByName(name);
 }
 
+int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData)
+{
+    if (toserver) {
+        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, 0, GetData, 2, 0);
+    }
+    if (toclient) {
+        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOCLIENT, 0, GetData, 2, 0);
+    }
+    DetectBufferTypeSupportsMultiInstance(name);
+    DetectBufferTypeSetDescriptionByName(name, desc);
+    return DetectBufferTypeGetByName(name);
+}
+
 int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
 {
     if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {

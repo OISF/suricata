@@ -413,6 +413,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "ldap-parser"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "798f8bf8793bb624e6b840f1c73949949709f9301dc63ddb236e9230674575c9"
+dependencies = [
+ "asn1-rs",
+ "rusticata-macros",
+ "thiserror",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -937,6 +948,7 @@ dependencies = [
  "ipsec-parser",
  "kerberos-parser",
  "lazy_static",
+ "ldap-parser",
  "libc",
  "lzma-rs",
  "md-5",

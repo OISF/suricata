@@ -215,10 +215,14 @@ enum SMTPCode {
     SMTP_REPLY_334,
     SMTP_REPLY_354,
 
+    SMTP_REPLY_401, // Unauthorized
+    SMTP_REPLY_402, // Command not implemented
     SMTP_REPLY_421,
+    SMTP_REPLY_435, // Your account has not yet been verified
     SMTP_REPLY_450,
     SMTP_REPLY_451,
     SMTP_REPLY_452,
+    SMTP_REPLY_454, // Temporary authentication failure
     SMTP_REPLY_455,
 
     SMTP_REPLY_500,
@@ -226,6 +230,15 @@ enum SMTPCode {
     SMTP_REPLY_502,
     SMTP_REPLY_503,
     SMTP_REPLY_504,
+    SMTP_REPLY_511, // Bad email address
+    SMTP_REPLY_521, // Server does not accept mail
+    SMTP_REPLY_522, // Recipient has exceeded mailbox limit
+    SMTP_REPLY_525, // User Account Disabled
+    SMTP_REPLY_530, // Authentication required
+    SMTP_REPLY_534, // Authentication mechanism is too weak
+    SMTP_REPLY_535, // Authentication credentials invalid
+    SMTP_REPLY_541, // No response from host
+    SMTP_REPLY_543, // Routing server failure. No available route
     SMTP_REPLY_550,
     SMTP_REPLY_551,
     SMTP_REPLY_552,
@@ -234,7 +247,7 @@ enum SMTPCode {
     SMTP_REPLY_555,
 };
 
-SCEnumCharMap smtp_reply_map[ ] = {
+SCEnumCharMap smtp_reply_map[] = {
     { "211", SMTP_REPLY_211 },
     { "214", SMTP_REPLY_214 },
     { "220", SMTP_REPLY_220 },
@@ -247,10 +260,15 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "334", SMTP_REPLY_334 },
     { "354", SMTP_REPLY_354 },
 
+    { "401", SMTP_REPLY_401 },
+    { "402", SMTP_REPLY_402 },
     { "421", SMTP_REPLY_421 },
+    { "435", SMTP_REPLY_435 },
     { "450", SMTP_REPLY_450 },
     { "451", SMTP_REPLY_451 },
     { "452", SMTP_REPLY_452 },
+    { "454", SMTP_REPLY_454 },
+    // { "4.7.0", SMTP_REPLY_454 }, // rfc4954
     { "455", SMTP_REPLY_455 },
 
     { "500", SMTP_REPLY_500 },
@@ -258,13 +276,22 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "502", SMTP_REPLY_502 },
     { "503", SMTP_REPLY_503 },
     { "504", SMTP_REPLY_504 },
+    { "511", SMTP_REPLY_511 },
+    { "521", SMTP_REPLY_521 },
+    { "522", SMTP_REPLY_522 },
+    { "525", SMTP_REPLY_525 },
+    { "530", SMTP_REPLY_530 },
+    { "534", SMTP_REPLY_534 },
+    { "535", SMTP_REPLY_535 },
+    { "541", SMTP_REPLY_541 },
+    { "543", SMTP_REPLY_543 },
     { "550", SMTP_REPLY_550 },
     { "551", SMTP_REPLY_551 },
     { "552", SMTP_REPLY_552 },
     { "553", SMTP_REPLY_553 },
     { "554", SMTP_REPLY_554 },
     { "555", SMTP_REPLY_555 },
-    {  NULL,  -1 },
+    { NULL, -1 },
 };
 
 /* Create SMTP config structure */
@@ -1368,7 +1395,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input_buf == NULL || input_len == 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     SMTPInput input = { .buf = input_buf, .len = input_len, .orig_len = input_len, .consumed = 0 };
@@ -1657,6 +1684,46 @@ static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
+static AppProto SMTPServerProbingParser(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // another check for minimum length
+    if (len < 5) {
+        return ALPROTO_UNKNOWN;
+    }
+    // begins by 220
+    if (input[0] != '2' || input[1] != '2' || input[2] != '0') {
+        return ALPROTO_FAILED;
+    }
+    // followed by space or hypen
+    if (input[3] != ' ' && input[3] != '-') {
+        return ALPROTO_FAILED;
+    }
+    // If client side is SMTP, do not validate domain
+    // so that server banner can be parsed first.
+    if (f->alproto_ts == ALPROTO_SMTP) {
+        if (memchr(input + 4, '\n', len - 4) != NULL) {
+            return ALPROTO_SMTP;
+        }
+        return ALPROTO_UNKNOWN;
+    }
+    AppProto r = ALPROTO_UNKNOWN;
+    if (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN) {
+        // Only validates SMTP if client side is unknown
+        // despite having received bytes.
+        r = ALPROTO_SMTP;
+    }
+    uint32_t offset = SCValidateDomain(input + 4, len - 4);
+    if (offset == 0) {
+        return ALPROTO_FAILED;
+    }
+    if (r != ALPROTO_UNKNOWN && memchr(input + 4, '\n', len - 4) != NULL) {
+        return r;
+    }
+    // This should not go forever because of engine limiting probing parsers.
+    return ALPROTO_UNKNOWN;
+}
+
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
@@ -1673,6 +1740,12 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
                                                "QUIT", 4, 0, STREAM_TOSERVER) < 0)
     {
         return -1;
+    }
+    if (!AppLayerProtoDetectPPParseConfPorts(
+                "tcp", IPPROTO_TCP, "smtp", ALPROTO_SMTP, 0, 5, NULL, SMTPServerProbingParser)) {
+        // STREAM_TOSERVER means here use 25 as flow destination port
+        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "25,465", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER,
+                NULL, SMTPServerProbingParser);
     }
 
     return 0;
