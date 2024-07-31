@@ -1851,6 +1851,8 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterHTTP2Parsers();
     SCRegisterTelnetParser();
     RegisterIMAPParsers();
+    SCRegisterLLMNRUdpParser();
+    SCRegisterLLMNRTcpParser();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreRegisteredCallbacks[i]();
