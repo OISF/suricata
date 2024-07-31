@@ -82,6 +82,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "output-json-llmnr.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1120,6 +1121,8 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+    /* LLMNR JSON logger. */
+    JsonLLMNRLogRegister();
 }
 
 static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
@@ -1160,6 +1163,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_HTTP2, rs_http2_log_json },
     { ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log },
     { ALPROTO_POP3, NULL }, // protocol detection only
+    { ALPROTO_LLMNR, AlertJsonLLMNR },
     { ALPROTO_HTTP, NULL }, // signature protocol, not for app-layer logging
     { ALPROTO_FAILED, NULL },
 #ifdef UNITTESTS
