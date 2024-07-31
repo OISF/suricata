@@ -361,6 +361,7 @@ impl ConfigTracker {
 pub(crate) enum DnsVariant {
     Dns,
     MulticastDns,
+    Llmnr,
 }
 
 impl DnsVariant {
@@ -370,6 +371,10 @@ impl DnsVariant {
 
     pub fn is_mdns(&self) -> bool {
         matches!(self, DnsVariant::MulticastDns)
+    }
+
+    pub fn is_llmnr(&self) -> bool {
+        matches!(self, DnsVariant::Llmnr)
     }
 }
 
@@ -454,7 +459,7 @@ pub(crate) fn dns_parse_request(
                 tx.set_event(DNSEvent::ZFlagSet);
             }
 
-            if opcode >= 7 {
+            if (variant.is_llmnr() && opcode != 0) || opcode >= 7 {
                 tx.set_event(DNSEvent::InvalidOpcode);
             }
 
@@ -939,7 +944,7 @@ pub(crate) unsafe extern "C" fn parse_request(
     AppLayerResult::ok()
 }
 
-unsafe extern "C" fn parse_response(
+pub(crate) unsafe extern "C" fn parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -949,7 +954,7 @@ unsafe extern "C" fn parse_response(
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
-unsafe extern "C" fn parse_request_tcp(
+pub(crate) unsafe extern "C" fn parse_request_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -962,7 +967,7 @@ unsafe extern "C" fn parse_request_tcp(
     AppLayerResult::ok()
 }
 
-unsafe extern "C" fn parse_response_tcp(
+pub(crate) unsafe extern "C" fn parse_response_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1228,7 +1233,7 @@ pub(crate) unsafe extern "C" fn probe_udp(
     return 0;
 }
 
-unsafe extern "C" fn c_probe_tcp(
+pub(crate) unsafe extern "C" fn c_probe_tcp(
     _flow: *const Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
