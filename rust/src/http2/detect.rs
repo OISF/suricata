@@ -434,11 +434,11 @@ pub fn http2_frames_get_header_value_vec(
                         vec.extend_from_slice(&block.value);
                         found = 1;
                     } else if found == 1 && Rc::strong_count(&block.name) <= 2 {
-                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(b", ");
                         vec.extend_from_slice(&block.value);
                         found = 2;
                     } else if Rc::strong_count(&block.name) <= 2 {
-                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(b", ");
                         vec.extend_from_slice(&block.value);
                     }
                 }
@@ -474,11 +474,11 @@ fn http2_frames_get_header_value<'a>(
                         if let Ok(s) = single {
                             vec.extend_from_slice(s);
                         }
-                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(b", ");
                         vec.extend_from_slice(&block.value);
                         found = 2;
                     } else if Rc::strong_count(&block.name) <= 2 {
-                        vec.extend_from_slice(&[b',', b' ']);
+                        vec.extend_from_slice(b", ");
                         vec.extend_from_slice(&block.value);
                     }
                 }
@@ -730,7 +730,7 @@ fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<
     let normalsize = blocks[i as usize].value.len() + 2 + blocks[i as usize].name.len();
     let mut vec = Vec::with_capacity(normalsize);
     vec.extend_from_slice(&blocks[i as usize].name);
-    vec.extend_from_slice(&[b':', b' ']);
+    vec.extend_from_slice(b": ");
     vec.extend_from_slice(&blocks[i as usize].value);
     return vec;
 }
@@ -750,12 +750,12 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_names(
             for block in blocks.iter() {
                 // we do not escape linefeeds in headers names
                 vec.extend_from_slice(&block.name);
-                vec.extend_from_slice(&[b'\r', b'\n']);
+                vec.extend_from_slice(b"\r\n");
             }
         }
     }
     if vec.len() > 2 {
-        vec.extend_from_slice(&[b'\r', b'\n']);
+        vec.extend_from_slice(b"\r\n");
         tx.escaped.push(vec);
         let idx = tx.escaped.len() - 1;
         let value = &tx.escaped[idx];
@@ -815,9 +815,9 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
                 if !http2_header_iscookie(direction.into(), &block.name) {
                     // we do not escape linefeeds nor : in headers names
                     vec.extend_from_slice(&block.name);
-                    vec.extend_from_slice(&[b':', b' ']);
+                    vec.extend_from_slice(b": ");
                     vec.extend_from_slice(http2_header_trimspaces(&block.value));
-                    vec.extend_from_slice(&[b'\r', b'\n']);
+                    vec.extend_from_slice(b"\r\n");
                 }
             }
         }
@@ -848,9 +848,9 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
             for block in blocks.iter() {
                 // we do not escape linefeeds nor : in headers names
                 vec.extend_from_slice(&block.name);
-                vec.extend_from_slice(&[b':', b' ']);
+                vec.extend_from_slice(b": ");
                 vec.extend_from_slice(&block.value);
-                vec.extend_from_slice(&[b'\r', b'\n']);
+                vec.extend_from_slice(b"\r\n");
             }
         }
     }
