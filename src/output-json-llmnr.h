@@ -15,9 +15,12 @@
  * 02110-1301, USA.
  */
 
-//! LLMNR protocol parser and logger module.
-
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-pub mod llmnr;
-pub mod log;
+#ifndef SURICATA_OUTPUT_JSON_LLMNR_H
+#define SURICATA_OUTPUT_JSON_LLMNR_H
+
+void JsonLLMNRLogRegister(void);
+bool AlertJsonLLMNR(void *txptr, SCJsonBuilder *js);
+
+#endif /* SURICATA_OUTPUT_JSON_LLMNR_H */
