@@ -26,11 +26,6 @@
 
 #include "datasets.h"
 
-#define DETECT_DATASET_CMD_SET      0
-#define DETECT_DATASET_CMD_UNSET    1
-#define DETECT_DATASET_CMD_ISNOTSET 2
-#define DETECT_DATASET_CMD_ISSET    3
-
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
