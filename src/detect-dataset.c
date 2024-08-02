@@ -99,6 +99,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
             // No need to allocate and copy as this data lives
             // as long as detection runs one iteration
             dmd->data_len = data_len;
+            // TODO this will not work for multi buffers as it will take only the last one
             dmd->data = data;
             return 1;
         }
@@ -117,8 +118,13 @@ int DetectDatasetMatch(
     DetectDatasetMatchData *dmd = (DetectDatasetMatchData *)DetectThreadCtxGetKeywordThreadCtx(
             det_ctx, sd->thread_ctx_id);
 
-    if (dmd == NULL) {
+    if (dmd == NULL || dmd->data == NULL) {
         return 0;
+    }
+    if (s == NULL) {
+        // hack : we are called with s == NULL when there is no match
+        // so we reset, to avoid reusing a dangling pointer
+        dmd->data = NULL;
     }
     return DatasetAdd(sd->set, dmd->data, dmd->data_len);
 }
