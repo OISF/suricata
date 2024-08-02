@@ -15,5 +15,6 @@ Bypass a flow on matching http traffic.
 
 Example::
 
-  alert http any any -> any any (content:"suricata.io"; \
-      http_host; bypass; sid:10001; rev:1;)
+  alert http any any -> any any (http.host; 
+      content:"suricata.io"; bypass; \
+      sid:10001; rev:1;)
