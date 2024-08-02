@@ -233,7 +233,8 @@ impl SSHState {
                                 flow,
                                 stream_slice,
                                 input,
-                                (head.pkt_len + 4) as i64,
+                                // cast first to avoid unsigned integer overflow
+                                (head.pkt_len as u64 + 4) as i64,
                                 SshFrameType::RecordPdu as u8,
                                 Some(0),
                             );
