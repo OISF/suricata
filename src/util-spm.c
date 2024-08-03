@@ -2563,28 +2563,18 @@ static int SpmSearchTest01(void) {
         {"foo", 3, "Foo FOo fOo foO FOO foo", 23, 0, 20},
     };
 
-    int ret = 1;
-
-    uint8_t matcher;
-    for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
+    for (uint8_t matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
         const SpmTableElmt *m = &spm_table[matcher];
         if (m->name == NULL) {
             continue;
         }
-        printf("matcher: %s\n", m->name);
-
-        uint32_t i;
-        for (i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+        for (uint32_t i = 0; i < sizeof(data) / sizeof(data[0]); i++) {
             const SpmTestData *d = &data[i];
-            if (SpmTestSearch(d, matcher) == 0) {
-                printf("  test %" PRIu32 ": fail\n", i);
-                ret = 0;
-            }
+            FAIL_IF(SpmTestSearch(d, matcher) == 0);
         }
-        printf("  %" PRIu32 " tests passed\n", i);
     }
 
-    return ret;
+    PASS;
 }
 
 static int SpmSearchTest02(void) {
