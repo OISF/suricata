@@ -67,12 +67,13 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         _ => (),
     }
     if let Some(security_result) = &tx.tc_security_result {
+        let result_key = "security_result";
         let _ = match security_result.status {
-            0 => js.set_string("security_result", "OK")?,
-            1 => js.set_string("security-result", "FAIL")?,
-            2 => js.set_string("security_result", "TOOMANY")?,
+            0 => js.set_string(&result_key, "OK")?,
+            1 => js.set_string(&result_key, "FAIL")?,
+            2 => js.set_string(&result_key, "TOOMANY")?,
             _ => js.set_string(
-                "security_result",
+                &result_key,
                 &format!("UNKNOWN ({})", security_result.status),
             )?,
         };
