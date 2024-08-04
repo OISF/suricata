@@ -37,13 +37,10 @@
  * \param s   Pointer to the src string for memcpy.
  * \param len len of the string sent in s.
  */
-static inline void memcpy_tolower(uint8_t *d, const uint8_t *s, uint16_t len)
+static inline void MemcpyToLower(uint8_t *d, const uint8_t *s, size_t n)
 {
-    uint16_t i;
-    for (i = 0; i < len; i++)
+    for (size_t i = 0; i < n; i++)
         d[i] = u8_tolower(s[i]);
-
-    return;
 }
 
 #endif /* SURICATA_UTIL_MEMCPY_H */
