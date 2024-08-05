@@ -81,7 +81,7 @@ void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead 
             SCLogDebug("frame %p engine %p", frame, engine);
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterFrame(det_ctx, engine->pectx, p, frames, frame);
-            PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid, sgh);
         }
         if (engine->is_last)
             break;

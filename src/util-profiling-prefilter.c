@@ -56,6 +56,7 @@ typedef struct SCProfilePrefilterDetectCtx_ {
 
 static int profiling_prefilter_output_to_file = 0;
 int profiling_prefilter_enabled = 0;
+int profiling_prefilter_per_group_enabled = 0;
 thread_local int profiling_prefilter_entered = 0;
 static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
@@ -66,6 +67,9 @@ void SCProfilingPrefilterGlobalInit(void)
 
     conf = ConfGetNode("profiling.prefilter");
     if (conf != NULL) {
+        if (ConfNodeChildValueIsTrue(conf, "rulegroup")) {
+            profiling_prefilter_per_group_enabled = 1;
+        }
         if (ConfNodeChildValueIsTrue(conf, "enabled")) {
             profiling_prefilter_enabled = 1;
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
@@ -91,7 +95,8 @@ void SCProfilingPrefilterGlobalInit(void)
     }
 }
 
-static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char *name)
+//static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char *name)
+static void DoDump(int prefilter_ctx_size, SCProfilePrefilterData * data, FILE *fp, const char *name)
 {
     int i;
     fprintf(fp, "  ----------------------------------------------"
@@ -115,8 +120,8 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
                 "--------------- "
                 "--------------- "
                 "\n");
-    for (i = 0; i < (int)rules_ctx->size; i++) {
-        SCProfilePrefilterData *d = &rules_ctx->data[i];
+    for (i = 0; i < prefilter_ctx_size; i++) {
+        SCProfilePrefilterData *d = &data[i];
         if (d == NULL || d->called== 0)
             continue;
 
@@ -177,13 +182,18 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
             tms->tm_hour,tms->tm_min, tms->tm_sec);
 
     /* global stats first */
-    DoDump(de_ctx->profile_prefilter_ctx, fp, "total");
+    DoDump(de_ctx->profile_prefilter_ctx->size, de_ctx->profile_prefilter_ctx->data, fp, "total");
 
     fprintf(fp,"\n");
     if (fp != stdout)
         fclose(fp);
 
     SCLogPerf("Done dumping prefilter profiling data.");
+    char name[32];
+    for (uint32_t i = 0; i < de_ctx->sgh_array_cnt; i++) {
+        snprintf(name, sizeof(name), "Signature group %"PRIu32, i);
+        DoDump(de_ctx->profile_prefilter_ctx->size, de_ctx->profile_prefilter_ctx->sgh_data[i], fp, name);
+    }
 }
 
 /**
@@ -227,7 +237,7 @@ SCProfilingSGHPrefilterUpdateCounter(
     uint64_t bytes, uint64_t bytes_called
 ) {
     if (
-        det_ctx != NULL && det_ctx->sgh_prefilter_perf_data != NULL &&
+        profiling_prefilter_per_group_enabled && det_ctx != NULL && det_ctx->sgh_prefilter_perf_data != NULL &&
         id < (int)det_ctx->de_ctx->prefilter_id
     ) {
         SCProfilePrefilterData *p = &det_ctx->sgh_prefilter_perf_data[sgh->id][id];
@@ -261,7 +271,7 @@ static void DetroyCtx(SCProfilePrefilterDetectCtx *ctx)
     if (ctx) {
         if (ctx->data != NULL)
             SCFree(ctx->data);
-        if (ctx->sgh_data != NULL) {
+        if (profiling_prefilter_per_group_enabled && ctx->sgh_data != NULL) {
             for (uint32_t i = 0; i < ctx->sgh_data_cnt; i++) {
                 SCFree(ctx->sgh_data[i]);
             }
@@ -295,6 +305,10 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
 
 
     //Per sgh logic TODO: Make it configurable
+    if (!profiling_prefilter_per_group_enabled) {
+        det_ctx->sgh_prefilter_perf_data_cnt = 0;
+        return;
+    }
     uint32_t n_sgh = det_ctx->de_ctx->sgh_array_cnt;
     BUG_ON(n_sgh == 0);
     SCProfilePrefilterData ** sgh_pf_perf_arr = 
@@ -317,7 +331,6 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
         return;
     }
     det_ctx->sgh_prefilter_perf_data = sgh_pf_perf_arr;
-    det_ctx->sgh_prefilter_perf_data_cnt = n_sgh;
 
 }
 
@@ -379,7 +392,8 @@ void SCProfilingPrefilterThreadCleanup(DetectEngineThreadCtx *det_ctx)
 
     SCFree(det_ctx->prefilter_perf_data);
     det_ctx->prefilter_perf_data = NULL;
-
+    if (!profiling_prefilter_per_group_enabled)
+        return;
     for (uint32_t i = 0; i < det_ctx->sgh_prefilter_perf_data_cnt; i++) {
         SCFree(det_ctx->sgh_prefilter_perf_data[i]);
     }
@@ -418,7 +432,8 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     SCLogDebug("size alloc'd %u", (uint32_t)size * (uint32_t)sizeof(SCProfilePrefilterData));
 
     SCLogPerf("Registered %"PRIu32" prefilter profiling counters.", size);
-    
+    if (!profiling_prefilter_per_group_enabled)
+        return;
     //Per sgh logic
     uint32_t n_sgh = de_ctx->sgh_array_cnt;
     BUG_ON(n_sgh == 0);
@@ -427,7 +442,7 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(sgh_pf_perf_arr == NULL);
     for (uint32_t i = 0; i < n_sgh; i++) {
         SCProfilePrefilterData *b = SCCalloc(1, sizeof(SCProfilePrefilterData) * size);
-        BUG_ON(b != NULL);
+        BUG_ON(b == NULL);
         sgh_pf_perf_arr[i] = b;
     }
 

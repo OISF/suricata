@@ -367,7 +367,7 @@ void SCProfilingDump(void);
 #define FLOWWORKER_PROFILING_END(p, id)
 
 #define PREFILTER_PROFILING_START(ctx)
-#define PREFILTER_PROFILING_END(ctx, profile_id)
+#define PREFILTER_PROFILING_END(ctx, profile_id, sgh)
 #define PREFILTER_PROFILING_ADD_BYTES(det_ctx, bytes)
 
 #endif /* PROFILING */
