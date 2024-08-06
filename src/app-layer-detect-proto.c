@@ -1401,7 +1401,6 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
             (flags & STREAM_TOSERVER) ? "toserver" : "toclient");
 
     AppProto alproto = ALPROTO_UNKNOWN;
-    AppProto pm_alproto = ALPROTO_UNKNOWN;
 
     if (!FLOW_IS_PM_DONE(f, flags)) {
         AppProto pm_results[ALPROTO_MAX];
@@ -1419,37 +1418,23 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
                     FLOW_RESET_PP_DONE(f, reverse_dir);
                 }
             }
-
-            /* HACK: if detected protocol is dcerpc/udp, we run PP as well
-             * to avoid misdetecting DNS as DCERPC. */
-            if (!(ipproto == IPPROTO_UDP && alproto == ALPROTO_DCERPC))
-                goto end;
-
-            pm_alproto = alproto;
-
-            /* fall through */
+            SCReturnUInt(alproto);
         }
     }
 
     if (!FLOW_IS_PP_DONE(f, flags)) {
-        bool rflow = false;
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, flags, &rflow);
+        *reverse_flow = false; /* to be safe if it was changed by PM */
+        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, flags, reverse_flow);
         if (AppProtoIsValid(alproto)) {
-            if (rflow) {
-                *reverse_flow = true;
-            }
-            goto end;
+            SCReturnUInt(alproto);
         }
     }
 
     /* Look if flow can be found in expectation list */
     if (!FLOW_IS_PE_DONE(f, flags)) {
+        *reverse_flow = false; /* to be safe if it was changed by PP */
         alproto = AppLayerProtoDetectPEGetProto(f, flags);
     }
-
- end:
-    if (!AppProtoIsValid(alproto))
-        alproto = pm_alproto;
 
     SCReturnUInt(alproto);
 }
