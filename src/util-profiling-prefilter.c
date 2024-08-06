@@ -184,9 +184,7 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
     /* global stats first */
     DoDump(de_ctx->profile_prefilter_ctx->size, de_ctx->profile_prefilter_ctx->data, fp, "total");
 
-    fprintf(fp,"\n");
-    if (fp != stdout)
-        fclose(fp);
+
 
     SCLogPerf("Done dumping prefilter profiling data.");
     char name[32];
@@ -194,6 +192,10 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
         snprintf(name, sizeof(name), "Signature group %"PRIu32, i);
         DoDump(de_ctx->profile_prefilter_ctx->size, de_ctx->profile_prefilter_ctx->sgh_data[i], fp, name);
     }
+
+    fprintf(fp,"\n");
+    if (fp != stdout)
+        fclose(fp);
 }
 
 /**
