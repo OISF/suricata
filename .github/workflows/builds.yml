@@ -194,6 +194,12 @@ jobs:
         working-directory: examples/plugins/c-json-filetype
         run: make clean all
 
+      - name: Test library bench content inspect tool
+        working-directory: tools/benches/bench-content-inspect
+        run: |
+          make clean all
+          ./bench_content_inspect ci-run
+
       - name: Install Suricata and library
         run: make install install-headers install-library
 
