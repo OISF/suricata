@@ -882,11 +882,8 @@ mod tests {
         match r {
             Ok((rem, ctx)) => {
                 assert_eq!(ctx.id, HTTP2SettingsId::EnablePush);
-                match ctx.value {
-                    Some(_) => {
-                        panic!("Unexpected value");
-                    }
-                    None => {}
+                if let Some(_) = ctx.value {
+                    panic!("Unexpected value");
                 }
                 assert_eq!(rem.len(), 0);
             }

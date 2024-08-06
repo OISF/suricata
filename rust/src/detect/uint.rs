@@ -417,11 +417,8 @@ mod tests {
                 assert!(false);
             }
         }
-        match detect_parse_uint::<u8>("2kb") {
-            Ok((_, _val)) => {
-                assert!(false);
-            }
-            Err(_) => {}
+        if let Ok((_, _val)) = detect_parse_uint::<u8>("2kb") {
+            assert!(false);
         }
         match detect_parse_uint::<u32>("3MB") {
             Ok((_, val)) => {

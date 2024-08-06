@@ -410,11 +410,8 @@ mod tests {
             0x1c, 0x7d, 0xcf, 0x11,
         ];
 
-        match parser::parse_dcerpc_udp_header(request) {
-            Ok((_rem, _header)) => {
-                { assert!(false); }
-            }
-            _ => {}
+        if let Ok((_rem, _header)) = parser::parse_dcerpc_udp_header(request) {
+            { assert!(false); }
         }
     }
 
