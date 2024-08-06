@@ -507,8 +507,8 @@ impl DCERPCState {
     ///             type: unsigned 32 bit integer
     ///      description: call_id param derived from TCP Header
     /// * `dir`:
-    ///         type: enum Direction
-    ///  description: direction of the flow
+    ///             type: enum Direction
+    ///      description: direction of the flow
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
