@@ -238,12 +238,8 @@ SCProfilingSGHPrefilterUpdateCounter(
     DetectEngineThreadCtx *det_ctx, int id, const SigGroupHead * sgh, uint64_t ticks,
     uint64_t bytes, uint64_t bytes_called
 ) {
-    if (
-        profiling_prefilter_per_group_enabled && det_ctx != NULL && det_ctx->sgh_prefilter_perf_data != NULL &&
-        id < (int)det_ctx->de_ctx->prefilter_id
-    ) {
+    if (profiling_prefilter_per_group_enabled && det_ctx != NULL && det_ctx->sgh_prefilter_perf_data != NULL && id < (int)det_ctx->de_ctx->prefilter_id) {
         SCProfilePrefilterData *p = &det_ctx->sgh_prefilter_perf_data[sgh->id][id];
-
         p->called++;
         if (ticks > p->max)
             p->max = ticks;
@@ -333,6 +329,7 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
         return;
     }
     det_ctx->sgh_prefilter_perf_data = sgh_pf_perf_arr;
+    det_ctx->sgh_prefilter_perf_data_cnt = n_sgh;
 
 }
 
@@ -357,6 +354,9 @@ static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngin
         de_ctx->profile_prefilter_ctx->data[i].bytes_called +=
                 det_ctx->prefilter_perf_data[i].bytes_called;
     }
+    if (!profiling_prefilter_per_group_enabled)
+        return;
+
     for (uint32_t sgh_idx = 0; sgh_idx < det_ctx->sgh_prefilter_perf_data_cnt; sgh_idx++) {
         for (uint32_t i = 0; i < de_ctx->prefilter_id; i++) {
             de_ctx->profile_prefilter_ctx->sgh_data[sgh_idx][i].called +=
