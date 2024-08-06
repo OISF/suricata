@@ -198,7 +198,7 @@ impl<'a> SshPacketKeyExchange<'a> {
         slices
             .iter()
             .for_each(|&x| hassh_string.extend_from_slice(x));
-        hassh.extend(format!("{:x}", Md5::new().chain(&hassh_string).finalize()).as_bytes());
+        hassh.extend(format!("{:x}", Md5::new().chain(hassh_string).finalize()).as_bytes());
     }
 }
 
