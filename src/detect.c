@@ -1222,6 +1222,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
         retval = true;
+    } else {
+        const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+        if (smd != NULL) {
+            while (1) {
+                (void)sigmatch_table[smd->type].Match(det_ctx, p, NULL, smd->ctx);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
+        }
     }
 
     if (stored_flags) {
