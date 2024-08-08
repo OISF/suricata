@@ -340,6 +340,8 @@ int LiveDeviceListClean(void)
         SCFree(pd);
     }
 
+    // set the list to NULL
+    TAILQ_INIT(&pre_live_devices);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -451,6 +453,9 @@ void LiveDeviceFinalize(void)
         }
         SCFree(ld);
     }
+
+    // set the list to NULL
+    TAILQ_INIT(&pre_live_devices);
 }
 
 static void LiveDevExtensionFree(void *x)

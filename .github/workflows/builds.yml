@@ -709,6 +709,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -732,6 +733,7 @@ jobs:
                 lz4-devel \
                 make \
                 parallel \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python \
@@ -751,7 +753,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -806,6 +808,7 @@ jobs:
                 cbindgen \
                 ccache \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -826,6 +829,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1030,7 +1034,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address"
@@ -1368,6 +1372,7 @@ jobs:
                 automake \
                 clang-14 \
                 curl \
+                dpdk-dev \
                 git \
                 jq \
                 libtool \
@@ -1420,7 +1425,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --disable-shared --enable-unittests
+      - run: ./configure --enable-warnings --disable-shared --enable-unittests --enable-dpdk
         env:
           CC: "clang-14"
           CXX: "clang++-14"
