@@ -34,7 +34,14 @@ typedef struct DetectIsdataatData_ {
     uint8_t flags; /* isdataat options*/
 } DetectIsdataatData;
 
+typedef struct DetectAbsentData_ {
+    // absent or something else (or only absent)
+    bool or_else;
+} DetectAbsentData;
+
 /* prototypes */
 void DetectIsdataatRegister (void);
+
+bool DetectAbsentValidateContentCallback(Signature *s, const SignatureInitDataBuffer *);
 
 #endif /* SURICATA_DETECT_ISDATAAT_H */
