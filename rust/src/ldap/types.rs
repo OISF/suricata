@@ -376,7 +376,7 @@ impl<'a> From<ldap_parser::ldap::LdapMessage<'a>> for LdapMessage {
             ldap_parser::ldap::ProtocolOp::IntermediateResponse(msg) => {
                 Self::from_intermediate_response(msg)
             }
-            _ => ProtocolOp::Unknown,
+            ldap_parser::ldap::ProtocolOp::AbandonRequest(_) => ProtocolOp::Unknown,
         };
         let controls = ldap_msg.controls.map(|ctls| {
             ctls.iter()
@@ -414,6 +414,7 @@ impl LdapMessage {
             | ProtocolOp::DelRequest(_)
             | ProtocolOp::ModDnRequest(_)
             | ProtocolOp::CompareRequest(_)
+            | ProtocolOp::Unknown // AbandonRequest
             | ProtocolOp::ExtendedRequest(_) => {
                 return true;
             }
@@ -424,23 +425,8 @@ impl LdapMessage {
     }
 
     pub fn is_response(&self) -> bool {
-        match self.protocol_op {
-            ProtocolOp::BindResponse(_)
-            | ProtocolOp::SearchResultEntry(_)
-            | ProtocolOp::SearchResultReference(_)
-            | ProtocolOp::SearchResultDone(_)
-            | ProtocolOp::ModifyResponse(_)
-            | ProtocolOp::AddResponse(_)
-            | ProtocolOp::DelResponse(_)
-            | ProtocolOp::ModDnResponse(_)
-            | ProtocolOp::CompareResponse(_)
-            | ProtocolOp::ExtendedResponse(_) => {
-                return true;
-            }
-            _ => {
-                return false;
-            }
-        }
+        // it is either a response or a request
+        return !self.is_request();
     }
 
     fn from_bind_request(msg: ldap_parser::ldap::BindRequest) -> ProtocolOp {
