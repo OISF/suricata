@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,7 +27,6 @@
 #include "datasets-md5.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-base64.h"    // decode base64
 
 int Md5StrSet(void *dst, void *src)
 {
