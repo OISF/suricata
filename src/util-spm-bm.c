@@ -58,7 +58,7 @@ static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs);
 void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len)
 {
     /* Store the content as lower case to make searching faster */
-    memcpy_tolower(needle, needle, needle_len);
+    MemcpyToLower(needle, needle, needle_len);
 
     /* Prepare bad chars with nocase chars */
     PreBmBcNocase(needle, needle_len, bm_ctx->bmBc);

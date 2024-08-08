@@ -29,6 +29,7 @@
 enum {
     SPM_BM, /* Boyer-Moore */
     SPM_HS, /* Hyperscan */
+    SPM_MM, /* Memmem */
     /* Other SPM matchers will go here. */
     SPM_TABLE_SIZE
 };
@@ -94,6 +95,9 @@ uint8_t *Bs2bmSearch(
         const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
+
+const uint8_t *SCMemimem(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle,
+        const uint32_t needle_len);
 
 /* Macros for automatic algorithm selection (use them only when you can't store the context) */
 #define SpmSearch(text, textlen, needle, needlelen) ({\

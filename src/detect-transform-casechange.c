@@ -28,6 +28,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-transform-casechange.h"
+#include "util-memcpy.h"
 
 /**
  *  \internal
@@ -63,9 +64,7 @@ static void DetectTransformToLower(InspectionBuffer *buffer, void *options)
     }
 
     uint8_t output[input_len];
-    for (uint32_t i = 0; i < input_len; i++) {
-        output[i] = u8_tolower(input[i]);
-    }
+    MemcpyToLower(output, input, input_len);
 
     InspectionBufferCopy(buffer, output, input_len);
 }
