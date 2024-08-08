@@ -288,6 +288,13 @@
                     },
                     "additionalProperties": true
                 },
+                "references": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "source": {
                     "type": "object",
                     "properties": {

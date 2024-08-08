@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,6 +32,13 @@ typedef struct DetectReference_ {
     char *key;
     /* reference data */
     char *reference;
+
+    /*
+     * These have been length checked against REFERENCE_SYSTEM_NAME_MAX,
+     * and REFERENCE_CONTENT_NAME_MAX
+     */
+    uint16_t key_len;
+    uint16_t reference_len;
     /* next reference in the signature */
     struct DetectReference_ *next;
 } DetectReference;

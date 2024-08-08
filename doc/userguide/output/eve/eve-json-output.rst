@@ -89,6 +89,9 @@ Metadata::
                 # Log the raw rule text.
                 #raw: false
 
+                # Include the rule reference information
+                # reference: no
+
 Anomaly
 ~~~~~~~
 
