@@ -33,6 +33,7 @@
 #include "detect-engine-build.h"
 
 #include "conf.h"
+#include "util-conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -42,6 +43,7 @@
 #include "util-hash.h"
 #include "util-hash-lookup3.h"
 #include "util-hyperscan.h"
+#include "util-path.h"
 
 #ifdef BUILD_HYPERSCAN
 
@@ -80,6 +82,53 @@ static SCMutex g_scratch_proto_mutex = SCMUTEX_INITIALIZER;
  * serialised via g_db_table_mutex. */
 static HashTable *g_db_table = NULL;
 static SCMutex g_db_table_mutex = SCMUTEX_INITIALIZER;
+
+/**
+ * Translates Hyperscan error codes to human-readable messages.
+ *
+ * \param error_code
+ *      The error code returned by a Hyperscan function.
+ * \return
+ *      A string describing the error.
+ */
+static const char *HSErrorToStr(hs_error_t error_code)
+{
+    switch (error_code) {
+        case HS_SUCCESS:
+            return "HS_SUCCESS: The engine completed normally";
+        case HS_INVALID:
+            return "HS_INVALID: A parameter passed to this function was invalid";
+        case HS_NOMEM:
+            return "HS_NOMEM: A memory allocation failed";
+        case HS_SCAN_TERMINATED:
+            return "HS_SCAN_TERMINATED: The engine was terminated by callback";
+        case HS_COMPILER_ERROR:
+            return "HS_COMPILER_ERROR: The pattern compiler failed";
+        case HS_DB_VERSION_ERROR:
+            return "HS_DB_VERSION_ERROR: The given database was built for a different version of "
+                   "Hyperscan";
+        case HS_DB_PLATFORM_ERROR:
+            return "HS_DB_PLATFORM_ERROR: The given database was built for a different platform "
+                   "(i.e., CPU type)";
+        case HS_DB_MODE_ERROR:
+            return "HS_DB_MODE_ERROR: The given database was built for a different mode of "
+                   "operation";
+        case HS_BAD_ALIGN:
+            return "HS_BAD_ALIGN: A parameter passed to this function was not correctly aligned";
+        case HS_BAD_ALLOC:
+            return "HS_BAD_ALLOC: The memory allocator did not return correctly aligned memory";
+        case HS_SCRATCH_IN_USE:
+            return "HS_SCRATCH_IN_USE: The scratch region was already in use";
+        case HS_ARCH_ERROR:
+            return "HS_ARCH_ERROR: Unsupported CPU architecture";
+        case HS_INSUFFICIENT_SPACE:
+            return "HS_INSUFFICIENT_SPACE: Provided buffer was too small";
+        case HS_UNKNOWN_ERROR:
+            return "HS_UNKNOWN_ERROR: Unexpected internal error";
+        default:
+            return "Unknown error code";
+    }
+}
 
 /**
  * \internal
@@ -570,6 +619,174 @@ static PatternDatabase *PatternDatabaseAlloc(uint32_t pattern_cnt)
     return pd;
 }
 
+static const char *HSCacheDefaultDir(void)
+{
+    static char hash_file_path[PATH_MAX];
+    int r = PathMerge(
+            hash_file_path, sizeof(hash_file_path), ConfigGetLogDirectory(), "hyperscan-cache");
+    if (r)
+        return NULL;
+
+    return hash_file_path;
+}
+
+static const char *HSCacheConstructFPath(uint64_t hs_db_hash)
+{
+    static char hash_file_path[PATH_MAX];
+
+    char hash_file_path_suffix[] = "_v1.hs";
+    char filename[PATH_MAX];
+    int r = snprintf(filename, sizeof(filename), "%020lu%s", hs_db_hash, hash_file_path_suffix);
+    if (r != (int)(20 + strlen(hash_file_path_suffix)))
+        return NULL;
+
+    r = PathMerge(hash_file_path, sizeof(hash_file_path), HSCacheDefaultDir(), filename);
+    if (r)
+        return NULL;
+
+    return hash_file_path;
+}
+
+static char *HSReadStream(const char *file_path, size_t *buffer_sz)
+{
+    FILE *file = fopen(file_path, "rb");
+    if (!file) {
+        SCLogConfig("Failed to open file %s: %s", file_path, strerror(errno));
+        return NULL;
+    }
+
+    // Seek to the end of the file to determine its size
+    fseek(file, 0, SEEK_END);
+    long file_sz = ftell(file);
+    if (file_sz < 0) {
+        SCLogConfig("Failed to determine file size of %s: %s", file_path, strerror(errno));
+        fclose(file);
+        return NULL;
+    }
+
+    // Allocate a buffer to hold the entire file
+    char *buffer = (char *)SCCalloc(file_sz, sizeof(char));
+    if (!buffer) {
+        SCLogWarning("Failed to allocate memory");
+        fclose(file);
+        return NULL;
+    }
+
+    // Rewind file pointer and read the file into the buffer
+    rewind(file);
+    size_t bytes_read = fread(buffer, 1, file_sz, file);
+    if (bytes_read != (size_t)file_sz) {
+        SCLogConfig("Failed to read the entire file %s: %s", file_path, strerror(errno));
+        SCFree(buffer);
+        fclose(file);
+        return NULL;
+    }
+
+    *buffer_sz = file_sz;
+    fclose(file);
+    return buffer;
+}
+
+/**
+ * Function to hash the searched pattern, only things relevant to Hyperscan
+ * compilation are hashed.
+ */
+static void SCHSCachePatternHash(const SCHSPattern *p, uint32_t *h1, uint32_t *h2)
+{
+    BUG_ON(p->original_pat == NULL);
+    hashlittle2_safe(&p->len, sizeof(p->len), h1, h2);
+    hashlittle2_safe(&p->flags, sizeof(p->flags), h1, h2);
+    hashlittle2_safe(p->original_pat, p->len, h1, h2);
+    hashlittle2_safe(&p->offset, sizeof(p->offset), h1, h2);
+    hashlittle2_safe(&p->depth, sizeof(p->depth), h1, h2);
+}
+
+static int HSLoadCache(hs_database_t **hs_db, uint64_t hs_db_hash)
+{
+    if (SCCreateDirectoryTree(HSCacheDefaultDir(), true) != 0)
+        return -1;
+    const char *hash_file_static = HSCacheConstructFPath(hs_db_hash);
+    if (hash_file_static == NULL)
+        return -1;
+
+    SCLogDebug("Loading the cached HS DB from %s", hash_file_static);
+    if (!SCPathExists(hash_file_static))
+        return -1;
+
+    FILE *db_cache = fopen(hash_file_static, "r");
+    char *buffer = NULL;
+    int ret = 0;
+    if (db_cache) {
+        size_t buffer_size;
+        buffer = HSReadStream(hash_file_static, &buffer_size);
+        if (!buffer) {
+            SCLogWarning("Hyperscan cached DB file %s cannot be read", hash_file_static);
+            ret = -1;
+            goto freeup;
+        }
+
+        hs_error_t error = hs_deserialize_database(buffer, buffer_size, hs_db);
+        if (error != HS_SUCCESS) {
+            SCLogWarning("Failed to deserialize Hyperscan database of %s: %s", hash_file_static,
+                    HSErrorToStr(error));
+            ret = -1;
+            goto freeup;
+        }
+
+        ret = 0;
+        goto freeup;
+    }
+
+freeup:
+    if (db_cache)
+        fclose(db_cache);
+    if (buffer)
+        SCFree(buffer);
+    return ret;
+}
+
+static int HSSaveCache(hs_database_t *hs_db, uint64_t hs_db_hash)
+{
+    char *db_stream;
+    size_t db_size;
+
+    hs_error_t err = hs_serialize_database(hs_db, &db_stream, &db_size);
+    if (err != HS_SUCCESS) {
+        SCLogWarning("Failed to serialize Hyperscan database: %s", HSErrorToStr(err));
+        return -1;
+    }
+
+    const char *hash_file_static = HSCacheConstructFPath(hs_db_hash);
+    SCLogDebug("Caching the compiled HS at %s", hash_file_static);
+    if (SCPathExists(hash_file_static)) {
+        // potentially signs that it might not work as expected as we got into
+        // hash collision. If this happens will older not used caches it is fine
+        // It is problematic when one ruleset yields two colliding MPM groups.
+        SCLogWarning("Overwriting cache file %s. If the problem persists consider switching off "
+                     "the caching",
+                hash_file_static);
+    }
+
+    FILE *db_cache_out = fopen(hash_file_static, "w");
+    if (!db_cache_out) {
+        SCLogWarning("Failed to open file: %s", hash_file_static);
+        return -1;
+    }
+    int ret = fwrite(db_stream, sizeof(db_stream[0]), db_size, db_cache_out);
+    if (ret > 0 && (size_t)ret != db_size) {
+        SCLogWarning("Failed to write to file: %s", hash_file_static);
+        return -1;
+    }
+    ret = fclose(db_cache_out);
+    if (ret != 0) {
+        SCLogWarning("Failed to close file: %s", hash_file_static);
+        return -1;
+    }
+    SCFree(db_stream);
+
+    return 0;
+}
+
 /**
  * \brief Process the patterns added to the mpm, and create the internal tables.
  *
@@ -633,6 +850,7 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
      * before, and reuse the Hyperscan database if so. */
     PatternDatabase *pd_cached = HashTableLookup(g_db_table, pd, 1);
 
+    uint64_t cached_hash = 0;
     if (pd_cached != NULL) {
         SCLogDebug("Reusing cached database %p with %" PRIu32
                    " patterns (ref_cnt=%" PRIu32 ")",
@@ -644,6 +862,44 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
         PatternDatabaseFree(pd);
         SCHSFreeCompileData(cd);
         return 0;
+    } else if (DetectEngineMpmCachingEnabled()) {
+        uint32_t *hash = (uint32_t *)(&cached_hash);
+        hashword2(&pd->pattern_cnt, 1, &hash[0], &hash[1]);
+        for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
+            SCHSCachePatternHash(pd->parray[i], &hash[0], &hash[1]);
+        }
+        if (HSLoadCache(&pd->hs_db, cached_hash) == 0) {
+            pd->ref_cnt = 1;
+            ctx->pattern_db = pd;
+
+            SCMutexLock(&g_scratch_proto_mutex);
+            err = hs_alloc_scratch(pd->hs_db, &g_scratch_proto);
+            SCMutexUnlock(&g_scratch_proto_mutex);
+            if (err != HS_SUCCESS) {
+                SCLogError("failed to allocate scratch: %s", HSErrorToStr(err));
+                SCMutexUnlock(&g_db_table_mutex);
+                goto error;
+            }
+
+            err = hs_database_size(pd->hs_db, &ctx->hs_db_size);
+            if (err != HS_SUCCESS) {
+                SCLogError("failed to query database size: %s", HSErrorToStr(err));
+                SCMutexUnlock(&g_db_table_mutex);
+                goto error;
+            }
+
+            mpm_ctx->memory_cnt++;
+            mpm_ctx->memory_size += ctx->hs_db_size;
+
+            int r = HashTableAdd(g_db_table, pd, 1);
+            SCMutexUnlock(&g_db_table_mutex);
+            if (r < 0)
+                goto error;
+
+            SCMutexUnlock(&g_db_table_mutex);
+            SCHSFreeCompileData(cd);
+            return 0;
+        }
     }
 
     BUG_ON(ctx->pattern_db != NULL); /* already built? */
@@ -724,6 +980,12 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     SCMutexUnlock(&g_db_table_mutex);
     if (r < 0)
         goto error;
+
+    if (DetectEngineMpmCachingEnabled()) {
+        r = HSSaveCache(pd->hs_db, cached_hash);
+        if (r < 0)
+            goto error;
+    }
 
     SCHSFreeCompileData(cd);
     return 0;
