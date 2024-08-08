@@ -32,7 +32,7 @@
 #include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
 
-#include "rust.h"
+#include "rust-bindings.h"
 
 #include "util-misc.h"
 #include "util-mpm.h"
@@ -115,41 +115,10 @@ static FTPTransaction *FTPGetOldestTx(const FtpState *, FTPTransaction *);
 
 static void FTPParseMemcap(void)
 {
-    const char *conf_val;
-
-    /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("app-layer.protocols.ftp.memcap", &conf_val)) == 1)
-    {
-        if (ParseSizeStringU64(conf_val, &ftp_config_memcap) < 0) {
-            SCLogError("Error parsing ftp.memcap "
-                       "from conf file - %s.  Killing engine",
-                    conf_val);
-            exit(EXIT_FAILURE);
-        }
-        SCLogInfo("FTP memcap: %"PRIu64, ftp_config_memcap);
-    } else {
-        /* default to unlimited */
-        ftp_config_memcap = 0;
-    }
+    rs_ftp_get_config_values(&ftp_config_memcap, &ftp_config_maxtx, &ftp_max_line_len);
 
     SC_ATOMIC_INIT(ftp_memuse);
     SC_ATOMIC_INIT(ftp_memcap);
-
-    if ((ConfGet("app-layer.protocols.ftp.max-tx", &conf_val)) == 1) {
-        if (ParseSizeStringU32(conf_val, &ftp_config_maxtx) < 0) {
-            SCLogError("Error parsing ftp.max-tx "
-                       "from conf file - %s.",
-                    conf_val);
-        }
-        SCLogInfo("FTP max tx: %" PRIu32, ftp_config_maxtx);
-    }
-
-    if ((ConfGet("app-layer.protocols.ftp.max-line-length", &conf_val)) == 1) {
-        if (ParseSizeStringU32(conf_val, &ftp_max_line_len) < 0) {
-            SCLogError("Error parsing ftp.max-line-length from conf file - %s.", conf_val);
-        }
-        SCLogConfig("FTP max line length: %" PRIu32, ftp_max_line_len);
-    }
 }
 
 static void FTPIncrMemuse(uint64_t size)
@@ -429,26 +398,16 @@ static int FTPParseRequestCommand(
     SCReturnInt(0);
 }
 
-struct FtpTransferCmd {
-    /** Need to look like a ExpectationData so DFree must
-     *  be first field . */
-    void (*DFree)(void *);
-    uint64_t flow_id;
-    uint8_t *file_name;
-    uint16_t file_len;
-    uint8_t direction; /**< direction in which the data will flow */
-    FtpRequestCommand cmd;
-};
-
 static void FtpTransferCmdFree(void *data)
 {
-    struct FtpTransferCmd *cmd = (struct FtpTransferCmd *) data;
+    FtpTransferCmd *cmd = (FtpTransferCmd *)data;
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        FTPFree(cmd->file_name, cmd->file_len + 1);
+        FTPFree((void *)cmd->file_name, cmd->file_len + 1);
     }
-    FTPFree(cmd, sizeof(struct FtpTransferCmd));
+    rs_ftp_transfer_cmd_free(cmd);
+    FTPDecrMemuse((uint64_t)sizeof(FtpTransferCmd));
 }
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
@@ -578,10 +537,12 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 if (state->dyn_port == 0 || line.len < 6) {
                     SCReturnStruct(APP_LAYER_ERROR);
                 }
-                struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
+                FtpTransferCmd *data = rs_ftp_transfer_cmd_new();
                 if (data == NULL)
                     SCReturnStruct(APP_LAYER_ERROR);
-                data->DFree = FtpTransferCmdFree;
+                FTPIncrMemuse((uint64_t)(sizeof *data));
+                data->data_free = FtpTransferCmdFree;
+
                 /*
                  * Min size has been checked in FTPParseRequestCommand
                  * SC_FILENAME_MAX includes the null
@@ -1056,8 +1017,8 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
     SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (input_len && ftpdata_state->files == NULL) {
-        struct FtpTransferCmd *data =
-                (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
+        FtpTransferCmd *data =
+                (FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
         }
