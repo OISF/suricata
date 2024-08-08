@@ -77,6 +77,11 @@
    continuously feed files to a directory and have them cleaned up when done. If
    this option is not set, pcap files will not be deleted after processing.
 
+.. option:: --pcap-file-buffer-size <value>
+
+   Set read buffer size using ``setvbuf`` to speed up pcap reading. Valid values
+   are 4 KiB to 64 MiB. Default value is 128 KiB. Supported on Linux only.
+
 .. option::  -i <interface>
 
    After the -i option you can enter the interface card you would like

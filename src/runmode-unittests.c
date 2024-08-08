@@ -269,7 +269,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         UtListTests(regex_arg);
     } else {
         /* global packet pool */
-        extern uint16_t max_pending_packets;
+        extern uint32_t max_pending_packets;
         max_pending_packets = 128;
         PacketPoolInit();
 

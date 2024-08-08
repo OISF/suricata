@@ -178,7 +178,7 @@ static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 
 /** Maximum packets to simultaneously process. */
-uint16_t max_pending_packets;
+uint32_t max_pending_packets;
 
 /** global indicating if detection is enabled */
 int g_detect_disabled = 0;
@@ -631,6 +631,7 @@ static void PrintUsage(const char *progname)
     printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
     printf("\t--pcap-file-delete                   : when running in replay mode (-r with directory or file), will delete pcap files that have been processed when done\n");
     printf("\t--pcap-file-recursive                : will descend into subdirectories when running in replay mode (-r)\n");
+    printf("\t--pcap-file-buffer-size              : set read buffer size (setvbuf)\n");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
@@ -1351,6 +1352,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"pcap-file-continuous", 0, 0, 0},
         {"pcap-file-delete", 0, 0, 0},
         {"pcap-file-recursive", 0, 0, 0},
+        {"pcap-file-buffer-size", required_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
         {"no-random", 0, &g_disable_randomness, 1},
         {"strict-rule-keywords", optional_argument, 0, 0},
@@ -1755,8 +1757,12 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     SCLogError("failed to set pcap-file.recursive");
                     return TM_ECODE_FAILED;
                 }
-            }
-            else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "pcap-file-buffer-size") == 0) {
+                if (ConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
+                    SCLogError("failed to set pcap-file.buffer-size");
+                    return TM_ECODE_FAILED;
+                }
+            } else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
                 if (optarg == NULL) {
                     SCLogError("no option argument (optarg) for -d");
                     return TM_ECODE_FAILED;
@@ -1774,7 +1780,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     return TM_ECODE_FAILED;
                 }
                 suri->set_datadir = true;
-            } else if (strcmp((long_opts[option_index]).name , "strict-rule-keywords") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "strict-rule-keywords") == 0) {
                 if (optarg == NULL) {
                     suri->strict_rule_parsing_string = SCStrdup("all");
                 } else {
@@ -2421,16 +2427,16 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     intmax_t tmp_max_pending_packets;
     if (ConfGetInt("max-pending-packets", &tmp_max_pending_packets) != 1)
         tmp_max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
-    if (tmp_max_pending_packets < 1 || tmp_max_pending_packets >= UINT16_MAX) {
-        SCLogError("Maximum max-pending-packets setting is 65534 and must be greater than 0. "
+    if (tmp_max_pending_packets < 1 || tmp_max_pending_packets > 2147483648) {
+        SCLogError("Maximum max-pending-packets setting is 2147483648 and must be greater than 0. "
                    "Please check %s for errors",
                 suri->conf_filename);
         return TM_ECODE_FAILED;
     } else {
-        max_pending_packets = (uint16_t)tmp_max_pending_packets;
+        max_pending_packets = (uint32_t)tmp_max_pending_packets;
     }
 
-    SCLogDebug("Max pending packets set to %" PRIu16, max_pending_packets);
+    SCLogDebug("Max pending packets set to %" PRIu32, max_pending_packets);
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */

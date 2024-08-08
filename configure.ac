@@ -210,7 +210,7 @@
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
     AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
     AC_CHECK_FUNCS([socket setenv select putenv dup2 endgrent endpwent atexit munmap])
-    AC_CHECK_FUNCS([setrlimit])
+    AC_CHECK_FUNCS([setrlimit setvbuf])
 
     AC_CHECK_FUNCS([fwrite_unlocked])
 
@@ -274,7 +274,7 @@
             ;;
         *-*-linux*)
             # Always compile with -fPIC on Linux for shared library support.
-            CFLAGS="${CFLAGS} -fPIC"
+            CFLAGS="${CFLAGS} -fPIC -DOS_LINUX"
             RUST_LDADD="-ldl -lrt -lm"
             can_build_shared_library="yes"
             AC_DEFINE([SYSTEMD_NOTIFY], [1], [make Suricata notify systemd on startup])

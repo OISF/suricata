@@ -97,7 +97,7 @@ static TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **dat
 
 #else /* we do have NFQ support */
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 #define MAX_ALREADY_TREATED 5
 #define NFQ_VERDICT_RETRY_COUNT 3
