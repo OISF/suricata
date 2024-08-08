@@ -25,5 +25,7 @@
 #define SURICATA_APP_LAYER_SMB_H
 
 void RegisterSMBParsers(void);
+void SMBParserCleanup(void);
 
+void SMBRegisterGlobalCounters(void);
 #endif /* !SURICATA_APP_LAYER_SMB_H */

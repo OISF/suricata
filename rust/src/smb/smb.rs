@@ -20,18 +20,20 @@
  */
 
 /*  GAP processing:
- *  - if post-gap we've seen a succesful tx req/res: we consider "re-sync'd"
+ *  - if post-gap we've seen a successful tx req/res: we consider "re-sync'd"
  */
 
 // written by Victor Julien
 
 use std;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::mem;
 use std::str;
 use std::ffi::{self, CString};
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
- 
+
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
@@ -268,7 +270,7 @@ impl SMBVerCmdStat {
 /// Coordinated Universal Time (UTC)."
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct SMBFiletime {
-    ts: u64, 
+    ts: u64,
 }
 
 impl SMBFiletime {
@@ -501,6 +503,7 @@ impl Default for SMBTransaction {
 
 impl SMBTransaction {
     pub fn new() -> Self {
+        SMBTX_ALLOCS.fetch_add(1, Ordering::SeqCst);
         return Self {
               id: 0,
               vercmd: SMBVerCmdStat::new(),
@@ -525,6 +528,7 @@ impl SMBTransaction {
         SCLogDebug!("SMB TX {:p} free ID {}", &self, self.id);
         debug_validate_bug_on!(self.tx_data.files_opened > 1);
         debug_validate_bug_on!(self.tx_data.files_logged > 1);
+        SMBTX_FREES.fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -755,9 +759,11 @@ impl State<SMBTransaction> for SMBState {
     }
 }
 
+
 impl SMBState {
-    /// Allocation function for a new TLS parser instance
+    /// Allocation function for a new SMB state instance
     pub fn new() -> Self {
+        SMB_STATE.fetch_add(1, Ordering::SeqCst);
         Self {
             state_data:AppLayerStateData::new(),
             ssn2vec_map:HashMap::new(),
@@ -790,7 +796,21 @@ impl SMBState {
         }
     }
 
+    fn state_stats (&mut self) {
+        let mut hm_memusage = hashmap_mem(&self.ssn2vec_map);
+        hm_memusage += hashmap_mem(&self.guid2name_map);
+        hm_memusage += hashmap_mem(&self.ssn2vecoffset_map);
+        hm_memusage += hashmap_mem(&self.ssn2tree_map);
+        hm_memusage += hashmap_mem(&self.ssnguid2vec_map);
+
+        let tx_mem = tx_queue_memory(&self.transactions);
+
+        SMBHASH_MEMORY.fetch_add(hm_memusage, Ordering::SeqCst);
+        SMBTX_MEMORY.fetch_add(tx_mem, Ordering::SeqCst);
+    }
+
     pub fn free(&mut self) {
+        self.state_stats();
         //self._debug_state_stats();
         self._debug_tx_stats();
     }
@@ -2278,6 +2298,65 @@ fn register_pattern_probe() -> i8 {
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"smb\0";
 
+fn tx_queue_memory<X>(vdq: &VecDeque<X>) -> u64
+{
+    let mut total_size = 0;
+    for key in vdq {
+        total_size += mem::size_of_val(key);
+    }
+    total_size += mem::size_of::<VecDeque<X>>();
+    total_size as u64
+}
+// Memory related stuff -- likely temporary
+fn hashmap_mem<K, V>(map: &HashMap<K, V>) -> u64
+{
+    let mut total_size = 0;
+
+    // Add the size of the HashMap structure itself
+    total_size += mem::size_of_val(map);
+
+    // Iterate over each key-value pair
+    for (key, value) in map {
+        // Add the size of the key
+        total_size += mem::size_of_val(key);
+
+        // Add the size of the value
+        total_size += mem::size_of_val(value);
+    }
+
+    total_size as u64
+}
+
+static SMBHASH_MEMORY: AtomicU64 = AtomicU64::new(0);
+static SMBTX_ALLOCS: AtomicU64 = AtomicU64::new(0);
+static SMBTX_FREES: AtomicU64 = AtomicU64::new(0);
+static SMBTX_MEMORY: AtomicU64 = AtomicU64::new(0);
+static SMB_STATE: AtomicU64 = AtomicU64::new(0);
+
+#[no_mangle]
+pub extern "C" fn SCSMB_hash_memory_get() -> u64 {
+    SMBHASH_MEMORY.load(Ordering::SeqCst)
+}
+#[no_mangle]
+pub extern "C" fn SCSMB_tx_memory_get() -> u64 {
+    SMBTX_MEMORY.load(Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn SCSMB_tx_allocs_get() -> u64 {
+    SMBTX_ALLOCS.load(Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn SCSMB_tx_frees_get() -> u64 {
+    SMBTX_FREES.load(Ordering::SeqCst)
+}
+
+#[no_mangle]
+pub extern "C" fn SCSMB_state_get() -> u64 {
+    SMB_STATE.load(Ordering::SeqCst)
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_register_parser() {
     let default_port = CString::new("445").unwrap();
@@ -2408,4 +2487,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
+
+
 }
