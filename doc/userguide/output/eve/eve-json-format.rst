@@ -1040,6 +1040,9 @@ If extended logging is enabled the following fields are also included:
 * "ja4": The JA4 client fingerprint for TLS
 * "client_alpns": array of strings with ALPN values
 * "server_alpns": array of strings with ALPN values
+* "client": structure containing "ciphers", "exts", "sig_algs", for client
+  hello supported cipher suites, extensions, and signature algorithms,
+  respectively, in the order that they're mentioned (ie. unsorted)
 
 JA3 and JA4 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints'/'app-layer.protocols.tls.ja4-fingerprints' to 'yes').
 
