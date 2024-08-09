@@ -39,10 +39,6 @@ pub struct JA4 {
     domain: bool,
     alpn: [char; 2],
     quic: bool,
-    // Some extensions contribute to the total count component of the
-    // fingerprint, yet are not to be included in the SHA256 hash component.
-    // Let's track the count separately.
-    nof_exts: u16,
 }
 
 impl Default for JA4 {
@@ -65,7 +61,6 @@ impl JA4 {
             domain: false,
             alpn: ['0', '0'],
             quic: false,
-            nof_exts: 0,
         }
     }
     pub fn set_quic(&mut self) {}
@@ -74,7 +69,10 @@ impl JA4 {
     pub fn add_cipher_suite(&mut self, _cipher: TlsCipherSuiteID) {}
     pub fn add_extension(&mut self, _ext: TlsExtensionType) {}
     pub fn add_signature_algorithm(&mut self, _sigalgo: u16) {}
-    pub fn get_hash(&self) -> String {
+    pub fn get_ja4_hash(&self) -> String {
+        String::new()
+    }
+    pub fn get_ja4s_hash(&self) -> String {
         String::new()
     }
 }
@@ -113,7 +111,6 @@ impl JA4 {
             domain: false,
             alpn: ['0', '0'],
             quic: false,
-            nof_exts: 0,
         }
     }
 
@@ -170,14 +167,11 @@ impl JA4 {
         if JA4::is_grease(u16::from(ext)) {
             return;
         }
-        if ext != TlsExtensionType::ApplicationLayerProtocolNegotiation
-            && ext != TlsExtensionType::ServerName
-        {
-            self.extensions.push(ext);
-        } else if ext == TlsExtensionType::ServerName {
+
+        if ext == TlsExtensionType::ServerName {
             self.domain = true;
         }
-        self.nof_exts += 1;
+        self.extensions.push(ext);
     }
 
     pub fn add_signature_algorithm(&mut self, sigalgo: u16) {
@@ -187,7 +181,18 @@ impl JA4 {
         self.signature_algorithms.push(sigalgo);
     }
 
-    pub fn get_hash(&self) -> String {
+    pub fn get_ja4_hash(&self) -> String {
+        // All non-GREASE extensions are stored to produce a more verbose, complete output
+        // of extensions but we need to omit ALPN & SNI extensions from the JA4_a hash.
+        let mut exts = self
+            .extensions
+            .iter()
+            .filter(|&ext| {
+                *ext != TlsExtensionType::ApplicationLayerProtocolNegotiation
+                    && *ext != TlsExtensionType::ServerName
+            })
+            .collect::<Vec<&TlsExtensionType>>();
+
         // Calculate JA4_a
         let ja4_a = format!(
             "{proto}{version}{sni}{nof_c:02}{nof_e:02}{al1}{al2}",
@@ -195,7 +200,7 @@ impl JA4 {
             version = JA4::version_to_ja4code(self.tls_version),
             sni = if self.domain { "d" } else { "i" },
             nof_c = min(99, self.ciphersuites.len()),
-            nof_e = min(99, self.nof_exts),
+            nof_e = min(99, self.extensions.len()),
             al1 = self.alpn[0],
             al2 = self.alpn[1]
         );
@@ -214,11 +219,10 @@ impl JA4 {
         ja4_b.truncate(12);
 
         // Calculate JA4_c
-        let mut sorted_exts = self.extensions.to_vec();
-        sorted_exts.sort_by(|a, b| u16::from(*a).cmp(&u16::from(*b)));
-        let sorted_extstrings: Vec<String> = sorted_exts
-            .iter()
-            .map(|v| format!("{:04x}", u16::from(*v)))
+        exts.sort_by(|&a, &b| u16::from(*a).cmp(&u16::from(*b)));
+        let sorted_extstrings: Vec<String> = exts
+            .into_iter()
+            .map(|&v| format!("{:04x}", u16::from(v)))
             .collect();
         let ja4_c1_raw = sorted_extstrings.join(",");
         let unsorted_sigalgostrings: Vec<String> = self
@@ -233,6 +237,33 @@ impl JA4 {
         ja4_c.truncate(12);
 
         return format!("{}_{}_{}", ja4_a, ja4_b, ja4_c);
+    }
+
+    pub fn get_ja4s_hash(&self) -> String {
+        // Calculate JA4_a
+        let ja4_a = format!(
+            "{proto}{version}{nof_e:02}{al1}{al2}",
+            proto = if self.quic { "q" } else { "t" },
+            version = JA4::version_to_ja4code(self.tls_version),
+            nof_e = min(99, self.extensions.len()),
+            al1 = self.alpn[0],
+            al2 = self.alpn[1]
+        );
+
+        let ja4_b = self.ciphersuites.first().map(|&v| *v).unwrap_or(0);
+
+        let mut sha = Sha256::new();
+        let sorted_extstrings = self.extensions
+            .iter()
+            .map(|&v| format!("{:04x}", u16::from(v)))
+            .collect::<Vec<String>>()
+            .join(",");
+
+        sha.update(sorted_extstrings);
+        let mut ja4_c = format!("{:x}", sha.finalize());
+        ja4_c.truncate(12);
+
+        format!("{}_{:04x}_{}", ja4_a, ja4_b, ja4_c)
     }
 }
 
@@ -269,9 +300,43 @@ pub unsafe extern "C" fn SCJA4SetALPN(j: &mut JA4, proto: *const c_char, len: u1
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCJA4GetVersion(j: &JA4) -> u16 {
+    u16::from(j.tls_version.unwrap_or(TlsVersion(0)))
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCJA4GetHash(j: &mut JA4, out: &mut [u8; 36]) {
-    let hash = j.get_hash();
+    let hash = j.get_ja4_hash();
     out[0..36].copy_from_slice(hash.as_bytes());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4SGetHash(j: &mut JA4, out: &mut [u8; 25]) {
+    let hash = j.get_ja4s_hash();
+    out[0..25].copy_from_slice(hash.as_bytes());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetCiphers(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.ciphersuites.len();
+    j.ciphersuites.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetFirstCipher(j: &mut JA4) -> u16 {
+    j.ciphersuites.first().map(|&v| *v).unwrap_or(0)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetExtensions(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.extensions.len();
+    j.extensions.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetSigAlgs(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.signature_algorithms.len();
+    j.signature_algorithms.as_ptr()
 }
 
 #[no_mangle]
@@ -322,7 +387,7 @@ mod tests {
             j.add_extension(TlsExtensionType(i));
         }
 
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i999900");
     }
@@ -332,81 +397,81 @@ mod tests {
         let mut j = JA4::new();
 
         j.set_alpn("b".as_bytes());
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i0000bb");
 
         j.set_alpn("h2".as_bytes());
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i0000h2");
 
         // from https://github.com/FoxIO-LLC/ja4/blob/main/technical_details/JA4.md#alpn-extension-value
         j.set_alpn(&[0xab]);
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i0000ab");
 
         j.set_alpn(&[0xab, 0xcd]);
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i0000ad");
 
         j.set_alpn(&[0x30, 0xab]);
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i00003b");
 
         j.set_alpn(&[0x30, 0x31, 0xab, 0xcd]);
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i00003d");
 
         j.set_alpn(&[0x30, 0xab, 0xcd, 0x31]);
-        let mut s = j.get_hash();
+        let mut s = j.get_ja4_hash();
         s.truncate(10);
         assert_eq!(s, "t00i000001");
     }
 
     #[test]
-    fn test_get_hash() {
+    fn test_get_ja4_hash() {
         let mut j = JA4::new();
 
         // the empty JA4 hash
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "t00i000000_e3b0c44298fc_d2e2adf7177b");
 
         // set TLS version
         j.set_tls_version(TlsVersion::Tls12);
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "t12i000000_e3b0c44298fc_d2e2adf7177b");
 
         // set QUIC
         j.set_quic();
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12i000000_e3b0c44298fc_d2e2adf7177b");
 
         // set GREASE extension, should be ignored
         j.add_extension(TlsExtensionType(0x0a0a));
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12i000000_e3b0c44298fc_d2e2adf7177b");
 
         // set SNI extension, should only increase count and change i->d
         j.add_extension(TlsExtensionType(0x0000));
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12d000100_e3b0c44298fc_d2e2adf7177b");
 
         // set ALPN extension, should only increase count and set end of JA4_a
         j.set_alpn(b"h3-16");
         j.add_extension(TlsExtensionType::ApplicationLayerProtocolNegotiation);
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12d0002h6_e3b0c44298fc_d2e2adf7177b");
 
         // set some ciphers
         j.add_cipher_suite(TlsCipherSuiteID(0x1111));
         j.add_cipher_suite(TlsCipherSuiteID(0x0a20));
         j.add_cipher_suite(TlsCipherSuiteID(0xbada));
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12d0302h6_f500716053f9_d2e2adf7177b");
 
         // set some extensions and signature algorithms
@@ -414,7 +479,47 @@ mod tests {
         j.add_extension(TlsExtensionType(0x0121));
         j.add_extension(TlsExtensionType(0x1234));
         j.add_signature_algorithm(0x6666);
-        let s = j.get_hash();
+        let s = j.get_ja4_hash();
         assert_eq!(s, "q12d0305h6_f500716053f9_2debc8880bae");
+    }
+
+    #[test]
+    fn test_get_ja4s_hash() {
+        let mut j = JA4::new();
+
+        // the empty JA4S hash
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "t000000_0000_e3b0c44298fc");
+
+        // set TLS version
+        j.set_tls_version(TlsVersion::Tls12);
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "t120000_0000_e3b0c44298fc");
+
+        // set QUIC
+        j.set_quic();
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "q120000_0000_e3b0c44298fc");
+
+        // set GREASE extension, should be ignored
+        j.add_extension(TlsExtensionType(0x0a0a));
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "q120000_0000_e3b0c44298fc");
+
+        // set SNI extension, should increase ext-count + change JA4S_c
+        j.add_extension(TlsExtensionType(0x0000));
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "q120100_0000_9af15b336e6a");
+
+        // set ALPN extension, should increase count, set end of JA4S_a + change JA4S_c
+        j.set_alpn(b"h3-16");
+        j.add_extension(TlsExtensionType::ApplicationLayerProtocolNegotiation);
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "q1202h6_0000_a2cf1a00988d");
+
+        // set chosen cipher suite
+        j.add_cipher_suite(TlsCipherSuiteID(0xc027));
+        let s = j.get_ja4s_hash();
+        assert_eq!(s, "q1202h6_c027_a2cf1a00988d");
     }
 }

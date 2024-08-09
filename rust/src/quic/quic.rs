@@ -250,7 +250,7 @@ impl QuicState {
                         // our hash is complete, let's only use strings from
                         // now on
                         if let Some(ref rja4) = c.ja4 {
-                            ja4 = Some(rja4.get_hash());
+                            ja4 = Some(rja4.get_ja4_hash());
                         }
                     }
                     for e in &c.extv {

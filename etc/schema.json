@@ -6722,6 +6722,35 @@
                         "type": "string"
                     }
                 },
+		"client_handshake": {
+		    "type": "object",
+		    "properties": {
+			"version": {
+			    "type": "string"
+			},
+			"ciphers": {
+			    "description": "TLS client cipher(s)",
+			    "type": "array",
+			    "items": {
+				"type": "integer"
+			    }
+			},
+			"exts": {
+			    "description": "TLS client extension(s)",
+			    "type": "array",
+			    "items": {
+				"type": "integer"
+			    }
+			},
+			"sig_algs": {
+			    "description": "TLS client signature algorithm(s)",
+			    "type": "array",
+			    "items": {
+				"type": "integer"
+			    }
+			}
+		    }
+		},
                 "server_alpns": {
                     "description": "TLS server ALPN field(s)",
                     "type": "array",
@@ -6729,6 +6758,25 @@
                         "type": "string"
                     }
                 },
+		"server_handshake": {
+		    "type": "object",
+		    "properties": {
+			"version": {
+			    "type": "string"
+			},
+			"cipher": {
+			    "description": "TLS server's chosen cipher",
+			    "type": "integer"
+			},
+			"exts": {
+			    "description": "TLS server extension(s)",
+			    "type": "array",
+			    "items": {
+				"type": "integer"
+			    }
+			}
+		    }
+		},
                 "fingerprint": {
                     "type": "string"
                 },
@@ -6791,6 +6839,9 @@
                     "additionalProperties": false
                 },
                 "ja4": {
+                    "type": "string"
+                },
+                "ja4s": {
                     "type": "string"
                 }
             },

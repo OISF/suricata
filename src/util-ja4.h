@@ -24,6 +24,7 @@
 #ifndef SURICATA_UTIL_JA4_H
 #define SURICATA_UTIL_JA4_H
 
-#define JA4_HEX_LEN 36
+#define JA4_HEX_LEN  36
+#define JA4S_HEX_LEN 25
 
 #endif /* SURICATA_UTIL_JA4_H */
