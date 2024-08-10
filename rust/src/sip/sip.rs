@@ -435,7 +435,7 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
     1
 }
 
-static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
+pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(

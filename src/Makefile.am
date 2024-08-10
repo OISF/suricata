@@ -262,11 +262,6 @@ noinst_HEADERS = \
 	detect-sameip.h \
 	detect-sid.h \
 	detect-sip-method.h \
-	detect-sip-protocol.h \
-	detect-sip-request-line.h \
-	detect-sip-response-line.h \
-	detect-sip-stat-code.h \
-	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
@@ -841,11 +836,6 @@ libsuricata_c_a_SOURCES = \
 	detect-sameip.c \
 	detect-sid.c \
 	detect-sip-method.c \
-	detect-sip-protocol.c \
-	detect-sip-request-line.c \
-	detect-sip-response-line.c \
-	detect-sip-stat-code.c \
-	detect-sip-stat-msg.c \
 	detect-sip-uri.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
