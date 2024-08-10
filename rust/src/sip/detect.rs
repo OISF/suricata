@@ -37,6 +37,7 @@ static mut G_SIP_FROM_HDR_BUFFER_ID: c_int = 0;
 static mut G_SIP_TO_HDR_BUFFER_ID: c_int = 0;
 static mut G_SIP_VIA_HDR_BUFFER_ID: c_int = 0;
 static mut G_SIP_UA_HDR_BUFFER_ID: c_int = 0;
+static mut G_SIP_CONTENT_TYPE_HDR_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
@@ -498,6 +499,46 @@ unsafe extern "C" fn sip_ua_hdr_get_data(
     )
 }
 
+unsafe extern "C" fn sip_content_type_hdr_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_CONTENT_TYPE_HDR_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn sip_content_type_hdr_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        sip_content_type_hdr_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_content_type_hdr_get_data(
+    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    sip_get_header_value(
+        tx,
+        local_id,
+        flow_flags,
+        buffer,
+        buffer_len,
+        "Content-Type\0".as_ptr() as *const c_char,
+    )
+}
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectSipRegister() {
     let kw = SCSigTableElmt {
@@ -662,5 +703,24 @@ pub unsafe extern "C" fn ScDetectSipRegister() {
         true,
         true,
         sip_ua_hdr_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.content_type\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP Content-Type header\0".as_ptr()
+            as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-content-type\0".as_ptr() as *const libc::c_char,
+        Setup: sip_content_type_hdr_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_content_type_hdr_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_CONTENT_TYPE_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"sip.content_type\0".as_ptr() as *const libc::c_char,
+        b"sip.content_type\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        true,
+        sip_content_type_hdr_get,
     );
 }
