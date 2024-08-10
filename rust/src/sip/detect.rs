@@ -19,13 +19,13 @@
 
 use crate::core::Direction;
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SCSigTableElmt, SIGMATCH_NOOPT,
 };
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::ffi::CStr;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
 
 static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
@@ -33,6 +33,7 @@ static mut G_SIP_STAT_CODE_BUFFER_ID: c_int = 0;
 static mut G_SIP_STAT_MSG_BUFFER_ID: c_int = 0;
 static mut G_SIP_REQUEST_LINE_BUFFER_ID: c_int = 0;
 static mut G_SIP_RESPONSE_LINE_BUFFER_ID: c_int = 0;
+static mut G_SIP_FROM_HDR_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
@@ -303,6 +304,74 @@ unsafe extern "C" fn sip_response_line_get_data(
     return false;
 }
 
+unsafe extern "C" fn sip_get_header_value(
+    tx: *const c_void, i: u32, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    strname: *const c_char,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
+    let hname: &CStr = CStr::from_ptr(strname);
+    if let Ok(s) = hname.to_str() {
+        let headers = match direction.into() {
+            Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
+            Direction::ToClient => tx.response.as_ref().map(|r| &r.headers),
+        };
+        if let Some(headers) = headers {
+            if let Some(header_vals) = headers.get(s) {
+                if (i as usize) < header_vals.len() {
+                    let value = &header_vals[i as usize];
+                    *buffer = value.as_ptr();
+                    *buffer_len = value.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
+}
+
+unsafe extern "C" fn sip_from_hdr_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_FROM_HDR_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn sip_from_hdr_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        sip_from_hdr_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_from_hdr_get_data(
+    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    sip_get_header_value(
+        tx,
+        local_id,
+        flow_flags,
+        buffer,
+        buffer_len,
+        "From\0".as_ptr() as *const c_char,
+    )
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectSipRegister() {
     let kw = SCSigTableElmt {
@@ -394,5 +463,23 @@ pub unsafe extern "C" fn ScDetectSipRegister() {
         true,
         false,
         sip_response_line_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.from\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP From header\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-from\0".as_ptr() as *const libc::c_char,
+        Setup: sip_from_hdr_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_from_hdr_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_FROM_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"sip.from\0".as_ptr() as *const libc::c_char,
+        b"sip.from\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        true,
+        sip_from_hdr_get,
     );
 }
