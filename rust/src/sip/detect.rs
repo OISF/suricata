@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,8 +18,21 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::core::Direction;
-use crate::sip::sip::SIPTransaction;
+use crate::detect::{
+    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+};
+use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
+use std::ffi::CStr;
+use std::os::raw::{c_int, c_void};
 use std::ptr;
+
+static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
+static mut G_SIP_STAT_CODE_BUFFER_ID: c_int = 0;
+static mut G_SIP_STAT_MSG_BUFFER_ID: c_int = 0;
+static mut G_SIP_REQUEST_LINE_BUFFER_ID: c_int = 0;
+static mut G_SIP_RESPONSE_LINE_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
@@ -59,10 +72,37 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_tx_get_protocol(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
-) -> u8 {
+unsafe extern "C" fn sip_protocol_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_PROTOCOL_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn sip_protocol_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sip_protocol_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_protocol_get_data(
+    tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
     match direction.into() {
         Direction::ToServer => {
             if let Some(ref r) = tx.request {
@@ -70,7 +110,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
                 if !v.is_empty() {
                     *buffer = v.as_ptr();
                     *buffer_len = v.len() as u32;
-                    return 1;
+                    return true;
                 }
             }
         }
@@ -80,88 +120,279 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
                 if !v.is_empty() {
                     *buffer = v.as_ptr();
                     *buffer_len = v.len() as u32;
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-
     *buffer = ptr::null();
     *buffer_len = 0;
+    return false;
+}
 
+unsafe extern "C" fn sip_stat_code_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_STAT_CODE_BUFFER_ID) < 0 {
+        return -1;
+    }
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_tx_get_stat_code(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn sip_stat_code_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sip_stat_code_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_stat_code_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(ref r) = tx.response {
         let c = &r.code;
         if !c.is_empty() {
             *buffer = c.as_ptr();
             *buffer_len = c.len() as u32;
-            return 1;
+            return true;
         }
     }
-
     *buffer = ptr::null();
     *buffer_len = 0;
+    return false;
+}
 
+unsafe extern "C" fn sip_stat_msg_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_STAT_MSG_BUFFER_ID) < 0 {
+        return -1;
+    }
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn sip_stat_msg_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sip_stat_msg_get_data,
+    );
+}
+unsafe extern "C" fn sip_stat_msg_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(ref r) = tx.response {
         let re = &r.reason;
         if !re.is_empty() {
             *buffer = re.as_ptr();
             *buffer_len = re.len() as u32;
-            return 1;
+            return true;
         }
     }
-
     *buffer = ptr::null();
     *buffer_len = 0;
+    return false;
+}
 
+unsafe extern "C" fn sip_request_line_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_REQUEST_LINE_BUFFER_ID) < 0 {
+        return -1;
+    }
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_tx_get_request_line(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn sip_request_line_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sip_request_line_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_request_line_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(ref r) = tx.request_line {
         if !r.is_empty() {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
-            return 1;
+            return true;
         }
     }
-
     *buffer = ptr::null();
     *buffer_len = 0;
+    return false;
+}
 
+unsafe extern "C" fn sip_response_line_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SIP_RESPONSE_LINE_BUFFER_ID) < 0 {
+        return -1;
+    }
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_tx_get_response_line(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn sip_response_line_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sip_response_line_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_response_line_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(ref r) = tx.response_line {
         if !r.is_empty() {
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
-            return 1;
+            return true;
         }
     }
-
     *buffer = ptr::null();
     *buffer_len = 0;
+    return false;
+}
 
-    return 0;
+#[no_mangle]
+pub unsafe extern "C" fn ScDetectSipRegister() {
+    let kw = SCSigTableElmt {
+        name: b"sip.protocol\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP protocol\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-protocol\0".as_ptr() as *const libc::c_char,
+        Setup: sip_protocol_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_protocol_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_PROTOCOL_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sip.protocol\0".as_ptr() as *const libc::c_char,
+        b"sip.protocol\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        true,
+        sip_protocol_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.stat_code\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP status code\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-stat-code\0".as_ptr() as *const libc::c_char,
+        Setup: sip_stat_code_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_stat_code_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_STAT_CODE_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sip.stat_code\0".as_ptr() as *const libc::c_char,
+        b"sip.stat_code\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        false,
+        sip_stat_code_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP status message\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-stat-msg\0".as_ptr() as *const libc::c_char,
+        Setup: sip_stat_msg_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_stat_msg_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_STAT_MSG_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
+        b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        false,
+        sip_stat_msg_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.request_line\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP request line\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-request-line\0".as_ptr() as *const libc::c_char,
+        Setup: sip_request_line_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_request_line_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_REQUEST_LINE_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sip.request_line\0".as_ptr() as *const libc::c_char,
+        b"sip.request_line\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        false,
+        true,
+        sip_request_line_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sip.response_line\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SIP response line\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sip-keywords.html#sip-response-line\0".as_ptr() as *const libc::c_char,
+        Setup: sip_response_line_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_sip_response_line_kw_id = DetectHelperKeywordRegister(&kw);
+    G_SIP_RESPONSE_LINE_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sip.response_line\0".as_ptr() as *const libc::c_char,
+        b"sip.response_line\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        false,
+        sip_response_line_get,
+    );
 }
