@@ -77,6 +77,7 @@ pub struct SCSigTableElmt {
 pub(crate) const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
 pub(crate) const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
+/// cbindgen:ignore
 extern {
     pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
     pub fn DetectHelperGetData(
