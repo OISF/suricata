@@ -78,7 +78,7 @@ Syntax::
 
     dataset:<cmd>,<name>,<options>;
 
-    dataset:<set|isset|isnotset>,<name> \
+    dataset:<set|unset|isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>];
 
 type <type>

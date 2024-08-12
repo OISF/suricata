@@ -96,6 +96,12 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
                 return 1;
             break;
         }
+        case DETECT_DATASET_CMD_UNSET: {
+            int r = DatasetRemove(sd->set, data, data_len);
+            if (r == 1)
+                return 1;
+            break;
+        }
         default:
             abort();
     }

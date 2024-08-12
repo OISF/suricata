@@ -1748,3 +1748,23 @@ int DatasetRemoveSerialized(Dataset *set, const char *string)
     return DatasetOpSerialized(set, string, DatasetRemoveString, DatasetRemoveMd5,
             DatasetRemoveSha256, DatasetRemoveIPv4, DatasetRemoveIPv6);
 }
+
+int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    if (set == NULL)
+        return -1;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING:
+            return DatasetRemoveString(set, data, data_len);
+        case DATASET_TYPE_MD5:
+            return DatasetRemoveMd5(set, data, data_len);
+        case DATASET_TYPE_SHA256:
+            return DatasetRemoveSha256(set, data, data_len);
+        case DATASET_TYPE_IPV4:
+            return DatasetRemoveIPv4(set, data, data_len);
+        case DATASET_TYPE_IPV6:
+            return DatasetRemoveIPv6(set, data, data_len);
+    }
+    return -1;
+}
