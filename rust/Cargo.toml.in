@@ -67,7 +67,7 @@ time = "~0.3.36"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 
-suricata-lua-sys = { git = "https://github.com/jasonish/suricata-lua-sys", version = "0.1.0-alpha.1" }
+suricata-lua-sys = { version = "0.1.0-alpha.1" }
 
 [dev-dependencies]
 test-case = "~3.3.1"
