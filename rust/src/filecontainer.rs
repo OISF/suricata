@@ -23,6 +23,7 @@ use std::os::raw::{c_void};
 use crate::core::*;
 
 // Defined in util-file.h
+/// cbindgen:ignore
 extern {
     pub fn FileFlowFlagsToFlags(flow_file_flags: u16, flags: u8) -> u16;
 }

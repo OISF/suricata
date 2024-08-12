@@ -30,6 +30,7 @@ struct CFrame {
 }
 
 // Defined in app-layer-register.h
+/// cbindgen:ignore
 extern {
     #[cfg(not(test))]
     fn AppLayerFrameNewByRelativeOffset(
