@@ -135,6 +135,7 @@ macro_rules!BIT_U64 {
 pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 // Defined in app-layer-protos.h
+/// cbindgen:ignore
 extern {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
@@ -239,6 +240,7 @@ pub struct SuricataFileContext {
     pub files_sbcfg: &'static StreamingBufferConfig,
 }
 
+/// cbindgen:ignore
 extern {
     pub fn SCGetContext() -> &'static mut SuricataContext;
     pub fn SCLogGetLogLevel() -> i32;
@@ -305,6 +307,7 @@ pub fn sc_app_layer_decoder_events_free_events(
 pub enum Flow {}
 
 // Extern functions operating on Flow.
+/// cbindgen:ignore
 extern {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
     pub fn FlowGetFlags(flow: &Flow) -> u32;
