@@ -1846,7 +1846,7 @@
     AS_IF([test "x$enable_napatech" = "xyes"], [
         if test "x$enable_shared" = "xno"; then
             echo
-            echo "   ERROR! napatech cannot be enabled with --disable-napatech"
+            echo "   ERROR! napatech cannot be enabled with --disable-shared"
             echo
             exit 1
         fi
