@@ -40,6 +40,7 @@
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-conf.h"
+#include "util-validate.h"
 
 #define DETECT_DATASET_CMD_SET      0
 #define DETECT_DATASET_CMD_UNSET    1
@@ -103,7 +104,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
             break;
         }
         default:
-            abort();
+            DEBUG_VALIDATE_BUG_ON("unknown dataset command");
     }
     return 0;
 }
