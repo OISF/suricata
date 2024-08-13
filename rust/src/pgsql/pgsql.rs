@@ -608,7 +608,7 @@ fn probe_tc(input: &[u8]) -> bool {
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
+pub unsafe extern "C" fn SCPgsqlProbingParserTS(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
@@ -635,7 +635,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
+pub unsafe extern "C" fn SCPgsqlProbingParserTC(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
@@ -665,7 +665,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_new(
+pub extern "C" fn SCPgsqlStateNew(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = PgsqlState::new();
@@ -674,13 +674,13 @@ pub extern "C" fn rs_pgsql_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_free(state: *mut std::os::raw::c_void) {
+pub extern "C" fn SCPgsqlStateFree(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut PgsqlState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub extern "C" fn SCPgsqlStateTxFree(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -689,7 +689,7 @@ pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_request(
+pub unsafe extern "C" fn SCPgsqlParseRequest(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -714,7 +714,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_response(
+pub unsafe extern "C" fn SCPgsqlParseResponse(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -737,7 +737,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_state_get_tx(
+pub unsafe extern "C" fn SCPgsqlStateGetTx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
@@ -752,7 +752,7 @@ pub unsafe extern "C" fn rs_pgsql_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub extern "C" fn SCPgsqlStateGetTxCount(state: *mut std::os::raw::c_void) -> u64 {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -761,7 +761,7 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> PgsqlTxReqProgress {
+pub extern "C" fn SCPgsqlTxGetReqState(tx: *mut std::os::raw::c_void) -> PgsqlTxReqProgress {
     let tx_safe: &mut PgsqlTransaction;
     unsafe {
         tx_safe = cast_pointer!(tx, PgsqlTransaction);
@@ -770,7 +770,7 @@ pub extern "C" fn rs_pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> Pg
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_res_state(tx: *mut std::os::raw::c_void) -> PgsqlTxResProgress {
+pub extern "C" fn SCPgsqlTxGetResState(tx: *mut std::os::raw::c_void) -> PgsqlTxResProgress {
     let tx_safe: &mut PgsqlTransaction;
     unsafe {
         tx_safe = cast_pointer!(tx, PgsqlTransaction);
@@ -779,15 +779,15 @@ pub extern "C" fn rs_pgsql_tx_get_res_state(tx: *mut std::os::raw::c_void) -> Pg
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
+pub extern "C" fn SCPgsqlTxGetALStateProgress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer as u8 {
-        return rs_pgsql_tx_get_req_state(tx) as i32;
+        return SCPgsqlTxGetReqState(tx) as i32;
     }
 
     // Direction has only two possible values, so we don't need to check for the other one
-    return rs_pgsql_tx_get_res_state(tx) as i32;
+    return SCPgsqlTxGetResState(tx) as i32;
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
@@ -797,27 +797,27 @@ export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
 const PARSER_NAME: &[u8] = b"pgsql\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_register_parser() {
+pub unsafe extern "C" fn SCRegisterPgsqlParser() {
     let default_port = CString::new("[5432]").unwrap();
     let mut stream_depth = PGSQL_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_pgsql_probing_parser_ts),
-        probe_tc: Some(rs_pgsql_probing_parser_tc),
+        probe_ts: Some(SCPgsqlProbingParserTS),
+        probe_tc: Some(SCPgsqlProbingParserTC),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_pgsql_state_new,
-        state_free: rs_pgsql_state_free,
-        tx_free: rs_pgsql_state_tx_free,
-        parse_ts: rs_pgsql_parse_request,
-        parse_tc: rs_pgsql_parse_response,
-        get_tx_count: rs_pgsql_state_get_tx_count,
-        get_tx: rs_pgsql_state_get_tx,
+        state_new: SCPgsqlStateNew,
+        state_free: SCPgsqlStateFree,
+        tx_free: SCPgsqlStateTxFree,
+        parse_ts: SCPgsqlParseRequest,
+        parse_tc: SCPgsqlParseResponse,
+        get_tx_count: SCPgsqlStateGetTxCount,
+        get_tx: SCPgsqlStateGetTx,
         tx_comp_st_ts: PgsqlTxReqProgress::TxReqDone as i32,
         tx_comp_st_tc: PgsqlTxResProgress::TxResDone as i32,
-        tx_get_progress: rs_pgsql_tx_get_alstate_progress,
+        tx_get_progress: SCPgsqlTxGetALStateProgress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
