@@ -1210,7 +1210,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
     if (((direction == 0 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TS) == 0) ||
                 (direction == 1 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TC) == 0)) &&
             input != NULL && f->proto == IPPROTO_TCP) {
-        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        Frame *frame = AppLayerFrameGetLastOpenByType(f, direction, FRAME_STREAM_TYPE);
         if (frame == NULL) {
             int64_t frame_len = -1;
             if (flags & STREAM_EOF)
@@ -1231,7 +1231,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
             }
         }
     } else if (flags & STREAM_EOF) {
-        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        Frame *frame = AppLayerFrameGetLastOpenByType(f, direction, FRAME_STREAM_TYPE);
         SCLogDebug("EOF closing: frame %p", frame);
         if (frame) {
             /* calculate final frame length */
