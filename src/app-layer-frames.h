@@ -28,8 +28,6 @@
 
 /** max 63 to fit the 64 bit per protocol space */
 #define FRAME_STREAM_TYPE 63
-/** always the first frame to be created. TODO but what about protocol upgrades? */
-#define FRAME_STREAM_ID 1
 
 typedef int64_t FrameId;
 
