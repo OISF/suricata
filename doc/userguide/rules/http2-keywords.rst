@@ -4,6 +4,14 @@ HTTP2 Keywords
 HTTP2 frames are grouped into transactions based on the stream identifier it it is not 0.
 For frames with stream identifier 0, whose effects are global for the connection, a transaction is created for each frame.
 
+Frames
+------
+
+The HTTP2 parser supports the following frames (as defined by Suricata) which are created for each HTTP2 frame (as defined by the HTTP2 RFC) :
+
+* http2.hdr
+* http2.data
+* http2.pdu
 
 http2.frametype
 ---------------
