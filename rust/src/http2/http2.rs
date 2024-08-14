@@ -25,6 +25,7 @@ use crate::conf::conf_get;
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
+use crate::frames::Frame;
 
 use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
 
@@ -68,6 +69,13 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
                                                  // maximum size of reassembly for header + continuation
 static mut HTTP2_MAX_REASS: usize = 102400;
 static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
+
+#[derive(AppLayerFrameType)]
+pub enum Http2FrameType {
+    Hdr,
+    Data,
+    Pdu,
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -1094,6 +1102,7 @@ impl HTTP2State {
 
     fn parse_frames(
         &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
+        stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         while !input.is_empty() {
             match parser::http2_parse_frame_header(input) {
@@ -1126,6 +1135,30 @@ impl HTTP2State {
                         (hl, true)
                     };
 
+                    let frame_hdr = Frame::new(
+                        flow,
+                        stream_slice,
+                        input,
+                        HTTP2_FRAME_HEADER_LEN as i64,
+                        Http2FrameType::Hdr as u8,
+                        None,
+                    );
+                    let frame_data = Frame::new(
+                        flow,
+                        stream_slice,
+                        &input[HTTP2_FRAME_HEADER_LEN..],
+                        head.length as i64,
+                        Http2FrameType::Data as u8,
+                        None,
+                    );
+                    let frame_pdu = Frame::new(
+                        flow,
+                        stream_slice,
+                        input,
+                        HTTP2_FRAME_HEADER_LEN as i64 + head.length as i64,
+                        Http2FrameType::Pdu as u8,
+                        None,
+                    );
                     if head.length == 0 && head.ftype == parser::HTTP2FrameType::Settings as u8 {
                         input = &rem[hlsafe..];
                         continue;
@@ -1144,6 +1177,15 @@ impl HTTP2State {
                         return AppLayerResult::err();
                     }
                     let tx = tx.unwrap();
+                    if let Some(frame) = frame_hdr {
+                        frame.set_tx(flow, tx.tx_id);
+                    }
+                    if let Some(frame) = frame_data {
+                        frame.set_tx(flow, tx.tx_id);
+                    }
+                    if let Some(frame) = frame_pdu {
+                        frame.set_tx(flow, tx.tx_id);
+                    }
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf) {
                             dtx.id = 1;
@@ -1153,7 +1195,10 @@ impl HTTP2State {
                             if let Some(doh) = &mut tx.doh {
                                 doh.dns_request_tx = Some(dtx);
                             } else {
-                                let doh = DohHttp2Tx { dns_request_tx: Some(dtx), ..Default::default() };
+                                let doh = DohHttp2Tx {
+                                    dns_request_tx: Some(dtx),
+                                    ..Default::default()
+                                };
                                 tx.doh = Some(doh);
                             }
                         }
@@ -1236,8 +1281,9 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
-    fn parse_ts(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_ts(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
         //very first : skip magic
+        let mut input = stream_slice.as_slice();
         let mut magic_consumed = 0;
         if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
             //skip magic
@@ -1276,7 +1322,7 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        let r = self.parse_frames(input, il, Direction::ToServer, flow);
+        let r = self.parse_frames(input, il, Direction::ToServer, flow, &stream_slice);
         if r.status == 1 {
             //adds bytes consumed by banner to incomplete result
             return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
@@ -1285,8 +1331,9 @@ impl HTTP2State {
         }
     }
 
-    fn parse_tc(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_tc(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
         //first consume frame bytes
+        let mut input = stream_slice.as_slice();
         let il = input.len();
         if self.response_frame_size > 0 {
             let ilen = input.len() as u32;
@@ -1300,7 +1347,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        return self.parse_frames(input, il, Direction::ToClient, flow);
+        return self.parse_frames(input, il, Direction::ToClient, flow, &stream_slice);
     }
 }
 
@@ -1400,8 +1447,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
-    let buf = stream_slice.as_slice();
-    return state.parse_ts(buf, flow);
+    return state.parse_ts(flow, stream_slice);
 }
 
 #[no_mangle]
@@ -1410,8 +1456,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
-    let buf = stream_slice.as_slice();
-    return state.parse_tc(buf, flow);
+    return state.parse_tc(flow, stream_slice);
 }
 
 #[no_mangle]
@@ -1505,8 +1550,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_state_data: rs_http2_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(Http2FrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(Http2FrameType::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
