@@ -76,6 +76,11 @@ Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
 
+Logging changes
+~~~~~~~~~~~~~~~
+- RFB security result is now consistently logged as ``security_result`` when it was
+  sometimes looged with a dash instead of an underscore.
+
 Upgrading 6.0 to 7.0
 --------------------
 
