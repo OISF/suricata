@@ -90,6 +90,11 @@ Deprecations
   Suricata 9.0. Note that this is the standalone ``syslog`` output and
   does affect the ``eve`` outputs ability to send to syslog.
 
+Logging changes
+~~~~~~~~~~~~~~~
+- RFB security result is now consistently logged as ``security_result`` when it was
+  sometimes logged with a dash instead of an underscore.
+
 Upgrading 6.0 to 7.0
 --------------------
 
