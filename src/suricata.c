@@ -2303,7 +2303,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 
     TmqResetQueues();
 #ifdef PROFILING
-    if (profiling_rules_enabled)
+    if (profiling_packets_enabled)
         SCProfilingDump();
     SCProfilingDestroy();
 #endif
