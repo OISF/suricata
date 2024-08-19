@@ -1115,7 +1115,8 @@
                     "$ref": "#/$defs/dns.additionals"
                 },
                 "query": {
-                    "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
+                    "$comment":
+                            "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -6062,7 +6063,8 @@
                             "type": "integer"
                         },
                         "get_used": {
-                            "description": "Number of reused flows from the hash table in case memcap was reached and spare pool was empty",
+                            "description":
+                                    "Number of reused flows from the hash table in case memcap was reached and spare pool was empty",
                             "type": "integer"
                         },
                         "get_used_eval": {
@@ -6115,7 +6117,8 @@
                             "type": "integer"
                         },
                         "tcp_reuse": {
-                            "description": "Number of TCP flows that were reused as they seemed to share the same flow tuple",
+                            "description":
+                                    "Number of TCP flows that were reused as they seemed to share the same flow tuple",
                             "type": "integer"
                         },
                         "total": {
