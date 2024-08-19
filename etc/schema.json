@@ -4711,6 +4711,10 @@
                                     "description": "Errors encountered parsing SSH protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "stun": {
+                                    "description": "Errors encountered parsing STUN protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "telnet": {
                                     "description": "Errors encountered parsing Telnet protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4886,6 +4890,10 @@
                                     "description": "Number of flows for SSH protocol",
                                     "type": "integer"
                                 },
+                                "stun": {
+                                    "description": "Number of flows for STUN protocol",
+                                    "type": "integer"
+                                },
                                 "telnet": {
                                     "description": "Number of flows for Telnet protocol",
                                     "type": "integer"
@@ -5054,6 +5062,10 @@
                                 },
                                 "ssh": {
                                     "description": "Number of transactions for SSH protocol",
+                                    "type": "integer"
+                                },
+                                "stun": {
+                                    "description": "Number of transactions for STUN protocol",
                                     "type": "integer"
                                 },
                                 "telnet": {
@@ -6494,6 +6506,104 @@
                 }
             },
             "additionalProperties": false
+        },
+        "stun": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "message_type": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "message_type": {
+                            "type": "string"
+                        },
+                        "attributes": {
+                            "type": "array",
+                            "items": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "mapped_address": {
+                                            "type": "string"
+                                        },
+                                        "response_address": {
+                                            "type": "string"
+                                        },
+                                        "change_request": {
+                                            "type": "string"
+                                        },
+                                        "source_address": {
+                                            "type": "string"
+                                        },
+                                        "changed_address": {
+                                            "type": "string"
+                                        },
+                                        "username": {
+                                            "type": "string"
+                                        },
+                                        "password": {
+                                            "type": "string"
+                                        },
+                                        "message_integrity": {
+                                            "type": "string"
+                                        },
+                                        "error_code": {
+                                            "type": "string"
+                                        },
+                                        "unknown_attributes": {
+                                            "type": "string"
+                                        },
+                                        "attribute_reflected_from": {
+                                            "type": "string"
+                                        },
+                                        "realm": {
+                                            "type": "string"
+                                        },
+                                        "nonce": {
+                                            "type": "string"
+                                        },
+                                        "xor_mapped_address": {
+                                            "type": "string"
+                                        },
+                                        "software": {
+                                            "type": "string"
+                                        },
+                                        "alternate_server": {
+                                            "type": "string"
+                                        },
+                                        "fingerprint": {
+                                            "type": "string"
+                                        },
+                                        "message_integrity_sha256": {
+                                            "type": "string"
+                                        },
+                                        "password_algorithm": {
+                                            "type": "string"
+                                        },
+                                        "user_hash": {
+                                            "type": "string"
+                                        },
+                                        "password_algorithms": {
+                                            "type": "string"
+                                        },
+                                        "alternate_domain": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "additionalProperties": false
+            }
         },
         "tcp": {
             "type": "object",
