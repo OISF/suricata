@@ -288,7 +288,7 @@ fn probe(input: &[u8]) -> bool {
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_probing_parser(
+pub unsafe extern "C" fn SCStunProbingParser(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -306,19 +306,19 @@ pub unsafe extern "C" fn rs_stun_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_stun_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn SCStunStateNew(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = StunState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn SCStunStateFree(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut StunState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_state_tx_free(
+pub unsafe extern "C" fn SCStunStateTxFree(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) {
@@ -327,7 +327,7 @@ pub unsafe extern "C" fn rs_stun_state_tx_free(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_parse_request(
+pub unsafe extern "C" fn SCStunParseRequest(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -355,7 +355,7 @@ pub unsafe extern "C" fn rs_stun_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_parse_response(
+pub unsafe extern "C" fn SCStunParseResponse(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn rs_stun_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_state_get_tx(
+pub unsafe extern "C" fn SCStunStateGetTx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -393,7 +393,7 @@ pub unsafe extern "C" fn rs_stun_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_state_get_tx_count(
+pub unsafe extern "C" fn SCStunStateGetTxCount(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, StunState);
@@ -401,7 +401,7 @@ pub unsafe extern "C" fn rs_stun_state_get_tx_count(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_tx_get_alstate_progress(
+pub unsafe extern "C" fn SCStunTxGetAlStateProgress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
@@ -414,41 +414,41 @@ pub unsafe extern "C" fn rs_stun_tx_get_alstate_progress(
     return 0;
 }
 
-export_tx_data_get!(rs_stun_get_tx_data, StunTransaction);
-export_state_data_get!(rs_stun_get_state_data, StunState);
+export_tx_data_get!(SCStunGetTxData, StunTransaction);
+export_state_data_get!(SCStunGetStateData, StunState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"stun\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_register_parser() {
+pub unsafe extern "C" fn SCStunRegisterParser() {
     let default_port = CString::new("[3478]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_UDP,
-        probe_ts: Some(rs_stun_probing_parser),
-        probe_tc: Some(rs_stun_probing_parser),
+        probe_ts: Some(SCStunProbingParser),
+        probe_tc: Some(SCStunProbingParser),
         min_depth: 0,
         max_depth: 20,
-        state_new: rs_stun_state_new,
-        state_free: rs_stun_state_free,
-        tx_free: rs_stun_state_tx_free,
-        parse_ts: rs_stun_parse_request,
-        parse_tc: rs_stun_parse_response,
-        get_tx_count: rs_stun_state_get_tx_count,
-        get_tx: rs_stun_state_get_tx,
+        state_new: SCStunStateNew,
+        state_free: SCStunStateFree,
+        tx_free: SCStunStateTxFree,
+        parse_ts: SCStunParseRequest,
+        parse_tc: SCStunParseResponse,
+        get_tx_count: SCStunStateGetTxCount,
+        get_tx: SCStunStateGetTx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_stun_tx_get_alstate_progress,
+        tx_get_progress: SCStunTxGetAlStateProgress,
         get_eventinfo: Some(StunEvent::get_event_info),
         get_eventinfo_byid : Some(StunEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<StunState, StunTransaction>),
-        get_tx_data: rs_stun_get_tx_data,
-        get_state_data: rs_stun_get_state_data,
+        get_tx_data: SCStunGetTxData,
+        get_state_data: SCStunGetStateData,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: None,

@@ -48,7 +48,7 @@ fn log_stun(tx: &StunTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_stun_logger_log(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCStunLoggerLog(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, StunTransaction);
     log_stun(tx, js).is_ok()
 }

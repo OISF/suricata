@@ -69,7 +69,7 @@ static int JsonStunLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     }
 
     jb_open_object(js, "stun");
-    if (!rs_stun_logger_log(tx, js)) {
+    if (!SCStunLoggerLog(tx, js)) {
         goto error;
     }
     jb_close(js);
