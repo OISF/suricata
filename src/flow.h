@@ -297,6 +297,8 @@ typedef struct FlowCnf_
     uint32_t timeout_new;
     uint32_t timeout_est;
 
+    uint32_t elephant_flow_rate;
+
     uint32_t emergency_recovery;
 
     enum ExceptionPolicy memcap_policy;
@@ -416,6 +418,8 @@ typedef struct Flow_
 
     FlowStateType flow_state;
 
+    bool elephant;
+
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
     uint32_t tenant_id;
@@ -498,7 +502,6 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
-
     Storage storage[];
 } Flow;
 

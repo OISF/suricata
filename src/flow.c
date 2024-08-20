@@ -210,6 +210,23 @@ int FlowChangeProto(Flow *f)
     return 0;
 }
 
+static void FlowIsElephant(Flow *f, ThreadVars *tv, DecodeThreadVars *dtv)
+{
+    if (f->elephant)
+        return; /* Flow is a known elephant flow, no need to calculate again */
+    uint32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+    if (age == 0)
+        return;
+    uint64_t rate_byte_influx = (f->tosrcbytecnt + f->todstbytecnt) / age;
+    if (rate_byte_influx >= flow_config.elephant_flow_rate) {
+        f->elephant = true;
+        StatsIncr(tv, dtv->counter_flow_elephant);
+        /* Let Flow Manager take care of this elephant flow */
+    }
+
+    /* Nothing should be reset as an elephant flow should not be considered a normal flow */
+}
+
 static inline void FlowSwapFlags(Flow *f)
 {
     SWAP_FLAGS(f->flags, FLOW_TO_SRC_SEEN, FLOW_TO_DST_SEEN);
@@ -422,6 +439,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (pkt_dir == TOSERVER) {
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
+        FlowIsElephant(f, tv, dtv);
         p->flowflags = FLOW_PKT_TOSERVER;
         if (!(f->flags & FLOW_TO_DST_SEEN)) {
             if (FlowUpdateSeenFlag(p)) {
@@ -446,6 +464,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
+        FlowIsElephant(f, tv, dtv);
         p->flowflags = FLOW_PKT_TOCLIENT;
         if (!(f->flags & FLOW_TO_SRC_SEEN)) {
             if (FlowUpdateSeenFlag(p)) {
@@ -546,6 +565,7 @@ void FlowInitConfig(bool quiet)
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(flow_config.memcap, FLOW_DEFAULT_MEMCAP);
+    flow_config.elephant_flow_rate = UINT32_MAX;
 
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
@@ -607,6 +627,36 @@ void FlowInitConfig(bool quiet)
                                     conf_val) > 0) {
             flow_config.prealloc = configval;
         }
+    }
+
+    if ((ConfGet("elephant-flow-rate.bytes", &conf_val)) == 1) {
+        if (conf_val == NULL) {
+            FatalError("Invalid value for elephant-flow-rate.bytes: NULL");
+        }
+
+        const char *conf_val2 = NULL;
+        if ((ConfGet("elephant-flow-rate.interval", &conf_val2)) == 1) {
+            if (conf_val2 == NULL) {
+                FatalError("Invalid value for elephant-flow-rate.interval: NULL");
+            }
+        }
+
+        SCTime_t ef_interval;
+        uint64_t ef_bytes;
+
+        if (ParseSizeStringU64(conf_val, &ef_bytes) < 0) {
+            FatalError("Invalid value for elephant-flow-rate.bytes: %s", conf_val);
+        }
+
+        if (ParseTimeString(conf_val2, &ef_interval) < 0) {
+            FatalError("Invalid value for elephant-flow-rate.interval: %s", conf_val2);
+        }
+
+        if (ef_interval.usecs > 0) {
+            ef_bytes *= 1000000;
+        }
+        flow_config.elephant_flow_rate =
+                ef_bytes / (ef_interval.secs * 1000000 + ef_interval.usecs);
     }
 
     flow_config.memcap_policy = ExceptionPolicyParse("flow.memcap-policy", false);

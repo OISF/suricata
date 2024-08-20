@@ -1008,6 +1008,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_flow_get_used_eval_reject;
     uint16_t counter_flow_get_used_eval_busy;
     uint16_t counter_flow_get_used_failed;
+    uint16_t counter_flow_elephant;
 
     uint16_t counter_flow_spare_sync;
     uint16_t counter_flow_spare_sync_empty;
