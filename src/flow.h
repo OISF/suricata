@@ -301,6 +301,8 @@ typedef struct FlowCnf_
     uint32_t timeout_new;
     uint32_t timeout_est;
 
+    uint32_t elephant_flow_rate;
+
     uint32_t emergency_recovery;
 
     enum ExceptionPolicy memcap_policy;
@@ -503,6 +505,7 @@ typedef struct Flow_
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
 
+    bool elephant;
     Storage storage[];
 } Flow;
 
