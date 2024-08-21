@@ -511,6 +511,10 @@ typedef struct lua_State lua_State;
 #include "queue.h"
 #include "tree.h"
 
+#ifdef HAVE_NDPI
+#include "ndpi_api.h"
+#endif
+
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
 #endif

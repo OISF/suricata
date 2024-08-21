@@ -31,6 +31,10 @@ typedef struct OutputJsonCtx_ OutputJsonCtx;
 void JsonFileLogRegister(void);
 JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
-        OutputJsonCtx *eve_ctx);
+        OutputJsonCtx *eve_ctx
+#ifdef HAVE_NDPI
+        , ThreadVars *tv
+#endif
+);
 
 #endif /* SURICATA_OUTPUT_JSON_FILE_H */
