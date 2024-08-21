@@ -50,6 +50,11 @@ typedef struct FTPString_ {
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
+typedef struct FtpCommandInfo_ {
+    uint8_t command_code;
+    uint8_t command_index;
+} FtpCommandInfo;
+
 typedef struct FTPTransaction_  {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
@@ -62,7 +67,7 @@ typedef struct FTPTransaction_  {
     bool request_truncated;
 
     /* for the command description */
-    const FtpCommand *command_descriptor;
+    FtpCommandInfo command_descriptor;
 
     uint16_t dyn_port; /* dynamic port, if applicable */
     bool done; /* transaction complete? */

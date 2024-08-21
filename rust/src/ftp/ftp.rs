@@ -16,34 +16,113 @@
  */
 
 use std;
+use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 
-use crate::ftp::constant::*;
 use crate::conf::{conf_get, get_memval};
+use crate::ftp::constant::*;
+use lazy_static::lazy_static;
 
-#[repr(C)]
-//#[derive(Debug, Copy, Clone)]
-pub struct FtpCommand {
-    pub command_name: *const c_char,
-    pub command: u8,
-    pub command_length: u8,
+/// cbindgen:ignore
+struct FtpCommand {
+    command_name: CString,
+    command: u8,
+    command_length: u8,
 }
 
 impl FtpCommand {
-    pub fn new() -> Self {
+    fn new(command_name: &str, command: u8, command_length: u8) -> FtpCommand {
+        let cstring = CString::new(command_name).unwrap();
         FtpCommand {
-            ..Default::default()
+            command_name: cstring,
+            command,
+            command_length,
         }
     }
 }
-impl Default for FtpCommand {
-    fn default() -> Self {
-        FtpCommand {
-            command_name: std::ptr::null_mut(),
-            command: 0,
-            command_length: 0,
+
+lazy_static! {
+    static ref FTP_COMMANDS: Vec<FtpCommand> = vec![
+        FtpCommand::new("PORT", FTP_COMMAND_PORT, 4),
+        FtpCommand::new("EPRT", FTP_COMMAND_EPRT, 4),
+        FtpCommand::new("AUTH_TLS", FTP_COMMAND_AUTH_TLS, 8),
+        FtpCommand::new("PASV", FTP_COMMAND_PASV, 4),
+        FtpCommand::new("EPSV", FTP_COMMAND_EPSV, 4),
+        FtpCommand::new("RETR", FTP_COMMAND_RETR, 4),
+        FtpCommand::new("STOR", FTP_COMMAND_STOR, 4),
+        FtpCommand::new("ABOR", FTP_COMMAND_ABOR, 4),
+        FtpCommand::new("ACCT", FTP_COMMAND_ACCT, 4),
+        FtpCommand::new("ALLO", FTP_COMMAND_ALLO, 4),
+        FtpCommand::new("APPE", FTP_COMMAND_APPE, 4),
+        FtpCommand::new("CDUP", FTP_COMMAND_CDUP, 4),
+        FtpCommand::new("CHMOD", FTP_COMMAND_CHMOD, 5),
+        FtpCommand::new("CWD", FTP_COMMAND_CWD, 3),
+        FtpCommand::new("DELE", FTP_COMMAND_DELE, 4),
+        FtpCommand::new("HELP", FTP_COMMAND_HELP, 4),
+        FtpCommand::new("IDLE", FTP_COMMAND_IDLE, 4),
+        FtpCommand::new("LIST", FTP_COMMAND_LIST, 4),
+        FtpCommand::new("MAIL", FTP_COMMAND_MAIL, 4),
+        FtpCommand::new("MDTM", FTP_COMMAND_MDTM, 4),
+        FtpCommand::new("MKD", FTP_COMMAND_MKD, 3),
+        FtpCommand::new("MLFL", FTP_COMMAND_MLFL, 4),
+        FtpCommand::new("MODE", FTP_COMMAND_MODE, 4),
+        FtpCommand::new("MRCP", FTP_COMMAND_MRCP, 4),
+        FtpCommand::new("MRSQ", FTP_COMMAND_MRSQ, 4),
+        FtpCommand::new("MSAM", FTP_COMMAND_MSAM, 4),
+        FtpCommand::new("MSND", FTP_COMMAND_MSND, 4),
+        FtpCommand::new("MSOM", FTP_COMMAND_MSOM, 4),
+        FtpCommand::new("NLST", FTP_COMMAND_NLST, 4),
+        FtpCommand::new("NOOP", FTP_COMMAND_NOOP, 4),
+        FtpCommand::new("PASS", FTP_COMMAND_PASS, 4),
+        FtpCommand::new("PWD", FTP_COMMAND_PWD, 3),
+        FtpCommand::new("QUIT", FTP_COMMAND_QUIT, 4),
+        FtpCommand::new("REIN", FTP_COMMAND_REIN, 4),
+        FtpCommand::new("REST", FTP_COMMAND_REST, 4),
+        FtpCommand::new("RMD", FTP_COMMAND_RMD, 3),
+        FtpCommand::new("RNFR", FTP_COMMAND_RNFR, 4),
+        FtpCommand::new("RNTO", FTP_COMMAND_RNTO, 4),
+        FtpCommand::new("SITE", FTP_COMMAND_SITE, 4),
+        FtpCommand::new("SIZE", FTP_COMMAND_SIZE, 4),
+        FtpCommand::new("SMNT", FTP_COMMAND_SMNT, 4),
+        FtpCommand::new("STAT", FTP_COMMAND_STAT, 4),
+        FtpCommand::new("STOU", FTP_COMMAND_STOU, 4),
+        FtpCommand::new("STRU", FTP_COMMAND_STRU, 4),
+        FtpCommand::new("SYST", FTP_COMMAND_SYST, 4),
+        FtpCommand::new("TYPE", FTP_COMMAND_TYPE, 4),
+        FtpCommand::new("UMASK", FTP_COMMAND_UMASK, 5),
+        FtpCommand::new("USER", FTP_COMMAND_USER, 4),
+        FtpCommand::new("UNKNOWN", FTP_COMMAND_UNKNOWN, 7),
+        FtpCommand::new("MAX", FTP_COMMAND_MAX, 0),
+    ];
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub unsafe extern "C" fn SCGetFtpCommandInfo(
+    index: usize, name_ptr: *mut *const c_char, code_ptr: *mut u8, len_ptr: *mut u8,
+) -> bool {
+    if index <= FTP_COMMANDS.len() {
+        unsafe {
+            if !name_ptr.is_null() {
+                *name_ptr = FTP_COMMANDS[index].command_name.as_ptr();
+            }
+            if !code_ptr.is_null() {
+                *code_ptr = FTP_COMMANDS[index].command;
+            }
+            if !len_ptr.is_null() {
+                *len_ptr = FTP_COMMANDS[index].command_length;
+            }
         }
+        true
+    } else {
+        false
     }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn SCGetFtpCommandTableSize() -> usize {
+    FTP_COMMANDS.len()
 }
 
 #[repr(C)]
@@ -81,7 +160,9 @@ impl FtpTransferCmd {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCFTPGetConfigValues(memcap: *mut u64, max_tx: *mut u32, max_line_len: *mut u32) {
+pub unsafe extern "C" fn SCFTPGetConfigValues(
+    memcap: *mut u64, max_tx: *mut u32, max_line_len: *mut u32,
+) {
     if let Some(val) = conf_get("app-layer.protocols.ftp.memcap") {
         if let Ok(v) = get_memval(val) {
             *memcap = v;
