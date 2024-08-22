@@ -554,7 +554,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
 static int FTPParsePassiveResponse(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port = rs_ftp_pasv_response(input, input_len);
+    uint16_t dyn_port = SCFTPParsePASVResponse(input, input_len);
     if (dyn_port == 0) {
         return -1;
     }
@@ -569,7 +569,7 @@ static int FTPParsePassiveResponse(FtpState *state, const uint8_t *input, uint32
 
 static int FTPParsePassiveResponseV6(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
+    uint16_t dyn_port = SCFTPParseEPSVResponse(input, input_len);
     if (dyn_port == 0) {
         return -1;
     }
@@ -651,7 +651,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 break;
 
             case FTP_COMMAND_EPRT:
-                dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len);
+                dyn_port = SCFTPParseActiveEPRT(state->port_line, state->port_line_len);
                 if (dyn_port == 0) {
                     goto tx_complete;
                 }
@@ -663,7 +663,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 break;
 
             case FTP_COMMAND_PORT:
-                dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len);
+                dyn_port = SCFTPParseActivePort(state->port_line, state->port_line_len);
                 if (dyn_port == 0) {
                     goto tx_complete;
                 }

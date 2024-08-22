@@ -89,7 +89,7 @@ pub fn ftp_pasv_response(i: &[u8]) -> IResult<&[u8], u16> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
+pub unsafe extern "C" fn SCFTPParseActivePort(input: *const u8, len: u32) -> u16 {
     if input.is_null() {
         return 0;
     }
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
+pub unsafe extern "C" fn SCFTPParsePASVResponse(input: *const u8, len: u32) -> u16 {
     if input.is_null() {
         return 0;
     }
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16
 }
 
 // 229 Entering Extended Passive Mode (|||48758|).
-pub fn ftp_epsv_response(i: &[u8]) -> IResult<&[u8], u16> {
+fn ftp_epsv_response(i: &[u8]) -> IResult<&[u8], u16> {
     let (i, _) = tag("229")(i)?;
     let (i, _) = take_until("|||")(i)?;
     let (i, _) = tag("|||")(i)?;
@@ -140,7 +140,7 @@ pub fn ftp_epsv_response(i: &[u8]) -> IResult<&[u8], u16> {
 }
 
 // EPRT |2|2a01:e34:ee97:b130:8c3e:45ea:5ac6:e301|41813|
-pub fn ftp_active_eprt(i: &[u8]) -> IResult<&[u8], u16> {
+fn ftp_active_eprt(i: &[u8]) -> IResult<&[u8], u16> {
     let (i, _) = tag("EPRT")(i)?;
     let (i, _) = take_until("|")(i)?;
     let (i, _) = tag("|")(i)?;
@@ -154,7 +154,7 @@ pub fn ftp_active_eprt(i: &[u8]) -> IResult<&[u8], u16> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
+pub unsafe extern "C" fn SCFTPParseActiveEPRT(input: *const u8, len: u32) -> u16 {
     if input.is_null() {
         return 0;
     }
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
     return 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
+pub unsafe extern "C" fn SCFTPParseEPSVResponse(input: *const u8, len: u32) -> u16 {
     if input.is_null() {
         return 0;
     }
