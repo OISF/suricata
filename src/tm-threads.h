@@ -289,5 +289,6 @@ void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts);
 void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
+void SCTmThreadsSlotPktAcqLoopFinish(ThreadVars *tv);
 
 #endif /* SURICATA_TM_THREADS_H */
