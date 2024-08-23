@@ -28,16 +28,16 @@
 #include "threadvars.h"
 
 /** \brief register runmodes for suricata as a library */
-void RunModeIdsLibRegister(void);
+void SCRunModeLibIdsRegister(void);
 
 /** \brief runmode for live packet processing */
-int RunModeIdsLibLive(void);
+int SCRunModeLibIdsLive(void);
 
 /** \brief runmode for offline packet processing (pcap files) */
-int RunModeIdsLibOffline(void);
+int SCRunModeLibIdsOffline(void);
 
 /** \brief runmode default mode (live) */
-const char *RunModeLibGetDefaultMode(void);
+const char *SCRunModeLibGetDefaultMode(void);
 
 /**
  * \brief Create ThreadVars for use by a user provided thread.
@@ -55,9 +55,9 @@ ThreadVars *SCRunModeLibCreateThreadVars(int worker_id);
  *
  *  This method performs all the initialization tasks.
  */
-int RunModeSpawnWorker(void *);
+int SCRunModeLibSpawnWorker(void *);
 
 /** \brief destroy a worker thread */
-void RunModeDestroyWorker(void *);
+void SCRunModeLibDestroyWorker(void *);
 
 #endif /* SURICATA_RUNMODE_LIB_H */
