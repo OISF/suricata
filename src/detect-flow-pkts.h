@@ -18,9 +18,7 @@
 #ifndef SURICATA_DETECT_FLOW_PKTS_H
 #define SURICATA_DETECT_FLOW_PKTS_H
 
-void DetectFlowPktsToClientRegister(void);
-void DetectFlowPktsToServerRegister(void);
-void DetectFlowBytesToClientRegister(void);
-void DetectFlowBytesToServerRegister(void);
+void DetectFlowPktsRegister(void);
+void DetectFlowBytesRegister(void);
 
 #endif /* SURICATA_DETECT_FLOW_PKTS_H */
