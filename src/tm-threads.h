@@ -291,6 +291,7 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 SCTime_t TmThreadsGetThreadTime(const int idx);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
+bool SCTmThreadsSlotPktAcqLoopFinish(ThreadVars *tv);
 
 /** \brief Wait for a thread to become unpaused.
  *
