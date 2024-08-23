@@ -26,6 +26,7 @@
 enum FlowDirection {
     DETECT_FLOW_TOSERVER = 1,
     DETECT_FLOW_TOCLIENT,
+    DETECT_FLOW_TOEITHER,
 };
 
 typedef struct DetectFlowPkts_ {
@@ -50,6 +51,11 @@ static int DetectFlowPktsMatch(
         return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
     } else if (df->dir == DETECT_FLOW_TOCLIENT) {
         return DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data);
+    } else if (df->dir == DETECT_FLOW_TOEITHER) {
+        if (DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data)) {
+            return 1;
+        }
+        return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
     }
     return 0;
 }
@@ -141,6 +147,8 @@ static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                 dir = DETECT_FLOW_TOSERVER;
             } else if (strcmp(token, "toclient") == 0) {
                 dir = DETECT_FLOW_TOCLIENT;
+            } else if (strcmp(token, "either") == 0) {
+                dir = DETECT_FLOW_TOEITHER;
             } else {
                 SCLogError("Invalid direction given: %s", token);
                 return -1;
@@ -277,6 +285,11 @@ static int DetectFlowBytesMatch(
         return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
     } else if (df->dir == DETECT_FLOW_TOCLIENT) {
         return DetectU64Match(p->flow->tosrcbytecnt, df->byte_data);
+    } else if (df->dir == DETECT_FLOW_TOEITHER) {
+        if (DetectU64Match(p->flow->tosrcbytecnt, df->byte_data)) {
+            return 1;
+        }
+        return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
     }
     return 0;
 }
@@ -368,6 +381,8 @@ static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
                 dir = DETECT_FLOW_TOSERVER;
             } else if (strcmp(token, "toclient") == 0) {
                 dir = DETECT_FLOW_TOCLIENT;
+            } else if (strcmp(token, "either") == 0) {
+                dir = DETECT_FLOW_TOEITHER;
             } else {
                 SCLogError("Invalid direction given: %s", token);
                 return -1;
