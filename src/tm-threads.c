@@ -231,7 +231,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
-    char run = 1;
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
@@ -304,7 +303,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
-    while(run) {
+    while (1) {
         if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
             TmThreadsSetFlag(tv, THV_PAUSED);
             TmThreadTestThreadUnPaused(tv);
@@ -315,13 +314,13 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
         if (r == TM_ECODE_FAILED) {
             TmThreadsSetFlag(tv, THV_FAILED);
-            run = 0;
+            break;
         }
         if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
-            run = 0;
+            break;
         }
         if (r == TM_ECODE_DONE) {
-            run = 0;
+            break;
         }
     }
     StatsSyncCounters(tv);
