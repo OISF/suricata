@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 Open Information Security Foundation
+/* Copyright (C) 2023-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,40 +23,93 @@
 #include "detect-engine-uint.h"
 #include "detect-parse.h"
 
-static int DetectFlowPktsToClientMatch(
+#define DETECT_FLOW_TO_SERVER 1
+#define DETECT_FLOW_TO_CLIENT 2
+
+typedef struct DetectFlow_ {
+    DetectU32Data *pkt_data;
+    DetectU64Data *byte_data;
+    uint8_t dir;
+} DetectFlow;
+
+static int DetectFlowPktsMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (p->flow == NULL) {
         return 0;
     }
-    uint32_t nb = p->flow->tosrcpktcnt;
 
-    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    return DetectU32Match(nb, du32);
+    const DetectFlow *df = (const DetectFlow *)ctx;
+    if (df->dir == DETECT_FLOW_TO_SERVER) {
+        return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
+    } else if (df->dir == DETECT_FLOW_TO_CLIENT) {
+        return DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data);
+    }
+    return 0;
 }
 
-static void DetectFlowPktsToClientFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectFlowPktsFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    DetectFlow *df = (DetectFlow *)ptr;
+    if (df != NULL) {
+        rs_detect_u32_free(df->pkt_data);
+        SCFree(df);
+    }
 }
 
-static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU32Data *du32 = DetectU32Parse(rawstr);
-    if (du32 == NULL)
-        return -1;
+    DetectFlow *df = SCCalloc(1, sizeof(DetectFlow));
+    char copy[strlen(rawstr) + 1];
+    strlcpy(copy, rawstr, sizeof(copy));
+    char *context = NULL;
+    char *token = strtok_r(copy, ",", &context);
+    bool dir_set = false;
+    uint8_t num_tokens = 1;
+    while (token != NULL) {
+        if (num_tokens > 2)
+            goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_PKTS_TO_CLIENT, (SigMatchCtx *)du32,
-                DETECT_SM_LIST_MATCH) == NULL) {
-        DetectFlowPktsToClientFree(de_ctx, du32);
-        return -1;
+        while (*token != '\0' && isblank(*token)) {
+            token++;
+        }
+        if (strlen(token) == 0) {
+            goto next;
+        }
+
+        num_tokens++;
+
+        if (strcmp(token, "toserver") == 0) {
+            df->dir = DETECT_FLOW_TO_SERVER;
+        } else if (strcmp(token, "toclient") == 0) {
+            df->dir = DETECT_FLOW_TO_CLIENT;
+        }
+
+        if (dir_set) {
+            DetectU32Data *du32 = DetectU32Parse(token);
+            if (du32 == NULL)
+                goto error;
+            df->pkt_data = du32;
+        }
+        if (df->dir)
+            dir_set = true;
+    next:
+        token = strtok_r(NULL, ",", &context);
+    }
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
+error:
+    if (df != NULL)
+        DetectFlowPktsFree(de_ctx, df);
+    return -1;
 }
 
-static void PrefilterPacketFlowPktsToClientMatch(
+static void PrefilterPacketFlowPktsMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
@@ -67,194 +120,118 @@ static void PrefilterPacketFlowPktsToClientMatch(
     du32.mode = ctx->v1.u8[0];
     du32.arg1 = ctx->v1.u32[1];
     du32.arg2 = ctx->v1.u32[2];
-    if (DetectFlowPktsToClientMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du32)) {
+    if (DetectFlowPktsMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du32)) {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static int PrefilterSetupFlowPktsToClient(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+static int PrefilterSetupFlowPkts(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS_TO_CLIENT,
-            SIG_MASK_REQUIRE_FLOW, PrefilterPacketU32Set, PrefilterPacketU32Compare,
-            PrefilterPacketFlowPktsToClientMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS, SIG_MASK_REQUIRE_FLOW,
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowPktsMatch);
 }
 
-static bool PrefilterFlowPktsToClientIsPrefilterable(const Signature *s)
+static bool PrefilterFlowPktsIsPrefilterable(const Signature *s)
 {
-    return PrefilterIsPrefilterableById(s, DETECT_FLOW_PKTS_TO_CLIENT);
+    return PrefilterIsPrefilterableById(s, DETECT_FLOW_PKTS);
 }
 
-void DetectFlowPktsToClientRegister(void)
+void DetectFlowPktsRegister(void)
 {
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].name = "flow.pkts_toclient";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].desc = "match flow number of packets to client";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].url = "/rules/flow-keywords.html#flow-pkts_toclient";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Match = DetectFlowPktsToClientMatch;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Setup = DetectFlowPktsToClientSetup;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Free = DetectFlowPktsToClientFree;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].SupportsPrefilter =
-            PrefilterFlowPktsToClientIsPrefilterable;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].SetupPrefilter = PrefilterSetupFlowPktsToClient;
+    sigmatch_table[DETECT_FLOW_PKTS].name = "flow.pkts";
+    sigmatch_table[DETECT_FLOW_PKTS].desc = "match number of packets in a flow";
+    sigmatch_table[DETECT_FLOW_PKTS].url = "/rules/flow-keywords.html#flow-pkts";
+    sigmatch_table[DETECT_FLOW_PKTS].Match = DetectFlowPktsMatch;
+    sigmatch_table[DETECT_FLOW_PKTS].Setup = DetectFlowPktsSetup;
+    sigmatch_table[DETECT_FLOW_PKTS].Free = DetectFlowPktsFree;
+    sigmatch_table[DETECT_FLOW_PKTS].SupportsPrefilter = PrefilterFlowPktsIsPrefilterable;
+    sigmatch_table[DETECT_FLOW_PKTS].SetupPrefilter = PrefilterSetupFlowPkts;
 }
 
-static int DetectFlowPktsToServerMatch(
+static int DetectFlowBytesMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (p->flow == NULL) {
         return 0;
     }
-    uint32_t nb = p->flow->todstpktcnt;
 
-    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    return DetectU32Match(nb, du32);
+    const DetectFlow *df = (const DetectFlow *)ctx;
+    if (df->dir == DETECT_FLOW_TO_SERVER) {
+        return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
+    } else if (df->dir == DETECT_FLOW_TO_CLIENT) {
+        return DetectU64Match(p->flow->tosrcbytecnt, df->byte_data);
+    }
+    return 0;
 }
 
-static void DetectFlowPktsToServerFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectFlowBytesFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    DetectFlow *df = (DetectFlow *)ptr;
+    if (df != NULL) {
+        rs_detect_u64_free(df->byte_data);
+        SCFree(df);
+    }
 }
 
-static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU32Data *du32 = DetectU32Parse(rawstr);
-    if (du32 == NULL)
-        return -1;
+    DetectFlow *df = SCCalloc(1, sizeof(DetectFlow));
+    char copy[strlen(rawstr) + 1];
+    strlcpy(copy, rawstr, sizeof(copy));
+    char *context = NULL;
+    char *token = strtok_r(copy, ",", &context);
+    bool dir_set = false;
+    uint8_t num_tokens = 1;
+    while (token != NULL) {
+        if (num_tokens > 2)
+            goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_PKTS_TO_SERVER, (SigMatchCtx *)du32,
-                DETECT_SM_LIST_MATCH) == NULL) {
-        DetectFlowPktsToServerFree(de_ctx, du32);
-        return -1;
+        while (*token != '\0' && isblank(*token)) {
+            token++;
+        }
+        if (strlen(token) == 0) {
+            goto next;
+        }
+
+        num_tokens++;
+
+        if (strcmp(token, "toserver") == 0) {
+            df->dir = DETECT_FLOW_TO_SERVER;
+        } else if (strcmp(token, "toclient") == 0) {
+            df->dir = DETECT_FLOW_TO_CLIENT;
+        }
+
+        if (dir_set) {
+            DetectU64Data *du64 = DetectU64Parse(token);
+            if (du64 == NULL)
+                goto error;
+            df->byte_data = du64;
+        }
+        if (df->dir)
+            dir_set = true;
+    next:
+        token = strtok_r(NULL, ",", &context);
+    }
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
+error:
+    if (df)
+        DetectFlowBytesFree(de_ctx, df);
+    return -1;
 }
 
-static void PrefilterPacketFlowPktsToServerMatch(
-        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+void DetectFlowBytesRegister(void)
 {
-    const PrefilterPacketHeaderCtx *ctx = pectx;
-    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
-        return;
-
-    DetectU32Data du32;
-    du32.mode = ctx->v1.u8[0];
-    du32.arg1 = ctx->v1.u32[1];
-    du32.arg2 = ctx->v1.u32[2];
-    if (DetectFlowPktsToServerMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du32)) {
-        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
-    }
-}
-
-static int PrefilterSetupFlowPktsToServer(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS_TO_SERVER,
-            SIG_MASK_REQUIRE_FLOW, PrefilterPacketU32Set, PrefilterPacketU32Compare,
-            PrefilterPacketFlowPktsToServerMatch);
-}
-
-static bool PrefilterFlowPktsToServerIsPrefilterable(const Signature *s)
-{
-    return PrefilterIsPrefilterableById(s, DETECT_FLOW_PKTS_TO_SERVER);
-}
-
-void DetectFlowPktsToServerRegister(void)
-{
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].name = "flow.pkts_toserver";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].desc = "match flow number of packets to server";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].url = "/rules/flow-keywords.html#flow-pkts_toserver";
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Match = DetectFlowPktsToServerMatch;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Setup = DetectFlowPktsToServerSetup;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Free = DetectFlowPktsToServerFree;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SupportsPrefilter =
-            PrefilterFlowPktsToServerIsPrefilterable;
-    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SetupPrefilter = PrefilterSetupFlowPktsToServer;
-}
-
-static int DetectFlowBytesToClientMatch(
-        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    if (p->flow == NULL) {
-        return 0;
-    }
-    uint64_t nb = p->flow->tosrcbytecnt;
-
-    const DetectU64Data *du64 = (const DetectU64Data *)ctx;
-    return DetectU64Match(nb, du64);
-}
-
-static void DetectFlowBytesToClientFree(DetectEngineCtx *de_ctx, void *ptr)
-{
-    rs_detect_u64_free(ptr);
-}
-
-static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
-{
-    DetectU64Data *du64 = DetectU64Parse(rawstr);
-    if (du64 == NULL)
-        return -1;
-
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_BYTES_TO_CLIENT, (SigMatchCtx *)du64,
-                DETECT_SM_LIST_MATCH) == NULL) {
-        DetectFlowBytesToClientFree(de_ctx, du64);
-        return -1;
-    }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
-    return 0;
-}
-
-void DetectFlowBytesToClientRegister(void)
-{
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].name = "flow.bytes_toclient";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].desc = "match flow number of bytes to client";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].url =
-            "/rules/flow-keywords.html#flow-bytes_toclient";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Match = DetectFlowBytesToClientMatch;
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Setup = DetectFlowBytesToClientSetup;
-    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Free = DetectFlowBytesToClientFree;
-}
-
-static int DetectFlowBytesToServerMatch(
-        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    if (p->flow == NULL) {
-        return 0;
-    }
-    uint64_t nb = p->flow->todstbytecnt;
-
-    const DetectU64Data *du64 = (const DetectU64Data *)ctx;
-    return DetectU64Match(nb, du64);
-}
-
-static void DetectFlowBytesToServerFree(DetectEngineCtx *de_ctx, void *ptr)
-{
-    rs_detect_u64_free(ptr);
-}
-
-static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
-{
-    DetectU64Data *du64 = DetectU64Parse(rawstr);
-    if (du64 == NULL)
-        return -1;
-
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_BYTES_TO_SERVER, (SigMatchCtx *)du64,
-                DETECT_SM_LIST_MATCH) == NULL) {
-        DetectFlowBytesToServerFree(de_ctx, du64);
-        return -1;
-    }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
-    return 0;
-}
-
-void DetectFlowBytesToServerRegister(void)
-{
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].name = "flow.bytes_toserver";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].desc = "match flow number of bytes to server";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].url =
-            "/rules/flow-keywords.html#flow-bytes_toserver";
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Match = DetectFlowBytesToServerMatch;
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Setup = DetectFlowBytesToServerSetup;
-    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Free = DetectFlowBytesToServerFree;
+    sigmatch_table[DETECT_FLOW_BYTES].name = "flow.bytes";
+    sigmatch_table[DETECT_FLOW_BYTES].desc = "match number of bytes in a flow";
+    sigmatch_table[DETECT_FLOW_BYTES].url = "/rules/flow-keywords.html#flow-bytes";
+    sigmatch_table[DETECT_FLOW_BYTES].Match = DetectFlowBytesMatch;
+    sigmatch_table[DETECT_FLOW_BYTES].Setup = DetectFlowBytesSetup;
+    sigmatch_table[DETECT_FLOW_BYTES].Free = DetectFlowBytesFree;
 }
