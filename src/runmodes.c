@@ -237,7 +237,7 @@ void RunModeRegisterRunModes(void)
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
     RunModeDpdkRegister();
-    RunModeIdsLibRegister();
+    SCRunModeLibIdsRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -354,7 +354,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 break;
 #endif
             case RUNMODE_LIB:
-                custom_mode = RunModeLibGetDefaultMode();
+                custom_mode = SCRunModeLibGetDefaultMode();
                 break;
             default:
                 return NULL;
