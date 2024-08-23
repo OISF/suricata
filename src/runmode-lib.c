@@ -27,16 +27,16 @@
 #include "tm-threads.h"
 
 /** \brief register runmodes for suricata as a library */
-void RunModeIdsLibRegister(void)
+void SCRunModeLibIdsRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_LIB, "offline", "Library offline mode (pcap replaying)",
-            RunModeIdsLibOffline, NULL);
-    RunModeRegisterNewRunMode(RUNMODE_LIB, "live", "Library live mode", RunModeIdsLibLive, NULL);
+            SCRunModeLibIdsOffline, NULL);
+    RunModeRegisterNewRunMode(RUNMODE_LIB, "live", "Library live mode", SCRunModeLibIdsLive, NULL);
     return;
 }
 
 /** \brief runmode for offline packet processing (pcap files) */
-int RunModeIdsLibOffline(void)
+int SCRunModeLibIdsOffline(void)
 {
     TimeModeSetOffline();
 
@@ -44,14 +44,14 @@ int RunModeIdsLibOffline(void)
 }
 
 /** \brief runmode for live packet processing */
-int RunModeIdsLibLive(void)
+int SCRunModeLibIdsLive(void)
 {
     TimeModeSetLive();
 
     return 0;
 }
 
-const char *RunModeLibGetDefaultMode(void)
+const char *SCRunModeLibGetDefaultMode(void)
 {
     return "live";
 }
@@ -92,7 +92,7 @@ ThreadVars *SCRunModeLibCreateThreadVars(int worker_id)
  *
  *  This method performs all the initialization tasks.
  */
-int RunModeSpawnWorker(void *td)
+int SCRunModeLibSpawnWorker(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
 
@@ -106,7 +106,7 @@ int RunModeSpawnWorker(void *td)
 }
 
 /** \brief destroy a worker thread */
-void RunModeDestroyWorker(void *td)
+void SCRunModeLibDestroyWorker(void *td)
 {
     SCTmThreadsSlotPktAcqLoopFinish((ThreadVars *)td);
 }
