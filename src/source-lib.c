@@ -27,26 +27,8 @@
 #include "source-lib.h"
 #include "util-device.h"
 
-static TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data);
-static TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data);
-
 /* Set time to the first packet timestamp when replaying a PCAP. */
 static bool time_set = false;
-
-/** \brief register a "Decode" module for suricata as a library.
- *
- *  The "Decode" module is the first module invoked when processing a packet */
-void TmModuleDecodeLibRegister(void)
-{
-    tmm_modules[TMM_DECODELIB].name = "DecodeLib";
-    tmm_modules[TMM_DECODELIB].ThreadInit = DecodeLibThreadInit;
-    tmm_modules[TMM_DECODELIB].Func = DecodeLib;
-    tmm_modules[TMM_DECODELIB].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODELIB].ThreadDeinit = DecodeLibThreadDeinit;
-    tmm_modules[TMM_DECODELIB].cap_flags = 0;
-    tmm_modules[TMM_DECODELIB].flags = TM_FLAG_DECODE_TM;
-}
 
 /** \brief initialize the "Decode" module.
  *
@@ -55,7 +37,7 @@ void TmModuleDecodeLibRegister(void)
  * \param data                  Pointer to the initialized context.
  * \return                      Error code.
  */
-TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data)
+static TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;
@@ -78,7 +60,7 @@ TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data)
  * \param data                  Pointer to the context.
  * \return                      Error code.
  */
-TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data)
+static TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
@@ -96,7 +78,7 @@ TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data)
  * \param data                  Pointer to the context.
  * \return                      Error code.
  */
-TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data)
+static TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -173,4 +155,18 @@ int TmModuleLibHandlePacket(ThreadVars *tv, LiveDevice *device, const uint8_t *d
     }
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+/** \brief register a "Decode" module for suricata as a library.
+ *
+ *  The "Decode" module is the first module invoked when processing a packet */
+void TmModuleDecodeLibRegister(void)
+{
+    tmm_modules[TMM_DECODELIB].name = "DecodeLib";
+    tmm_modules[TMM_DECODELIB].ThreadInit = DecodeLibThreadInit;
+    tmm_modules[TMM_DECODELIB].Func = DecodeLib;
+    tmm_modules[TMM_DECODELIB].ThreadExitPrintStats = NULL;
+    tmm_modules[TMM_DECODELIB].ThreadDeinit = DecodeLibThreadDeinit;
+    tmm_modules[TMM_DECODELIB].cap_flags = 0;
+    tmm_modules[TMM_DECODELIB].flags = TM_FLAG_DECODE_TM;
 }
