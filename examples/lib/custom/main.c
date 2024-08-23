@@ -39,7 +39,7 @@ static void *SimpleWorker(void *arg)
     }
 
     /* Start worker. */
-    if (RunModeSpawnWorker(tv) != 0) {
+    if (SCRunModeLibSpawnWorker(tv) != 0) {
         pthread_exit(NULL);
     }
 
@@ -68,7 +68,7 @@ static void *SimpleWorker(void *arg)
     pcap_close(fp);
 
     /* Cleanup. */
-    RunModeDestroyWorker(tv);
+    SCRunModeLibDestroyWorker(tv);
     pthread_exit(NULL);
 }
 
