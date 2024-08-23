@@ -331,6 +331,8 @@ following directions:
 
 * toserver
 
+* either
+
 Syntax::
 
  flow.pkts:<direction>,[op]<number>
@@ -339,6 +341,7 @@ The number of packets can be matched exactly, or compared using the _op_ setting
 
  flow.pkts:toclient,3    # exactly 3
  flow.pkts:toserver,<3   # smaller than 3
+ flow.pkts:either,>=2  # greater than or equal to 2
 
 Signature example::
 
@@ -358,6 +361,8 @@ following directions:
 
 * toserver
 
+* either
+
 Syntax::
 
  flow.bytes:<direction>,[op]<number>
@@ -366,6 +371,7 @@ The number of bytes can be matched exactly, or compared using the _op_ setting::
 
  flow.bytes:toclient,3    # exactly 3
  flow.bytes:toserver,<3   # smaller than 3
+ flow.bytes:either,>=2  # greater than or equal to 2
 
 Signature example::
 

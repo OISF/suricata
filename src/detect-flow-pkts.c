@@ -25,6 +25,7 @@
 
 #define DETECT_FLOW_TO_SERVER 1
 #define DETECT_FLOW_TO_CLIENT 2
+#define DETECT_FLOW_TO_EITHER 3
 
 typedef struct DetectFlow_ {
     DetectU32Data *pkt_data;
@@ -44,6 +45,13 @@ static int DetectFlowPktsMatch(
         return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
     } else if (df->dir == DETECT_FLOW_TO_CLIENT) {
         return DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data);
+    } else if (df->dir == DETECT_FLOW_TO_EITHER) {
+        if (DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data)) {
+            return 1;
+        }
+        if (DetectU32Match(p->flow->todstpktcnt, df->pkt_data)) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -131,6 +139,8 @@ static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             df->dir = DETECT_FLOW_TO_SERVER;
         } else if (strcmp(token, "toclient") == 0) {
             df->dir = DETECT_FLOW_TO_CLIENT;
+        } else if (strcmp(token, "either") == 0) {
+            df->dir = DETECT_FLOW_TO_EITHER;
         }
 
         if (dir_set) {
@@ -234,6 +244,13 @@ static int DetectFlowBytesMatch(
         return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
     } else if (df->dir == DETECT_FLOW_TO_CLIENT) {
         return DetectU64Match(p->flow->tosrcbytecnt, df->byte_data);
+    } else if (df->dir == DETECT_FLOW_TO_EITHER) {
+        if (DetectU64Match(p->flow->tosrcbytecnt, df->byte_data)) {
+            return 1;
+        }
+        if (DetectU64Match(p->flow->todstbytecnt, df->byte_data)) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -321,6 +338,8 @@ static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
             df->dir = DETECT_FLOW_TO_SERVER;
         } else if (strcmp(token, "toclient") == 0) {
             df->dir = DETECT_FLOW_TO_CLIENT;
+        } else if (strcmp(token, "either") == 0) {
+            df->dir = DETECT_FLOW_TO_EITHER;
         }
 
         if (dir_set) {
