@@ -108,37 +108,5 @@ int RunModeSpawnWorker(void *td)
 /** \brief destroy a worker thread */
 void RunModeDestroyWorker(void *td)
 {
-    ThreadVars *tv = (ThreadVars *)td;
-    TmSlot *s = tv->tm_slots;
-    TmEcode r;
-    TmSlot *slot = NULL;
-
-    StatsSyncCounters(tv);
-
-    TmThreadsSetFlag(tv, THV_FLOW_LOOP);
-
-    /* process all pseudo packets the flow timeout may throw at us */
-    TmThreadTimeoutLoop(tv, s);
-
-    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
-    TmThreadWaitForFlag(tv, THV_DEINIT);
-
-    PacketPoolDestroy();
-
-    for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotThreadExitPrintStats != NULL) {
-            slot->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(slot->slot_data));
-        }
-
-        if (slot->SlotThreadDeinit != NULL) {
-            r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
-            if (r != TM_ECODE_OK) {
-                break;
-            }
-        }
-    }
-
-    tv->stream_pq = NULL;
-    SCLogDebug("%s ending", tv->name);
-    TmThreadsSetFlag(tv, THV_CLOSED);
+    SCTmThreadsSlotPktAcqLoopFinish((ThreadVars *)td);
 }
