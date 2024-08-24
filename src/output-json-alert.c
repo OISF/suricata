@@ -192,18 +192,16 @@ static void AlertJsonReference(const PacketAlert *pa, JsonBuilder *jb)
     jb_close(jb);
 }
 
-static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
-        const PacketAlert *pa, JsonBuilder *js)
+static void AlertJsonMetadata(const PacketAlert *pa, JsonBuilder *js)
 {
     if (pa->s->metadata && pa->s->metadata->json_str) {
         jb_set_formatted(js, pa->s->metadata->json_str);
     }
 }
 
-void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
-        uint16_t flags, JsonAddrInfo *addr, char *xff_buffer)
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, JsonBuilder *js, uint16_t flags,
+        JsonAddrInfo *addr, char *xff_buffer)
 {
-    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -249,7 +247,7 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
     }
 
     if (flags & LOG_JSON_RULE_METADATA) {
-        AlertJsonMetadata(json_output_ctx, pa, js);
+        AlertJsonMetadata(pa, js);
     }
 
     if (flags & LOG_JSON_RULE) {
@@ -669,7 +667,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 
         /* alert */
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
+        AlertJsonHeader(p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
 
         if (PacketIsTunnel(p)) {
             AlertJsonTunnel(p, jb);
@@ -801,7 +799,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         /* just the timestamp, no tuple */
         jb_set_string(jb, "timestamp", timebuf);
 
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL, NULL);
+        AlertJsonHeader(p, pa, jb, json_output_ctx->flags, NULL, NULL);
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
