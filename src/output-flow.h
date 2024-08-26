@@ -32,8 +32,7 @@
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
 
 int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        ThreadExitPrintStatsFunc ThreadExitPrintStats);
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputFlowShutdown(void);
 

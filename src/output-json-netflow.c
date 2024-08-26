@@ -296,5 +296,5 @@ void JsonNetFlowLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_NETFLOW, "eve-log", "JsonNetFlowLog", "eve-log.netflow",
-            OutputJsonLogInitSub, JsonNetFlowLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, JsonNetFlowLogger, JsonLogThreadInit, JsonLogThreadDeinit);
 }
