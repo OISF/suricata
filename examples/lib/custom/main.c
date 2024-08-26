@@ -16,6 +16,7 @@
  */
 
 #include "suricata.h"
+#include "runmodes.h"
 #include "conf.h"
 #include "pcap.h"
 #include "runmode-lib.h"
@@ -94,9 +95,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Set lib runmode. There is currently no way to set it via the
-     * Conf API. */
-    SuricataSetLibRunmode();
+    /* Set the runmode to library mode. Perhaps in the future this
+     * should be done in some library bootstrap function. */
+    SCRunmodeSet(RUNMODE_LIB);
 
     /* Validate/finalize the runmode. */
     if (SCFinalizeRunMode() != TM_ECODE_OK) {
