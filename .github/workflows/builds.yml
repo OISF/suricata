@@ -194,6 +194,10 @@ jobs:
         working-directory: examples/plugins/c-json-filetype
         run: make clean all
 
+      - name: Build example C custom logger plugin
+        working-directory: examples/plugins/c-custom-loggers
+        run: make clean all
+
       - name: Install Suricata and library
         run: make install install-headers install-library
 
