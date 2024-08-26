@@ -121,8 +121,8 @@ enum {
 #include "runmodes.h"
 
 typedef struct SCInstance_ {
-    enum RunModes run_mode;
-    enum RunModes aux_run_mode;
+    enum SCRunModes run_mode;
+    enum SCRunModes aux_run_mode;
 
     char pcap_dev[128];
     char *sig_file;
@@ -191,14 +191,14 @@ int RunmodeIsUnittests(void);
 /**
  * \brief Get the current run mode.
  */
-int SCRunmodeGet(void);
+SCRunMode SCRunmodeGet(void);
 
 /**
  * \brief Set the current run mode.
  *
  * Mainly exposed outside of suricata.c as a unit-test helper.
  */
-void SCRunmodeSet(int run_mode);
+void SCRunmodeSet(SCRunMode run_mode);
 
 int SuriHasSigFile(void);
 
@@ -226,8 +226,5 @@ int WindowsInitService(int argc, char **argv);
 #endif
 
 const char *GetProgramVersion(void);
-
-/* Library only methods. */
-void SuricataSetLibRunmode(void);
 
 #endif /* SURICATA_SURICATA_H */
