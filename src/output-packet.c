@@ -41,7 +41,8 @@ typedef struct OutputPacketLoggerThreadData_ {
 typedef struct OutputPacketLogger_ {
     PacketLogger LogFunc;
     PacketLogCondition ConditionFunc;
-    OutputCtx *output_ctx;
+    /** Data that will be passed to the ThreadInit callback. */
+    void *initdata;
     struct OutputPacketLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -52,11 +53,9 @@ typedef struct OutputPacketLogger_ {
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, void *initdata, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -64,7 +63,7 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 
     op->LogFunc = LogFunc;
     op->ConditionFunc = ConditionFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
@@ -137,7 +136,7 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, v
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
