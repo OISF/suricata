@@ -79,7 +79,7 @@ const char *thread_name_counter_wakeup = "CW";
  */
 typedef struct RunMode_ {
     /* the runmode type */
-    enum RunModes runmode;
+    enum SCRunModes runmode;
     const char *name;
     const char *description;
     /* runmode function */
@@ -175,7 +175,7 @@ static const char *RunModeTranslateModeToName(int runmode)
  * \param runmode           The runmode type.
  * \param runmode_custom_id The runmode custom id.
  */
-static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_mode)
+static RunMode *RunModeGetCustomMode(enum SCRunModes runmode, const char *custom_mode)
 {
     if (runmode < RUNMODE_USER_MAX) {
         for (int i = 0; i < runmodes[runmode].cnt; i++) {
@@ -470,7 +470,7 @@ int RunModeNeedsBypassManager(void)
  * \param description Description for this runmode.
  * \param RunModeFunc The function to be run for this runmode.
  */
-void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const char *description,
+void RunModeRegisterNewRunMode(enum SCRunModes runmode, const char *name, const char *description,
         int (*RunModeFunc)(void), int (*RunModeIsIPSEnabled)(void))
 {
     if (RunModeGetCustomMode(runmode, name) != NULL) {
@@ -532,7 +532,7 @@ int RunModeOutputFiledataEnabled(void)
     return filedata_logger_count > 0;
 }
 
-bool IsRunModeSystem(enum RunModes run_mode_to_check)
+bool IsRunModeSystem(enum SCRunModes run_mode_to_check)
 {
     switch (run_mode_to_check) {
         case RUNMODE_PCAP_FILE:
@@ -545,7 +545,7 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check)
     }
 }
 
-bool IsRunModeOffline(enum RunModes run_mode_to_check)
+bool IsRunModeOffline(enum SCRunModes run_mode_to_check)
 {
     switch(run_mode_to_check) {
         case RUNMODE_CONF_TEST:
