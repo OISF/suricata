@@ -705,20 +705,11 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
     return state_safe.tx_id;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
-    let tx_safe: &mut PgsqlTransaction;
-    unsafe {
-        tx_safe = cast_pointer!(tx, PgsqlTransaction);
-    }
-    return tx_safe.tx_state;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
+unsafe extern "C" fn rs_pgsql_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_pgsql_tx_get_state(tx) as i32;
+    let tx = cast_pointer!(tx, PgsqlTransaction);
+    tx.tx_state as i32
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
