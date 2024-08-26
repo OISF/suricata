@@ -500,11 +500,9 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, FlowLogger FlowLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(FlowLogFunc == NULL)) {
         goto error;
@@ -523,7 +521,6 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     module->FlowLogFunc = FlowLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Flow logger \"%s\" registered.", name);
