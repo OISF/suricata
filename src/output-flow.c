@@ -40,7 +40,10 @@ typedef struct OutputFlowLoggerThreadData_ {
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFlowLogger_ {
     FlowLogger LogFunc;
-    OutputCtx *output_ctx;
+
+    /** Data that will be passed to the ThreadInit callback. */
+    void *initdata;
+
     struct OutputFlowLogger_ *next;
 
     /** A name for this logger, used for debugging only. */
@@ -61,17 +64,16 @@ static OutputFlowLogger *list = NULL;
  *
  * \retval 0 on success, -1 on failure.
  */
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
@@ -145,7 +147,7 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data)
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
