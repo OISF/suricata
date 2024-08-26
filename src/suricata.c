@@ -262,12 +262,12 @@ int RunmodeIsUnittests(void)
 }
 #endif
 
-int SCRunmodeGet(void)
+SCRunMode SCRunmodeGet(void)
 {
     return suricata.run_mode;
 }
 
-void SCRunmodeSet(int run_mode)
+void SCRunmodeSet(SCRunMode run_mode)
 {
     suricata.run_mode = run_mode;
 }
@@ -3066,9 +3066,4 @@ void SuricataPostInit(void)
         SystemHugepageSnapshotDestroy(postrun_snap);
     }
     SCPledge();
-}
-
-void SuricataSetLibRunmode(void)
-{
-    suricata.run_mode = RUNMODE_LIB;
 }

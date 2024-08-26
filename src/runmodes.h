@@ -24,7 +24,7 @@
 #define SURICATA_RUNMODES_H
 
 /* Run mode */
-enum RunModes {
+typedef enum SCRunModes {
     RUNMODE_UNKNOWN = 0,
     RUNMODE_PCAP_DEV,
     RUNMODE_PCAP_FILE,
@@ -60,7 +60,7 @@ enum RunModes {
 #endif
     RUNMODE_DUMP_FEATURES,
     RUNMODE_MAX,
-};
+} SCRunMode;
 
 /* Run Mode Global Thread Names */
 extern const char *thread_name_autofp;
@@ -83,7 +83,7 @@ void RunModeListRunmodes(void);
 int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name);
 void RunModeDispatch(int, const char *, const char *capture_plugin_name, const char *capture_plugin_args);
 void RunModeRegisterRunModes(void);
-void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *, int (*RunModeFunc)(void),
+void RunModeRegisterNewRunMode(SCRunMode, const char *, const char *, int (*RunModeFunc)(void),
         int (*RunModeIsIPSEnabled)(void));
 void RunModeInitializeThreadSettings(void);
 void RunModeInitializeOutputs(void);
@@ -92,8 +92,8 @@ void RunModeShutDown(void);
 /* bool indicating if filedata logger is enabled */
 int RunModeOutputFiledataEnabled(void);
 /** bool indicating if run mode is offline */
-bool IsRunModeOffline(enum RunModes run_mode_to_check);
-bool IsRunModeSystem(enum RunModes run_mode_to_check);
+bool IsRunModeOffline(SCRunMode run_mode_to_check);
+bool IsRunModeSystem(SCRunMode run_mode_to_check);
 
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
