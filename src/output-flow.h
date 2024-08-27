@@ -35,8 +35,7 @@
  */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
 
-/**
- * \brief Register a flow logger.
+/** \brief Register a flow logger.
  *
  * \param name An informational name for this logger. Used only for
  *     debugging.

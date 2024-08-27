@@ -42,8 +42,7 @@ typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
  */
 typedef bool (*PacketLogCondition)(ThreadVars *, void *thread_data, const Packet *);
 
-/**
- * \brief Register a packet logger.
+/** \brief Register a packet logger.
  *
  * \param logger_id An ID used to distinguish this logger from others
  *     while profiling.
