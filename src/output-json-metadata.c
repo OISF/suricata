@@ -96,10 +96,10 @@ void JsonMetadataLogRegister (void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.metadata",
             OutputJsonLogInitSub, JsonMetadataLogger, JsonMetadataLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            JsonLogThreadDeinit);
 
     /* Kept for compatibility. */
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.vars",
             OutputJsonLogInitSub, JsonMetadataLogger, JsonMetadataLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            JsonLogThreadDeinit);
 }

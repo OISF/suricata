@@ -48,14 +48,13 @@ typedef struct OutputPacketLogger_ {
     LoggerId logger_id;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputPacketLogger;
 
 static OutputPacketLogger *list = NULL;
 
 int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
         PacketLogCondition ConditionFunc, void *initdata, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats)
+        ThreadDeinitFunc ThreadDeinit)
 {
     OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -67,7 +66,6 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogge
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
     op->logger_id = logger_id;
 
     if (list == NULL)
@@ -184,22 +182,6 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputPacketLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
 static uint32_t OutputPacketLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
@@ -211,9 +193,8 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit,
-        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
-        OutputPacketLog, OutputPacketLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit, NULL,
+            OutputPacketLog, OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

@@ -209,9 +209,8 @@ static bool PcapLogCondition(ThreadVars *, void *, const Packet *);
 
 void PcapLogRegister(void)
 {
-    OutputRegisterPacketModule(LOGGER_PCAP, MODULE_NAME, "pcap-log",
-        PcapLogInitCtx, PcapLog, PcapLogCondition, PcapLogDataInit,
-        PcapLogDataDeinit, NULL);
+    OutputRegisterPacketModule(LOGGER_PCAP, MODULE_NAME, "pcap-log", PcapLogInitCtx, PcapLog,
+            PcapLogCondition, PcapLogDataInit, PcapLogDataDeinit);
     PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
     SC_ATOMIC_SET(thread_cnt, 1); /* first id is 1 */
