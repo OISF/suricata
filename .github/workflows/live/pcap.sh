@@ -91,7 +91,7 @@ if [ "$(echo $JSON | jq -r .message)" != "item found in set" ]; then
 fi
 
 # fail to add junk
-JSON=$(python3 python/bin/suricatasc -c "dataset-lookup ipv6-list ip ::ffff:c0a8:0z0z" /var/run/suricata/suricata-command.socket)
+JSON=$(python3 python/bin/suricatasc -c "dataset-add ipv6-list ip ::ffff:c0a8:0z0z" /var/run/suricata/suricata-command.socket)
 echo $JSON
 if [ "$(echo $JSON | jq -r .message)" != "failed to add data" ]; then
     echo "ERROR unix socket dataset added junk"
