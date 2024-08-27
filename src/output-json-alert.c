@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2023 Open Information Security Foundation
+/* Copyright (C) 2013-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -78,6 +78,7 @@
 #include "output-json-modbus.h"
 #include "output-json-frame.h"
 #include "output-json-quic.h"
+#include "output-json-pgsql.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -592,6 +593,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb, const uint64_t tx
             break;
         case ALPROTO_BITTORRENT_DHT:
             AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_PGSQL:
+            jb_get_mark(jb, &mark);
+            if (!JsonPgsqlAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
             break;
         default:
             break;
