@@ -94,7 +94,7 @@ static void Init(void)
 {
     SCOutputRegisterPacketLogger(LOGGER_USER, "custom-packet-logger", CustomPacketLogger,
             CustomPacketLoggerCondition, NULL, ThreadInit, ThreadDeinit);
-    OutputRegisterFlowLogger(
+    SCOutputRegisterFlowLogger(
             "custom-flow-logger", CustomFlowLogger, NULL, ThreadInit, ThreadDeinit);
 }
 
