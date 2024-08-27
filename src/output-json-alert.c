@@ -1024,8 +1024,7 @@ error:
 
 void JsonAlertLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
-        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
-        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME, "eve-log.alert",
+            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition, JsonAlertLogThreadInit,
+            JsonAlertLogThreadDeinit);
 }
