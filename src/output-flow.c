@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,15 +55,7 @@ typedef struct OutputFlowLogger_ {
 
 static OutputFlowLogger *list = NULL;
 
-/**
- * \brief Register a new low-level flow logger.
- *
- * \param name The name of this logger. Its only used for debugging,
- *     so choose something unique.
- *
- * \retval 0 on success, -1 on failure.
- */
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
+int SCOutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
