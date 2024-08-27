@@ -92,7 +92,7 @@ static TmEcode ThreadDeinit(ThreadVars *tv, void *data)
 
 static void Init(void)
 {
-    OutputRegisterPacketLogger(LOGGER_USER, "custom-packet-logger", CustomPacketLogger,
+    SCOutputRegisterPacketLogger(LOGGER_USER, "custom-packet-logger", CustomPacketLogger,
             CustomPacketLoggerCondition, NULL, ThreadInit, ThreadDeinit);
     OutputRegisterFlowLogger(
             "custom-flow-logger", CustomFlowLogger, NULL, ThreadInit, ThreadDeinit);
