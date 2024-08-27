@@ -600,8 +600,8 @@ static void SetupOutput(
 {
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
-        OutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx, module->ThreadInit,
-                module->ThreadDeinit);
+        SCOutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         return;
     }
     /* stats logger doesn't run in the packet path */
