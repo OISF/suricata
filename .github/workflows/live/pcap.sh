@@ -75,6 +75,29 @@ if [ $CHECK -ne 2 ]; then
     RES=1
 fi
 
+JSON=$(python3 python/bin/suricatasc -c "dataset-add ipv6-list ip 192.168.1.1" /var/run/suricata/suricata-command.socket)
+echo $JSON
+if [ "$(echo $JSON | jq -r .message)" != "data added" ]; then
+    echo "ERROR unix socket dataset add failed"
+    RES=1
+fi
+
+# look it up in IPv4 in IPv6 notation
+JSON=$(python3 python/bin/suricatasc -c "dataset-lookup ipv6-list ip ::ffff:c0a8:0101" /var/run/suricata/suricata-command.socket)
+echo $JSON
+if [ "$(echo $JSON | jq -r .message)" != "item found in set" ]; then
+    echo "ERROR unix socket dataset lookup failed"
+    RES=1
+fi
+
+# fail to add junk
+JSON=$(python3 python/bin/suricatasc -c "dataset-add ipv6-list ip ::ffff:c0a8:0z0z" /var/run/suricata/suricata-command.socket)
+echo $JSON
+if [ "$(echo $JSON | jq -r .message)" != "failed to add data" ]; then
+    echo "ERROR unix socket dataset added junk"
+    RES=1
+fi
+
 echo "SURIPID $SURIPID PINGPID $PINGPID"
 
 # set second rule file for the reload
