@@ -87,15 +87,12 @@ extern OutputModuleList output_modules;
 
 void OutputRegisterModule(const char *, const char *, OutputInitFunc);
 
-void OutputRegisterPacketModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, PacketLogger LogFunc,
-    PacketLogCondition ConditionFunc, ThreadInitFunc, ThreadDeinitFunc,
-    ThreadExitPrintStatsFunc);
-void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, PacketLogger LogFunc, PacketLogCondition ConditionFunc,
+        ThreadInitFunc, ThreadDeinitFunc);
+void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterTxModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc, AppProto alproto,

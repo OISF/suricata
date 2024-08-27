@@ -453,5 +453,5 @@ void EveStreamLogRegister(void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_STREAM, "eve-log", MODULE_NAME, "eve-log.stream",
             EveStreamLogInitCtxSub, EveStreamLogger, EveStreamLogCondition, EveStreamLogThreadInit,
-            EveStreamLogThreadDeinit, NULL);
+            EveStreamLogThreadDeinit);
 }
