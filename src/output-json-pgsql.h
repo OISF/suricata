@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,5 +25,6 @@
 #define __OUTPUT_JSON_PGSQL_H__
 
 void JsonPgsqlLogRegister(void);
+bool JsonPgsqlAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
 
 #endif /* __OUTPUT_JSON_PGSQL_H__ */
