@@ -26,6 +26,9 @@
 #ifndef SURICATA_OUTPUT_PACKET_H
 #define SURICATA_OUTPUT_PACKET_H
 
+#include "tm-threads.h"
+#include "decode.h"
+
 /** packet logger function pointer type */
 typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
 
