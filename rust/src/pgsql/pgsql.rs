@@ -99,28 +99,30 @@ impl PgsqlTransaction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PgsqlStateProgress {
     IdleState,
+    // Related to Frontend-received messages //
     SSLRequestReceived,
-    SSLRejectedReceived,
     StartupMessageReceived,
-    SASLAuthenticationReceived,
     SASLInitialResponseReceived,
-    // SSPIAuthenticationReceived, // TODO implement
     SASLResponseReceived,
+    PasswordMessageReceived,
+    SimpleQueryReceived,
+    CancelRequestReceived,
+    ConnectionTerminated,
+    // Related to Backend-received messages //
+    SSLRejectedReceived,
+    // SSPIAuthenticationReceived, // TODO implement
+    SASLAuthenticationReceived,
     SASLAuthenticationContinueReceived,
     SASLAuthenticationFinalReceived,
     SimpleAuthenticationReceived,
-    PasswordMessageReceived,
     AuthenticationOkReceived,
     ParameterSetup,
     BackendKeyReceived,
     ReadyForQueryReceived,
-    SimpleQueryReceived,
     RowDescriptionReceived,
     DataRowReceived,
     CommandCompletedReceived,
     ErrorMessageReceived,
-    CancelRequestReceived,
-    ConnectionTerminated,
     #[cfg(test)]
     UnknownState,
     Finished,
