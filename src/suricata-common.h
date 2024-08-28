@@ -493,6 +493,10 @@ typedef enum {
     LOGGER_JSON_STREAM,
     LOGGER_JSON_ARP,
 
+    /* An ID that can be used by loggers registered by plugins and/or
+     * library users. */
+    LOGGER_USER,
+
     /* Must come last. */
     LOGGER_SIZE,
 } LoggerId;
