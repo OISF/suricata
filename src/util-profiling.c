@@ -1298,6 +1298,7 @@ const char *PacketProfileLoggerIdToString(LoggerId id)
         CASE_CODE(LOGGER_JSON_FRAME);
         CASE_CODE(LOGGER_JSON_STREAM);
         CASE_CODE(LOGGER_JSON_ARP);
+        CASE_CODE(LOGGER_USER);
 
         case LOGGER_SIZE:
             return "UNKNOWN";
