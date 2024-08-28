@@ -238,7 +238,7 @@ void DetectnDPIProtocolRegister(void)
 {
     sigmatch_table[DETECT_NDPI_PROTOCOL].name = "ndpi-protocol";
     sigmatch_table[DETECT_NDPI_PROTOCOL].desc = "match on the detected nDPI protocol";
-    sigmatch_table[DETECT_NDPI_PROTOCOL].url = "/rules/index.html";
+    sigmatch_table[DETECT_NDPI_PROTOCOL].url = "/rules/ndpi-protocol.html";
     sigmatch_table[DETECT_NDPI_PROTOCOL].Match = DetectnDPIProtocolPacketMatch;
     sigmatch_table[DETECT_NDPI_PROTOCOL].Setup = DetectnDPIProtocolSetup;
     sigmatch_table[DETECT_NDPI_PROTOCOL].Free = DetectnDPIProtocolFree;

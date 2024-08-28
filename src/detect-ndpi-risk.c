@@ -237,7 +237,7 @@ void DetectnDPIRiskRegister(void)
 {
     sigmatch_table[DETECT_NDPI_RISK].name = "ndpi-risk";
     sigmatch_table[DETECT_NDPI_RISK].desc = "match on the detected nDPI risk";
-    sigmatch_table[DETECT_NDPI_RISK].url = "/rules/index.html";
+    sigmatch_table[DETECT_NDPI_RISK].url = "/rules/ndpi-risk.html";
     sigmatch_table[DETECT_NDPI_RISK].Match = DetectnDPIRiskPacketMatch;
     sigmatch_table[DETECT_NDPI_RISK].Setup = DetectnDPIRiskSetup;
     sigmatch_table[DETECT_NDPI_RISK].Free = DetectnDPIRiskFree;
