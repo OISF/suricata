@@ -49,7 +49,7 @@ typedef struct OutputTxLogger_ {
     AppProto alproto;
     TxLogger LogFunc;
     TxLoggerCondition LogCondition;
-    OutputCtx *output_ctx;
+    void *initdata;
     struct OutputTxLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -63,13 +63,10 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger **list = NULL;
 
-int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
-                           TxLogger LogFunc,
-                           OutputCtx *output_ctx, int tc_log_progress,
-                           int ts_log_progress, TxLoggerCondition LogCondition,
-                           ThreadInitFunc ThreadInit,
-                           ThreadDeinitFunc ThreadDeinit,
-                           void (*ThreadExitPrintStats)(ThreadVars *, void *))
+int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
+        void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
     if (list == NULL) {
         list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
@@ -91,7 +88,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     op->alproto = alproto;
     op->LogFunc = LogFunc;
     op->LogCondition = LogCondition;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
@@ -560,7 +557,7 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void
         while (logger) {
             if (logger->ThreadInit) {
                 void *retptr = NULL;
-                if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+                if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                     OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                     /* todo */ BUG_ON(ts == NULL);
 
