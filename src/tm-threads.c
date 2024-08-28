@@ -1614,9 +1614,9 @@ static void TmThreadFree(ThreadVars *tv)
     }
 
 #ifdef HAVE_NDPI
-    if(tv->ndpi_struct != NULL) {
-      ndpi_exit_detection_module(tv->ndpi_struct);
-      /* printf("%s - ndpi_exit_detection_module()\n", __FUNCTION__); */
+    if (tv->ndpi_struct != NULL) {
+        ndpi_exit_detection_module(tv->ndpi_struct);
+        /* printf("%s - ndpi_exit_detection_module()\n", __FUNCTION__); */
     }
 #endif
 

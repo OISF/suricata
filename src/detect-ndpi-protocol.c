@@ -40,13 +40,12 @@ static void DetectnDPIProtocolRegisterTests(void);
 #endif
 
 typedef struct DetectnDPIProtocolData_ {
-  ndpi_master_app_protocol l7_protocol;
-  uint8_t negated;
+    ndpi_master_app_protocol l7_protocol;
+    uint8_t negated;
 } DetectnDPIProtocolData;
 
 static int DetectnDPIProtocolPacketMatch(
-        DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -63,24 +62,23 @@ static int DetectnDPIProtocolPacketMatch(
     */
 
     if (!p->flow->detection_completed) {
-        SCLogDebug("packet %"PRIu64": ndpi protocol not yet detected", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": ndpi protocol not yet detected", p->pcap_cnt);
         SCReturnInt(0);
     }
 
     const Flow *f = p->flow;
     if (f == NULL) {
-        SCLogDebug("packet %"PRIu64": no flow", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
     r = ndpi_is_proto_equals(f->detected_l7_protocol.proto, data->l7_protocol, false);
     r = r ^ data->negated;
-    
+
     if (r) {
         SCLogDebug("ndpi protocol match on protocol = %u.%u (match %u)",
-            f->detected_l7_protocol.app_protocol,
-            f->detected_l7_protocol.master_protocol,
-            data->l7_protocol);
+                f->detected_l7_protocol.app_protocol, f->detected_l7_protocol.master_protocol,
+                data->l7_protocol);
         SCReturnInt(1);
     }
     SCReturnInt(0);
@@ -108,8 +106,8 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     ndpi_exit_detection_module(ndpi_struct);
 
     if (ndpi_is_proto_unknown(l7_protocol)) {
-      SCLogError("failure parsing nDPI protocol '%s'", l7_protocol_name);
-      return NULL;
+        SCLogError("failure parsing nDPI protocol '%s'", l7_protocol_name);
+        return NULL;
     }
 
     data = SCMalloc(sizeof(DetectnDPIProtocolData));
@@ -148,7 +146,7 @@ static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
         goto error;
 
     SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for ( ; tsm != NULL; tsm = tsm->next) {
+    for (; tsm != NULL; tsm = tsm->next) {
         if (tsm->type == DETECT_NDPI_PROTOCOL) {
             const DetectnDPIProtocolData *them = (const DetectnDPIProtocolData *)tsm->ctx;
 
@@ -180,13 +178,13 @@ static void DetectnDPIProtocolFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \internal
  *  \brief prefilter function for protocol detect matching
  */
-static void
-PrefilterPacketnDPIProtocolMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketnDPIProtocolMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     if (p->flow == NULL || !p->flow->detection_completed) {
-        SCLogDebug("packet %"PRIu64": no flow, no ndpi detection", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow, no ndpi detection", p->pcap_cnt);
         SCReturn;
     }
 
@@ -194,16 +192,15 @@ PrefilterPacketnDPIProtocolMatch(DetectEngineThreadCtx *det_ctx, Packet *p, cons
     bool negated = (bool)ctx->v1.u8[4];
 
     if (!ndpi_is_proto_unknown(f->detected_l7_protocol.proto)) {
-      ndpi_master_app_protocol p = { ctx->v1.u16[0], ctx->v1.u16[1] };
-      
-      if (ndpi_is_proto_equals(f->detected_l7_protocol.proto, p, false) ^ negated) {
+        ndpi_master_app_protocol p = { ctx->v1.u16[0], ctx->v1.u16[1] };
+
+        if (ndpi_is_proto_equals(f->detected_l7_protocol.proto, p, false) ^ negated) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
     }
 }
 
-static void
-PrefilterPacketnDPIProtocolSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketnDPIProtocolSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectnDPIProtocolData *a = smctx;
 
@@ -212,20 +209,19 @@ PrefilterPacketnDPIProtocolSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[4] = (uint8_t)a->negated;
 }
 
-static bool
-PrefilterPacketnDPIProtocolCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketnDPIProtocolCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectnDPIProtocolData *a = smctx;
-    ndpi_master_app_protocol      p = { v.u16[0], v.u16[1] };
-    bool                    negated = (bool)v.u8[4];
- 
+    ndpi_master_app_protocol p = { v.u16[0], v.u16[1] };
+    bool negated = (bool)v.u8[4];
+
     return (ndpi_is_proto_equals(a->l7_protocol, p, false) ^ negated);
 }
 
 static int PrefilterSetupnDPIProtocol(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_NDPI_PROTOCOL,
-            SIG_MASK_REQUIRE_FLOW, PrefilterPacketnDPIProtocolSet, PrefilterPacketnDPIProtocolCompare,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_NDPI_PROTOCOL, SIG_MASK_REQUIRE_FLOW,
+            PrefilterPacketnDPIProtocolSet, PrefilterPacketnDPIProtocolCompare,
             PrefilterPacketnDPIProtocolMatch);
 }
 
@@ -243,23 +239,17 @@ void DetectnDPIProtocolRegister(void)
     sigmatch_table[DETECT_NDPI_PROTOCOL].name = "ndpi-protocol";
     sigmatch_table[DETECT_NDPI_PROTOCOL].desc = "match on the detected nDPI protocol";
     sigmatch_table[DETECT_NDPI_PROTOCOL].url = "/rules/index.html";
-    sigmatch_table[DETECT_NDPI_PROTOCOL].Match =
-        DetectnDPIProtocolPacketMatch;
-    sigmatch_table[DETECT_NDPI_PROTOCOL].Setup =
-        DetectnDPIProtocolSetup;
-    sigmatch_table[DETECT_NDPI_PROTOCOL].Free =
-        DetectnDPIProtocolFree;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].Match = DetectnDPIProtocolPacketMatch;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].Setup = DetectnDPIProtocolSetup;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].Free = DetectnDPIProtocolFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_NDPI_PROTOCOL].RegisterTests =
-        DetectnDPIProtocolRegisterTests;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].RegisterTests = DetectnDPIProtocolRegisterTests;
 #endif
     sigmatch_table[DETECT_NDPI_PROTOCOL].flags =
-        (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
 
-    sigmatch_table[DETECT_NDPI_PROTOCOL].SetupPrefilter =
-        PrefilterSetupnDPIProtocol;
-    sigmatch_table[DETECT_NDPI_PROTOCOL].SupportsPrefilter =
-            PrefilternDPIProtocolIsPrefilterable;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].SetupPrefilter = PrefilterSetupnDPIProtocol;
+    sigmatch_table[DETECT_NDPI_PROTOCOL].SupportsPrefilter = PrefilternDPIProtocolIsPrefilterable;
 }
 
 /**********************************Unittests***********************************/
@@ -295,7 +285,7 @@ static int DetectnDPIProtocolTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(ndpi-protocol:HTTP; sid:1;)");
+                                      "(ndpi-protocol:HTTP; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
@@ -317,7 +307,7 @@ static int DetectnDPIProtocolTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(ndpi-protocol:!HTTP; sid:1;)");
+                                      "(ndpi-protocol:!HTTP; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
@@ -334,14 +324,10 @@ static int DetectnDPIProtocolTest04(void)
 
 static void DetectnDPIProtocolRegisterTests(void)
 {
-    UtRegisterTest("DetectnDPIProtocolTest01",
-                   DetectnDPIProtocolTest01);
-    UtRegisterTest("DetectnDPIProtocolTest02",
-                   DetectnDPIProtocolTest02);
-    UtRegisterTest("DetectnDPIProtocolTest03",
-                   DetectnDPIProtocolTest03);
-    UtRegisterTest("DetectnDPIProtocolTest04",
-                   DetectnDPIProtocolTest04);
+    UtRegisterTest("DetectnDPIProtocolTest01", DetectnDPIProtocolTest01);
+    UtRegisterTest("DetectnDPIProtocolTest02", DetectnDPIProtocolTest02);
+    UtRegisterTest("DetectnDPIProtocolTest03", DetectnDPIProtocolTest03);
+    UtRegisterTest("DetectnDPIProtocolTest04", DetectnDPIProtocolTest04);
 }
 #endif /* UNITTESTS */
 

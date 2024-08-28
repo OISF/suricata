@@ -169,9 +169,10 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
             JsonBuilder *js_fileinfo =
                     JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL
 #ifdef HAVE_NDPI
-                        , tv
+                            ,
+                            tv
 #endif
-            );
+                    );
             if (likely(js_fileinfo != NULL)) {
                 jb_close(js_fileinfo);
                 FILE *out = fopen(js_metadata_filename, "w");

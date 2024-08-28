@@ -44,8 +44,8 @@ typedef struct DetectnDPIRiskData_ {
     uint8_t negated;
 } DetectnDPIRiskData;
 
-static int DetectnDPIRiskPacketMatch(DetectEngineThreadCtx *det_ctx,
-                                     Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectnDPIRiskPacketMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -53,13 +53,13 @@ static int DetectnDPIRiskPacketMatch(DetectEngineThreadCtx *det_ctx,
     const DetectnDPIRiskData *data = (const DetectnDPIRiskData *)ctx;
 
     if (!p->flow->detection_completed) {
-        SCLogDebug("packet %"PRIu64": ndpi risks not yet detected", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", p->pcap_cnt);
         SCReturnInt(0);
     }
 
     const Flow *f = p->flow;
     if (f == NULL) {
-        SCLogDebug("packet %"PRIu64": no flow", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
@@ -67,9 +67,8 @@ static int DetectnDPIRiskPacketMatch(DetectEngineThreadCtx *det_ctx,
     r = r ^ data->negated;
 
     if (r) {
-        SCLogDebug("ndpi risks match on risk bitmap =  %"PRIu64" (matching bitmap %"PRIu64")",
-                   f->ndpi_flow->risk,
-                   data->risk_mask);
+        SCLogDebug("ndpi risks match on risk bitmap =  %" PRIu64 " (matching bitmap %" PRIu64 ")",
+                f->ndpi_flow->risk, data->risk_mask);
         SCReturnInt(1);
     }
 
@@ -82,7 +81,7 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
     NDPI_PROTOCOL_BITMASK all;
-    
+
     /* convert list of risk names (string) to mask */
     ndpi_struct = ndpi_init_detection_module(NULL);
     if (unlikely(ndpi_struct == NULL))
@@ -102,19 +101,19 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
 
         if (dup != NULL) {
             token = strtok_r(dup, ",", &tmp);
-        
+
             while (token != NULL) {
                 ndpi_risk_enum risk_id = ndpi_code2risk(token);
                 if (risk_id >= NDPI_MAX_RISK) {
                     SCLogError("unrecognized risk '%s', "
                                "please check ndpiReader -H for valid risk codes",
-                               token);
+                            token);
                     return NULL;
                 }
                 NDPI_SET_BIT(risk_mask, risk_id);
                 token = strtok_r(NULL, ",", &tmp);
             }
-        
+
             SCFree(dup);
         }
     }
@@ -147,7 +146,7 @@ static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         goto error;
 
     SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for ( ; tsm != NULL; tsm = tsm->next) {
+    for (; tsm != NULL; tsm = tsm->next) {
         if (tsm->type == DETECT_NDPI_RISK) {
             const DetectnDPIRiskData *them = (const DetectnDPIRiskData *)tsm->ctx;
 
@@ -159,13 +158,13 @@ static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_NDPI_RISK, (SigMatchCtx *)data,
-                               DETECT_SM_LIST_MATCH) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_NDPI_RISK, (SigMatchCtx *)data, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
     return 0;
 
- error:
+error:
     if (data != NULL)
         SCFree(data);
     return -1;
@@ -179,28 +178,27 @@ static void DetectnDPIRiskFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \internal
  *    \brief prefilter function for risk matching
  */
-static void
-PrefilterPacketnDPIRiskMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketnDPIRiskMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     if (p->flow == NULL || !p->flow->detection_completed) {
-        SCLogDebug("packet %"PRIu64": no flow, no ndpi detection", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow, no ndpi detection", p->pcap_cnt);
         SCReturn;
     }
 
     Flow *f = p->flow;
     bool negated = (bool)ctx->v1.u8[9];
     ndpi_risk risk_mask = ctx->v1.u64[0];
-    bool ret = ((f->ndpi_flow->risk & risk_mask) == risk_mask) ? true: false;
-    
+    bool ret = ((f->ndpi_flow->risk & risk_mask) == risk_mask) ? true : false;
+
     if (ret ^ negated) {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
-    } 
+    }
 }
 
-static void
-PrefilterPacketnDPIRiskSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketnDPIRiskSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectnDPIRiskData *a = smctx;
 
@@ -208,25 +206,22 @@ PrefilterPacketnDPIRiskSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[9] = (uint8_t)a->negated;
 }
 
-static bool
-PrefilterPacketnDPIRiskCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketnDPIRiskCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectnDPIRiskData *a = smctx;
     ndpi_risk p = v.u64[0];
     bool negated = (bool)v.u8[9];
     bool ret;
-    
-    ret = ((a->risk_mask & p) == p) ? true: false;
+
+    ret = ((a->risk_mask & p) == p) ? true : false;
     return (ret ^ negated);
 }
 
 static int PrefilterSetupnDPIRisk(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_NDPI_RISK,
-                                      SIG_MASK_REQUIRE_FLOW,
-                                      PrefilterPacketnDPIRiskSet,
-                                      PrefilterPacketnDPIRiskCompare,
-                                      PrefilterPacketnDPIRiskMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_NDPI_RISK, SIG_MASK_REQUIRE_FLOW,
+            PrefilterPacketnDPIRiskSet, PrefilterPacketnDPIRiskCompare,
+            PrefilterPacketnDPIRiskMatch);
 }
 
 static bool PrefilternDPIRiskIsPrefilterable(const Signature *s)
@@ -247,16 +242,12 @@ void DetectnDPIRiskRegister(void)
     sigmatch_table[DETECT_NDPI_RISK].Setup = DetectnDPIRiskSetup;
     sigmatch_table[DETECT_NDPI_RISK].Free = DetectnDPIRiskFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_NDPI_RISK].RegisterTests =
-        DetectnDPIRiskRegisterTests;
+    sigmatch_table[DETECT_NDPI_RISK].RegisterTests = DetectnDPIRiskRegisterTests;
 #endif
-    sigmatch_table[DETECT_NDPI_RISK].flags =
-        (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_NDPI_RISK].flags = (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
 
-    sigmatch_table[DETECT_NDPI_RISK].SetupPrefilter =
-        PrefilterSetupnDPIRisk;
-    sigmatch_table[DETECT_NDPI_RISK].SupportsPrefilter =
-        PrefilternDPIRiskIsPrefilterable;
+    sigmatch_table[DETECT_NDPI_RISK].SetupPrefilter = PrefilterSetupnDPIRisk;
+    sigmatch_table[DETECT_NDPI_RISK].SupportsPrefilter = PrefilternDPIRiskIsPrefilterable;
 }
 
 /**********************************Unittests***********************************/
@@ -292,7 +283,7 @@ static int DetectnDPIRiskTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                              "(ndpi-risk:NDPI_PROBING_ATTEMPT; sid:1;)");
+                                      "(ndpi-risk:NDPI_PROBING_ATTEMPT; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
@@ -314,7 +305,7 @@ static int DetectnDPIRiskTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                              "(ndpi-risk:!NDPI_PROBING_ATTEMPT; sid:1;)");
+                                      "(ndpi-risk:!NDPI_PROBING_ATTEMPT; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
