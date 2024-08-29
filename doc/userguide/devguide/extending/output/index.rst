@@ -46,3 +46,19 @@ function:
    :language: c
    :start-at: /** \brief Register a flow logger
    :end-at: );
+
+Transaction Logging
+~~~~~~~~~~~~~~~~~~~
+
+Transaction logger can be registered with the
+``SCOutputRegisterTxLogger`` function:
+
+.. attention:: Transaction loggers cannot be registered from a plugin
+               at this time, see
+               https://redmine.openinfosecfoundation.org/issues/7236
+               for more information.
+
+.. literalinclude:: ../../../../../src/output-tx.h
+   :language: c
+   :start-at: /** \brief Register a transaction logger
+   :end-at: );
