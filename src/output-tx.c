@@ -62,7 +62,7 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger **list = NULL;
 
-int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
+int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
         void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
