@@ -26,6 +26,7 @@
 #ifndef SURICATA_OUTPUT_TX_H
 #define SURICATA_OUTPUT_TX_H
 
+#include "tm-threads.h"
 #include "decode.h"
 #include "flow.h"
 
