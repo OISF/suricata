@@ -24,6 +24,7 @@ use std::collections::TryReserveError;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::str::Utf8Error;
+use base64::{Engine, engine::general_purpose::STANDARD};
 
 const INIT_SIZE: usize = 4096;
 
@@ -807,7 +808,7 @@ impl JsonBuilder {
         if self.buf.capacity() < self.buf.len() + encoded_len {
             self.buf.try_reserve(encoded_len)?;
         }
-        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        STANDARD.encode_string(val, &mut self.buf);
         Ok(self)
     }
 }
