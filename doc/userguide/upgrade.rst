@@ -76,6 +76,10 @@ Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
 
+Deprecations
+~~~~~~~~~~~~
+- The ``http-log`` output is now deprecated and will be removed in Suricata 9.0.
+
 Upgrading 6.0 to 7.0
 --------------------
 
