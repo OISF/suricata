@@ -581,6 +581,10 @@ section as described above.
 Syslog
 ~~~~~~
 
+.. attention:: The syslog output is deprecated in Suricata 8.0 and
+               will be removed in Suricata 9.0. Please migrate to the
+               ``eve`` output which has the ability to send to syslog.
+
 With this option it is possible to send all alert and event output to syslog.
 
 ::
