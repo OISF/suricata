@@ -148,5 +148,5 @@ void JsonDHCPLogRegister(void)
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDHCPLog", "eve-log.dhcp",
             OutputDHCPLogInitSub, ALPROTO_DHCP, JsonDHCPLogger, JsonDHCPLogThreadInit,
-            JsonDHCPLogThreadDeinit, NULL);
+            JsonDHCPLogThreadDeinit);
 }

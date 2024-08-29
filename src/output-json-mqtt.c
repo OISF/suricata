@@ -194,5 +194,5 @@ void JsonMQTTLogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMQTTLog", "eve-log.mqtt",
             OutputMQTTLogInitSub, ALPROTO_MQTT, JsonMQTTLogger, JsonMQTTLogThreadInit,
-            JsonMQTTLogThreadDeinit, NULL);
+            JsonMQTTLogThreadDeinit);
 }

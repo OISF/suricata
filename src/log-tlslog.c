@@ -499,5 +499,5 @@ void LogTlsLogRegister(void)
 {
     OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log", LogTlsLogInitCtx,
             ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, LogTlsLogThreadInit,
-            LogTlsLogThreadDeinit, NULL);
+            LogTlsLogThreadDeinit);
 }
