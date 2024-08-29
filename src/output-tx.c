@@ -58,15 +58,13 @@ typedef struct OutputTxLogger_ {
     int ts_log_progress;
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
-    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
 static OutputTxLogger **list = NULL;
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
         void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        void (*ThreadExitPrintStats)(ThreadVars *, void *))
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (list == NULL) {
         list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
@@ -93,7 +91,6 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLo
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (alproto == ALPROTO_UNKNOWN) {
         op->tc_log_progress = 0;
@@ -628,25 +625,6 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
-
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-        OutputLoggerThreadStore *store = op_thread_data->store[alproto];
-        OutputTxLogger *logger = list[alproto];
-
-        while (logger && store) {
-            if (logger->ThreadExitPrintStats) {
-                logger->ThreadExitPrintStats(tv, store->thread_data);
-            }
-
-            logger = logger->next;
-            store = store->next;
-        }
-    }
-}
-
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
@@ -676,8 +654,8 @@ void OutputTxLoggerRegister (void)
     if (unlikely(list == NULL)) {
         FatalError("Failed to allocate OutputTx list");
     }
-    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
-        OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit, NULL, OutputTxLog,
+            OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)

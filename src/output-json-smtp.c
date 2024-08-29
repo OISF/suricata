@@ -193,5 +193,5 @@ void JsonSmtpLogRegister (void) {
     /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSmtpLog", "eve-log.smtp",
             OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
-            JsonSmtpLogThreadDeinit, NULL);
+            JsonSmtpLogThreadDeinit);
 }
