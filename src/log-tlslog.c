@@ -201,6 +201,8 @@ static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
  * */
 static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
 {
+    SCLogWarning("The tls-log output has been deprecated and will be removed in Suricata 9.0.");
+
     OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
 
