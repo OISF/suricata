@@ -622,8 +622,8 @@ static void SetupOutput(
                 module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
-        OutputRegisterTxLogger(module->logger_id, module->name, module->alproto, module->TxLogFunc,
-                output_ctx, module->tc_log_progress, module->ts_log_progress,
+        SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
+                module->TxLogFunc, output_ctx, module->tc_log_progress, module->ts_log_progress,
                 module->TxLogCondition, module->ThreadInit, module->ThreadDeinit);
         /* Not used with wild card loggers */
         if (module->alproto != ALPROTO_UNKNOWN) {
