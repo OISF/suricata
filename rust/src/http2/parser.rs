@@ -32,6 +32,7 @@ use nom7::{Err, IResult};
 use std::fmt;
 use std::str::FromStr;
 use std::rc::Rc;
+use base64::{Engine as _, engine::general_purpose};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
@@ -762,7 +763,7 @@ pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSett
 
 pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
     let (i, _) = tag("/dns-query?dns=")(i)?;
-    match base64::decode(i) {
+    match general_purpose::STANDARD.decode(i) {
         Ok(dec) => {
             // i is unused
             return Ok((i, dec));
