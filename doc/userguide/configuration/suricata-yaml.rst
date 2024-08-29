@@ -424,6 +424,9 @@ Example:
 A line based log of HTTP requests (http.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. attention:: http-log is deprecated in Suricata 8.0 and will be
+               removed in Suricata 9.0.
+
 This log keeps track of all HTTP-traffic events. It contains the HTTP
 request, hostname, URI and the User-Agent. This information will be
 stored in the http.log (default name, in the suricata log

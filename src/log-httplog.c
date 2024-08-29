@@ -547,6 +547,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
  * */
 OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
 {
+    SCLogWarning("The http-log output has been deprecated and will be removed in Suricata 9.0.");
     OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
