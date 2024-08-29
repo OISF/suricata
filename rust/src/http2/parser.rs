@@ -763,7 +763,13 @@ pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSett
 
 pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
     let (i, _) = tag("/dns-query?dns=")(i)?;
-    match general_purpose::STANDARD.decode(i) {
+    let mut needed_padding = 4 - (i.len() % 4);
+    let mut padded_vec = i.to_vec();
+    while needed_padding > 0 {
+        padded_vec.push(b'=');
+        needed_padding -= 1;
+    }
+    match general_purpose::STANDARD.decode(padded_vec) {
         Ok(dec) => {
             // i is unused
             return Ok((i, dec));
