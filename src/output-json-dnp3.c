@@ -365,5 +365,5 @@ void JsonDNP3LogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDNP3Log", "eve-log.dnp3",
             OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger, JsonDNP3LogThreadInit,
-            JsonDNP3LogThreadDeinit, NULL);
+            JsonDNP3LogThreadDeinit);
 }

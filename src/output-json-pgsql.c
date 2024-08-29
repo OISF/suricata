@@ -192,7 +192,7 @@ void JsonPgsqlLogRegister(void)
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPgsqlLog", "eve-log.pgsql",
             OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
-            JsonPgsqlLogThreadDeinit, NULL);
+            JsonPgsqlLogThreadDeinit);
 
     SCLogDebug("PostgreSQL JSON logger registered.");
 }

@@ -437,11 +437,11 @@ void LogTlsStoreRegister (void)
 {
     OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME, "tls-store",
             LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger, LogTlsStoreCondition,
-            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit, NULL);
+            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit);
 
     OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE_CLIENT, MODULE_NAME, "tls-store",
             LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLoggerClient, LogTlsStoreConditionClient,
-            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit, NULL);
+            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit);
 
     SC_ATOMIC_INIT(cert_id);
     SC_ATOMIC_SET(cert_id, 1);
