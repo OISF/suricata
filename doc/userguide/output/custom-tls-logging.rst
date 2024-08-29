@@ -3,6 +3,9 @@
 Custom tls logging
 ===================
 
+.. attention:: tls-log is deprecated in Suricata 8.0 and will be
+               removed in Suricata 9.0.
+
 In your Suricata.yaml, find the tls-log section and edit as follows:
 
 ::

@@ -79,6 +79,7 @@ Removals
 Deprecations
 ~~~~~~~~~~~~
 - The ``http-log`` output is now deprecated and will be removed in Suricata 9.0.
+- The ``tls-log`` output is now deprecated and will be removed in Suricata 9.0.
 
 Upgrading 6.0 to 7.0
 --------------------
