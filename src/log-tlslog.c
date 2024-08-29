@@ -83,11 +83,6 @@ typedef struct LogTlsFileCtx_ {
 
 typedef struct LogTlsLogThread_ {
     LogTlsFileCtx *tlslog_ctx;
-
-    /* LogTlsFileCtx has the pointer to the file and a mutex to allow
-       multithreading. */
-    uint32_t tls_cnt;
-
     MemBuffer *buffer;
 } LogTlsLogThread;
 
@@ -183,16 +178,6 @@ static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
     LogCustomFormatFree(tlslog_ctx->cf);
     SCFree(tlslog_ctx);
     SCFree(output_ctx);
-}
-
-static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    LogTlsLogThread *aft = (LogTlsLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-
-    SCLogInfo("TLS logger logged %" PRIu32 " requests", aft->tls_cnt);
 }
 
 /** \brief Create a new tls log LogFileCtx.
@@ -514,8 +499,6 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     MemBufferWriteString(aft->buffer, "\n");
 
-    aft->tls_cnt++;
-
     hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
         MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
 
@@ -524,8 +507,7 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
 void LogTlsLogRegister(void)
 {
-    OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log",
-        LogTlsLogInitCtx, ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE,
-        TLS_HANDSHAKE_DONE, LogTlsLogThreadInit, LogTlsLogThreadDeinit,
-        LogTlsLogExitPrintStats);
+    OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log", LogTlsLogInitCtx,
+            ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, LogTlsLogThreadInit,
+            LogTlsLogThreadDeinit, NULL);
 }
