@@ -403,6 +403,9 @@ The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 TLS parameters and certificates logging (tls.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. attention:: tls-log is deprecated in Suricata 8.0 and will be
+               removed in Suricata 9.0.
+
 The TLS handshake parameters can be logged in a line based log as well.
 By default, the logfile is `tls.log` in the suricata log directory.
 See :ref:`Custom TLS logging <output-custom-tls-logging>` for details
