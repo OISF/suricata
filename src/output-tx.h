@@ -40,7 +40,7 @@ typedef bool (*TxLoggerCondition)(
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
         void *, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
-        ThreadInitFunc, ThreadDeinitFunc, void (*ThreadExitPrintStats)(ThreadVars *, void *));
+        ThreadInitFunc, ThreadDeinitFunc);
 
 void OutputTxLoggerRegister (void);
 

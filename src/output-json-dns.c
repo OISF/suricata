@@ -672,12 +672,12 @@ void JsonDnsLogRegister (void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
             JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit, NULL);
+            LogDnsLogThreadDeinit);
 }
 
 void JsonDoh2LogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
             JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit, NULL);
+            LogDnsLogThreadDeinit);
 }

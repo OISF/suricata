@@ -454,8 +454,7 @@ void JsonAnomalyLogRegister (void)
             JsonAnomalyLogInitCtxSub, JsonAnomalyLogger, JsonAnomalyLogCondition,
             JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit);
 
-    OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN,
-        JsonAnomalyTxLogger, JsonAnomalyLogThreadInit,
-        JsonAnomalyLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME, "eve-log.anomaly",
+            JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN, JsonAnomalyTxLogger,
+            JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit);
 }

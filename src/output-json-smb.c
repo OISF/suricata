@@ -80,7 +80,7 @@ void JsonSMBLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSMBLog", "eve-log.smb", SMBLogInitSub,
-            ALPROTO_SMB, JsonSMBLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            ALPROTO_SMB, JsonSMBLogger, JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("SMB JSON logger registered.");
 }
