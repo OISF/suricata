@@ -87,6 +87,8 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  */
 static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 {
+    SCLogWarning("The syslog output has been deprecated and will be removed in Suricata 9.0.");
+
     OutputInitResult result = { NULL, false };
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {

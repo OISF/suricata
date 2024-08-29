@@ -80,6 +80,9 @@ Deprecations
 ~~~~~~~~~~~~
 - The ``http-log`` output is now deprecated and will be removed in Suricata 9.0.
 - The ``tls-log`` output is now deprecated and will be removed in Suricata 9.0.
+- The ``syslog`` output is now deprecated and will be removed in
+  Suricata 9.0. Note that this is the standalone ``syslog`` output and
+  does affect the ``eve`` outputs ability to send to syslog.
 
 Upgrading 6.0 to 7.0
 --------------------
