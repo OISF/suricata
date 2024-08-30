@@ -133,17 +133,12 @@ void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *co
         enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
 
-void OutputRegisterStatsModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
-void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name,
-    OutputInitSubFunc InitFunc,
-    StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterStatsModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit);
+void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, StatsLogger StatsLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
