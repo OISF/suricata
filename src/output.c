@@ -87,7 +87,6 @@ typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
     OutputGetActiveCountFunc ActiveCntFunc;
 
     TAILQ_ENTRY(RootLogger_) entries;
@@ -777,24 +776,8 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&active_loggers);
-    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
-    while (logger && thread_store_node) {
-        if (logger->ThreadExitPrintStats != NULL) {
-            logger->ThreadExitPrintStats(tv, thread_store_node->thread_data);
-        }
-        logger = TAILQ_NEXT(logger, entries);
-        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
-    }
-}
-
-void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats,
-    OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
+void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
     BUG_ON(LogFunc == NULL);
 
@@ -804,7 +787,6 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     }
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
-    logger->ThreadExitPrintStats = ThreadExitPrintStats;
     logger->LogFunc = LogFunc;
     logger->ActiveCntFunc = ActiveCntFunc;
     TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
@@ -818,7 +800,6 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
     }
     logger->ThreadInit = reg->ThreadInit;
     logger->ThreadDeinit = reg->ThreadDeinit;
-    logger->ThreadExitPrintStats = reg->ThreadExitPrintStats;
     logger->LogFunc = reg->LogFunc;
     logger->ActiveCntFunc = reg->ActiveCntFunc;
     TAILQ_INSERT_TAIL(&active_loggers, logger, entries);
