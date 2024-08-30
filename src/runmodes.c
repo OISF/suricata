@@ -637,9 +637,8 @@ static void SetupOutput(
         filedata_logger_count++;
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
-        OutputRegisterFileLogger(module->logger_id, module->name,
-            module->FileLogFunc, output_ctx, module->ThreadInit,
-            module->ThreadDeinit, module->ThreadExitPrintStats);
+        OutputRegisterFileLogger(module->logger_id, module->name, module->FileLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         file_logger_count++;
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);

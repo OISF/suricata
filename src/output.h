@@ -116,11 +116,9 @@ void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name,
         int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
 
-void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name,
-    OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,
         OutputInitFunc InitFunc, FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,

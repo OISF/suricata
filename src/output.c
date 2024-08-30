@@ -391,11 +391,9 @@ void OutputRegisterTxSubModule(LoggerId id, const char *parent_name, const char 
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    FileLogger FileLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(FileLogFunc == NULL)) {
         goto error;
@@ -414,7 +412,6 @@ void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
     module->FileLogFunc = FileLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("File logger \"%s\" registered.", name);
