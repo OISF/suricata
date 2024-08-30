@@ -41,7 +41,7 @@ bool g_filedata_logger_enabled = false;
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFiledataLogger_ {
     FiledataLogger LogFunc;
-    OutputCtx *output_ctx;
+    void *initdata;
     struct OutputFiledataLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -52,14 +52,14 @@ typedef struct OutputFiledataLogger_ {
 static OutputFiledataLogger *list = NULL;
 
 int OutputRegisterFiledataLogger(LoggerId id, const char *name, FiledataLogger LogFunc,
-        OutputCtx *output_ctx, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+        void *initdata, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFiledataLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
@@ -218,7 +218,7 @@ TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadDa
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
