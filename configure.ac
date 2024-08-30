@@ -318,6 +318,17 @@
         CFLAGS="$CFLAGS -std=gnu99"
     fi
 
+    # check if our target supports -Wl,--start-group
+    AC_MSG_CHECKING(for -Wl,--start-group support)
+    OLDFLAGS=$LDFLAGS
+    LDFLAGS="-Wl,--start-group,--end-group"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[
+            have_linker_group_support=yes
+            AC_MSG_RESULT(yes)],
+            [AC_MSG_RESULT(no)])
+    LDFLAGS=$OLDFLAGS
+    AM_CONDITIONAL([LINKER_SUPPORTS_GROUP], [test "x$have_linker_group_support" = "xyes"])
+
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage gnu __thread support)
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
@@ -1255,6 +1266,13 @@
     AC_ARG_ENABLE(pfring,
            AS_HELP_STRING([--enable-pfring], [Enable Native PF_RING support]),[enable_pfring=$enableval],[enable_pfring=no])
     AS_IF([test "x$enable_pfring" = "xyes"], [
+        if test "x$enable_shared" = "xno"; then
+            echo
+            echo "   ERROR! pfring cannot be enabled with --disable-shared"
+            echo
+            exit 1
+        fi
+
         AC_DEFINE([HAVE_PFRING],[1],(PF_RING support enabled))
 
         #We have to set CFLAGS for AC_COMPILE_IFELSE as it doesn't pay attention to CPPFLAGS
@@ -1326,6 +1344,15 @@
             fi
         fi
     ])
+
+    if test "x$enable_pfring" = "xyes"; then
+        AM_CONDITIONAL([BUILD_PFRING], [true])
+        pfring_comment=""
+    else
+        AM_CONDITIONAL([BUILD_PFRING], [false])
+        pfring_comment="#"
+    fi
+    AC_SUBST([pfring_comment])
 
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
@@ -2126,7 +2153,7 @@ fi
     cargo_version_output=$($CARGO --version)
     cargo_version=$(echo "$cargo_version_output" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
 
-    MIN_RUSTC_VERSION="1.63.0" # MSRV
+    MIN_RUSTC_VERSION="1.67.1" # MSRV
     AC_MSG_CHECKING(for Rust version $MIN_RUSTC_VERSION or newer)
     AS_VERSION_COMPARE([$rustc_version], [$MIN_RUSTC_VERSION],
         [
@@ -2270,6 +2297,15 @@ fi
         AC_MSG_CHECKING(for -Wunused-macros support)
         OCFLAGS=$CFLAGS
         CFLAGS="$CFLAGS -Wunused-macros"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                    [[]])],
+                AC_MSG_RESULT([yes]),
+                [AC_MSG_RESULT([no])
+                CFLAGS="$OCFLAGS"])
+        # check if our compiler supports -Wimplicit-int-float-conversion
+        AC_MSG_CHECKING(for -Wimplicit-int-float-conversion)
+        OCFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -Wimplicit-int-float-conversion"
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
                     [[]])],
                 AC_MSG_RESULT([yes]),
@@ -2471,6 +2507,8 @@ AC_CONFIG_FILES(libsuricata-config)
 AC_CONFIG_FILES(examples/plugins/c-json-filetype/Makefile)
 AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
+AC_CONFIG_FILES(plugins/Makefile)
+AC_CONFIG_FILES(plugins/pfring/Makefile)
 
 AC_OUTPUT
 

@@ -66,6 +66,9 @@
         "payload": {
             "type": "string"
         },
+        "payload_length": {
+            "type": "integer"
+        },
         "payload_printable": {
             "type": "string"
         },
@@ -996,6 +999,9 @@
         },
         "dns": {
             "type": "object",
+            "required": [
+                "version"
+            ],
             "properties": {
                 "aa": {
                     "type": "boolean"
@@ -1031,6 +1037,7 @@
                     "type": "string"
                 },
                 "version": {
+                    "description": "The version of this EVE DNS event",
                     "type": "integer"
                 },
                 "opcode": {
@@ -1058,6 +1065,9 @@
                             },
                             "ttl": {
                                 "type": "integer"
+                            },
+                            "soa": {
+                                "$ref": "#/$defs/dns.soa"
                             },
                             "srv": {
                                 "type": "object",
@@ -1101,7 +1111,44 @@
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
                 },
+                "additionals": {
+                    "$ref": "#/$defs/dns.additionals"
+                },
                 "query": {
+                    "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "rrtype": {
+                                "type": "string"
+                            },
+                            "tx_id": {
+                                "type": "integer"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "z": {
+                                "type": "boolean"
+                            },
+                            "opcode": {
+                                "description": "DNS opcode as an integer",
+                                "type": "integer"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "queries": {
+                    "$comment": "EVE DNS v3 style query logging.",
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -1172,6 +1219,9 @@
                         },
                         "authorities": {
                             "$ref": "#/$defs/dns.authorities"
+                        },
+                        "additionals": {
+                            "$ref": "#/$defs/dns.additionals"
                         }
                     },
                     "additionalProperties": false
@@ -1226,6 +1276,13 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "SOA": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/dns.soa"
                             }
                         },
                         "SRV": {
@@ -1506,7 +1563,7 @@
                                 "class_name": {
                                     "type": "string"
                                 },
-                                "multiple" : {
+                                "multiple": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
@@ -1628,7 +1685,7 @@
                                 "status_extended_meaning": {
                                     "type": "string"
                                 },
-                                "multiple" : {
+                                "multiple": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
@@ -2318,6 +2375,366 @@
                 }
             },
             "additionalProperties": false
+        },
+        "ldap": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "operation": {
+                            "type": "string"
+                        },
+                        "message_id": {
+                            "type": "integer"
+                        },
+                        "search_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "base_object": {
+                                    "type": "string"
+                                },
+                                "scope": {
+                                    "type": "integer"
+                                },
+                                "deref_alias": {
+                                    "type": "integer"
+                                },
+                                "size_limit": {
+                                    "type": "integer"
+                                },
+                                "time_limit": {
+                                    "type": "integer"
+                                },
+                                "types_online": {
+                                    "type": "boolean"
+                                },
+                                "attributes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "bind_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "version": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "sasl": {
+                                    "type": "object",
+                                    "optional": "true",
+                                    "properties": {
+                                        "mechanism": {
+                                            "type": "string"
+                                        },
+                                        "credentials": {
+                                            "type": "string",
+                                            "optional": "true"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "modify_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "object": {
+                                    "type": "string"
+                                },
+                                "changes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "operation": {
+                                                "type": "string"
+                                            },
+                                            "modification": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "attribute_type": {
+                                                        "type": "string"
+                                                    },
+                                                    "attribute_values": {
+                                                        "type": "array",
+                                                        "minItems": 1,
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "add_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "attributes": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "values": {
+                                                "type": "array",
+                                                "minItems": 1,
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "del_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "dn": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "mod_dn_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "new_rdn": {
+                                    "type": "string"
+                                },
+                                "delete_old_rdn": {
+                                    "type": "boolean"
+                                },
+                                "new_superior": {
+                                    "type": "string",
+                                    "optional": "true"
+                                }
+                            }
+                        },
+                        "compare_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "entry": {
+                                    "type": "string"
+                                },
+                                "attribute_value_assertion": {
+                                    "type": "object",
+                                    "properties": {
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "abandon_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "message_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "extended_request": {
+                            "type": "object",
+                            "optional": "true",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "optional": "true"
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "responses": {
+                    "type": "array",
+                    "optional": "true",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "search_result_done": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "bind_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    },
+                                    "server_sasl_creds": {
+                                        "type": "string",
+                                        "optional": "true"
+                                    }
+                                }
+                            },
+                            "modify_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "add_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "del_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "mod_dn_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "compare_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "extended_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "result_code": {
+                                        "type": "string"
+                                    },
+                                    "matched_dn": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "intermediate_response": {
+                                "type": "object",
+                                "optional": "true",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         "metadata": {
             "type": "object",
@@ -4174,6 +4591,9 @@
                                     "description": "Errors encountered parsing DNS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "doh2": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "enip_tcp": {
                                     "description": "Errors encounterd parsing ENIP/TCP",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4218,6 +4638,14 @@
                                 "krb5_udp": {
                                     "description":
                                             "Errors encountered parsing Kerberos v5/UDP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ldap_tcp": {
+                                    "description": "Errors encountered parsing LDAP/TCP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "ldap_udp": {
+                                    "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "modbus": {
@@ -4332,6 +4760,9 @@
                                     "description": "Number of flows for DNS/UDP protocol",
                                     "type": "integer"
                                 },
+                                "doh2": {
+                                    "type": "integer"
+                                },
                                 "enip_tcp": {
                                     "description": "Number of flows for ENIP/TCP",
                                     "type": "integer"
@@ -4382,6 +4813,14 @@
                                 },
                                 "krb5_udp": {
                                     "description": "Number of flows for Kerberos v5/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_tcp": {
+                                    "description": "Number of flows for LDAP/TCP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_udp": {
+                                    "description": "Number of flows LDAP/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
@@ -4497,6 +4936,9 @@
                                     "description": "Number of transactions for DNS/UDP protocol",
                                     "type": "integer"
                                 },
+                                "doh2": {
+                                    "type": "integer"
+                                },
                                 "enip_tcp": {
                                     "description": "Number of transactions for ENIP/TCP",
                                     "type": "integer"
@@ -4541,6 +4983,14 @@
                                 "krb5_udp": {
                                     "description":
                                             "Number of transactions for Kerberos v5/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_tcp": {
+                                    "description": "Number of transactions for LDAP/TCP protocol",
+                                    "type": "integer"
+                                },
+                                "ldap_udp": {
+                                    "description": "Number of transactions for LDAP/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
@@ -5588,36 +6038,51 @@
                     "type": "object",
                     "properties": {
                         "active": {
+                            "description": "Number of currently active flows",
                             "type": "integer"
                         },
                         "emerg_mode_entered": {
+                            "description": "Number of times emergency mode was entered",
                             "type": "integer"
                         },
                         "emerg_mode_over": {
+                            "description": "Number of times recovery was made from emergency mode",
                             "type": "integer"
                         },
                         "get_used": {
+                            "description": "Number of reused flows from the hash table in case memcap was reached and spare pool was empty",
                             "type": "integer"
                         },
                         "get_used_eval": {
+                            "description":
+                                    "Number of attempts at getting a flow directly from the hash",
                             "type": "integer"
                         },
                         "get_used_eval_busy": {
+                            "description":
+                                    "Number of times a flow was found in the hash but the lock for hash bucket could not be obtained",
                             "type": "integer"
                         },
                         "get_used_eval_reject": {
+                            "description":
+                                    "Number of flows that were evaluated but rejected from reuse as they were still alive/active",
                             "type": "integer"
                         },
                         "get_used_failed": {
+                            "description":
+                                    "Number of times retrieval of flow from hash was attempted but was unsuccessful",
                             "type": "integer"
                         },
                         "icmpv4": {
+                            "description": "Number of ICMPv4 flows",
                             "type": "integer"
                         },
                         "icmpv6": {
+                            "description": "Number of ICMPv6 flows",
                             "type": "integer"
                         },
                         "memcap": {
+                            "description": "Number of times memcap was reached for flows",
                             "type": "integer"
                         },
                         "memcap_exception_policy": {
@@ -5626,21 +6091,27 @@
                             "$ref": "#/$defs/exceptionPolicy"
                         },
                         "memuse": {
+                            "description": "Memory currently in use by the flows",
                             "type": "integer"
                         },
                         "spare": {
+                            "description": "Number of flows in the spare pool",
                             "type": "integer"
                         },
                         "tcp": {
+                            "description": "Number of TCP flows",
                             "type": "integer"
                         },
                         "tcp_reuse": {
+                            "description": "Number of TCP flows that were reused as they seemed to share the same flow tuple",
                             "type": "integer"
                         },
                         "total": {
+                            "description": "Total number of flows",
                             "type": "integer"
                         },
                         "udp": {
+                            "description": "Number of UDP flows",
                             "type": "integer"
                         },
                         "end": {
@@ -6139,6 +6610,20 @@
                     },
                     "additionalProperties": false
                 },
+                "client_alpns": {
+                    "description": "TLS client ALPN field(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "server_alpns": {
+                    "description": "TLS server ALPN field(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "fingerprint": {
                     "type": "string"
                 },
@@ -6279,6 +6764,33 @@
         }
     },
     "$defs": {
+        "dns.soa": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "integer"
+                },
+                "minimum": {
+                    "type": "integer"
+                },
+                "mname": {
+                    "type": "string"
+                },
+                "refresh": {
+                    "type": "integer"
+                },
+                "retry": {
+                    "type": "integer"
+                },
+                "rname": {
+                    "type": "string"
+                },
+                "serial": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
         "dns.authorities": {
             "type": "array",
             "minItems": 1,
@@ -6298,31 +6810,45 @@
                         "type": "integer"
                     },
                     "soa": {
-                        "type": "object",
-                        "properties": {
-                            "expire": {
-                                "type": "integer"
+                        "$ref": "#/$defs/dns.soa"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "dns.additionals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "rdata": {
+                        "type": "string"
+                    },
+                    "rrname": {
+                        "type": "string"
+                    },
+                    "rrtype": {
+                        "type": "string"
+                    },
+                    "ttl": {
+                        "type": "integer"
+                    },
+                    "opt": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "integer"
+                                },
+                                "data": {
+                                    "type": "string"
+                                }
                             },
-                            "minimum": {
-                                "type": "integer"
-                            },
-                            "mname": {
-                                "type": "string"
-                            },
-                            "refresh": {
-                                "type": "integer"
-                            },
-                            "retry": {
-                                "type": "integer"
-                            },
-                            "rname": {
-                                "type": "string"
-                            },
-                            "serial": {
-                                "type": "integer"
-                            }
-                        },
-                        "additionalProperties": false
+                            "additionalProperties": false
+                        }
                     }
                 },
                 "additionalProperties": false

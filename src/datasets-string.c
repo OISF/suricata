@@ -55,7 +55,7 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
 
     strlcpy(out, (const char *)encoded_data, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 int StringSet(void *dst, void *src)
@@ -96,6 +96,12 @@ uint32_t StringHash(void *s)
     }
 
     return hash;
+}
+
+uint32_t StringGetLength(void *s)
+{
+    StringType *str = s;
+    return str->len;
 }
 
 // base data stays in hash

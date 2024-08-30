@@ -93,7 +93,6 @@
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
-#include "source-pfring.h"
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
 #include "source-napatech.h"
@@ -369,6 +368,7 @@ void GlobalsInitPreConfig(void)
 void GlobalsDestroy(void)
 {
     SCInstance *suri = &suricata;
+    ThresholdDestroy();
     HostShutdown();
     HTPFreeConfig();
     HTPAtExitPrintStats();
@@ -386,6 +386,7 @@ void GlobalsDestroy(void)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
+    OutputTxShutdown();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -393,6 +394,7 @@ void GlobalsDestroy(void)
     FeatureTrackingRelease();
     SCProtoNameRelease();
     TimeDeinit();
+    SigTableCleanup();
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
@@ -918,9 +920,6 @@ void RegisterAllModules(void)
     /* netmap */
     TmModuleReceiveNetmapRegister();
     TmModuleDecodeNetmapRegister();
-    /* pfring */
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
     /* dag file */
     TmModuleReceiveErfFileRegister();
     TmModuleDecodeErfFileRegister();
@@ -992,17 +991,15 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
-    } else if (runmode == RUNMODE_PFRING) {
-        /* FIXME add backward compat support */
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
-                SCLogError("Failed to set pfring.live-interface");
-                SCReturnInt(TM_ECODE_FAILED);
+    } else if (runmode == RUNMODE_PLUGIN) {
+        if (strcmp(suricata.capture_plugin_name, "pfring") == 0) {
+            /* Special handling for pfring. */
+            if (strlen(pcap_dev)) {
+                if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
+                    SCLogError("Failed to set pfring.live-interface");
+                    SCReturnInt(TM_ECODE_FAILED);
+                }
             }
-        } else {
-            /* not an error condition if we have a 1.0 config */
-            LiveBuildDeviceList("pfring");
         }
 #ifdef HAVE_DPDK
     } else if (runmode == RUNMODE_DPDK) {
@@ -1429,7 +1426,9 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
                 strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                suri->run_mode = RUNMODE_PFRING;
+                /* TODO: Which plugin? */
+                suri->run_mode = RUNMODE_PLUGIN;
+                suri->capture_plugin_name = "pfring";
                 if (optarg != NULL) {
                     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                     strlcpy(suri->pcap_dev, optarg,
@@ -1846,29 +1845,19 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 return TM_ECODE_FAILED;
             }
 #else /* not afpacket */
-            /* warn user if netmap or pf-ring are available */
-#if defined HAVE_PFRING || HAVE_NETMAP
+            /* warn user if netmap is available */
+#if defined HAVE_NETMAP
             int i = 0;
-#ifdef HAVE_PFRING
-            i++;
-#endif
 #ifdef HAVE_NETMAP
             i++;
 #endif
             SCLogWarning("faster capture "
                          "option%s %s available:"
-#ifdef HAVE_PFRING
-                         " PF_RING (--pfring-int=%s)"
-#endif
 #ifdef HAVE_NETMAP
                          " NETMAP (--netmap=%s)"
 #endif
                          ". Use --pcap=%s to suppress this warning",
                     i == 1 ? "" : "s", i == 1 ? "is" : "are"
-#ifdef HAVE_PFRING
-                    ,
-                    optarg
-#endif
 #ifdef HAVE_NETMAP
                     ,
                     optarg
@@ -2272,14 +2261,14 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
-    /* needed by FlowForceReassembly */
+    /* needed by FlowWorkToDoCleanup */
     PacketPoolInit();
 
     /* handle graceful shutdown of the flow engine, it's helper
      * threads and the packet threads */
     FlowDisableFlowManagerThread();
     TmThreadDisableReceiveThreads();
-    FlowForceReassembly();
+    FlowWorkToDoCleanup();
     TmThreadDisablePacketThreads();
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();
@@ -2470,10 +2459,10 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                  * interface really is igb0 */
                 strip_trailing_plus = 1;
                 /* fall through */
+            case RUNMODE_PLUGIN:
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_AFXDP_DEV:
-            case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
                     const char *live_dev = LiveGetDeviceName(lthread);

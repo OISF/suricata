@@ -33,14 +33,14 @@ use std::ffi::CString;
 // packet in a connection. Note that there is no risk of collision with a
 // parsed packet identifier because in the protocol these are only 16 bit
 // unsigned.
-const MQTT_CONNECT_PKT_ID: u32 = std::u32::MAX;
+const MQTT_CONNECT_PKT_ID: u32 = u32::MAX;
 // Maximum message length in bytes. If the length of a message exceeds
 // this value, it will be truncated. Default: 1MB.
 static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut MQTT_MAX_TX: usize = 1024;
 
-static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
 pub enum MQTTFrameType {
@@ -142,7 +142,7 @@ impl MQTTState {
             connected: false,
             skip_request: 0,
             skip_response: 0,
-            max_msg_len: unsafe { MAX_MSG_LEN},
+            max_msg_len: unsafe { MAX_MSG_LEN },
             tx_index_completed: 0,
         }
     }
@@ -597,7 +597,14 @@ impl MQTTState {
     ) {
         let hdr = stream_slice.as_slice();
         //MQTT payload has a fixed header of 2 bytes
-        let _mqtt_hdr = Frame::new(flow, stream_slice, hdr, 2, MQTTFrameType::Header as u8, None);
+        let _mqtt_hdr = Frame::new(
+            flow,
+            stream_slice,
+            hdr,
+            2,
+            MQTTFrameType::Header as u8,
+            None,
+        );
         SCLogDebug!("mqtt_hdr Frame {:?}", _mqtt_hdr);
         let rem_length = input.header.remaining_length as usize;
         let data = &hdr[2..rem_length + 2];
@@ -701,9 +708,8 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(
-    tx: *const std::os::raw::c_void,
+    tx:  &MQTTTransaction,
 ) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, MQTTTransaction);
     if tx.toclient {
         return 1;
     }
@@ -783,7 +789,6 @@ pub unsafe extern "C" fn SCMqttRegisterParser() {
         get_state_data: rs_mqtt_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: Some(MQTTFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(MQTTFrameType::ffi_name_from_id),
     };

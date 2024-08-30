@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "rust.h"
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-string.h"
@@ -521,8 +522,8 @@ static int DatasetLoadString(Dataset *set)
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
+                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -542,8 +543,8 @@ static int DatasetLoadString(Dataset *set)
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
+                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -700,7 +701,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
-                    Md5StrCompare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    Md5StrCompare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
@@ -709,7 +711,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
-                    StringCompare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
@@ -718,7 +721,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet, Sha256StrFree,
-                    Sha256StrHash, Sha256StrCompare, load != NULL ? 1 : 0,
+                    Sha256StrHash, Sha256StrCompare, NULL, NULL, load != NULL ? 1 : 0,
                     memcap > 0 ? memcap : default_memcap,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
@@ -727,18 +730,20 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
-            set->hash = THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash,
-                    IPv4Compare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+            set->hash =
+                    THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash, IPv4Compare,
+                            NULL, NULL, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                            hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv4(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
-            set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash,
-                    IPv6Compare, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+            set->hash =
+                    THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash, IPv6Compare,
+                            NULL, NULL, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                            hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv6(set) < 0)
@@ -1007,7 +1012,7 @@ static int SaveCallback(void *ctx, const uint8_t *data, const uint32_t data_len)
     FILE *fp = ctx;
     //PrintRawDataFp(fp, data, data_len);
     if (fp) {
-        return fwrite(data, data_len, 1, fp);
+        return (int)fwrite(data, data_len, 1, fp);
     }
     return 0;
 }
@@ -1019,7 +1024,7 @@ static int Md5AsAscii(const void *s, char *out, size_t out_size)
     PrintHexString(str, sizeof(str), (uint8_t *)md5->md5, sizeof(md5->md5));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int Sha256AsAscii(const void *s, char *out, size_t out_size)
@@ -1029,7 +1034,7 @@ static int Sha256AsAscii(const void *s, char *out, size_t out_size)
     PrintHexString(str, sizeof(str), (uint8_t *)sha->sha256, sizeof(sha->sha256));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int IPv4AsAscii(const void *s, char *out, size_t out_size)
@@ -1039,7 +1044,7 @@ static int IPv4AsAscii(const void *s, char *out, size_t out_size)
     PrintInet(AF_INET, ip4->ipv4, str, sizeof(str));
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 static int IPv6AsAscii(const void *s, char *out, size_t out_size)
@@ -1060,7 +1065,7 @@ static int IPv6AsAscii(const void *s, char *out, size_t out_size)
     }
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
-    return strlen(out);
+    return (int)strlen(out);
 }
 
 void DatasetsSave(void)
@@ -1605,8 +1610,9 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
             uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
+            Base64Ecode code =
+                    DecodeBase64(decoded, (uint32_t)strlen(string), (const uint8_t *)string,
+                            (uint32_t)strlen(string), &consumed, &num_decoded, Base64ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 return -2;
             }

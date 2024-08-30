@@ -74,8 +74,9 @@ void DetectTcpmssRegister(void)
 static int DetectTcpmssMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p))
+    if (!(PacketIsTCP(p)))
         return 0;
 
     if (!(TCP_HAS_MSS(p)))
@@ -128,7 +129,8 @@ void DetectTcpmssFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (!(PacketIsTCP(p)) || PKT_IS_PSEUDOPKT(p))
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!(PacketIsTCP(p)))
         return;
 
     if (!(TCP_HAS_MSS(p)))
@@ -156,8 +158,8 @@ PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
 
 static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TCPMSS, PrefilterPacketU16Set,
-            PrefilterPacketU16Compare, PrefilterPacketTcpmssMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TCPMSS, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU16Set, PrefilterPacketU16Compare, PrefilterPacketTcpmssMatch);
 }
 
 static bool PrefilterTcpmssIsPrefilterable(const Signature *s)

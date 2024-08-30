@@ -189,7 +189,7 @@ impl ModbusState {
                                 None => {
                                     let mut tx = match self.new_tx() {
                                         Some(tx) => tx,
-                                        None => return AppLayerResult::ok(),
+                                        None => return AppLayerResult::err(),
                                     };
                                     tx.set_events_from_flags(&msg.error_flags);
                                     tx.request = Some(msg);
@@ -215,7 +215,7 @@ impl ModbusState {
                             None => {
                                 let mut tx = match self.new_tx() {
                                     Some(tx) => tx,
-                                    None => return AppLayerResult::ok(),
+                                    None => return AppLayerResult::err(),
                                 };
                                 if msg
                                     .access_type
@@ -407,7 +407,6 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         get_state_data: rs_modbus_get_state_data,
         apply_tx_config: None,
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };

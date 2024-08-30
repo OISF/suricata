@@ -27,7 +27,7 @@
 
 #include "decode.h"
 
-void DefragSetDefaultTimeout(intmax_t timeout);
+void DefragSetDefaultTimeout(int timeout);
 void DefragPolicyLoadFromConfig(void);
 int DefragPolicyGetHostTimeout(Packet *p);
 void DefragTreeDestroy(void);

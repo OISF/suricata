@@ -162,7 +162,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     dd = DetectNfsProcedureParse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
     }
 
     /* okay so far so good, lets get this into a SigMatch
@@ -171,13 +171,10 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_NFS_PROCEDURE, (SigMatchCtx *)dd,
                 g_nfs_request_buffer_id) == NULL) {
-        goto error;
+        DetectNfsProcedureFree(de_ctx, dd);
+        return -1;
     }
     return 0;
-
-error:
-    DetectNfsProcedureFree(de_ctx, dd);
-    return -1;
 }
 
 /**

@@ -75,9 +75,6 @@ void DetectIcmpIdRegister (void)
 
 static inline bool GetIcmpId(Packet *p, uint16_t *id)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return false;
-
     uint16_t pid;
     if (PacketIsICMPv4(p)) {
         switch (p->icmp_s.type) {
@@ -307,10 +304,8 @@ PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_ID,
-        PrefilterPacketIcmpIdSet,
-        PrefilterPacketIcmpIdCompare,
-        PrefilterPacketIcmpIdMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_ID, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketIcmpIdSet, PrefilterPacketIcmpIdCompare, PrefilterPacketIcmpIdMatch);
 }
 
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)

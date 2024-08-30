@@ -28,6 +28,7 @@
 
 #include "threadvars.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-parser.h"
@@ -239,6 +240,7 @@ static struct {
 typedef struct LogDnsFileCtx_ {
     uint64_t flags; /** Store mode */
     OutputJsonCtx *eve_ctx;
+    uint8_t version;
 } LogDnsFileCtx;
 
 typedef struct LogDnsLogThread_ {
@@ -246,65 +248,93 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-static JsonBuilder *JsonDNSLogQuery(void *txptr)
-{
-    JsonBuilder *queryjb = jb_new_array();
-    if (queryjb == NULL) {
-        return NULL;
-    }
-    bool has_query = false;
-
-    for (uint16_t i = 0; i < UINT16_MAX; i++) {
-        JsonBuilder *js = jb_new_object();
-        if (!SCDnsLogJsonQuery((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
-            jb_free(js);
-            break;
-        }
-        jb_close(js);
-        has_query = true;
-        jb_append_object(queryjb, js);
-        jb_free(js);
-    }
-
-    if (!has_query) {
-        jb_free(queryjb);
-        return NULL;
-    }
-
-    jb_close(queryjb);
-    return queryjb;
-}
-
-static JsonBuilder *JsonDNSLogAnswer(void *txptr)
-{
-    if (!SCDnsLogAnswerEnabled(txptr, LOG_ALL_RRTYPES)) {
-        return NULL;
-    } else {
-        JsonBuilder *js = jb_new_object();
-        SCDnsLogJsonAnswer(txptr, LOG_ALL_RRTYPES, js);
-        jb_close(js);
-        return js;
-    }
-}
-
 bool AlertJsonDns(void *txptr, JsonBuilder *js)
 {
-    bool r = false;
-    jb_open_object(js, "dns");
-    JsonBuilder *qjs = JsonDNSLogQuery(txptr);
-    if (qjs != NULL) {
-        jb_set_object(js, "query", qjs);
-        jb_free(qjs);
-        r = true;
+    return SCDnsLogJson(
+            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
+}
+
+bool AlertJsonDoh2(void *txptr, JsonBuilder *js)
+{
+    JsonBuilderMark mark = { 0, 0, 0 };
+
+    jb_get_mark(js, &mark);
+    // first log HTTP2 part
+    bool r = rs_http2_log_json(txptr, js);
+    if (!r) {
+        jb_restore_mark(js, &mark);
     }
-    JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
-    if (ajs != NULL) {
-        jb_set_object(js, "answer", ajs);
-        jb_free(ajs);
-        r = true;
+    // then log one DNS tx if any, preferring the answer
+    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    if (tx_dns == NULL) {
+        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
     }
-    jb_close(js);
-    return r;
+    bool r2 = false;
+    if (tx_dns) {
+        jb_get_mark(js, &mark);
+        r2 = AlertJsonDns(tx_dns, js);
+        if (!r2) {
+            jb_restore_mark(js, &mark);
+        }
+    }
+    return r || r2;
+}
+
+static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *alstate, void *txptr, uint64_t tx_id)
+{
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+
+    if (unlikely(jb == NULL)) {
+        return TM_ECODE_OK;
+    }
+
+    JsonBuilderMark mark = { 0, 0, 0 };
+
+    jb_get_mark(jb, &mark);
+    // first log HTTP2 part
+    bool r = rs_http2_log_json(txptr, jb);
+    if (!r) {
+        jb_restore_mark(jb, &mark);
+    }
+
+    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    if (tx_dns == NULL) {
+        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
+    }
+    bool r2 = false;
+    if (tx_dns) {
+        // mix of JsonDnsLogger
+        if (SCDnsTxIsRequest(tx_dns)) {
+            if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
+                goto out;
+            }
+        } else if (SCDnsTxIsResponse(tx_dns)) {
+            if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
+                goto out;
+            }
+        }
+
+        if (!SCDnsLogEnabled(tx_dns, td->dnslog_ctx->flags)) {
+            goto out;
+        }
+
+        jb_get_mark(jb, &mark);
+        // log DOH2 with DNS config
+        r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb);
+        if (!r2) {
+            jb_restore_mark(jb, &mark);
+        }
+    }
+out:
+    if (r || r2) {
+        OutputJsonBuilderBuffer(jb, td->ctx);
+    }
+    jb_free(jb);
+    return TM_ECODE_OK;
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
@@ -326,6 +356,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
 
         jb_open_object(jb, "dns");
+        jb_set_int(jb, "version", 2);
         if (!SCDnsLogJsonQuery(txptr, i, td->dnslog_ctx->flags, jb)) {
             jb_free(jb);
             break;
@@ -358,6 +389,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         }
 
         jb_open_object(jb, "dns");
+        jb_set_int(jb, "version", 2);
         SCDnsLogJsonAnswer(txptr, td->dnslog_ctx->flags, jb);
         jb_close(jb);
         OutputJsonBuilderBuffer(jb, td->ctx);
@@ -370,10 +402,39 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
         void *txptr, uint64_t tx_id)
 {
-    if (SCDnsTxIsRequest(txptr)) {
-        return JsonDnsLoggerToServer(tv, thread_data, p, f, alstate, txptr, tx_id);
-    } else if (SCDnsTxIsResponse(txptr)) {
-        return JsonDnsLoggerToClient(tv, thread_data, p, f, alstate, txptr, tx_id);
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+
+    if (dnslog_ctx->version == DNS_LOG_VERSION_2) {
+        if (SCDnsTxIsRequest(txptr)) {
+            return JsonDnsLoggerToServer(tv, thread_data, p, f, alstate, txptr, tx_id);
+        } else if (SCDnsTxIsResponse(txptr)) {
+            return JsonDnsLoggerToClient(tv, thread_data, p, f, alstate, txptr, tx_id);
+        }
+    } else {
+        if (SCDnsTxIsRequest(txptr)) {
+            if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
+                return TM_ECODE_OK;
+            }
+        } else if (SCDnsTxIsResponse(txptr)) {
+            if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
+                return TM_ECODE_OK;
+            }
+        }
+
+        if (!SCDnsLogEnabled(txptr, td->dnslog_ctx->flags)) {
+            return TM_ECODE_OK;
+        }
+
+        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        if (unlikely(jb == NULL)) {
+            return TM_ECODE_OK;
+        }
+
+        if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb)) {
+            OutputJsonBuilderBuffer(jb, td->ctx);
+        }
+        jb_free(jb);
     }
     return TM_ECODE_OK;
 }
@@ -472,38 +533,64 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
     }
 }
 
-static void JsonDnsCheckVersion(ConfNode *conf)
+static uint8_t GetDnsLogVersion(ConfNode *conf)
 {
     if (conf == NULL) {
-        return;
+        return DNS_LOG_VERSION_DEFAULT;
     }
 
-    static bool v1_deprecation_warned = false;
-    const ConfNode *has_version = ConfNodeLookupChild(conf, "version");
-    if (has_version != NULL) {
-        bool invalid = false;
-        intmax_t config_version;
-        if (ConfGetChildValueInt(conf, "version", &config_version)) {
-            switch(config_version) {
-                case 2:
-                    break;
-                case 1:
-                    if (!v1_deprecation_warned) {
-                        SCLogWarning("DNS EVE v1 logging has been removed, will use v2");
-                        v1_deprecation_warned = true;
-                    }
-                    break;
-                default:
-                    invalid = true;
-                    break;
-            }
-        } else {
-            invalid = true;
-        }
-        if (invalid) {
-            SCLogWarning("Invalid EVE DNS version \"%s\", will use v2", has_version->val);
-        }
+    char *version_string = NULL;
+    const ConfNode *version_node = ConfNodeLookupChild(conf, "version");
+    if (version_node != NULL) {
+        version_string = version_node->val;
     }
+
+    if (version_string == NULL) {
+        version_string = getenv("SURICATA_EVE_DNS_VERSION");
+    }
+
+    if (version_string == NULL) {
+        return DNS_LOG_VERSION_DEFAULT;
+    }
+
+    uint8_t version;
+    if (StringParseUint8(&version, 10, 0, version_string) >= 0) {
+        return version;
+    }
+    SCLogWarning("Failed to parse EVE DNS log version of \"%s\"", version_string);
+    return DNS_LOG_VERSION_DEFAULT;
+}
+
+static uint8_t JsonDnsCheckVersion(ConfNode *conf)
+{
+    const uint8_t default_version = DNS_LOG_VERSION_DEFAULT;
+    const uint8_t version = GetDnsLogVersion(conf);
+    static bool v1_deprecation_warned = false;
+    static bool v2_deprecation_warned = false;
+
+    switch (version) {
+        case 3:
+            return DNS_LOG_VERSION_3;
+        case 2:
+            if (!v2_deprecation_warned) {
+                SCLogNotice("DNS EVE v2 logging has been deprecated and will be removed in "
+                            "Suricata 9.0");
+                v2_deprecation_warned = true;
+            }
+            return DNS_LOG_VERSION_2;
+        case 1:
+            if (!v1_deprecation_warned) {
+                SCLogWarning("DNS EVE v1 logging has been removed, will use v2");
+                v1_deprecation_warned = true;
+            }
+            return default_version;
+        default:
+            SCLogWarning(
+                    "Invalid EVE DNS version %d, will use v%d", version, DNS_LOG_VERSION_DEFAULT);
+            return default_version;
+    }
+
+    return default_version;
 }
 
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
@@ -548,10 +635,6 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
 
-    /* As only a single version of logging is supported, this exists to warn about
-     * unsupported versions. */
-    JsonDnsCheckVersion(conf);
-
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogDnsFileCtx *dnslog_ctx = SCCalloc(1, sizeof(LogDnsFileCtx));
@@ -560,6 +643,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     dnslog_ctx->eve_ctx = ojc;
+    dnslog_ctx->version = JsonDnsCheckVersion(conf);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -588,5 +672,12 @@ void JsonDnsLogRegister (void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
             JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
+            LogDnsLogThreadDeinit, NULL);
+}
+
+void JsonDoh2LogRegister(void)
+{
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
+            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
             LogDnsLogThreadDeinit, NULL);
 }

@@ -37,6 +37,7 @@
 #include "detect-flow.h"
 #include "detect-config.h"
 #include "detect-flowbits.h"
+#include "app-layer-events.h"
 
 #include "util-port-interval-tree.h"
 #include "util-profiling.h"
@@ -406,6 +407,9 @@ void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         bool app_decoder_events)
 {
+    if (!(PKT_IS_PSEUDOPKT(p))) {
+        (*mask) |= SIG_MASK_REQUIRE_REAL_PKT;
+    }
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0) {
         SCLogDebug("packet has payload");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
@@ -417,7 +421,8 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
-    if (p->events.cnt > 0 || app_decoder_events != 0 || p->app_layer_events != NULL) {
+    if (p->events.cnt > 0 || app_decoder_events != 0 ||
+            (p->app_layer_events != NULL && p->app_layer_events->cnt)) {
         SCLogDebug("packet/flow has events set");
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
@@ -442,6 +447,10 @@ static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
 
+    if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
+            SIG_FLAG_REQUIRE_PACKET) {
+        s->mask |= SIG_MASK_REQUIRE_REAL_PKT;
+    }
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
         SCLogDebug("sig requires payload");
@@ -527,9 +536,12 @@ static int SignatureCreateMask(Signature *s)
                 }
                 break;
             }
+            case DETECT_DECODE_EVENT:
+                // fallthrough
+            case DETECT_STREAM_EVENT:
+                // fallthrough
             case DETECT_AL_APP_LAYER_EVENT:
-                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
-                break;
+                // fallthrough
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
@@ -2206,8 +2218,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 #ifdef PROFILE_RULES
     SCProfilingRuleInitCounters(de_ctx);
 #endif
-
-    ThresholdHashAllocate(de_ctx);
 
     if (!DetectEngineMultiTenantEnabled()) {
         VarNameStoreActivate();

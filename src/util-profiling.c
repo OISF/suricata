@@ -36,6 +36,7 @@
 #include "util-byte.h"
 #include "util-profiling-locks.h"
 #include "util-conf.h"
+#include "util-path.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -172,11 +173,14 @@ SCProfilingInit(void)
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-                const char *log_dir;
-                log_dir = ConfigGetLogDirectory();
-
-                snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
-                        "%s/%s", log_dir, filename);
+                if (PathIsAbsolute(filename)) {
+                    strlcpy(profiling_packets_file_name, filename,
+                            sizeof(profiling_packets_file_name));
+                } else {
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
+                            "%s/%s", log_dir, filename);
+                }
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
@@ -196,14 +200,20 @@ SCProfilingInit(void)
                 if (filename == NULL) {
                     filename = "packet_profile.csv";
                 }
+                if (PathIsAbsolute(filename)) {
+                    profiling_csv_file_name = SCStrdup(filename);
+                    if (unlikely(profiling_csv_file_name == NULL)) {
+                        FatalError("out of memory");
+                    }
+                } else {
+                    profiling_csv_file_name = SCMalloc(PATH_MAX);
+                    if (unlikely(profiling_csv_file_name == NULL)) {
+                        FatalError("out of memory");
+                    }
 
-                const char *log_dir = ConfigGetLogDirectory();
-
-                profiling_csv_file_name = SCMalloc(PATH_MAX);
-                if (unlikely(profiling_csv_file_name == NULL)) {
-                    FatalError("out of memory");
+                    const char *log_dir = ConfigGetLogDirectory();
+                    snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
                 }
-                snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
                 packet_profile_csv_fp = fopen(profiling_csv_file_name, "w");
                 if (packet_profile_csv_fp == NULL) {
@@ -1195,9 +1205,8 @@ PktProfiling *SCProfilePacketStart(void)
 {
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
     if (sample % rate == 0)
-        return SCCalloc(1, sizeof(PktProfiling));
-    else
-        return NULL;
+        return SCCalloc(1, sizeof(PktProfiling) + ALPROTO_MAX * sizeof(PktProfilingAppData));
+    return NULL;
 }
 
 /* see if we want to profile rules for this packet */
@@ -1432,6 +1441,7 @@ void SCProfilingInit(void)
     SC_ATOMIC_INIT(profiling_rules_active);
     SC_ATOMIC_INIT(samples);
     intmax_t rate_v = 0;
+    ConfNode *conf;
 
     (void)ConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
@@ -1447,6 +1457,11 @@ void SCProfilingInit(void)
             SCLogInfo("profiling runs for every %luth packet", rate + 1);
         else
             SCLogInfo("profiling runs for every packet");
+    }
+
+    conf = ConfGetNode("profiling.rules");
+    if (ConfNodeChildValueIsTrue(conf, "active")) {
+        SC_ATOMIC_SET(profiling_rules_active, 1);
     }
 }
 
@@ -1466,7 +1481,6 @@ int SCProfileRuleStart(Packet *p)
         p->flags |= PKT_PROFILE;
         return 1;
     }
-
     return 0;
 }
 

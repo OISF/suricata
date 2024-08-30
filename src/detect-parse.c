@@ -74,7 +74,7 @@
 #include "util-validate.h"
 
 /* Table with all filehandler registrations */
-DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];
+DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 {
@@ -124,7 +124,7 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 }
 
 /* Table with all SigMatch registrations */
-SigTableElmt sigmatch_table[DETECT_TBLSIZE];
+SigTableElmt *sigmatch_table = NULL;
 
 extern bool sc_set_caps;
 
@@ -383,7 +383,7 @@ bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
 
 bool SigMatchStrictEnabled(const enum DetectKeywordId id)
 {
-    if (id < DETECT_TBLSIZE) {
+    if ((int)id < DETECT_TBLSIZE) {
         return ((sigmatch_table[id].flags & SIGMATCH_STRICT_PARSING) != 0);
     }
     return false;
@@ -1742,20 +1742,9 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
         return -1;
     }
 
-    /* since AppProtoEquals is quite permissive wrt dcerpc and smb, make sure
-     * we refuse `alert dcerpc ... smb.share; content...` explicitly. */
-    if (alproto == ALPROTO_SMB && s->alproto == ALPROTO_DCERPC) {
-        SCLogError("can't set rule app proto to %s: already set to %s", AppProtoToString(alproto),
-                AppProtoToString(s->alproto));
-        return -1;
-    }
-
-    if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, alproto)) {
-        if (AppProtoEquals(alproto, s->alproto)) {
-            // happens if alproto = HTTP_ANY and s->alproto = HTTP1
-            // in this case, we must keep the most restrictive HTTP1
-            alproto = s->alproto;
-        } else {
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        alproto = AppProtoCommon(s->alproto, alproto);
+        if (alproto == ALPROTO_FAILED) {
             SCLogError("can't set rule app proto to %s: already set to %s",
                     AppProtoToString(alproto), AppProtoToString(s->alproto));
             return -1;

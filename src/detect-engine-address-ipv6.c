@@ -49,7 +49,7 @@
  * \retval 1 If a < b.
  * \retval 0 Otherwise, i.e. a >= b.
  */
-int AddressIPv6Lt(Address *a, Address *b)
+int AddressIPv6Lt(const Address *a, const Address *b)
 {
     int i = 0;
 
@@ -87,7 +87,7 @@ int AddressIPv6LtU32(uint32_t *a, uint32_t *b)
  * \retval 1 If a > b.
  * \retval 0 Otherwise, i.e. a <= b.
  */
-int AddressIPv6Gt(Address *a, Address *b)
+int AddressIPv6Gt(const Address *a, const Address *b)
 {
     int i = 0;
 
@@ -125,7 +125,7 @@ int AddressIPv6GtU32(uint32_t *a, uint32_t *b)
  * \retval 1 If a == b.
  * \retval 0 Otherwise.
  */
-int AddressIPv6Eq(Address *a, Address *b)
+int AddressIPv6Eq(const Address *a, const Address *b)
 {
     int i = 0;
 
@@ -159,7 +159,7 @@ int AddressIPv6EqU32(uint32_t *a, uint32_t *b)
  * \retval 1 If a <= b.
  * \retval 0 Otherwise, i.e. a > b.
  */
-int AddressIPv6Le(Address *a, Address *b)
+int AddressIPv6Le(const Address *a, const Address *b)
 {
 
     if (AddressIPv6Eq(a, b) == 1)
@@ -191,7 +191,7 @@ int AddressIPv6LeU32(uint32_t *a, uint32_t *b)
  * \retval 1 If a >= b.
  * \retval 0 Otherwise, i.e. a < b.
  */
-int AddressIPv6Ge(Address *a, Address *b)
+int AddressIPv6Ge(const Address *a, const Address *b)
 {
 
     if (AddressIPv6Eq(a, b) == 1)

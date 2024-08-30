@@ -319,3 +319,16 @@ Example::
 
   alert tls any any -> any any (msg:"cert chain not value"; \
  tls.cert_chain_len:!2; classtype:misc-activity; sid:4; rev:1;)
+
+tls.alpn
+--------
+
+Matches on the ALPN buffers.
+
+Example::
+
+  alert tls any any -> any any (msg:"TLS ALPN test"; \
+    tls.alpn; content:"http/1.1"; sid:1;)
+
+``tls.alpn`` is a sticky buffer.
+

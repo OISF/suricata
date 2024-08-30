@@ -22,7 +22,7 @@ use crate::dhcp::parser::*;
 use std;
 use std::ffi::CString;
 
-static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
 static DHCP_MIN_FRAME_LEN: u32 = 232;
 
@@ -298,7 +298,6 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_state_data     : rs_dhcp_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
-        truncate           : None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
     };

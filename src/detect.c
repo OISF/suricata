@@ -150,7 +150,13 @@ static void DetectRun(ThreadVars *th_v,
                 goto end;
             }
             const TcpSession *ssn = p->flow->protoctx;
-            if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
+            bool setting_nopayload = p->flow->alparser &&
+                                     AppLayerParserStateIssetFlag(
+                                             p->flow->alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
+                                     !(p->flags & PKT_NOPAYLOAD_INSPECTION);
+            // we may be right after disabling app-layer (ssh)
+            if (ssn &&
+                    ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0 || setting_nopayload)) {
                 // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
                 DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
                 // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
@@ -696,7 +702,7 @@ static inline void DetectRunPrefilterPkt(
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
     /* run the prefilter engines */
-    Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
+    Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags, scratch->pkt_mask);
     /* create match list if we have non-pf and/or pf */
     if (det_ctx->non_pf_store_cnt || det_ctx->pmq.rule_id_array_cnt) {
 #ifdef PROFILING
@@ -825,8 +831,6 @@ next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
-
-        det_ctx->flags = 0;
         continue;
     }
 }
@@ -1052,6 +1056,24 @@ DetectRunTxSortHelper(const void *a, const void *b)
 #define TRACE_SID_TXS(sid,txs,...)
 #endif
 
+// Get inner transaction for engine
+void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
+{
+    if (unlikely(alproto == ALPROTO_DOH2)) {
+        if (engine_alproto == ALPROTO_DNS) {
+            // need to get the dns tx pointer
+            tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
+        } else if (engine_alproto != ALPROTO_HTTP2) {
+            // incompatible engine->alproto with flow alproto
+            tx_ptr = NULL;
+        }
+    } else if (engine_alproto != alproto) {
+        // incompatible engine->alproto with flow alproto
+        tx_ptr = NULL;
+    }
+    return tx_ptr;
+}
+
 /** \internal
  *  \brief inspect a rule against a transaction
  *
@@ -1112,12 +1134,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
-            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
-            /* special case: file_data on 'alert tcp' will have engines
-             * in the list that are not for us. */
-            if (unlikely(skip_engine)) {
-                engine = engine->next;
-                continue;
+            void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
+            if (tx_ptr == NULL) {
+                if (engine->alproto != ALPROTO_UNKNOWN) {
+                    /* special case: file_data on 'alert tcp' will have engines
+                     * in the list that are not for us. */
+                    engine = engine->next;
+                    continue;
+                } else {
+                    tx_ptr = tx->tx_ptr;
+                }
             }
 
             /* engines are sorted per progress, except that the one with
@@ -1152,7 +1178,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
                 match = engine->v2.Callback(
-                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
@@ -1404,8 +1430,7 @@ static void DetectRunTx(ThreadVars *tv,
     const int tx_end_state = AppLayerParserGetStateProgressCompletionStatus(alproto, flow_flags);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
-    AppLayerGetTxIterState state;
-    memset(&state, 0, sizeof(state));
+    AppLayerGetTxIterState state = { 0 };
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
@@ -1613,9 +1638,9 @@ static void DetectRunTx(ThreadVars *tv,
 
             StoreDetectFlags(&tx, flow_flags, ipproto, alproto, new_detect_flags);
         }
-next:
         InspectionBufferClean(det_ctx);
 
+    next:
         if (!ires.has_next)
             break;
     }
@@ -1731,7 +1756,6 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                     DetectRunPostMatch(tv, det_ctx, p, s);
 
                     uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
-                    det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);

@@ -1,4 +1,3 @@
 !/Makefile.in
 *.o
 *.so
-*.la

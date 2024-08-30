@@ -25,9 +25,12 @@ rfb.secresult
 
 Match on the value of the RFB security result, e.g. ``ok``, ``fail``, ``toomany`` or ``unknown``.
 
+rfb.secresult uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
 Examples::
 
   rfb.secresult: ok;
+  rfb.secresult: !0;
   rfb.secresult: unknown;
 
 

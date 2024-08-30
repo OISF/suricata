@@ -891,11 +891,8 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
             SCLogDebug!("TRANS response {:?}", rd);
 
             // see if we have a stored fid
-            let fid = match state.ssn2vec_map.remove(
-                    &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)) {
-                Some(f) => f,
-                None => Vec::new(),
-            };
+            let fid = state.ssn2vec_map.remove(
+                    &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)).unwrap_or_default();
             SCLogDebug!("FID {:?}", fid);
 
             let mut frankenfid = fid.to_vec();

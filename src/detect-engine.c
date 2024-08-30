@@ -200,6 +200,11 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     } else {
         direction = 1;
     }
+    // every DNS or HTTP2 can be accessed from DOH2
+    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
+        AppLayerInspectEngineRegisterInternal(
+                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetMultiData);
+    }
 
     DetectEngineAppInspectionEngine *new_engine =
             SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
@@ -1919,7 +1924,6 @@ static int DetectEngineInspectRulePayloadMatches(
         if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
             pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, p);
             if (pmatch) {
-                det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
                 *alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
             }
         }
@@ -2493,13 +2497,20 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         goto error;
     }
 
+    de_ctx->sm_types_prefilter = SCCalloc(DETECT_TBLSIZE, sizeof(bool));
+    if (de_ctx->sm_types_prefilter == NULL) {
+        goto error;
+    }
+    de_ctx->sm_types_silent_error = SCCalloc(DETECT_TBLSIZE, sizeof(bool));
+    if (de_ctx->sm_types_silent_error == NULL) {
+        goto error;
+    }
     if (DetectEngineCtxLoadConf(de_ctx) == -1) {
         goto error;
     }
 
     SigGroupHeadHashInit(de_ctx);
     MpmStoreInit(de_ctx);
-    ThresholdHashInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
@@ -2613,10 +2624,12 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     MpmStoreFree(de_ctx);
     DetectParseDupSigHashFree(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
-    ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);
+
+    if (de_ctx->filedata_config)
+        SCFree(de_ctx->filedata_config);
 
     DetectEngineFreeFastPatternList(de_ctx);
     SCClassConfDeInitContext(de_ctx);
@@ -2625,6 +2638,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SigGroupCleanup(de_ctx);
 
     SpmDestroyGlobalThreadCtx(de_ctx->spm_global_thread_ctx);
+    SCFree(de_ctx->sm_types_prefilter);
+    SCFree(de_ctx->sm_types_silent_error);
 
     MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
 
@@ -3517,6 +3532,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
 
     SCFree(det_ctx);
+
+    ThresholdCacheThreadFree();
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)

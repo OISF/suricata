@@ -27,6 +27,8 @@
 #include "suricata-common.h"
 #include "flow.h"
 
+#define FLOW_SPARE_POOL_BLOCK_SIZE 100
+
 void FlowSparePoolInit(void);
 void FlowSparePoolDestroy(void);
 void FlowSparePoolUpdate(uint32_t size);

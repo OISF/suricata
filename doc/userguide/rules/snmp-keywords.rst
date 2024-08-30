@@ -6,6 +6,8 @@ snmp.version
 
 SNMP protocol version (integer). Expected values are 1, 2 (for version 2c) or 3.
 
+snmp.version uses an, :ref:` unsigned 32-bits integer <rules-integer-keywords>`.
+
 Syntax::
 
  snmp.version:[op]<number>
@@ -68,6 +70,8 @@ snmp.pdu_type
 -------------
 
 SNMP PDU type (integer).
+
+snmp.pdu_type uses an, :ref:` unsigned 32-bits integer <rules-integer-keywords>`.
 
 Common values are:
 

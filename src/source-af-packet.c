@@ -257,7 +257,6 @@ static int AFPBypassCallback(Packet *p);
 static int AFPXDPBypassCallback(Packet *p);
 #endif
 
-#define MAX_MAPS 32
 /**
  * \brief Structure to hold thread specific variables.
  */

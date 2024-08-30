@@ -47,8 +47,9 @@
  *\brief Regex for parsing our detection_filter options
  */
 #define PARSE_REGEX                                                                                \
-    "^\\s*(track|count|seconds)\\s+(by_src|by_dst|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|" \
-    "by_dst|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|\\d+)\\s*$"
+    "^\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+" \
+    "(by_src|"                                                                                     \
+    "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*$"
 
 static DetectParseRegex parse_regex;
 
@@ -158,6 +159,8 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
             df->track = TRACK_DST;
         if (strncasecmp(args[i], "by_src", strlen("by_src")) == 0)
             df->track = TRACK_SRC;
+        if (strncasecmp(args[i], "by_flow", strlen("by_flow")) == 0)
+            df->track = TRACK_FLOW;
         if (strncasecmp(args[i], "count", strlen("count")) == 0)
             count_pos = i + 1;
         if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
@@ -375,7 +378,7 @@ static int DetectDetectionFilterTestSig1(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -415,7 +418,7 @@ static int DetectDetectionFilterTestSig1(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }
@@ -432,7 +435,7 @@ static int DetectDetectionFilterTestSig2(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -477,7 +480,7 @@ static int DetectDetectionFilterTestSig2(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }
@@ -490,7 +493,7 @@ static int DetectDetectionFilterTestSig3(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -553,7 +556,7 @@ static int DetectDetectionFilterTestSig3(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }

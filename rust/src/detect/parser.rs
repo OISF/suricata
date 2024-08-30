@@ -22,12 +22,27 @@ use nom7::character::complete::multispace0;
 use nom7::sequence::preceded;
 use nom7::IResult;
 
+#[derive(Debug)]
+pub enum ResultValue {
+    Numeric(u64),
+    String(String),
+}
+
 static WHITESPACE: &str = " \t\r\n";
 /// Parse all characters up until the next whitespace character.
 pub fn take_until_whitespace(input: &str) -> IResult<&str, &str, RuleParseError<&str>> {
     nom7::bytes::complete::is_not(WHITESPACE)(input)
 }
 
+// Parsed as a u64 so the value can be validated against a u32 min/max if needed.
+pub fn parse_var(input: &str) -> IResult<&str, ResultValue, RuleParseError<&str>> {
+    let (input, value) = parse_token(input)?;
+    if let Ok(val) = value.parse::<u64>() {
+        Ok((input, ResultValue::Numeric(val)))
+    } else {
+        Ok((input, ResultValue::String(value.to_string())))
+    }
+}
 /// Parse the next token ignoring leading whitespace.
 ///
 /// A token is the next sequence of chars until a terminating character. Leading whitespace

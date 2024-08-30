@@ -32,11 +32,10 @@ use std::ffi::CString;
 use std::io::Read;
 use std::os::raw::{c_char, c_int, c_void};
 
-static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 
-// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum WebSocketFrameType {
     Header,
@@ -366,7 +365,6 @@ pub unsafe extern "C" fn rs_websocket_register_parser() {
         get_state_data: rs_websocket_get_state_data,
         apply_tx_config: None,
         flags: 0, // do not accept gaps as there is no good way to resync
-        truncate: None,
         get_frame_id_by_name: Some(WebSocketFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(WebSocketFrameType::ffi_name_from_id),
     };

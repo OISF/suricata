@@ -76,9 +76,6 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
 {
     uint16_t seqn;
 
-    if (PKT_IS_PSEUDOPKT(p))
-        return false;
-
     if (PacketIsICMPv4(p)) {
         switch (p->icmp_s.type) {
             case ICMP_ECHOREPLY:
@@ -136,6 +133,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
 static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     uint16_t seqn;
 
     if (!GetIcmpSeq(p, &seqn))
@@ -251,6 +249,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
                 de_ctx, s, DETECT_ICMP_SEQ, (SigMatchCtx *)iseq, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
@@ -277,8 +276,9 @@ void DetectIcmpSeqFree (DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketIcmpSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    const PrefilterPacketHeaderCtx *ctx = pectx;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
+    const PrefilterPacketHeaderCtx *ctx = pectx;
     uint16_t seqn;
 
     if (!GetIcmpSeq(p, &seqn))
@@ -309,10 +309,8 @@ PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ,
-        PrefilterPacketIcmpSeqSet,
-        PrefilterPacketIcmpSeqCompare,
-        PrefilterPacketIcmpSeqMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketIcmpSeqSet, PrefilterPacketIcmpSeqCompare, PrefilterPacketIcmpSeqMatch);
 }
 
 static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)

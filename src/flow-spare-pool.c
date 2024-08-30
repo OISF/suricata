@@ -40,7 +40,6 @@ typedef struct FlowSparePool {
 } FlowSparePool;
 
 static uint32_t flow_spare_pool_flow_cnt = 0;
-uint32_t flow_spare_pool_block_size = 100;
 static FlowSparePool *flow_spare_pool = NULL;
 static SCMutex flow_spare_pool_m = SCMUTEX_INITIALIZER;
 
@@ -65,8 +64,7 @@ static bool FlowSparePoolUpdateBlock(FlowSparePool *p)
 {
     DEBUG_VALIDATE_BUG_ON(p == NULL);
 
-    for (uint32_t i = p->queue.len; i < flow_spare_pool_block_size; i++)
-    {
+    for (uint32_t i = p->queue.len; i < FLOW_SPARE_POOL_BLOCK_SIZE; i++) {
         Flow *f = FlowAlloc();
         if (f == NULL)
             return false;
@@ -84,8 +82,8 @@ static void Validate(FlowSparePool *top, const uint32_t target)
     }
 
     assert(top->queue.len >= 1);
-    //if (top->next != NULL)
-    //    assert(top->next->queue.len == flow_spare_pool_block_size);
+    // if (top->next != NULL)
+    //     assert(top->next->queue.len == FLOW_SPARE_POOL_BLOCK_SIZE);
 
     uint32_t cnt = 0;
     for (FlowSparePool *p = top; p != NULL; p = p->next)
@@ -106,7 +104,7 @@ void FlowSparePoolReturnFlow(Flow *f)
     DEBUG_VALIDATE_BUG_ON(flow_spare_pool == NULL);
 
     /* if the top is full, get a new block */
-    if (flow_spare_pool->queue.len >= flow_spare_pool_block_size) {
+    if (flow_spare_pool->queue.len >= FLOW_SPARE_POOL_BLOCK_SIZE) {
         FlowSparePool *p = FlowSpareGetPool();
         DEBUG_VALIDATE_BUG_ON(p == NULL);
         p->next = flow_spare_pool;
@@ -128,10 +126,10 @@ void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
     SCMutexLock(&flow_spare_pool_m);
     flow_spare_pool_flow_cnt += fqp->len;
     if (flow_spare_pool != NULL) {
-        if (p->queue.len == flow_spare_pool_block_size) {
+        if (p->queue.len == FLOW_SPARE_POOL_BLOCK_SIZE) {
             /* full block insert */
 
-            if (flow_spare_pool->queue.len < flow_spare_pool_block_size) {
+            if (flow_spare_pool->queue.len < FLOW_SPARE_POOL_BLOCK_SIZE) {
                 p->next = flow_spare_pool->next;
                 flow_spare_pool->next = p;
                 p = NULL;
@@ -143,7 +141,7 @@ void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
         } else {
             /* incomplete block insert */
 
-            if (p->queue.len + flow_spare_pool->queue.len <= flow_spare_pool_block_size) {
+            if (p->queue.len + flow_spare_pool->queue.len <= FLOW_SPARE_POOL_BLOCK_SIZE) {
                 FlowQueuePrivateAppendPrivate(&flow_spare_pool->queue, &p->queue);
                 /* free 'p' outside of lock below */
             } else {
@@ -182,7 +180,7 @@ FlowQueuePrivate FlowSpareGetFromPool(void)
     }
 
     /* top if full or its the only block we have */
-    if (flow_spare_pool->queue.len >= flow_spare_pool_block_size || flow_spare_pool->next == NULL) {
+    if (flow_spare_pool->queue.len >= FLOW_SPARE_POOL_BLOCK_SIZE || flow_spare_pool->next == NULL) {
         FlowSparePool *p = flow_spare_pool;
         flow_spare_pool = p->next;
         DEBUG_VALIDATE_BUG_ON(flow_spare_pool_flow_cnt < p->queue.len);
@@ -222,7 +220,7 @@ void FlowSparePoolUpdate(uint32_t size)
     if (todo < 0) {
         uint32_t to_remove = (uint32_t)(todo * -1) / 10;
         while (to_remove) {
-            if (to_remove < flow_spare_pool_block_size)
+            if (to_remove < FLOW_SPARE_POOL_BLOCK_SIZE)
                 return;
 
             FlowSparePool *p = NULL;
@@ -246,7 +244,7 @@ void FlowSparePoolUpdate(uint32_t size)
     } else if (todo > 0) {
         FlowSparePool *head = NULL, *tail = NULL;
 
-        uint32_t blocks = ((uint32_t)todo / flow_spare_pool_block_size) + 1;
+        uint32_t blocks = ((uint32_t)todo / FLOW_SPARE_POOL_BLOCK_SIZE) + 1;
 
         uint32_t flow_cnt = 0;
         for (uint32_t cnt = 0; cnt < blocks; cnt++) {
