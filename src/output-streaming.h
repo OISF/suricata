@@ -43,7 +43,7 @@ typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
         uint64_t tx_id, uint8_t flags);
 
 int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger LogFunc,
-        OutputCtx *, enum OutputStreamingType, ThreadInitFunc ThreadInit,
+        void *initdata, enum OutputStreamingType, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
 
 void OutputStreamingLoggerRegister (void);
