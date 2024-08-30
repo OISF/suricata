@@ -640,7 +640,7 @@ static void SetupOutput(
         file_logger_count++;
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
-        OutputRegisterStreamingLogger(module->logger_id, module->name, module->StreamingLogFunc,
+        SCOutputRegisterStreamingLogger(module->logger_id, module->name, module->StreamingLogFunc,
                 output_ctx, module->stream_type, module->ThreadInit, module->ThreadDeinit);
     } else {
         SCLogError("Unknown logger type: name=%s", module->name);
