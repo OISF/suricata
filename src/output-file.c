@@ -43,7 +43,7 @@ bool g_file_logger_enabled = false;
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFileLogger_ {
     FileLogger LogFunc;
-    OutputCtx *output_ctx;
+    void *initdata;
     struct OutputFileLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -53,15 +53,15 @@ typedef struct OutputFileLogger_ {
 
 static OutputFileLogger *list = NULL;
 
-int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
-        OutputCtx *output_ctx, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc, void *initdata,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFileLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
@@ -182,7 +182,7 @@ TmEcode OutputFileLogThreadInit(ThreadVars *tv, OutputFileLoggerThreadData **dat
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
