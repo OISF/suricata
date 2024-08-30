@@ -501,8 +501,8 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, StreamingLogger StreamingLogFunc,
-        enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
+        OutputInitFunc InitFunc, SCStreamingLogger StreamingLogFunc,
+        enum SCOutputStreamingType stream_type, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(StreamingLogFunc == NULL)) {

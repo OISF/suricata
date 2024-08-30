@@ -62,3 +62,18 @@ Transaction logger can be registered with the
    :language: c
    :start-at: /** \brief Register a transaction logger
    :end-at: );
+
+Stream Logging
+~~~~~~~~~~~~~~
+
+Stream logging allows for the logging of streaming data such as TCP
+reassembled data and HTTP body data. The provided log function will be
+called each time a new chunk of data is available.
+
+Stream loggers can be registered with the
+``SCOutputRegisterStreamingLogger`` function:
+
+.. literalinclude:: ../../../../../src/output-streaming.h
+   :language: c
+   :start-at: /** \brief Register a streaming logger
+   :end-at: );
