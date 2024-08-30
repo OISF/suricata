@@ -77,3 +77,14 @@ Stream loggers can be registered with the
    :language: c
    :start-at: /** \brief Register a streaming logger
    :end-at: );
+
+File Logging
+~~~~~~~~~~~~
+
+File loggers can be registered with the ``SCOutputRegisterFileLogger``
+function:
+
+.. literalinclude:: ../../../../../src/output-file.h
+   :language: c
+   :start-at: /** \brief Register a file logger
+   :end-at: );
