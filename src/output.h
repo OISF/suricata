@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,7 +68,7 @@ typedef struct OutputModule_ {
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
-    FileLogger FileLogFunc;
+    SCFileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
     FlowLogger FlowLogFunc;
     SCStreamingLogger StreamingLogFunc;
@@ -116,7 +116,7 @@ void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name,
         ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
-        const char *conf_name, OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
+        const char *conf_name, OutputInitSubFunc InitFunc, SCFileLogger FileLogFunc,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,

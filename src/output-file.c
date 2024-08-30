@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,7 +42,7 @@ bool g_file_logger_enabled = false;
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFileLogger_ {
-    FileLogger LogFunc;
+    SCFileLogger LogFunc;
     void *initdata;
     struct OutputFileLogger_ *next;
     const char *name;
@@ -53,7 +53,7 @@ typedef struct OutputFileLogger_ {
 
 static OutputFileLogger *list = NULL;
 
-int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc, void *initdata,
+int SCOutputRegisterFileLogger(LoggerId id, const char *name, SCFileLogger LogFunc, void *initdata,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFileLogger *op = SCCalloc(1, sizeof(*op));
