@@ -48,20 +48,20 @@ typedef struct OutputStreamingLoggerThreadData_ {
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputStreamingLogger_ {
-    StreamingLogger LogFunc;
+    SCStreamingLogger LogFunc;
     void *initdata;
     struct OutputStreamingLogger_ *next;
     const char *name;
     LoggerId logger_id;
-    enum OutputStreamingType type;
+    enum SCOutputStreamingType type;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
 } OutputStreamingLogger;
 
 static OutputStreamingLogger *list = NULL;
 
-int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger LogFunc,
-        void *initdata, enum OutputStreamingType type, ThreadInitFunc ThreadInit,
+int SCOutputRegisterStreamingLogger(LoggerId id, const char *name, SCStreamingLogger LogFunc,
+        void *initdata, enum SCOutputStreamingType type, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
     OutputStreamingLogger *op = SCCalloc(1, sizeof(*op));
@@ -98,7 +98,7 @@ typedef struct StreamerCallbackData_ {
     OutputLoggerThreadStore *store;
     ThreadVars *tv;
     Packet *p;
-    enum OutputStreamingType type;
+    enum SCOutputStreamingType type;
 } StreamerCallbackData;
 
 static int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)

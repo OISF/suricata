@@ -54,7 +54,7 @@ void LogTcpDataLogRegister (void) {
 
 typedef struct LogTcpDataFileCtx_ {
     LogFileCtx *file_ctx;
-    enum OutputStreamingType type;
+    enum SCOutputStreamingType type;
     const char *log_dir;
     int file;
     int dir;

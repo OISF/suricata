@@ -71,10 +71,10 @@ typedef struct OutputModule_ {
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
     FlowLogger FlowLogFunc;
-    StreamingLogger StreamingLogFunc;
+    SCStreamingLogger StreamingLogFunc;
     StatsLogger StatsLogFunc;
     AppProto alproto;
-    enum OutputStreamingType stream_type;
+    enum SCOutputStreamingType stream_type;
     int tc_log_progress;
     int ts_log_progress;
 
@@ -128,8 +128,8 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name, const cha
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, StreamingLogger StreamingLogFunc,
-        enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
+        OutputInitFunc InitFunc, SCStreamingLogger StreamingLogFunc,
+        enum SCOutputStreamingType stream_type, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterStatsModule(LoggerId id, const char *name, const char *conf_name,
