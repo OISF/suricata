@@ -37,12 +37,12 @@ noinst_HEADERS = \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-register.h \
-	app-layer-rfb.h \
 	app-layer-smb.h \
 	app-layer-smtp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
+	app-layer-imap.h \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \
@@ -98,7 +98,6 @@ noinst_HEADERS = \
 	detect-bytejump.h \
 	detect-bytemath.h \
 	detect-bytetest.h \
-	detect-cipservice.h \
 	detect-classtype.h \
 	detect-config.h \
 	detect-content.h \
@@ -131,6 +130,7 @@ noinst_HEADERS = \
 	detect-engine-file.h \
 	detect-engine-frame.h \
 	detect-engine.h \
+	detect-engine-helper.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
 	detect-engine-mpm.h \
@@ -147,24 +147,6 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
-	detect-enip-command.h \
-	detect-enip-status.h \
-	detect-enip-product-name.h \
-	detect-enip-protocol-version.h \
-	detect-enip-cip-attribute.h \
-	detect-enip-cip-instance.h \
-	detect-enip-cip-class.h \
-	detect-enip-cip-extendedstatus.h \
-	detect-enip-cip-status.h \
-	detect-enip-service-name.h \
-	detect-enip-capabilities.h \
-	detect-enip-revision.h \
-	detect-enip-identity-status.h \
-	detect-enip-state.h \
-	detect-enip-serial.h \
-	detect-enip-product-code.h \
-	detect-enip-device-type.h \
-	detect-enip-vendor-id.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -259,23 +241,6 @@ noinst_HEADERS = \
 	detect-quic-version.h \
 	detect-quic-cyu-hash.h \
 	detect-quic-cyu-string.h \
-	detect-mqtt-connack-sessionpresent.h \
-	detect-mqtt-connect-clientid.h \
-	detect-mqtt-connect-flags.h \
-	detect-mqtt-connect-password.h \
-	detect-mqtt-connect-protocol-string.h \
-	detect-mqtt-connect-username.h \
-	detect-mqtt-connect-willmessage.h \
-	detect-mqtt-connect-willtopic.h \
-	detect-mqtt-flags.h \
-	detect-mqtt-protocol-version.h \
-	detect-mqtt-publish-message.h \
-	detect-mqtt-publish-topic.h \
-	detect-mqtt-qos.h \
-	detect-mqtt-reason-code.h \
-	detect-mqtt-subscribe-topic.h \
-	detect-mqtt-type.h \
-	detect-mqtt-unsubscribe-topic.h \
 	detect-msg.h \
 	detect-nfs-procedure.h \
 	detect-nfs-version.h \
@@ -293,9 +258,6 @@ noinst_HEADERS = \
 	detect-replace.h \
 	detect-requires.h \
 	detect-rev.h \
-	detect-rfb-name.h \
-	detect-rfb-secresult.h \
-	detect-rfb-sectype.h \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
@@ -309,13 +271,6 @@ noinst_HEADERS = \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
 	detect-smb-version.h \
-	detect-snmp-community.h \
-	detect-snmp-pdu_type.h \
-	detect-snmp-usm.h \
-	detect-snmp-version.h \
-	detect-dhcp-leasetime.h \
-	detect-dhcp-rebinding-time.h \
-	detect-dhcp-renewal-time.h \
 	detect-ssh-hassh.h \
 	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-server-string.h \
@@ -339,6 +294,7 @@ noinst_HEADERS = \
 	detect-template.h \
 	detect-template-rust-buffer.h \
 	detect-threshold.h \
+	detect-tls-alpn.h \
 	detect-tls-cert-fingerprint.h \
 	detect-tls-cert-issuer.h \
 	detect-tls-cert-serial.h \
@@ -355,6 +311,7 @@ noinst_HEADERS = \
 	detect-tls-version.h \
 	detect-tls-random.h \
 	detect-tos.h \
+	detect-transform-base64.h \
 	detect-transform-casechange.h \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
@@ -373,7 +330,6 @@ noinst_HEADERS = \
 	detect-urilen.h \
 	detect-within.h \
 	detect-xbits.h \
-	detect-websocket.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
@@ -465,7 +421,6 @@ noinst_HEADERS = \
 	runmode-nfq.h \
 	runmode-pcap-file.h \
 	runmode-pcap.h \
-	runmode-pfring.h \
 	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
@@ -487,7 +442,6 @@ noinst_HEADERS = \
 	source-pcap-file.h \
 	source-pcap-file-helper.h \
 	source-pcap.h \
-	source-pfring.h \
 	source-windivert.h \
 	source-windivert-prototypes.h \
 	stream.h \
@@ -664,12 +618,12 @@ libsuricata_c_a_SOURCES = \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-register.c \
-	app-layer-rfb.c \
 	app-layer-smb.c \
 	app-layer-smtp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
+	app-layer-imap.c \
 	conf.c \
 	conf-yaml-loader.c \
 	counters.c \
@@ -725,7 +679,6 @@ libsuricata_c_a_SOURCES = \
 	detect-bytemath.c \
 	detect-bytetest.c \
 	detect.c \
-	detect-cipservice.c \
 	detect-classtype.c \
 	detect-config.c \
 	detect-content.c \
@@ -758,6 +711,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-event.c \
 	detect-engine-file.c \
 	detect-engine-frame.c \
+	detect-engine-helper.c \
 	detect-engine-iponly.c \
 	detect-engine-loader.c \
 	detect-engine-mpm.c \
@@ -774,24 +728,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
-	detect-enip-command.c \
-	detect-enip-status.c \
-	detect-enip-product-name.c \
-	detect-enip-protocol-version.c \
-	detect-enip-cip-attribute.c \
-	detect-enip-cip-instance.c \
-	detect-enip-cip-class.c \
-	detect-enip-cip-extendedstatus.c \
-	detect-enip-cip-status.c \
-	detect-enip-service-name.c \
-	detect-enip-capabilities.c \
-	detect-enip-revision.c \
-	detect-enip-identity-status.c \
-	detect-enip-state.c \
-	detect-enip-serial.c \
-	detect-enip-product-code.c \
-	detect-enip-device-type.c \
-	detect-enip-vendor-id.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
@@ -884,23 +820,6 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-version.c \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \
-	detect-mqtt-connack-sessionpresent.c \
-	detect-mqtt-connect-clientid.c \
-	detect-mqtt-connect-flags.c \
-	detect-mqtt-connect-password.c \
-	detect-mqtt-connect-protocol-string.c \
-	detect-mqtt-connect-username.c \
-	detect-mqtt-connect-willmessage.c \
-	detect-mqtt-connect-willtopic.c \
-	detect-mqtt-flags.c \
-	detect-mqtt-protocol-version.c \
-	detect-mqtt-publish-message.c \
-	detect-mqtt-publish-topic.c \
-	detect-mqtt-qos.c \
-	detect-mqtt-reason-code.c \
-	detect-mqtt-subscribe-topic.c \
-	detect-mqtt-type.c \
-	detect-mqtt-unsubscribe-topic.c \
 	detect-msg.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
@@ -918,9 +837,6 @@ libsuricata_c_a_SOURCES = \
 	detect-replace.c \
 	detect-requires.c \
 	detect-rev.c \
-	detect-rfb-name.c \
-	detect-rfb-secresult.c \
-	detect-rfb-sectype.c \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
@@ -934,13 +850,6 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
 	detect-smb-version.c \
-	detect-snmp-community.c \
-	detect-snmp-pdu_type.c \
-	detect-snmp-usm.c \
-	detect-snmp-version.c \
-	detect-dhcp-leasetime.c \
-	detect-dhcp-rebinding-time.c \
-	detect-dhcp-renewal-time.c \
 	detect-ssh-hassh.c \
 	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-server-string.c \
@@ -965,6 +874,7 @@ libsuricata_c_a_SOURCES = \
 	detect-template-rust-buffer.c \
 	detect-threshold.c \
 	detect-tls.c \
+	detect-tls-alpn.c \
 	detect-tls-cert-fingerprint.c \
 	detect-tls-cert-issuer.c \
 	detect-tls-certs.c \
@@ -980,6 +890,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-version.c \
 	detect-tls-random.c \
 	detect-tos.c \
+	detect-transform-base64.c \
 	detect-transform-casechange.c \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
@@ -998,7 +909,6 @@ libsuricata_c_a_SOURCES = \
 	detect-urilen.c \
 	detect-within.c \
 	detect-xbits.c \
-	detect-websocket.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
@@ -1089,7 +999,6 @@ libsuricata_c_a_SOURCES = \
 	runmode-nfq.c \
 	runmode-pcap.c \
 	runmode-pcap-file.c \
-	runmode-pfring.c \
 	runmodes.c \
 	runmode-unittests.c \
 	runmode-unix-socket.c \
@@ -1109,7 +1018,6 @@ libsuricata_c_a_SOURCES = \
 	source-pcap-file.c \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
-	source-pfring.c \
 	source-windivert.c \
 	stream.c \
 	stream-tcp.c \
@@ -1261,8 +1169,6 @@ EXTRA_DIST = \
 	tests/detect-http2.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
-	tests/detect-snmp-pdu_type.c \
-	tests/detect-snmp-version.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
@@ -1320,7 +1226,13 @@ suricata_SOURCES = main.c
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+# rust library depends also on c
+if LINKER_SUPPORTS_GROUP
+LDADD_GENERIC = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group" $(HTP_LDADD) $(RUST_LDADD)
+else
+LDADD_GENERIC = libsuricata_c.a $(RUST_SURICATA_LIB) libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+endif
+suricata_LDADD = $(LDADD_GENERIC)
 suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 
 if BUILD_SHARED_LIBRARY
@@ -1356,9 +1268,9 @@ uninstall-local:
 if BUILD_FUZZTARGETS
 
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
-LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+LDADD_FUZZ = $(LDADD_GENERIC)
 
-fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
+fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c tests/fuzz/confyaml.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerprotodetectgetproto_LDADD = $(LDADD_FUZZ)
 fuzz_applayerprotodetectgetproto_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
@@ -1370,7 +1282,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 
-fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c
+fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c tests/fuzz/confyaml.c
 fuzz_applayerparserparse_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_applayerparserparse_LDADD = $(LDADD_FUZZ)
 fuzz_applayerparserparse_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
@@ -1418,7 +1330,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 
-fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c
+fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c tests/fuzz/confyaml.c
 fuzz_sigpcap_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_LDADD = $(LDADD_FUZZ)
 fuzz_sigpcap_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
@@ -1431,7 +1343,7 @@ endif
 nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
 
 if HAS_FUZZPCAP
-fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c
+fuzz_sigpcap_aware_SOURCES = tests/fuzz/fuzz_sigpcap_aware.c tests/fuzz/confyaml.c
 fuzz_sigpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_sigpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
 fuzz_sigpcap_aware_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
@@ -1443,7 +1355,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_sigpcap_aware_SOURCES = force-cxx-linking.cxx
 
-fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c
+fuzz_predefpcap_aware_SOURCES = tests/fuzz/fuzz_predefpcap_aware.c tests/fuzz/confyaml.c
 fuzz_predefpcap_aware_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_predefpcap_aware_LDADD = $(LDADD_FUZZ) -lfuzzpcap
 fuzz_predefpcap_aware_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)

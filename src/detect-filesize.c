@@ -122,24 +122,18 @@ static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
 static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
-    DetectU64Data *fsd = NULL;
-
-    fsd = DetectU64Parse(str);
+    DetectU64Data *fsd = DetectU64Parse(str);
     if (fsd == NULL)
-        goto error;
+        SCReturnInt(-1);
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FILESIZE, (SigMatchCtx *)fsd, g_file_match_list_id) == NULL) {
-        goto error;
+        DetectFilesizeFree(de_ctx, fsd);
+        SCReturnInt(-1);
     }
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_SIZE);
     SCReturnInt(0);
-
-error:
-    if (fsd != NULL)
-        DetectFilesizeFree(de_ctx, fsd);
-    SCReturnInt(-1);
 }
 
 /**

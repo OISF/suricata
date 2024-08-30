@@ -107,8 +107,12 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
-        if (engine->alproto != alproto)
+        // based on flow alproto, and engine, we get right tx_ptr
+        void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, alproto, engine->alproto, flow_flags);
+        if (tx_ptr == NULL) {
+            // incompatible engine->alproto with flow alproto
             goto next;
+        }
         if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
         if (tx->tx_progress > engine->ctx.tx_min_progress) {
@@ -118,8 +122,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         PREFILTER_PROFILING_START(det_ctx);
-        engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx->tx_ptr, tx->tx_id,
-                tx->tx_data_ptr, flow_flags);
+        engine->cb.PrefilterTx(
+                det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id, tx->tx_data_ptr, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
@@ -140,8 +144,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
-        Packet *p, const uint8_t flags)
+void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t flags, const SignatureMask mask)
 {
     SCEnter();
 #if 0
@@ -159,9 +163,11 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         /* run packet engines */
         PrefilterEngine *engine = sgh->pkt_engines;
         do {
-            PREFILTER_PROFILING_START(det_ctx);
-            engine->cb.Prefilter(det_ctx, p, engine->pectx);
-            PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            if ((engine->ctx.pkt_mask & mask) == engine->ctx.pkt_mask) {
+                PREFILTER_PROFILING_START(det_ctx);
+                engine->cb.Prefilter(det_ctx, p, engine->pectx);
+                PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            }
 
             if (engine->is_last)
                 break;
@@ -199,10 +205,8 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
     SCReturn;
 }
 
-int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name)
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
+        SignatureMask mask, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
@@ -215,6 +219,7 @@ int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->Prefilter = PrefilterFunc;
     e->pectx = pectx;
     e->Free = FreeFunc;
+    e->pkt_mask = mask;
 
     if (sgh->init->pkt_engines == NULL) {
         sgh->init->pkt_engines = e;
@@ -234,9 +239,7 @@ int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name)
+        PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
@@ -449,6 +452,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
+            e->ctx.pkt_mask = el->pkt_mask;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
@@ -473,6 +477,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
+            e->ctx.pkt_mask = el->pkt_mask;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
@@ -877,8 +882,8 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, M
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendEngine(de_ctx, sgh, PrefilterMpmPkt,
-        pectx, PrefilterMpmPktFree, mpm_reg->pname);
+    int r = PrefilterAppendEngine(
+            de_ctx, sgh, PrefilterMpmPkt, 0, pectx, PrefilterMpmPktFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }

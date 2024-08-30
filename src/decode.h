@@ -77,9 +77,6 @@ enum PktSrcEnum {
 #ifdef HAVE_DPDK
 #include "source-dpdk.h"
 #endif
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
-#include "source-pfring.h"
-#endif
 #ifdef HAVE_AF_XDP
 #include "source-af-xdp.h"
 #endif
@@ -355,10 +352,10 @@ typedef struct PktProfiling_ {
 
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingData flowworker[PROFILE_FLOWWORKER_SIZE];
-    PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
     PktProfilingLoggerData logger[LOGGER_SIZE];
     uint64_t proto_detect;
+    PktProfilingAppData app[];
 } PktProfiling;
 
 #endif /* PROFILING */
@@ -545,11 +542,6 @@ typedef struct Packet_
 #endif
 #ifdef HAVE_NETMAP
         NetmapPacketVars netmap_v;
-#endif
-#ifdef HAVE_PFRING
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
-        PfringPacketVars pfring_v;
-#endif
 #endif
 #ifdef WINDIVERT
         WinDivertPacketVars windivert_v;

@@ -303,14 +303,12 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   BIT_U8(2)    /* SYN, FIN, RST */
 #define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      BIT_U8(3)    /* URG, ECN, CWR */
 #define SIG_MASK_REQUIRE_NO_PAYLOAD         BIT_U8(4)
-// vacancy 2x
+#define SIG_MASK_REQUIRE_REAL_PKT           BIT_U8(5)
+// vacancy 1x
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       BIT_U8(7)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
-
-#define DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET         0x0001
-#define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
 #define FILE_SIG_NEED_FILE          0x01
 #define FILE_SIG_NEED_FILENAME      0x02
@@ -787,17 +785,6 @@ typedef struct DetectEngineLookupFlow_ {
     struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
-#include "detect-threshold.h"
-
-/** \brief threshold ctx */
-typedef struct ThresholdCtx_    {
-    SCMutex threshold_table_lock;                   /**< Mutex for hash table */
-
-    /** to support rate_filter "by_rule" option */
-    DetectThresholdEntry **th_entry;
-    uint32_t th_size;
-} ThresholdCtx;
-
 typedef struct SigString_ {
     char *filename;
     char *sig_str;
@@ -845,6 +832,11 @@ enum DetectEngineType
  */
 #define FLOW_STATES 2
 
+typedef struct {
+    uint32_t content_limit;
+    uint32_t content_inspect_min_size;
+} DetectFileDataCfg;
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     bool failure_fatal;
@@ -888,7 +880,6 @@ typedef struct DetectEngineCtx_ {
     HashListTable *dup_sig_hash_table;
 
     DetectEngineIPOnlyCtx io_ctx;
-    ThresholdCtx ths_ctx;
 
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
@@ -944,8 +935,6 @@ typedef struct DetectEngineCtx_ {
     /** The rule errored out due to missing requirements. */
     bool sigerror_requires;
 
-    bool filedata_config_initialized;
-
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_ctx_cnf;
 
@@ -953,11 +942,7 @@ typedef struct DetectEngineCtx_ {
     /** hash list of keywords that need thread local ctxs */
     HashListTable *keyword_hash;
 
-    struct {
-        uint32_t content_limit;
-        uint32_t content_inspect_min_size;
-        uint32_t content_inspect_window;
-    } filedata_config[ALPROTO_MAX];
+    DetectFileDataCfg *filedata_config;
 
 #ifdef PROFILE_RULES
     struct SCProfileDetectCtx_ *profile_ctx;
@@ -1029,8 +1014,8 @@ typedef struct DetectEngineCtx_ {
     /** per keyword flag indicating if a prefilter has been
      *  set for it. If true, the setup function will have to
      *  run. */
-    bool sm_types_prefilter[DETECT_TBLSIZE];
-    bool sm_types_silent_error[DETECT_TBLSIZE];
+    bool *sm_types_prefilter;
+    bool *sm_types_silent_error;
 
     /* classification config parsing */
 
@@ -1179,8 +1164,6 @@ typedef struct DetectEngineThreadCtx_ {
         uint32_t to_clear_idx;
         uint32_t *to_clear_queue;
     } multi_inspect;
-
-    uint16_t flags; /**< DETECT_ENGINE_THREAD_CTX_* flags */
 
     /* true if tx_id is set */
     bool tx_id_set;
@@ -1374,6 +1357,7 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef void (*PrefilterPktFn)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
 typedef void (*PrefilterFrameFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
         const struct Frames *frames, const struct Frame *frame);
 
@@ -1392,11 +1376,13 @@ typedef struct PrefilterEngineList_ {
 
     uint8_t frame_type;
 
+    SignatureMask pkt_mask; /**< mask for pkt engines */
+
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
     void *pectx;
 
-    void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+    PrefilterPktFn Prefilter;
     PrefilterTxFn PrefilterTx;
     PrefilterFrameFn PrefilterFrame;
 
@@ -1417,6 +1403,7 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
 
     union {
+        SignatureMask pkt_mask; /**< mask for pkt engines */
         /** Minimal Tx progress we need before running the engine. Only used
          *  with Tx Engine */
         uint8_t tx_min_progress;
@@ -1428,7 +1415,7 @@ typedef struct PrefilterEngine_ {
     void *pectx;
 
     union {
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+        PrefilterPktFn Prefilter;
         PrefilterTxFn PrefilterTx;
         PrefilterFrameFn PrefilterFrame;
     } cb;
@@ -1574,7 +1561,7 @@ typedef struct DetectEngineMasterCtx_ {
 } DetectEngineMasterCtx;
 
 /* Table with all SigMatch registrations */
-extern SigTableElmt sigmatch_table[DETECT_TBLSIZE];
+extern SigTableElmt *sigmatch_table;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
@@ -1599,6 +1586,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, cons
 int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, void *data, const char *name);
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
+void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags);
 
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);

@@ -21,6 +21,7 @@ use crate::detect::uint::{detect_parse_uint, DetectUintData};
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
 use nom7::bits::streaming::take as take_bits;
 use nom7::branch::alt;
+use nom7::bytes::complete::tag;
 use nom7::bytes::streaming::{is_a, is_not, take, take_while};
 use nom7::combinator::{complete, cond, map_opt, opt, rest, verify};
 use nom7::error::{make_error, ErrorKind};
@@ -463,8 +464,9 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 while dyn_headers.current_size > dyn_headers.max_size
                     && toremove < dyn_headers.table.len()
                 {
-                    dyn_headers.current_size -=
-                        32 + dyn_headers.table[toremove].name.len() + dyn_headers.table[toremove].value.len();
+                    dyn_headers.current_size -= 32
+                        + dyn_headers.table[toremove].name.len()
+                        + dyn_headers.table[toremove].value.len();
                     toremove += 1;
                 }
                 dyn_headers.table.drain(0..toremove);
@@ -756,6 +758,19 @@ fn http2_parse_frame_setting(i: &[u8]) -> IResult<&[u8], HTTP2FrameSettings> {
 
 pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSettings>> {
     many0(complete(http2_parse_frame_setting))(i)
+}
+
+pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
+    let (i, _) = tag("/dns-query?dns=")(i)?;
+    match base64::decode(i) {
+        Ok(dec) => {
+            // i is unused
+            return Ok((i, dec));
+        }
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
+        }
+    }
 }
 
 #[cfg(test)]

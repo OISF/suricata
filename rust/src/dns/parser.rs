@@ -141,6 +141,19 @@ fn dns_parse_answer<'a>(
                         1
                     }
                 };
+                // edge case for additional section of type=OPT
+                // with empty data (data length = 0x0000)
+                if val.data.is_empty() && val.rrtype == DNS_RECORD_TYPE_OPT {
+                    answers.push(DNSAnswerEntry {
+                        name: val.name.clone(),
+                        rrtype: val.rrtype,
+                        rrclass: val.rrclass,
+                        ttl: val.ttl,
+                        data: DNSRData::OPT(Vec::new()),
+                    });
+                    input = rem;
+                    continue;
+                }
                 let result: IResult<&'a [u8], Vec<DNSRData>> =
                     many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype)))(val.data);
                 match result {
@@ -282,6 +295,22 @@ fn dns_parse_rdata_sshfp(input: &[u8]) -> IResult<&[u8], DNSRData> {
     ))
 }
 
+fn dns_parse_rdata_opt(input: &[u8]) -> IResult<&[u8], DNSRData> {
+    let mut dns_rdata_opt_vec = Vec::new();
+    let mut i = input;
+
+    while !i.is_empty() {
+        let (j, code) = be_u16(i)?;
+        let (j, data) = length_data(be_u16)(j)?;
+        i = j;
+        dns_rdata_opt_vec.push(DNSRDataOPT {
+            code,
+            data: data.to_vec(),
+        });
+    }
+    Ok((i, DNSRData::OPT(dns_rdata_opt_vec)))
+}
+
 fn dns_parse_rdata_unknown(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::Unknown(data.to_vec())))
 }
@@ -301,6 +330,7 @@ fn dns_parse_rdata<'a>(
         DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
         DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message),
+        DNS_RECORD_TYPE_OPT => dns_parse_rdata_opt(input),
         _ => dns_parse_rdata_unknown(input),
     }
 }
@@ -332,6 +362,7 @@ pub fn dns_parse_body<'a>(
     let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
     let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
+    let (i, additionals) = dns_parse_answer(i, message, header.additional_rr as usize)?;
     Ok((
         i,
         DNSMessage {
@@ -339,6 +370,7 @@ pub fn dns_parse_body<'a>(
             queries,
             answers,
             authorities,
+            additionals,
         },
     ))
 }
@@ -478,9 +510,8 @@ mod tests {
         let (body, header) = dns_parse_header(pkt).unwrap();
         let res = dns_parse_body(body, pkt, header);
         let (rem, request) = res.unwrap();
-        // For now we have some remainder data as there is an
-        // additional record type we don't parse yet.
-        assert!(!rem.is_empty());
+        // The request should be fully parsed.
+        assert!(rem.is_empty());
 
         assert_eq!(
             request.header,
@@ -500,6 +531,89 @@ mod tests {
         assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
         assert_eq!(query.rrtype, 1);
         assert_eq!(query.rrclass, 1);
+
+        // verify additional section
+        assert_eq!(request.additionals.len(), 1);
+
+        let additional = &request.additionals[0];
+        assert_eq!(
+            additional,
+            &DNSAnswerEntry {
+                name: vec![],
+                rrtype: DNS_RECORD_TYPE_OPT,
+                rrclass: 0x1000,             // for OPT this is UDP payload size
+                ttl: 0,                      // for OPT this is extended RCODE and flags
+                data: DNSRData::OPT(vec![]), // empty rdata
+            }
+        );
+    }
+
+    #[test]
+    fn test_dns_parse_request_multi_opt() {
+        let pkt: &[u8] = &[
+            0x8d, 0x32, 0x01, 0x20, 0x00, 0x01, /* ...2. .. */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77, /* .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
+            0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
+            0x00, 0x00, 0x10, /* total rdata len: 16 */
+            /* Option Cookie */
+            0x00, 0x0a, /* Code: 10 */
+            0x00, 0x08, /* Option len: 8 */
+            0x7f, 0x86, 0xcf, 0x8b, 0x81, 0xf6, 0xf9, 0x55, /* Option NSID */
+            0x00, 0x03, /* Code: 3 */
+            0x00, 0x00, /* option len: 0 */
+        ];
+
+        let (body, header) = dns_parse_header(pkt).unwrap();
+        let res = dns_parse_body(body, pkt, header);
+        let (rem, request) = res.unwrap();
+
+        assert!(rem.is_empty());
+        assert_eq!(
+            request.header,
+            DNSHeader {
+                tx_id: 0x8d32,
+                flags: 0x0120,
+                questions: 1,
+                answer_rr: 0,
+                authority_rr: 0,
+                additional_rr: 1,
+            }
+        );
+
+        assert_eq!(request.queries.len(), 1);
+
+        let query = &request.queries[0];
+        assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
+        assert_eq!(query.rrtype, 1);
+        assert_eq!(query.rrclass, 1);
+
+        // verify additional section
+        assert_eq!(request.additionals.len(), 1);
+
+        let additional = &request.additionals[0];
+        assert_eq!(
+            additional,
+            &DNSAnswerEntry {
+                name: vec![],
+                rrtype: DNS_RECORD_TYPE_OPT,
+                rrclass: 0x1000, // for OPT this is requestor's UDP payload size
+                ttl: 0,          // for OPT this is extended RCODE and flags
+                // verify two options
+                data: DNSRData::OPT(vec![
+                    DNSRDataOPT {
+                        code: 0x000a,
+                        data: vec![0x7f, 0x86, 0xcf, 0x8b, 0x81, 0xf6, 0xf9, 0x55]
+                    },
+                    DNSRDataOPT {
+                        code: 0x0003,
+                        data: vec![]
+                    },
+                ])
+            }
+        );
     }
 
     /// Parse a DNS response.
@@ -605,9 +719,8 @@ mod tests {
         ];
 
         let (rem, response) = dns_parse_response(pkt).unwrap();
-        // For now we have some remainder data as there is an
-        // additional record type we don't parse yet.
-        assert!(!rem.is_empty());
+        // The response should be fully parsed.
+        assert!(rem.is_empty());
 
         assert_eq!(
             response.header,
@@ -639,6 +752,21 @@ mod tests {
                 expire: 1209600,
                 minimum: 86400,
             })
+        );
+
+        // verify additional section
+        assert_eq!(response.additionals.len(), 1);
+
+        let additional = &response.additionals[0];
+        assert_eq!(
+            additional,
+            &DNSAnswerEntry {
+                name: vec![],
+                rrtype: DNS_RECORD_TYPE_OPT,
+                rrclass: 0x0200,             // for OPT this is UDP payload size
+                ttl: 0,                      // for OPT this is extended RCODE and flags
+                data: DNSRData::OPT(vec![]), // no rdata
+            }
         );
     }
 
@@ -740,7 +868,7 @@ mod tests {
         ;; MSG SIZE  rcvd: 191   */
 
         let pkt: &[u8] = &[
-            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x04, 0x5f,
+            0xeb, 0x56, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x04, 0x5f,
             0x73, 0x69, 0x70, 0x04, 0x5f, 0x75, 0x64, 0x70, 0x03, 0x73, 0x69, 0x70, 0x05, 0x76,
             0x6f, 0x69, 0x63, 0x65, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
             0x6d, 0x00, 0x00, 0x21, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00,

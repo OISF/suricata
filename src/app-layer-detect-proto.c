@@ -691,7 +691,7 @@ static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
         FatalError("Unknown protocol detected - %u", alproto);
     }
 
-    SCReturnUInt(1UL << (uint32_t)alproto);
+    SCReturnUInt(BIT_U32(alproto));
 }
 
 static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParserElementAlloc(void)
@@ -1844,6 +1844,22 @@ bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
     return AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
 
+/** \brief Forces a flow app-layer protocol change.
+ *         Happens for instance when a HTTP2 flow is seen as DOH2
+ *
+ *  \param f flow to act on
+ *  \param new_proto new app-layer protocol
+ */
+void AppLayerForceProtocolChange(Flow *f, AppProto new_proto)
+{
+    if (new_proto != f->alproto) {
+        f->alproto_orig = f->alproto;
+        f->alproto = new_proto;
+        f->alproto_ts = f->alproto;
+        f->alproto_tc = f->alproto;
+    }
+}
+
 void AppLayerProtoDetectReset(Flow *f)
 {
     FLOW_RESET_PM_DONE(f, STREAM_TOSERVER);
@@ -2024,6 +2040,9 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
     // Custom case for only signature-only protocol so far
     if (alproto == ALPROTO_HTTP) {
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP1, ipprotos);
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
+    } else if (alproto == ALPROTO_DOH2) {
+        // DOH2 is not detected, just HTTP2
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
     } else {
         AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);

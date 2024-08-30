@@ -68,6 +68,7 @@ Metadata::
             #payload: yes             # enable dumping payload in Base64
             #payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             #payload-printable: yes   # enable dumping payload in printable (lossy) format
+            #payload-length: yes      # enable dumping payload length, including the gaps
             #packet: yes              # enable dumping of packet (without stream segments)
             #http-body: yes           # Requires metadata; enable dumping of http body in Base64
             #http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
@@ -218,7 +219,11 @@ In the ``custom`` option values from both columns can be used. The
 DNS
 ~~~
 
-.. note:: As of Suricata 7.0 the v1 EVE DNS format has been removed.
+.. note:: 
+
+   As of Suricata 7.0 the v1 EVE DNS format has been removed.
+
+   Version 2 EVE DNS will be removed in Suricata 9.
 
 DNS records are logged as one entry for the request, and one entry for
 the response.
@@ -226,7 +231,7 @@ the response.
 YAML::
 
         - dns:
-            #version: 2
+            #version: 3
 
             # Enable/disable this logger. Default: enabled.
             #enabled: yes
@@ -279,6 +284,29 @@ YAML::
 
 The logger is disabled by default since ARP can generate a large
 number of events.
+
+MQTT
+~~~~
+
+EVE-JSON output for MQTT consists of one object per MQTT transaction, with some common and various type-specific fields.
+Two aspects can be configured:
+
+YAML::
+
+        - mqtt:
+            # passwords: yes           # enable output of passwords
+            # string-log-limit: 1kb    # limit size of logged strings in bytes.
+                                       # Can be specified in kb, mb, gb. Just a number
+                                       # is parsed as bytes. Default is 1KB.
+                                       # Use a value of 0 to disable limiting.
+                                       # Note that the size is also bounded by
+                                       # the maximum parsed message size (see
+                                       # app-layer configuration)
+
+The default is to output passwords in cleartext and not to limit the size of
+message payloads. Depending on the kind of context the parser is used in (public
+output, frequent binary transmissions, ...) this can be configured for regular
+``mqtt`` events.
 
 Drops
 ~~~~~

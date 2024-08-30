@@ -74,8 +74,8 @@ static void PrefilterPacketFlowAgeMatch(
 
 static int PrefilterSetupFlowAge(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_AGE, PrefilterPacketU32Set,
-            PrefilterPacketU32Compare, PrefilterPacketFlowAgeMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_AGE, SIG_MASK_REQUIRE_FLOW,
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowAgeMatch);
 }
 
 static bool PrefilterFlowAgeIsPrefilterable(const Signature *s)

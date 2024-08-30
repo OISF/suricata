@@ -168,13 +168,13 @@ DefragContextNew(void)
 
     /* Initialize the pool of frags. */
     intmax_t frag_pool_size;
-    if (!ConfGetInt("defrag.max-frags", &frag_pool_size) || frag_pool_size == 0) {
+    if (!ConfGetInt("defrag.max-frags", &frag_pool_size) || frag_pool_size == 0 ||
+            frag_pool_size > UINT32_MAX) {
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
-    intmax_t frag_pool_prealloc = frag_pool_size / 2;
-    dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
-        sizeof(Frag),
-        NULL, DefragFragInit, dc, NULL, NULL);
+    uint32_t frag_pool_prealloc = (uint32_t)frag_pool_size / 2;
+    dc->frag_pool = PoolInit((uint32_t)frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL,
+            DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
         FatalError("Defrag: Failed to initialize fragment pool.");
     }
@@ -194,7 +194,7 @@ DefragContextNew(void)
         else if (timeout > TIMEOUT_MAX) {
             FatalError("defrag: Timeout greater than maximum allowed value.");
         }
-        dc->timeout = timeout;
+        dc->timeout = (uint32_t)timeout;
     }
 
     SCLogDebug("Defrag Initialized:");

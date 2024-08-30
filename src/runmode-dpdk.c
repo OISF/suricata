@@ -305,7 +305,6 @@ static void InitEal(void)
     if (retval < 0) { // retval bound to the result of rte_eal_init
         FatalError("DPDK EAL initialization error: %s", rte_strerror(-retval));
     }
-    DPDKSetTimevalOfMachineStart();
 }
 
 static void DPDKDerefConfig(void *conf)

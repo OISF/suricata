@@ -378,7 +378,7 @@ static AppLayerResult FTPGetLineForDirection(
         //      lf_idx = 5010
         //      max_line_len = 4096
         uint32_t o_consumed = input->consumed;
-        input->consumed = lf_idx - input->buf + 1;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
         line->len = input->consumed - o_consumed;
         input->len -= line->len;
         line->lf_found = true;
@@ -965,6 +965,31 @@ static AppProto FTPUserProbingParser(
     return ALPROTO_FTP;
 }
 
+static AppProto FTPServerProbingParser(
+        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // another check for minimum length
+    if (len < 5) {
+        return ALPROTO_UNKNOWN;
+    }
+    // begins by 220
+    if (input[0] != '2' || input[1] != '2' || input[2] != '0') {
+        return ALPROTO_FAILED;
+    }
+    // followed by space or hypen
+    if (input[3] != ' ' && input[3] != '-') {
+        return ALPROTO_FAILED;
+    }
+    if (f->alproto_ts == ALPROTO_FTP || (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN)) {
+        // only validates FTP if client side was FTP
+        // or if client side is unknown despite having received bytes
+        if (memchr(input + 4, '\n', len - 4) != NULL) {
+            return ALPROTO_FTP;
+        }
+    }
+    return ALPROTO_UNKNOWN;
+}
+
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(
@@ -987,7 +1012,15 @@ static int FTPRegisterPatternsForProtocolDetection(void)
                 IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-
+    // Only check FTP on known ports as the banner has nothing special beyond
+    // the response code shared with SMTP.
+    if (!AppLayerProtoDetectPPParseConfPorts(
+                "tcp", IPPROTO_TCP, "ftp", ALPROTO_FTP, 0, 5, NULL, FTPServerProbingParser)) {
+        // STREAM_TOSERVER here means use 21 as flow destination port
+        // and NULL, FTPServerProbingParser means use probing parser to client
+        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER, NULL,
+                FTPServerProbingParser);
+    }
     return 0;
 }
 
@@ -1010,7 +1043,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                              ? AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) != 0
                              : AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
 
-    ftpdata_state->tx_data.file_flags |= ftpdata_state->state_data.file_flags;
+    SCTxDataUpdateFileFlags(&ftpdata_state->tx_data, ftpdata_state->state_data.file_flags);
     if (ftpdata_state->tx_data.file_tx == 0)
         ftpdata_state->tx_data.file_tx = direction & (STREAM_TOSERVER | STREAM_TOCLIENT);
 

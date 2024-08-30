@@ -60,12 +60,19 @@
 #include "util-cpu.h"
 #endif
 
-#define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*"
+#define PARSE_REGEX_NAME "(track|type|count|seconds|multiplier)"
+#define PARSE_REGEX_VALUE                                                                          \
+    "(limit|both|threshold|backoff|by_dst|by_src|by_both|by_rule|by_flow|\\d+)"
+
+#define PARSE_REGEX                                                                                \
+    "^\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME                 \
+    "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE                 \
+    "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*"
 
 static DetectParseRegex parse_regex;
 
-static int DetectThresholdMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectThresholdMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectThresholdFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -83,7 +90,7 @@ void DetectThresholdRegister(void)
     sigmatch_table[DETECT_THRESHOLD].url = "/rules/thresholding.html#threshold";
     sigmatch_table[DETECT_THRESHOLD].Match = DetectThresholdMatch;
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;
-    sigmatch_table[DETECT_THRESHOLD].Free  = DetectThresholdFree;
+    sigmatch_table[DETECT_THRESHOLD].Free = DetectThresholdFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
 #endif
@@ -93,8 +100,8 @@ void DetectThresholdRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectThresholdMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectThresholdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return 1;
 }
@@ -118,7 +125,8 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     char *copy_str = NULL, *threshold_opt = NULL;
     int second_found = 0, count_found = 0;
     int type_found = 0, track_found = 0;
-    int second_pos = 0, count_pos = 0;
+    int multiplier_found = 0;
+    int second_pos = 0, count_pos = 0, multiplier_pos = 0;
     size_t pos = 0;
     int i = 0;
     pcre2_match_data *match = NULL;
@@ -129,27 +137,30 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     }
 
     char *saveptr = NULL;
-    for (pos = 0, threshold_opt = strtok_r(copy_str,",", &saveptr);
-         pos < strlen(copy_str) && threshold_opt != NULL;
-         pos++, threshold_opt = strtok_r(NULL,"," , &saveptr))
-    {
-        if(strstr(threshold_opt,"count"))
+    for (pos = 0, threshold_opt = strtok_r(copy_str, ",", &saveptr);
+            pos < strlen(copy_str) && threshold_opt != NULL;
+            pos++, threshold_opt = strtok_r(NULL, ",", &saveptr)) {
+        if (strstr(threshold_opt, "count"))
             count_found++;
-        if(strstr(threshold_opt,"second"))
+        if (strstr(threshold_opt, "second"))
             second_found++;
-        if(strstr(threshold_opt,"type"))
+        if (strstr(threshold_opt, "type"))
             type_found++;
-        if(strstr(threshold_opt,"track"))
+        if (strstr(threshold_opt, "track"))
             track_found++;
+        if (strstr(threshold_opt, "multiplier"))
+            multiplier_found++;
     }
     SCFree(copy_str);
     copy_str = NULL;
 
-    if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
+    if (!(count_found == 1 && (second_found == 1 || multiplier_found == 1) && track_found == 1 &&
+                type_found == 1)) {
         goto error;
+    }
 
     ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 5) {
+    if (ret < 5 || ret > 9) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
@@ -169,41 +180,81 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
 
         args[i] = (char *)str_ptr;
 
-        if (strncasecmp(args[i],"limit",strlen("limit")) == 0)
+        if (strncasecmp(args[i], "limit", strlen("limit")) == 0)
             de->type = TYPE_LIMIT;
-        if (strncasecmp(args[i],"both",strlen("both")) == 0)
+        if (strncasecmp(args[i], "both", strlen("both")) == 0)
             de->type = TYPE_BOTH;
-        if (strncasecmp(args[i],"threshold",strlen("threshold")) == 0)
+        if (strncasecmp(args[i], "threshold", strlen("threshold")) == 0)
             de->type = TYPE_THRESHOLD;
-        if (strncasecmp(args[i],"by_dst",strlen("by_dst")) == 0)
+        if (strcasecmp(args[i], "backoff") == 0)
+            de->type = TYPE_BACKOFF;
+        if (strncasecmp(args[i], "by_dst", strlen("by_dst")) == 0)
             de->track = TRACK_DST;
-        if (strncasecmp(args[i],"by_src",strlen("by_src")) == 0)
+        if (strncasecmp(args[i], "by_src", strlen("by_src")) == 0)
             de->track = TRACK_SRC;
-        if (strncasecmp(args[i],"by_both",strlen("by_both")) == 0)
+        if (strncasecmp(args[i], "by_both", strlen("by_both")) == 0)
             de->track = TRACK_BOTH;
-        if (strncasecmp(args[i],"by_rule",strlen("by_rule")) == 0)
+        if (strncasecmp(args[i], "by_rule", strlen("by_rule")) == 0)
             de->track = TRACK_RULE;
-        if (strncasecmp(args[i],"count",strlen("count")) == 0)
-            count_pos = i+1;
-        if (strncasecmp(args[i],"seconds",strlen("seconds")) == 0)
-            second_pos = i+1;
+        if (strncasecmp(args[i], "by_flow", strlen("by_flow")) == 0)
+            de->track = TRACK_FLOW;
+        if (strncasecmp(args[i], "count", strlen("count")) == 0)
+            count_pos = i + 1;
+        if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
+            second_pos = i + 1;
+        if (strcasecmp(args[i], "multiplier") == 0)
+            multiplier_pos = i + 1;
     }
 
-    if (args[count_pos] == NULL || args[second_pos] == NULL) {
-        goto error;
+    if (de->type != TYPE_BACKOFF) {
+        if (args[count_pos] == NULL || args[second_pos] == NULL) {
+            goto error;
+        }
+
+        if (StringParseUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
+            goto error;
+        }
+        if (StringParseUint32(&de->seconds, 10, strlen(args[second_pos]), args[second_pos]) <= 0) {
+            goto error;
+        }
+    } else {
+        if (args[count_pos] == NULL || args[multiplier_pos] == NULL) {
+            goto error;
+        }
+
+        if (second_found) {
+            goto error;
+        }
+
+        if (StringParseUint32(&de->count, 10, strlen(args[count_pos]), args[count_pos]) <= 0) {
+            goto error;
+        }
+        if (StringParseUint32(
+                    &de->multiplier, 10, strlen(args[multiplier_pos]), args[multiplier_pos]) <= 0) {
+            goto error;
+        }
+
+        /* impose some sanity limits on the count and multiplier values. Upper bounds are a bit
+         * artificial. */
+        if (!(de->count > 0 && de->count < 65536)) {
+            SCLogError("invalid count value '%u': must be in the range 1-65535", de->count);
+            goto error;
+        }
+        if (!(de->multiplier > 1 && de->multiplier < 65536)) {
+            SCLogError(
+                    "invalid multiplier value '%u': must be in the range 2-65535", de->multiplier);
+            goto error;
+        }
+
+        if (de->track != TRACK_FLOW) {
+            SCLogError("invalid track value: type backoff only supported for track by_flow");
+            goto error;
+        }
+
+        SCLogDebug("TYPE_BACKOFF count %u multiplier %u", de->count, de->multiplier);
     }
 
-    if (StringParseUint32(&de->count, 10, strlen(args[count_pos]),
-                args[count_pos]) <= 0) {
-        goto error;
-    }
-
-    if (StringParseUint32(&de->seconds, 10, strlen(args[second_pos]),
-                args[second_pos]) <= 0) {
-        goto error;
-    }
-
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -214,7 +265,7 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -342,6 +393,7 @@ error:
 #include "util-hashlist.h"
 #include "packet.h"
 #include "action-globals.h"
+
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options
  *
@@ -352,12 +404,25 @@ static int ThresholdTestParse01(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type limit,track by_dst,count 10,seconds 60");
-    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) &&
+            (de->seconds == 60)) {
         DetectThresholdFree(NULL, de);
         return 1;
     }
 
     return 0;
+}
+
+static int ThresholdTestParseByFlow01(void)
+{
+    DetectThresholdData *de = DetectThresholdParse("type limit,track by_flow,count 1,seconds 60");
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_LIMIT);
+    FAIL_IF_NOT(de->track == TRACK_FLOW);
+    FAIL_IF_NOT(de->count == 1);
+    FAIL_IF_NOT(de->seconds == 60);
+    DetectThresholdFree(NULL, de);
+    PASS;
 }
 
 /**
@@ -370,7 +435,8 @@ static int ThresholdTestParse02(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type any,track by_dst,count 10,seconds 60");
-    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) &&
+            (de->seconds == 60)) {
         DetectThresholdFree(NULL, de);
         return 0;
     }
@@ -388,14 +454,14 @@ static int ThresholdTestParse03(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("track by_dst, type limit, seconds 60, count 10");
-    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) &&
+            (de->seconds == 60)) {
         DetectThresholdFree(NULL, de);
         return 1;
     }
 
     return 0;
 }
-
 
 /**
  * \test ThresholdTestParse04 is a test for an invalid threshold options in any order
@@ -407,7 +473,8 @@ static int ThresholdTestParse04(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both, count 10");
-    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) &&
+            (de->seconds == 60)) {
         DetectThresholdFree(NULL, de);
         return 0;
     }
@@ -425,7 +492,8 @@ static int ThresholdTestParse05(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both");
-    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
+    if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) &&
+            (de->seconds == 60)) {
         DetectThresholdFree(NULL, de);
         return 1;
     }
@@ -471,6 +539,20 @@ static int ThresholdTestParse07(void)
     PASS;
 }
 
+/** \test backoff by_flow */
+static int ThresholdTestParse08(void)
+{
+    DetectThresholdData *de =
+            DetectThresholdParse("count 10, track by_flow, multiplier 2, type backoff");
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_BACKOFF);
+    FAIL_IF_NOT(de->track == TRACK_FLOW);
+    FAIL_IF_NOT(de->count == 10);
+    FAIL_IF_NOT(de->multiplier == 2);
+    DetectThresholdFree(NULL, de);
+    PASS;
+}
+
 /**
  * \test DetectThresholdTestSig1 is a test for checking the working of limit keyword
  *       by setting up the signature and later testing its working by matching
@@ -489,11 +571,11 @@ static int DetectThresholdTestSig1(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -502,7 +584,9 @@ static int DetectThresholdTestSig1(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; "
+                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -516,48 +600,48 @@ static int DetectThresholdTestSig1(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
     if (alerts != 1) {
-        printf("alerts %"PRIi32", expected 1: ", alerts);
+        printf("alerts %" PRIi32 ", expected 1: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 2) {
-        printf("alerts %"PRIi32", expected 2: ", alerts);
+        printf("alerts %" PRIi32 ", expected 2: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 3) {
-        printf("alerts %"PRIi32", expected 3: ", alerts);
+        printf("alerts %" PRIi32 ", expected 3: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 4) {
-        printf("alerts %"PRIi32", expected 4: ", alerts);
+        printf("alerts %" PRIi32 ", expected 4: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
-        printf("alerts %"PRIi32", expected 5: ", alerts);
+        printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
-        printf("alerts %"PRIi32", expected 5: ", alerts);
+        printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
-        printf("alerts %"PRIi32", expected 5: ", alerts);
+        printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
-        printf("alerts %"PRIi32", expected 5: ", alerts);
+        printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
 
-    if(alerts == 5)
+    if (alerts == 5)
         result = 1;
     else
-        printf("alerts %"PRIi32", expected 5: ", alerts);
+        printf("alerts %" PRIi32 ", expected 5: ", alerts);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -567,8 +651,8 @@ static int DetectThresholdTestSig1(void)
 
     UTHFreePackets(&p, 1);
 
-    HostShutdown();
 end:
+    ThresholdDestroy();
     return result;
 }
 
@@ -590,11 +674,11 @@ static int DetectThresholdTestSig2(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -603,7 +687,9 @@ static int DetectThresholdTestSig2(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type threshold, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type "
+                            "threshold, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -638,15 +724,12 @@ static int DetectThresholdTestSig2(void)
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -661,94 +744,49 @@ end:
 
 static int DetectThresholdTestSig3(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-    int alerts = 0;
-    DetectThresholdEntry *lookup_tsh = NULL;
-
-    HostInitConfig(HOST_QUIET);
-
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    ThresholdInit();
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, "
+            "track by_dst, count 5, seconds 60; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    Host *host = HostLookupHostFromHash(&p->dst);
-    if (host == NULL) {
-        printf("host not found: ");
-        goto cleanup;
-    }
-
-    if (!(ThresholdHostHasThreshold(host))) {
-        HostRelease(host);
-        printf("host has no threshold: ");
-        goto cleanup;
-    }
-    HostRelease(host);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    host = HostLookupHostFromHash(&p->dst);
-    if (host == NULL) {
-        printf("host not found: ");
-        goto cleanup;
-    }
-    HostRelease(host);
-
-    lookup_tsh = HostGetStorageById(host, ThresholdHostStorageId());
-    if (lookup_tsh == NULL) {
-        HostRelease(host);
-        printf("lookup_tsh is NULL: ");
-        goto cleanup;
-    }
-
-    alerts = lookup_tsh->current_count;
-
-    if (alerts == 3)
-        result = 1;
-    else {
-        printf("alerts %u != 3: ", alerts);
-        goto cleanup;
-    }
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
-    return result;
+    ThresholdDestroy();
+    PASS;
 }
 
 /**
@@ -769,11 +807,11 @@ static int DetectThresholdTestSig4(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -782,7 +820,9 @@ static int DetectThresholdTestSig4(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type both, track by_dst, count 2, seconds 60; sid:10;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type "
+                            "both, track by_dst, count 2, seconds 60; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -814,14 +854,11 @@ static int DetectThresholdTestSig4(void)
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -843,10 +880,10 @@ static int DetectThresholdTestSig5(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -855,12 +892,16 @@ static int DetectThresholdTestSig5(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    s = s->next =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
+                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
     if (s == NULL) {
         goto end;
     }
@@ -893,7 +934,7 @@ static int DetectThresholdTestSig5(void)
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
 
-    if(alerts == 10)
+    if (alerts == 10)
         result = 1;
     else {
         printf("alerts %d != 10: ", alerts);
@@ -901,15 +942,12 @@ static int DetectThresholdTestSig5(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -922,10 +960,10 @@ static int DetectThresholdTestSig6Ticks(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -934,12 +972,16 @@ static int DetectThresholdTestSig6Ticks(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    s = s->next =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
+                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
     if (s == NULL) {
         goto end;
     }
@@ -976,23 +1018,20 @@ static int DetectThresholdTestSig6Ticks(void)
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
     ticks_end = UtilCpuGetTicks();
-    printf("test run %"PRIu64"\n", (ticks_end - ticks_start));
+    printf("test run %" PRIu64 "\n", (ticks_end - ticks_start));
 
-    if(alerts == 10)
+    if (alerts == 10)
         result = 1;
     else
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1009,11 +1048,11 @@ static int DetectThresholdTestSig7(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1022,7 +1061,8 @@ static int DetectThresholdTestSig7(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 1, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
+                                           "track by_src, count 1, seconds 300; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1075,14 +1115,11 @@ static int DetectThresholdTestSig7(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1099,11 +1136,11 @@ static int DetectThresholdTestSig8(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1112,7 +1149,8 @@ static int DetectThresholdTestSig8(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 2, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
+                                           "track by_src, count 2, seconds 300; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1165,14 +1203,11 @@ static int DetectThresholdTestSig8(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1189,11 +1224,11 @@ static int DetectThresholdTestSig9(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1202,7 +1237,8 @@ static int DetectThresholdTestSig9(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 3, seconds 100; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
+                                           "track by_src, count 3, seconds 100; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1255,14 +1291,11 @@ static int DetectThresholdTestSig9(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1279,11 +1312,11 @@ static int DetectThresholdTestSig10(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1292,7 +1325,8 @@ static int DetectThresholdTestSig10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 5, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
+                                           "track by_src, count 5, seconds 300; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1345,14 +1379,11 @@ static int DetectThresholdTestSig10(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1369,11 +1400,11 @@ static int DetectThresholdTestSig11(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1382,7 +1413,8 @@ static int DetectThresholdTestSig11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 3, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
+                                           "track by_src, count 3, seconds 300; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1435,14 +1467,11 @@ static int DetectThresholdTestSig11(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1459,11 +1488,11 @@ static int DetectThresholdTestSig12(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1472,7 +1501,8 @@ static int DetectThresholdTestSig12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 5, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
+                                           "track by_src, count 5, seconds 300; sid:10;)");
     if (s == NULL) {
         goto end;
     }
@@ -1525,14 +1555,12 @@ static int DetectThresholdTestSig12(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void*)det_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
     HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1553,10 +1581,10 @@ static int DetectThresholdTestSig13(void)
     DetectEngineThreadCtx *det_ctx;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -1564,7 +1592,9 @@ static int DetectThresholdTestSig13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+                            "threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1596,12 +1626,10 @@ static int DetectThresholdTestSig13(void)
 
     FAIL_IF(alerts != 4);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     PASS;
 }
 
@@ -1624,12 +1652,11 @@ static int DetectThresholdTestSig14(void)
     int alerts1 = 0;
     int alerts2 = 0;
 
-    HostInitConfig(HOST_QUIET);
-    IPPairInitConfig(IPPAIR_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    p1 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    p2 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
+    p1 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p2 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
     FAIL_IF_NULL(p1);
     FAIL_IF_NULL(p2);
 
@@ -1638,7 +1665,9 @@ static int DetectThresholdTestSig14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+                            "threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1679,32 +1708,31 @@ static int DetectThresholdTestSig14(void)
     FAIL_IF(alerts1 != 3);
     FAIL_IF(alerts2 != 3);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    HostShutdown();
+    ThresholdDestroy();
     PASS;
 }
 
 static void ThresholdRegisterTests(void)
 {
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01);
+    UtRegisterTest("ThresholdTestParseByFlow01", ThresholdTestParseByFlow01);
     UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02);
     UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03);
     UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04);
     UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05);
     UtRegisterTest("ThresholdTestParse06", ThresholdTestParse06);
     UtRegisterTest("ThresholdTestParse07", ThresholdTestParse07);
+    UtRegisterTest("ThresholdTestParse08", ThresholdTestParse08);
     UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1);
     UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2);
     UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3);
     UtRegisterTest("DetectThresholdTestSig4", DetectThresholdTestSig4);
     UtRegisterTest("DetectThresholdTestSig5", DetectThresholdTestSig5);
-    UtRegisterTest("DetectThresholdTestSig6Ticks",
-                   DetectThresholdTestSig6Ticks);
+    UtRegisterTest("DetectThresholdTestSig6Ticks", DetectThresholdTestSig6Ticks);
     UtRegisterTest("DetectThresholdTestSig7", DetectThresholdTestSig7);
     UtRegisterTest("DetectThresholdTestSig8", DetectThresholdTestSig8);
     UtRegisterTest("DetectThresholdTestSig9", DetectThresholdTestSig9);

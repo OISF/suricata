@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,12 +30,14 @@
 #define TYPE_DETECTION 4
 #define TYPE_RATE      5
 #define TYPE_SUPPRESS  6
+#define TYPE_BACKOFF   7
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
 #define TRACK_RULE     3
 #define TRACK_EITHER   4 /**< either src or dst: only used by suppress */
 #define TRACK_BOTH     5 /* used by rate_filter to match detections by both src and dst addresses */
+#define TRACK_FLOW     6 /**< track by flow */
 
 /* Get the new action to take */
 #define TH_ACTION_ALERT     0x01
@@ -58,23 +60,9 @@ typedef struct DetectThresholdData_ {
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
+    uint32_t multiplier; /**< backoff multiplier */
     DetectAddressHead addrs;
 } DetectThresholdData;
-
-typedef struct DetectThresholdEntry_ {
-    uint32_t sid;           /**< Signature id */
-    uint32_t gid;           /**< Signature group id */
-
-    uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
-                                 its not "seconds", that define the time interval */
-    uint32_t seconds;       /**< Event seconds */
-    uint32_t current_count; /**< Var for count control */
-    int track;          /**< Track type: by_src, by_src */
-
-    SCTime_t tv1; /**< Var for time control */
-    struct DetectThresholdEntry_ *next;
-} DetectThresholdEntry;
-
 
 /**
  * Registration function for threshold: keyword

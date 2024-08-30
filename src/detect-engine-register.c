@@ -59,6 +59,7 @@
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
 #include "detect-tls-cert-serial.h"
+#include "detect-tls-alpn.h"
 #include "detect-tls-subjectaltname.h"
 #include "detect-tls-random.h"
 #include "detect-tls-ja3-hash.h"
@@ -207,42 +208,14 @@
 #include "detect-sip-stat-msg.h"
 #include "detect-sip-request-line.h"
 #include "detect-sip-response-line.h"
-#include "detect-rfb-secresult.h"
-#include "detect-rfb-sectype.h"
-#include "detect-rfb-name.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
-#include "detect-dhcp-leasetime.h"
-#include "detect-dhcp-rebinding-time.h"
-#include "detect-dhcp-renewal-time.h"
-#include "detect-snmp-usm.h"
-#include "detect-snmp-version.h"
-#include "detect-snmp-community.h"
-#include "detect-snmp-pdu_type.h"
-#include "detect-mqtt-type.h"
-#include "detect-mqtt-flags.h"
-#include "detect-mqtt-qos.h"
-#include "detect-mqtt-protocol-version.h"
-#include "detect-mqtt-reason-code.h"
-#include "detect-mqtt-connect-flags.h"
-#include "detect-mqtt-connect-clientid.h"
-#include "detect-mqtt-connect-username.h"
-#include "detect-mqtt-connect-password.h"
-#include "detect-mqtt-connect-protocol-string.h"
-#include "detect-mqtt-connect-willtopic.h"
-#include "detect-mqtt-connect-willmessage.h"
-#include "detect-mqtt-connack-sessionpresent.h"
-#include "detect-mqtt-publish-topic.h"
-#include "detect-mqtt-publish-message.h"
-#include "detect-mqtt-subscribe-topic.h"
-#include "detect-mqtt-unsubscribe-topic.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
 #include "detect-quic-version.h"
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
-#include "detect-websocket.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -260,6 +233,7 @@
 #include "detect-transform-xor.h"
 #include "detect-transform-casechange.h"
 #include "detect-transform-header-lowercase.h"
+#include "detect-transform-base64.h"
 
 #include "util-rule-vars.h"
 
@@ -283,25 +257,6 @@
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
-#include "detect-cipservice.h"
-#include "detect-enip-command.h"
-#include "detect-enip-status.h"
-#include "detect-enip-product-name.h"
-#include "detect-enip-protocol-version.h"
-#include "detect-enip-cip-attribute.h"
-#include "detect-enip-cip-instance.h"
-#include "detect-enip-cip-class.h"
-#include "detect-enip-cip-extendedstatus.h"
-#include "detect-enip-cip-status.h"
-#include "detect-enip-service-name.h"
-#include "detect-enip-capabilities.h"
-#include "detect-enip-revision.h"
-#include "detect-enip-identity-status.h"
-#include "detect-enip-state.h"
-#include "detect-enip-serial.h"
-#include "detect-enip-product-code.h"
-#include "detect-enip-device-type.h"
-#include "detect-enip-vendor-id.h"
 #include "detect-dnp3.h"
 #include "detect-ike-exch-type.h"
 #include "detect-ike-spi.h"
@@ -339,6 +294,9 @@
 #include "util-path.h"
 #include "util-mpm-ac.h"
 #include "runmodes.h"
+
+int DETECT_TBLSIZE = 0;
+int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
@@ -408,7 +366,7 @@ static void SigMultilinePrint(int i, const char *prefix)
 
 int SigTableList(const char *keyword)
 {
-    size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
+    size_t size = DETECT_TBLSIZE;
     size_t i;
 
     if (keyword == NULL) {
@@ -483,15 +441,32 @@ int SigTableList(const char *keyword)
 
 static void DetectFileHandlerRegister(void)
 {
-    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+    for (int i = 0; i < DETECT_TBLSIZE_STATIC; i++) {
         if (filehandler_table[i].name)
             DetectFileRegisterFileProtocols(&filehandler_table[i]);
     }
 }
 
+void SigTableCleanup(void)
+{
+    if (sigmatch_table != NULL) {
+        SCFree(sigmatch_table);
+        sigmatch_table = NULL;
+        DETECT_TBLSIZE = 0;
+    }
+}
+
 void SigTableSetup(void)
 {
-    memset(sigmatch_table, 0, sizeof(sigmatch_table));
+    if (sigmatch_table == NULL) {
+        DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC + DETECT_TBLSIZE_STEP;
+        sigmatch_table = SCCalloc(DETECT_TBLSIZE, sizeof(SigTableElmt));
+        if (sigmatch_table == NULL) {
+            DETECT_TBLSIZE = 0;
+            FatalError("Could not allocate sigmatch_table");
+            return;
+        }
+    }
 
     DetectSidRegister();
     DetectPriorityRegister();
@@ -550,25 +525,6 @@ void SigTableSetup(void)
     DetectDnsAnswerNameRegister();
     DetectDnsQueryNameRegister();
     DetectModbusRegister();
-    DetectCipServiceRegister();
-    DetectEnipCommandRegister();
-    DetectEnipStatusRegister();
-    DetectEnipProductNameRegister();
-    DetectEnipProtocolVersionRegister();
-    DetectEnipCipAttributeRegister();
-    DetectEnipCipInstanceRegister();
-    DetectEnipCipClassRegister();
-    DetectEnipCipExtendedstatusRegister();
-    DetectEnipCipStatusRegister();
-    DetectEnipServiceNameRegister();
-    DetectEnipCapabilitiesRegister();
-    DetectEnipRevisionRegister();
-    DetectEnipIdentityStatusRegister();
-    DetectEnipStateRegister();
-    DetectEnipSerialRegister();
-    DetectEnipProductCodeRegister();
-    DetectEnipDeviceTypeRegister();
-    DetectEnipVendorIdRegister();
     DetectDNP3Register();
 
     DetectIkeExchTypeRegister();
@@ -588,6 +544,7 @@ void SigTableSetup(void)
     DetectTlsCertsRegister();
     DetectTlsCertChainLenRegister();
     DetectTlsSubjectAltNameRegister();
+    DetectTlsAlpnRegister();
     DetectTlsRandomRegister();
 
     DetectTlsJa3HashRegister();
@@ -712,42 +669,14 @@ void SigTableSetup(void)
     DetectSipStatMsgRegister();
     DetectSipRequestLineRegister();
     DetectSipResponseLineRegister();
-    DetectRfbSecresultRegister();
-    DetectRfbSectypeRegister();
-    DetectRfbNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
-    DetectDHCPLeaseTimeRegister();
-    DetectDHCPRebindingTimeRegister();
-    DetectDHCPRenewalTimeRegister();
-    DetectSNMPUsmRegister();
-    DetectSNMPVersionRegister();
-    DetectSNMPCommunityRegister();
-    DetectSNMPPduTypeRegister();
-    DetectMQTTTypeRegister();
-    DetectMQTTFlagsRegister();
-    DetectMQTTQosRegister();
-    DetectMQTTProtocolVersionRegister();
-    DetectMQTTReasonCodeRegister();
-    DetectMQTTConnectFlagsRegister();
-    DetectMQTTConnectClientIDRegister();
-    DetectMQTTConnectUsernameRegister();
-    DetectMQTTConnectPasswordRegister();
-    DetectMQTTConnectProtocolStringRegister();
-    DetectMQTTConnectWillTopicRegister();
-    DetectMQTTConnectWillMessageRegister();
-    DetectMQTTConnackSessionPresentRegister();
-    DetectMQTTPublishTopicRegister();
-    DetectMQTTPublishMessageRegister();
-    DetectMQTTSubscribeTopicRegister();
-    DetectMQTTUnsubscribeTopicRegister();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
     DetectQuicVersionRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
-    DetectWebsocketRegister();
 
     DetectBypassRegister();
     DetectConfigRegister();
@@ -765,8 +694,16 @@ void SigTableSetup(void)
     DetectTransformToLowerRegister();
     DetectTransformToUpperRegister();
     DetectTransformHeaderLowercaseRegister();
+    DetectTransformFromBase64DecodeRegister();
 
     DetectFileHandlerRegister();
+
+    ScDetectSNMPRegister();
+    ScDetectDHCPRegister();
+    ScDetectWebsocketRegister();
+    ScDetectEnipRegister();
+    ScDetectMqttRegister();
+    ScDetectRfbRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

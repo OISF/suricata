@@ -158,9 +158,11 @@ const char *IpOptsFlagToString(uint16_t flag)
 static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 
-    if (!de || !PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p))
+    if (!de || !PacketIsIPv4(p))
         return 0;
 
     return (p->l3.vars.ip4.opts_set & de->ipopt) == de->ipopt;

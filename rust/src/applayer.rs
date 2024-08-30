@@ -196,9 +196,33 @@ impl AppLayerTxData {
     pub fn update_file_flags(&mut self, state_flags: u16) {
         if (self.file_flags & state_flags) != state_flags {
             SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
-            self.file_flags |= state_flags;
+            let mut nf = state_flags;
+            // With keyword filestore:both,flow :
+            // There may be some opened unclosed file in one direction without filestore
+            // As such it has tx file_flags had FLOWFILE_NO_STORE_TS or TC
+            // But a new file in the other direction may trigger filestore:both,flow
+            // And thus set state_flags FLOWFILE_STORE_TS
+            // If the file was opened without storing it, do not try to store just the end of it
+            if (self.file_flags & FLOWFILE_NO_STORE_TS) != 0 && (state_flags & FLOWFILE_STORE_TS) != 0 {
+                nf &= !FLOWFILE_STORE_TS;
+            }
+            if (self.file_flags & FLOWFILE_NO_STORE_TC) != 0 && (state_flags & FLOWFILE_STORE_TC) != 0 {
+                nf &= !FLOWFILE_STORE_TC;
+            }
+            self.file_flags |= nf;
         }
     }
+}
+
+// need to keep in sync with C flow.h
+pub const FLOWFILE_NO_STORE_TS: u16 = BIT_U16!(2);
+pub const FLOWFILE_NO_STORE_TC: u16 = BIT_U16!(3);
+pub const FLOWFILE_STORE_TS: u16 = BIT_U16!(12);
+pub const FLOWFILE_STORE_TC: u16 = BIT_U16!(13);
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut AppLayerTxData, state_flags: u16) {
+    txd.update_file_flags(state_flags);
 }
 
 #[macro_export]
@@ -370,10 +394,6 @@ pub struct RustParser {
 
     pub flags: u32,
 
-    /// Function to handle the end of data coming on one of the sides
-    /// due to the stream reaching its 'depth' limit.
-    pub truncate: Option<TruncateFn>,
-
     pub get_frame_id_by_name: Option<GetFrameIdByName>,
     pub get_frame_name_by_id: Option<GetFrameNameById>,
 }
@@ -434,12 +454,12 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStateData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
-pub type TruncateFn = unsafe extern "C" fn (*mut c_void, u8);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
+/// cbindgen:ignore
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
     pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
@@ -451,7 +471,9 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 }
 
 // Defined in app-layer-detect-proto.h
+/// cbindgen:ignore
 extern {
+    pub fn AppLayerForceProtocolChange(f: *const Flow, new_proto: AppProto);
     pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
                                          min_depth: u16, max_depth: u16, dir: u8,
                                          pparser1: ProbeFn, pparser2: ProbeFn);
@@ -459,6 +481,9 @@ extern {
                                                alproto_name: *const c_char, alproto: AppProto,
                                                min_depth: u16, max_depth: u16,
                                                pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
+    pub fn AppLayerProtoDetectPMRegisterPatternCI(ipproto: u8, alproto: AppProto,
+                                                pattern: *const c_char, depth: u16,
+                                                offset: u16, direction: u8) -> c_int;
     pub fn AppLayerProtoDetectPMRegisterPatternCS(ipproto: u8, alproto: AppProto,
                                                   pattern: *const c_char, depth: u16,
                                                   offset: u16, direction: u8) -> c_int;
@@ -478,13 +503,12 @@ pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u16 = BIT_U16!(3);
 pub const APP_LAYER_PARSER_BYPASS_READY : u16 = BIT_U16!(4);
 pub const APP_LAYER_PARSER_EOF_TS : u16 = BIT_U16!(5);
 pub const APP_LAYER_PARSER_EOF_TC : u16 = BIT_U16!(6);
-pub const APP_LAYER_PARSER_TRUNC_TS : u16 = BIT_U16!(7);
-pub const APP_LAYER_PARSER_TRUNC_TC : u16 = BIT_U16!(8);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 
 pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
 
+/// cbindgen:ignore
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u16);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;

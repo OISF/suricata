@@ -31,7 +31,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
-static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
 
 static mut ENIP_MAX_TX: usize = 1024;
 
@@ -565,7 +565,6 @@ unsafe extern "C" fn rs_enip_tx_get_alstate_progress(tx: *mut c_void, direction:
     return 0;
 }
 
-// app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
 pub enum EnipFrameType {
     Hdr,
@@ -612,7 +611,6 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
         get_state_data: SCEnipTxGetState_data,
         apply_tx_config: None,
         flags: 0,
-        truncate: None,
         get_frame_id_by_name: Some(EnipFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(EnipFrameType::ffi_name_from_id),
     };
@@ -634,13 +632,11 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for UDP.");
-        unsafe {
-            AppLayerParserRegisterParserAcceptableDataDirection(
-                IPPROTO_UDP,
-                ALPROTO_ENIP,
-                STREAM_TOSERVER | STREAM_TOCLIENT,
-            );
-        }
+        AppLayerParserRegisterParserAcceptableDataDirection(
+            IPPROTO_UDP,
+            ALPROTO_ENIP,
+            STREAM_TOSERVER | STREAM_TOCLIENT,
+        );
         AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_ENIP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for ENIP on UDP.");
@@ -661,13 +657,11 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for TCP.");
-        unsafe {
-            AppLayerParserRegisterParserAcceptableDataDirection(
-                IPPROTO_TCP,
-                ALPROTO_ENIP,
-                STREAM_TOSERVER | STREAM_TOCLIENT,
-            );
-        }
+        AppLayerParserRegisterParserAcceptableDataDirection(
+            IPPROTO_TCP,
+            ALPROTO_ENIP,
+            STREAM_TOSERVER | STREAM_TOCLIENT,
+        );
         AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_ENIP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for ENIP on TCP.");

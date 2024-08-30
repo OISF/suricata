@@ -111,8 +111,7 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
     uint16_t frag = 0;
     const DetectFragOffsetData *fragoff = (const DetectFragOffsetData *)ctx;
 
-    if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
@@ -264,8 +263,7 @@ void DetectFragOffsetFree (DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketFragOffsetMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint16_t frag;
 
@@ -312,10 +310,9 @@ PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGOFFSET,
-        PrefilterPacketFragOffsetSet,
-        PrefilterPacketFragOffsetCompare,
-        PrefilterPacketFragOffsetMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGOFFSET, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketFragOffsetSet, PrefilterPacketFragOffsetCompare,
+            PrefilterPacketFragOffsetMatch);
 }
 
 static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)

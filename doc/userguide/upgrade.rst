@@ -60,6 +60,21 @@ Major changes
 - It is possible to see an increase of alerts, for the same rule-sets, if you
   use many stream/payload rules, due to Suricata triggering TCP stream
   reassembly earlier.
+- New transform ``from_base64`` that base64 decodes a buffer and passes the
+  decoded buffer. It's recommended that ``from_base64`` be used instead of ``base64_decode``
+- Datasets of type String now include the length of the strings to determine if the memcap value is reached.
+  This may lead to memcaps being hit for older setups that didn't take that into account.
+  For more details, check https://redmine.openinfosecfoundation.org/issues/3910
+- DNS logging has been modified to be more consistent across requests,
+  responses and alerts. See :doc:`DNS Logging Changes for 8.0
+  <upgrade/8.0-dns-logging-changes>`.
+- PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
+  <upgrade/8.0-pfring-plugin>`.
+- LDAP parser and logger have been introduced.
+
+Removals
+~~~~~~~~
+- The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
 
 Upgrading 6.0 to 7.0
 --------------------
@@ -162,6 +177,16 @@ Logging changes
 
      For more information, refer to:
      https://redmine.openinfosecfoundation.org/issues/1275.
+
+- Engine logging/output now uses separate defaults for ``console`` and ``file``, to provide a cleaner output on the console.
+
+  Defaults are:
+
+  * ``console``: ``%D: %S: %M``
+
+  * ``file``: ``[%i - %m] %z %d: %S: %M``
+
+  The ``console`` output also changes based on verbosity level.
 
 Deprecations
 ~~~~~~~~~~~~

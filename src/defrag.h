@@ -37,7 +37,7 @@ typedef struct DefragContext_ {
     Pool *frag_pool; /**< Pool of fragments. */
     SCMutex frag_pool_lock;
 
-    time_t timeout; /**< Default timeout. */
+    uint32_t timeout; /**< Default timeout. */
 } DefragContext;
 
 /**

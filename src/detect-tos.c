@@ -96,7 +96,8 @@ static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
     const DetectTosData *tosd = (const DetectTosData *)ctx;
     int result = 0;
 
-    if (!PacketIsIPv4(p) || PKT_IS_PSEUDOPKT(p)) {
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
+    if (!PacketIsIPv4(p)) {
         return 0;
     }
 

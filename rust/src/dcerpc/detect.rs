@@ -212,13 +212,8 @@ pub extern "C" fn rs_dcerpc_iface_match(
     }
 
     match state.get_hdr_type() {
-        Some(x) => match x {
-            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {}
-            _ => {
-                return 0;
-            }
-        },
-        None => {
+        Some(DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE) => {},
+        _ => {
             return 0;
         }
     };

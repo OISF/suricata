@@ -87,8 +87,7 @@ void DetectICodeRegister (void)
 static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {
@@ -121,20 +120,17 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectU8Data *icd = NULL;
 
     icd = DetectU8Parse(icodestr);
-    if (icd == NULL) goto error;
+    if (icd == NULL)
+        return -1;
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
             NULL) {
-        goto error;
+        rs_detect_u8_free(icd);
+        return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
-
-error:
-    if (icd != NULL)
-        rs_detect_u8_free(icd);
-    return -1;
 }
 
 /**
@@ -152,9 +148,7 @@ void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx)
 {
-    if (PKT_IS_PSEUDOPKT(p)) {
-        SCReturn;
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     uint8_t picode;
     if (PacketIsICMPv4(p)) {
@@ -176,8 +170,8 @@ static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
 
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE, PrefilterPacketU8Set,
-            PrefilterPacketU8Compare, PrefilterPacketICodeMatch);
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketICodeMatch);
 }
 
 static bool PrefilterICodeIsPrefilterable(const Signature *s)

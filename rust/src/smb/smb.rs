@@ -2201,23 +2201,6 @@ pub unsafe extern "C" fn rs_smb_get_tx_data(
     return &mut tx.tx_data;
 }
 
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_truncate(
-        state: *mut std::ffi::c_void,
-        direction: u8)
-{
-    let state = cast_pointer!(state, SMBState);
-    match direction.into() {
-        Direction::ToServer => {
-            state.trunc_ts();
-        }
-        Direction::ToClient => {
-            state.trunc_tc();
-        }
-    }
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
     event_id: std::os::raw::c_int,
@@ -2327,7 +2310,6 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         get_state_data: rs_smb_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        truncate: Some(rs_smb_state_truncate),
         get_frame_id_by_name: Some(SMBFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SMBFrameType::ffi_name_from_id),
     };

@@ -263,6 +263,24 @@ static void JsonTlsLogJa3S(JsonBuilder *js, SSLState *ssl_state)
     }
 }
 
+static void JsonTlsLogAlpns(JsonBuilder *js, SSLStateConnp *connp, const char *object)
+{
+    if (TAILQ_EMPTY(&connp->alpns)) {
+        return;
+    }
+
+    SSLAlpns *a = TAILQ_FIRST(&connp->alpns);
+    if (a == NULL) {
+        return;
+    }
+
+    jb_open_array(js, object);
+    TAILQ_FOREACH (a, &connp->alpns, next) {
+        jb_append_string_from_bytes(js, a->alpn, a->size);
+    }
+    jb_close(js);
+}
+
 static void JsonTlsLogCertificate(JsonBuilder *js, SSLStateConnp *connp)
 {
     if (TAILQ_EMPTY(&connp->certs)) {
@@ -456,6 +474,9 @@ static bool JsonTlsLogJSONExtendedAux(void *vtx, JsonBuilder *tjs)
 
     /* tls ja4 */
     JsonTlsLogSCJA4(tjs, state);
+
+    JsonTlsLogAlpns(tjs, &state->client_connp, "client_alpns");
+    JsonTlsLogAlpns(tjs, &state->server_connp, "server_alpns");
 
     if (HasClientCert(&state->client_connp)) {
         jb_open_object(tjs, "client");

@@ -25,7 +25,9 @@
 #define SURICATA_OUTPUT_JSON_DNS_H
 
 void JsonDnsLogRegister(void);
+void JsonDoh2LogRegister(void);
 
 bool AlertJsonDns(void *vtx, JsonBuilder *js);
+bool AlertJsonDoh2(void *vtx, JsonBuilder *js);
 
 #endif /* SURICATA_OUTPUT_JSON_DNS_H */

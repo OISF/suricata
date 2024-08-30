@@ -113,13 +113,13 @@ pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T
 pub fn detect_parse_uint_value<T: DetectIntType>(i: &str) -> IResult<&str, T> {
     let (i, arg1) = alt((
         detect_parse_uint_value_hex,
-        map_opt(digit1, |s: &str| s.parse::<T>().ok()),
+        detect_parse_uint_with_unit,
     ))(i)?;
     Ok((i, arg1))
 }
 
 pub fn detect_parse_uint_with_unit<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = detect_parse_uint_value::<T>(i)?;
+    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
     let (i, unit) = opt(detect_parse_uint_unit)(i)?;
     if arg1 >= T::one() {
         if let Some(u) = unit {
@@ -138,7 +138,7 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 ) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(tag("="))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg1) = detect_parse_uint_with_unit(i)?;
+    let (i, arg1) = detect_parse_uint_value(i)?;
     Ok((
         i,
         DetectUintData {
@@ -398,9 +398,9 @@ pub unsafe extern "C" fn rs_detect_u64_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_detect_u64_free(ctx: &mut DetectUintData<u64>) {
     // Just unbox...
-    std::mem::drop(Box::from_raw(ctx as *mut DetectUintData<u64>));
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
@@ -578,7 +578,25 @@ mod tests {
 
         assert!(detect_parse_uint::<u8>("2kb").is_err());
 
-        let (_, val) = detect_parse_uint::<u32>("3MB").unwrap();
+        let (_, val) = detect_parse_uint::<u32>("> 3MB").unwrap();
         assert_eq!(val.arg1, 3 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_uint_like_mqtt_protocol_version() {
+        let (_, val) = detect_parse_uint::<u8>("3").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+        assert_eq!(val.arg1, 3);
+        let (_, val) = detect_parse_uint::<u8>("5").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+        assert_eq!(val.arg1, 5);
+        let (_, val) = detect_parse_uint::<u8>(">3").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeGt);
+        assert_eq!(val.arg1, 3);
+        let (_, val) = detect_parse_uint::<u8>("<44").unwrap();
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeLt);
+        assert_eq!(val.arg1, 44);
+        assert!(detect_parse_uint::<u8>("").is_err());
+        assert!(detect_parse_uint::<u8>("<444").is_err());
     }
 }

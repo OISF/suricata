@@ -35,12 +35,11 @@
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
 typedef struct OutputTxLoggerThreadData_ {
-    OutputLoggerThreadStore *store[ALPROTO_MAX];
-
     /* thread local data from file api */
     OutputFileLoggerThreadData *file;
     /* thread local data from filedata api */
     OutputFiledataLoggerThreadData *filedata;
+    OutputLoggerThreadStore *store[];
 } OutputTxLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
@@ -62,7 +61,7 @@ typedef struct OutputTxLogger_ {
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
-static OutputTxLogger *list[ALPROTO_MAX] = { NULL };
+static OutputTxLogger **list = NULL;
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            TxLogger LogFunc,
@@ -72,6 +71,14 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
+    if (list == NULL) {
+        list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+        if (unlikely(list == NULL)) {
+            SCLogError("Failed to allocate OutputTx list");
+            return -1;
+        }
+    }
+
     if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsEnabled(alproto))) {
         SCLogDebug(
                 "%s logger not enabled: protocol %s is disabled", name, AppProtoToString(alproto));
@@ -378,10 +385,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
 
     const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
-    const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser,
-                                (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_TRUNC_TS)) != 0;
-    const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser,
-                                (APP_LAYER_PARSER_EOF_TC | APP_LAYER_PARSER_TRUNC_TC)) != 0;
+    const bool ts_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
+    const bool tc_eof = AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC) != 0;
 
     const bool eof = last_pseudo || (ts_eof && tc_eof);
     SCLogDebug("eof %d last_pseudo %d ts_eof %d tc_eof %d", eof, last_pseudo, ts_eof, tc_eof);
@@ -542,7 +547,8 @@ end:
  *  loggers */
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void **data)
 {
-    OutputTxLoggerThreadData *td = SCCalloc(1, sizeof(*td));
+    OutputTxLoggerThreadData *td =
+            SCCalloc(1, sizeof(*td) + ALPROTO_MAX * sizeof(OutputLoggerThreadStore *));
     if (td == NULL)
         return TM_ECODE_FAILED;
 
@@ -668,12 +674,21 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
+    BUG_ON(list);
+    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+    if (unlikely(list == NULL)) {
+        FatalError("Failed to allocate OutputTx list");
+    }
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)
 {
+    // called in different places because of unix socket mode, and engine-analysis mode
+    if (list == NULL) {
+        return;
+    }
     for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
         OutputTxLogger *logger = list[alproto];
         while (logger) {
@@ -683,4 +698,6 @@ void OutputTxShutdown(void)
         }
         list[alproto] = NULL;
     }
+    SCFree(list);
+    list = NULL;
 }

@@ -710,7 +710,7 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
     if (size > BIT_U32(30)) { // 1GiB
         if (!g2s_warn_once) {
             SCLogWarning("StreamingBuffer::GrowRegionToSize() tried to alloc %u bytes, exceeds "
-                         "limit of %lu",
+                         "limit of %" PRIu32,
                     size, BIT_U32(30));
             g2s_warn_once = true;
         }

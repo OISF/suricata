@@ -52,8 +52,8 @@
 #include "app-layer-nfs-udp.h"
 #include "app-layer-tftp.h"
 #include "app-layer-ike.h"
-#include "app-layer-rfb.h"
 #include "app-layer-http2.h"
+#include "app-layer-imap.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
@@ -82,8 +82,6 @@ typedef struct AppLayerParserProtoCtx_
     void (*StateTransactionFree)(void *, uint64_t);
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
-
-    void (*Truncate)(void *, uint8_t);
 
     /** get FileContainer reference from the TX. MUST return a non-NULL reference if the TX
      *  has or may have files in the requested direction at some point. */
@@ -200,9 +198,6 @@ FramesContainer *AppLayerFramesSetupContainer(Flow *f)
     }
     return f->alparser->frames;
 }
-
-static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
-        const AppProto alproto, void *alstate, const uint8_t direction);
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -464,16 +459,6 @@ void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger = true;
-
-    SCReturn;
-}
-
-void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
-                                        void (*Truncate)(void *, uint8_t))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate = Truncate;
 
     SCReturn;
 }
@@ -756,8 +741,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     const AppProto alproto = f->alproto;
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
-    AppLayerGetTxIterState state;
-    memset(&state, 0, sizeof(state));
+    AppLayerGetTxIterState state = { 0 };
 
     SCLogDebug("called: %s, tag_txs_as_inspected %s",direction==0?"toserver":"toclient",
             tag_txs_as_inspected?"true":"false");
@@ -947,11 +931,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (txd != NULL && AppLayerParserHasFilesInDir(txd, pkt_dir)) {
             if (pkt_dir_trunc == -1)
-                pkt_dir_trunc =
-                        AppLayerParserStateIssetFlag(f->alparser,
-                                (pkt_dir == STREAM_TOSERVER) ? APP_LAYER_PARSER_TRUNC_TS
-                                                             : APP_LAYER_PARSER_TRUNC_TC) != 0;
-
+                pkt_dir_trunc = IS_DISRUPTED(
+                        (pkt_dir == STREAM_TOSERVER) ? ts_disrupt_flags : tc_disrupt_flags);
             AppLayerParserFileTxHousekeeping(f, tx, pkt_dir, (bool)pkt_dir_trunc);
         }
 
@@ -1308,7 +1289,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
             if (f->alstate != NULL && !FlowChangeProto(f)) {
-                AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
+                AppLayerParserTriggerRawStreamReassembly(f, direction);
             }
             AppLayerIncGapErrorCounter(tv, f);
             goto error;
@@ -1467,10 +1448,6 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (cur_tx_cnt > p_tx_cnt && tv) {
         AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
     }
-
-    /* stream truncated, inform app layer */
-    if (flags & STREAM_DEPTH)
-        AppLayerParserStreamTruncated(pstate, f->proto, alproto, f->alstate, flags);
 
  end:
     /* update app progress */
@@ -1745,26 +1722,16 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_sip_register_parser();
     rs_quic_register_parser();
     rs_websocket_register_parser();
+    SCRegisterLdapTcpParser();
+    SCRegisterLdapUdpParser();
     rs_template_register_parser();
-    RegisterRFBParsers();
+    SCRfbRegisterParser();
     SCMqttRegisterParser();
     rs_pgsql_register_parser();
     rs_rdp_register_parser();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
-
-    /** IMAP */
-    AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "imap")) {
-        if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_IMAP,
-                                  "1|20|capability", 12, 0, STREAM_TOSERVER) < 0)
-        {
-            FatalError("imap proto registration failure");
-        }
-    } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
-                  "imap");
-    }
+    RegisterIMAPParsers();
 
     /** POP3 */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_POP3, "pop3");
@@ -1794,24 +1761,6 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
 {
     SCEnter();
     SCReturnUInt(pstate->flags & flag);
-}
-
-static inline void AppLayerParserStreamTruncated(AppLayerParserState *pstate, const uint8_t ipproto,
-        const AppProto alproto, void *alstate, const uint8_t direction)
-{
-    SCEnter();
-
-    if (direction & STREAM_TOSERVER) {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TS);
-    } else {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_TRUNC_TC);
-    }
-
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate != NULL) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate(alstate, direction);
-    }
-
-    SCReturn;
 }
 
 /***** Unittests *****/

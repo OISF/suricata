@@ -10,6 +10,8 @@ base64_decode
 
 Decodes base64 data from a buffer and makes it available for the base64_data function.
 
+We recommend using the base64 transform instead -- see :ref:`from_base64 <from_base64>`.
+
 Syntax::
 
     base64_decode:bytes <value>, offset <value>, relative;

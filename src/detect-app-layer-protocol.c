@@ -316,9 +316,8 @@ PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
 static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_AL_APP_LAYER_PROTOCOL,
-        PrefilterPacketAppProtoSet,
-        PrefilterPacketAppProtoCompare,
-        PrefilterPacketAppProtoMatch);
+            SIG_MASK_REQUIRE_FLOW, PrefilterPacketAppProtoSet, PrefilterPacketAppProtoCompare,
+            PrefilterPacketAppProtoMatch);
 }
 
 static bool PrefilterAppProtoIsPrefilterable(const Signature *s)

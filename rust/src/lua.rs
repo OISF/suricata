@@ -24,6 +24,7 @@ use std::os::raw::c_long;
 /// The Rust place holder for lua_State.
 pub enum CLuaState {}
 
+/// cbindgen:ignore
 extern {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
