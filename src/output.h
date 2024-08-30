@@ -69,7 +69,7 @@ typedef struct OutputModule_ {
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
     SCFileLogger FileLogFunc;
-    FiledataLogger FiledataLogFunc;
+    SCFiledataLogger FiledataLogFunc;
     FlowLogger FlowLogFunc;
     SCStreamingLogger StreamingLogFunc;
     StatsLogger StatsLogFunc;
@@ -120,7 +120,7 @@ void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const cha
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
+        OutputInitFunc InitFunc, SCFiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name, const char *name,

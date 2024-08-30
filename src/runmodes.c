@@ -630,7 +630,7 @@ static void SetupOutput(
         }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
-        OutputRegisterFiledataLogger(module->logger_id, module->name, module->FiledataLogFunc,
+        SCOutputRegisterFiledataLogger(module->logger_id, module->name, module->FiledataLogFunc,
                 output_ctx, module->ThreadInit, module->ThreadDeinit);
         filedata_logger_count++;
     } else if (module->FileLogFunc) {
