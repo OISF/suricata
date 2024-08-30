@@ -19,9 +19,7 @@
 
 int main(int argc, char **argv)
 {
-#ifdef __sparc
-    EnableSparcMisalignEmulation();
-#endif /* __sparc */
+    UtilCpuSpecificInit();
 
     /* Pre-initialization tasks: initialize global context and variables. */
     SuricataPreInit(argv[0]);

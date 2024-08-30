@@ -33,8 +33,6 @@ void UtilCpuPrintSummary(void);
 
 uint64_t UtilCpuGetTicks(void);
 
-#ifdef __sparc
-void EnableSparcMisalignEmulation(void);
-#endif /* __sparc */
+void UtilCpuSpecificInit(void);
 
 #endif /* SURICATA_UTIL_CPU_H */
