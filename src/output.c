@@ -428,7 +428,7 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
+        OutputInitFunc InitFunc, SCFiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
