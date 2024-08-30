@@ -428,11 +428,9 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterFiledataModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
         goto error;
@@ -450,7 +448,6 @@ void OutputRegisterFiledataModule(LoggerId id, const char *name,
     module->FiledataLogFunc = FiledataLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Filedata logger \"%s\" registered.", name);
