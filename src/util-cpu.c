@@ -209,9 +209,11 @@ uint64_t UtilCpuGetTicks(void)
  * process makes, instead of just signalling an error and terminating the
  * process.
  */
-void EnableSparcMisalignEmulation(void)
+void UtilCpuEnableSparcMisalignEmulation(void)
 {
+#ifdef __sparc
     __asm("ta 6");
+#endif /* __sparc */
 }
 
 /**
@@ -220,6 +222,6 @@ void EnableSparcMisalignEmulation(void)
 void UtilCpuSpecificInit(void)
 {
 #ifdef __sparc
-	EnableSparcMisalignEmulation();
+	UtilCpuEnableSparcMisalignEmulation();
 #endif /* __sparc */
 }
