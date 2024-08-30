@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -391,7 +391,7 @@ void OutputRegisterTxSubModule(LoggerId id, const char *parent_name, const char 
  * \retval Returns 0 on success, -1 on failure.
  */
 void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
-        const char *conf_name, OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
+        const char *conf_name, OutputInitSubFunc InitFunc, SCFileLogger FileLogFunc,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(FileLogFunc == NULL)) {
