@@ -742,12 +742,6 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
     return "error";
 }
 
-static void FlowWorkerExitPrintStats(ThreadVars *tv, void *data)
-{
-    FlowWorkerThreadData *fw = data;
-    OutputLoggerExitPrintStats(tv, fw->output_thread);
-}
-
 static bool FlowWorkerIsBusy(ThreadVars *tv, void *flow_worker)
 {
     FlowWorkerThreadData *fw = flow_worker;
@@ -775,7 +769,6 @@ void TmModuleFlowWorkerRegister (void)
     tmm_modules[TMM_FLOWWORKER].Func = FlowWorker;
     tmm_modules[TMM_FLOWWORKER].ThreadBusy = FlowWorkerIsBusy;
     tmm_modules[TMM_FLOWWORKER].ThreadDeinit = FlowWorkerThreadDeinit;
-    tmm_modules[TMM_FLOWWORKER].ThreadExitPrintStats = FlowWorkerExitPrintStats;
     tmm_modules[TMM_FLOWWORKER].cap_flags = 0;
     tmm_modules[TMM_FLOWWORKER].flags = TM_FLAG_STREAM_TM|TM_FLAG_DETECT_TM;
 }
