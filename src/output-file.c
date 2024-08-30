@@ -49,15 +49,12 @@ typedef struct OutputFileLogger_ {
     LoggerId logger_id;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputFileLogger;
 
 static OutputFileLogger *list = NULL;
 
 int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+        OutputCtx *output_ctx, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFileLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -69,7 +66,6 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
