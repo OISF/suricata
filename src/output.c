@@ -539,10 +539,9 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterStatsModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, StatsLogger StatsLogFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterStatsModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(StatsLogFunc == NULL)) {
         goto error;
@@ -560,7 +559,6 @@ void OutputRegisterStatsModule(LoggerId id, const char *name,
     module->StatsLogFunc = StatsLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Stats logger \"%s\" registered.", name);
@@ -577,11 +575,9 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, StatsLogger StatsLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(StatsLogFunc == NULL)) {
         goto error;
@@ -600,7 +596,6 @@ void OutputRegisterStatsSubModule(LoggerId id, const char *parent_name,
     module->StatsLogFunc = StatsLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Stats logger \"%s\" registered.", name);
