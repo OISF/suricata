@@ -88,3 +88,14 @@ function:
    :language: c
    :start-at: /** \brief Register a file logger
    :end-at: );
+
+File-data Logging
+~~~~~~~~~~~~~~~~~
+
+File-data loggers can be registered with the
+``SCOutputRegisterFileDataLogger`` function:
+
+.. literalinclude:: ../../../../../src/output-filedata.h
+   :language: c
+   :start-at: /** \brief Register a file-data logger
+   :end-at: );
