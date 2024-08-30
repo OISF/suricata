@@ -654,7 +654,7 @@ void OutputTxLoggerRegister (void)
     if (unlikely(list == NULL)) {
         FatalError("Failed to allocate OutputTx list");
     }
-    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit, NULL, OutputTxLog,
+    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit, OutputTxLog,
             OutputTxLoggerGetActiveCount);
 }
 

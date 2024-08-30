@@ -193,7 +193,7 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit, NULL,
+    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
             OutputPacketLog, OutputPacketLoggerGetActiveCount);
 }
 
