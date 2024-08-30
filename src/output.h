@@ -131,7 +131,7 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name, const cha
 void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *conf_name,
         OutputInitFunc InitFunc, StreamingLogger StreamingLogFunc,
         enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
+        ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterStatsModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc,

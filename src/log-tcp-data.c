@@ -44,12 +44,12 @@ static void LogTcpDataLogDeInitCtx(OutputCtx *);
 int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags);
 
 void LogTcpDataLogRegister (void) {
-    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data",
-        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_TCP_DATA,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
+    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data", LogTcpDataLogInitCtx,
+            LogTcpDataLogger, STREAMING_TCP_DATA, LogTcpDataLogThreadInit,
+            LogTcpDataLogThreadDeinit);
     OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "http-body-data",
-        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
+            LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES, LogTcpDataLogThreadInit,
+            LogTcpDataLogThreadDeinit);
 }
 
 typedef struct LogTcpDataFileCtx_ {
