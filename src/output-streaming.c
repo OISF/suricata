@@ -49,7 +49,7 @@ typedef struct OutputStreamingLoggerThreadData_ {
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputStreamingLogger_ {
     StreamingLogger LogFunc;
-    OutputCtx *output_ctx;
+    void *initdata;
     struct OutputStreamingLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -61,7 +61,7 @@ typedef struct OutputStreamingLogger_ {
 static OutputStreamingLogger *list = NULL;
 
 int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger LogFunc,
-        OutputCtx *output_ctx, enum OutputStreamingType type, ThreadInitFunc ThreadInit,
+        void *initdata, enum OutputStreamingType type, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
     OutputStreamingLogger *op = SCCalloc(1, sizeof(*op));
@@ -69,7 +69,7 @@ int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->type = type;
@@ -372,7 +372,7 @@ static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
