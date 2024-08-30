@@ -500,9 +500,9 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
 
 void JsonStatsLogRegister(void) {
     /* register as child of eve-log */
-    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
-        "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
-        JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
+    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME, "eve-log.stats",
+            OutputStatsLogInitSub, JsonStatsLogger, JsonStatsLogThreadInit,
+            JsonStatsLogThreadDeinit);
 }
 
 #ifdef UNITTESTS

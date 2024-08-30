@@ -606,9 +606,8 @@ static void SetupOutput(
     }
     /* stats logger doesn't run in the packet path */
     if (module->StatsLogFunc) {
-        OutputRegisterStatsLogger(module->name, module->StatsLogFunc,
-            output_ctx,module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterStatsLogger(module->name, module->StatsLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         return;
     }
 

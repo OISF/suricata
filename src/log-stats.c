@@ -284,7 +284,6 @@ static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)
 
 void LogStatsLogRegister (void)
 {
-    OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
-        LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
-        LogStatsLogThreadDeinit, NULL);
+    OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats", LogStatsLogInitCtx,
+            LogStatsLogger, LogStatsLogThreadInit, LogStatsLogThreadDeinit);
 }
