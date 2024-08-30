@@ -501,12 +501,10 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterStreamingModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    StreamingLogger StreamingLogFunc,
-    enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, StreamingLogger StreamingLogFunc,
+        enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(StreamingLogFunc == NULL)) {
         goto error;
@@ -525,7 +523,6 @@ void OutputRegisterStreamingModule(LoggerId id, const char *name,
     module->stream_type = stream_type;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Streaming logger \"%s\" registered.", name);

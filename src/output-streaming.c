@@ -56,16 +56,13 @@ typedef struct OutputStreamingLogger_ {
     enum OutputStreamingType type;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputStreamingLogger;
 
 static OutputStreamingLogger *list = NULL;
 
-int OutputRegisterStreamingLogger(LoggerId id, const char *name,
-    StreamingLogger LogFunc, OutputCtx *output_ctx,
-    enum OutputStreamingType type, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger LogFunc,
+        OutputCtx *output_ctx, enum OutputStreamingType type, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
     OutputStreamingLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -78,7 +75,6 @@ int OutputRegisterStreamingLogger(LoggerId id, const char *name,
     op->type = type;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -425,22 +421,6 @@ static TmEcode OutputStreamingLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) {
-    OutputStreamingLoggerThreadData *op_thread_data =
-            (OutputStreamingLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputStreamingLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
 static uint32_t OutputStreamingLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
@@ -451,9 +431,8 @@ static uint32_t OutputStreamingLoggerGetActiveCount(void)
 }
 
 void OutputStreamingLoggerRegister(void) {
-    OutputRegisterRootLogger(OutputStreamingLogThreadInit,
-        OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
-        OutputStreamingLog, OutputStreamingLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputStreamingLogThreadInit, OutputStreamingLogThreadDeinit, NULL,
+            OutputStreamingLog, OutputStreamingLoggerGetActiveCount);
 }
 
 void OutputStreamingShutdown(void)
