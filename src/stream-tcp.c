@@ -6715,10 +6715,10 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->vlan_idx = f->vlan_idx;
     np->livedev = (struct LiveDevice_ *)f->livedev;
 
-    if (f->flags & FLOW_NOPACKET_INSPECTION) {
+    if (parent->flags & PKT_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(np);
     }
-    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
+    if (parent->flags & PKT_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(np);
     }
 
