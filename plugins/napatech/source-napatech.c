@@ -48,7 +48,7 @@
 #include <numa.h>
 #include <nt.h>
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 typedef struct NapatechThreadVars_ {
     ThreadVars *tv;
