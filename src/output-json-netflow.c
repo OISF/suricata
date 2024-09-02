@@ -193,7 +193,7 @@ static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
     jb_set_string(js, "start", timebuf1);
     jb_set_string(js, "end", timebuf2);
 
-    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
     jb_set_uint(js, "age", age);
 
     jb_set_uint(js, "min_ttl", f->min_ttl_toserver);
@@ -237,7 +237,7 @@ static void NetFlowLogEveToClient(JsonBuilder *js, Flow *f)
     jb_set_string(js, "start", timebuf1);
     jb_set_string(js, "end", timebuf2);
 
-    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
     jb_set_uint(js, "age", age);
 
     /* To client is zero if we did not see any packet */
