@@ -1769,8 +1769,6 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
-static AppLayerParserCtx alp_ctx_backup_unittest;
-
 typedef struct TestState_ {
     uint8_t test;
 } TestState;
@@ -1831,30 +1829,12 @@ void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserBackupParserTable(void)
-{
-    SCEnter();
-    alp_ctx_backup_unittest = alp_ctx;
-    memset(&alp_ctx, 0, sizeof(alp_ctx));
-    SCReturn;
-}
-
-void AppLayerParserRestoreParserTable(void)
-{
-    SCEnter();
-    alp_ctx = alp_ctx_backup_unittest;
-    memset(&alp_ctx_backup_unittest, 0, sizeof(alp_ctx_backup_unittest));
-    SCReturn;
-}
-
 /**
  * \test Test the deallocation of app layer parser memory on occurrence of
  *       error in the parsing process.
  */
 static int AppLayerParserTest01(void)
 {
-    AppLayerParserBackupParserTable();
-
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1886,7 +1866,6 @@ static int AppLayerParserTest01(void)
 
     FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
 
-    AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
@@ -1898,8 +1877,6 @@ static int AppLayerParserTest01(void)
  */
 static int AppLayerParserTest02(void)
 {
-    AppLayerParserBackupParserTable();
-
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
@@ -1927,7 +1904,6 @@ static int AppLayerParserTest02(void)
                                 testlen);
     FAIL_IF(r != -1);
 
-    AppLayerParserRestoreParserTable();
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
     PASS;
