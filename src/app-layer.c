@@ -1149,11 +1149,11 @@ void AppLayerSetupCounters(void)
     const char *estr = "app_layer.error.";
 
     applayer_counter_names =
-            SCCalloc(FLOW_PROTO_APPLAYER_MAX * ALPROTO_MAX, sizeof(AppLayerCounterNames));
+            SCCalloc(ALPROTO_MAX, sizeof(AppLayerCounterNames[FLOW_PROTO_APPLAYER_MAX]));
     if (unlikely(applayer_counter_names == NULL)) {
         FatalError("Unable to alloc applayer_counter_names.");
     }
-    applayer_counters = SCCalloc(FLOW_PROTO_APPLAYER_MAX * ALPROTO_MAX, sizeof(AppLayerCounters));
+    applayer_counters = SCCalloc(ALPROTO_MAX, sizeof(AppLayerCounters[FLOW_PROTO_APPLAYER_MAX]));
     if (unlikely(applayer_counters == NULL)) {
         FatalError("Unable to alloc applayer_counters.");
     }
