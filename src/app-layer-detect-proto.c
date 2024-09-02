@@ -162,7 +162,7 @@ typedef struct AppLayerProtoDetectCtx_ {
     const char *alproto_names[ALPROTO_MAX];
 
     /* Protocol expectations, like ftp-data on tcp */
-    uint8_t expectation_proto[ALPROTO_MAX];
+    uint8_t *expectation_proto;
 } AppLayerProtoDetectCtx;
 
 typedef struct AppLayerProtoDetectAliases_ {
@@ -1721,6 +1721,11 @@ int AppLayerProtoDetectSetup(void)
         }
     }
 
+    // to realloc when dynamic protos are added
+    alpd_ctx.expectation_proto = SCCalloc(ALPROTO_MAX, sizeof(uint8_t));
+    if (unlikely(alpd_ctx.expectation_proto == NULL)) {
+        FatalError("Unable to alloc expectation_proto.");
+    }
     AppLayerExpectationSetup();
 
     SCReturnInt(0);
@@ -1751,6 +1756,9 @@ int AppLayerProtoDetectDeSetup(void)
             pm_ctx->map = NULL;
         }
     }
+
+    SCFree(alpd_ctx.expectation_proto);
+    alpd_ctx.expectation_proto = NULL;
 
     SpmDestroyGlobalThreadCtx(alpd_ctx.spm_global_thread_ctx);
 
