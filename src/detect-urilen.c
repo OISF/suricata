@@ -214,20 +214,9 @@ void DetectUrilenApplyToContent(Signature *s, int list)
     }
 }
 
-bool DetectUrilenValidateContent(const Signature *s, int list, const char **sigerror)
+bool DetectUrilenValidateContent(
+        const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)list)
-            continue;
-        for (const SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT) {
-                continue;
-            }
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            if (cd == NULL) {
-                continue;
-            }
-
             if (cd->depth && cd->depth < cd->content_len) {
                 *sigerror = "depth or urilen smaller than content len";
                 SCLogError("depth or urilen %u smaller "
@@ -235,8 +224,6 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
                         cd->depth, cd->content_len);
                 return false;
             }
-        }
-    }
     return true;
 }
 

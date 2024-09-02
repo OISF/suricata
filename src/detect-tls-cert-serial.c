@@ -62,8 +62,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id);
 static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
         Signature *s);
-static bool DetectTlsSerialValidateCallback(const Signature *s,
-        const char **sigerror);
+static bool DetectTlsSerialValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror);
 static int g_tls_cert_serial_buffer_id = 0;
 
 /**
@@ -157,44 +157,31 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static bool DetectTlsSerialValidateCallback(const Signature *s,
-                                             const char **sigerror)
+static bool DetectTlsSerialValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_serial_buffer_id)
-            continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            const DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                *sigerror = "tls.cert_serial should not be used together "
-                            "with nocase, since the rule is automatically "
-                            "uppercased anyway which makes nocase redundant.";
-                SCLogWarning("rule %u: %s", s->id, *sigerror);
-            }
-
-            /* no need to worry about this if the content is short enough */
-            if (cd->content_len <= 2)
-                return true;
-
-            uint32_t u;
-            for (u = 0; u < cd->content_len; u++)
-                if (cd->content[u] == ':')
-                    return true;
-
-            *sigerror = "No colon delimiters ':' detected in content after "
-                        "tls.cert_serial. This rule will therefore never "
-                        "match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-
-            return false;
-        }
+    if (cd->flags & DETECT_CONTENT_NOCASE) {
+        *sigerror = "tls.cert_serial should not be used together "
+                    "with nocase, since the rule is automatically "
+                    "uppercased anyway which makes nocase redundant.";
+        SCLogWarning("rule %u: %s", s->id, *sigerror);
     }
-    return true;
+
+    /* no need to worry about this if the content is short enough */
+    if (cd->content_len <= 2)
+        return true;
+
+    uint32_t u;
+    for (u = 0; u < cd->content_len; u++)
+        if (cd->content[u] == ':')
+            return true;
+
+    *sigerror = "No colon delimiters ':' detected in content after "
+                "tls.cert_serial. This rule will therefore never "
+                "match.";
+    SCLogWarning("rule %u: %s", s->id, *sigerror);
+
+    return false;
 }
 
 static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,

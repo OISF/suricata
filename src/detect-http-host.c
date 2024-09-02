@@ -62,7 +62,8 @@ static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectHttpHHRegisterTests(void);
 #endif
-static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttpHostValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror);
 static int DetectHttpHostSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -177,42 +178,32 @@ static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
             de_ctx, s, arg, DETECT_AL_HTTP_HOST, g_http_host_buffer_id, ALPROTO_HTTP1);
 }
 
-static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpHostValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_http_host_buffer_id)
-            continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (cd->flags & DETECT_CONTENT_NOCASE) {
-                    *sigerror = "http.host keyword "
-                                "specified along with \"nocase\". "
-                                "The hostname buffer is normalized "
-                                "to lowercase, specifying "
-                                "nocase is redundant.";
-                    SCLogWarning("rule %u: %s", s->id, *sigerror);
-                    return false;
-                } else {
-                    uint32_t u;
-                    for (u = 0; u < cd->content_len; u++) {
-                        if (isupper(cd->content[u]))
-                            break;
-                    }
-                    if (u != cd->content_len) {
-                        *sigerror = "A pattern with "
-                                    "uppercase characters detected for http.host. "
-                                    "The hostname buffer is normalized to lowercase, "
-                                    "please specify a lowercase pattern.";
-                        SCLogWarning("rule %u: %s", s->id, *sigerror);
-                        return false;
-                    }
-                }
-            }
+    if (cd->flags & DETECT_CONTENT_NOCASE) {
+        *sigerror = "http.host keyword "
+                    "specified along with \"nocase\". "
+                    "The hostname buffer is normalized "
+                    "to lowercase, specifying "
+                    "nocase is redundant.";
+        SCLogWarning("rule %u: %s", s->id, *sigerror);
+        return false;
+    } else {
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++) {
+            if (isupper(cd->content[u]))
+                break;
+        }
+        if (u != cd->content_len) {
+            *sigerror = "A pattern with "
+                        "uppercase characters detected for http.host. "
+                        "The hostname buffer is normalized to lowercase, "
+                        "please specify a lowercase pattern.";
+            SCLogWarning("rule %u: %s", s->id, *sigerror);
+            return false;
         }
     }
-
     return true;
 }
 
