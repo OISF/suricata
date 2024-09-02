@@ -217,13 +217,13 @@ void DetectUrilenApplyToContent(Signature *s, int list)
 bool DetectUrilenValidateContent(
         const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-            if (cd->depth && cd->depth < cd->content_len) {
-                *sigerror = "depth or urilen smaller than content len";
-                SCLogError("depth or urilen %u smaller "
-                           "than content len %u",
-                        cd->depth, cd->content_len);
-                return false;
-            }
+    if (cd->depth && cd->depth < cd->content_len) {
+        *sigerror = "depth or urilen smaller than content len";
+        SCLogError("depth or urilen %u smaller "
+                   "than content len %u",
+                cd->depth, cd->content_len);
+        return false;
+    }
     return true;
 }
 

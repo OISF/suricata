@@ -82,35 +82,6 @@ static InspectionBuffer *QuicHashGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static bool DetectQuicHashValidateCallback(
-        const Signature *s, const DetectContentData *cd, const char **sigerror)
-{
-    if (cd->flags & DETECT_CONTENT_NOCASE) {
-        *sigerror = BUFFER_NAME " should not be used together with "
-                                "nocase, since the rule is automatically "
-                                "lowercased anyway which makes nocase redundant.";
-        SCLogWarning("rule %u: %s", s->id, *sigerror);
-    }
-
-    if (cd->content_len != 32) {
-        *sigerror = "Invalid length of the specified" BUFFER_NAME " (should "
-                    "be 32 characters long). This rule will therefore "
-                    "never match.";
-        SCLogWarning("rule %u: %s", s->id, *sigerror);
-        return false;
-    }
-    for (size_t i = 0; i < cd->content_len; ++i) {
-        if (!isxdigit(cd->content[i])) {
-            *sigerror =
-                    "Invalid " BUFFER_NAME " string (should be string of hexadecimal characters)."
-                    "This rule will therefore never match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
-        }
-    }
-    return true;
-}
-
 void DetectQuicCyuHashRegister(void)
 {
     /* quic.cyu.hash sticky buffer */
@@ -130,7 +101,7 @@ void DetectQuicCyuHashRegister(void)
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectQuicHashValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectMd5ValidateCallback);
 
     DetectBufferTypeSupportsMultiInstance(BUFFER_NAME);
 }

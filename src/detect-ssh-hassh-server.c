@@ -118,35 +118,6 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
 }
 
-static bool DetectSshHasshServerHashValidateCallback(
-        const Signature *s, const DetectContentData *cd, const char **sigerror)
-{
-    if (cd->flags & DETECT_CONTENT_NOCASE) {
-        *sigerror = "ssh.hassh.server should not be used together with "
-                    "nocase, since the rule is automatically "
-                    "lowercased anyway which makes nocase redundant.";
-        SCLogWarning("rule %u: %s", s->id, *sigerror);
-    }
-
-    if (cd->content_len != 32) {
-        *sigerror = "Invalid length of the specified ssh.hassh.server (should "
-                    "be 32 characters long). This rule will therefore "
-                    "never match.";
-        SCLogWarning("rule %u: %s", s->id, *sigerror);
-        return false;
-    }
-    for (size_t i = 0; i < cd->content_len; ++i) {
-        if (!isxdigit(cd->content[i])) {
-            *sigerror = "Invalid ssh.hassh.server string (should be string of hexadecimal "
-                        "characters)."
-                        "This rule will therefore never match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
-        }
-    }
-    return true;
-}
-
 static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx,
                                           Signature *s)
 {
@@ -195,5 +166,5 @@ void DetectSshHasshServerRegister(void)
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
     DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSshHasshServerHashSetupCallback);
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSshHasshServerHashValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectMd5ValidateCallback);
 }
