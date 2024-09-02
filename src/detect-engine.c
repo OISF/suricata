@@ -1300,8 +1300,9 @@ void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int
     }
 }
 
-void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror))
+void DetectBufferTypeRegisterValidateCallback(
+        const char *name, bool (*ValidateCallback)(const Signature *, const DetectContentData *,
+                                  const char **sigerror))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -1315,7 +1316,20 @@ bool DetectEngineBufferRunValidateCallback(
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (map && map->ValidateCallback) {
-        return map->ValidateCallback(s, sigerror);
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            if (s->init_data->buffers[x].id != map->id)
+                continue;
+            const SigMatch *sm = s->init_data->buffers[x].head;
+            for (; sm != NULL; sm = sm->next) {
+                if (sm->type != DETECT_CONTENT)
+                    continue;
+
+                const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (!map->ValidateCallback(s, cd, sigerror)) {
+                    return false;
+                }
+            }
+        }
     }
     return true;
 }

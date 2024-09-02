@@ -72,8 +72,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        void *txv, const int list_id);
 static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
        Signature *s);
-static bool DetectTlsJa3HashValidateCallback(const Signature *s,
-       const char **sigerror);
+static bool DetectTlsJa3HashValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror);
 static int g_tls_ja3_hash_buffer_id = 0;
 #endif
 
@@ -178,37 +178,24 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static bool DetectTlsJa3HashValidateCallback(const Signature *s,
-                                              const char **sigerror)
+static bool DetectTlsJa3HashValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3_hash_buffer_id)
-            continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            const DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                *sigerror = "ja3.hash should not be used together with "
-                            "nocase, since the rule is automatically "
-                            "lowercased anyway which makes nocase redundant.";
-                SCLogWarning("rule %u: %s", s->id, *sigerror);
-            }
-
-            if (cd->content_len == SC_MD5_HEX_LEN)
-                return true;
-
-            *sigerror = "Invalid length of the specified JA3 hash (should "
-                        "be 32 characters long). This rule will therefore "
-                        "never match.";
-            SCLogWarning("rule %u: %s", s->id, *sigerror);
-            return false;
-        }
+    if (cd->flags & DETECT_CONTENT_NOCASE) {
+        *sigerror = "ja3.hash should not be used together with "
+                    "nocase, since the rule is automatically "
+                    "lowercased anyway which makes nocase redundant.";
+        SCLogWarning("rule %u: %s", s->id, *sigerror);
     }
-    return true;
+
+    if (cd->content_len == SC_MD5_HEX_LEN)
+        return true;
+
+    *sigerror = "Invalid length of the specified JA3 hash (should "
+                "be 32 characters long). This rule will therefore "
+                "never match.";
+    SCLogWarning("rule %u: %s", s->id, *sigerror);
+    return false;
 }
 
 static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
