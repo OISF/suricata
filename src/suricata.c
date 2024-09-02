@@ -362,7 +362,6 @@ void GlobalsInitPreConfig(void)
     SupportFastPatternForSigMatchTypes();
     SCThresholdConfGlobalInit();
     SCProtoNameInit();
-    FrameConfigInit();
 }
 
 void GlobalsDestroy(void)

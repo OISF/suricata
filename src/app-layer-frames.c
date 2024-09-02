@@ -33,13 +33,22 @@
 struct FrameConfig {
     SC_ATOMIC_DECLARE(uint64_t, types);
 };
-static struct FrameConfig frame_config[ALPROTO_MAX];
+static struct FrameConfig *frame_config;
 
 void FrameConfigInit(void)
 {
+    frame_config = SCCalloc(ALPROTO_MAX, sizeof(struct FrameConfig));
+    if (unlikely(frame_config == NULL)) {
+        FatalError("Unable to alloc frame_config.");
+    }
     for (AppProto p = 0; p < ALPROTO_MAX; p++) {
         SC_ATOMIC_INIT(frame_config[p].types);
     }
+}
+
+void FrameConfigDeInit(void)
+{
+    SCFree(frame_config);
 }
 
 void FrameConfigEnableAll(void)
