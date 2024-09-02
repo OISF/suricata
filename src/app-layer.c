@@ -1041,6 +1041,7 @@ int AppLayerSetup(void)
     AppLayerProtoDetectPrepareState();
 
     AppLayerSetupCounters();
+    FrameConfigInit();
 
     SCReturnInt(0);
 }
@@ -1053,6 +1054,7 @@ int AppLayerDeSetup(void)
     AppLayerParserDeSetup();
 
     AppLayerDeSetupCounters();
+    FrameConfigDeInit();
 
     SCReturnInt(0);
 }
