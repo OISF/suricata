@@ -160,6 +160,9 @@ typedef struct AppLayerProtoDetectCtx_ {
      * for protocol detection.  This table is independent of the
      * ipproto. */
     const char *alproto_names[ALPROTO_MAX];
+
+    /* Protocol expectations, like ftp-data on tcp */
+    uint8_t expectation_proto[ALPROTO_MAX];
 } AppLayerProtoDetectCtx;
 
 typedef struct AppLayerProtoDetectAliases_ {
@@ -2111,27 +2114,25 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
     SCReturn;
 }
 
-uint8_t expectation_proto[ALPROTO_MAX];
-
 static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
                                              uint8_t *ipprotos)
 {
-    if (expectation_proto[alproto] == IPPROTO_TCP) {
+    if (alpd_ctx.expectation_proto[alproto] == IPPROTO_TCP) {
         ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
     }
-    if (expectation_proto[alproto] == IPPROTO_UDP) {
+    if (alpd_ctx.expectation_proto[alproto] == IPPROTO_UDP) {
         ipprotos[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
     }
 }
 
 void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 {
-    if (expectation_proto[alproto]) {
-        if (proto != expectation_proto[alproto]) {
+    if (alpd_ctx.expectation_proto[alproto]) {
+        if (proto != alpd_ctx.expectation_proto[alproto]) {
             SCLogError("Expectation on 2 IP protocols are not supported");
         }
     }
-    expectation_proto[alproto] = proto;
+    alpd_ctx.expectation_proto[alproto] = proto;
 }
 
 /***** Unittests *****/
