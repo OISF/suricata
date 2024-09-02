@@ -210,6 +210,9 @@ void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t 
 
 void DetectEngineStateResetTxs(Flow *f);
 
+bool DetectMd5ValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror);
+
 void DeStateRegisterTests(void);
 
 #endif /* SURICATA_DETECT_ENGINE_H */
