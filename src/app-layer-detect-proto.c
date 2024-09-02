@@ -158,8 +158,9 @@ typedef struct AppLayerProtoDetectCtx_ {
 
     /* Indicates the protocols that have registered themselves
      * for protocol detection.  This table is independent of the
-     * ipproto. */
-    const char *alproto_names[ALPROTO_MAX];
+     * ipproto. It should be allocated to contain ALPROTO_MAX
+     * protocols. */
+    const char **alproto_names;
 
     /* Protocol expectations, like ftp-data on tcp.
      * It should be allocated to contain ALPROTO_MAX
@@ -1724,6 +1725,10 @@ int AppLayerProtoDetectSetup(void)
         }
     }
 
+    alpd_ctx.alproto_names = SCCalloc(ALPROTO_MAX, sizeof(char *));
+    if (unlikely(alpd_ctx.alproto_names == NULL)) {
+        FatalError("Unable to alloc alproto_names.");
+    }
     // to realloc when dynamic protos are added
     alpd_ctx.expectation_proto = SCCalloc(ALPROTO_MAX, sizeof(uint8_t));
     if (unlikely(alpd_ctx.expectation_proto == NULL)) {
@@ -1760,6 +1765,8 @@ int AppLayerProtoDetectDeSetup(void)
         }
     }
 
+    SCFree(alpd_ctx.alproto_names);
+    alpd_ctx.alproto_names = NULL;
     SCFree(alpd_ctx.expectation_proto);
     alpd_ctx.expectation_proto = NULL;
 
@@ -1776,6 +1783,7 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
+    // should have just been realloced when dynamic protos is added
     if (alpd_ctx.alproto_names[alproto] == NULL)
         alpd_ctx.alproto_names[alproto] = alproto_name;
 
