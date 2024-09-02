@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Memcmp implementations for SSE3, SSE4.1, SSE4.2.
+ * Memcmp implementations for SSE3, SSE4.2.
  *
  * Both SCMemcmp and SCMemcmpLowercase return 0 on a exact match,
  * 1 on a failed match.
@@ -122,83 +122,6 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
     } while (r == SCMEMCMP_BYTES);
 
     return ((m == n) ? 0 : 1);
-}
-
-#elif defined(__SSE4_1__)
-#include <smmintrin.h>
-#define SCMEMCMP_BYTES  16
-
-static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
-{
-    size_t offset = 0;
-    do {
-        if (likely(len - offset < SCMEMCMP_BYTES)) {
-            return memcmp(s1, s2, len - offset) ? 1 : 0;
-        }
-
-        /* unaligned loads */
-        __m128i b1 = _mm_loadu_si128((const __m128i *)s1);
-        __m128i b2 = _mm_loadu_si128((const __m128i *)s2);
-        __m128i c = _mm_cmpeq_epi8(b1, b2);
-
-        if (_mm_movemask_epi8(c) != 0x0000FFFF) {
-            return 1;
-        }
-
-        offset += SCMEMCMP_BYTES;
-        s1 += SCMEMCMP_BYTES;
-        s2 += SCMEMCMP_BYTES;
-    } while (len > offset);
-
-    return 0;
-}
-
-#define UPPER_LOW   0x40 /* "A" - 1 */
-#define UPPER_HIGH  0x5B /* "Z" + 1 */
-
-static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
-{
-    size_t offset = 0;
-    __m128i b1, b2, mask1, mask2, upper1, upper2, uplow;
-
-    /* setup registers for upper to lower conversion */
-    upper1 = _mm_set1_epi8(UPPER_LOW);
-    upper2 = _mm_set1_epi8(UPPER_HIGH);
-    uplow = _mm_set1_epi8(0x20);
-
-    do {
-        if (likely(len - offset < SCMEMCMP_BYTES)) {
-            return MemcmpLowercase(s1, s2, len - offset);
-        }
-
-        /* unaligned loading of the bytes to compare */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
-
-        /* mark all chars bigger than upper1 */
-        mask1 = _mm_cmpgt_epi8(b2, upper1);
-        /* mark all chars lower than upper2 */
-        mask2 = _mm_cmplt_epi8(b2, upper2);
-        /* merge the two, leaving only those that are true in both */
-        mask1 = _mm_cmpeq_epi8(mask1, mask2);
-        /* Next we use that mask to create a new: this one has 0x20 for
-         * the uppercase chars, 00 for all other. */
-        mask1 = _mm_and_si128(uplow, mask1);
-        /* add to b2, converting uppercase to lowercase */
-        b2 = _mm_add_epi8(b2, mask1);
-        /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
-        mask1 = _mm_cmpeq_epi8(b1, b2);
-
-        if (_mm_movemask_epi8(mask1) != 0x0000FFFF) {
-            return 1;
-        }
-
-        offset += SCMEMCMP_BYTES;
-        s1 += SCMEMCMP_BYTES;
-        s2 += SCMEMCMP_BYTES;
-    } while (len > offset);
-
-    return 0;
 }
 
 #elif defined(__SSE3__)
