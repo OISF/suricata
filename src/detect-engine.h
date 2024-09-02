@@ -27,6 +27,24 @@
 #include "detect.h"
 #include "suricata.h"
 
+#include "detect-content.h"
+
+typedef struct DetectBufferType_ {
+    char name[32];
+    char description[128];
+    int id;
+    int parent_id;
+    bool mpm;
+    bool packet; /**< compat to packet matches */
+    bool frame;  /**< is about Frame inspection */
+    bool supports_transforms;
+    bool multi_instance; /**< buffer supports multiple buffer instances per tx */
+    void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
+    bool (*ValidateCallback)(
+            const struct Signature_ *s, const DetectContentData *cd, const char **sigerror);
+    DetectEngineTransforms transforms;
+} DetectBufferType;
+
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
@@ -58,8 +76,9 @@ void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
 const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *));
-void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror));
+void DetectBufferTypeRegisterValidateCallback(
+        const char *name, bool (*ValidateCallback)(const Signature *s, const DetectContentData *cd,
+                                  const char **sigerror));
 
 /* detect engine related buffer funcs */
 
