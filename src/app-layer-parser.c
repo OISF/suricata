@@ -1909,7 +1909,6 @@ static int AppLayerParserTest02(void)
     PASS;
 }
 
-
 void AppLayerParserRegisterUnittests(void)
 {
     SCEnter();
