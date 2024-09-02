@@ -249,7 +249,7 @@ int AppLayerParserSetup(void)
 {
     SCEnter();
     // to realloc when dynamic protos are added
-    alp_ctx.ctxs = SCCalloc(FLOW_PROTO_MAX * ALPROTO_MAX, sizeof(AppLayerParserProtoCtx));
+    alp_ctx.ctxs = SCCalloc(ALPROTO_MAX, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]));
     if (unlikely(alp_ctx.ctxs == NULL)) {
         FatalError("Unable to alloc alp_ctx.ctxs.");
     }
@@ -289,7 +289,7 @@ AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void)
     if (tctx == NULL)
         goto end;
 
-    tctx->alproto_local_storage = SCCalloc(FLOW_PROTO_MAX * ALPROTO_MAX, sizeof(void *));
+    tctx->alproto_local_storage = SCCalloc(ALPROTO_MAX, sizeof(void *[FLOW_PROTO_MAX]));
     if (unlikely(tctx->alproto_local_storage == NULL)) {
         SCFree(tctx);
         tctx = NULL;
