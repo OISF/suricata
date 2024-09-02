@@ -1317,7 +1317,7 @@ bool DetectEngineBufferRunValidateCallback(
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (map && map->ValidateCallback) {
         for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-            if (s->init_data->buffers[x].id != map->id)
+            if (s->init_data->buffers[x].id != (uint32_t)map->id)
                 continue;
             const SigMatch *sm = s->init_data->buffers[x].head;
             for (; sm != NULL; sm = sm->next) {
