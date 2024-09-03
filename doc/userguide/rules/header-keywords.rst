@@ -711,6 +711,12 @@ Example of icmp_seq in a rule:
 
     alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN Broadscan Smurf Scanner"; dsize:4; icmp_id:0; :example-rule-emphasis:`icmp_seq:0;` itype:8; classtype:attempted-recon; sid:2100478; rev:4;)
 
+.. note:: Some pcap analysis tools, like wireshark, may give both a little
+  endian and big endian value for ``icmp_seq``. The ``icmp_seq`` keyword
+  matches on the big endian value, this is due to Suricata using the network
+  byte order (big endian) to perform the match comparison.
+
+
 icmpv4.hdr
 ^^^^^^^^^^
 
