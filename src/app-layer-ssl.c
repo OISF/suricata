@@ -896,7 +896,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             processed_len += 2;
         }
 
-        if (enable_ja3) {
+        if (enable_ja3 && ssl_state->curr_connp->ja3_hash == NULL) {
             int rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_cipher_suites);
             if (rc == -1) {
                 return -1;
@@ -1515,7 +1515,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
     }
 
 end:
-    if (ja3) {
+    if (ja3 && ssl_state->curr_connp->ja3_hash == NULL) {
         rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
                                    &ja3_extensions);
         if (rc == -1)
