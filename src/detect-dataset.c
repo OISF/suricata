@@ -41,6 +41,7 @@
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-conf.h"
+#include "util-profiling.h"
 
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatasetFree (DetectEngineCtx *, void *);
@@ -68,9 +69,11 @@ static int DetectDatasetTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t
                             det_ctx, a->v2.transforms, f, flags, txv, sd->list, local_id);
                     if (buffer == NULL || buffer->inspect == NULL)
                         break;
+                    KEYWORD_PROFILING_PAUSE;
                     const bool match =
                             DetectEngineContentInspectionBuffer(det_ctx->de_ctx, det_ctx, s, a->smd,
                                     NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                    KEYWORD_PROFILING_UNPAUSE;
                     if (match) {
                         // only add the ones that match other content
                         DatasetAdd(sd->set, buffer->inspect, buffer->inspect_len);
