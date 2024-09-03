@@ -1521,19 +1521,17 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 end:
     if (ja3) {
         if (ssl_state->curr_connp->ja3_hash == NULL) {
-            rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                       &ja3_extensions);
+            rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_extensions);
             if (rc == -1)
                 goto error;
 
             if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
-                rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                           &ja3_elliptic_curves);
+                rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_elliptic_curves);
                 if (rc == -1)
                     goto error;
 
-                rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                           &ja3_elliptic_curves_pf);
+                rc = Ja3BufferAppendBuffer(
+                        &ssl_state->curr_connp->ja3_str, &ja3_elliptic_curves_pf);
                 if (rc == -1)
                     goto error;
             }
