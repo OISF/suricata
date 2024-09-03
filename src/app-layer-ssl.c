@@ -897,9 +897,13 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         }
 
         if (enable_ja3) {
-            int rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_cipher_suites);
-            if (rc == -1) {
-                return -1;
+            if (ssl_state->curr_connp->ja3_hash == NULL) {
+                int rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_cipher_suites);
+                if (rc == -1) {
+                    return -1;
+                }
+            } else {
+                Ja3BufferFree(&ja3_cipher_suites);
             }
         }
 
@@ -1516,21 +1520,28 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
 end:
     if (ja3) {
-        rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                   &ja3_extensions);
-        if (rc == -1)
-            goto error;
-
-        if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
-            rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                       &ja3_elliptic_curves);
+        if (ssl_state->curr_connp->ja3_hash == NULL) {
+            rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_extensions);
             if (rc == -1)
                 goto error;
 
-            rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
-                                       &ja3_elliptic_curves_pf);
-            if (rc == -1)
-                goto error;
+            if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str, &ja3_elliptic_curves);
+                if (rc == -1)
+                    goto error;
+
+                rc = Ja3BufferAppendBuffer(
+                        &ssl_state->curr_connp->ja3_str, &ja3_elliptic_curves_pf);
+                if (rc == -1)
+                    goto error;
+            }
+        } else {
+            if (ja3_extensions != NULL)
+                Ja3BufferFree(&ja3_extensions);
+            if (ja3_elliptic_curves != NULL)
+                Ja3BufferFree(&ja3_elliptic_curves);
+            if (ja3_elliptic_curves_pf != NULL)
+                Ja3BufferFree(&ja3_elliptic_curves_pf);
         }
     }
 
