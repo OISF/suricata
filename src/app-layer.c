@@ -690,6 +690,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 parser_error:
     ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
     AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
+    AppLayerIncFlowCounter(tv, f);
     SCReturnInt(-1);
 detect_error:
     DisableAppLayer(tv, f, p);
@@ -845,6 +846,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
                     ExceptionPolicyApply(
                             p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
                     AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
+                    AppLayerIncFlowCounter(tv, f);
                     SCReturnInt(-1);
                 }
             }
@@ -986,6 +988,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     if (r < 0) {
         ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
         AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
+        AppLayerIncFlowCounter(tv, f);
         SCReturnInt(-1);
     }
 
