@@ -856,7 +856,8 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         goto invalid_length;
     }
 
-    const bool enable_ja3 = SC_ATOMIC_GET(ssl_config.enable_ja3);
+    const bool enable_ja3 =
+            SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL;
 
     if (enable_ja3 || SC_ATOMIC_GET(ssl_config.enable_ja4)) {
         JA3Buffer *ja3_cipher_suites = NULL;
@@ -1336,7 +1337,9 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
     int ret;
     int rc;
-    const bool ja3 = (SC_ATOMIC_GET(ssl_config.enable_ja3) == 1);
+    // if ja3_hash is already computed, do not use new hello to augment ja3_str
+    const bool ja3 =
+            (SC_ATOMIC_GET(ssl_config.enable_ja3) == 1) && ssl_state->curr_connp->ja3_hash == NULL;
 
     JA3Buffer *ja3_extensions = NULL;
     JA3Buffer *ja3_elliptic_curves = NULL;
