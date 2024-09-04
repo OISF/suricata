@@ -209,7 +209,6 @@
 #include "detect-sip-request-line.h"
 #include "detect-sip-response-line.h"
 #include "detect-target.h"
-#include "detect-template-rust-buffer.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
 #include "detect-quic-version.h"
@@ -670,7 +669,6 @@ void SigTableSetup(void)
     DetectSipRequestLineRegister();
     DetectSipResponseLineRegister();
     DetectTargetRegister();
-    DetectTemplateRustBufferRegister();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
     DetectQuicVersionRegister();
@@ -704,6 +702,7 @@ void SigTableSetup(void)
     ScDetectEnipRegister();
     ScDetectMqttRegister();
     ScDetectRfbRegister();
+    ScDetectTemplateRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
