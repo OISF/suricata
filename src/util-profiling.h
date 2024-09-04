@@ -47,10 +47,19 @@ extern thread_local int profiling_keyword_entered;
     (ctx)->keyword_perf_list = (list); \
 }
 
+#define KEYWORD_PROFILING_PAUSE                                                                    \
+    if (profiling_keyword_enabled == 1) {                                                          \
+        profiling_keyword_enabled = 2;                                                             \
+    }
+#define KEYWORD_PROFILING_UNPAUSE                                                                  \
+    if (profiling_keyword_enabled == 2) {                                                          \
+        profiling_keyword_enabled = 1;                                                             \
+    }
+
 #define KEYWORD_PROFILING_START                                                                    \
     uint64_t profile_keyword_start_ = 0;                                                           \
     uint64_t profile_keyword_end_ = 0;                                                             \
-    if (profiling_keyword_enabled) {                                                               \
+    if (profiling_keyword_enabled == 1) {                                                          \
         if (profiling_keyword_entered > 0) {                                                       \
             SCLogError("Re-entered profiling, exiting.");                                          \
             abort();                                                                               \
@@ -61,11 +70,12 @@ extern thread_local int profiling_keyword_entered;
 
 /* we allow this macro to be called if profiling_keyword_entered == 0,
  * so that we don't have to refactor some of the detection code. */
-#define KEYWORD_PROFILING_END(ctx, type, m) \
-    if (profiling_keyword_enabled && profiling_keyword_entered) { \
-        profile_keyword_end_ = UtilCpuGetTicks(); \
-        SCProfilingKeywordUpdateCounter((ctx),(type),(profile_keyword_end_ - profile_keyword_start_),(m)); \
-        profiling_keyword_entered--; \
+#define KEYWORD_PROFILING_END(ctx, type, m)                                                        \
+    if (profiling_keyword_enabled == 1 && profiling_keyword_entered) {                             \
+        profile_keyword_end_ = UtilCpuGetTicks();                                                  \
+        SCProfilingKeywordUpdateCounter(                                                           \
+                (ctx), (type), (profile_keyword_end_ - profile_keyword_start_), (m));              \
+        profiling_keyword_entered--;                                                               \
     }
 
 PktProfiling *SCProfilePacketStart(void);
@@ -327,6 +337,8 @@ void SCProfilingDump(void);
 
 #define KEYWORD_PROFILING_SET_LIST(a,b)
 #define KEYWORD_PROFILING_START
+#define KEYWORD_PROFILING_PAUSE
+#define KEYWORD_PROFILING_UNPAUSE
 #define KEYWORD_PROFILING_END(a,b,c)
 
 #define PACKET_PROFILING_START(p)
