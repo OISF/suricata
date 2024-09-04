@@ -68,6 +68,10 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const InspectionBuffer *b,
         const enum DetectContentInspectionType inspection_mode);
 
+int DetectEngineContentInspectionBufferMulti(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+        const InspectionBuffer *b, uint32_t local_id);
+
 void DetectEngineContentInspectionRegisterTests(void);
 
 #endif /* SURICATA_DETECT_ENGINE_CONTENT_INSPECTION_H */
