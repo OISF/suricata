@@ -61,7 +61,7 @@ if [ $STATSCHECK = false ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
-SID1CHECK=$(jq -c 'select(.event_type == "alert")' ./eve.json | tail -n1 | jq '.alert.signature_id == 1')
+SID1CHECK=$(jq -c 'select(.alert.signature_id == 1)' ./eve.json | wc -l)
 if [ $SID1CHECK = false ]; then
     echo "ERROR no alerts for sid 1"
     RES=1
