@@ -287,7 +287,6 @@ noinst_HEADERS = \
 	detect-tcp-window.h \
 	detect-template2.h \
 	detect-template.h \
-	detect-template-rust-buffer.h \
 	detect-threshold.h \
 	detect-tls-alpn.h \
 	detect-tls-cert-fingerprint.h \
@@ -861,7 +860,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tcp-window.c \
 	detect-template2.c \
 	detect-template.c \
-	detect-template-rust-buffer.c \
 	detect-threshold.c \
 	detect-tls.c \
 	detect-tls-alpn.c \
@@ -1184,7 +1182,6 @@ EXTRA_DIST = \
 	tests/detect-http-user-agent.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
-	tests/detect-template-buffer.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \
