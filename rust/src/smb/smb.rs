@@ -688,8 +688,16 @@ pub struct SMBState<> {
 
     /// map ssn/tree/msgid to vec (guid/name/share)
     pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
-    /// map guid to filename
-    pub guid2name_map: HashMap<Vec<u8>, Vec<u8>>,
+
+    /// map guid to (filename, timestamp)
+    ///
+    /// Lifecycle of the members:
+    /// - Added by CREATE responses
+    /// - Removed by CLOSE requests
+    /// - Post GAP logic removes based on timestamp, as the CLOSE
+    ///   commands may have been missed.
+    ///
+    pub guid2name_map: HashMap<Vec<u8>, (Vec<u8>, u64)>,
     /// map ssn key to read offset
     pub ssn2vecoffset_map: HashMap<SMBCommonHdr, SMBFileGUIDOffset>,
 
@@ -742,7 +750,7 @@ pub struct SMBState<> {
 
     /// Timestamp in seconds of last update. This is packet time,
     /// potentially coming from pcaps.
-    ts: u64,
+    pub ts: u64,
 }
 
 impl State<SMBTransaction> for SMBState {
@@ -1046,7 +1054,7 @@ impl SMBState {
     pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
     {
         let (name, is_dcerpc) = match self.guid2name_map.get(guid) {
-            Some(n) => {
+            Some((n, _ts)) => {
                 let mut s = n.as_slice();
                 // skip leading \ if we have it
                 if s.len() > 1 && s[0] == 0x5c_u8 {
@@ -1101,6 +1109,21 @@ impl SMBState {
      * was received. */
     fn post_gap_housekeeping(&mut self, dir: Direction)
     {
+        let timeoutts = self.ts - 30;
+        if self.ts_ssn_gap || self.tc_ssn_gap {
+            let _pre_size = self.guid2name_map.len();
+            self.guid2name_map.retain(|_,(_p,ts)| {
+                if *ts < timeoutts {
+                    SCLogDebug!("removing {}", String::from_utf8_lossy(_p));
+                } else {
+                    SCLogDebug!("keeping {}", String::from_utf8_lossy(_p));
+                }
+                *ts >= timeoutts
+            });
+            let _post_size = self.guid2name_map.len();
+            SCLogDebug!("pre {} post {}", _pre_size, _post_size);
+        }
+
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {

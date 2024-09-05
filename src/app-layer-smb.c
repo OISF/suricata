@@ -72,6 +72,10 @@ static int SMBParserTxCleanupTest(void)
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_SMB;
+    SCTIME_INIT(f->startts);
+    f->startts = SCTIME_ADD_SECS(f->startts, 1000);
+    SCTIME_INIT(f->lastts);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1000);
 
     char req_str[] ="\x00\x00\x00\x79\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00" \
                      "\x05\x00\xe0\x1e\x10\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00" \
@@ -85,34 +89,42 @@ static int SMBParserTxCleanupTest(void)
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER | STREAM_START, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     req_str[28]++;
 
     AppLayerParserTransactionsCleanup(f, STREAM_TOSERVER);
@@ -137,30 +149,37 @@ static int SMBParserTxCleanupTest(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT | STREAM_START, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x04;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x05;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x06;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x08;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x02;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     resp_str[28] = 0x07;
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
@@ -173,6 +192,7 @@ static int SMBParserTxCleanupTest(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
@@ -185,6 +205,7 @@ static int SMBParserTxCleanupTest(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOSERVER | STREAM_EOF, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     AppLayerParserTransactionsCleanup(f, STREAM_TOSERVER);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
@@ -197,6 +218,7 @@ static int SMBParserTxCleanupTest(void)
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
                                 STREAM_TOCLIENT | STREAM_EOF, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
+    f->lastts = SCTIME_ADD_SECS(f->lastts, 1);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
     UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
