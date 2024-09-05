@@ -28,7 +28,6 @@
 use std;
 use std::str;
 use std::ffi::{self, CString};
-
 use std::collections::HashMap;
 use std::collections::VecDeque;
  
@@ -1885,22 +1884,26 @@ impl SMBState {
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("GAP of size {} in toserver direction", gap_size);
         let consumed = self.handle_skip(Direction::ToServer, gap_size);
+        if consumed == gap_size {
+            /* no need to tag ssn as gap'd as we got it in our skip logic. */
+            return AppLayerResult::ok();
+        }
+
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
+            if consumed2 == new_gap_size {
+                /* no need to tag ssn as gap'd as we got it in our file logic. */
+                return AppLayerResult::ok();
+            }
+
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
-            } else if consumed2 == new_gap_size {
-                /* no need to tag ssn as gap'd as we got it in our file logic. */
-                return AppLayerResult::ok();
             }
-        } else if consumed == gap_size {
-            /* no need to tag ssn as gap'd as we got it in our skip logic. */
-            return AppLayerResult::ok();
         }
 
         self.ts_ssn_gap = true;
@@ -1913,22 +1916,26 @@ impl SMBState {
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("GAP of size {} in toclient direction", gap_size);
         let consumed = self.handle_skip(Direction::ToClient, gap_size);
+        if consumed == gap_size {
+            /* no need to tag ssn as gap'd as we got it in our skip logic. */
+            return AppLayerResult::ok();
+        }
+
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
+            if consumed2 == new_gap_size {
+                /* no need to tag ssn as gap'd as we got it in our file logic. */
+                return AppLayerResult::ok();
+            }
+
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
-            } else if consumed2 == new_gap_size {
-                /* no need to tag ssn as gap'd as we got it in our file logic. */
-                return AppLayerResult::ok();
             }
-        } else if consumed == gap_size {
-            /* no need to tag ssn as gap'd as we got it in our skip logic. */
-            return AppLayerResult::ok();
         }
 
         self.tc_ssn_gap = true;
