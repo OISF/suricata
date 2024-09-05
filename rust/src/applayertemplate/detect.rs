@@ -16,7 +16,9 @@
  */
 
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
+/* TEMPLATE_START_REMOVE */
 use crate::conf::conf_get_node;
+/* TEMPLATE_END_REMOVE */
 use crate::core::Direction;
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
@@ -52,13 +54,11 @@ unsafe extern "C" fn template_buffer_get_data(
                 return true;
             }
         }
-    } else {
-        if let Some(ref request) = tx.request {
-            if !request.is_empty() {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-                return true;
-            }
+    } else if let Some(ref request) = tx.request {
+        if !request.is_empty() {
+            *len = request.len() as u32;
+            *buf = request.as_ptr();
+            return true;
         }
     }
     return false;
@@ -86,6 +86,7 @@ pub unsafe extern "C" fn ScDetectTemplateRegister() {
         return;
     }
     /* TEMPLATE_END_REMOVE */
+    // TODO create a suricata-verify test
     let kw = SCSigTableElmt {
         name: b"template.buffer\0".as_ptr() as *const libc::c_char,
         desc: b"Template content modifier to match on the template buffer\0".as_ptr()
