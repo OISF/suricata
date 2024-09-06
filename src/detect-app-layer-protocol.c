@@ -78,24 +78,38 @@ static int DetectAppLayerProtocolPacketMatch(
     switch (data->mode) {
         case DETECT_ALPROTO_DIRECTION:
             if (p->flowflags & FLOW_PKT_TOSERVER) {
+                if (f->alproto_ts == ALPROTO_UNKNOWN)
+                    SCReturnInt(0);
                 r = AppProtoEquals(data->alproto, f->alproto_ts);
             } else {
+                if (f->alproto_tc == ALPROTO_UNKNOWN)
+                    SCReturnInt(0);
                 r = AppProtoEquals(data->alproto, f->alproto_tc);
             }
             break;
         case DETECT_ALPROTO_ORIG:
+            if (f->alproto_orig == ALPROTO_UNKNOWN)
+                SCReturnInt(0);
             r = AppProtoEquals(data->alproto, f->alproto_orig);
             break;
         case DETECT_ALPROTO_FINAL:
+            if (f->alproto == ALPROTO_UNKNOWN)
+                SCReturnInt(0);
             r = AppProtoEquals(data->alproto, f->alproto);
             break;
         case DETECT_ALPROTO_TOSERVER:
+            if (f->alproto_ts == ALPROTO_UNKNOWN)
+                SCReturnInt(0);
             r = AppProtoEquals(data->alproto, f->alproto_ts);
             break;
         case DETECT_ALPROTO_TOCLIENT:
+            if (f->alproto_tc == ALPROTO_UNKNOWN)
+                SCReturnInt(0);
             r = AppProtoEquals(data->alproto, f->alproto_tc);
             break;
         case DETECT_ALPROTO_EITHER:
+            if (f->alproto_ts == ALPROTO_UNKNOWN && f->alproto_tc == ALPROTO_UNKNOWN)
+                SCReturnInt(0);
             r = AppProtoEquals(data->alproto, f->alproto_tc) ||
                 AppProtoEquals(data->alproto, f->alproto_ts);
             break;
@@ -279,9 +293,11 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
         case DETECT_ALPROTO_EITHER:
             // check if either protocol toclient or toserver matches
             // the one in the signature ctx
-            if (AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ^ negated) {
+            if (f->alproto_tc != ALPROTO_UNKNOWN &&
+                    AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ^ negated) {
                 PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
-            } else if (AppProtoEquals(ctx->v1.u16[0], f->alproto_ts) ^ negated) {
+            } else if (f->alproto_ts != ALPROTO_UNKNOWN &&
+                       AppProtoEquals(ctx->v1.u16[0], f->alproto_ts) ^ negated) {
                 PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
             }
             // We return right away to avoid calling PrefilterAddSids again
