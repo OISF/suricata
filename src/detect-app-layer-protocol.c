@@ -86,6 +86,7 @@ static int DetectAppLayerProtocolPacketMatch(
             p->pcap_cnt,
             p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER),
             f->alproto, f->alproto_ts, f->alproto_tc);
+        SCReturnInt(0);
     }
     r = r ^ data->negated;
     if (r) {
@@ -214,14 +215,14 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
         SCReturn;
     }
 
-    if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER))
-    {
+    if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER) &&
+            p->flow->alproto_ts != ALPROTO_UNKNOWN) {
         int r = (ctx->v1.u16[0] == p->flow->alproto_ts) ^ ctx->v1.u8[2];
         if (r) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
-    } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT))
-    {
+    } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT) &&
+               p->flow->alproto_tc != ALPROTO_UNKNOWN) {
         int r = (ctx->v1.u16[0] == p->flow->alproto_tc) ^ ctx->v1.u8[2];
         if (r) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
