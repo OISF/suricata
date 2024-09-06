@@ -86,6 +86,7 @@ static int DetectAppLayerProtocolPacketMatch(
             p->pcap_cnt,
             p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER),
             f->alproto, f->alproto_ts, f->alproto_tc);
+        SCReturnInt(0);
     }
     r = r ^ data->negated;
     if (r) {
