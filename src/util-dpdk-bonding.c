@@ -52,7 +52,10 @@ uint16_t BondingMemberDevicesGet(
 {
 #ifdef HAVE_DPDK_BOND
 #if RTE_VERSION >= RTE_VERSION_NUM(23, 11, 0, 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     int32_t len = rte_eth_bond_members_get(bond_pid, bonded_devs, bonded_devs_length);
+#pragma GCC diagnostic pop
 #else
     int32_t len = rte_eth_bond_slaves_get(bond_pid, bonded_devs, bonded_devs_length);
 #endif /* RTE_VERSION >= RTE_VERSION_NUM(23, 11, 0, 0) */
