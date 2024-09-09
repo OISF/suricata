@@ -60,6 +60,7 @@
 
 #include "util-lua.h"
 #include "util-lua-builtins.h"
+#include "util-lua-common.h"
 #include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
