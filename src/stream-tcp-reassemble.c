@@ -1033,20 +1033,58 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
 }
 #endif
 
+static StreamingBufferBlock *GetSubseqBlock(const StreamingBuffer *sb, const uint64_t offset)
+{
+    struct StreamingBufferBlock *tmp = RB_ROOT(&sb->sbb_tree);
+    struct StreamingBufferBlock *res = NULL;
+
+    while (tmp) {
+        if (offset < tmp->offset) {
+            res = tmp;
+            tmp = RB_LEFT(tmp, rb);
+        }
+        else if (offset > tmp->offset) {
+            tmp = RB_RIGHT(tmp, rb); 
+        }
+        else {
+            return tmp;
+        }
+    }
+    return res;
+}
+
+/** \internal
+ *  \brief Get first sbb fits offset > sbb->offset or sbb->offset + sbb->len > offset, 
+ *  Or it's the last sbb in stream, or NULL.
+ */
+
+static StreamingBufferBlock *GetBlockDo(const StreamingBuffer *sb, const uint64_t offset)
+{
+    StreamingBufferBlock *blk;
+    StreamingBufferBlock *res = GetSubseqBlock(sb, offset);
+    
+    /* Subsequent block found, now find it's prev node*/
+    if (res != NULL) {
+        blk = SBB_RB_PREV(res);
+    
+    /* Subsequent block not found, check the last node*/
+    } else {
+        blk = RB_MAX(SBB, (struct SBB *)&sb->sbb_tree);
+    }
+
+    if (blk && blk->offset + blk->len > offset) {
+        return blk;
+    }
+    return res;
+}
+
 static StreamingBufferBlock *GetBlock(const StreamingBuffer *sb, const uint64_t offset)
 {
     StreamingBufferBlock *blk = sb->head;
     if (blk == NULL)
         return NULL;
 
-    for ( ; blk != NULL; blk = SBB_RB_NEXT(blk)) {
-        if (blk->offset >= offset)
-            return blk;
-        else if ((blk->offset + blk->len) > offset) {
-            return blk;
-        }
-    }
-    return NULL;
+    return GetBlockDo(sb, offset);   
 }
 
 static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_blk)
