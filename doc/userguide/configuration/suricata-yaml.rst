@@ -1540,6 +1540,10 @@ use of libhtp.
        #compression-bomb-limit: 1 Mb
        # Maximum time spent decompressing a single transaction in usec
        #decompression-time-limit: 100000
+       # Maximum number of live transactions per flow
+       #max-tx: 512
+       # Maximum used number of HTTP1 headers in one request or response
+       #headers-limit: 1024
 
 Other parameters are customizable from Suricata.
 ::
