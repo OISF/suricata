@@ -312,6 +312,7 @@ noinst_HEADERS = \
 	detect-tls-random.h \
 	detect-tos.h \
 	detect-transform-base64.h \
+	detect-transform-luaxform.h \
 	detect-transform-pcrexform.h \
 	detect-ttl.h \
 	detect-udphdr.h \
@@ -899,6 +900,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-random.c \
 	detect-tos.c \
 	detect-transform-base64.c \
+	detect-transform-luaxform.c \
 	detect-transform-pcrexform.c \
 	detect-ttl.c \
 	detect-udphdr.c \
