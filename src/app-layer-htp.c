@@ -170,6 +170,9 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "REQUEST_CHUNK_EXTENSION", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
     { "REQUEST_LINE_MISSING_PROTOCOL", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
 
+    { "REQUEST_TOO_MANY_HEADERS", HTTP_DECODER_EVENT_REQUEST_TOO_MANY_HEADERS },
+    { "RESPONSE_TOO_MANY_HEADERS", HTTP_DECODER_EVENT_RESPONSE_TOO_MANY_HEADERS },
+
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR", HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR },
     { "MULTIPART_NO_FILEDATA", HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA },
@@ -629,6 +632,8 @@ struct {
             HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
     { "Request chunk extension", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
     { "Request line: missing protocol", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
+    { "Too many request headers", HTTP_DECODER_EVENT_REQUEST_TOO_MANY_HEADERS },
+    { "Too many response headers", HTTP_DECODER_EVENT_RESPONSE_TOO_MANY_HEADERS },
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -2102,6 +2107,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 #define HTP_CONFIG_DEFAULT_MAX_TX_LIMIT 512
     htp_config_set_max_tx(cfg_prec->cfg, HTP_CONFIG_DEFAULT_MAX_TX_LIMIT);
 #endif
+#ifdef HAVE_HTP_CONFIG_SET_HEADERS_LIMIT
+#define HTP_CONFIG_DEFAULT_HEADERS_LIMIT 1024
+    htp_config_set_number_headers_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_HEADERS_LIMIT);
+#endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2461,6 +2470,17 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
             htp_config_set_max_tx(cfg_prec->cfg, limit);
+#endif
+#ifdef HAVE_HTP_CONFIG_SET_HEADERS_LIMIT
+        } else if (strcasecmp("headers-limit", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                FatalError("failed to parse 'headers-limit' "
+                           "from conf file - %s.",
+                        p->val);
+            }
+            SCLogConfig("Setting HTTP headers limit to %" PRIu32, limit);
+            htp_config_set_number_headers_limit(cfg_prec->cfg, limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
