@@ -57,6 +57,7 @@
 #include "util-var-name.h"
 
 #include "util-lua.h"
+#include "util-lua-common.h"
 #include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
@@ -125,9 +126,6 @@ void DetectLuaRegister(void)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
 #define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
 #define FLAG_MEMORY_LIMIT_LOGGED                BIT_U32(26)
-
-#define DEFAULT_LUA_ALLOC_LIMIT       500000
-#define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
 
 #if 0
 /** \brief dump stack from lua state to screen */
