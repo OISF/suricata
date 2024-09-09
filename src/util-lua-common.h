@@ -24,6 +24,9 @@
 #ifndef SURICATA_UTIL_LUA_COMMON_H
 #define SURICATA_UTIL_LUA_COMMON_H
 
+#define DEFAULT_LUA_ALLOC_LIMIT       500000
+#define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
+
 int LuaCallbackError(lua_State *luastate, const char *msg);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
 
