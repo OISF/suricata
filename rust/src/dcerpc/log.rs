@@ -33,22 +33,19 @@ fn log_dcerpc_header_tcp(
                 jsb.set_uint("stub_data_size", tx.stub_data_buffer_ts.len() as u64)?;
                 jsb.close()?;
             }
-            DCERPC_TYPE_BIND => match &state.bind {
-                Some(bind) => {
-                    jsb.open_array("interfaces")?;
-                    for uuid in &bind.uuid_list {
-                        jsb.start_object()?;
-                        let ifstr = Uuid::from_slice(uuid.uuid.as_slice());
-                        let ifstr = ifstr.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
-                        jsb.set_string("uuid", &ifstr)?;
-                        let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
-                        jsb.set_string("version", &vstr)?;
-                        jsb.set_uint("ack_result", uuid.result as u64)?;
-                        jsb.close()?;
-                    }
+            DCERPC_TYPE_BIND => if let Some(bind) = &state.bind {
+                jsb.open_array("interfaces")?;
+                for uuid in &bind.uuid_list {
+                    jsb.start_object()?;
+                    let ifstr = Uuid::from_slice(uuid.uuid.as_slice());
+                    let ifstr = ifstr.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+                    jsb.set_string("uuid", &ifstr)?;
+                    let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
+                    jsb.set_string("version", &vstr)?;
+                    jsb.set_uint("ack_result", uuid.result as u64)?;
                     jsb.close()?;
                 }
-                None => {}
+                jsb.close()?;
             },
             _ => {}
         }
