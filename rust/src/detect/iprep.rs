@@ -55,6 +55,7 @@ impl std::str::FromStr for DetectIPRepDataCmd {
 }
 
 /// value matching is done use `DetectUintData` logic.
+///
 /// isset matching is done using special `DetectUintData` value ">= 0"
 /// isnotset matching bypasses `DetectUintData` and is handled directly
 /// in the match function (in C).
