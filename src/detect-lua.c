@@ -57,6 +57,7 @@
 #include "util-var-name.h"
 
 #include "util-lua.h"
+#include "util-lua-common.h"
 #include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
