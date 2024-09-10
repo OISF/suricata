@@ -362,7 +362,11 @@ pub fn dns_parse_body<'a>(
     let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
     let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
-    let (i, additionals) = dns_parse_answer(i, message, header.additional_rr as usize)?;
+    let additionals_parsed = dns_parse_answer(i, message, header.additional_rr as usize);
+    let (i, additionals, corrupt_additionals) = match additionals_parsed {
+        Ok((i, additionals)) => (i, additionals, false),
+        _ => (i, Vec::new(), true)
+    };
     Ok((
         i,
         DNSMessage {
@@ -371,6 +375,7 @@ pub fn dns_parse_body<'a>(
             answers,
             authorities,
             additionals,
+            corrupt_additionals,
         },
     ))
 }
