@@ -28,6 +28,7 @@ RUN git clone --depth=1 https://github.com/catenacyber/fuzzpcap
 
 ADD https://rules.emergingthreats.net/open/suricata/emerging.rules.zip emerging.rules.zip
 
+ENV RUSTUP_TOOLCHAIN nightly
 RUN cargo install --force cbindgen
 
 RUN git clone --depth 1 https://github.com/OISF/libhtp.git libhtp
