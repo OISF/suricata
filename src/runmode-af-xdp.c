@@ -161,7 +161,7 @@ static void *ParseAFXDPConfig(const char *iface)
     ConfNode *af_xdp_node = NULL;
     int conf_val = 0;
     intmax_t conf_val_int = 0;
-    bool boolval = false;
+    int boolval = 0;
 
     if (iface == NULL) {
         return NULL;
@@ -220,7 +220,7 @@ static void *ParseAFXDPConfig(const char *iface)
     (void)SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     /* Promisc Mode */
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
     if (boolval) {
         SCLogConfig("Disabling promiscuous mode on iface %s", aconf->iface);
         aconf->promisc = 0;
