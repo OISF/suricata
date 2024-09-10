@@ -119,7 +119,6 @@ find . -name "*.pcap" | xargs zip -r $OUT/fuzz_decodepcapfile""_seed_corpus.zip
 find . -name "*.yaml" | xargs zip -r $OUT/fuzz_confyamlloadstring""_seed_corpus.zip
 find . -name "*.rules" | xargs zip -r $OUT/fuzz_siginit""_seed_corpus.zip
 )
-done
 
 # corpus using both rule and pcap as in suricata-verify
 cd $SRC/suricata-verify/tests
