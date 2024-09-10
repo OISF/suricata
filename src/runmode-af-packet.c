@@ -280,20 +280,20 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", &boolval) == 1) {
         if (!boolval) {
             SCLogWarning(
                     "%s: \"use-mmap\" option is obsolete: mmap is always enabled", aconf->iface);
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", &boolval);
     if (boolval) {
         SCLogConfig("%s: enabling locked memory for mmap", aconf->iface);
         aconf->flags |= AFP_MMAP_LOCKED;
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", (int *)&boolval) == 1) {
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
         if (boolval) {
             if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
 #ifdef HAVE_TPACKET_V3
@@ -314,8 +314,7 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(
-            if_root, if_default, "use-emergency-flush", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
     if (boolval) {
         SCLogConfig("%s: using emergency ring flush", aconf->iface);
         aconf->flags |= AFP_EMERGENCY_MODE;
@@ -428,7 +427,7 @@ static void *ParseAFPConfig(const char *iface)
 
 #ifdef HAVE_PACKET_EBPF
     boolval = false;
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", (int *)&boolval) == 1) {
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", &boolval) == 1) {
         if (boolval) {
             SCLogConfig("%s: using pinned maps", aconf->iface);
             aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
@@ -544,7 +543,8 @@ static void *ParseAFPConfig(const char *iface)
         }
 
         boolval = true;
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-percpu-hash", (int *)&boolval) == 1) {
+        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-percpu-hash", &boolval) ==
+                1) {
             if (boolval == false) {
                 SCLogConfig("%s: not using percpu hash", aconf->iface);
                 aconf->ebpf_t_config.cpus_count = 1;
@@ -621,7 +621,7 @@ static void *ParseAFPConfig(const char *iface)
         aconf->block_timeout = 10;
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
     if (boolval) {
         SCLogConfig("%s: disabling promiscuous mode", aconf->iface);
         aconf->promisc = 0;
