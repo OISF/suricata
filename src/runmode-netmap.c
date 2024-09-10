@@ -217,7 +217,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     ConfSetBPFFilter(if_root, if_default, iface, &ns->bpf_filter);
 
     int boolval = 0;
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
     if (boolval) {
         SCLogInfo("%s: disabling promiscuous mode", ns->iface);
         ns->promisc = false;
