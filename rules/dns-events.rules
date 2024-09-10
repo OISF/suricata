@@ -17,3 +17,6 @@ alert dns any any -> any any (msg:"SURICATA DNS Infinite loop"; app-layer-event:
 
 # Suricata's maximum number of DNS name labels was reached while parsing a resource name.
 alert dns any any -> any any (msg:"SURICATA DNS Too many labels"; app-layer-event:dns.too_many_labels; classtype:protocol-command-decode; sid:224010; rev:1;)
+
+alert dns any any -> any any (msg:"SURICATA DNS invalid additionals"; app-layer-event:dns.invalid_additionals; classtype:protocol-command-decode; sid:2240011; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS invalid authorities"; app-layer-event:dns.invalid_authorities; classtype:protocol-command-decode; sid:2240012; rev:1;)
