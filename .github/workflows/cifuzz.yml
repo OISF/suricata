@@ -1,4 +1,5 @@
-name: CIFuzz
+# CIFuzz did not support fuzzing of branch main7 well
+name: ClusterFuzzLite
 
 on:
   pull_request:
@@ -25,21 +26,18 @@ jobs:
         sudo rm -rf /usr/share/dotnet/ /usr/share/swift /usr/local/.ghcup/ /usr/local/share/powershell /usr/local/share/chromium /usr/local/lib/android /usr/local/lib/node_modules
         df
    - name: Build Fuzzers (${{ matrix.sanitizer }})
-     uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
+     id: build
+     uses: google/clusterfuzzlite/actions/build_fuzzers@v1
      with:
-       oss-fuzz-project-name: 'suricata'
-       dry-run: false
+       language: rust
+       github-token: ${{ secrets.GITHUB_TOKEN }}
        sanitizer: ${{ matrix.sanitizer }}
    - name: Run Fuzzers (${{ matrix.sanitizer }})
-     uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
+     id: run
+     uses: google/clusterfuzzlite/actions/run_fuzzers@v1
      with:
-       oss-fuzz-project-name: 'suricata'
+       github-token: ${{ secrets.GITHUB_TOKEN }}
        fuzz-seconds: 600
-       dry-run: false
+       mode: 'code-change'
        sanitizer: ${{ matrix.sanitizer }}
-   - name: Upload Crash
-     uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
-     if: failure()
-     with:
-       name: ${{ matrix.sanitizer }}-artifacts
-       path: ./out/artifacts
+       output-sarif: true
