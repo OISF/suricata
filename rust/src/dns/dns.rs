@@ -129,6 +129,8 @@ pub enum DNSEvent {
     NotResponse,
     ZFlagSet,
     InvalidOpcode,
+    InvalidAdditionals,
+    InvalidAuthorities,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -235,7 +237,9 @@ pub struct DNSMessage {
     pub queries: Vec<DNSQueryEntry>,
     pub answers: Vec<DNSAnswerEntry>,
     pub authorities: Vec<DNSAnswerEntry>,
+    pub invalid_authorities: bool,
     pub additionals: Vec<DNSAnswerEntry>,
+    pub invalid_additionals: bool,
 }
 
 #[derive(Debug, Default)]
@@ -378,6 +382,12 @@ pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParse
             let opcode = ((request.header.flags >> 11) & 0xf) as u8;
 
             let mut tx = DNSTransaction::new(Direction::ToServer);
+            if request.invalid_additionals {
+                tx.set_event(DNSEvent::InvalidAdditionals);
+            }
+            if request.invalid_authorities {
+                tx.set_event(DNSEvent::InvalidAuthorities);
+            }
             tx.request = Some(request);
 
             if z_flag {
@@ -418,6 +428,12 @@ pub(crate) fn dns_parse_response(input: &[u8]) -> Result<DNSTransaction, DNSPars
             let flags = response.header.flags;
 
             let mut tx = DNSTransaction::new(Direction::ToClient);
+            if response.invalid_additionals {
+                tx.set_event(DNSEvent::InvalidAdditionals);
+            }
+            if response.invalid_authorities {
+                tx.set_event(DNSEvent::InvalidAuthorities);
+            }
             tx.response = Some(response);
 
             if flags & 0x8000 == 0 {
