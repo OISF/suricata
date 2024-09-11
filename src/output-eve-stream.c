@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 Open Information Security Foundation
+/* Copyright (C) 2023-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -157,6 +157,7 @@ static OutputInitResult EveStreamLogInitCtxSub(ConfNode *conf, OutputCtx *parent
         ctx->trigger_flags |= SetFlag(conf, "state-update", STREAM_PKT_FLAG_STATE_UPDATE);
         ctx->trigger_flags |=
                 SetFlag(conf, "spurious-retransmission", STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION);
+        ctx->trigger_flags |= SetFlag(conf, "tcp-session-reuse", STREAM_PKT_FLAG_TCP_PORT_REUSE);
 
         ctx->trigger_flags |= SetFlag(conf, "all", 0xFFFF);
         SCLogDebug("trigger_flags %04x", ctx->trigger_flags);
