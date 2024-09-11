@@ -22,11 +22,11 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
+use crate::core::{AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
-use crate::core::{Flow, AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -341,7 +341,10 @@ impl PgsqlState {
             );
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                     start = rem;
                     if let Some(state) = PgsqlState::request_next_state(&request) {
                         self.state_progress = state;
@@ -471,7 +474,10 @@ impl PgsqlState {
         while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        flow,
+                        Direction::ToClient as i32,
+                    );
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
                     if let Some(state) = self.response_process_next_state(&response, flow) {
@@ -557,7 +563,6 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
@@ -584,7 +589,6 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
@@ -646,7 +650,6 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
             return AppLayerResult::err();
         }
     }
-
 
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
