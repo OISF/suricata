@@ -217,13 +217,13 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
 
     if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER) &&
             p->flow->alproto_ts != ALPROTO_UNKNOWN) {
-        int r = (ctx->v1.u16[0] == p->flow->alproto_ts) ^ ctx->v1.u8[2];
+        int r = AppProtoEquals(ctx->v1.u16[0], p->flow->alproto_ts) ^ ctx->v1.u8[2];
         if (r) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
     } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT) &&
                p->flow->alproto_tc != ALPROTO_UNKNOWN) {
-        int r = (ctx->v1.u16[0] == p->flow->alproto_tc) ^ ctx->v1.u8[2];
+        int r = AppProtoEquals(ctx->v1.u16[0], p->flow->alproto_tc) ^ ctx->v1.u8[2];
         if (r) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
