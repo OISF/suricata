@@ -41,7 +41,8 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const 
 #ifdef UNITTESTS
 static void DetectTransformDotPrefixRegisterTests(void);
 #endif
-static void TransformDotPrefix(InspectionBuffer *buffer, void *options);
+static void TransformDotPrefix(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 void DetectTransformDotPrefixRegister(void)
 {
@@ -105,7 +106,8 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s,
  * 4. something.google.co.uk --> match
  * 5. google.com --> no match
  */
-static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
+static void TransformDotPrefix(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const size_t input_len = buffer->inspect_len;
 
@@ -131,7 +133,7 @@ static int DetectTransformDotPrefixTest01(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer, NULL);
+    TransformDotPrefix(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
@@ -151,7 +153,7 @@ static int DetectTransformDotPrefixTest02(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer, NULL);
+    TransformDotPrefix(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
