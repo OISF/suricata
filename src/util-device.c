@@ -90,11 +90,12 @@ int LiveGetOffload(void)
  * to be created during runmode init, use LiveRegisterDevice()
  *
  *  \param dev string with the device name
+ *  \param copy_dev string with the name of the device being copied to (valid in IPS mode only)
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDeviceName(const char *dev)
+int LiveRegisterDeviceName(const char *dev, const char *copy_dev)
 {
     LiveDeviceName *pd = NULL;
 
@@ -107,6 +108,15 @@ int LiveRegisterDeviceName(const char *dev)
     if (unlikely(pd->dev == NULL)) {
         SCFree(pd);
         return -1;
+    }
+
+    if (copy_dev) {
+        pd->copy_dev = SCStrdup(copy_dev);
+        if (unlikely(pd->copy_dev == NULL)) {
+            SCFree(pd->dev);
+            SCFree(pd);
+            return -1;
+        }
     }
 
     pd->role = SCStrdup(ROLE_UNKNOWN_STR);
@@ -132,12 +142,13 @@ int LiveRegisterDeviceName(const char *dev)
  * suricata.yaml.
  *
  *  \param dev string with the device name
+ *  \param copy_dev string with the name of the device being copied to (valid in IPS mode only)
  *  \param role string with the device role
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDeviceNameAndRole(const char *dev, const char *role)
+int LiveRegisterDeviceNameAndRole(const char *dev, const char *copy_dev, const char *role)
 {
     LiveDeviceName *pd = NULL;
 
@@ -150,6 +161,15 @@ int LiveRegisterDeviceNameAndRole(const char *dev, const char *role)
     if (unlikely(pd->dev == NULL)) {
         SCFree(pd);
         return -1;
+    }
+
+    if (copy_dev) {
+        pd->copy_dev = SCStrdup(copy_dev);
+        if (unlikely(pd->copy_dev == NULL)) {
+            SCFree(pd->dev);
+            SCFree(pd);
+            return -1;
+        }
     }
 
     if (unlikely(role == NULL)) {
@@ -356,14 +376,18 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
                 if (!strcmp(subchild->val, "default"))
                     break;
 
+                const char *copy_iface = NULL;
+                if (ConfGetChildValue(child, "copy-iface", &copy_iface) == 1) {
+                    SCLogDebug("%s %s has copy-iface %s", itemname, subchild->val, copy_iface);
+                }
                 const char *role = NULL;
                 if (ConfGetChildValue(child, "role", &role) == 1) {
                     SCLogConfig("Adding %s %s with role %s from config file", itemname,
                             subchild->val, role);
-                    LiveRegisterDeviceNameAndRole(subchild->val, role);
+                    LiveRegisterDeviceNameAndRole(subchild->val, copy_iface, role);
                 } else {
                     SCLogConfig("Adding %s %s from config file", itemname, subchild->val);
-                    LiveRegisterDeviceName(subchild->val);
+                    LiveRegisterDeviceName(subchild->val, copy_iface);
                 }
                 i++;
             }
@@ -512,16 +536,29 @@ LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
  */
 void LiveDeviceFinalize(void)
 {
-    LiveDeviceName *ld, *pld;
+    LiveDevice *ld;
+    LiveDeviceName *ldn, *pldn;
     SCLogDebug("Finalize live device");
     /* Iter on devices and register them */
-    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
-        if (ld->dev) {
-            LiveRegisterDevice(ld->dev, ld->role);
-            SCFree(ld->dev);
-            SCFree(ld->role);
+    TAILQ_FOREACH_SAFE (ldn, &pre_live_devices, next, pldn) {
+        if (ldn->dev) {
+            LiveRegisterDevice(ldn->dev, ldn->role);
         }
-        SCFree(ld);
+    }
+
+    /* Iter on devices and update with copy device then cleanup */
+    TAILQ_FOREACH_SAFE (ldn, &pre_live_devices, next, pldn) {
+        if (ldn->dev) {
+            if (ldn->copy_dev) {
+                ld = LiveGetDevice(ldn->dev);
+                ld->copy_dev = LiveGetDevice(ldn->copy_dev);
+
+                SCFree(ldn->copy_dev);
+            }
+            SCFree(ldn->dev);
+            SCFree(ldn->role);
+        }
+        SCFree(ldn);
     }
 }
 

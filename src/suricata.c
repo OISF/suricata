@@ -1180,13 +1180,13 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_AFP_DEV;
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, NULL);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFP_DEV) {
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, NULL);
         } else {
             SCLogInfo("Multiple af-packet option without interface on each is useless");
         }
@@ -1211,13 +1211,13 @@ static int ParseCommandLineAfxdp(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_AFXDP_DEV;
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, NULL);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFXDP_DEV) {
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, NULL);
         } else {
             SCLogInfo("Multiple af-xdp options without interface on each is useless");
         }
@@ -1287,10 +1287,10 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_PCAP_DEV;
         if (in_arg) {
-            LiveRegisterDeviceName(suri->pcap_dev);
+            LiveRegisterDeviceName(suri->pcap_dev, NULL);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-        LiveRegisterDeviceName(suri->pcap_dev);
+        LiveRegisterDeviceName(suri->pcap_dev, NULL);
     } else {
         SCLogError("more than one run mode "
                    "has been specified");
@@ -1436,7 +1436,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     strlcpy(suri->pcap_dev, optarg,
                             ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                              (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDeviceName(optarg);
+                    LiveRegisterDeviceName(optarg, NULL);
                 }
 #else
                 SCLogError("PF_RING not enabled. Make sure "
@@ -1491,7 +1491,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
                     if (optarg) {
-                        LiveRegisterDeviceName(optarg);
+                        LiveRegisterDeviceName(optarg, NULL);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1499,7 +1499,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     }
                 } else if (suri->run_mode == RUNMODE_NETMAP) {
                     if (optarg) {
-                        LiveRegisterDeviceName(optarg);
+                        LiveRegisterDeviceName(optarg, NULL);
                     } else {
                         SCLogInfo("Multiple netmap option without interface on each is useless");
                         break;
@@ -1647,7 +1647,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
-                LiveRegisterDeviceName(optarg);
+                LiveRegisterDeviceName(optarg, NULL);
 #else
                 SCLogError("libdag and a DAG card are required"
                            " to receive packets using --dag.");
