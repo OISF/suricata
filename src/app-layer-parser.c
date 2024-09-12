@@ -1278,7 +1278,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
     } else if (flags & STREAM_EOF) {
         Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
         SCLogDebug("EOF closing: frame %p", frame);
-        if (frame || frame->type != FRAME_STREAM_TYPE) {
+        if (frame && frame->type == FRAME_STREAM_TYPE) {
             /* calculate final frame length */
             int64_t slice_o = (int64_t)stream_slice.offset - (int64_t)frame->offset;
             int64_t frame_len = slice_o + (int64_t)input_len;
