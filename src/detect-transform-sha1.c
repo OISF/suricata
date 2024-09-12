@@ -40,7 +40,8 @@ static int DetectTransformToSha1Setup (DetectEngineCtx *, Signature *, const cha
 #ifdef UNITTESTS
 static void DetectTransformToSha1RegisterTests(void);
 #endif
-static void TransformToSha1(InspectionBuffer *buffer, void *options);
+static void TransformToSha1(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 void DetectTransformSha1Register(void)
 {
@@ -81,7 +82,7 @@ static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, co
     SCReturnInt(r);
 }
 
-static void TransformToSha1(InspectionBuffer *buffer, void *options)
+static void TransformToSha1(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -102,7 +103,7 @@ static int DetectTransformToSha1Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToSha1(&buffer, NULL);
+    TransformToSha1(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

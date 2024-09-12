@@ -39,7 +39,8 @@ static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, 
 #ifdef UNITTESTS
 static void DetectTransformStripWhitespaceRegisterTests(void);
 #endif
-static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
+static void TransformStripWhitespace(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 static bool TransformStripWhitespaceValidate(const uint8_t *content, uint16_t content_len, void *options);
 
 void DetectTransformStripWhitespaceRegister(void)
@@ -99,7 +100,8 @@ static bool TransformStripWhitespaceValidate(const uint8_t *content,
     return true;
 }
 
-static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
+static void TransformStripWhitespace(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -154,7 +156,7 @@ static int DetectTransformStripWhitespaceTest01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer, NULL);
+    TransformStripWhitespace(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -173,7 +175,7 @@ static int DetectTransformStripWhitespaceTest02(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer, NULL);
+    TransformStripWhitespace(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
