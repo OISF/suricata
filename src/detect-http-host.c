@@ -252,7 +252,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = bstr_ptr(htp_tx_request_hostname(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -273,7 +273,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -294,7 +294,7 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -364,7 +364,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         }
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;

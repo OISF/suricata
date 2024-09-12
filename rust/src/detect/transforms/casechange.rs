@@ -39,7 +39,7 @@ fn tolower_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn tolower_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn tolower_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -99,7 +99,7 @@ fn toupper_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn toupper_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn toupper_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {

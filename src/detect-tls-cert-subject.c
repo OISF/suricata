@@ -143,7 +143,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = (uint8_t *)connp->cert0_subject;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;

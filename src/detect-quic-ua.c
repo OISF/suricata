@@ -60,7 +60,7 @@ static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }

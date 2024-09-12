@@ -1580,8 +1580,8 @@ void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
-        const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(!buffer->multi);
@@ -1591,7 +1591,7 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->len = 0;
     buffer->initialized = true;
 
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
 }
 
 /** \brief setup the buffer with our initial data */
@@ -1711,7 +1711,7 @@ bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_lis
     return true;
 }
 
-void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
+void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms)
 {
     if (transforms) {
@@ -1720,7 +1720,7 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
             if (id == 0)
                 break;
             BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
+            sigmatch_table[id].Transform(det_ctx, buffer, transforms->transforms[i].options);
             SCLogDebug("applied transform %s", sigmatch_table[id].name);
         }
     }

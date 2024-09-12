@@ -148,7 +148,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, 0);
         InspectionBufferCopy(buffer, data, JA4_HEX_LEN);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -170,7 +170,7 @@ static InspectionBuffer *Ja4DetectGetHash(DetectEngineThreadCtx *det_ctx,
 
         InspectionBufferSetup(det_ctx, list_id, buffer, NULL, 0);
         InspectionBufferCopy(buffer, (uint8_t *)b, JA4_HEX_LEN);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }

@@ -57,7 +57,7 @@ static InspectionBuffer *GetSmtpHeloData(DetectEngineThreadCtx *det_ctx,
             if (smtp_state->helo == NULL || smtp_state->helo_len == 0)
                 return NULL;
             InspectionBufferSetup(det_ctx, list_id, buffer, smtp_state->helo, smtp_state->helo_len);
-            InspectionBufferApplyTransforms(buffer, transforms);
+            InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
         }
     }
     return buffer;
@@ -84,7 +84,7 @@ static InspectionBuffer *GetSmtpMailFromData(DetectEngineThreadCtx *det_ctx,
         if (tx->mail_from == NULL || tx->mail_from_len == 0)
             return NULL;
         InspectionBufferSetup(det_ctx, list_id, buffer, tx->mail_from, tx->mail_from_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -129,7 +129,7 @@ static InspectionBuffer *GetSmtpRcptToData(DetectEngineThreadCtx *det_ctx,
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, s->str, s->len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, s->str, s->len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
