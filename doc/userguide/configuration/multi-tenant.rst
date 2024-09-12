@@ -130,7 +130,9 @@ Example of device mapping::
 
 The mappings are static and cannot be modified over the unix socket.
 
-Note: Not currently supported for IPS.
+Note: Not currently supported for IPS. Setting an interface's role
+and using the origin and destination keyword is a potential
+alternative.
 
 Note: support depends on a capture method using the 'livedev' API. Currently
 these are: pcap, AF_PACKET, PF_RING and Netmap.
