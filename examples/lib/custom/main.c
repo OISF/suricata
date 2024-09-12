@@ -22,8 +22,34 @@
 #include "runmode-lib.h"
 #include "source-lib.h"
 #include "threadvars.h"
+#include "action-globals.h"
+#include "packet.h"
 
 static int worker_id = 1;
+
+/**
+ * Release packet callback.
+ *
+ * If there is any cleanup that needs to be done when Suricata is done
+ * with a packet, this is the place to do it.
+ *
+ * Important: If using a custom release function, you must also
+ * release or free the packet.
+ *
+ * Optionally this is where you would handle IPS like functionality
+ * such as forwarding the packet, or triggering some other mechanism
+ * to forward the packet.
+ */
+static void ReleasePacket(Packet *p)
+{
+    if (PacketCheckAction(p, ACTION_DROP)) {
+        SCLogNotice("Dropping packet!");
+    }
+
+    /* As we overode the default release function, we must release or
+     * free the packet. */
+    PacketFreeOrRelease(p);
+}
 
 /**
  * Suricata worker thread in library mode.
@@ -58,14 +84,42 @@ static void *SimpleWorker(void *arg)
     struct pcap_pkthdr pkthdr;
     const u_char *packet;
     while ((packet = pcap_next(fp, &pkthdr)) != NULL) {
-        if (TmModuleLibHandlePacket(tv, device, packet, datalink, pkthdr.ts, pkthdr.len, 0, 0) !=
-                0) {
-            pthread_exit(NULL);
+
+        Packet *p = PacketGetFromQueueOrAlloc();
+        if (unlikely(p == NULL)) {
+            /* Memory allocation error. */
+            goto done;
+        }
+
+        /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
+        SCTime_t timestamp = SCTIME_FROM_TIMEVAL(&pkthdr.ts);
+        if (count == 0) {
+            TmThreadsInitThreadsTimestamp(timestamp);
+        }
+
+        /* Setup the packet, these will become functions to avoid
+         * internal Packet access. */
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
+        p->ts = SCTIME_FROM_TIMEVAL(&pkthdr.ts);
+        p->datalink = datalink;
+        p->livedev = device;
+        p->ReleasePacket = ReleasePacket;
+
+        if (PacketSetData(p, packet, pkthdr.len) == -1) {
+            TmqhOutputPacketpool(tv, p);
+            goto done;
+        }
+
+        if (TmThreadsSlotProcessPkt(tv, tv->tm_slots, p) != TM_ECODE_OK) {
+            TmqhOutputPacketpool(tv, p);
+            goto done;
         }
 
         (void)SC_ATOMIC_ADD(device->pkts, 1);
         count++;
     }
+
+done:
     pcap_close(fp);
 
     /* Cleanup. */
