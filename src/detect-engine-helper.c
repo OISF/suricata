@@ -57,7 +57,7 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -115,8 +115,8 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
             (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
                     void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw)) kw->Setup;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx *de, void *ptr)) kw->Free;
     DETECT_TBLSIZE_IDX++;
     return DETECT_TBLSIZE_IDX - 1;
 }
@@ -137,8 +137,8 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
     sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
     sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Transform =
-            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Transform = (void (*)(struct DetectEngineThreadCtx_ *det_ctx,
+            InspectionBuffer *buffer, void *options))kw->Transform;
     sigmatch_table[DETECT_TBLSIZE_IDX].TransformValidate = (bool (*)(
             const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
@@ -167,7 +167,7 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
