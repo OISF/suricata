@@ -128,7 +128,7 @@ static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
         } else {
             return NULL;
         }
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -152,7 +152,7 @@ static InspectionBuffer *GetDataDst(DetectEngineThreadCtx *det_ctx,
         } else {
             return NULL;
         }
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
