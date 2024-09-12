@@ -199,7 +199,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             tx_ud->request_headers_raw_len : tx_ud->response_headers_raw_len;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -220,7 +220,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
