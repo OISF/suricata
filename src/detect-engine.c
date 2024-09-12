@@ -2573,6 +2573,9 @@ DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix, uint32_t tena
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
 {
     HashListTableFree(de_ctx->keyword_hash);
+#if UNITTESTS
+    de_ctx->keyword_hash = NULL;
+#endif
 }
 
 static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
@@ -2645,7 +2648,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
 
-    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
     DetectEngineCtxFreeFailedSigs(de_ctx);
 
@@ -2668,6 +2670,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectPortCleanupList(de_ctx, de_ctx->udp_priorityports);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
+    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 
