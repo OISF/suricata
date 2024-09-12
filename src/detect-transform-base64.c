@@ -42,7 +42,8 @@ static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectTransformFromBase64DecodeRegisterTests(void);
 #endif
-static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options);
+static void TransformFromBase64Decode(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 #define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) Base64ModeRFC4648
 
@@ -113,7 +114,8 @@ exit_path:
     SCReturnInt(r);
 }
 
-static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
+static void TransformFromBase64Decode(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     SCDetectTransformFromBase64Data *b64d = options;
     const uint8_t *input = buffer->inspect;
@@ -171,7 +173,7 @@ static int DetectTransformFromBase64DecodeTest01(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -192,7 +194,7 @@ static int DetectTransformFromBase64DecodeTest01a(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -212,7 +214,7 @@ static int DetectTransformFromBase64DecodeTest02(void)
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     buffer_orig = buffer;
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_offset == buffer_orig.inspect_offset);
     FAIL_IF_NOT(buffer.inspect_len == buffer_orig.inspect_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -234,7 +236,7 @@ static int DetectTransformFromBase64DecodeTest03(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(strncmp((const char *)input, (const char *)buffer.inspect, input_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
@@ -255,7 +257,7 @@ static int DetectTransformFromBase64DecodeTest04(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(strncmp((const char *)input, (const char *)buffer.inspect, input_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
@@ -279,7 +281,7 @@ static int DetectTransformFromBase64DecodeTest05(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -304,7 +306,7 @@ static int DetectTransformFromBase64DecodeTest06(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -328,7 +330,7 @@ static int DetectTransformFromBase64DecodeTest07(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -349,7 +351,7 @@ static int DetectTransformFromBase64DecodeTest08(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromBase64Decode(NULL, &buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == 15);
     // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
