@@ -2576,6 +2576,7 @@ DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix, uint32_t tena
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
 {
     HashListTableFree(de_ctx->keyword_hash);
+    de_ctx->keyword_hash = NULL;
 }
 
 static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
