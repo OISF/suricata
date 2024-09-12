@@ -40,7 +40,8 @@ static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const c
 #ifdef UNITTESTS
 static void DetectTransformToSha256RegisterTests(void);
 #endif
-static void TransformToSha256(InspectionBuffer *buffer, void *options);
+static void TransformToSha256(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 void DetectTransformSha256Register(void)
 {
@@ -81,7 +82,8 @@ static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, 
     SCReturnInt(r);
 }
 
-static void TransformToSha256(InspectionBuffer *buffer, void *options)
+static void TransformToSha256(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -102,7 +104,7 @@ static int DetectTransformToSha256Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToSha256(&buffer, NULL);
+    TransformToSha256(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

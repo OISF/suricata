@@ -37,7 +37,8 @@ typedef struct DetectTransformXorData {
 
 static int DetectTransformXorSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformXorFree(DetectEngineCtx *, void *);
-static void DetectTransformXor(InspectionBuffer *buffer, void *options);
+static void DetectTransformXor(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 #ifdef UNITTESTS
 void DetectTransformXorRegisterTests(void);
 #endif
@@ -125,7 +126,8 @@ static int DetectTransformXorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     SCReturnInt(r);
 }
 
-static void DetectTransformXor(InspectionBuffer *buffer, void *options)
+static void DetectTransformXor(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;

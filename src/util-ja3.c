@@ -278,7 +278,7 @@ InspectionBuffer *Ja3DetectGetHash(DetectEngineThreadCtx *det_ctx,
 
         InspectionBufferSetup(det_ctx, list_id, buffer, NULL, 0);
         InspectionBufferCopy(buffer, ja3_hash, SC_MD5_HEX_LEN);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -298,7 +298,7 @@ InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
