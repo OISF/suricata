@@ -82,7 +82,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     }
 
     if (TAILQ_EMPTY(&connp->certs)) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
@@ -97,11 +97,11 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         }
     }
     if (cert == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, cert->cert_data, cert->cert_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, cert->cert_data, cert->cert_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");

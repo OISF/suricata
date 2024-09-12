@@ -65,15 +65,15 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     const uint8_t *b = NULL;
 
     if (rs_krb5_tx_get_sname(txv, local_id, &b, &b_len) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
     if (b == NULL || b_len == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, b, b_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b, b_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
