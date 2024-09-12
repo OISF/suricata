@@ -1562,7 +1562,7 @@ void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 }
 
 /** \brief setup the buffer empty */
-void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
+void InspectionBufferSetupMultiEmpty(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer)
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(buffer->initialized);
@@ -1572,11 +1572,12 @@ void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
     buffer->inspect_len = 0;
     buffer->len = 0;
     buffer->initialized = true;
+    buffer->det_ctx = det_ctx;
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
-        const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(!buffer->multi);
@@ -1585,6 +1586,7 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
     buffer->initialized = true;
+    buffer->det_ctx = det_ctx;
 
     InspectionBufferApplyTransforms(buffer, transforms);
 }
@@ -1603,6 +1605,7 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
 #endif
             det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
     }
+    buffer->det_ctx = det_ctx;
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;

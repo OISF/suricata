@@ -371,6 +371,7 @@ struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
  * Prefilter and inspection will only deal with 'inspect'. */
 
 typedef struct InspectionBuffer {
+    struct DetectEngineThreadCtx_ *det_ctx;
     const uint8_t *inspect; /**< active pointer, points either to ::buf or ::orig */
     uint64_t inspect_offset;
     uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */

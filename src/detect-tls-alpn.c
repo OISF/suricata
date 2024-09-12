@@ -122,7 +122,7 @@ static InspectionBuffer *TlsAlpnGetData(DetectEngineThreadCtx *det_ctx,
     }
 
     if (TAILQ_EMPTY(&connp->alpns)) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
@@ -137,11 +137,11 @@ static InspectionBuffer *TlsAlpnGetData(DetectEngineThreadCtx *det_ctx,
         }
     }
     if (a == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, a->alpn, a->size);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, a->alpn, a->size);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
