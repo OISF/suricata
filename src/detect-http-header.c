@@ -159,7 +159,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
@@ -198,7 +198,7 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
         }
         /* setup buffer and apply transforms */
         InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     const uint32_t data_len = buffer->inspect_len;
@@ -253,7 +253,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
 
         /* setup buffer and apply transforms */
         InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
-        InspectionBufferApplyTransforms(buffer, ctx->transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, ctx->transforms);
     }
 
     const uint32_t data_len = buffer->inspect_len;
@@ -526,7 +526,7 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, b, b_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b, b_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
@@ -604,8 +604,8 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     // hdr_td->len is the number of header buffers
     if (local_id < hdr_td->len) {
         // we have one valid header buffer
-        InspectionBufferSetupMulti(
-                buffer, transforms, hdr_td->items[local_id].buffer, hdr_td->items[local_id].len);
+        InspectionBufferSetupMulti(det_ctx, buffer, transforms, hdr_td->items[local_id].buffer,
+                hdr_td->items[local_id].len);
         buffer->flags = DETECT_CI_FLAGS_SINGLE;
         SCReturnPtr(buffer, "InspectionBuffer");
     } // else there are no more header buffer to get
