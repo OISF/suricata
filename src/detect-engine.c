@@ -960,13 +960,14 @@ static char DetectBufferTypeCompareIdFunc(void *data1, uint16_t len1, void *data
     return map1->id == map2->id;
 }
 
-static void DetectBufferTypeFreeFunc(void *data)
+static void DetectBufferTypeFreeFuncWithCtx(void *ctx, void *data)
 {
-    DetectBufferType *map = (DetectBufferType *)data;
-
-    if (map == NULL) {
+    if (data == NULL) {
         return;
     }
+
+    DetectBufferType *map = (DetectBufferType *)data;
+    DetectEngineCtx *de_ctx = (DetectEngineCtx *)ctx;
 
     /* Release transformation option memory, if any */
     for (int i = 0; i < map->transforms.cnt; i++) {
@@ -977,10 +978,16 @@ static void DetectBufferTypeFreeFunc(void *data)
                     sigmatch_table[map->transforms.transforms[i].transform].name);
             continue;
         }
-        sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
+        sigmatch_table[map->transforms.transforms[i].transform].Free(
+                de_ctx, map->transforms.transforms[i].options);
     }
 
     SCFree(map);
+}
+
+static void DetectBufferTypeFreeFunc(void *data)
+{
+    DetectBufferTypeFreeFuncWithCtx(NULL, data);
 }
 
 static int DetectBufferTypeInit(void)
@@ -1731,8 +1738,8 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
-    de_ctx->buffer_type_hash_name = HashListTableInit(256, DetectBufferTypeHashNameFunc,
-            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFunc);
+    de_ctx->buffer_type_hash_name = HashListTableInitWithCtx(256, DetectBufferTypeHashNameFunc,
+            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFuncWithCtx);
     BUG_ON(de_ctx->buffer_type_hash_name == NULL);
     de_ctx->buffer_type_hash_id =
             HashListTableInit(256, DetectBufferTypeHashIdFunc, DetectBufferTypeCompareIdFunc,
@@ -1773,7 +1780,7 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
 {
     if (de_ctx) {
         if (de_ctx->buffer_type_hash_name)
-            HashListTableFree(de_ctx->buffer_type_hash_name);
+            HashListTableFreeWithCtx(de_ctx, de_ctx->buffer_type_hash_name);
         if (de_ctx->buffer_type_hash_id)
             HashListTableFree(de_ctx->buffer_type_hash_id);
 
