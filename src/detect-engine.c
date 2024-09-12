@@ -2671,6 +2671,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
+    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 
