@@ -61,10 +61,10 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
     uint32_t data_len = 0;
 
     if (!SCDnsTxGetQueryName(txv, to_client, index, &data, &data_len)) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }

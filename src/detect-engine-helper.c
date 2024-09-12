@@ -137,10 +137,10 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
     uint32_t data_len = 0;
 
     if (!GetBuf(txv, flow_flags, index, &data, &data_len)) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }

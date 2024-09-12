@@ -68,11 +68,11 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data;
     uint32_t data_len;
     if (rs_quic_tx_get_cyu_string(txv, local_id, &data, &data_len) == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
