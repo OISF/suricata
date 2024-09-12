@@ -55,6 +55,7 @@ typedef struct {
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
+    struct LiveDevice_ *copy_dev; /**< copy-iface live device (valid in IPS mode only) */
     char dev_short[MAX_DEVNAME + 1];
     int mtu; /* MTU of the device */
     bool tenant_id_set;
@@ -80,14 +81,15 @@ typedef struct LiveDevice_ {
 
 typedef struct LiveDeviceName_ {
     char *dev;  /**< the device (e.g. "eth0") */
-    char *role; /**< the device role (e.g. "trusted","untrusted") */
+    char *copy_dev; /**< device copied to (valid in IPS mode only, e.g. "eth1") */
+    char *role;     /**< the device role (e.g. "trusted","untrusted") */
     TAILQ_ENTRY(LiveDeviceName_) next;
 } LiveDeviceName;
 
 void LiveDevRegisterExtension(void);
 
-int LiveRegisterDeviceName(const char *dev);
-int LiveRegisterDeviceNameAndRole(const char *dev, const char *role);
+int LiveRegisterDeviceName(const char *dev, const char *copy_dev);
+int LiveRegisterDeviceNameAndRole(const char *dev, const char *copy_dev, const char *role);
 int LiveRegisterDevice(const char *dev, const char *role);
 int LiveDevUseBypass(LiveDevice *dev);
 void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family);
