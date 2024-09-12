@@ -1238,6 +1238,9 @@ static inline void SetEOFFlags(AppLayerParserState *pstate, const uint8_t flags)
     }
 }
 
+// if there is a stream frame, it should always be the first
+#define FRAME_STREAM_ID 1
+
 /** \internal
  *  \brief create/close stream frames
  *  On first invocation of TCP parser in a direction, create a <alproto>.stream frame.
@@ -1253,7 +1256,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
                 (direction == 1 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TC) == 0)) &&
             input != NULL && f->proto == IPPROTO_TCP) {
         Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
-        if (frame == NULL) {
+        if (frame == NULL || frame->type != FRAME_STREAM_TYPE) {
             int64_t frame_len = -1;
             if (flags & STREAM_EOF)
                 frame_len = input_len;
@@ -1275,7 +1278,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
     } else if (flags & STREAM_EOF) {
         Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
         SCLogDebug("EOF closing: frame %p", frame);
-        if (frame) {
+        if (frame || frame->type != FRAME_STREAM_TYPE) {
             /* calculate final frame length */
             int64_t slice_o = (int64_t)stream_slice.offset - (int64_t)frame->offset;
             int64_t frame_len = slice_o + (int64_t)input_len;
