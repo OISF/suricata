@@ -519,15 +519,15 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
     const uint8_t *b = NULL;
 
     if (rs_http2_tx_get_header(txv, flags, local_id, &b, &b_len) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
     if (b == NULL || b_len == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
+        InspectionBufferSetupMultiEmpty(det_ctx, buffer);
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, b, b_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b, b_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
@@ -605,12 +605,12 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     // hdr_td->len is the number of header buffers
     if (local_id < hdr_td->len) {
         // we have one valid header buffer
-        InspectionBufferSetupMulti(
-                buffer, transforms, hdr_td->items[local_id].buffer, hdr_td->items[local_id].len);
+        InspectionBufferSetupMulti(det_ctx, buffer, transforms, hdr_td->items[local_id].buffer,
+                hdr_td->items[local_id].len);
         buffer->flags = DETECT_CI_FLAGS_SINGLE;
         SCReturnPtr(buffer, "InspectionBuffer");
     } // else there are no more header buffer to get
-    InspectionBufferSetupMultiEmpty(buffer);
+    InspectionBufferSetupMultiEmpty(det_ctx, buffer);
     return NULL;
 }
 
