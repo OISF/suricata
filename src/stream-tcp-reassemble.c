@@ -1039,14 +1039,8 @@ static StreamingBufferBlock *GetBlock(const StreamingBuffer *sb, const uint64_t 
     if (blk == NULL)
         return NULL;
 
-    for ( ; blk != NULL; blk = SBB_RB_NEXT(blk)) {
-        if (blk->offset >= offset)
-            return blk;
-        else if ((blk->offset + blk->len) > offset) {
-            return blk;
-        }
-    }
-    return NULL;
+    StreamingBufferBlock key = {.offset = offset, .len = 0};
+    return SBB_RB_FIND_INCLUSIVE(&sb->sbb_tree, &key);
 }
 
 static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_blk)
