@@ -959,19 +959,11 @@ impl DCERPCState {
 
         let buffer = match direction {
             Direction::ToServer => {
-                if self.buffer_ts.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("DCERPC TOSERVER stream: Buffer Overflow");
-                    return AppLayerResult::err();
-                }
                 v = self.buffer_ts.split_off(0);
                 v.extend_from_slice(cur_i);
                 v.as_slice()
             }
             Direction::ToClient => {
-                if self.buffer_tc.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("DCERPC TOCLIENT stream: Buffer Overflow");
-                    return AppLayerResult::err();
-                }
                 v = self.buffer_tc.split_off(0);
                 v.extend_from_slice(cur_i);
                 v.as_slice()
