@@ -768,6 +768,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
     old_f->timeout_at = 0;
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
+    old_f->flow_end_flags |= FLOW_END_FLAG_TCPREUSE;
 
     /* flow is unlocked by caller */
 
