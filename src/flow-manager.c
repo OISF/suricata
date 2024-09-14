@@ -327,6 +327,8 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
     do {
         checked++;
 
+        FLOWLOCK_WRLOCK(f);
+
         /* check flow timeout based on lastts and state. Both can be
          * accessed w/o Flow lock as we do have the hash row lock (so flow
          * can't disappear) and flow_state is atomic. lastts can only
@@ -334,14 +336,13 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, ts, next_ts, emergency) == false) {
+            FLOWLOCK_UNLOCK(f);
             counters->flows_notimeout++;
 
             prev_f = f;
             f = f->next;
             continue;
         }
-
-        FLOWLOCK_WRLOCK(f);
 
         Flow *next_flow = f->next;
 
