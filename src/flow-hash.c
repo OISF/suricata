@@ -906,16 +906,15 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
     f = fb->head;
     do {
         Flow *next_f = NULL;
+        FLOWLOCK_WRLOCK(f);
         const bool timedout = (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) &&
                                FlowIsTimedOut(f, (uint32_t)SCTIME_SECS(p->ts), emerg));
         if (timedout) {
-            FLOWLOCK_WRLOCK(f);
             next_f = f->next;
             MoveToWorkQueue(tv, fls, fb, f, prev_f);
             FLOWLOCK_UNLOCK(f);
             goto flow_removed;
         } else if (FlowCompare(f, p) != 0) {
-            FLOWLOCK_WRLOCK(f);
             /* found a matching flow that is not timed out */
             if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
                 Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
@@ -933,6 +932,8 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
             FlowReference(dest, f);
             FBLOCK_UNLOCK(fb);
             return f; /* return w/o releasing flow lock */
+        } else {
+            FLOWLOCK_UNLOCK(f);
         }
         /* unless we removed 'f', prev_f needs to point to
          * current 'f' when adding a new flow below. */
