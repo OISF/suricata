@@ -194,8 +194,6 @@ void FlowInit(Flow *f, const Packet *p)
 
     f->protomap = FlowGetProtoMapping(f->proto);
     f->timeout_policy = FlowGetTimeoutPolicy(f);
-    const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->startts) + f->timeout_policy;
-    f->timeout_at = timeout_at;
 
     if (MacSetFlowStorageEnabled()) {
         DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);

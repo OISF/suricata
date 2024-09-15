@@ -396,10 +396,6 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         /* update the last seen timestamp of this flow */
         if (SCTIME_CMP_GT(p->ts, f->lastts)) {
             f->lastts = p->ts;
-            const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->lastts) + f->timeout_policy;
-            if (timeout_at != f->timeout_at) {
-                f->timeout_at = timeout_at;
-            }
         }
 #ifdef CAPTURE_OFFLOAD
     } else {
@@ -1166,9 +1162,6 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
         if (timeout_policy != f->timeout_policy) {
             f->timeout_policy = timeout_policy;
-            const uint32_t timeout_at = (uint32_t)SCTIME_SECS(f->lastts) + timeout_policy;
-            if (timeout_at != f->timeout_at)
-                f->timeout_at = timeout_at;
         }
     }
 #ifdef UNITTESTS
