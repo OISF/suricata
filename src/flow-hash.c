@@ -764,8 +764,6 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
 #ifdef UNITTESTS
     }
 #endif
-    /* time out immediately */
-    old_f->timeout_at = 0;
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
     old_f->flow_end_flags |= FLOW_END_FLAG_TCPREUSE;
@@ -833,19 +831,21 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
     }
 }
 
-static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool emerg)
+static inline bool FlowIsTimedOut(const Flow *f, const SCTime_t ts, const bool emerg)
 {
-    if (unlikely(f->timeout_at < sec)) {
-        return true;
-    } else if (unlikely(emerg)) {
-        extern FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
-
-        int64_t timeout_at = f->timeout_at -
-            FlowGetFlowTimeoutDirect(flow_timeouts_delta, f->flow_state, f->protomap);
-        if ((int64_t)sec >= timeout_at)
-            return true;
+    SCTime_t timesout_at;
+    if (emerg) {
+        extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+        timesout_at = SCTIME_ADD_SECS(f->lastts,
+                FlowGetFlowTimeoutDirect(flow_timeouts_emerg, f->flow_state, f->protomap));
+    } else {
+        timesout_at = SCTIME_ADD_SECS(f->lastts, f->timeout_policy);
     }
-    return false;
+    /* do the timeout check */
+    if (SCTIME_CMP_LT(ts, timesout_at)) {
+        return false;
+    }
+    return true;
 }
 
 /** \brief Get Flow for packet
@@ -907,8 +907,8 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
     do {
         Flow *next_f = NULL;
         FLOWLOCK_WRLOCK(f);
-        const bool timedout = (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) &&
-                               FlowIsTimedOut(f, (uint32_t)SCTIME_SECS(p->ts), emerg));
+        const bool timedout =
+                (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) && FlowIsTimedOut(f, p->ts, emerg));
         if (timedout) {
             next_f = f->next;
             MoveToWorkQueue(tv, fls, fb, f, prev_f);
