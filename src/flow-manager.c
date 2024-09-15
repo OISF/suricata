@@ -174,6 +174,9 @@ again:
 
 /** \internal
  *  \brief check if a flow is timed out
+ *  Takes lastts, adds the timeout policy to it, compared to current time `ts`.
+ *  In case of emergency mode, timeout_policy is ignored and the emerg table
+ *  is used.
  *
  *  \param f flow
  *  \param ts timestamp
@@ -183,16 +186,20 @@ again:
  */
 static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, const bool emerg)
 {
-    uint32_t flow_times_out_at = f->timeout_at;
+    SCTime_t timesout_at;
+
     if (emerg) {
-        extern FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
-        flow_times_out_at -= FlowGetFlowTimeoutDirect(flow_timeouts_delta, f->flow_state, f->protomap);
+        extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+        timesout_at = SCTIME_ADD_SECS(f->lastts,
+                FlowGetFlowTimeoutDirect(flow_timeouts_emerg, f->flow_state, f->protomap));
+    } else {
+        timesout_at = SCTIME_ADD_SECS(f->lastts, f->timeout_policy);
     }
-    if (*next_ts == 0 || flow_times_out_at < *next_ts)
-        *next_ts = flow_times_out_at;
+    if (*next_ts == 0 || (uint32_t)SCTIME_SECS(timesout_at) < *next_ts)
+        *next_ts = (uint32_t)SCTIME_SECS(timesout_at);
 
     /* do the timeout check */
-    if ((uint64_t)flow_times_out_at >= SCTIME_SECS(ts)) {
+    if (SCTIME_CMP_LT(ts, timesout_at)) {
         return false;
     }
 
