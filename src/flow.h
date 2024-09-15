@@ -391,11 +391,6 @@ typedef struct Flow_
         uint8_t ffr;
     };
 
-    /** timestamp in seconds of the moment this flow will timeout
-     *  according to the timeout policy. Does *not* take emergency
-     *  mode into account. */
-    uint32_t timeout_at;
-
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id[2];
 
@@ -406,8 +401,8 @@ typedef struct Flow_
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
 
-    /** timeout policy value in seconds to add to the lastts.tv_sec
-     *  when a packet has been received. */
+    /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
+     * Ignored in emergency mode. */
     uint32_t timeout_policy;
 
     /* time stamp of last update (last packet). Set/updated under the
