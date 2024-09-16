@@ -24,8 +24,7 @@ use crate::detect::{
     DetectSignatureSetAppProto, SCSigTableElmt, SIGMATCH_NOOPT,
 };
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
-use std::ffi::CStr;
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_int, c_void};
 use std::ptr;
 
 static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
@@ -309,31 +308,22 @@ unsafe extern "C" fn sip_response_line_get_data(
     return false;
 }
 
-unsafe extern "C" fn sip_get_header_value(
-    tx: *const c_void, i: u32, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
-    strname: *const c_char,
-) -> bool {
-    let tx = cast_pointer!(tx, SIPTransaction);
-    let hname: &CStr = CStr::from_ptr(strname);
-    if let Ok(s) = hname.to_str() {
-        let headers = match direction.into() {
-            Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
-            Direction::ToClient => tx.response.as_ref().map(|r| &r.headers),
-        };
-        if let Some(headers) = headers {
-            if let Some(header_vals) = headers.get(s) {
-                if (i as usize) < header_vals.len() {
-                    let value = &header_vals[i as usize];
-                    *buffer = value.as_ptr();
-                    *buffer_len = value.len() as u32;
-                    return true;
-                }
+fn sip_get_header_value<'a, 'b>(
+    tx: &'a SIPTransaction, i: u32, direction: Direction, s: &'b str,
+) -> Option<&'a str> {
+    let headers = match direction {
+        Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
+        Direction::ToClient => tx.response.as_ref().map(|r| &r.headers),
+    };
+    if let Some(headers) = headers {
+        if let Some(header_vals) = headers.get(s) {
+            if (i as usize) < header_vals.len() {
+                let value = &header_vals[i as usize];
+                return Some(value);
             }
         }
     }
-    *buffer = ptr::null();
-    *buffer_len = 0;
-    return false;
+    return None;
 }
 
 unsafe extern "C" fn sip_from_hdr_setup(
@@ -367,14 +357,16 @@ unsafe extern "C" fn sip_from_hdr_get(
 unsafe extern "C" fn sip_from_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "From\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "From") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn sip_to_hdr_setup(
@@ -408,14 +400,16 @@ unsafe extern "C" fn sip_to_hdr_get(
 unsafe extern "C" fn sip_to_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "To\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "To") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn sip_via_hdr_setup(
@@ -449,14 +443,16 @@ unsafe extern "C" fn sip_via_hdr_get(
 unsafe extern "C" fn sip_via_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "Via\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Via") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn sip_ua_hdr_setup(
@@ -490,14 +486,16 @@ unsafe extern "C" fn sip_ua_hdr_get(
 unsafe extern "C" fn sip_ua_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "User-Agent\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "User-Agent") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn sip_content_type_hdr_setup(
@@ -531,14 +529,16 @@ unsafe extern "C" fn sip_content_type_hdr_get(
 unsafe extern "C" fn sip_content_type_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "Content-Type\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Content-Type") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn sip_content_length_hdr_setup(
@@ -572,14 +572,16 @@ unsafe extern "C" fn sip_content_length_hdr_get(
 unsafe extern "C" fn sip_content_length_hdr_get_data(
     tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
-    sip_get_header_value(
-        tx,
-        local_id,
-        flow_flags,
-        buffer,
-        buffer_len,
-        "Content-Length\0".as_ptr() as *const c_char,
-    )
+    let tx = cast_pointer!(tx, SIPTransaction);
+    if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Content-Length") {
+        *buffer = value.as_ptr();
+        *buffer_len = value.len() as u32;
+        return true;
+    }
+    // else
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectSipRegister() {
