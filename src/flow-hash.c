@@ -908,7 +908,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         Flow *next_f = NULL;
         FLOWLOCK_WRLOCK(f);
         const bool timedout =
-                (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) && FlowIsTimedOut(f, p->ts, emerg));
+                (fb_nextts <= (uint32_t)SCTIME_SECS(p->ts) && FlowIsTimedOut(f, p->ts, emerg));
         if (timedout) {
             next_f = f->next;
             MoveToWorkQueue(tv, fls, fb, f, prev_f);
