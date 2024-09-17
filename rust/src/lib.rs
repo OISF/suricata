@@ -58,6 +58,7 @@ extern crate bitflags;
 extern crate byteorder;
 extern crate crc;
 extern crate memchr;
+extern crate lru;
 #[macro_use]
 extern crate num_derive;
 extern crate widestring;
