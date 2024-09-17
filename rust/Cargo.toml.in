@@ -40,6 +40,7 @@ brotli = "~3.4.0"
 hkdf = "~0.12.3"
 aes = "~0.7.5"
 aes-gcm = "~0.9.4"
+lru = "~0.12.5"
 
 der-parser = { version = "~9.0.0", default-features = false }
 kerberos-parser = { version = "~0.8.0", default-features = false }
