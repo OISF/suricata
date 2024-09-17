@@ -197,9 +197,18 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
     if (*next_ts == 0 || (uint32_t)SCTIME_SECS(timesout_at) < *next_ts)
         *next_ts = (uint32_t)SCTIME_SECS(timesout_at);
 
-    /* do the timeout check */
-    if (SCTIME_CMP_LT(ts, timesout_at)) {
-        return false;
+    /* if time is live, we just use the tts */
+    if (TimeModeIsLive() || f->thread_id[0] == 0) {
+        /* do the timeout check */
+        if (SCTIME_CMP_LT(ts, timesout_at)) {
+            return false;
+        }
+    } else {
+        SCTime_t checkts = TmThreadsGetThreadTime(f->thread_id[0]);
+        /* do the timeout check */
+        if (SCTIME_CMP_LT(checkts, timesout_at)) {
+            return false;
+        }
     }
 
     return true;
