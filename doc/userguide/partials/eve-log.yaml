@@ -37,7 +37,7 @@ outputs:
       pcap-file: false
 
       # Community Flow ID
-      # Adds a 'community_id' field to EVE records. These are meant to give
+      # Adds a 'community-id' field to EVE records. These are meant to give
       # records a predictable flow ID that can be used to match records to
       # output of other tools such as Zeek (Bro).
       #
