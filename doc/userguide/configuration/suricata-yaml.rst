@@ -1065,21 +1065,20 @@ flow-engine goes into the emergency-mode. In this mode, the engine
 will make use of shorter time-outs. It lets flows expire in a more
 aggressive manner so there will be more space for new Flows.
 
-There are two options: emergency_recovery and prune_flows. The
-emergency recovery is set on 30. This is the percentage of prealloc'd
-flows after which the flow-engine will be back to normal (when 30
-percent of the 10000 flows is completed).
+``emergency-recovery`` defines the percentage of flows that the engine needs to
+prune before clearing the **emergency mode**. The default ``emergency-recovery``
+value is 30. This is the percentage of prealloc'd flows after which the flow
+-engine will be back to normal (when 30 percent of the 10000 flows are
+completed).
 
-	If during the emergency-mode, the aggressive time-outs do not
+	If during the **emergency-mode** the aggressive time-outs do not
 	have the desired result, this option is the final resort. It
 	ends some flows even if they have not reached their time-outs
-	yet. The prune-flows option shows how many flows there will be
-	terminated at each time a new flow is set up.
+	yet.
 
 ::
 
-  emergency_recovery: 30                  #Percentage of 1000 prealloc'd flows.
-  prune_flows: 5                          #Amount of flows being terminated during the emergency mode.
+  emergency-recovery: 30                  #Percentage of 10000 prealloc'd flows.
 
 Flow Time-Outs
 ~~~~~~~~~~~~~~
