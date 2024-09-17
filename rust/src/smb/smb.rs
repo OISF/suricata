@@ -34,6 +34,9 @@ use std::collections::VecDeque;
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
+use lru::LruCache;
+use std::num::NonZeroUsize;
+
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
@@ -79,6 +82,8 @@ pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
 pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 16777216;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+/// max size of the per state guid2name cache
+pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -681,14 +686,22 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
     return [o1, o2, o3, o4]
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct SMBState<> {
     pub state_data: AppLayerStateData,
 
     /// map ssn/tree/msgid to vec (guid/name/share)
     pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
-    /// map guid to filename
-    pub guid2name_map: HashMap<Vec<u8>, Vec<u8>>,
+
+    /// map guid to (filename, timestamp)
+    ///
+    /// Lifecycle of the members:
+    /// - Added by CREATE responses
+    /// - Removed by CLOSE requests
+    /// - Post GAP logic removes based on timestamp, as the CLOSE
+    ///   commands may have been missed.
+    ///
+    pub guid2name_map: LruCache<Vec<u8>, Vec<u8>>,
     /// map ssn key to read offset
     pub ssn2vecoffset_map: HashMap<SMBCommonHdr, SMBFileGUIDOffset>,
 
@@ -754,13 +767,19 @@ impl State<SMBTransaction> for SMBState {
     }
 }
 
+impl Default for SMBState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
         Self {
             state_data:AppLayerStateData::new(),
             ssn2vec_map:HashMap::new(),
-            guid2name_map:HashMap::new(),
+            guid2name_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
@@ -784,8 +803,9 @@ impl SMBState {
             dialect:0,
             dialect_vec: None,
             dcerpc_ifaces: None,
+            max_read_size: 0,
+            max_write_size: 0,
             ts: 0,
-            ..Default::default()
         }
     }
 
@@ -1042,7 +1062,7 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
+    pub fn get_service_for_guid(&mut self, guid: &[u8]) -> (&'static str, bool)
     {
         let (name, is_dcerpc) = match self.guid2name_map.get(guid) {
             Some(n) => {
@@ -2422,10 +2442,23 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid value for smb.max-tx");
             }
         }
+        let retval = conf_get("app-layer.protocols.smb.max-guid-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_GUID_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-guid-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-guid-cache-size value");
+            }
+        }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
                 SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
         SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
                 SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
+        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }

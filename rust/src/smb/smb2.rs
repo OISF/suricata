@@ -210,7 +210,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
                         state.ssn2tree_map.insert(tree_key, tree);
                         if !is_dcerpc {
-                            state.guid2name_map.insert(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
+                            _ = state.guid2name_map.put(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
                         }
                         is_pipe = true;
                         is_dcerpc = true;
@@ -354,8 +354,8 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
                         state.ssn2tree_map.insert(tree_key, tree);
                         if !is_dcerpc {
-                            state.guid2name_map.insert(file_guid.to_vec(),
-                                    b"suricata::dcerpc".to_vec());
+                            _ = state.guid2name_map.put(file_guid.to_vec(),
+                                b"suricata::dcerpc".to_vec());
                         }
                         is_pipe = true;
                         is_dcerpc = true;
@@ -576,7 +576,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
         },
         SMB2_COMMAND_CLOSE => {
             if let Ok((_, cd)) = parse_smb2_request_close(r.data) {
-                let _name = state.guid2name_map.remove(cd.guid);
+                let _name = state.guid2name_map.pop(cd.guid);
 
                 let found_ts = if let Some(tx) = state.get_file_tx_by_fuid(cd.guid, Direction::ToServer) {
                     if !tx.request_done {
@@ -695,7 +695,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                     let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_FILENAME);
                     if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
                         p.retain(|&i|i != 0x00);
-                        state.guid2name_map.insert(cr.guid.to_vec(), p);
+                        _ = state.guid2name_map.put(cr.guid.to_vec(), p);
                     } else {
                         SCLogDebug!("SMBv2 response: GUID NOT FOUND");
                     }
