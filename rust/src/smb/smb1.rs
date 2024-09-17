@@ -306,7 +306,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             let mut frankenfid = pd.fid.to_vec();
                                             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-                                            let filename = match state.guid2name_map.get(&frankenfid) {
+                                            let filename = match state.guid2name_cache.get(&frankenfid) {
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
@@ -341,7 +341,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             let mut frankenfid = pd.fid.to_vec();
                                             frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-                                            let oldname = match state.guid2name_map.get(&frankenfid) {
+                                            let oldname = match state.guid2name_cache.get(&frankenfid) {
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
@@ -536,7 +536,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     let mut fid = cd.fid.to_vec();
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
-                    let _name = state.guid2name_map.remove(&fid);
+                    let _name = state.guid2name_cache.pop(&fid);
                     state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
 
                     SCLogDebug!("closing FID {:?}/{:?}", cd.fid, fid);
@@ -734,7 +734,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                             fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
                             SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
                             SCLogDebug!("fid {:?} name {:?}", fid, p);
-                            state.guid2name_map.insert(fid, p);
+                            _ = state.guid2name_cache.put(fid, p);
                         } else {
                             SCLogDebug!("SMBv1 response: GUID NOT FOUND");
                         }
@@ -954,7 +954,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
             SCLogDebug!("SMBv1 WRITE: FID {:?} offset {}",
                     file_fid, rd.offset);
 
-            let file_name = match state.guid2name_map.get(&file_fid) {
+            let file_name = match state.guid2name_cache.get(&file_fid) {
                 Some(n) => n.to_vec(),
                 None => b"<unknown>".to_vec(),
             };
@@ -1010,7 +1010,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
             state.set_file_left(Direction::ToServer, rd.len, rd.data.len() as u32, file_fid.to_vec());
 
             if command == SMB1_COMMAND_WRITE_AND_CLOSE {
-                let _name = state.guid2name_map.remove(&file_fid);
+                let _name = state.guid2name_cache.pop(&file_fid);
                 SCLogDebug!("closing FID {:?}", file_fid);
                 smb1_close_file(state, &file_fid, Direction::ToServer);
             }
@@ -1055,7 +1055,7 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                     _ => { (false, Vec::new()) },
                 };
                 if !is_pipe {
-                    let file_name = match state.guid2name_map.get(&file_fid) {
+                    let file_name = match state.guid2name_cache.get(&file_fid) {
                         Some(n) => n.to_vec(),
                         None => Vec::new(),
                     };
