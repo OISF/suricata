@@ -2070,10 +2070,11 @@ typedef struct Thread_ {
     int type;
     int in_use;         /**< bool to indicate this is in use */
 
-    SCTime_t pktts;         /**< current packet time of this thread
-                             *   (offline mode) */
+    SC_ATOMIC_DECLARE(SCTime_t, pktts); /**< current packet time of this thread
+                                         *   (offline mode) */
     SCTime_t sys_sec_stamp; /**< timestamp in real system
                              *   time when the pktts was last updated. */
+    SCSpinlock spin;
 } Thread;
 
 typedef struct Threads_ {
@@ -2122,10 +2123,13 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
     for (s = 0; s < thread_store.threads_size; s++) {
         if (thread_store.threads[s].in_use == 0) {
             Thread *t = &thread_store.threads[s];
+            SCSpinInit(&t->spin, 0);
+            SCSpinLock(&t->spin);
             t->name = tv->name;
             t->type = type;
             t->tv = tv;
             t->in_use = 1;
+            SCSpinUnlock(&t->spin);
 
             SCMutexUnlock(&thread_store_lock);
             return (int)(s+1);
@@ -2139,10 +2143,13 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
     memset((uint8_t *)thread_store.threads + (thread_store.threads_size * sizeof(Thread)), 0x00, STEP * sizeof(Thread));
 
     Thread *t = &thread_store.threads[thread_store.threads_size];
+    SCSpinInit(&t->spin, 0);
+    SCSpinLock(&t->spin);
     t->name = tv->name;
     t->type = type;
     t->tv = tv;
     t->in_use = 1;
+    SCSpinUnlock(&t->spin);
 
     s = thread_store.threads_size;
     thread_store.threads_size += STEP;
@@ -2187,16 +2194,11 @@ end:
 
 void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts)
 {
-    SCMutexLock(&thread_store_lock);
-    if (unlikely(id <= 0 || id > (int)thread_store.threads_size)) {
-        SCMutexUnlock(&thread_store_lock);
-        return;
-    }
-
+    SCTime_t now = SCTimeGetTime();
     int idx = id - 1;
     Thread *t = &thread_store.threads[idx];
-    t->pktts = ts;
-    SCTime_t now = SCTimeGetTime();
+    SCSpinLock(&t->spin);
+    SC_ATOMIC_SET(t->pktts, ts);
 
 #ifdef DEBUG
     if (t->sys_sec_stamp.secs != 0) {
@@ -2208,43 +2210,50 @@ void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts)
 #endif
 
     t->sys_sec_stamp = now;
-    SCMutexUnlock(&thread_store_lock);
+    SCSpinUnlock(&t->spin);
 }
 
 bool TmThreadsTimeSubsysIsReady(void)
 {
     static SCTime_t nullts = SCTIME_INITIALIZER;
     bool ready = true;
-    SCMutexLock(&thread_store_lock);
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
-        if (!t->in_use)
-            break;
-        if (t->type != TVT_PPT)
-            continue;
-        if (SCTIME_CMP_EQ(t->sys_sec_stamp, nullts)) {
-            ready = false;
+        if (!t->in_use) {
             break;
         }
+        SCSpinLock(&t->spin);
+        if (t->type != TVT_PPT) {
+            SCSpinUnlock(&t->spin);
+            continue;
+        }
+        if (SCTIME_CMP_EQ(t->sys_sec_stamp, nullts)) {
+            ready = false;
+            SCSpinUnlock(&t->spin);
+            break;
+        }
+        SCSpinUnlock(&t->spin);
     }
-    SCMutexUnlock(&thread_store_lock);
     return ready;
 }
 
 void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
 {
     SCTime_t now = SCTimeGetTime();
-    SCMutexLock(&thread_store_lock);
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
-        if (!t->in_use)
+        if (!t->in_use) {
             break;
-        if (t->type != TVT_PPT)
+        }
+        SCSpinLock(&t->spin);
+        if (t->type != TVT_PPT) {
+            SCSpinUnlock(&t->spin);
             continue;
-        t->pktts = ts;
+        }
+        SC_ATOMIC_SET(t->pktts, ts);
         t->sys_sec_stamp = now;
+        SCSpinUnlock(&t->spin);
     }
-    SCMutexUnlock(&thread_store_lock);
 }
 
 SCTime_t TmThreadsGetThreadTime(const int idx)
@@ -2252,7 +2261,7 @@ SCTime_t TmThreadsGetThreadTime(const int idx)
     BUG_ON(idx == 0);
     const int i = idx - 1;
     Thread *t = &thread_store.threads[i];
-    return t->pktts;
+    return SC_ATOMIC_GET(t->pktts);
 }
 
 void TmThreadsGetMinimalTimestamp(struct timeval *ts)
@@ -2260,34 +2269,38 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
     struct timeval local = { 0 };
     static SCTime_t nullts = SCTIME_INITIALIZER;
     bool set = false;
-    size_t s;
     SCTime_t now = SCTimeGetTime();
 
-    SCMutexLock(&thread_store_lock);
-    for (s = 0; s < thread_store.threads_size; s++) {
+    for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
-        if (t->in_use == 0)
+        if (t->in_use == 0) {
             break;
+        }
+        SCSpinLock(&t->spin);
         /* only packet threads set timestamps based on packets */
-        if (t->type != TVT_PPT)
+        if (t->type != TVT_PPT) {
+            SCSpinUnlock(&t->spin);
             continue;
-        if (SCTIME_CMP_NEQ(t->pktts, nullts)) {
+        }
+        SCTime_t pktts = SC_ATOMIC_GET(t->pktts);
+        if (SCTIME_CMP_NEQ(pktts, nullts)) {
             SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->sys_sec_stamp, 5);
             /* ignore sleeping threads */
-            if (SCTIME_CMP_LT(sys_sec_stamp, now))
+            if (SCTIME_CMP_LT(sys_sec_stamp, now)) {
+                SCSpinUnlock(&t->spin);
                 continue;
-
+            }
             if (!set) {
-                SCTIME_TO_TIMEVAL(&local, t->pktts);
+                SCTIME_TO_TIMEVAL(&local, pktts);
                 set = true;
             } else {
-                if (SCTIME_CMP_LT(t->pktts, SCTIME_FROM_TIMEVAL(&local))) {
-                    SCTIME_TO_TIMEVAL(&local, t->pktts);
+                if (SCTIME_CMP_LT(pktts, SCTIME_FROM_TIMEVAL(&local))) {
+                    SCTIME_TO_TIMEVAL(&local, pktts);
                 }
             }
         }
+        SCSpinUnlock(&t->spin);
     }
-    SCMutexUnlock(&thread_store_lock);
     *ts = local;
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
 }
