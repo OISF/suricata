@@ -1065,7 +1065,7 @@ flow-engine goes into the emergency-mode. In this mode, the engine
 will make use of shorter time-outs. It lets flows expire in a more
 aggressive manner so there will be more space for new Flows.
 
-Emergency_recovery defines the percentage of flows that the engine needs to
+``emergency-recovery`` defines the percentage of flows that the engine needs to
 prune before clearing the **emergency mode**. The default ``emergency-recovery``
 value is 30. This is the percentage of prealloc'd flows after which the flow
 -engine will be back to normal (when 30 percent of the 10000 flows are
@@ -1078,7 +1078,7 @@ completed).
 
 ::
 
-  emergency_recovery: 30                  #Percentage of 10000 prealloc'd flows.
+  emergency-recovery: 30                  #Percentage of 10000 prealloc'd flows.
 
 Flow Time-Outs
 ~~~~~~~~~~~~~~
