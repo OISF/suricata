@@ -105,6 +105,7 @@ typedef struct {
 #define SCTIME_CMP_LT(a, b)  SCTIME_CMP((a), (b), <)
 #define SCTIME_CMP_LTE(a, b) SCTIME_CMP((a), (b), <=)
 #define SCTIME_CMP_NEQ(a, b) SCTIME_CMP((a), (b), !=)
+#define SCTIME_CMP_EQ(a, b)  SCTIME_CMP((a), (b), ==)
 
 void TimeInit(void);
 void TimeDeinit(void);
