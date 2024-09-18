@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -276,6 +276,8 @@ static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
     }
 }
 
+void TmThreadsSealThreads(void);
+void TmThreadsUnsealThreads(void);
 void TmThreadsListThreads(void);
 int TmThreadsRegisterThread(ThreadVars *tv, const int type);
 void TmThreadsUnregisterThread(const int id);
