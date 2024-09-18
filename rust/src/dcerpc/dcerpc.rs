@@ -170,6 +170,7 @@ pub struct DCERPCTransaction {
     pub ctxid: u16,
     pub opnum: u16,
     pub first_request_seen: u8,
+    pub version: String,
     pub call_id: u32, // ID to match any request-response pair
     pub frag_cnt_ts: u16,
     pub frag_cnt_tc: u16,
@@ -363,6 +364,9 @@ impl DCERPCState {
                 }
             }
             self.tx_index_completed = index;
+        }
+        if let Some(hdr) = &self.header {
+            tx.version = format!("{}.{}", hdr.rpc_vers, hdr.rpc_vers_minor);
         }
         tx
     }
