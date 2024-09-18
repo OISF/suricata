@@ -926,39 +926,42 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
     const uint16_t tv_id = GetTvId(tv);
     const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0;
     const uint32_t fb_nextts = !emerg ? SC_ATOMIC_GET(fb->next_ts) : 0;
+    const bool timeout_check = (fb_nextts <= (uint32_t)SCTIME_SECS(p->ts));
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
     Flow *prev_f = NULL; /* previous flow */
     f = fb->head;
     do {
         Flow *next_f = NULL;
-        FLOWLOCK_WRLOCK(f);
-        const bool timedout = (fb_nextts <= (uint32_t)SCTIME_SECS(p->ts) &&
-                               FlowIsTimedOut(tv_id, f, p->ts, emerg));
-        if (timedout) {
-            next_f = f->next;
-            MoveToWorkQueue(tv, fls, fb, f, prev_f);
-            FLOWLOCK_UNLOCK(f);
-            goto flow_removed;
-        } else if (FlowCompare(f, p) != 0) {
-            /* found a matching flow that is not timed out */
-            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
-                Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
-                if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
-                    prev_f = new_f;
-                MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
-                FLOWLOCK_UNLOCK(f); /* unlock old replaced flow */
+        const bool our_flow = FlowCompare(f, p) != 0;
+        if (our_flow || timeout_check) {
+            FLOWLOCK_WRLOCK(f);
+            const bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
+            if (timedout) {
+                next_f = f->next;
+                MoveToWorkQueue(tv, fls, fb, f, prev_f);
+                FLOWLOCK_UNLOCK(f);
+                goto flow_removed;
+            } else if (our_flow) {
+                /* found a matching flow that is not timed out */
+                if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
+                    Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
+                    if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
+                        prev_f = new_f;
+                    MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
+                    FLOWLOCK_UNLOCK(f);                      /* unlock old replaced flow */
 
-                if (new_f == NULL) {
-                    FBLOCK_UNLOCK(fb);
-                    return NULL;
+                    if (new_f == NULL) {
+                        FBLOCK_UNLOCK(fb);
+                        return NULL;
+                    }
+                    f = new_f;
                 }
-                f = new_f;
+                FlowReference(dest, f);
+                FBLOCK_UNLOCK(fb);
+                return f; /* return w/o releasing flow lock */
+            } else {
+                FLOWLOCK_UNLOCK(f);
             }
-            FlowReference(dest, f);
-            FBLOCK_UNLOCK(fb);
-            return f; /* return w/o releasing flow lock */
-        } else {
-            FLOWLOCK_UNLOCK(f);
         }
         /* unless we removed 'f', prev_f needs to point to
          * current 'f' when adding a new flow below. */
