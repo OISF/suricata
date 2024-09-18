@@ -2258,6 +2258,8 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
+    TmThreadsUnsealThreads();
+
     /* needed by FlowWorkToDoCleanup */
     PacketPoolInit();
 
