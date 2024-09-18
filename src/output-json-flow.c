@@ -252,8 +252,9 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
             JB_SET_STRING(jb, "bypass", "capture");
             break;
 #endif
-        default:
-            SCLogError("Invalid flow state: %d, contact developers", flow_state);
+        case FLOW_STATE_SIZE:
+            DEBUG_VALIDATE_BUG_ON(1);
+            SCLogDebug("invalid flow state: %d, contact developers", flow_state);
     }
 
     const char *reason = NULL;
