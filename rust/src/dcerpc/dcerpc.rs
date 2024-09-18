@@ -332,11 +332,7 @@ pub struct DCERPCState {
     tx_index_completed: usize,
     pub pad: u8,
     pub padleft: u16,
-    pub bytes_consumed: i32,
     pub tx_id: u64,
-    pub query_completed: bool,
-    pub data_needed_for_dir: Direction,
-    pub prev_dir: Direction,
     pub ts_gap: bool,
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
@@ -358,8 +354,6 @@ impl State<DCERPCTransaction> for DCERPCState {
 impl DCERPCState {
     pub fn new() -> Self {
         return Self {
-            data_needed_for_dir: Direction::ToServer,
-            prev_dir: Direction::ToServer,
             ..Default::default()
         }
     }
@@ -462,26 +456,6 @@ impl DCERPCState {
         }
         // Shouldn't happen
         None
-    }
-
-    pub fn clean_buffer(&mut self, direction: Direction) {
-        match direction {
-            Direction::ToServer => {
-                self.ts_gap = false;
-            }
-            Direction::ToClient => {
-                self.tc_gap = false;
-            }
-        }
-        self.bytes_consumed = 0;
-    }
-
-    pub fn reset_direction(&mut self, direction: Direction) {
-        if direction == Direction::ToServer {
-            self.data_needed_for_dir = Direction::ToClient;
-        } else {
-            self.data_needed_for_dir = Direction::ToServer;
-        }
     }
 
     /// Get transaction as per the given transaction ID. Transaction ID with
@@ -921,9 +895,6 @@ impl DCERPCState {
         let mut parsed = 0;
         let retval;
         let mut cur_i = input;
-        let mut input_len = cur_i.len();
-        // Set any query's completion status to false in the beginning
-        self.query_completed = false;
 
         // Skip the record since this means that its in the middle of a known length record
         if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
@@ -971,17 +942,15 @@ impl DCERPCState {
             if parsed < 0 {
                 return AppLayerResult::err();
             }
-            self.bytes_consumed += parsed;
-            input_len -= parsed as usize;
+        } else {
+            frag_bytes_consumed = DCERPC_HDR_LEN;
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
-        if (input_len + self.bytes_consumed as usize) < fraglen as usize {
+        if cur_i.len() < (fraglen - frag_bytes_consumed) as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(self.bytes_consumed as u32, (fraglen - self.bytes_consumed as u16) as u32);
-        } else {
-            self.query_completed = true;
+            return AppLayerResult::incomplete(parsed as u32, fraglen as u32 - parsed as u32);
         }
 
         let current_call_id = self.get_hdr_call_id().unwrap_or(0);
@@ -1045,7 +1014,6 @@ impl DCERPCState {
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type: {:?}", x);
-                    self.clean_buffer(direction);
                     return AppLayerResult::err();
                 }
             },
@@ -1053,15 +1021,8 @@ impl DCERPCState {
                 return AppLayerResult::err();
             }
         }
-        self.bytes_consumed += retval;
 
-        // If the query has been completed, clean the buffer and reset the direction
-        if self.query_completed {
-            self.clean_buffer(direction);
-            self.reset_direction(direction);
-        }
         self.post_gap_housekeeping(direction);
-        self.prev_dir = direction;
         self.header = None;
         return AppLayerResult::ok();
     }
@@ -1904,7 +1865,6 @@ mod tests {
             0xFF,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        dcerpc_state.data_needed_for_dir = Direction::ToClient;
         assert_eq!(
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(bind_ack, Direction::ToClient)
@@ -2192,7 +2152,6 @@ mod tests {
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
-            dcerpc_state.data_needed_for_dir = Direction::ToServer;
             assert_eq!(11, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid3, back.accepted_uuid_list[0].uuid);
         }
