@@ -79,6 +79,8 @@ Major changes
     - sip.content_length
 - Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
   <upgrade/8.0-napatech-plugin>`.
+- New transform ``luaxform`` that uses a Lua script for sticky buffer transformation.
+  More details in :ref:`lua-transform`.
 
 Removals
 ~~~~~~~~
