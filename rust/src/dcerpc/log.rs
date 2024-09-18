@@ -69,11 +69,9 @@ fn log_dcerpc_header_tcp(
         jsb.set_string("response", "UNREPLIED")?;
     }
 
-    if let Some(ref hdr) = state.header {
-        jsb.set_uint("call_id", tx.call_id as u64)?;
-        let vstr = format!("{}.{}", hdr.rpc_vers, hdr.rpc_vers_minor);
-        jsb.set_string("rpc_version", &vstr)?;
-    }
+    jsb.set_uint("call_id", tx.call_id as u64)?;
+    let version = [(tx.version / 10).to_string(), (tx.version % 10).to_string()];
+    jsb.set_string("rpc_version", &version.join("."))?;
 
     return Ok(());
 }

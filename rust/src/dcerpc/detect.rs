@@ -211,12 +211,9 @@ pub extern "C" fn rs_dcerpc_iface_match(
         return 0;
     }
 
-    match state.get_hdr_type() {
-        Some(DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE) => {},
-        _ => {
+    if !(tx.req_cmd == DCERPC_TYPE_REQUEST || tx.resp_cmd == DCERPC_TYPE_RESPONSE) {
             return 0;
-        }
-    };
+    }
 
     return match_backuuid(tx, state, if_data);
 }
