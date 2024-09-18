@@ -71,6 +71,7 @@ Major changes
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
 - LDAP parser and logger have been introduced.
+- New transform ``luaxform`` that uses a Lua script for sticky buffer transformation.  More details in :ref:`lua-transform`
 
 Removals
 ~~~~~~~~
