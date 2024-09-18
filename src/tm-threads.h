@@ -284,6 +284,7 @@ void TmThreadsInjectFlowById(Flow *f, const int id);
 void TmThreadsInitThreadsTimestamp(const SCTime_t ts);
 void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts);
 void TmThreadsGetMinimalTimestamp(struct timeval *ts);
+SCTime_t TmThreadsGetThreadTime(const int idx);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
 
