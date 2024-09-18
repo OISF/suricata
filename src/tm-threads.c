@@ -2272,7 +2272,7 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         if (t->type != TVT_PPT)
             continue;
         if (SCTIME_CMP_NEQ(t->pktts, nullts)) {
-            SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->sys_sec_stamp, 1);
+            SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->sys_sec_stamp, 5);
             /* ignore sleeping threads */
             if (SCTIME_CMP_LT(sys_sec_stamp, now))
                 continue;
