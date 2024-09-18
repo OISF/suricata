@@ -243,3 +243,110 @@ This example transforms `"Zm 9v Ym Fy"` to `"foobar"`::
 
        content:"/?arg=Zm 9v Ym Fy"; from_base64: offset 6, mode rfc2045; \
        content:"foobar";
+
+.. _lua-transform:
+
+luaxform
+--------
+
+This transform allows a Lua script to apply a transformation
+to a buffer.
+
+Lua scripts that are used for transformations *must* contain a function
+named ``transform``.
+
+Lua transforms can be passed optional arguments -- see the examples below -- but they
+are not required to do so. Optional arguments are included with the transform (see example
+below).
+
+Note that the arguments and values are passed without validation
+nor interpretation. There is a maximum of 10 arguments.
+
+The Lua ``transform`` function receive parameters:
+
+  * `input-length` The number of bytes in the buffer provided to the transform
+  * `input` The buffer provided to the transform
+  * `argument` The number of arguments provided in the following parameters. If there are
+    no arguments to the Lua transform, this value will be `0`.
+  * `arguments` The list of arguments.
+
+The Lua ``transform`` must return two values
+
+  * `transformed-buffer` The buffer with the transformed bytes.
+  * `transformed-buffer-byte-count` The number of bytes in the transformed buffer.
+
+This example supplies the HTTP data to a Lua transform with the transform
+results being checked with `content`.
+
+Example::
+
+    alert http any any -> any any (msg:"Lua Xform example"; flow:established;  \
+    file.data; luaxform:./lua/lua-transform.lua; content: "abc"; sid: 2;)
+
+
+The following example supplies the HTTP data to a Lua transform script along with
+with arguments that specify the offset and byte count for the transform.
+The resulting buffer is then checked with a `content` match.
+
+Example::
+
+    alert http any any -> any any (msg:"Lua Xform example"; flow:established; \
+    file.data; luaxform:./lua/lua-transform.lua, bytes 12, offset 13; content: "abc"; sid: 1;)
+
+The following Lua script shows a transform example that handles arguments: `bytes` and `offset` and uses
+those values (or defaults, if there are no arguments) for applying the uppercase transform to
+the buffer.
+
+.. code-block:: lua
+
+    function init (args)
+        local needs = {}
+        return needs
+    end
+
+    local function get_value(item, key)
+       if string.find(item, key) then
+           local _, value = string.match(item, "(%a+)%s*(%d*)")
+           if value ~= "" then
+               return tonumber(value)
+           end
+       end
+
+       return nil
+    end
+
+    -- Arguments supported
+    local bytes_key = "bytes"
+    local offset_key = "offset"
+    function transform(input_len, input, argc, args)
+       local bytes = input_len
+       local offset = 0
+
+       -- Look for optional bytes and offset arguments
+       for i, item in ipairs(args) do
+           local value = get_value(item, bytes_key)
+           if value ~= nil then
+               bytes = value
+           else
+               value = get_value(item, offset_key)
+               if value ~= nil then
+                   offset = value
+               end
+           end
+       end
+
+       local str_len = #input
+       if offset < 0 or offset > str_len then
+           print("offset is out of bounds: " .. offset)
+           return nil
+       end
+
+       local avail_len = str_len - offset
+       if bytes < 0 or bytes > avail_len then
+           print("invalid bytes " ..  bytes .. " or bytes exceeds available  length " .. avail_len)
+           return nil
+       end
+
+       local sub = string.sub(input, offset + 1, offset + bytes)
+       return string.upper(sub), bytes
+    end
