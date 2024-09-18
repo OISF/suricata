@@ -312,7 +312,6 @@ pub struct DCERPCState {
     tx_index_completed: usize,
     pub pad: u8,
     pub padleft: u16,
-    pub bytes_consumed: i32,
     pub tx_id: u64,
     pub query_completed: bool,
     pub data_needed_for_dir: Direction,
@@ -451,7 +450,6 @@ impl DCERPCState {
                 self.tc_gap = false;
             }
         }
-        self.bytes_consumed = 0;
     }
 
     pub fn reset_direction(&mut self, direction: Direction) {
@@ -955,15 +953,14 @@ impl DCERPCState {
             if parsed < 0 {
                 return AppLayerResult::err();
             }
-            self.bytes_consumed += parsed;
             input_len -= parsed as usize;
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
-        if (input_len + self.bytes_consumed as usize) < fraglen as usize {
+        if (input_len + DCERPC_HDR_LEN as usize) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(self.bytes_consumed as u32, (fraglen - self.bytes_consumed as u16) as u32);
+            return AppLayerResult::incomplete(DCERPC_HDR_LEN as u32, (fraglen - DCERPC_HDR_LEN) as u32);
         } else {
             self.query_completed = true;
         }
@@ -1037,7 +1034,6 @@ impl DCERPCState {
                 return AppLayerResult::err();
             }
         }
-        self.bytes_consumed += retval;
 
         // If the query has been completed, clean the buffer and reset the direction
         if self.query_completed {
