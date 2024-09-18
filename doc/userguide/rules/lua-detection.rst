@@ -3,9 +3,17 @@
 Lua Scripting for Detection
 ===========================
 
+There are 2 ways that Lua can be used with detection. These are
+
+* ``lua`` rule keyword.
+* ``luaxform`` transform.
+
 .. note:: Lua is disabled by default for use in rules, it must be
           enabled in the configuration file. See the ``security.lua``
           section of ``suricata.yaml`` and enable ``allow-rules``.
+
+Lua Rule Keyword
+^^^^^^^^^^^^^^^^
 
 Syntax:
 
@@ -103,8 +111,13 @@ Entire script:
 
   return 0
 
-Sandbox and Available functions
--------------------------------
+Lua Transform: ``luaxform``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+More details in :ref:`lua-transform`.
+
+Lua Sandbox and Available functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Lua rule scripts are run in a sandbox environment the applies the
 following restrictions:
@@ -140,7 +153,7 @@ Of note, the following standard libraries are not available:
 
 This behavior can be modified via the ``security.lua`` section of :ref:`suricata-yaml-lua-config`
 
-.. note:: Suricata 8.0 has moved to Lua 5.4 and has builtin support for bitwise and utf8 operations now.
+.. note:: Suricata 8.0 has moved to Lua 5.4 and now has builtin support for bitwise and utf8 operations.
 
 A comprehensive list of existing lua functions - with examples - can
 be found at :ref:`lua-functions` (some of them, however, work only for
