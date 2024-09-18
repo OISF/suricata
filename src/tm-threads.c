@@ -2241,6 +2241,14 @@ void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
     SCMutexUnlock(&thread_store_lock);
 }
 
+SCTime_t TmThreadsGetThreadTime(const int idx)
+{
+    BUG_ON(idx == 0);
+    const int i = idx - 1;
+    Thread *t = &thread_store.threads[i];
+    return t->pktts;
+}
+
 void TmThreadsGetMinimalTimestamp(struct timeval *ts)
 {
     struct timeval local = { 0 };
