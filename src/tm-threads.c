@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2083,8 +2083,25 @@ typedef struct Threads_ {
     int threads_cnt;
 } Threads;
 
+static bool thread_store_sealed = false;
 static Threads thread_store = { NULL, 0, 0 };
 static SCMutex thread_store_lock = SCMUTEX_INITIALIZER;
+
+void TmThreadsSealThreads(void)
+{
+    SCMutexLock(&thread_store_lock);
+    DEBUG_VALIDATE_BUG_ON(thread_store_sealed);
+    thread_store_sealed = true;
+    SCMutexUnlock(&thread_store_lock);
+}
+
+void TmThreadsUnsealThreads(void)
+{
+    SCMutexLock(&thread_store_lock);
+    DEBUG_VALIDATE_BUG_ON(!thread_store_sealed);
+    thread_store_sealed = false;
+    SCMutexUnlock(&thread_store_lock);
+}
 
 void TmThreadsListThreads(void)
 {
@@ -2113,6 +2130,7 @@ void TmThreadsListThreads(void)
 int TmThreadsRegisterThread(ThreadVars *tv, const int type)
 {
     SCMutexLock(&thread_store_lock);
+    DEBUG_VALIDATE_BUG_ON(thread_store_sealed);
     if (thread_store.threads == NULL) {
         thread_store.threads = SCCalloc(STEP, sizeof(Thread));
         BUG_ON(thread_store.threads == NULL);
@@ -2162,6 +2180,7 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
 void TmThreadsUnregisterThread(const int id)
 {
     SCMutexLock(&thread_store_lock);
+    DEBUG_VALIDATE_BUG_ON(thread_store_sealed);
     if (id <= 0 || id > (int)thread_store.threads_size) {
         SCMutexUnlock(&thread_store_lock);
         return;
