@@ -347,9 +347,9 @@ impl State<DNSTransaction> for DNSState {
     }
 }
 
-fn dns_validate_header(input: &[u8]) -> Option<(&[u8], DNSHeader)> {
+fn dns_validate_header(input: &[u8], dir: Direction) -> Option<(&[u8], DNSHeader)> {
     if let Ok((body, header)) = parser::dns_parse_header(input) {
-        if probe_header_validity(&header, input.len()).0 {
+        if probe_header_validity(&header, input.len(), dir).0 {
             return Some((body, header));
         }
     }
@@ -365,7 +365,7 @@ pub(crate) enum DNSParseError {
 }
 
 pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParseError> {
-    let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
+    let (body, header) = if let Some((body, header)) = dns_validate_header(input, Direction::ToServer) {
         (body, header)
     } else {
         return Err(DNSParseError::HeaderValidation);
@@ -414,7 +414,7 @@ pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParse
 }
 
 pub(crate) fn dns_parse_response(input: &[u8]) -> Result<DNSTransaction, DNSParseError> {
-    let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
+    let (body, header) = if let Some((body, header)) = dns_validate_header(input, Direction::ToClient) {
         (body, header)
     } else {
         return Err(DNSParseError::HeaderValidation);
@@ -597,7 +597,7 @@ impl DNSState {
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
-            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            let (is_dns, _, is_incomplete) = probe_tcp(input, Direction::ToServer);
             if is_dns || is_incomplete {
                 self.gap = false;
             } else {
@@ -661,7 +661,7 @@ impl DNSState {
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
-            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            let (is_dns, _, is_incomplete) = probe_tcp(input, Direction::ToClient);
             if is_dns || is_incomplete {
                 self.gap = false;
             } else {
@@ -734,7 +734,7 @@ impl DNSState {
 
 const DNS_HEADER_SIZE: usize = 12;
 
-fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
+fn probe_header_validity(header: &DNSHeader, rlen: usize, dir: Direction) -> (bool, bool, bool) {
     let min_msg_size = 2
         * (header.additional_rr as usize
             + header.answer_rr as usize
@@ -748,14 +748,28 @@ fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) 
         return (false, false, false);
     }
 
+    if (header.additional_rr as usize
+        + header.answer_rr as usize
+        + header.authority_rr as usize
+        + header.questions as usize) == 0 && rlen > DNS_HEADER_SIZE {
+            // zero fields, data size should be just DNS_HEADER_SIZE
+            // happens when DNS server return s format error
+            return (false, false, false);
+        }
     let is_request = header.flags & 0x8000 == 0;
+    if dir == Direction::ToClient && is_request && rlen > 0x1000 {
+        // if we expect a DNS reply from server
+        // but the flag indicates a request and the record length is suspiciously big
+        // this does not seem to be DNS
+        return (false, false, false);
+    }
     return (true, is_request, false);
 }
 
 /// Probe input to see if it looks like DNS.
 ///
 /// Returns a tuple of booleans: (is_dns, is_request, incomplete)
-fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
+fn probe(input: &[u8], dlen: usize, dir: Direction) -> (bool, bool, bool) {
     // Trim input to dlen if larger.
     let input = if input.len() <= dlen {
         input
@@ -767,7 +781,7 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
     // parse a complete message, so perform header validation only.
     if input.len() < dlen {
         if let Ok((_, header)) = parser::dns_parse_header(input) {
-            return probe_header_validity(&header, dlen);
+            return probe_header_validity(&header, dlen, dir);
         } else {
             return (false, false, false);
         }
@@ -775,7 +789,7 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
 
     match parser::dns_parse_header(input) {
         Ok((body, header)) => match parser::dns_parse_body(body, input, header) {
-            Ok((_, request)) => probe_header_validity(&request.header, dlen),
+            Ok((_, request)) => probe_header_validity(&request.header, dlen, dir),
             Err(Err::Incomplete(_)) => (false, false, true),
             Err(_) => (false, false, false),
         },
@@ -784,10 +798,10 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
 }
 
 /// Probe TCP input to see if it looks like DNS.
-fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
+fn probe_tcp(input: &[u8], dir: Direction) -> (bool, bool, bool) {
     match be_u16(input) as IResult<&[u8], u16> {
         Ok((rem, dlen)) => {
-            return probe(rem, dlen as usize);
+            return probe(rem, dlen as usize, dir);
         }
         Err(Err::Incomplete(_)) => {
             return (false, false, true);
@@ -969,13 +983,13 @@ pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
 }
 
 unsafe extern "C" fn probe_udp(
-    _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
+    _flow: *const core::Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
-    let (is_dns, is_request, _) = probe(slice, slice.len());
+    let (is_dns, is_request, _) = probe(slice, slice.len(), dir.into());
     if is_dns {
         let dir = if is_request {
             Direction::ToServer
@@ -996,7 +1010,7 @@ unsafe extern "C" fn c_probe_tcp(
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
-    let (is_dns, is_request, _) = probe_tcp(slice);
+    let (is_dns, is_request, _) = probe_tcp(slice, direction.into());
     if is_dns {
         let dir = if is_request {
             Direction::ToServer
