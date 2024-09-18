@@ -91,8 +91,6 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
     if (list == NULL)
         return TM_ECODE_OK;
 
-    FlowSetEndFlags(f);
-
     OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     OutputFlowLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
