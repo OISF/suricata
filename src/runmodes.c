@@ -436,6 +436,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, const char *capture_p
             BypassedFlowManagerThreadSpawn();
         }
         StatsSpawnThreads();
+        TmThreadsSealThreads();
     }
 }
 
