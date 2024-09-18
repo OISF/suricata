@@ -2064,6 +2064,7 @@ static void TmThreadDumpThreads(void)
 }
 #endif
 
+/* Aligned to CLS to avoid false sharing between atomic ops. */
 typedef struct Thread_ {
     ThreadVars *tv;     /**< threadvars structure */
     const char *name;
@@ -2075,7 +2076,7 @@ typedef struct Thread_ {
     SCTime_t sys_sec_stamp; /**< timestamp in real system
                              *   time when the pktts was last updated. */
     SCSpinlock spin;
-} Thread;
+} __attribute__((aligned(CLS))) Thread;
 
 typedef struct Threads_ {
     Thread *threads;
