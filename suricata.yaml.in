@@ -932,6 +932,13 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+
+      # What to do when the encrypted communications start:
+      # - bypass:  stop processing this flow as much as possible.
+      #            Offload flow bypass to kernel or hardware if possible.
+      # - full:    keep tracking and inspection as normal
+      #
+      # encryption-handling: bypass
     doh2:
       enabled: yes
     http2:

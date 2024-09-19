@@ -25,9 +25,14 @@ use crate::frames::Frame;
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
+static BYPASS_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
+}
+
+fn enc_bypass_is_enabled() -> bool {
+    BYPASS_ENABLED.load(Ordering::Relaxed)
 }
 
 #[derive(AppLayerFrameType)]
@@ -197,10 +202,17 @@ impl SSHState {
                                 unsafe {
                                     AppLayerParserStateSetFlag(
                                         pstate,
-                                        APP_LAYER_PARSER_NO_INSPECTION
-                                        | APP_LAYER_PARSER_NO_REASSEMBLY
-                                        | APP_LAYER_PARSER_BYPASS_READY,
+                                        APP_LAYER_PARSER_NO_INSPECTION,
                                     );
+                                }
+                                if enc_bypass_is_enabled() {
+                                    unsafe {
+                                        AppLayerParserStateSetFlag(
+                                            pstate,
+                                            APP_LAYER_PARSER_NO_REASSEMBLY
+                                            | APP_LAYER_PARSER_BYPASS_READY,
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -547,6 +559,16 @@ pub extern "C" fn rs_ssh_enable_hassh() {
 #[no_mangle]
 pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
     hassh_is_enabled()
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_enable_bypass() {
+    BYPASS_ENABLED.store(true, Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_enc_bypass_is_enabled() -> bool {
+    enc_bypass_is_enabled()
 }
 
 #[no_mangle]
