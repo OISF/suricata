@@ -964,7 +964,7 @@ app-layer:
       #enabled: yes
     ssh:
       enabled: yes
-      #hassh: yes
+      # hassh: no
 
       # What to do when the encrypted communications start:
       # - track-only: keep tracking but stop inspection (default)
