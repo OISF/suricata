@@ -55,6 +55,8 @@
 
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH false
+/* Bypassing the encrypted part of the connections */
+#define SSH_CONFIG_DEFAULT_ENCRYPTION_BYPASS SSH_HANDLE_ENCRYPTION_TRACK_ONLY
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
@@ -102,6 +104,25 @@ void RegisterSSHParsers(void)
 
         if (RunmodeIsUnittests() || enable_hassh) {
             SCSshEnableHassh();
+        }
+
+        SshEncryptionHandling encryption_bypass = SSH_CONFIG_DEFAULT_ENCRYPTION_BYPASS;
+        ConfNode *encryption_node = ConfGetNode("app-layer.protocols.ssh.encryption-handling");
+        if (encryption_node != NULL && encryption_node->val != NULL) {
+            if (strcmp(encryption_node->val, "full") == 0) {
+                encryption_bypass = SSH_HANDLE_ENCRYPTION_FULL;
+            } else if (strcmp(encryption_node->val, "track-only") == 0) {
+                encryption_bypass = SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
+            } else if (strcmp(encryption_node->val, "bypass") == 0) {
+                encryption_bypass = SSH_HANDLE_ENCRYPTION_BYPASS;
+            } else {
+                encryption_bypass = SSH_CONFIG_DEFAULT_ENCRYPTION_BYPASS;
+            }
+        }
+
+        if (encryption_bypass) {
+            SCLogConfig("ssh: bypass on the start of encryption enabled");
+            SCSshEnableBypass(encryption_bypass);
         }
     }
 
