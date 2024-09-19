@@ -943,7 +943,7 @@ app-layer:
       #enabled: yes
     ssh:
       enabled: yes
-      #hassh: yes
+      # hassh: no
 
       # What to do when the encrypted communications start:
       # - bypass:  stop processing this flow as much as possible.
