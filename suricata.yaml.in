@@ -968,6 +968,15 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+
+      # What to do when the encrypted communications start:
+      # - track-only: keep tracking but stop inspection (default)
+      # - full:    keep tracking and inspect as normal
+      # - bypass:  stop processing this flow as much as possible.
+      #            Offload flow bypass to kernel or hardware if possible.
+      # For the best performance, select 'bypass'.
+      #
+      # encryption-handling: track-only
     doh2:
       enabled: yes
     http2:
