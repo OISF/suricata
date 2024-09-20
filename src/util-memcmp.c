@@ -154,11 +154,10 @@ static int MemcmpTest13 (void)
 
 #include "util-cpu.h"
 
-#define TEST_RUNS 1000000
-
 static int MemcmpTest14 (void)
 {
 #ifdef PROFILING
+#define TEST_RUNS 1000000
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
     const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
