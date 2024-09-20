@@ -19,7 +19,7 @@ If you would like to compile Suricata with unit tests, enter the following durin
 
    ./configure --enable-unittests
 
-The unit tests specific command line options can be found at `Command Line Options <https://docs.suricata.io/en/suricata-6.0.3/command-line-options.html#unit-tests>`_.
+The unit tests specific command line options can be found at `Command Line Options <https://docs.suricata.io/en/latest/command-line-options.html#unit-tests>`_.
 
 Example:
 You can run tests specifically on flowbits. This is how you should do that::
