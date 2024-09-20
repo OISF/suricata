@@ -267,9 +267,6 @@ uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen,
  *  #define ENABLE_SEARCH_STATS 1
  */
 
-/* Number of times to repeat the search (for stats) */
-#define STATS_TIMES 1000000
-
 /**
  * \brief Unittest helper function wrappers for the search algorithms
  * \param text pointer to the buffer to search in
@@ -403,6 +400,9 @@ static uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *in_needle, int t
 }
 
 #ifdef ENABLE_SEARCH_STATS
+/* Number of times to repeat the search (for stats) */
+#define STATS_TIMES 1000000
+
 /**
  * \brief Unittest helper function wrappers for the search algorithms
  * \param text pointer to the buffer to search in
