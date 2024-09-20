@@ -120,12 +120,6 @@ char *MagicThreadLookup(magic_t *ctx, const uint8_t *buf, uint32_t buflen)
 
 #ifdef UNITTESTS
 
-#if defined OS_FREEBSD || defined OS_DARWIN
-#define MICROSOFT_OFFICE_DOC "OLE 2 Compound Document"
-#else
-#define MICROSOFT_OFFICE_DOC "Microsoft Office Document"
-#endif
-
 /** \test magic lib calls -- init */
 static int MagicInitTest01(void)
 {
