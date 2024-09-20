@@ -350,7 +350,8 @@ static void TransformLuaxform(InspectionBuffer *buffer, void *options)
             if (transformed_buffer != NULL && transformed_buffer_byte_count > 0)
                 InspectionBufferCopy(
                         buffer, (uint8_t *)transformed_buffer, transformed_buffer_byte_count);
-            SCLogDebug("transform returns %s", transformed_buffer_byte_count);
+            SCLogDebug("transform returns [nbytes %d] \"%s\"", transformed_buffer_byte_count,
+                    transformed_buffer);
         }
     }
 
