@@ -2383,6 +2383,28 @@
             },
             "additionalProperties": false
         },
+        "mysql": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "tx_id": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "tls": {
+                    "type": "boolean"
+                },
+                "command": {
+                    "type": "string"
+                },
+                "affected_rows": {
+                    "type": "integer"
+                },
+            },
+            "additionalProperties": false
+        },
         "ldap": {
             "type": "object",
             "optional": true,
