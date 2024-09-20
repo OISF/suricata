@@ -2520,6 +2520,12 @@ static int StreamTcpPacketStateSynRecv(
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
             SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
 
+            /* special case: normally the next packet is only considered flow established, but with
+             * data we need it to be established now. */
+            if (p->payload_len) {
+                p->flowflags |= FLOW_PKT_ESTABLISHED;
+            }
+
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             /* If asynchronous stream handling is allowed then set the session,
