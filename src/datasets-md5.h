@@ -33,7 +33,7 @@ typedef struct Md5Type {
 
 int Md5StrSet(void *dst, void *src);
 bool Md5StrCompare(void *a, void *b);
-uint32_t Md5StrHash(void *s);
+uint32_t Md5StrHash(uint32_t hash_seed, void *s);
 void Md5StrFree(void *s);
 
 #endif /* __DATASETS_MD5_H__ */

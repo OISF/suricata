@@ -25,6 +25,7 @@
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-ipv4.h"
+#include "util-hash-lookup3.h"
 #include "util-thash.h"
 #include "util-print.h"
 
@@ -45,15 +46,10 @@ bool IPv4Compare(void *a, void *b)
     return (memcmp(as->ipv4, bs->ipv4, sizeof(as->ipv4)) == 0);
 }
 
-uint32_t IPv4Hash(void *s)
+uint32_t IPv4Hash(uint32_t hash_seed, void *s)
 {
     const IPv4Type *str = s;
-    uint32_t hash = 5381;
-
-    for (int i = 0; i < (int)sizeof(str->ipv4); i++) {
-        hash = ((hash << 5) + hash) + str->ipv4[i]; /* hash * 33 + c */
-    }
-    return hash;
+    return hashword((uint32_t *)str->ipv4, 1, hash_seed);
 }
 
 // data stays in hash

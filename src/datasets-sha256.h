@@ -33,7 +33,7 @@ typedef struct Sha256Type {
 
 int Sha256StrSet(void *dst, void *src);
 bool Sha256StrCompare(void *a, void *b);
-uint32_t Sha256StrHash(void *s);
+uint32_t Sha256StrHash(uint32_t hash_seed, void *s);
 void Sha256StrFree(void *s);
 
 #endif /* __DATASETS_SHA256_H__ */

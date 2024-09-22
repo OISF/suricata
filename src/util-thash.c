@@ -293,7 +293,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 }
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
-        int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(void *),
+        int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(uint32_t, void *),
         bool (*DataCompare)(void *, void *), bool reset_memcap, uint64_t memcap, uint32_t hashsize)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
@@ -459,7 +459,7 @@ static uint32_t THashGetKey(const THashConfig *cnf, void *data)
 {
     uint32_t key;
 
-    key = cnf->DataHash(data);
+    key = cnf->DataHash(cnf->hash_rand, data);
     key %= cnf->hash_size;
 
     return key;

@@ -28,6 +28,7 @@
 #include "util-thash.h"
 #include "util-print.h"
 #include "util-base64.h"    // decode base64
+#include "util-hash-lookup3.h"
 #include "rust.h"
 
 #if 0
@@ -85,17 +86,10 @@ bool StringCompare(void *a, void *b)
     return (memcmp(as->ptr, bs->ptr, as->len) == 0);
 }
 
-uint32_t StringHash(void *s)
+uint32_t StringHash(uint32_t hash_seed, void *s)
 {
-    uint32_t hash = 5381;
     StringType *str = s;
-
-    for (uint32_t i = 0; i < str->len; i++) {
-        int c = str->ptr[i];
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return hash;
+    return hashlittle_safe(str->ptr, str->len, hash_seed);
 }
 
 // base data stays in hash

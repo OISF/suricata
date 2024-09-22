@@ -26,7 +26,7 @@
 #include "util-misc.h"        //ParseSizeStringU64
 #include "util-thash.h"       //HashTable
 #include "util-memcmp.h"      //SCBufferCmp
-#include "util-hash-string.h" //StringHashDjb2
+#include "util-hash-lookup3.h" //hashlittle_safe
 #include "util-validate.h"    //DEBUG_VALIDATE_BUG_ON
 #include "util-byte.h"        //StringParseUint32
 
@@ -102,10 +102,10 @@ static bool ContainerUrlRangeCompare(void *a, void *b)
     return false;
 }
 
-static uint32_t ContainerUrlRangeHash(void *s)
+static uint32_t ContainerUrlRangeHash(uint32_t hash_seed, void *s)
 {
     HttpRangeContainerFile *cur = s;
-    uint32_t h = StringHashDjb2(cur->key, cur->len);
+    uint32_t h = hashlittle_safe(cur->key, cur->len, hash_seed);
     return h;
 }
 
