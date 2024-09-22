@@ -141,10 +141,10 @@ static inline int CompareAddress(const Address *a, const Address *b)
     return 0;
 }
 
-static uint32_t ThresholdEntryHash(void *ptr)
+static uint32_t ThresholdEntryHash(uint32_t seed, void *ptr)
 {
     const ThresholdEntry *e = ptr;
-    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), 0);
+    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), seed);
     switch (e->key[TRACK]) {
         case TRACK_BOTH:
             hash += HashAddress(&e->addr2);
