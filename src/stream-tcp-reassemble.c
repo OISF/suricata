@@ -1033,22 +1033,6 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
 }
 #endif
 
-static StreamingBufferBlock *GetBlock(const StreamingBuffer *sb, const uint64_t offset)
-{
-    StreamingBufferBlock *blk = sb->head;
-    if (blk == NULL)
-        return NULL;
-
-    for ( ; blk != NULL; blk = SBB_RB_NEXT(blk)) {
-        if (blk->offset >= offset)
-            return blk;
-        else if ((blk->offset + blk->len) > offset) {
-            return blk;
-        }
-    }
-    return NULL;
-}
-
 static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_blk)
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
@@ -1084,7 +1068,8 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
         *data_len = mydata_len;
     } else {
         SCLogDebug("block mode");
-        StreamingBufferBlock *blk = GetBlock(&stream->sb, offset);
+        StreamingBufferBlock key = { .offset = offset, .len = 0 };
+        StreamingBufferBlock *blk = SBB_RB_FIND_INCLUSIVE((struct SBB *)&stream->sb.sbb_tree, &key);
         if (blk == NULL) {
             *data = NULL;
             *data_len = 0;
