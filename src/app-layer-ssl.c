@@ -1109,8 +1109,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
     if (!(HAS_SPACE(elliptic_curves_len)))
         goto invalid_length;
 
-    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) && ja3_elliptic_curves) {
         uint16_t ec_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_processed_len < elliptic_curves_len)
@@ -1166,8 +1165,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
     if (!(HAS_SPACE(ec_pf_len)))
         goto invalid_length;
 
-    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) && ja3_elliptic_curves_pf) {
         uint8_t ec_pf_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_pf_processed_len < ec_pf_len)
