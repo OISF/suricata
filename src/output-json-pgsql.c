@@ -65,7 +65,7 @@ bool JsonPgsqlAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
     if (state) {
         void *tx = AppLayerParserGetTx(f->proto, ALPROTO_PGSQL, state, tx_id);
         if (tx) {
-            return rs_pgsql_logger(tx, PGSQL_DEFAULTS, jb);
+            return SCPgsqlLogger(tx, PGSQL_DEFAULTS, jb);
         }
     }
     return false;
@@ -83,7 +83,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
         return TM_ECODE_FAILED;
     }
 
-    if (!rs_pgsql_logger(txptr, thread->pgsqllog_ctx->flags, jb)) {
+    if (!SCPgsqlLogger(txptr, thread->pgsqllog_ctx->flags, jb)) {
         goto error;
     }
 
