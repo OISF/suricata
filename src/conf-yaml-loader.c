@@ -330,6 +330,9 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                             node = existing;
                         } else {
                             node = ConfNodeNew();
+                            if (unlikely(node == NULL)) {
+                                goto fail;
+                            }
                             node->name = SCStrdup(value);
                             node->parent = parent;
                             if (node->name && strchr(node->name, '_')) {
