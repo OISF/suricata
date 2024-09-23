@@ -1775,7 +1775,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_template_register_parser();
     RegisterRFBParsers();
     RegisterMQTTParsers();
-    rs_pgsql_register_parser();
+    SCRegisterPgsqlParser();
     RegisterRdpParsers();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
