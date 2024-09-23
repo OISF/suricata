@@ -27,6 +27,8 @@ use sha2::Sha256;
 use std::cmp::min;
 use std::os::raw::c_char;
 use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
+#[cfg(feature = "ja4")]
+use crate::jsonbuilder::HEX;
 
 #[derive(Debug, PartialEq)]
 pub struct JA4 {
@@ -137,13 +139,20 @@ impl JA4 {
     }
 
     pub fn set_alpn(&mut self, alpn: &[u8]) {
-        if alpn.len() > 1 {
+        if !alpn.is_empty() {
+            // If the first ALPN value is only a single character, then that character is treated as both the first and last character.
             if alpn.len() == 2 {
                 // GREASE values are 2 bytes, so this could be one -- check
                 let v: u16 = (alpn[0] as u16) << 8 | alpn[alpn.len() - 1] as u16;
                 if JA4::is_grease(v) {
                     return;
                 }
+            }
+            if !alpn[0].is_ascii_alphanumeric() || !alpn[alpn.len() - 1].is_ascii_alphanumeric() {
+                // If the first or last byte of the first ALPN is non-alphanumeric (meaning not 0x30-0x39, 0x41-0x5A, or 0x61-0x7A), then we print the first and last characters of the hex representation of the first ALPN instead.
+                self.alpn[0] = char::from(HEX[(alpn[0] >> 4) as usize]);
+                self.alpn[1] = char::from(HEX[(alpn[alpn.len() - 1] & 0xF) as usize]);
+                return
             }
             self.alpn[0] = char::from(alpn[0]);
             self.alpn[1] = char::from(alpn[alpn.len() - 1]);
@@ -322,15 +331,41 @@ mod tests {
     fn test_short_alpn() {
         let mut j = JA4::new();
 
-        j.set_alpn("a".as_bytes());
+        j.set_alpn("b".as_bytes());
         let mut s = j.get_hash();
         s.truncate(10);
-        assert_eq!(s, "t00i000000");
+        assert_eq!(s, "t00i0000bb");
 
-        j.set_alpn("aa".as_bytes());
+        j.set_alpn("h2".as_bytes());
         let mut s = j.get_hash();
         s.truncate(10);
-        assert_eq!(s, "t00i0000aa");
+        assert_eq!(s, "t00i0000h2");
+
+        // from https://github.com/FoxIO-LLC/ja4/blob/main/technical_details/JA4.md#alpn-extension-value
+        j.set_alpn(&[0xab]);
+        let mut s = j.get_hash();
+        s.truncate(10);
+        assert_eq!(s, "t00i0000ab");
+
+        j.set_alpn(&[0xab, 0xcd]);
+        let mut s = j.get_hash();
+        s.truncate(10);
+        assert_eq!(s, "t00i0000ad");
+
+        j.set_alpn(&[0x30, 0xab]);
+        let mut s = j.get_hash();
+        s.truncate(10);
+        assert_eq!(s, "t00i00003b");
+
+        j.set_alpn(&[0x30, 0x31, 0xab, 0xcd]);
+        let mut s = j.get_hash();
+        s.truncate(10);
+        assert_eq!(s, "t00i00003d");
+
+        j.set_alpn(&[0x30, 0xab, 0xcd, 0x31]);
+        let mut s = j.get_hash();
+        s.truncate(10);
+        assert_eq!(s, "t00i000001");
     }
 
     #[test]
