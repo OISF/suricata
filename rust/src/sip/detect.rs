@@ -308,8 +308,8 @@ unsafe extern "C" fn sip_response_line_get_data(
     return false;
 }
 
-fn sip_get_header_value<'a, 'b>(
-    tx: &'a SIPTransaction, i: u32, direction: Direction, s: &'b str,
+fn sip_get_header_value<'a>(
+    tx: &'a SIPTransaction, i: u32, direction: Direction, s: &str,
 ) -> Option<&'a str> {
     let headers = match direction {
         Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
