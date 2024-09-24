@@ -472,12 +472,13 @@ impl MysqlState {
     ) -> IResult<&[u8], MysqlFEMessage> {
         match state {
             MysqlStateProgress::Handshake => {
-                let (i, client_flags) = parse_handshake_capabilities(i)?;
+                let old = i;
+                let (_, client_flags) = parse_handshake_capabilities(i)?;
                 if client_flags & CLIENT_SSL != 0 {
-                    let (i, req) = parse_handshake_ssl_request(i)?;
+                    let (i, req) = parse_handshake_ssl_request(old)?;
                     return Ok((i, MysqlFEMessage::SSLRequest(req)));
                 }
-                let (i, req) = parse_handshake_response(i, client_flags)?;
+                let (i, req) = parse_handshake_response(old)?;
                 Ok((i, MysqlFEMessage::HandshakeResponse(req)))
             }
             MysqlStateProgress::Auth => {
@@ -506,7 +507,7 @@ impl MysqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if !probe(i) {
+            if !probe(i).is_ok() {
                 SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
@@ -617,9 +618,7 @@ impl MysqlState {
                     MysqlStateProgress::StmtResetReceived => {
                         Some(MysqlStateProgress::StmtResetResponseReceived)
                     }
-                    MysqlStateProgress::ChangeUserReceived => {
-                        Some(MysqlStateProgress::Finished)
-                    }
+                    MysqlStateProgress::ChangeUserReceived => Some(MysqlStateProgress::Finished),
                     MysqlStateProgress::StmtFetchReceived
                     | MysqlStateProgress::StmtFetchResponseContinue => {
                         Some(MysqlStateProgress::StmtFetchResponseReceived)
@@ -747,8 +746,7 @@ impl MysqlState {
                 Ok((i, MysqlBEMessage::Response(resp)))
             }
 
-            MysqlStateProgress::StmtExecReceived
-            | MysqlStateProgress::StmtExecResponseContinue => {
+            MysqlStateProgress::StmtExecReceived | MysqlStateProgress::StmtExecResponseContinue => {
                 let (i, resp) = parse_stmt_execute_response(i)?;
                 Ok((i, MysqlBEMessage::Response(resp)))
             }
@@ -794,7 +792,7 @@ impl MysqlState {
         }
 
         if self.response_gap {
-            if !probe(i) {
+            if !probe(i).is_ok() {
                 SCLogDebug!("Suricata interprets there's a gap in the response");
                 return AppLayerResult::ok();
             }
@@ -864,12 +862,9 @@ impl MysqlState {
 }
 
 /// Probe for a valid mysql message
-pub fn probe(input: &[u8]) -> bool {
-    if parse_packet_header(input).is_ok() {
-        return true;
-    }
-    SCLogDebug!("probe is false");
-    false
+pub fn probe(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, _) = parse_packet_header(i)?;
+    Ok((i, ()))
 }
 
 // C exports
@@ -1020,43 +1015,6 @@ pub unsafe extern "C" fn rs_mysql_tx_get_alstate_progress(
 
 export_tx_data_get!(rs_mysql_get_tx_data, MysqlTransaction);
 export_state_data_get!(rs_mysql_get_state_data, MysqlState);
-
-/// Get the mysql query
-#[no_mangle]
-pub unsafe extern "C" fn SCMysqlTxGetCommandName(
-    tx: &mut MysqlTransaction, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    if let Some(command) = &tx.command {
-        if !command.is_empty() {
-            *buf = command.as_ptr();
-            *len = command.len() as u32;
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Get the mysql rows at index i
-#[no_mangle]
-pub unsafe extern "C" fn SCMysqlGetRowsData(
-    tx: &mut MysqlTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    if let Some(rows) = &tx.rows {
-        if !rows.is_empty() {
-            let index = i as usize;
-            if let Some(row) = rows.get(index) {
-                if !row.is_empty() {
-                    *buf = row.as_ptr();
-                    *len = row.len() as u32;
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mysql\0";
