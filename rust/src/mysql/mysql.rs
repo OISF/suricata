@@ -1034,6 +1034,27 @@ pub unsafe extern "C" fn SCMysqlTxGetCommand(
     false
 }
 
+/// Get the mysql rows at index i
+#[no_mangle]
+pub unsafe extern "C" fn SCMysqlGetRowsData(
+    tx: &mut MysqlTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    if let Some(rows) = &tx.rows {
+        if !rows.is_empty() {
+            let index = i as usize;
+            if let Some(row) = rows.get(index) {
+                if !row.is_empty() {
+                    *buf = row.as_ptr();
+                    *len = row.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mysql\0";
 
