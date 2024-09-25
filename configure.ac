@@ -687,6 +687,7 @@
     if test "$with_libhs_includes" != "no"; then
         CPPFLAGS="${CPPFLAGS} -I${with_libhs_includes}"
     fi
+    AS_UNSET(ac_cv_header_hs_h)
     AC_CHECK_HEADER(hs.h,HYPERSCAN="yes",HYPERSCAN="no")
     if test "$HYPERSCAN" = "yes"; then
         if test "$with_libhs_libraries" != "no"; then
