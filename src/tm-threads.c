@@ -240,8 +240,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
     CaptureStatsSetup(tv);
     PacketPoolInit();
 
