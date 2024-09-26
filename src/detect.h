@@ -1045,6 +1045,8 @@ typedef struct DetectEngineCtx_ {
 
     /* number of signatures using filestore, limited as u16 */
     uint16_t filestore_cnt;
+
+    bool pass_applayer_flow_action;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
