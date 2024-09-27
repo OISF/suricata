@@ -592,7 +592,7 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     /* In 7.0.x, ja4 hash is only logged when requested */
     const char *ja4 = ConfNodeLookupChildValue(conf, "ja4");
     if (ja4 && ConfValIsTrue(ja4)) {
-        tls_ctx->fields = LOG_TLS_FIELD_JA4;
+        tls_ctx->fields |= LOG_TLS_FIELD_JA4;
     }
 
     const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
