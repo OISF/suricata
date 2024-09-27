@@ -38,6 +38,7 @@ Suricata Rules
    smtp-keywords
    websocket-keywords
    app-layer
+   decode-layer
    xbits
    noalert
    thresholding
