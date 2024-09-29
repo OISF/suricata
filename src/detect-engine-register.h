@@ -329,6 +329,7 @@ enum DetectKeywordId {
     DETECT_AL_JA4_HASH,
 
     DETECT_AL_MYSQL_COMMAND,
+    DETECT_AL_MYSQL_ROWS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE_STATIC,
