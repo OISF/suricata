@@ -928,6 +928,12 @@ app-layer:
       stream-depth: 0
       # Maximum number of live PostgreSQL transactions per flow
       # max-tx: 1024
+    mysql:
+      enabled: no
+      # Stream reassembly size for MySQL. By default, track it completely.
+      stream-depth: 0
+      # Maximum number of live MySQL transactions per flow
+      # max-tx: 1024
     dcerpc:
       enabled: yes
       # Maximum number of live DCERPC transactions per flow
