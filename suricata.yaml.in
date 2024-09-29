@@ -315,6 +315,7 @@ outputs:
         - sip
         - quic
         - ldap
+        - mysql
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
