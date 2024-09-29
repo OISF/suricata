@@ -20,7 +20,7 @@
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mysql::mysql::*;
 
-fn log_mysql(tx: &MysqlTransaction, _flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_mysql(tx: &MysqlTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("mysql")?;
     if let Some(version) = &tx.version {
         js.set_string("version", version)?;
@@ -54,14 +54,14 @@ fn log_mysql(tx: &MysqlTransaction, _flags: u32, js: &mut JsonBuilder) -> Result
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMysqlLogger(
-    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx_mysql = cast_pointer!(tx, MysqlTransaction);
     SCLogDebug!(
         "----------- MySQL rs_mysql_logger call. Tx is {:?}",
         tx_mysql
     );
-    let result = log_mysql(tx_mysql, flags, js);
+    let result = log_mysql(tx_mysql, js);
     if let Err(ref err) = result {
         SCLogError!("----------- MySQL rs_mysql_logger failed. err is {:?}", err);
     }
