@@ -242,6 +242,7 @@ noinst_HEADERS = \
 	detect-quic-cyu-hash.h \
 	detect-quic-cyu-string.h \
 	detect-msg.h \
+	detect-mysql-command.h \
 	detect-nfs-procedure.h \
 	detect-nfs-version.h \
 	detect-noalert.h \
@@ -811,6 +812,7 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \
 	detect-msg.c \
+	detect-mysql-command.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
 	detect-noalert.c \
