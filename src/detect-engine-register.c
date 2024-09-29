@@ -260,8 +260,6 @@
 #include "detect-ike-nonce-payload-length.h"
 #include "detect-ike-nonce-payload.h"
 #include "detect-ike-key-exchange-payload.h"
-#include "detect-mysql-command.h"
-#include "detect-mysql-rows.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -696,6 +694,7 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+    ScDetectMysqlRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
