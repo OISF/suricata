@@ -1,3 +1,22 @@
+/* Copyright (C) 2024 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+// Author: QianKaiLin <linqiankai666@outlook.com>
+//
 use std::collections::VecDeque;
 use std::ffi::CString;
 
@@ -13,7 +32,7 @@ pub const MYSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 static mut MYSQL_MAX_TX: usize = 1024;
 
-static mut ALPROTO_MYSQL: AppProto = ALPROTO_UNKNOWN;
+pub static mut ALPROTO_MYSQL: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum MysqlEvent {
@@ -24,12 +43,15 @@ pub enum MysqlEvent {
 pub struct MysqlTransaction {
     pub tx_id: u64,
 
-    pub version: Option<String>,
-    pub command_code: Option<u8>,
+    /// Required
+    pub version: String,
+    /// Optional when tls is true
     pub command: Option<String>,
+    /// Optional when tls is true
     pub affected_rows: Option<u64>,
+    /// Optional when tls is true
     pub rows: Option<Vec<String>>,
-    pub tls: Option<bool>,
+    pub tls: bool,
 
     pub complete: bool,
     pub tx_data: AppLayerTxData,
@@ -41,21 +63,14 @@ impl Transaction for MysqlTransaction {
     }
 }
 
-impl Default for MysqlTransaction {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl MysqlTransaction {
-    pub fn new() -> Self {
+    pub fn new(version: String) -> Self {
         Self {
             tx_id: 0,
-            version: None,
-            command_code: None,
+            version,
             command: None,
             affected_rows: None,
-            tls: None,
+            tls: false,
             tx_data: AppLayerTxData::new(),
             complete: false,
             rows: None,
@@ -134,6 +149,81 @@ pub enum MysqlStateProgress {
 }
 
 #[derive(Debug)]
+struct MysqlStatement {
+    statement_id: Option<u32>,
+    prepare_stmt: String,
+    param_cnt: Option<u16>,
+    param_types: Option<Vec<MysqlColumnDefinition>>,
+    stmt_long_datas: Option<Vec<StmtLongData>>,
+    rows: Option<Vec<MysqlResultBinarySetRow>>,
+}
+
+impl MysqlStatement {
+    fn new(prepare_stmt: String) -> Self {
+        MysqlStatement {
+            statement_id: None,
+            prepare_stmt,
+            param_cnt: None,
+            param_types: None,
+            stmt_long_datas: None,
+            rows: None,
+        }
+    }
+
+    fn set_statement_id(&mut self, statement_id: u32) {
+        self.statement_id = Some(statement_id);
+    }
+
+    fn set_param_cnt(&mut self, param_cnt: u16) {
+        self.param_cnt = Some(param_cnt);
+    }
+
+    fn set_param_types(&mut self, cols: Vec<MysqlColumnDefinition>) {
+        self.param_types = Some(cols);
+    }
+
+    fn add_stmt_long_datas(&mut self, long_data: StmtLongData) {
+        if let Some(stmt_long_datas) = &mut self.stmt_long_datas {
+            stmt_long_datas.push(long_data);
+        } else {
+            self.stmt_long_datas = Some(vec![long_data]);
+        }
+    }
+
+    fn reset_stmt_long_datas(&mut self) {
+        self.stmt_long_datas.take();
+    }
+
+    fn add_rows(&mut self, rows: Vec<MysqlResultBinarySetRow>) {
+        if let Some(old_rows) = &mut self.rows {
+            old_rows.extend(rows);
+        } else {
+            self.rows = Some(rows);
+        }
+    }
+
+    fn execute(&self, params: Vec<String>) -> Option<String> {
+        let prepare_stmt = self.prepare_stmt.clone();
+        let mut query = String::new();
+        if !params.is_empty()
+            && self.param_cnt.is_some()
+            && self.param_cnt.unwrap() as usize == params.len()
+        {
+            let mut params = params.iter();
+            for part in prepare_stmt.split('?') {
+                query.push_str(part);
+                if let Some(param) = params.next() {
+                    query.push_str(param);
+                }
+            }
+            Some(query)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct MysqlState {
     pub state_data: AppLayerStateData,
     pub tx_id: u64,
@@ -146,20 +236,8 @@ pub struct MysqlState {
     client_flags: u32,
     version: Option<String>,
     tls: bool,
-    command_code: Option<u8>,
-    command: Option<MysqlCommand>,
-    affected_rows: Option<u64>,
-    rows: Option<Vec<String>>,
     /// stmt prepare
-    prepare_stmt: Option<String>,
-    /// stmt prepare response statement id
-    statement_id: Option<u32>,
-    /// stmt prepare param count
-    param_cnt: Option<u16>,
-    /// stmt prepare params definition
-    param_types: Option<Vec<MysqlColumnDefinition>>,
-    /// stmt execute long data
-    stmt_long_datas: Vec<StmtLongData>,
+    prepare_stmt: Option<MysqlStatement>,
 }
 
 impl State<MysqlTransaction> for MysqlState {
@@ -192,15 +270,7 @@ impl MysqlState {
             client_flags: 0,
             version: None,
             tls: false,
-            command_code: None,
-            command: None,
-            affected_rows: None,
-            rows: None,
             prepare_stmt: None,
-            statement_id: None,
-            param_cnt: None,
-            param_types: None,
-            stmt_long_datas: Vec::new(),
         };
         state
     }
@@ -227,23 +297,25 @@ impl MysqlState {
         self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
+    fn get_tx_mut(&mut self, tx_id: u64) -> Option<&mut MysqlTransaction> {
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.tx_id == tx_id + 1)
+    }
+
     fn set_event(tx: &mut MysqlTransaction, event: MysqlEvent) {
         tx.tx_data.set_event(event as u8);
     }
 
-    fn new_tx(
-        &mut self, command_code: Option<u8>, command: Option<String>, version: Option<String>,
-        affected_rows: Option<u64>, rows: Option<Vec<String>>, tls: bool,
-    ) -> MysqlTransaction {
-        let mut tx = MysqlTransaction::new();
+    fn new_tx(&mut self, command: String) -> MysqlTransaction {
+        let mut tx = MysqlTransaction::new(self.version.clone().unwrap_or_default());
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        tx.version = version;
-        tx.tls = Some(tls);
-        tx.command_code = command_code;
-        tx.command = command;
-        tx.affected_rows = affected_rows;
-        tx.rows = rows;
+        tx.tls = self.tls;
+        if tx.tls {
+            tx.complete = true;
+        }
+        tx.command = Some(command);
         SCLogDebug!("Creating new transaction.tx_id: {}", tx.tx_id);
         if self.transactions.len() > unsafe { MYSQL_MAX_TX } + self.tx_index_completed {
             let mut index = self.tx_index_completed;
@@ -259,52 +331,17 @@ impl MysqlState {
         }
         tx
     }
+
     /// Find or create a new transaction
     ///
     /// If a new transaction is created, push that into state.transactions before returning &mut to last tx
     /// If we can't find a transaction and we should not create one, we return None
     /// The moment when this is called will may impact the logic of transaction tracking (e.g. when a tx is considered completed)
-    fn find_or_create_tx(&mut self) -> Option<&mut MysqlTransaction> {
-        match self.state_progress {
-            MysqlStateProgress::CommandResponseReceived
-            | MysqlStateProgress::Finished
-            | MysqlStateProgress::StmtExecResponseReceived => {
-                let command = self.command.take().map(|cmd| match cmd {
-                    MysqlCommand::Quit => "quit".to_string(),
-                    MysqlCommand::Query { query } => query,
-                    MysqlCommand::Ping => "ping".to_string(),
-                    _ => String::new(),
-                });
-                let rows = self.rows.take();
-                let version = self.version.clone();
-                let command_code = self.command_code.take();
-                let affected_rows = self.affected_rows.take();
-                let tls = self.tls;
-
-                let tx = self.new_tx(command_code, command, version, affected_rows, rows, tls);
-                self.transactions.push_back(tx);
-            }
-            MysqlStateProgress::StmtCloseReceived => {
-                let _ = self.prepare_stmt.take();
-                let _ = self.statement_id.take();
-                let _ = self.param_types.take();
-            }
-            _ => {}
-        }
-        // If we don't need a new transaction, just return the current one
-        SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
+    fn create_tx(&mut self, command: String) -> Option<&mut MysqlTransaction> {
+        let tx = self.new_tx(command);
+        SCLogDebug!("create state is {:?}", &self.state_progress);
+        self.transactions.push_back(tx);
         self.transactions.back_mut()
-    }
-
-    fn is_tx_completed(&self) -> bool {
-        if let MysqlStateProgress::CommandResponseReceived
-        | MysqlStateProgress::StmtExecResponseReceived
-        | MysqlStateProgress::Finished = self.state_progress
-        {
-            true
-        } else {
-            false
-        }
     }
 
     fn request_next_state(
@@ -329,55 +366,39 @@ impl MysqlState {
                     AppLayerRequestProtocolTLSUpgrade(f);
                 }
                 self.tls = true;
+                self.create_tx("".to_string());
                 Some(MysqlStateProgress::Finished)
             }
             MysqlFEMessage::AuthRequest => None,
             MysqlFEMessage::LocalFileData(length) => {
                 if length == 0 {
+                    let tx = self.get_tx_mut(self.tx_id - 1);
+                    if let Some(tx) = tx {
+                        tx.complete = true;
+                    }
                     return Some(MysqlStateProgress::LocalFileContentFinished);
                 }
                 None
             }
-            MysqlFEMessage::Request(req) => {
-                self.command_code = Some(req.command_code);
-                match req.command {
-                    MysqlCommand::Query { query: _ } => {
-                        self.command = Some(req.command);
-                        return Some(MysqlStateProgress::CommandReceived);
-                    }
-                    MysqlCommand::StmtPrepare { query } => {
-                        self.prepare_stmt = Some(query);
-                        return Some(MysqlStateProgress::StmtPrepareReceived);
-                    }
+            MysqlFEMessage::Request(req) => match req.command {
+                MysqlCommand::Query { query: _ } => {
+                    self.create_tx(req.command.to_string());
+                    return Some(MysqlStateProgress::CommandReceived);
+                }
+                MysqlCommand::StmtPrepare { query } => {
+                    self.prepare_stmt = Some(MysqlStatement::new(query));
+                    return Some(MysqlStateProgress::StmtPrepareReceived);
+                }
 
-                    MysqlCommand::StmtExecute {
-                        statement_id,
-                        params,
-                    } => {
-                        if let Some(expected_statement_id) = self.statement_id {
+                MysqlCommand::StmtExecute {
+                    statement_id: expected_statement_id,
+                    params,
+                } => {
+                    if let Some(prepare_stmt) = &self.prepare_stmt {
+                        if let Some(statement_id) = prepare_stmt.statement_id {
                             if statement_id == expected_statement_id {
-                                if let Some(params) = params {
-                                    if !params.is_empty()
-                                        && self.param_cnt.is_some()
-                                        && self.param_cnt.unwrap() as usize == params.len()
-                                    {
-                                        let mut params = params.iter();
-                                        if let Some(prepare_stmt) = &self.prepare_stmt {
-                                            // replace `?` to params
-                                            let mut query = String::new();
-                                            for part in prepare_stmt.split('?') {
-                                                query.push_str(part);
-                                                if let Some(param) = params.next() {
-                                                    query.push_str(param);
-                                                }
-                                            }
-                                            self.command = Some(MysqlCommand::Query { query });
-                                        } else {
-                                            SCLogWarning!("Receive stmt exec without stmt prepare or without stmt prepare response");
-                                            return Some(MysqlStateProgress::Finished);
-                                        }
-                                    }
-                                }
+                                let command = prepare_stmt.execute(params.unwrap_or_default());
+                                self.create_tx(command.unwrap_or_default());
                             } else {
                                 SCLogWarning!(
                                     "Receive stmt exec statement_id {} not equal we need {}",
@@ -386,44 +407,43 @@ impl MysqlState {
                                 );
                                 return Some(MysqlStateProgress::Finished);
                             }
-                        } else {
-                            self.param_cnt = None;
-                            SCLogWarning!(
-                                "Receive stmt exec without stmt prepare response, should end"
-                            );
-                            return Some(MysqlStateProgress::Finished);
                         }
-                        return Some(MysqlStateProgress::StmtExecReceived);
+                    } else {
+                        return Some(MysqlStateProgress::Finished);
                     }
-                    MysqlCommand::StmtFetch {
-                        statement_id: _,
-                        number_rows: _,
-                    } => {
-                        return Some(MysqlStateProgress::StmtFetchReceived);
-                    }
-                    MysqlCommand::StmtSendLongData(stmt_long_data) => {
-                        if let Some(statement_id) = self.statement_id {
+                    return Some(MysqlStateProgress::StmtExecReceived);
+                }
+                MysqlCommand::StmtFetch {
+                    statement_id: _,
+                    number_rows: _,
+                } => {
+                    return Some(MysqlStateProgress::StmtFetchReceived);
+                }
+                MysqlCommand::StmtSendLongData(stmt_long_data) => {
+                    if let Some(prepare_stmt) = &mut self.prepare_stmt {
+                        if let Some(statement_id) = prepare_stmt.statement_id {
                             if statement_id == stmt_long_data.statement_id {
-                                self.stmt_long_datas.push(stmt_long_data);
+                                prepare_stmt.add_stmt_long_datas(stmt_long_data);
                             }
                         }
-                        None
                     }
-                    MysqlCommand::StmtReset { statement_id } => {
-                        if let Some(expected_statement_id) = self.statement_id {
+                    None
+                }
+                MysqlCommand::StmtReset { statement_id } => {
+                    if let Some(prepare_stmt) = &mut self.prepare_stmt {
+                        if let Some(expected_statement_id) = prepare_stmt.statement_id {
                             if statement_id == expected_statement_id {
-                                self.stmt_long_datas.clear();
+                                prepare_stmt.reset_stmt_long_datas();
                             }
                         }
-                        return Some(MysqlStateProgress::StmtResetReceived);
                     }
-                    MysqlCommand::StmtClose { statement_id } => {
-                        if let Some(expected_statement_id) = self.statement_id {
+                    return Some(MysqlStateProgress::StmtResetReceived);
+                }
+                MysqlCommand::StmtClose { statement_id } => {
+                    if let Some(prepare_stmt) = &self.prepare_stmt {
+                        if let Some(expected_statement_id) = prepare_stmt.statement_id {
                             if statement_id == expected_statement_id {
-                                self.statement_id = None;
-                                self.prepare_stmt = None;
-                                self.stmt_long_datas.clear();
-                                self.param_types = None;
+                                self.prepare_stmt.take();
                             } else {
                                 SCLogWarning!(
                                     "Receive stmt close statement_id {} not equal we need {}",
@@ -434,35 +454,37 @@ impl MysqlState {
                         } else {
                             SCLogWarning!("Receive stmt close without stmt prepare response");
                         }
+                    } else {
+                        SCLogWarning!("Receive stmt close without stmt prepare response");
+                    }
 
-                        return Some(MysqlStateProgress::StmtCloseReceived);
-                    }
-                    MysqlCommand::Quit => {
-                        self.command = Some(req.command);
-                        return Some(MysqlStateProgress::Finished);
-                    }
-                    MysqlCommand::Ping
-                    | MysqlCommand::Debug
-                    | MysqlCommand::ResetConnection
-                    | MysqlCommand::SetOption => {
-                        self.command = Some(req.command);
-                        Some(MysqlStateProgress::CommandReceived)
-                    }
-                    MysqlCommand::Statistics => Some(MysqlStateProgress::StatisticsReceived),
-                    MysqlCommand::FieldList { table: _ } => {
-                        self.command = Some(req.command);
-                        return Some(MysqlStateProgress::FieldListReceived);
-                    }
-                    MysqlCommand::ChangeUser => {
-                        self.command = Some(req.command);
-                        return Some(MysqlStateProgress::ChangeUserReceived);
-                    }
-                    _ => {
-                        SCLogWarning!("Unknown command {}", req.command_code);
-                        return Some(MysqlStateProgress::UnknownCommandReceived);
-                    }
+                    return Some(MysqlStateProgress::StmtCloseReceived);
                 }
-            }
+                MysqlCommand::Quit => {
+                    self.create_tx(req.command.to_string());
+                    return Some(MysqlStateProgress::Finished);
+                }
+                MysqlCommand::Ping
+                | MysqlCommand::Debug
+                | MysqlCommand::ResetConnection
+                | MysqlCommand::SetOption => {
+                    self.create_tx(req.command.to_string());
+                    Some(MysqlStateProgress::CommandReceived)
+                }
+                MysqlCommand::Statistics => Some(MysqlStateProgress::StatisticsReceived),
+                MysqlCommand::FieldList { table: _ } => {
+                    self.create_tx(req.command.to_string());
+                    return Some(MysqlStateProgress::FieldListReceived);
+                }
+                MysqlCommand::ChangeUser => {
+                    self.create_tx(req.command.to_string());
+                    return Some(MysqlStateProgress::ChangeUserReceived);
+                }
+                _ => {
+                    SCLogWarning!("Unknown command {}", req.command_code);
+                    return Some(MysqlStateProgress::UnknownCommandReceived);
+                }
+            },
         }
     }
 
@@ -504,11 +526,9 @@ impl MysqlState {
             return AppLayerResult::ok();
         }
 
-        // SCLogDebug!("input length: {}", i.len());
-
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if !probe(i).is_ok() {
+            if probe(i).is_err() {
                 SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
@@ -528,30 +548,27 @@ impl MysqlState {
                 &self.state_progress
             );
             let mut stmt_long_datas = None;
-            if !self.stmt_long_datas.is_empty() {
-                stmt_long_datas = Some(self.stmt_long_datas.clone());
+            let mut param_cnt = None;
+            let mut param_types = None;
+            if let Some(prepare_stmt) = &self.prepare_stmt {
+                stmt_long_datas = prepare_stmt.stmt_long_datas.clone();
+                param_cnt = prepare_stmt.param_cnt;
+                param_types = prepare_stmt.param_types.clone();
             }
 
             match MysqlState::state_based_req_parsing(
                 self.state_progress,
                 start,
-                self.param_cnt,
-                self.param_types.clone(),
+                param_cnt,
+                param_types.clone(),
                 stmt_long_datas,
                 self.client_flags,
             ) {
                 Ok((rem, request)) => {
                     SCLogDebug!("Request is {:?}", &request);
-                    // SCLogDebug!("remain length: {}", rem.len());
                     start = rem;
                     if let Some(state) = self.request_next_state(request, flow) {
                         self.state_progress = state;
-                    }
-                    let tx_completed = self.is_tx_completed();
-                    if let Some(tx) = self.find_or_create_tx() {
-                        if tx_completed {
-                            tx.complete = true;
-                        }
                     }
                 }
                 Err(nom7::Err::Incomplete(_needed)) => {
@@ -583,9 +600,7 @@ impl MysqlState {
     ///
     /// If there is data from the backend message that Suri should store separately in the State or
     /// Transaction, that is also done here
-    fn response_next_state(
-        &mut self, response: MysqlBEMessage, _f: *const Flow,
-    ) -> Option<MysqlStateProgress> {
+    fn response_next_state(&mut self, response: MysqlBEMessage) -> Option<MysqlStateProgress> {
         match response {
             MysqlBEMessage::HandshakeRequest(req) => {
                 self.version = Some(req.version.clone());
@@ -597,9 +612,25 @@ impl MysqlState {
                     Some(MysqlStateProgress::LocalFileRequestReceived)
                 }
                 MysqlResponsePacket::FieldsList { columns: _ } => {
+                    let tx = if self.tx_id > 0 {
+                        self.get_tx_mut(self.tx_id - 1)
+                    } else {
+                        None
+                    };
+                    if let Some(tx) = tx {
+                        tx.complete = true;
+                    }
                     Some(MysqlStateProgress::FieldListResponseReceived)
                 }
                 MysqlResponsePacket::Statistics => {
+                    let tx = if self.tx_id > 0 {
+                        self.get_tx_mut(self.tx_id - 1)
+                    } else {
+                        None
+                    };
+                    if let Some(tx) = tx {
+                        tx.complete = true;
+                    }
                     Some(MysqlStateProgress::StatisticsResponseReceived)
                 }
                 MysqlResponsePacket::AuthSwithRequest => Some(MysqlStateProgress::Auth),
@@ -607,21 +638,63 @@ impl MysqlState {
                 MysqlResponsePacket::Err { .. } => match self.state_progress {
                     MysqlStateProgress::CommandReceived
                     | MysqlStateProgress::TextResulsetContinue => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::CommandResponseReceived)
                     }
                     MysqlStateProgress::FieldListReceived => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::FieldListResponseReceived)
                     }
                     MysqlStateProgress::StmtExecReceived
                     | MysqlStateProgress::StmtExecResponseContinue => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::StmtExecResponseReceived)
                     }
                     MysqlStateProgress::StmtResetReceived => {
                         Some(MysqlStateProgress::StmtResetResponseReceived)
                     }
-                    MysqlStateProgress::ChangeUserReceived => Some(MysqlStateProgress::Finished),
+                    MysqlStateProgress::ChangeUserReceived => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
+                        Some(MysqlStateProgress::Finished)
+                    }
                     MysqlStateProgress::StmtFetchReceived
                     | MysqlStateProgress::StmtFetchResponseContinue => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::StmtFetchResponseReceived)
                     }
                     _ => None,
@@ -633,11 +706,27 @@ impl MysqlState {
                 } => match self.state_progress {
                     MysqlStateProgress::Auth => Some(MysqlStateProgress::AuthFinished),
                     MysqlStateProgress::CommandReceived => {
-                        self.affected_rows = Some(rows);
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.affected_rows = Some(rows);
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::CommandResponseReceived)
                     }
                     MysqlStateProgress::StmtExecReceived => {
-                        self.affected_rows = Some(rows);
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.affected_rows = Some(rows);
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::StmtExecResponseReceived)
                     }
                     MysqlStateProgress::ChangeUserReceived => {
@@ -647,9 +736,38 @@ impl MysqlState {
                         Some(MysqlStateProgress::StmtResetResponseReceived)
                     }
                     MysqlStateProgress::TextResulsetContinue => {
+                        let tx = if self.tx_id > 0 {
+                            self.get_tx_mut(self.tx_id - 1)
+                        } else {
+                            None
+                        };
+                        if let Some(tx) = tx {
+                            tx.complete = true;
+                        }
                         Some(MysqlStateProgress::CommandResponseReceived)
                     }
                     MysqlStateProgress::StmtExecResponseContinue => {
+                        let prepare_stmt = self.prepare_stmt.take();
+                        if self.tx_id > 0 {
+                            let tx = self.get_tx_mut(self.tx_id - 1);
+                            if let Some(tx) = tx {
+                                if let Some(mut prepare_stmt) = prepare_stmt {
+                                    let rows = prepare_stmt.rows.take();
+                                    if let Some(rows) = rows {
+                                        tx.rows = Some(
+                                            rows.into_iter()
+                                                .map(|row| match row {
+                                                    MysqlResultBinarySetRow::Err => String::new(),
+                                                    MysqlResultBinarySetRow::Text(text) => text,
+                                                })
+                                                .collect::<Vec<String>>(),
+                                        );
+                                    }
+
+                                    tx.complete = true;
+                                }
+                            }
+                        }
                         Some(MysqlStateProgress::StmtExecResponseReceived)
                     }
                     MysqlStateProgress::StmtFetchResponseContinue => {
@@ -663,19 +781,32 @@ impl MysqlState {
                     eof,
                     rows,
                 } => {
-                    let mut rows = rows.into_iter().map(|row| row.texts.join(",")).collect();
-                    if eof.status_flags != 0x0A {
-                        self.rows = Some(rows);
-                        Some(MysqlStateProgress::CommandResponseReceived)
+                    let tx = if self.tx_id > 0 {
+                        self.get_tx_mut(self.tx_id - 1)
                     } else {
-                        // MultiStatement
-                        if let Some(state_rows) = self.rows.as_mut() {
-                            state_rows.append(&mut rows);
-                        } else {
-                            self.rows = Some(rows);
-                        }
+                        None
+                    };
+                    if !rows.is_empty() {
+                        let mut rows = rows.into_iter().map(|row| row.texts.join(",")).collect();
+                        if let Some(tx) = tx {
+                            if eof.status_flags != 0x0A {
+                                tx.rows = Some(rows);
+                                Some(MysqlStateProgress::CommandResponseReceived)
+                            } else {
+                                // MultiStatement
+                                if let Some(state_rows) = tx.rows.as_mut() {
+                                    state_rows.append(&mut rows);
+                                } else {
+                                    tx.rows = Some(rows);
+                                }
 
-                        Some(MysqlStateProgress::TextResulsetContinue)
+                                Some(MysqlStateProgress::TextResulsetContinue)
+                            }
+                        } else {
+                            Some(MysqlStateProgress::Finished)
+                        }
+                    } else {
+                        Some(MysqlStateProgress::CommandResponseReceived)
                     }
                 }
                 MysqlResponsePacket::StmtPrepare {
@@ -684,9 +815,14 @@ impl MysqlState {
                     params,
                     ..
                 } => {
-                    self.statement_id = Some(statement_id);
-                    self.param_cnt = Some(num_params);
-                    self.param_types = params;
+                    if let Some(prepare_stmt) = &mut self.prepare_stmt {
+                        prepare_stmt.set_statement_id(statement_id);
+                        prepare_stmt.set_param_cnt(num_params);
+                        if let Some(params) = params {
+                            prepare_stmt.set_param_types(params);
+                        }
+                    }
+
                     Some(MysqlStateProgress::StmtPrepareResponseReceived)
                 }
                 MysqlResponsePacket::StmtFetch => {
@@ -702,25 +838,37 @@ impl MysqlState {
                     {
                         return Some(MysqlStateProgress::StmtFetchResponseContinue);
                     }
-                    let mut rows = rows
-                        .into_iter()
-                        .map(|row| match row {
-                            MysqlResultBinarySetRow::Err => String::new(),
-                            MysqlResultBinarySetRow::Text(text) => text,
-                        })
-                        .collect::<Vec<String>>();
-                    if eof.status_flags != 0x0A {
-                        self.rows = Some(rows);
-                        Some(MysqlStateProgress::StmtExecResponseReceived)
-                    } else {
-                        // MultiResulset
-                        if let Some(state_rows) = self.rows.as_mut() {
-                            state_rows.append(&mut rows);
-                        } else {
-                            self.rows = Some(rows);
-                        }
 
-                        Some(MysqlStateProgress::StmtExecResponseContinue)
+                    if !rows.is_empty() {
+                        if eof.status_flags != 0x0A {
+                            let tx = if self.tx_id > 0 {
+                                self.get_tx_mut(self.tx_id - 1)
+                            } else {
+                                None
+                            };
+                            if let Some(tx) = tx {
+                                tx.rows = Some(
+                                    rows.into_iter()
+                                        .map(|row| match row {
+                                            MysqlResultBinarySetRow::Err => String::new(),
+                                            MysqlResultBinarySetRow::Text(text) => text,
+                                        })
+                                        .collect::<Vec<String>>(),
+                                );
+                                tx.complete = true;
+                            }
+
+                            Some(MysqlStateProgress::StmtExecResponseReceived)
+                        } else {
+                            // MultiResulset
+                            if let Some(prepare_stmt) = &mut self.prepare_stmt {
+                                prepare_stmt.add_rows(rows);
+                            }
+
+                            Some(MysqlStateProgress::StmtExecResponseContinue)
+                        }
+                    } else {
+                        Some(MysqlStateProgress::StmtExecResponseReceived)
                     }
                 }
                 _ => None,
@@ -786,14 +934,14 @@ impl MysqlState {
             || self.state_progress == StmtExecResponseReceived
     }
 
-    pub fn parse_response(&mut self, flow: *const Flow, i: &[u8]) -> AppLayerResult {
+    pub fn parse_response(&mut self, i: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if i.is_empty() {
             return AppLayerResult::ok();
         }
 
         if self.response_gap {
-            if !probe(i).is_ok() {
+            if probe(i).is_err() {
                 SCLogDebug!("Suricata interprets there's a gap in the response");
                 return AppLayerResult::ok();
             }
@@ -817,14 +965,8 @@ impl MysqlState {
                     start = rem;
 
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_next_state(response, flow) {
+                    if let Some(state) = self.response_next_state(response) {
                         self.state_progress = state;
-                    }
-                    let tx_completed = self.is_tx_completed();
-                    if let Some(tx) = self.find_or_create_tx() {
-                        if tx_completed {
-                            tx.complete = true;
-                        }
                     }
                 }
                 Err(nom7::Err::Incomplete(_needed)) => {
@@ -838,11 +980,11 @@ impl MysqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
-                Err(err) => {
-                    SCLogError!(
+                Err(_err) => {
+                    SCLogDebug!(
                         "Error while parsing MySQL response, state: {:?} err: {:?}",
                         self.state_progress,
-                        err,
+                        _err,
                     );
                     return AppLayerResult::err();
                 }
@@ -863,7 +1005,7 @@ impl MysqlState {
 }
 
 /// Probe for a valid mysql message
-pub fn probe(i: &[u8]) -> IResult<&[u8], ()> {
+fn probe(i: &[u8]) -> IResult<&[u8], ()> {
     let (i, _) = parse_packet_header(i)?;
     Ok((i, ()))
 }
@@ -880,8 +1022,8 @@ pub unsafe extern "C" fn rs_mysql_probing_ts(
         match parse_handshake_response(slice) {
             Ok(_) => return ALPROTO_MYSQL,
             Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
-            Err(err) => {
-                SCLogError!("failed to probe request {:?}", err);
+            Err(_err) => {
+                SCLogDebug!("failed to probe request {:?}", _err);
                 return ALPROTO_FAILED;
             }
         }
@@ -899,8 +1041,8 @@ pub unsafe extern "C" fn rs_mysql_probing_tc(
         match parse_handshake_request(slice) {
             Ok(_) => return ALPROTO_MYSQL,
             Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
-            Err(err) => {
-                SCLogError!("failed to probe response {:?}", err);
+            Err(_err) => {
+                SCLogDebug!("failed to probe response {:?}", _err);
                 return ALPROTO_FAILED;
             }
         }
@@ -950,7 +1092,7 @@ pub unsafe extern "C" fn rs_mysql_parse_request(
 
     if stream_slice.is_gap() {
         state_safe.on_request_gap(stream_slice.gap_size());
-    } else if !stream_slice.is_empty() {
+    } else {
         return state_safe.parse_request(flow, stream_slice.as_slice());
     }
     AppLayerResult::ok()
@@ -958,7 +1100,7 @@ pub unsafe extern "C" fn rs_mysql_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mysql_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -973,8 +1115,8 @@ pub unsafe extern "C" fn rs_mysql_parse_response(
 
     if stream_slice.is_gap() {
         state_safe.on_response_gap(stream_slice.gap_size());
-    } else if !stream_slice.is_empty() {
-        return state_safe.parse_response(flow, stream_slice.as_slice());
+    } else {
+        return state_safe.parse_response(stream_slice.as_slice());
     }
     AppLayerResult::ok()
 }
@@ -1016,44 +1158,6 @@ pub unsafe extern "C" fn rs_mysql_tx_get_alstate_progress(
 
 export_tx_data_get!(rs_mysql_get_tx_data, MysqlTransaction);
 export_state_data_get!(rs_mysql_get_state_data, MysqlState);
-
-/// Detect
-/// Get the mysql query
-#[no_mangle]
-pub unsafe extern "C" fn SCMysqlTxGetCommand(
-    tx: &mut MysqlTransaction, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    if let Some(command) = &tx.command {
-        if !command.is_empty() {
-            *buf = command.as_ptr();
-            *len = command.len() as u32;
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Get the mysql rows at index i
-#[no_mangle]
-pub unsafe extern "C" fn SCMysqlGetRowsData(
-    tx: &mut MysqlTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    if let Some(rows) = &tx.rows {
-        if !rows.is_empty() {
-            let index = i as usize;
-            if let Some(row) = rows.get(index) {
-                if !row.is_empty() {
-                    *buf = row.as_ptr();
-                    *len = row.len() as u32;
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mysql\0";
@@ -1124,6 +1228,7 @@ pub unsafe extern "C" fn rs_mysql_register_parser() {
                 SCLogError!("Invalid value for mysql.max-tx");
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MYSQL);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for MYSQL.");
     }

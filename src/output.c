@@ -901,8 +901,7 @@ void OutputRegisterRootLoggers(void)
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log, "bittorrent_dht");
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_MYSQL, (EveJsonSimpleTxLogFunc)SCMysqlLogger, "mysql");
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MYSQL, SCMysqlLogger, "mysql");
 
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();
@@ -1082,6 +1081,10 @@ void OutputRegisterLoggers(void)
     /* Ldap JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonLdapLog", "eve-log.ldap",
             OutputJsonLogInitSub, ALPROTO_LDAP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit);
+    /* MySQL JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMySQLLog", "eve-log.mysql",
+            OutputJsonLogInitSub, ALPROTO_MYSQL, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
