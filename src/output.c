@@ -82,6 +82,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "output-json-mysql.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1105,4 +1106,6 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+    /* MYSQL JSON logger */
+    JsonMysqlLogRegister();
 }
