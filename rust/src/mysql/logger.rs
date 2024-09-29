@@ -22,7 +22,6 @@ use crate::mysql::mysql::*;
 
 fn log_mysql(tx: &MysqlTransaction, _flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("mysql")?;
-    js.set_uint("tx_id", tx.tx_id)?;
     if let Some(version) = &tx.version {
         js.set_string("version", version)?;
     }
@@ -32,42 +31,14 @@ fn log_mysql(tx: &MysqlTransaction, _flags: u32, js: &mut JsonBuilder) -> Result
         js.set_bool("tls", false)?;
     }
 
-    if tx.command.is_some() {
-        let command = tx.command.clone().unwrap();
-        js.set_string("command", &command)?;
+    if let Some(command) = &tx.command {
+        js.set_string("command", command)?;
     }
-    if tx.affected_rows.is_some() {
-        let affected_rows = tx.affected_rows.unwrap();
+
+    if let Some(affected_rows) = tx.affected_rows {
         js.set_uint("affected_rows", affected_rows)?;
     }
 
-    js.close()?;
-
-    Ok(())
-}
-
-fn log_mysql_alert(
-    tx: &MysqlTransaction, _flags: u32, js: &mut JsonBuilder,
-) -> Result<(), JsonError> {
-    js.open_object("mysql")?;
-    js.set_uint("tx_id", tx.tx_id)?;
-    if let Some(version) = &tx.version {
-        js.set_string("version", version)?;
-    }
-    if let Some(tls) = &tx.tls {
-        js.set_bool("tls", *tls)?;
-    } else {
-        js.set_bool("tls", false)?;
-    }
-
-    if tx.command.is_some() {
-        let command = tx.command.clone().unwrap();
-        js.set_string("command", &command)?;
-    }
-    if tx.affected_rows.is_some() {
-        let affected_rows = tx.affected_rows.unwrap();
-        js.set_uint("affected_rows", affected_rows)?;
-    }
     if let Some(rows) = &tx.rows {
         js.open_array("rows")?;
         for row in rows {
@@ -82,7 +53,7 @@ fn log_mysql_alert(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mysql_logger(
+pub unsafe extern "C" fn SCMysqlLogger(
     tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx_mysql = cast_pointer!(tx, MysqlTransaction);
@@ -93,25 +64,6 @@ pub unsafe extern "C" fn rs_mysql_logger(
     let result = log_mysql(tx_mysql, flags, js);
     if let Err(ref err) = result {
         SCLogError!("----------- MySQL rs_mysql_logger failed. err is {:?}", err);
-    }
-    return result.is_ok();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_mysql_logger_alert(
-    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
-) -> bool {
-    let tx_mysql = cast_pointer!(tx, MysqlTransaction);
-    SCLogDebug!(
-        "----------- MySQL rs_mysql_logger_alert call. Tx is {:?}",
-        tx_mysql
-    );
-    let result = log_mysql_alert(tx_mysql, flags, js);
-    if let Err(ref err) = result {
-        SCLogError!(
-            "----------- MySQL rs_mysql_logger_alert failed. err is {:?}",
-            err
-        );
     }
     return result.is_ok();
 }
