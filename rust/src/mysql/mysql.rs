@@ -1017,6 +1017,23 @@ pub unsafe extern "C" fn rs_mysql_tx_get_alstate_progress(
 export_tx_data_get!(rs_mysql_get_tx_data, MysqlTransaction);
 export_state_data_get!(rs_mysql_get_state_data, MysqlState);
 
+/// Detect
+/// Get the mysql query
+#[no_mangle]
+pub unsafe extern "C" fn SCMysqlTxGetCommand(
+    tx: &mut MysqlTransaction, buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    if let Some(command) = &tx.command {
+        if !command.is_empty() {
+            *buf = command.as_ptr();
+            *len = command.len() as u32;
+            return true;
+        }
+    }
+
+    false
+}
+
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mysql\0";
 
