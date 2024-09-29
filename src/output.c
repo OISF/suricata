@@ -82,7 +82,6 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
-#include "output-json-mysql.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -898,6 +897,8 @@ void OutputRegisterRootLoggers(void)
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log, "bittorrent_dht");
+    RegisterSimpleJsonApplayerLogger(
+            ALPROTO_MYSQL, (EveJsonSimpleTxLogFunc)SCMysqlLogger, "mysql");
 
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();
