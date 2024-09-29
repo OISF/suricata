@@ -25,6 +25,7 @@ use nom7::IResult;
 use crate::applayer::*;
 use crate::conf::{conf_get, get_memval};
 use crate::core::*;
+use crate::flow::Flow;
 
 use super::parser::*;
 
@@ -1019,8 +1020,28 @@ pub unsafe extern "C" fn rs_mysql_probing_ts(
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
         let slice: &[u8] = build_slice!(input, input_len as usize);
-        match parse_handshake_response(slice) {
-            Ok(_) => return ALPROTO_MYSQL,
+        match parse_handshake_capabilities(slice) {
+            Ok((_, client_flags)) => {
+                if client_flags & CLIENT_SSL != 0 {
+                    match parse_handshake_ssl_request(slice) {
+                        Ok(_) => return ALPROTO_MYSQL,
+                        Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
+                        Err(err) => {
+                            SCLogError!("failed to probe ssl request {:?}", err);
+                            return ALPROTO_FAILED;
+                        }
+                    }
+                } else {
+                    match parse_handshake_response(slice) {
+                        Ok(_) => return ALPROTO_MYSQL,
+                        Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
+                        Err(err) => {
+                            SCLogError!("failed to probe handshake response {:?}", err);
+                            return ALPROTO_FAILED;
+                        }
+                    }
+                }
+            }
             Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
             Err(_err) => {
                 SCLogDebug!("failed to probe request {:?}", _err);

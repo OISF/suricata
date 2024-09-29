@@ -1070,6 +1070,7 @@ static void AppLayerNamesSetup(void)
     AppProtoRegisterProtoString(ALPROTO_BITTORRENT_DHT, "bittorrent-dht");
     AppProtoRegisterProtoString(ALPROTO_POP3, "pop3");
     AppProtoRegisterProtoString(ALPROTO_HTTP, "http");
+    AppProtoRegisterProtoString(ALPROTO_MYSQL, "mysql");
 }
 
 int AppLayerSetup(void)
