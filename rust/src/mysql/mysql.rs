@@ -70,6 +70,7 @@ pub enum MysqlStateProgress {
 
     // Connection Phase
     // Server send HandshakeRequest to Client
+    // https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase.html
     Handshake,
     // Client send HandshakeResponse to Server
     // Server send AuthSwitchRequest to Client
@@ -876,7 +877,7 @@ pub unsafe extern "C" fn rs_mysql_probing_ts(
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
         let slice: &[u8] = build_slice!(input, input_len as usize);
-        match parse_packet_header(slice) {
+        match parse_handshake_response(slice) {
             Ok(_) => return ALPROTO_MYSQL,
             Err(nom7::Err::Incomplete(_)) => return ALPROTO_UNKNOWN,
             Err(err) => {
