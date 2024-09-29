@@ -1124,6 +1124,7 @@ pub unsafe extern "C" fn rs_mysql_register_parser() {
                 SCLogError!("Invalid value for mysql.max-tx");
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MYSQL);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for MYSQL.");
     }
