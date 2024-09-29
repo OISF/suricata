@@ -99,6 +99,8 @@ pub const CLIENT_REMEMBER_OPTIONS: u32 = BIT_U32!(31);
 #[allow(dead_code)]
 pub const FIELD_FLAGS_UNSIGNED: u32 = BIT_U32!(5);
 
+const PAYLOAD_MAX_LEN: u32 = 0xffffff;
+
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum FieldType {
@@ -183,9 +185,19 @@ impl From<u8> for FieldType {
 }
 
 #[derive(Debug)]
-pub struct MysqlPacket {
-    pub pkt_len: u32,
+pub struct MysqlPacket<'a> {
+    pub pkt_len: usize,
     pub pkt_num: u8,
+
+    payload: &'a mut [u8],
+}
+
+impl<'a> Drop for MysqlPacket<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            std::mem::drop(Box::from_raw(self.payload as *mut [u8]));
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -381,7 +393,7 @@ pub enum MysqlFEMessage {
     SSLRequest(MysqlSSLRequest),
     AuthRequest,
     Request(MysqlRequest),
-    LocalFileData(u32),
+    LocalFileData(usize),
     HandshakeResponse(MysqlHandshakeResponse),
 }
 
@@ -433,19 +445,50 @@ fn parse_varint(i: &[u8]) -> IResult<&[u8], u64> {
 }
 
 pub fn parse_packet_header(i: &[u8]) -> IResult<&[u8], MysqlPacket> {
-    let (i, pkt_len) = le_u24(i)?;
-    let (i, pkt_num) = be_u8(i)?;
-    Ok((i, MysqlPacket { pkt_len, pkt_num }))
+    let mut payload = Vec::new();
+    let mut payload_len: usize = 0;
+    let mut rem = i;
+    let mut pkt_num = None;
+    loop {
+        let (i, pkt_len) = le_u24(rem)?;
+        payload_len += pkt_len as usize;
+        let (i, num) = be_u8(i)?;
+        if pkt_num.is_none() {
+            pkt_num = Some(num);
+        }
+        let (i, rem_payload) = take(pkt_len)(i)?;
+        rem = i;
+        // payload extend rem_payload
+        payload.extend_from_slice(rem_payload);
+        if pkt_len < PAYLOAD_MAX_LEN {
+            break;
+        }
+    }
+
+    let pkt_len = payload_len;
+    let pkt_num = pkt_num.unwrap_or_default();
+    // payload extend rem for next parse
+    let payload = Box::leak(payload.into_boxed_slice());
+    Ok((
+        rem,
+        MysqlPacket {
+            pkt_len,
+            pkt_num,
+            payload,
+        },
+    ))
 }
 
 fn parse_eof_packet(i: &[u8]) -> IResult<&[u8], MysqlEofPacket> {
-    let (i, _header) = parse_packet_header(i)?;
-    let (i, _tag) = verify(be_u8, |&x| x == 0xfe)(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, _tag) = verify(be_u8, |&x| x == 0xfe)(payload)?;
     let (i, warnings) = le_u16(i)?;
-    let (i, status_flags) = le_u16(i)?;
+    let (_, status_flags) = le_u16(i)?;
 
     Ok((
-        i,
+        rem,
         MysqlEofPacket {
             warnings,
             status_flags,
@@ -453,14 +496,15 @@ fn parse_eof_packet(i: &[u8]) -> IResult<&[u8], MysqlEofPacket> {
     ))
 }
 
-fn parse_init_db_cmd(i: &[u8], length: u32) -> IResult<&[u8], MysqlCommand> {
-    let (i, schema) = map(take(length), |s: &[u8]| {
+fn parse_init_db_cmd(i: &[u8]) -> IResult<&[u8], MysqlCommand> {
+    let (i, schema) = map(take(i.len()), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
     Ok((i, MysqlCommand::InitDb { schema }))
 }
 
-fn parse_query_cmd(i: &[u8], length: u32, client_flags: u32) -> IResult<&[u8], MysqlCommand> {
+fn parse_query_cmd(i: &[u8], client_flags: u32) -> IResult<&[u8], MysqlCommand> {
+    let length = i.len();
     let old = i;
     let (i, param_cnt) = cond(client_flags & CLIENT_QUERY_ATTRIBUTES != 0, parse_varint)(i)?;
     let (i, _param_set_cnt) = cond(
@@ -633,7 +677,7 @@ fn parse_query_cmd(i: &[u8], length: u32, client_flags: u32) -> IResult<&[u8], M
     }
     let i = data;
 
-    let consumed = (old.len() - i.len()) as u32;
+    let consumed = old.len() - i.len();
 
     // Should never happen
     if consumed > length {
@@ -653,7 +697,8 @@ fn parse_query_cmd(i: &[u8], length: u32, client_flags: u32) -> IResult<&[u8], M
     Ok((i, MysqlCommand::Query { query }))
 }
 
-fn parse_stmt_prepare_cmd(i: &[u8], length: u32) -> IResult<&[u8], MysqlCommand> {
+fn parse_stmt_prepare_cmd(i: &[u8]) -> IResult<&[u8], MysqlCommand> {
+    let length = i.len();
     let (i, query) = map(take(length), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
@@ -679,8 +724,9 @@ fn parse_stmt_send_long_data_cmd(i: &[u8]) -> IResult<&[u8], MysqlCommand> {
 
 fn parse_stmt_execute_cmd(
     i: &[u8], param_cnt: Option<u16>, param_types: Option<Vec<MysqlColumnDefinition>>,
-    stmt_long_datas: Option<Vec<StmtLongData>>, length: u32, client_flags: u32,
+    stmt_long_datas: Option<Vec<StmtLongData>>, client_flags: u32,
 ) -> IResult<&[u8], MysqlCommand> {
+    let length = i.len();
     let old = i;
     let (i, statement_id) = le_u32(i)?;
     let (i, flags) = be_u8(i)?;
@@ -735,7 +781,7 @@ fn parse_stmt_execute_cmd(
                     }
                 };
 
-                let consumed = (old.len() - i.len()) as u32;
+                let consumed = old.len() - i.len();
                 // Should never happen
                 if consumed > length {
                     return Ok((
@@ -746,7 +792,7 @@ fn parse_stmt_execute_cmd(
                         },
                     ));
                 }
-                let (i, data) = take(length - consumed as u32)(i)?;
+                let (i, data) = take(length - consumed)(i)?;
                 if param_types.is_none() {
                     return Ok((
                         i,
@@ -933,7 +979,7 @@ fn parse_stmt_execute_cmd(
             ))
         }
     } else {
-        let consumed = (old.len() - i.len()) as u32;
+        let consumed = old.len() - i.len();
         // Should never happen
         if consumed > length {
             return Ok((
@@ -944,7 +990,7 @@ fn parse_stmt_execute_cmd(
                 },
             ));
         }
-        let (i, _) = take(length - consumed as u32)(i)?;
+        let (i, _) = take(length - consumed)(i)?;
         Ok((
             i,
             MysqlCommand::StmtExecute {
@@ -955,12 +1001,13 @@ fn parse_stmt_execute_cmd(
     }
 }
 
-fn parse_field_list_cmd(i: &[u8], length: u32) -> IResult<&[u8], MysqlCommand> {
+fn parse_field_list_cmd(i: &[u8]) -> IResult<&[u8], MysqlCommand> {
+    let length = i.len();
     let old = i;
     let (i, table) = map(take_till(|ch| ch == 0x00), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
-    let consumed = (old.len() - i.len()) as u32;
+    let consumed = old.len() - i.len();
     // Should never happen
     if consumed > length {
         return Ok((
@@ -992,8 +1039,10 @@ fn parse_stmt_close_cmd(i: &[u8]) -> IResult<&[u8], MysqlCommand> {
 }
 
 fn parse_column_definition(i: &[u8]) -> IResult<&[u8], MysqlColumnDefinition> {
-    let (i, _header) = parse_packet_header(i)?;
-    let (i, _len) = parse_varint(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, _len) = parse_varint(payload)?;
     let (i, _catalog) = map(take(_len as u32), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
@@ -1029,12 +1078,12 @@ fn parse_column_definition(i: &[u8]) -> IResult<&[u8], MysqlColumnDefinition> {
     let (i, field_type) = be_u8(i)?;
     let (i, flags) = le_u16(i)?;
     let (i, decimals) = be_u8(i)?;
-    let (i, _filter) = take(2_u32)(i)?;
+    let (_, _filter) = take(2_u32)(i)?;
 
     let field_type = field_type.into();
 
     Ok((
-        i,
+        rem,
         MysqlColumnDefinition {
             catalog: "def".to_string(),
             schema,
@@ -1050,19 +1099,20 @@ fn parse_column_definition(i: &[u8]) -> IResult<&[u8], MysqlColumnDefinition> {
     ))
 }
 
-fn parse_resultset_row_texts(i: &[u8], mut length: u32) -> IResult<&[u8], Vec<String>> {
+fn parse_resultset_row_texts(i: &[u8]) -> IResult<&[u8], Vec<String>> {
     let mut rem = i;
+    let mut length = i.len();
     let mut texts = Vec::new();
     while length > 0 {
         let (i, len) = parse_varint(rem)?;
-        let mut consumed = (rem.len() - i.len()) as u32;
+        let mut consumed = rem.len() - i.len();
         if len == 0xFB {
             texts.push("NULL".to_string());
             rem = i;
         } else {
             let (i, text) = map(take(len), |s: &[u8]| String::from_utf8_lossy(s).to_string())(i)?;
             texts.push(text);
-            consumed += len as u32;
+            consumed += len as usize;
             rem = i;
         }
         // Should never happen
@@ -1076,24 +1126,28 @@ fn parse_resultset_row_texts(i: &[u8], mut length: u32) -> IResult<&[u8], Vec<St
 }
 
 fn parse_resultset_row(i: &[u8]) -> IResult<&[u8], MysqlResultSetRow> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, texts) = parse_resultset_row_texts(i, header.pkt_len)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (_, texts) = parse_resultset_row_texts(payload)?;
 
-    Ok((i, MysqlResultSetRow { texts }))
+    Ok((rem, MysqlResultSetRow { texts }))
 }
 
 fn parse_binary_resultset_row(
     columns: Vec<MysqlColumnDefinition>,
 ) -> impl FnMut(&[u8]) -> IResult<&[u8], MysqlResultBinarySetRow> {
     move |i| {
-        let (i, header) = parse_packet_header(i)?;
-        let (i, response_code) = verify(be_u8, |&x| x == 0x00 || x == 0xFF)(i)?;
+        let (rem, header) = parse_packet_header(i)?;
+        let payload =
+            unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+        let (i, response_code) = verify(be_u8, |&x| x == 0x00 || x == 0xFF)(payload)?;
         // ERR
         if response_code == 0xFF {
-            let (i, _resp) = parse_response_err(i, header.pkt_len - 1)?;
-            return Ok((i, MysqlResultBinarySetRow::Err));
+            let (_, _resp) = parse_response_err(i)?;
+            return Ok((rem, MysqlResultBinarySetRow::Err));
         }
-        let (i, data) = take(header.pkt_len - 1)(i)?;
+        let (_, data) = take(header.pkt_len - 1)(i)?;
 
         // NULL-bitmap, [(column-count + 7 + 2) / 8 bytes]
         let mut texts = Vec::new();
@@ -1263,7 +1317,7 @@ fn parse_binary_resultset_row(
         }
         let texts = texts.join(",");
 
-        Ok((i, MysqlResultBinarySetRow::Text(texts)))
+        Ok((rem, MysqlResultBinarySetRow::Text(texts)))
     }
 }
 
@@ -1271,30 +1325,29 @@ fn parse_response_resultset(i: &[u8], n_cols: u64) -> IResult<&[u8], MysqlRespon
     let (i, columns) = many_m_n(n_cols as usize, n_cols as usize, parse_column_definition)(i)?;
     let (i, eof) = parse_eof_packet(i)?;
     let (i, (rows, _)) = many_till(parse_resultset_row, |i| {
-        let (i, header) = parse_packet_header(i)?;
-        let (i, response_code) = verify(be_u8, |&x| x == 0xFE || x == 0xFF)(i)?;
+        let (rem, header) = parse_packet_header(i)?;
+        let payload =
+            unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+        let (i, response_code) = verify(be_u8, |&x| x == 0xFE || x == 0xFF)(payload)?;
         match response_code {
             // EOF
-            0xFE => {
-                let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-                Ok((
-                    i,
-                    MysqlResponse {
-                        item: MysqlResponsePacket::EOF,
-                    },
-                ))
-            }
+            0xFE => Ok((
+                rem,
+                MysqlResponse {
+                    item: MysqlResponsePacket::EOF,
+                },
+            )),
             // ERR
-            0xFF => parse_response_err(i, header.pkt_len - 1),
-            _ => {
-                let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-                Ok((
-                    i,
-                    MysqlResponse {
-                        item: MysqlResponsePacket::Unknown,
-                    },
-                ))
+            0xFF => {
+                let (_, response) = parse_response_err(i)?;
+                Ok((rem, response))
             }
+            _ => Ok((
+                rem,
+                MysqlResponse {
+                    item: MysqlResponsePacket::Unknown,
+                },
+            )),
         }
     })(i)?;
     Ok((
@@ -1315,30 +1368,29 @@ fn parse_response_binary_resultset(i: &[u8], n_cols: u64) -> IResult<&[u8], Mysq
     let (i, eof) = parse_eof_packet(i)?;
     let (i, (rows, _)) = many_till(parse_binary_resultset_row(columns), |i| {
         // eof
-        let (i, header) = parse_packet_header(i)?;
-        let (i, response_code) = verify(be_u8, |&x| x == 0xFE || x == 0xFF)(i)?;
+        let (rem, header) = parse_packet_header(i)?;
+        let payload =
+            unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+        let (i, response_code) = verify(be_u8, |&x| x == 0xFE || x == 0xFF)(payload)?;
         match response_code {
             // EOF
-            0xFE => {
-                let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-                Ok((
-                    i,
-                    MysqlResponse {
-                        item: MysqlResponsePacket::EOF,
-                    },
-                ))
-            }
+            0xFE => Ok((
+                rem,
+                MysqlResponse {
+                    item: MysqlResponsePacket::EOF,
+                },
+            )),
             // ERR
-            0xFF => parse_response_err(i, header.pkt_len - 1),
-            _ => {
-                let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-                Ok((
-                    i,
-                    MysqlResponse {
-                        item: MysqlResponsePacket::Unknown,
-                    },
-                ))
+            0xFF => {
+                let (_, response) = parse_response_err(i)?;
+                Ok((rem, response))
             }
+            _ => Ok((
+                rem,
+                MysqlResponse {
+                    item: MysqlResponsePacket::Unknown,
+                },
+            )),
         }
     })(i)?;
     Ok((
@@ -1349,13 +1401,14 @@ fn parse_response_binary_resultset(i: &[u8], n_cols: u64) -> IResult<&[u8], Mysq
     ))
 }
 
-fn parse_response_ok(i: &[u8], length: u32) -> IResult<&[u8], MysqlResponse> {
+fn parse_response_ok(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
+    let length = i.len();
     let old = i;
     let (i, rows) = parse_varint(i)?;
     let (i, _last_insert_id) = parse_varint(i)?;
     let (i, flags) = le_u16(i)?;
     let (i, warnings) = le_u16(i)?;
-    let consumed = (old.len() - i.len()) as u32;
+    let consumed = old.len() - i.len();
     // Should never happen
     if consumed > length {
         return Ok((
@@ -1383,7 +1436,8 @@ fn parse_response_ok(i: &[u8], length: u32) -> IResult<&[u8], MysqlResponse> {
     ))
 }
 
-fn parse_response_err(i: &[u8], length: u32) -> IResult<&[u8], MysqlResponse> {
+fn parse_response_err(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
+    let length = i.len();
     let (i, error_code) = le_u16(i)?;
     let (i, _) = take(6_u32)(i)?;
     // sql state maker & sql state
@@ -1404,8 +1458,10 @@ fn parse_response_err(i: &[u8], length: u32) -> IResult<&[u8], MysqlResponse> {
 }
 
 pub fn parse_handshake_request(i: &[u8]) -> IResult<&[u8], MysqlHandshakeRequest> {
-    let (i, _header) = parse_packet_header(i)?;
-    let (i, protocol) = verify(be_u8, |&x| x == 0x0a_u8)(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, protocol) = verify(be_u8, |&x| x == 0x0a_u8)(payload)?;
     let (i, version) = map(take_till(|ch| ch == 0x00), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
@@ -1431,9 +1487,9 @@ pub fn parse_handshake_request(i: &[u8]) -> IResult<&[u8], MysqlHandshakeRequest
             String::from_utf8_lossy(s).to_string()
         }),
     )(i)?;
-    let (i, _) = take(1_u32)(i)?;
+    let (_, _) = take(1_u32)(i)?;
     Ok((
-        i,
+        rem,
         MysqlHandshakeRequest {
             protocol,
             version,
@@ -1451,32 +1507,49 @@ pub fn parse_handshake_request(i: &[u8]) -> IResult<&[u8], MysqlHandshakeRequest
 }
 
 pub fn parse_handshake_capabilities(i: &[u8]) -> IResult<&[u8], u32> {
-    let (i, _header) = parse_packet_header(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
     let (i, client_flags) = verify(le_u32, |&client_flags| {
         client_flags & CLIENT_PROTOCOL_41 != 0
-    })(i)?;
+    })(payload)?;
     let (i, _max_packet_size) = be_u32(i)?;
-    let (i, _character_set) = be_u8(i)?;
+    let (_, _character_set) = be_u8(i)?;
 
     // fk this code
-    Ok((i, client_flags))
+    Ok((rem, client_flags))
 }
 
 pub fn parse_handshake_ssl_request(i: &[u8]) -> IResult<&[u8], MysqlSSLRequest> {
-    let (i, filter) = map(take(23_u32), |s: &[u8]| {
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, _client_flags) = verify(le_u32, |&client_flags| {
+        client_flags & CLIENT_PROTOCOL_41 != 0
+    })(payload)?;
+    let (i, _max_packet_size) = be_u32(i)?;
+    let (i, _character_set) = be_u8(i)?;
+    let (_, filter) = map(take(23_u32), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
     Ok((
-        i,
+        rem,
         MysqlSSLRequest {
             filter: Some(filter),
         },
     ))
 }
 
-pub fn parse_handshake_response(
-    i: &[u8], client_flags: u32,
-) -> IResult<&[u8], MysqlHandshakeResponse> {
+pub fn parse_handshake_response(i: &[u8]) -> IResult<&[u8], MysqlHandshakeResponse> {
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, client_flags) = verify(le_u32, |&client_flags| {
+        client_flags & CLIENT_PROTOCOL_41 != 0
+    })(payload)?;
+    let (i, _max_packet_size) = be_u32(i)?;
+    let (i, _character_set) = be_u8(i)?;
+
     let (i, _filter) = map(take(23_u32), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
     })(i)?;
@@ -1512,10 +1585,10 @@ pub fn parse_handshake_response(
         parse_handshake_response_attributes(length),
     )(i)?;
 
-    let (i, zstd_compression_level) =
+    let (_, zstd_compression_level) =
         cond(client_flags & CLIENT_ZSTD_COMPRESSION_ALGORITHM != 0, be_u8)(i)?;
     Ok((
-        i,
+        rem,
         MysqlHandshakeResponse {
             username,
             auth_response_len,
@@ -1562,56 +1635,53 @@ fn parse_handshake_response_attributes(
 }
 
 pub fn parse_auth_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, status) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, status) = be_u8(payload)?;
     match status {
         0x00 => {
-            let (i, response) = parse_response_ok(i, header.pkt_len - 1)?;
-            Ok((i, response))
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
         }
         // AuthMoreData
         0x01 => {
-            let (i, data) = be_u8(i)?;
-            let (i, _) = cond(header.pkt_len - 2 > 0, take(header.pkt_len - 2))(i)?;
+            let (_i, data) = be_u8(i)?;
             Ok((
-                i,
+                rem,
                 MysqlResponse {
                     item: MysqlResponsePacket::AuthMoreData { data },
                 },
             ))
         }
-        0xEF => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::EOF,
-                },
-            ))
-        }
-        _ => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::Unknown,
-                },
-            ))
-        }
+        0xEF => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::EOF,
+            },
+        )),
+        _ => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::Unknown,
+            },
+        )),
     }
 }
 
 pub fn parse_auth_switch_request(i: &[u8]) -> IResult<&[u8], MysqlAuthSwtichRequest> {
-    let (i, header) = parse_packet_header(i)?;
-    let plugin_length = i.len();
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let plugin_length = payload.len();
     let (i, plugin_name) = map(take_till(|ch| ch == 0x00), |s: &[u8]| {
         String::from_utf8_lossy(s).to_string()
-    })(i)?;
+    })(payload)?;
     let plugin_length = plugin_length - i.len();
-    let (i, plugin_data) = map(
+    let (_, plugin_data) = map(
         cond(
-            header.pkt_len - (plugin_length as u32) > 0,
-            take(header.pkt_len - plugin_length as u32),
+            header.pkt_len - (plugin_length) > 0,
+            take(header.pkt_len - plugin_length),
         ),
         |ch: Option<&[u8]>| {
             if let Some(ch) = ch {
@@ -1623,7 +1693,7 @@ pub fn parse_auth_switch_request(i: &[u8]) -> IResult<&[u8], MysqlAuthSwtichRequ
     )(i)?;
 
     Ok((
-        i,
+        rem,
         MysqlAuthSwtichRequest {
             plugin_name,
             plugin_data,
@@ -1631,21 +1701,22 @@ pub fn parse_auth_switch_request(i: &[u8]) -> IResult<&[u8], MysqlAuthSwtichRequ
     ))
 }
 
-pub fn parse_local_file_data_content(i: &[u8]) -> IResult<&[u8], u32> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, _) = take(header.pkt_len)(i)?;
-    Ok((i, header.pkt_len))
+pub fn parse_local_file_data_content(i: &[u8]) -> IResult<&[u8], usize> {
+    let (rem, header) = parse_packet_header(i)?;
+    Ok((rem, header.pkt_len))
 }
 
 pub fn parse_request(
     i: &[u8], params: Option<u16>, param_types: Option<Vec<MysqlColumnDefinition>>,
     stmt_long_datas: Option<Vec<StmtLongData>>, client_flags: u32,
 ) -> IResult<&[u8], MysqlRequest> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, command_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, command_code) = be_u8(payload)?;
     match command_code {
         0x01 => Ok((
-            i,
+            rem,
             MysqlRequest {
                 command_code,
                 command: MysqlCommand::Quit,
@@ -1653,9 +1724,9 @@ pub fn parse_request(
         )),
 
         0x02 => {
-            let (i, command) = parse_init_db_cmd(i, header.pkt_len - 1)?;
+            let (_, command) = parse_init_db_cmd(i)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1664,9 +1735,9 @@ pub fn parse_request(
         }
 
         0x03 => {
-            let (i, command) = parse_query_cmd(i, header.pkt_len - 1, client_flags)?;
+            let (_, command) = parse_query_cmd(i, client_flags)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1675,9 +1746,9 @@ pub fn parse_request(
         }
 
         0x04 => {
-            let (i, command) = parse_field_list_cmd(i, header.pkt_len - 1)?;
+            let (_, command) = parse_field_list_cmd(i)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1686,7 +1757,7 @@ pub fn parse_request(
         }
 
         0x08 => Ok((
-            i,
+            rem,
             MysqlRequest {
                 command_code,
                 command: MysqlCommand::Statistics,
@@ -1694,7 +1765,7 @@ pub fn parse_request(
         )),
 
         0x0D => Ok((
-            i,
+            rem,
             MysqlRequest {
                 command_code,
                 command: MysqlCommand::Debug,
@@ -1702,38 +1773,35 @@ pub fn parse_request(
         )),
 
         0x0e => Ok((
-            i,
+            rem,
             MysqlRequest {
                 command_code,
                 command: MysqlCommand::Ping,
             },
         )),
 
-        0x11 => {
-            let (i, _) = take(header.pkt_len - 1)(i)?;
-            Ok((
-                i,
-                MysqlRequest {
-                    command_code,
-                    command: MysqlCommand::ChangeUser,
-                },
-            ))
-        }
+        0x11 => Ok((
+            rem,
+            MysqlRequest {
+                command_code,
+                command: MysqlCommand::ChangeUser,
+            },
+        )),
         0x1A => {
             let length = header.pkt_len - 1;
             if length == 2 {
-                let (i, _) = le_u16(i)?;
+                let (_, _) = le_u16(i)?;
                 Ok((
-                    i,
+                    rem,
                     MysqlRequest {
                         command_code,
                         command: MysqlCommand::SetOption,
                     },
                 ))
             } else if length == 4 {
-                let (i, statement_id) = le_u32(i)?;
+                let (_, statement_id) = le_u32(i)?;
                 Ok((
-                    i,
+                    rem,
                     MysqlRequest {
                         command_code,
                         command: MysqlCommand::StmtReset { statement_id },
@@ -1741,7 +1809,7 @@ pub fn parse_request(
                 ))
             } else {
                 Ok((
-                    i,
+                    rem,
                     MysqlRequest {
                         command_code,
                         command: MysqlCommand::Unknown,
@@ -1751,7 +1819,7 @@ pub fn parse_request(
         }
 
         0x1F => Ok((
-            i,
+            rem,
             MysqlRequest {
                 command_code,
                 command: MysqlCommand::ResetConnection,
@@ -1759,9 +1827,9 @@ pub fn parse_request(
         )),
 
         0x16 => {
-            let (i, command) = parse_stmt_prepare_cmd(i, header.pkt_len - 1)?;
+            let (_, command) = parse_stmt_prepare_cmd(i)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1770,16 +1838,10 @@ pub fn parse_request(
         }
 
         0x17 => {
-            let (i, command) = parse_stmt_execute_cmd(
-                i,
-                params,
-                param_types,
-                stmt_long_datas,
-                header.pkt_len - 1,
-                client_flags,
-            )?;
+            let (_, command) =
+                parse_stmt_execute_cmd(i, params, param_types, stmt_long_datas, client_flags)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1788,9 +1850,9 @@ pub fn parse_request(
         }
 
         0x18 => {
-            let (i, command) = parse_stmt_send_long_data_cmd(i)?;
+            let (_, command) = parse_stmt_send_long_data_cmd(i)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command,
@@ -1801,18 +1863,18 @@ pub fn parse_request(
         0x19 => {
             //
             if header.pkt_len - 1 == 8 {
-                let (i, command) = parse_stmt_fetch_cmd(i)?;
+                let (_, command) = parse_stmt_fetch_cmd(i)?;
                 Ok((
-                    i,
+                    rem,
                     MysqlRequest {
                         command_code,
                         command,
                     },
                 ))
             } else {
-                let (i, command) = parse_stmt_close_cmd(i)?;
+                let (_, command) = parse_stmt_close_cmd(i)?;
                 Ok((
-                    i,
+                    rem,
                     MysqlRequest {
                         command_code,
                         command,
@@ -1827,9 +1889,9 @@ pub fn parse_request(
                 header,
                 command_code
             );
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
+            let (_, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
             Ok((
-                i,
+                rem,
                 MysqlRequest {
                     command_code,
                     command: MysqlCommand::Unknown,
@@ -1840,73 +1902,79 @@ pub fn parse_request(
 }
 
 pub fn parse_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
         // OK
-        0x00 => parse_response_ok(i, header.pkt_len - 1),
+        0x00 => {
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
+        }
         // LOCAL INFILE Request
-        0xFB => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::LocalInFileRequest,
-                },
-            ))
-        }
+        0xFB => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::LocalInFileRequest,
+            },
+        )),
         // EOF
-        0xFE => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::EOF,
-                },
-            ))
-        }
+        0xFE => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::EOF,
+            },
+        )),
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
+        }
         // Text Resultset
-        _ => parse_response_resultset(i, response_code as u64),
+        _ => parse_response_resultset(rem, response_code as u64),
     }
 }
 
 pub fn parse_change_user_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
         // OK
-        0x00 => parse_response_ok(i, header.pkt_len - 1),
+        0x00 => {
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
+        }
         // AuthSwitch
-        0xFE => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::AuthSwithRequest,
-                },
-            ))
-        }
+        0xFE => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::AuthSwithRequest,
+            },
+        )),
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
-        _ => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::Unknown,
-                },
-            ))
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
         }
+        _ => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::Unknown,
+            },
+        )),
     }
 }
 
 pub fn parse_statistics_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, _) = take(header.pkt_len)(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (_, _) = take(header.pkt_len)(payload)?;
     Ok((
-        i,
+        rem,
         MysqlResponse {
             item: MysqlResponsePacket::Statistics,
         },
@@ -1914,13 +1982,18 @@ pub fn parse_statistics_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
 }
 
 pub fn parse_field_list_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
+        }
         0x00 => Ok((
-            i,
+            rem,
             MysqlResponse {
                 item: MysqlResponsePacket::FieldsList { columns: None },
             },
@@ -1928,7 +2001,7 @@ pub fn parse_field_list_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
         _ => {
             let n_cols = response_code;
             let (i, columns) =
-                many_m_n(n_cols as usize, n_cols as usize, parse_column_definition)(i)?;
+                many_m_n(n_cols as usize, n_cols as usize, parse_column_definition)(rem)?;
             let (i, _) = parse_eof_packet(i)?;
             Ok((
                 i,
@@ -1943,8 +2016,10 @@ pub fn parse_field_list_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
 }
 
 pub fn parse_stmt_prepare_response(i: &[u8], _client_flags: u32) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
         0x00 => {
             let (i, statement_id) = le_u32(i)?;
@@ -1953,11 +2028,12 @@ pub fn parse_stmt_prepare_response(i: &[u8], _client_flags: u32) -> IResult<&[u8
             let (i, _filter) = be_u8(i)?;
             //TODO: why?
             // let (i, _warning_cnt) = cond(header.pkt_len > 12, take(2_u32))(i)?;
-            let (i, _warning_cnt) = take(2_u32)(i)?;
+            let (_, _warning_cnt) = take(2_u32)(i)?;
+            // should use remain
             let (i, params) = cond(
                 num_params > 0,
                 many_till(parse_column_definition, parse_eof_packet),
-            )(i)
+            )(rem)
             .map(|(i, params)| {
                 if let Some(params) = params {
                     (i, Some(params.0))
@@ -1965,6 +2041,7 @@ pub fn parse_stmt_prepare_response(i: &[u8], _client_flags: u32) -> IResult<&[u8
                     (i, None)
                 }
             })?;
+            // should use remain
             let (i, fields) = cond(
                 num_columns > 0,
                 many_till(parse_column_definition, parse_eof_packet),
@@ -1990,9 +2067,12 @@ pub fn parse_stmt_prepare_response(i: &[u8], _client_flags: u32) -> IResult<&[u8
             ))
         }
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
+        }
         _ => Ok((
-            i,
+            rem,
             MysqlResponse {
                 item: MysqlResponsePacket::Unknown,
             },
@@ -2001,49 +2081,68 @@ pub fn parse_stmt_prepare_response(i: &[u8], _client_flags: u32) -> IResult<&[u8
 }
 
 pub fn parse_stmt_execute_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
-        0x00 => parse_response_ok(i, header.pkt_len - 1),
+        // OK
+        0x00 => {
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
+        }
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
-        _ => parse_response_binary_resultset(i, response_code as u64),
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
+        }
+        _ => parse_response_binary_resultset(rem, response_code as u64),
     }
 }
 
 pub fn parse_stmt_fetch_response(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
-        0x00 => parse_response_ok(i, header.pkt_len - 1),
+        // OK
+        0x00 => {
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
+        }
         // ERR
-        0xFF => parse_response_err(i, header.pkt_len - 1),
-        _ => parse_response_binary_resultset(i, response_code as u64),
+        0xFF => {
+            let (_, response) = parse_response_err(i)?;
+            Ok((rem, response))
+        }
+        _ => parse_response_binary_resultset(rem, response_code as u64),
     }
 }
 
 pub fn parse_auth_request(i: &[u8]) -> IResult<&[u8], ()> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, _) = cond(header.pkt_len > 0, take(header.pkt_len))(i)?;
-    Ok((i, ()))
+    let (rem, _header) = parse_packet_header(i)?;
+    Ok((rem, ()))
 }
 
 pub fn parse_auth_responsev2(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
-    let (i, header) = parse_packet_header(i)?;
-    let (i, response_code) = be_u8(i)?;
+    let (rem, header) = parse_packet_header(i)?;
+    let payload =
+        unsafe { std::slice::from_raw_parts(header.payload.as_ptr(), header.payload.len()) };
+    let (i, response_code) = be_u8(payload)?;
     match response_code {
         // OK
-        0x00 => parse_response_ok(i, header.pkt_len - 1),
-        // auth data
-        _ => {
-            let (i, _) = cond(header.pkt_len - 1 > 0, take(header.pkt_len - 1))(i)?;
-            Ok((
-                i,
-                MysqlResponse {
-                    item: MysqlResponsePacket::AuthData,
-                },
-            ))
+        0x00 => {
+            let (_, response) = parse_response_ok(i)?;
+            Ok((rem, response))
         }
+        // auth data
+        _ => Ok((
+            rem,
+            MysqlResponse {
+                item: MysqlResponsePacket::AuthData,
+            },
+        )),
     }
 }
 
@@ -2119,8 +2218,7 @@ mod test {
             0x31, 0x37, 0x2e, 0x30, 0x2e, 0x32,
         ];
 
-        let (rem, client_flags) = parse_handshake_capabilities(pkt).unwrap();
-        let (rem, handshake_response) = parse_handshake_response(rem, client_flags).unwrap();
+        let (rem, handshake_response) = parse_handshake_response(pkt).unwrap();
 
         assert!(rem.is_empty());
         assert_eq!(handshake_response.username, "root");
@@ -2141,8 +2239,7 @@ mod test {
             0x06, 0xb6, 0xe5, 0x13, 0x63, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x67, 0x5f, 0x73, 0x68,
             0x61, 0x32, 0x5f, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x00,
         ];
-        let (rem, client_flags) = parse_handshake_capabilities(pkt).unwrap();
-        let (rem, _) = parse_handshake_response(rem, client_flags).unwrap();
+        let (rem, _) = parse_handshake_response(pkt).unwrap();
 
         assert!(rem.is_empty());
     }
