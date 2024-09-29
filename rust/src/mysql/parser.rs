@@ -450,7 +450,7 @@ pub fn parse_packet_header(i: &[u8]) -> IResult<&[u8], MysqlPacket> {
     let mut rem = i;
     let mut pkt_num = None;
     loop {
-        let (i, pkt_len) = le_u24(rem)?;
+        let (i, pkt_len) = verify(le_u24, |&pkt_len| -> bool { pkt_len <= PAYLOAD_MAX_LEN })(rem)?;
         payload_len += pkt_len as usize;
         let (i, num) = be_u8(i)?;
         if pkt_num.is_none() {
