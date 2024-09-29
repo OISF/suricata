@@ -35,7 +35,48 @@ typedef struct AppProtoStringTuple {
     const char *str;
 } AppProtoStringTuple;
 
-AppProtoStringTuple *g_alproto_strings = NULL;
+const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
+    { ALPROTO_UNKNOWN, "unknown" },
+    { ALPROTO_HTTP1, "http1" },
+    { ALPROTO_FTP, "ftp" },
+    { ALPROTO_SMTP, "smtp" },
+    { ALPROTO_TLS, "tls" },
+    { ALPROTO_SSH, "ssh" },
+    { ALPROTO_IMAP, "imap" },
+    { ALPROTO_JABBER, "jabber" },
+    { ALPROTO_SMB, "smb" },
+    { ALPROTO_DCERPC, "dcerpc" },
+    { ALPROTO_IRC, "irc" },
+    { ALPROTO_DNS, "dns" },
+    { ALPROTO_MODBUS, "modbus" },
+    { ALPROTO_ENIP, "enip" },
+    { ALPROTO_DNP3, "dnp3" },
+    { ALPROTO_NFS, "nfs" },
+    { ALPROTO_NTP, "ntp" },
+    { ALPROTO_FTPDATA, "ftp-data" },
+    { ALPROTO_TFTP, "tftp" },
+    { ALPROTO_IKE, "ike" },
+    { ALPROTO_KRB5, "krb5" },
+    { ALPROTO_QUIC, "quic" },
+    { ALPROTO_DHCP, "dhcp" },
+    { ALPROTO_SNMP, "snmp" },
+    { ALPROTO_SIP, "sip" },
+    { ALPROTO_RFB, "rfb" },
+    { ALPROTO_MQTT, "mqtt" },
+    { ALPROTO_PGSQL, "pgsql" },
+    { ALPROTO_TELNET, "telnet" },
+    { ALPROTO_WEBSOCKET, "websocket" },
+    { ALPROTO_LDAP, "ldap" },
+    { ALPROTO_DOH2, "doh2" },
+    { ALPROTO_TEMPLATE, "template" },
+    { ALPROTO_RDP, "rdp" },
+    { ALPROTO_HTTP2, "http2" },
+    { ALPROTO_BITTORRENT_DHT, "bittorrent-dht" },
+    { ALPROTO_POP3, "pop3" },
+    { ALPROTO_HTTP, "http" },
+    { ALPROTO_MYSQL, "mysql" },
+    { ALPROTO_FAILED, "failed" },
+};
 
 const char *AppProtoToString(AppProto alproto)
 {
