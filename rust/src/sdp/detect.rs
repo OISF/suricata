@@ -37,6 +37,7 @@ static mut G_SDP_CONNECTION_DATA_BUFFER_ID: c_int = 0;
 static mut G_SDP_BANDWIDTH_BUFFER_ID: c_int = 0;
 static mut G_SDP_TIME_BUFFER_ID: c_int = 0;
 static mut G_SDP_REPEAT_TIME_BUFFER_ID: c_int = 0;
+static mut G_SDP_TIMEZONE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn sdp_session_name_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
@@ -523,6 +524,53 @@ unsafe extern "C" fn sdp_repeat_time_get_data(
     false
 }
 
+unsafe extern "C" fn sdp_timezone_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SDP_TIMEZONE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn sdp_timezone_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int,
+) -> *mut c_void {
+    return DetectHelperGetData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        sdp_timezone_get_data,
+    );
+}
+
+unsafe extern "C" fn sdp_timezone_get_data(
+    tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
+    let sdp_option = match direction.into() {
+        Direction::ToServer => tx.request.as_ref().and_then(|req| req.body.as_ref()),
+        Direction::ToClient => tx.response.as_ref().and_then(|resp| resp.body.as_ref()),
+    };
+    if let Some(sdp) = sdp_option {
+        if let Some(z) = &sdp.time_zone {
+            *buffer = z.as_ptr();
+            *buffer_len = z.len() as u32;
+            return true;
+        }
+    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    false
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectSdpRegister() {
     let kw = SCSigTableElmt {
@@ -710,5 +758,23 @@ pub unsafe extern "C" fn ScDetectSdpRegister() {
         true,
         true,
         sdp_repeat_time_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sdp.timezone\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SDP timezone field\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/sdp-keywords.html#timezone\0".as_ptr() as *const libc::c_char,
+        Setup: sdp_timezone_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _ = DetectHelperKeywordRegister(&kw);
+    G_SDP_TIMEZONE_BUFFER_ID = DetectHelperBufferMpmRegister(
+        b"sdp.timezone\0".as_ptr() as *const libc::c_char,
+        b"sdp.timezone\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        true,
+        sdp_timezone_get,
     );
 }
