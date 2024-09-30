@@ -694,6 +694,7 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+    ScDetectSdpRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
