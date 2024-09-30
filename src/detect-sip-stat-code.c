@@ -56,7 +56,7 @@
 
 #define KEYWORD_NAME "sip.stat_code"
 #define KEYWORD_DOC  "sip-keywords.html#sip-stat-code"
-#define BUFFER_NAME  "sip.method"
+#define BUFFER_NAME  "sip.stat_code"
 #define BUFFER_DESC  "sip response status code"
 static int g_buffer_id = 0;
 
