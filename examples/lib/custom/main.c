@@ -28,6 +28,14 @@
 static int worker_id = 1;
 
 /**
+ * Struct to pass arguments into a worker thread.
+ */
+struct WorkerArgs {
+    ThreadVars *tv;
+    char *pcap_filename;
+};
+
+/**
  * Release packet callback.
  *
  * If there is any cleanup that needs to be done when Suricata is done
@@ -57,13 +65,8 @@ static void ReleasePacket(Packet *p)
  */
 static void *SimpleWorker(void *arg)
 {
-    char *pcap_file = (char *)arg;
-
-    /* Create worker. */
-    ThreadVars *tv = SCRunModeLibCreateThreadVars(worker_id++);
-    if (!tv) {
-        pthread_exit(NULL);
-    }
+    struct WorkerArgs *args = arg;
+    ThreadVars *tv = args->tv;
 
     /* Start worker. */
     if (SCRunModeLibSpawnWorker(tv) != 0) {
@@ -71,7 +74,7 @@ static void *SimpleWorker(void *arg)
     }
 
     /* Replay pcap. */
-    pcap_t *fp = pcap_open_offline(pcap_file, NULL);
+    pcap_t *fp = pcap_open_offline(args->pcap_filename, NULL);
     if (fp == NULL) {
         pthread_exit(NULL);
     }
@@ -194,15 +197,17 @@ int main(int argc, char **argv)
      * file as argument. This needs to be done in between SuricataInit
      * and SuricataPostInit. */
     pthread_t worker;
-    if (pthread_create(&worker, NULL, SimpleWorker, argv[argc - 1]) != 0) {
+    ThreadVars *tv = SCRunModeLibCreateThreadVars(worker_id++);
+    if (!tv) {
+        FatalError("Failed to create ThreadVars");
+    }
+    struct WorkerArgs args = {
+        .tv = tv,
+        .pcap_filename = argv[argc - 1],
+    };
+    if (pthread_create(&worker, NULL, SimpleWorker, &args) != 0) {
         exit(EXIT_FAILURE);
     }
-
-    /* Need to introduce a little sleep to allow the worker thread to
-     * initialize before SuricataPostInit invokes
-     * TmThreadContinueThreads().  This should be handle at the API
-     * level. */
-    usleep(100);
 
     SuricataPostInit();
 
