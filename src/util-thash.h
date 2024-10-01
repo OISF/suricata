@@ -169,8 +169,8 @@ typedef struct THashTableContext_ {
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
-        uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *), bool reset_memcap,
-        uint64_t memcap, uint32_t hashsize);
+        uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
+        bool reset_memcap, uint64_t memcap, uint32_t hashsize);
 
 void THashShutdown(THashTableContext *ctx);
 
