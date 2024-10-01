@@ -1,3 +1,46 @@
+7.0.7 -- 2024-10-01
+
+Security #7289: http: missing hashtable random seed leads to potential DoS(CRITICAL - CVE 2024-47188)
+Security #7268: ja4: non alphanumeric characters in alpn lead to panic (7.0.x backport)(HIGH - CVE 2024-47522)
+Security #7258: thash: random factor not used; possible abusive hash collisions (7.0.x backport)(CRITICAL - CVE 2024-47187)
+Security #7215: defrag: off by one leads to possible evasion (7.0.x backport)(HIGH - CVE 2024-45796)
+Security #7196: datasets: rule with unset makes suricata abort (7.0.x backport)(HIGH - CVE 2024-45795)
+Security #7192: http: quadratic complexity in headers processing/finding (7.0.x backport)(CRITICAL - CVE 2024-45797)
+Bug #7290: tls: a rule stops working since 7.0.5 (7.0.x backport)
+Bug #7286: eve/tls: enabling JA4 breaks custom field selection
+Bug #7276: ja3: Error: ja3: Buffer should not be NULL (7.0.x backport)
+Bug #7271: pgsql: track 'progress' in tx per direction (7.0.x backport)
+Bug #7265: detect/flow: ACK with data on 3whs fails to match 'flow:established' (7.0.x backport)
+Bug #7257: fuzz: CIFuzz is not fuzzing PRs as it is supposed to (7.0.x backport)
+Bug #7242: app-layer-protocol: negated matching false positive (7.0.x backport)
+Bug #7239: tls: Invalid ja3 due to double client hello (7.0.x backport)
+Bug #7225: dataset: lookup function is not working with ip type (7.0.x backport)
+Bug #7214: frames: stream frame is not always the first one registered (7.0.x backport)
+Bug #7207: cbindgen: comptability with newer version 0.27 (7.0.x backport)
+Bug #7198: log/rfb: inconsistent key value security_result or security-result
+Bug #7194: output: jb context not closed on error in EvePacket
+Bug #7188: detect: dcerpc logging and matching issues (7.0.x backport)
+Bug #7182: fuzz: File confyaml.c is missing (7.0.x backport)
+Bug #7173: detect/integers: do not bother to free NULL pointer on setup/parse failure (7.0.x backport)
+Bug #7166: profiling: rule profiling doesn't support absolute paths (7.0.x backport)
+Bug #7159: tcp: 'broken ack' event set on flow timeout (7.0.x backport)
+Bug #7136: util/thash: debug assertion for memuse (7.0.x backport)
+Bug #7122: smb/ntlmssp: nonsense smb.ntlmssp.version values (7.0.x backport)
+Bug #7116: dpdk: timestamping packets through TSC does not yield the same time as kernel time (7.0.x backport)
+Bug #7066: alert/metadata: no pgsql object encapsulation (7.0.x backport)
+Bug #7054: bypass: cannot bypass udp flow from first packet (7.0.x backport)
+Bug #7001: pgsql: trigger raw stream reassembly (7.0.x backport)
+Bug #6608: file: do not store if filestore:both,flow is triggered after the file was set to nostore (7.0.x backport)
+Bug #6555: eve/alert: payload/payload_printable misrepresent data in case of overlaps (7.0.x backport)
+Bug #6541: landlock: coverity warnings (7.0.x backport)
+Optimization #7134: detect/snmp.version: do not free NULL pointer
+Optimization #7075: dns/tcp: allow triggering raw stream reassembly (7.0.x backport)
+Feature #7102: iprep: support seeing if rule is part of a rep list (7.0.x backport)
+Feature #6674: detect: allow alert-then-pass logic (7.0.x backport)
+Task #7249: libhtp 0.5.49 (7.0.x backport)
+Task #7168: dns: make the version field in a dns object required (7.0.x backport)
+Documentation #6641: doc: add tcp timeout fix to upgrade guide (7.0.x backport)
+
 7.0.6 -- 2024-06-26
 
 Security #7105: http2: oom from duplicate headers (7.0.x backport)(CRITICAL - CVE 2024-38535)
