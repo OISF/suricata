@@ -387,6 +387,83 @@ jobs:
 
       - run: PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-non-bundled-htp --with-libhtp-includes=/usr/local/include --with-libhtp-libraries=/usr/local/lib
 
+  rpms:
+    name: Build RPMs
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    needs: [ubuntu-22-04-dist]
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - almalinux:9
+          - fedora:40
+    steps:
+      - name: Cache cargo registry
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Install packages
+        run: |
+          if test -e /etc/almalinux-release; then
+              dnf -y install \
+                epel-release \
+                git \
+                make \
+                rpm-build \
+                rpmdevtools \
+                dnf-plugins-core
+              dnf config-manager --set-enabled crb
+           elif test -e /etc/fedora-release; then
+              dnf -y install \
+                git \
+                make \
+                rpm-build \
+                rpmdevtools
+           else
+              echo "ERROR: Unsupported distribution for RPM building"
+              exit 1
+           fi
+      - name: Download Suricata distribution archive
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: dist
+      - run: git clone https://github.com/jasonish/suricata-rpms
+      - run: make update-release update-sources
+        working-directory: suricata-rpms/devel
+      - run: dnf -y install $(rpmspec -q --buildrequires ./suricata.spec)
+        working-directory: suricata-rpms/devel
+      - run: mv suricata-*.tar.gz suricata-rpms/devel
+      - run: make srpm
+        working-directory: suricata-rpms/devel
+      - run: make local
+        working-directory: suricata-rpms/devel
+
+      # We need a step for each RPM upload as we can't use the
+      # container name directly in an artifact, as artifacts can't
+      # have ':' in the name.
+      - if: matrix.container == 'fedora:40'
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        name: Uploading RPMs
+        with:
+          name: rpms-fedora-40
+          path: suricata-rpms/devel/rpms
+      - if: matrix.container == 'almalinux:9'
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        name: Uploading RPMs
+        with:
+          name: rpms-epel-9
+          path: suricata-rpms/devel/rpms
+
   almalinux-8:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
