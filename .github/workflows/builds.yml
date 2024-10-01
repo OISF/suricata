@@ -2709,6 +2709,19 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      # Setup apt package caching.
+      - name: Setup apt package caching
+        run: |
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >> /etc/apt/apt.conf.d/99cache
+          echo 'APT::Keep-Downloaded-Packages "false";' >> /etc/apt/apt.conf.d/99cache
+          rm -f /etc/apt/apt.conf.d/docker-clean
+
+      - name: Cache apt downloads
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ github.job }}-apt
+
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
