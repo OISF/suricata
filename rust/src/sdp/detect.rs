@@ -42,6 +42,7 @@ static mut G_SDP_ENCRYPTION_KEY_BUFFER_ID: c_int = 0;
 static mut G_SDP_ATTRIBUTE_BUFFER_ID: c_int = 0;
 static mut G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID: c_int = 0;
 static mut G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID: c_int = 0;
+static mut G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn sdp_session_name_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
@@ -779,6 +780,59 @@ unsafe extern "C" fn sip_media_desc_session_info_get_data(
     false
 }
 
+unsafe extern "C" fn sdp_media_desc_connection_data_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn sdp_media_desc_connection_data_get(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        sip_media_desc_connection_data_get_data,
+    );
+}
+
+unsafe extern "C" fn sip_media_desc_connection_data_get_data(
+    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SIPTransaction);
+    let direction = flow_flags.into();
+    let sdp_option = match direction {
+        Direction::ToServer => tx.request.as_ref().and_then(|req| req.body.as_ref()),
+        Direction::ToClient => tx.response.as_ref().and_then(|resp| resp.body.as_ref()),
+    };
+    if let Some(sdp) = sdp_option {
+        if let Some(ref m) = sdp.media_description {
+            if (local_id as usize) < m.len() {
+                if let Some(c) = &m[local_id as usize].connection_data {
+                    *buffer = c.as_ptr();
+                    *buffer_len = c.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    false
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectSdpRegister() {
     let kw = SCSigTableElmt {
@@ -1060,5 +1114,24 @@ pub unsafe extern "C" fn ScDetectSdpRegister() {
         true,
         true,
         sdp_media_desc_session_info_get,
+    );
+    let kw = SCSigTableElmt {
+        name: b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
+        desc: b"sticky buffer to match on the SDP connection data subfield of the media_description field\0".as_ptr()
+            as *const libc::c_char,
+        url: b"/rules/sdp-keywords.html#sdp-media-description-connection-data\0".as_ptr() as *const libc::c_char,
+        Setup: sdp_media_desc_connection_data_setup,
+        flags: SIGMATCH_NOOPT,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _ = DetectHelperKeywordRegister(&kw);
+    G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
+        b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SIP,
+        true,
+        true,
+        sdp_media_desc_connection_data_get,
     );
 }
