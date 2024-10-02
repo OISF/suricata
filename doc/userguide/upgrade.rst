@@ -77,6 +77,7 @@ Major changes
     - sip.to
     - sip.content_type
     - sip.content_length
+- SDP sticky buffers have been introduced.
 
 Removals
 ~~~~~~~~
