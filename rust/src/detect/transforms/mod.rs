@@ -19,6 +19,7 @@
 
 use std::os::raw::{c_char, c_int, c_void};
 
+pub mod compress_whitespace;
 pub mod strip_whitespace;
 
 #[repr(C)]
