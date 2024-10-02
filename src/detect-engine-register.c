@@ -217,7 +217,6 @@
 #include "detect-engine-content-inspection.h"
 
 #include "detect-transform-compress-whitespace.h"
-#include "detect-transform-strip-whitespace.h"
 #include "detect-transform-strip-pseudo-headers.h"
 #include "detect-transform-md5.h"
 #include "detect-transform-sha1.h"
