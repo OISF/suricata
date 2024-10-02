@@ -724,7 +724,7 @@ const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
     //
-    if header.answer_rr > header.questions || header.additional_rr > header.questions {
+    if header.questions == 0 && (header.answer_rr > 0 || header.additional_rr > 0) {
         return (false, false, false);
     }
     let nb_records = header.additional_rr as usize
