@@ -137,10 +137,24 @@ static void DetectRun(ThreadVars *th_v,
     /* run the prefilters for packets */
     DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
-    /* inspect the rules against the packet */
-    DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    bool skip_packet_rules = false;
+    if (pflow) {
+        if (FlowGetPacketDirection(pflow, p) == TOSERVER) {
+            if (pflow->ffr_ts == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_TX_DETECTION) {
+                skip_packet_rules = true;
+            }
+        } else {
+            if (pflow->ffr_tc == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_TX_DETECTION) {
+                skip_packet_rules = true;
+            }
+        }
+    }
+
+    if (!skip_packet_rules) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
+        DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    }
 
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {

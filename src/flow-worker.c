@@ -119,7 +119,7 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
     const TcpSession *ssn = (TcpSession *)f->protoctx;
 
     /* insert a pseudo packet in the toserver direction */
-    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+    if (client >= STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
         Packet *p = FlowPseudoPacketGet(0, f, ssn);
         if (p != NULL) {
             PKT_SET_SRC(p, PKT_SRC_FFR);
@@ -133,7 +133,7 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
     }
 
     /* handle toclient */
-    if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+    if (server >= STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
         Packet *p = FlowPseudoPacketGet(1, f, ssn);
         if (p != NULL) {
             PKT_SET_SRC(p, PKT_SRC_FFR);

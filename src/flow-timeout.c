@@ -305,16 +305,16 @@ bool FlowNeedsReassembly(Flow *f)
     }
 
     /* if app layer still needs some love, push through */
-    if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
+    else if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
         const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
         if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs)
         {
-            server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+            server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_TX_DETECTION;
         }
         if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOSERVER) < total_txs)
         {
-            client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+            client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_TX_DETECTION;
         }
     }
 
