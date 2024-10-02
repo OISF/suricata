@@ -308,7 +308,6 @@ noinst_HEADERS = \
 	detect-tos.h \
 	detect-transform-base64.h \
 	detect-transform-casechange.h \
-	detect-transform-dotprefix.h \
 	detect-transform-header-lowercase.h \
 	detect-transform-md5.h \
 	detect-transform-pcrexform.h \
@@ -879,7 +878,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tos.c \
 	detect-transform-base64.c \
 	detect-transform-casechange.c \
-	detect-transform-dotprefix.c \
 	detect-transform-header-lowercase.c \
 	detect-transform-md5.c \
 	detect-transform-pcrexform.c \
