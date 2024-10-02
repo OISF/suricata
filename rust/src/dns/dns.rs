@@ -723,6 +723,9 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
+    if header.answer_rr > header.questions || header.additional_rr > header.questions {
+        return (false, false, false);
+    }
     let nb_records = (header.additional_rr as usize
         + header.answer_rr as usize
         + header.authority_rr as usize
