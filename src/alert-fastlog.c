@@ -158,11 +158,12 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         int size = 0;
         if (likely(decoder_event == 0)) {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
-                            "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
-                            PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                            " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
-                            pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                            protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+                    "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32
+                    "] %s [**] [Classification: %s] [Priority: %" PRIu32 "]"
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32,
+                    timebuf, action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg,
+                    pa->s->class_msg, pa->s->prio, protoptr, srcip, src_port_or_icmp, dstip,
+                    dst_port_or_icmp);
         } else {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32
@@ -172,10 +173,10 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
             PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                                   GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
-                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
-                                "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                        "] [pcap file packet: %" PRIu64 "]", p->pcap_cnt);
             } else {
-                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]");
             }
         }
 

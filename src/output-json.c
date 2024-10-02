@@ -967,7 +967,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
 {
     LogFileCtx *file_ctx = ctx->file_ctx;
+#if 0
     MemBuffer **buffer = &ctx->buffer;
+#endif
     if (file_ctx->sensor_name) {
         jb_set_string(js, "host", file_ctx->sensor_name);
     }
@@ -978,19 +980,26 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
 
     jb_close(js);
 
+#if 0
     MemBufferReset(*buffer);
 
     if (file_ctx->prefix) {
         MemBufferWriteRaw((*buffer), (const uint8_t *)file_ctx->prefix, file_ctx->prefix_len);
     }
+#endif
 
+    const uint8_t *jsbuf = jb_ptr(js);
     size_t jslen = jb_len(js);
+#if 0
     if (MEMBUFFER_OFFSET(*buffer) + jslen >= MEMBUFFER_SIZE(*buffer)) {
         MemBufferExpand(buffer, jslen);
     }
 
     MemBufferWriteRaw((*buffer), jb_ptr(js), jslen);
     LogFileWrite(file_ctx, *buffer);
+#endif
+
+    LogFileWriteFromPtr(file_ctx, (uint8_t *)jsbuf, jslen);
 
     return 0;
 }

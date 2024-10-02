@@ -224,6 +224,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
             }
             log_ctx->output_errors++;
         } else {
+            SCFwriteUnlocked("\n", 1, 1, log_ctx->fp);
             SCFflushUnlocked(log_ctx->fp);
         }
     }
@@ -273,6 +274,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
                 }
                 log_ctx->output_errors++;
             } else {
+                fwrite("\n", 1, 1, log_ctx->fp);
                 fflush(log_ctx->fp);
             }
         }
@@ -926,8 +928,6 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 {
     if (file_ctx->type == LOGFILE_TYPE_FILE || file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
             file_ctx->type == LOGFILE_TYPE_UNIX_STREAM) {
-        /* append \n for files only */
-        MemBufferWriteString(buffer, "\n");
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
                         MEMBUFFER_OFFSET(buffer), file_ctx);
     } else if (file_ctx->type == LOGFILE_TYPE_FILETYPE) {
@@ -940,6 +940,26 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         SCMutexLock(&file_ctx->fp_mutex);
         LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
                 MEMBUFFER_OFFSET(buffer));
+        SCMutexUnlock(&file_ctx->fp_mutex);
+    }
+#endif
+
+    return 0;
+}
+
+int LogFileWriteFromPtr(LogFileCtx *file_ctx, uint8_t *buf, size_t len)
+{
+    if (file_ctx->type == LOGFILE_TYPE_FILE || file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+            file_ctx->type == LOGFILE_TYPE_UNIX_STREAM) {
+        file_ctx->Write((const char *)buf, len, file_ctx);
+    } else if (file_ctx->type == LOGFILE_TYPE_FILETYPE) {
+        file_ctx->filetype.filetype->Write((const char *)buf, len, file_ctx->filetype.init_data,
+                file_ctx->filetype.thread_data);
+    }
+#ifdef HAVE_LIBHIREDIS
+    else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
+        SCMutexLock(&file_ctx->fp_mutex);
+        LogFileWriteRedis(file_ctx, (const char *)buf, len);
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
