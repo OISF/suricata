@@ -316,7 +316,6 @@ noinst_HEADERS = \
 	detect-transform-sha1.h \
 	detect-transform-sha256.h \
 	detect-transform-strip-pseudo-headers.h \
-	detect-transform-strip-whitespace.h \
 	detect-transform-urldecode.h \
 	detect-transform-xor.h \
 	detect-ttl.h \
@@ -889,7 +888,6 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-sha1.c \
 	detect-transform-sha256.c \
 	detect-transform-strip-pseudo-headers.c \
-	detect-transform-strip-whitespace.c \
 	detect-transform-urldecode.c \
 	detect-transform-xor.c \
 	detect-ttl.c \
