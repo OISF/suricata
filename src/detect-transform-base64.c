@@ -120,6 +120,10 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     const uint32_t input_len = buffer->inspect_len;
     uint32_t decode_length = input_len;
 
+    if (input_len == 0) {
+        return;
+    }
+
     Base64Mode mode = b64d->mode;
     uint32_t offset = b64d->offset;
     uint32_t nbytes = b64d->nbytes;
