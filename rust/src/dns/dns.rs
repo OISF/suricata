@@ -770,16 +770,21 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
-    let min_msg_size = 2
-        * (header.additional_rr as usize
-            + header.answer_rr as usize
-            + header.authority_rr as usize
-            + header.questions as usize)
-        + DNS_HEADER_SIZE;
+    let nb_records = header.additional_rr as usize
+        + header.answer_rr as usize
+        + header.authority_rr as usize
+        + header.questions as usize;
 
+    let min_msg_size = 2 * nb_records;
     if min_msg_size > rlen {
         // Not enough data for records defined in the header, or
         // impossibly large.
+        return (false, false, false);
+    }
+
+    if nb_records == 0 && rlen > DNS_HEADER_SIZE {
+        // zero fields, data size should be just DNS_HEADER_SIZE
+        // happens when DNS server returns format error
         return (false, false, false);
     }
 
