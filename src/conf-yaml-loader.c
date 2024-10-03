@@ -558,11 +558,6 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     int ret;
     ConfNode *root = ConfGetNode(prefix);
 
-    if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError("failed to initialize yaml parser.");
-        return -1;
-    }
-
     struct stat stat_buf;
     /* coverity[toctou] */
     if (stat(filename, &stat_buf) == 0) {
@@ -572,6 +567,11 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
                     filename);
             return -1;
         }
+    }
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        SCLogError("failed to initialize yaml parser.");
+        return -1;
     }
 
     /* coverity[toctou] */
