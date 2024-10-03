@@ -3919,12 +3919,12 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     new_de_ctx->tenant_path = SCStrdup(filename);
     if (new_de_ctx->tenant_path == NULL) {
         SCLogError("Failed to duplicate path");
-        goto error;
+        goto new_de_ctx_error;
     }
 
     if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
         SCLogError("Loading signatures failed.");
-        goto error;
+        goto new_de_ctx_error;
     }
 
     DetectEngineAddToMaster(new_de_ctx);
@@ -3933,6 +3933,9 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     DetectEngineMoveToFreeList(old_de_ctx);
     DetectEngineDeReference(&old_de_ctx);
     return 0;
+
+new_de_ctx_error:
+    DetectEngineCtxFree(new_de_ctx);
 
 error:
     DetectEngineDeReference(&old_de_ctx);
