@@ -789,6 +789,9 @@ fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) 
     }
 
     let is_request = header.flags & 0x8000 == 0;
+    if is_request && header.questions == 0 {
+        return (false, false, false);
+    }
     return (true, is_request, false);
 }
 
