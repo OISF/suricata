@@ -412,13 +412,12 @@ static int DetectAddressIPv4TestAddressCmp01(void)
     int result = 1;
 
     DetectAddress *a = DetectAddressInit();
-    if (a == NULL)
-        return 0;
+    FAIL_IF_NULL(a);
 
     DetectAddress *b = DetectAddressInit();
     if (b == NULL) {
         DetectAddressFree(a);
-        return 0;
+        FAIL;
     }
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
@@ -845,12 +844,13 @@ static int DetectAddressIPv4TestAddressCmp01(void)
 
     DetectAddressFree(a);
     DetectAddressFree(b);
-    return result;
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
     DetectAddressFree(b);
-    return 0;
+    FAIL;
 }
 
 static int DetectAddressIPv4IsCompleteIPSpace02(void)
@@ -859,8 +859,8 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        goto error;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
@@ -880,8 +880,8 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
 
     DetectAddressFree(a);
 
-    if ( (a = DetectAddressInit()) == NULL)
-        goto error;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
@@ -893,12 +893,12 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
 
     DetectAddressFree(a);
 
-    return result;
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
-    if (a != NULL)
-        DetectAddressFree(a);
-    return 0;
+     DetectAddressFree(a);
+     FAIL;
 }
 
 static int DetectAddressIPv4IsCompleteIPSpace03(void)
@@ -908,8 +908,8 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        goto error;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
     temp = a;
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
@@ -970,12 +970,12 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     DetectAddressFree(a);
 
-    return result;
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
-    if (a != NULL)
-        DetectAddressFree(a);
-    return 0;
+     DetectAddressFree(a);
+     FAIL;
 }
 
 static int DetectAddressIPv4IsCompleteIPSpace04(void)
@@ -985,8 +985,8 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        goto error;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
     temp = a;
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
@@ -1047,12 +1047,12 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     DetectAddressFree(a);
 
-    return result;
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
-    if (a != NULL)
-        DetectAddressFree(a);
-    return 0;
+     DetectAddressFree(a);
+     FAIL;
 }
 
 static int DetectAddressIPv4CutNot05(void)
@@ -1062,8 +1062,8 @@ static int DetectAddressIPv4CutNot05(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        return 0;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
@@ -1074,15 +1074,14 @@ static int DetectAddressIPv4CutNot05(void)
     result &= (DetectAddressCutNotIPv4(a, &b) == -1);
 
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return result;
+    DetectAddressFree(b);
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return 0;
+    DetectAddressFree(b);
+    FAIL;
 }
 
 static int DetectAddressIPv4CutNot06(void)
@@ -1092,8 +1091,8 @@ static int DetectAddressIPv4CutNot06(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        return 0;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
@@ -1111,15 +1110,14 @@ static int DetectAddressIPv4CutNot06(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return result;
+    DetectAddressFree(b);
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return 0;
+    DetectAddressFree(b);
+    FAIL;
 }
 
 static int DetectAddressIPv4CutNot07(void)
@@ -1129,8 +1127,8 @@ static int DetectAddressIPv4CutNot07(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        return 0;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
@@ -1148,15 +1146,14 @@ static int DetectAddressIPv4CutNot07(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return result;
+    DetectAddressFree(b);
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return 0;
+    DetectAddressFree(b);
+    FAIL;
 }
 
 static int DetectAddressIPv4CutNot08(void)
@@ -1166,8 +1163,8 @@ static int DetectAddressIPv4CutNot08(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        return 0;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
@@ -1185,7 +1182,6 @@ static int DetectAddressIPv4CutNot08(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     if (b == NULL) {
-        result = 0;
         goto error;
     } else {
         result &= 1;
@@ -1198,15 +1194,14 @@ static int DetectAddressIPv4CutNot08(void)
     result &= (b->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return result;
+    DetectAddressFree(b);
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return 0;
+    DetectAddressFree(b);
+    FAIL;
 }
 
 static int DetectAddressIPv4CutNot09(void)
@@ -1216,8 +1211,8 @@ static int DetectAddressIPv4CutNot09(void)
     struct in_addr in;
     int result = 1;
 
-    if ( (a = DetectAddressInit()) == NULL)
-        return 0;
+    a = DetectAddressInit();
+    FAIL_IF_NULL(a);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
@@ -1235,7 +1230,6 @@ static int DetectAddressIPv4CutNot09(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     if (b == NULL) {
-        result = 0;
         goto error;
     } else {
         result &= 1;
@@ -1248,15 +1242,14 @@ static int DetectAddressIPv4CutNot09(void)
     result &= (b->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return result;
+    DetectAddressFree(b);
+    FAIL_IF_NOT(result);
+    PASS;
 
  error:
     DetectAddressFree(a);
-    if (b != NULL)
-        DetectAddressFree(b);
-    return 0;
+    DetectAddressFree(b);
+    FAIL;
 }
 
 #endif
