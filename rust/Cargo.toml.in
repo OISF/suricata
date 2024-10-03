@@ -65,10 +65,6 @@ ldap-parser = { version = "~0.4.0" }
 
 time = "~0.3.36"
 
-# pinned until oss-fuzz supports newer rust nightly cf https://github.com/google/oss-fuzz/pull/12365
-serde = { version = "=1.0.197" }
-serde_derive = { version = "1.0.197" }
-
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "0.1.0-alpha.1" }
