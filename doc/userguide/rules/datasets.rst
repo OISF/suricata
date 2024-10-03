@@ -3,8 +3,8 @@
 Datasets
 ========
 
-Using the ``dataset`` and ``datarep`` keyword it is possible to match on
-large amounts of data against any sticky buffer.
+Using the ``dataset`` and ``datarep`` and ``datajson`` keyword it is possible
+to match on large amounts of data against any sticky buffer.
 
 For example, to match against a DNS black list called ``dns-bl``::
 
@@ -145,6 +145,26 @@ reputation lists. A MD5 list, a SHA256 list, and a raw string (buffer) list.
 The rules will only match if the data is in the list and the reputation
 value is higher than 200.
 
+datajson
+~~~~~~~~
+
+DataJSON allows matching data against a set and output data attached to the matching
+value in the event.
+
+Syntax::
+
+    datajson:<cmd>,<name>,<options>;
+
+    datajson:<isset|isnotset>,<name> \
+        [, type <string|md5|sha256|ipv4|ip>, load <file name>, memcap <size>, hashsize <size>, key <json_key>];
+
+Example rules could look like::
+
+    alert http any any -> any any (msg:"IP match"; ip.dst; datajson:isset,bad_ips, type ip, load bad_ips.csv, key bad_ones; sid:8000001;)
+
+In this example, the match will occur if the destination IP is in the set and the
+alert will have an ``alert.extra.bad_ones`` subobject that will contain the JSON
+data associated to the value.
 
 Rule Reloads
 ------------
@@ -291,6 +311,23 @@ field:
 Syntax::
 
     <data>,<value>
+
+
+datajson
+~~~~~~~~
+
+The datajson format follows the dataset, except that there is a comma
+separator followed by a second field that must contain a valid JSON
+object:
+
+Syntax::
+
+    <data>,<json_data>
+
+e.g. for ua-seen with type string::
+
+    TW96aWxsYS80LjAgKGNvbXBhdGlibGU7ICk=,{"agent": "Mozilla", "version": "4.0"}
+
 
 .. _datasets_file_locations:
 
