@@ -984,8 +984,6 @@ dependencies = [
  "regex",
  "sawp",
  "sawp-modbus",
- "serde",
- "serde_derive",
  "sha1",
  "sha2",
  "snmp-parser",
