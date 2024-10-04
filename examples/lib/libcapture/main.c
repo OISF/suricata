@@ -86,6 +86,11 @@ static void *SimpleWorker(void *arg)
     const u_char *packet;
     while ((packet = pcap_next(fp, &pkthdr)) != NULL) {
 
+        /* Have we been asked to stop? */
+        if (suricata_ctl_flags & SURICATA_STOP) {
+            goto done;
+        }
+
         Packet *p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
             /* Memory allocation error. */
@@ -123,8 +128,17 @@ static void *SimpleWorker(void *arg)
 done:
     pcap_close(fp);
 
-    /* Cleanup. */
-    SCRunModeLibDestroyWorker(tv);
+    /* Stop the engine. */
+    EngineStop();
+
+    /* Cleanup.
+     *
+     * Note that there is some thread synchronization between this
+     * function and SuricataShutdown such that they must be run
+     * concurrently at this time before either will exit. */
+    SCTmThreadsSlotPktAcqLoopFinish(tv);
+
+    SCLogNotice("Worker thread exiting");
     pthread_exit(NULL);
 }
 
@@ -207,7 +221,17 @@ int main(int argc, char **argv)
 
     SuricataPostInit();
 
+    /* Run the main loop, this just waits for the worker thread to
+     * call EngineStop signalling Suricata that it is done reading the
+     * pcap. */
+    SuricataMainLoop();
+
     /* Shutdown engine. */
+    SCLogNotice("Shutting down");
+
+    /* Note that there is some thread synchronization between this
+     * function and SCTmThreadsSlotPktAcqLoopFinish that require them
+     * to be run concurrently at this time. */
     SuricataShutdown();
     GlobalsDestroy();
 
