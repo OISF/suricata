@@ -540,6 +540,8 @@ typedef struct SignatureInitDataBuffer_ {
     SigMatch *tail;
 } SignatureInitDataBuffer;
 
+#define SIG_ALPROTO_MAX 4
+
 typedef struct SignatureInitData_ {
     /** Number of sigmatches. Used for assigning SigMatch::idx */
     uint16_t sm_cnt;
@@ -559,6 +561,9 @@ typedef struct SignatureInitData_ {
     /* used to hold flags that are used during init */
     uint32_t init_flags;
     /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
+
+    /* alproto mask if multiple protocols are possible */
+    AppProto alprotos[SIG_ALPROTO_MAX];
 
     /* used at init to determine max dsize */
     SigMatch *dsize_sm;
