@@ -1734,12 +1734,101 @@ int DetectSignatureAddTransform(Signature *s, int transform, void *options)
     SCReturnInt(0);
 }
 
+int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
+{
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        // One alproto was set, check if it matches the new ones proposed
+        while (*alprotos != ALPROTO_UNKNOWN) {
+            if (s->alproto == *alprotos) {
+                // alproto already set to only one
+                return 0;
+            }
+            alprotos++;
+        }
+        // alproto already set and not matching the new set of alprotos
+        return -1;
+    }
+    if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+        // check intersection of already used alprotos and new ones
+        for (size_t i = 0; i < SIG_ALPROTO_MAX; i++) {
+            // first disable the ones that do not match
+            bool found = false;
+            while (*alprotos != ALPROTO_UNKNOWN) {
+                if (s->init_data->alprotos[i] == *alprotos) {
+                    found = true;
+                    break;
+                }
+                alprotos++;
+            }
+            if (!found) {
+                s->init_data->alprotos[i] = ALPROTO_UNKNOWN;
+            }
+        }
+        // Then put at the beginning every defined protocol
+        for (size_t i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                for (size_t j = SIG_ALPROTO_MAX - 1; j > i; j--) {
+                    if (s->init_data->alprotos[j] != ALPROTO_UNKNOWN) {
+                        s->init_data->alprotos[i] = s->init_data->alprotos[j];
+                        s->init_data->alprotos[j] = ALPROTO_UNKNOWN;
+                        break;
+                    }
+                }
+                if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                    if (i == 0) {
+                        // there was no intersection
+                        return -1;
+                    } else if (i == 1) {
+                        // intersection is singleton, set it as usual
+                        AppProto alproto = s->init_data->alprotos[0];
+                        s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
+                        return DetectSignatureSetAppProto(s, alproto);
+                    }
+                    break;
+                }
+            }
+        }
+    } else {
+        if (alprotos[0] == ALPROTO_UNKNOWN) {
+            // do not allow empty set
+            return -1;
+        }
+        if (alprotos[1] == ALPROTO_UNKNOWN) {
+            // allow singleton, but call traditional setter
+            return DetectSignatureSetAppProto(s, alprotos[0]);
+        }
+        // first time we enforce alprotos
+        for (size_t i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (alprotos[i] == ALPROTO_UNKNOWN) {
+                break;
+            }
+            s->init_data->alprotos[i] = alprotos[i];
+        }
+    }
+    return 0;
+}
+
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (alproto == ALPROTO_UNKNOWN ||
         alproto >= ALPROTO_FAILED) {
         SCLogError("invalid alproto %u", alproto);
         return -1;
+    }
+
+    if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+        // Multiple protocols were set, check if we restrict to one
+        bool found = false;
+        for (size_t i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == alproto) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return -1;
+        }
+        s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
     }
 
     if (s->alproto != ALPROTO_UNKNOWN) {
