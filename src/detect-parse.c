@@ -1779,11 +1779,117 @@ int DetectSignatureAddTransform(Signature *s, int transform, void *options)
     SCReturnInt(0);
 }
 
+/**
+ * \brief this function is used to set multiple possible app-layer protos
+ * \brief into the current signature (for example ja4 for both tls and quic)
+ *
+ * \param s pointer to the Current Signature
+ * \param alprotos an array terminated by ALPROTO_UNKNOWN
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
+{
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        // One alproto was set, check if it matches the new ones proposed
+        while (*alprotos != ALPROTO_UNKNOWN) {
+            if (s->alproto == *alprotos) {
+                // alproto already set to only one
+                return 0;
+            }
+            alprotos++;
+        }
+        // alproto already set and not matching the new set of alprotos
+        return -1;
+    }
+    if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+        // check intersection of already used alprotos and new ones
+        for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                break;
+            }
+            // first disable the ones that do not match
+            bool found = false;
+            const AppProto *args = alprotos;
+            while (*args != ALPROTO_UNKNOWN) {
+                if (s->init_data->alprotos[i] == *args) {
+                    found = true;
+                    break;
+                }
+                args++;
+            }
+            if (!found) {
+                s->init_data->alprotos[i] = ALPROTO_UNKNOWN;
+            }
+        }
+        // Then put at the beginning every defined protocol
+        for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                for (AppProto j = SIG_ALPROTO_MAX - 1; j > i; j--) {
+                    if (s->init_data->alprotos[j] != ALPROTO_UNKNOWN) {
+                        s->init_data->alprotos[i] = s->init_data->alprotos[j];
+                        s->init_data->alprotos[j] = ALPROTO_UNKNOWN;
+                        break;
+                    }
+                }
+                if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                    if (i == 0) {
+                        // there was no intersection
+                        return -1;
+                    } else if (i == 1) {
+                        // intersection is singleton, set it as usual
+                        AppProto alproto = s->init_data->alprotos[0];
+                        s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
+                        return DetectSignatureSetAppProto(s, alproto);
+                    }
+                    break;
+                }
+            }
+        }
+    } else {
+        if (alprotos[0] == ALPROTO_UNKNOWN) {
+            // do not allow empty set
+            return -1;
+        }
+        if (alprotos[1] == ALPROTO_UNKNOWN) {
+            // allow singleton, but call traditional setter
+            return DetectSignatureSetAppProto(s, alprotos[0]);
+        }
+        // first time we enforce alprotos
+        for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (alprotos[i] == ALPROTO_UNKNOWN) {
+                break;
+            }
+            s->init_data->alprotos[i] = alprotos[i];
+        }
+    }
+    return 0;
+}
+
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (!AppProtoIsValid(alproto)) {
         SCLogError("invalid alproto %u", alproto);
         return -1;
+    }
+
+    if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+        // Multiple alprotos were set, check if we restrict to one
+        bool found = false;
+        for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == alproto) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // fail if we set to a alproto which was not in the set
+            return -1;
+        }
+        // we will use s->alproto if there is a single alproto and
+        // we reset s->init_data->alprotos to signal there are no longer multiple alprotos
+        s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
     }
 
     if (s->alproto != ALPROTO_UNKNOWN) {
@@ -4554,6 +4660,81 @@ static int SigParseTestActionDrop(void)
     PASS;
 }
 
+static int SigSetMultiAppProto(void)
+{
+    Signature *s = SigAlloc();
+    FAIL_IF_NULL(s);
+
+    AppProto alprotos[] = { 1, 2, 3, ALPROTO_UNKNOWN };
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+
+    // check intersection gives multiple entries
+    alprotos[0] = 3;
+    alprotos[1] = 2;
+    alprotos[2] = ALPROTO_UNKNOWN;
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    FAIL_IF(s->init_data->alprotos[0] != 3);
+    FAIL_IF(s->init_data->alprotos[1] != 2);
+    FAIL_IF(s->init_data->alprotos[2] != ALPROTO_UNKNOWN);
+
+    // check single after multiple
+    FAIL_IF(DetectSignatureSetAppProto(s, 3) < 0);
+    FAIL_IF(s->init_data->alprotos[0] != ALPROTO_UNKNOWN);
+    FAIL_IF(s->alproto != 3);
+    alprotos[0] = 4;
+    alprotos[1] = 3;
+    alprotos[2] = ALPROTO_UNKNOWN;
+    // check multiple containing singleton
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    FAIL_IF(s->alproto != 3);
+
+    // reset
+    s->alproto = ALPROTO_UNKNOWN;
+    alprotos[0] = 1;
+    alprotos[1] = 2;
+    alprotos[2] = 3;
+    alprotos[3] = ALPROTO_UNKNOWN;
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    // fail if set single not in multiple
+    FAIL_IF(DetectSignatureSetAppProto(s, 4) >= 0);
+
+    s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
+    s->alproto = ALPROTO_UNKNOWN;
+    alprotos[0] = 1;
+    alprotos[1] = 2;
+    alprotos[2] = 3;
+    alprotos[3] = ALPROTO_UNKNOWN;
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    alprotos[0] = 4;
+    alprotos[1] = 5;
+    alprotos[2] = ALPROTO_UNKNOWN;
+    // fail if multiple do not have intersection
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) >= 0);
+
+    s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
+    s->alproto = ALPROTO_UNKNOWN;
+    alprotos[0] = 1;
+    alprotos[1] = 2;
+    alprotos[2] = 3;
+    alprotos[3] = ALPROTO_UNKNOWN;
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    alprotos[0] = 3;
+    alprotos[1] = 4;
+    alprotos[2] = 5;
+    alprotos[3] = ALPROTO_UNKNOWN;
+    // check multiple intersect to singleton
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
+    FAIL_IF(s->alproto != 3);
+    alprotos[0] = 5;
+    alprotos[1] = 4;
+    alprotos[2] = ALPROTO_UNKNOWN;
+    // fail if multiple do not belong to singleton
+    FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) >= 0);
+
+    SigFree(NULL, s);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 #ifdef UNITTESTS
@@ -4629,5 +4810,8 @@ void SigParseRegisterTests(void)
             SigParseBidirWithSameSrcAndDest02);
     UtRegisterTest("SigParseTestActionReject", SigParseTestActionReject);
     UtRegisterTest("SigParseTestActionDrop", SigParseTestActionDrop);
+
+    UtRegisterTest("SigSetMultiAppProto", SigSetMultiAppProto);
+
 #endif /* UNITTESTS */
 }
