@@ -102,6 +102,9 @@ fn log_media_description(
             if let Some(conn_data) = &m.connection_data {
                 log_connection_data(conn_data, js)?;
             }
+            if let Some(enc_key) = &m.encryption_key {
+                js.set_string("encryption_key", enc_key)?;
+            }
             if let Some(attrs) = &m.attributes {
                 log_attributes(attrs, js)?;
             }
