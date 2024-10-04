@@ -57,7 +57,4 @@ ThreadVars *SCRunModeLibCreateThreadVars(int worker_id);
  */
 int SCRunModeLibSpawnWorker(void *);
 
-/** \brief destroy a worker thread */
-void SCRunModeLibDestroyWorker(void *);
-
 #endif /* SURICATA_RUNMODE_LIB_H */

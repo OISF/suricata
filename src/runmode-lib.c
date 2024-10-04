@@ -104,9 +104,3 @@ int SCRunModeLibSpawnWorker(void *td)
     TmThreadsSetFlag(tv, THV_RUNNING);
     return 0;
 }
-
-/** \brief destroy a worker thread */
-void SCRunModeLibDestroyWorker(void *td)
-{
-    SCTmThreadsSlotPktAcqLoopFinish((ThreadVars *)td);
-}
