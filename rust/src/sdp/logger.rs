@@ -19,22 +19,12 @@
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-use super::parser::{ConnectionData, MediaDescription, SdpMessage};
+use super::parser::{MediaDescription, SdpMessage};
 
 pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("sdp")?;
 
-    let origin = format!(
-        "{} {} {} {} {} {}",
-        &msg.origin.username,
-        &msg.origin.sess_id,
-        &msg.origin.sess_version,
-        &msg.origin.nettype,
-        &msg.origin.addrtype,
-        &msg.origin.unicast_address
-    );
-
-    js.set_string("origin", &origin)?;
+    js.set_string("origin", &msg.origin)?;
     js.set_string("session_name", &msg.session_name)?;
 
     if let Some(session_info) = &msg.session_info {
@@ -50,7 +40,7 @@ pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> 
         js.set_string("phone_number", phone_number)?;
     }
     if let Some(conn_data) = &msg.connection_data {
-        log_connection_data(conn_data, js)?;
+        js.set_string("connection_data", conn_data)?;
     }
     if let Some(bws) = &msg.bandwidths {
         log_bandwidth(bws, js)?;
@@ -82,17 +72,7 @@ fn log_media_description(
         js.open_array("media_descriptions")?;
         for m in media {
             js.start_object()?;
-            let port = if let Some(num_ports) = m.number_of_ports {
-                format!("{}/{}", m.port, num_ports)
-            } else {
-                format!("{}", m.port)
-            };
-            let mut media = format!("{} {} {}", &m.media, &port, &m.proto);
-            for f in &m.fmt {
-                media = format!("{} {}", media, f);
-            }
-            js.set_string("media", &media)?;
-
+            js.set_string("media", &m.media)?;
             if let Some(session_info) = &m.session_info {
                 js.set_string("media_info", session_info)?;
             };
@@ -100,7 +80,7 @@ fn log_media_description(
                 log_bandwidth(bws, js)?;
             }
             if let Some(conn_data) = &m.connection_data {
-                log_connection_data(conn_data, js)?;
+                js.set_string("connection_data", conn_data)?;
             }
             if let Some(enc_key) = &m.encryption_key {
                 js.set_string("encryption_key", enc_key)?;
@@ -124,24 +104,6 @@ fn log_bandwidth(bws: &Vec<String>, js: &mut JsonBuilder) -> Result<(), JsonErro
         }
         js.close()?;
     }
-    Ok(())
-}
-
-fn log_connection_data(conn_data: &ConnectionData, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    let mut conn = format!(
-        "{} {} {}",
-        &conn_data.nettype,
-        &conn_data.addrtype,
-        &conn_data.connection_address.to_string()
-    );
-    if let Some(ttl) = conn_data.ttl {
-        conn = format!("{}/{}", conn, ttl);
-        js.set_uint("ttl", ttl as u64)?;
-    }
-    if let Some(num_addrs) = conn_data.number_of_addresses {
-        conn = format!("{}/{}", conn, num_addrs);
-    }
-    js.set_string("connection_data", &conn)?;
     Ok(())
 }
 
