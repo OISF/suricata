@@ -51,6 +51,7 @@ void HashTableFree(HashTable *);
 int HashTableAdd(HashTable *, void *, uint16_t);
 int HashTableRemove(HashTable *, void *, uint16_t);
 void *HashTableLookup(HashTable *, void *, uint16_t);
+void HashTableIterate(HashTable *ht, void (*CallbackFn)(void *, void *), void *aux);
 uint32_t HashTableGenericHash(HashTable *, void *, uint16_t);
 char HashTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 
