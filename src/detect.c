@@ -146,6 +146,9 @@ static void DetectRun(ThreadVars *th_v,
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
         if (p->proto == IPPROTO_TCP) {
+            if ((p->flags & PKT_STREAM_EST) == 0) {
+                goto end;
+            }
             const TcpSession *ssn = p->flow->protoctx;
             if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
                 // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
@@ -1633,6 +1636,15 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     const SigGroupHead *const sgh = scratch->sgh;
     const AppProto alproto = f->alproto;
 
+    /* for TCP, limit inspection to pseudo packets or real packet that did
+     * an app-layer update. */
+    if (p->proto == IPPROTO_TCP && !PKT_IS_PSEUDOPKT(p) &&
+            ((PKT_IS_TOSERVER(p) && (f->flags & FLOW_TS_APP_UPDATED) == 0) ||
+                    (PKT_IS_TOCLIENT(p) && (f->flags & FLOW_TC_APP_UPDATED) == 0))) {
+        SCLogDebug("pcap_cnt %" PRIu64 ": %s: skip frame inspection for TCP w/o APP UPDATE",
+                p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
+        return;
+    }
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
     if (frames_container == NULL) {
         return;
