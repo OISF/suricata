@@ -208,6 +208,21 @@ void *HashTableLookup(HashTable *ht, void *data, uint16_t datalen)
     return NULL;
 }
 
+// CallbackFn is an iterator, first argument is the data, second is user auxilary data
+void HashTableIterate(HashTable *ht, void (*CallbackFn)(void *, void *), void *aux)
+{
+    if (ht == NULL || CallbackFn == NULL)
+        return;
+
+    for (uint32_t i = 0; i < ht->array_size; i++) {
+        HashTableBucket *hashbucket = ht->array[i];
+        while (hashbucket != NULL) {
+            CallbackFn(hashbucket->data, aux);
+            hashbucket = hashbucket->next;
+        }
+    }
+}
+
 uint32_t HashTableGenericHash(HashTable *ht, void *data, uint16_t datalen)
 {
      uint8_t *d = (uint8_t *)data;
