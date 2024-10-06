@@ -231,7 +231,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
             h_request_hdr = htp_tx_request_header(tx, node->data);
             if (h_request_hdr != NULL) {
                 datalen = node->maxlen;
-                if (datalen == 0 || datalen > htp_header_value_len(h_request_hdr)) {
+                if (datalen == 0 || datalen > (size_t)htp_header_value_len(h_request_hdr)) {
                     datalen = htp_header_value_len(h_request_hdr);
                 }
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
@@ -283,7 +283,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
             }
                 if (h_response_hdr != NULL) {
                     datalen = node->maxlen;
-                    if (datalen == 0 || datalen > htp_header_value_len(h_response_hdr)) {
+                    if (datalen == 0 || datalen > (size_t)htp_header_value_len(h_response_hdr)) {
                         datalen = htp_header_value_len(h_response_hdr);
                     }
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
