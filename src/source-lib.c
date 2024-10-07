@@ -101,62 +101,6 @@ static TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-/** \brief process a single packet.
- *
- * \param tv                    Pointer to the per-thread structure.
- * \param device                Pionter to LiveDevice instance
- * \param data                  Pointer to the raw packet.
- * \param datalink              Datalink type.
- * \param ts                    Timeval structure.
- * \param len                   Packet length.
- * \param tenant_id             Tenant id of the detection engine to use.
- * \param flags                 Packet flags (packet checksum, rule profiling...).
- * \return                      Error code.
- */
-int TmModuleLibHandlePacket(ThreadVars *tv, LiveDevice *device, const uint8_t *data, int datalink,
-        struct timeval ts, uint32_t len, uint32_t tenant_id, uint32_t flags)
-{
-
-    /* If the packet is NULL, consider it as a read timeout. */
-    if (data == NULL) {
-        TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
-        TmThreadsCaptureHandleTimeout(tv, NULL);
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    Packet *p = PacketGetFromQueueOrAlloc();
-    if (unlikely(p == NULL)) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
-    SCTime_t timestamp = SCTIME_FROM_TIMEVAL(&ts);
-    if (!time_set && !TimeModeIsLive()) {
-        TmThreadsInitThreadsTimestamp(timestamp);
-        time_set = true;
-    }
-
-    PKT_SET_SRC(p, PKT_SRC_WIRE);
-    p->ts = timestamp;
-    p->datalink = datalink;
-    p->tenant_id = tenant_id;
-    p->flags |= flags;
-    p->livedev = device;
-
-    if (PacketSetData(p, data, len) == -1) {
-        TmqhOutputPacketpool(tv, p);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)", GET_PKT_LEN(p), p, GET_PKT_DATA(p));
-
-    if (TmThreadsSlotProcessPkt(tv, tv->tm_slots, p) != TM_ECODE_OK) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
 /** \brief register a "Decode" module for suricata as a library.
  *
  *  The "Decode" module is the first module invoked when processing a packet */
