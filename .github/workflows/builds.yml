@@ -3144,6 +3144,7 @@ jobs:
          brew install \
           autoconf \
           automake \
+          cbindgen \
           curl \
           hiredis \
           jansson \
@@ -3152,14 +3153,11 @@ jobs:
           libnet \
           libtool \
           libyaml \
-          pyyaml \
           pcre2 \
           pkg-config \
           python \
           rust \
           xz
-      - name: Install cbindgen
-        run: cargo install --debug --version 0.24.3 cbindgen
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
@@ -3170,6 +3168,12 @@ jobs:
           path: prep
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
+      - name: Create Python virtual environment
+        run: python3 -m venv ./testenv
+      - name: Install PyYAML
+        run: |
+          . ./testenv/bin/activate
+          pip install pyyaml
       - run: ./autogen.sh
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure  --enable-warnings --enable-unittests --prefix="$HOME/.local/"
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
@@ -3177,9 +3181,15 @@ jobs:
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q --debug-failed
+        run: |
+          . ./testenv/bin/activate
+          python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
-      - run: suricata-update -V
+      - name: Check Suricata-Update
+        run: |
+          . ./testenv/bin/activate
+          which suricata-update
+          python3 $(which suricata-update) -V
       - run: suricatasc -h
 
   windows-msys2-mingw64-npcap:
