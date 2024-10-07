@@ -38,8 +38,12 @@
 #define APP_LAYER_PARSER_BYPASS_READY          BIT_U16(4)
 #define APP_LAYER_PARSER_EOF_TS                BIT_U16(5)
 #define APP_LAYER_PARSER_EOF_TC                BIT_U16(6)
+
+/* unused flags APP_LAYER_PARSER_TRUNC_*. see https://redmine.openinfosecfoundation.org/issues/7044
+ */
 #define APP_LAYER_PARSER_TRUNC_TS              BIT_U16(7)
 #define APP_LAYER_PARSER_TRUNC_TC              BIT_U16(8)
+
 #define APP_LAYER_PARSER_SFRAME_TS             BIT_U16(9)
 #define APP_LAYER_PARSER_SFRAME_TC             BIT_U16(10)
 
