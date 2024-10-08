@@ -2011,6 +2011,9 @@
                 "status": {
                     "type": "integer"
                 },
+                "status_str": {
+                    "type": "string"
+                },
                 "true_client_ip": {
                     "type": "string"
                 },
