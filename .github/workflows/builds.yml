@@ -2488,12 +2488,11 @@ jobs:
                 git \
                 linux-headers-$(uname -r)
 
+      # do not use actions/checkout on repo outside of OISF because API rate limit exceeded for site ID installation
       - name: Checkout Netmap repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
-        with:
-          repository: luigirizzo/netmap
-          # gets cloned to $GITHUB_WORKSPACE/netmap/
-          path: netmap/
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone --depth 1 https://github.com/luigirizzo/netmap
 
       - name: Compile and install Netmap
         run: |
