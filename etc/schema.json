@@ -2388,13 +2388,15 @@
             "optional": true,
             "properties": {
                 "version": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Mysql server version"
                 },
                 "tls": {
                     "type": "boolean"
                 },
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "sql query statement or some utility commands like ping."
                 },
                 "affected_rows": {
                     "type": "integer"
@@ -2402,9 +2404,11 @@
                 "rows": {
                     "type": "array",
                     "optional": true,
+                    "minItems": 1,
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "description": "Comma separated result from sql statement"
                 }
             }
         },
