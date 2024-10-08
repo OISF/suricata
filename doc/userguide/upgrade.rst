@@ -79,6 +79,8 @@ Major changes
     - sip.content_length
 - Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
   <upgrade/8.0-napatech-plugin>`.
+- MySQL parser and logger have been introduced.
+- The MySQL keywords ``mysql.command`` and ``mysql.command`` have been introduced.
 
 Removals
 ~~~~~~~~
