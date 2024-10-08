@@ -318,90 +318,62 @@ Signature example::
 
 In this example, we combine `flow.age` and `flowbits` to get an alert on the first packet after the flow's age is older than one hour.
 
-flow.pkts_toclient
-------------------
+flow.pkts
+---------
 
-Flow number of packets to client (integer)
+Flow number of packets (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
 
-flow.pkts_toclient uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+flow.pkts uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>` and supports
+following directions:
+
+* toclient
+
+* toserver
 
 Syntax::
 
- flow.pkts_toclient: [op]<number>
+ flow.pkts:<direction>,[op]<number>
 
 The number of packets can be matched exactly, or compared using the _op_ setting::
 
- flow.pkts_toclient:3    # exactly 3
- flow.pkts_toclient:<3   # smaller than 3
- flow.pkts_toclient:>=2  # greater than or equal to 2
+ flow.pkts:toclient,3    # exactly 3
+ flow.pkts:toserver,<3   # smaller than 3
 
 Signature example::
 
- alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toclient:20; sid:1;)
+ alert ip any any -> any any (msg:"Flow has 20 packets in toclient dir"; flow.pkts:toclient,20; sid:1;)
 
-flow.pkts_toserver
-------------------
+.. note:: Suricata also supports ``flow.pkts_toclient`` and ``flow.pkts_toserver``
+   keywords for ``flow.pkts:toclient`` and ``flow.pkts:toserver`` respectively but
+   that is not the preferred syntax.
 
-Flow number of packets to server (integer)
+flow.bytes
+----------
+
+Flow number of bytes (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
 
-flow.pkts_toserver uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+flow.bytes uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>` and supports
+following directions:
+
+* toclient
+
+* toserver
 
 Syntax::
 
- flow.pkts_toserver: [op]<number>
+ flow.bytes:<direction>,[op]<number>
 
-The number of packets can be matched exactly, or compared using the _op_ setting::
+The number of bytes can be matched exactly, or compared using the _op_ setting::
 
- flow.pkts_toserver:3    # exactly 3
- flow.pkts_toserver:<3   # smaller than 3
- flow.pkts_toserver:>=2  # greater than or equal to 2
-
-Signature example::
-
- alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toserver:20; sid:1;)
-
-flow.bytes_toclient
--------------------
-
-Flow number of bytes to client (integer)
-This keyword does not wait for the end of the flow, but will be checked at each packet.
-
-flow.bytes_toclient uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
-
-Syntax::
-
- flow.bytes_toclient: [op]<number>
-
-The number of packets can be matched exactly, or compared using the _op_ setting::
-
- flow.bytes_toclient:3    # exactly 3
- flow.bytes_toclient:<3   # smaller than 3
- flow.bytes_toclient:>=2  # greater than or equal to 2
+ flow.bytes:toclient,3    # exactly 3
+ flow.bytes:toserver,<3   # smaller than 3
 
 Signature example::
 
- alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toclient:<2000; sid:1;)
+ alert ip any any -> any any (msg:"Flow has less than 2000 bytes in toserver dir"; flow.bytes:toserver,<2000; sid:1;)
 
-flow.bytes_toserver
--------------------
-
-Flow number of bytes to server (integer)
-This keyword does not wait for the end of the flow, but will be checked at each packet.
-
-flow.bytes_toserver uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
-
-Syntax::
-
- flow.bytes_toserver: [op]<number>
-
-The number of packets can be matched exactly, or compared using the _op_ setting::
-
- flow.bytes_toserver:3    # exactly 3
- flow.bytes_toserver:<3   # smaller than 3
- flow.bytes_toserver:>=2  # greater than or equal to 2
-
-Signature example::
-
- alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toserver:<2000; sid:1;)
+.. note:: Suricata also supports ``flow.bytes_toclient`` and ``flow.bytes_toserver``
+   keywords for ``flow.bytes:toclient`` and ``flow.bytes:toserver`` respectively but
+   that is not the preferred syntax.
