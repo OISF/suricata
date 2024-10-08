@@ -188,6 +188,12 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->ip_proto, alproto, p->GetFrameIdByName, p->GetFrameNameById);
     }
 
+#if 0
+    if (p->Cleanup) {
+        AppLayerParserRegisterCleanup(p->Cleanup);
+    }
+#endif
+
     return 0;
 }
 
