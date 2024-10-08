@@ -1357,7 +1357,7 @@ static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
         if (dir == STREAM_TOSERVER) {
             SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
             tx->tx_data.de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
-        } else if (STREAM_TOCLIENT) {
+        } else if (dir == STREAM_TOCLIENT) {
             SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
             tx->tx_data.de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
