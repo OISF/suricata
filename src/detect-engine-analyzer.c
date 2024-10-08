@@ -957,8 +957,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_open_array(ctx.js, "requirements");
     if (s->mask & SIG_MASK_REQUIRE_PAYLOAD) {
         jb_append_string(ctx.js, "payload");
-    }
-    if (s->mask & SIG_MASK_REQUIRE_NO_PAYLOAD) {
+    } else {
         jb_append_string(ctx.js, "no_payload");
     }
     if (s->mask & SIG_MASK_REQUIRE_FLOW) {

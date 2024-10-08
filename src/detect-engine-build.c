@@ -416,9 +416,6 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
     } else if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
         SCLogDebug("stream data available");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
-    } else {
-        SCLogDebug("packet has no payload");
-        (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
     if (p->events.cnt > 0 || app_decoder_events != 0 ||
@@ -529,9 +526,6 @@ static int SignatureCreateMask(Signature *s)
                     if (ds->arg1 > 0) {
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
-                    } else {
-                        s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
-                        SCLogDebug("sig requires no payload");
                     }
                 }
                 break;
