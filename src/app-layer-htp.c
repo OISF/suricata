@@ -3070,8 +3070,7 @@ static int HTPParserTest01a(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3090,39 +3089,25 @@ static int HTPParserTest01a(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
     }
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0")
-        || tx->request_method_number != HTP_M_POST ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_0)
-    {
-        printf("expected header value: Victor/1.0 and got %s: and expected"
-                " method: POST and got %s, expected protocol number HTTP/1.0"
-                "  and got: %s \n", bstr_util_strdup_to_c(h->value),
-                bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(tx->request_method_number != HTP_M_POST);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test See how it deals with an incomplete request. */
@@ -3140,8 +3125,7 @@ static int HTPParserTest02(void)
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
     if (f == NULL)
-        goto end;
-    f->protoctx = &ssn;
+        f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
 
