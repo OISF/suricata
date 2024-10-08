@@ -487,27 +487,11 @@ static int SignatureCreateMask(Signature *s)
             {
                 DetectFlagsData *fl = (DetectFlagsData *)sm->ctx;
 
-                if (fl->flags & TH_SYN) {
+                if (fl->flags & MASK_TCP_INITDEINIT_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
                 }
-                if (fl->flags & TH_RST) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
-                }
-                if (fl->flags & TH_FIN) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
-                }
-                if (fl->flags & TH_URG) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
-                }
-                if (fl->flags & TH_ECN) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
-                }
-                if (fl->flags & TH_CWR) {
+                if (fl->flags & MASK_TCP_UNUSUAL_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
                 }
