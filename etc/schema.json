@@ -2014,6 +2014,10 @@
                 "status": {
                     "type": "integer"
                 },
+                "status_string": {
+                    "description": "status string when it is not a valid integer (like 2XX)",
+                    "type": "string"
+                },
                 "true_client_ip": {
                     "type": "string"
                 },
