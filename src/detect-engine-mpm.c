@@ -1071,12 +1071,14 @@ static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm
 
 int g_skip_prefilter = 0;
 
+// tells if a buffer id is only used to client
 bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
 {
     bool r = false;
     const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
     for (; app != NULL; app = app->next) {
-        if (app->sm_list == buf_id && (AppProtoEquals(alproto, app->alproto) || alproto == 0)) {
+        if (app->sm_list == buf_id &&
+                (AppProtoEquals(alproto, app->alproto) || alproto == ALPROTO_UNKNOWN)) {
             if (app->dir == 1) {
                 // do not return yet in case we have app engines on both sides
                 r = true;
@@ -1232,7 +1234,12 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             }
         } else {
             for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                if (s->init_data->buffers[x].only_tc) {
+                    // prefer to choose a fast_pattern to server by default
+                    continue;
+                }
                 const int list_id = s->init_data->buffers[x].id;
+
                 if (final_sm_list[i] == list_id) {
                     SCLogDebug("%u: list_id %d: %s", s->id, list_id,
                             DetectEngineBufferTypeGetNameById(de_ctx, list_id));

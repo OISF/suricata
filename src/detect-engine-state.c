@@ -89,9 +89,9 @@ static DeStateStore *DeStateStoreAlloc(void)
 }
 
 #ifdef DEBUG_VALIDATION
-static int DeStateSearchState(DetectEngineState *state, uint8_t dsi, SigIntId num)
+static int DeStateSearchState(DetectEngineState *state, uint8_t index, SigIntId num)
 {
-    DetectEngineStateDirection *dir_state = &state->dir_state[dsi];
+    DetectEngineStateDirection *dir_state = &state->dir_state[index];
     DeStateStore *tx_store = dir_state->head;
     SigIntId store_cnt;
     SigIntId state_cnt = 0;
@@ -120,15 +120,15 @@ static void DeStateSignatureAppend(DetectEngineState *state,
 {
     SCEnter();
 
-    uint8_t dsi = (direction & STREAM_TOSERVER) ? 0 : 1;
+    uint8_t index = (direction & STREAM_TOSERVER) ? 0 : 1;
     if (s->flags & SIG_FLAG_BOTHDIR) {
-        dsi = DETECT_ENGINE_STATE_DIRECTION_BOTHDIR;
+        index = DETECT_ENGINE_STATE_DIRECTION_BOTHDIR;
     }
 
-    DetectEngineStateDirection *dir_state = &state->dir_state[dsi];
+    DetectEngineStateDirection *dir_state = &state->dir_state[index];
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(DeStateSearchState(state, dsi, s->num));
+    BUG_ON(DeStateSearchState(state, index, s->num));
 #endif
     DeStateStore *store = dir_state->tail;
     if (store == NULL) {

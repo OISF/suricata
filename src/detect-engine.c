@@ -1360,6 +1360,8 @@ bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id)
     return false;
 }
 
+// Tells if a buffer (from its list id) is ambiguous about directions
+// meaning it can match on both to client and to server, like http.connection for example
 static bool DetectEngineBufferAmbiguousDir(
         DetectEngineCtx *de_ctx, const int list, AppProto alproto)
 {

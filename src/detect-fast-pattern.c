@@ -244,9 +244,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                            "bidirectional rule with a streaming buffer to server %u",
                         s->id);
                 goto error;
-            } else {
-                s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT;
             }
+            s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT;
         }
     }
 

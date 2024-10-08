@@ -251,7 +251,7 @@ Now, let's say we have a rule with the following header::
 Only the traffic from the client to the server will be matched by this rule,
 as the direction specifies that we do not want to evaluate the response packet.
 
-Now,if we have a rule with the following header::
+Now, if we have a rule with the following header::
 
     alert tcp 1.2.3.4 any <> 5.6.7.8 80
 

@@ -1139,7 +1139,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
         // also if it is not the same direction, but
-        // this is a bidrectional signature, and we are toclient
+        // this is a bidirectional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 (direction == engine->dir || ((s->flags & SIG_FLAG_BOTHDIR) && direction == 1))) {
 
