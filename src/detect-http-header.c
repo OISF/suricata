@@ -176,6 +176,8 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
 
     const int list_id = engine->sm_list;
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    bool eof =
+            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
     if (buffer->inspect == NULL) {
         SCLogDebug("setting up inspect buffer %d", list_id);
 
@@ -209,14 +211,8 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     }
 end:
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_REQUEST_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_RESPONSE_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    if (eof) {
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
