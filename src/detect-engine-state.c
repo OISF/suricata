@@ -89,9 +89,9 @@ static DeStateStore *DeStateStoreAlloc(void)
 }
 
 #ifdef DEBUG_VALIDATION
-static int DeStateSearchState(DetectEngineState *state, uint8_t index, SigIntId num)
+static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
 {
-    DetectEngineStateDirection *dir_state = &state->dir_state[index];
+    DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
     DeStateStore *tx_store = dir_state->head;
     SigIntId store_cnt;
     SigIntId state_cnt = 0;
@@ -120,15 +120,11 @@ static void DeStateSignatureAppend(DetectEngineState *state,
 {
     SCEnter();
 
-    uint8_t index = (direction & STREAM_TOSERVER) ? 0 : 1;
-    if (s->flags & SIG_FLAG_BOTHDIR) {
-        index = DETECT_ENGINE_STATE_DIRECTION_BOTHDIR;
-    }
-
-    DetectEngineStateDirection *dir_state = &state->dir_state[index];
+    DetectEngineStateDirection *dir_state =
+            &state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(DeStateSearchState(state, index, s->num));
+    BUG_ON(DeStateSearchState(state, direction, s->num));
 #endif
     DeStateStore *store = dir_state->tail;
     if (store == NULL) {
@@ -176,7 +172,7 @@ void DetectEngineStateFree(DetectEngineState *state)
     DeStateStore *store_next;
     int i = 0;
 
-    for (i = 0; i < DETECT_ENGINE_STATE_DIRECTIONS; i++) {
+    for (i = 0; i < 2; i++) {
         store = state->dir_state[i].head;
         while (store != NULL) {
             store_next = store->next;
@@ -235,6 +231,11 @@ void DetectRunStoreStateTx(
         SCLogDebug("destate created for %"PRIu64, tx_id);
     }
     DeStateSignatureAppend(tx_data->de_state, s, inspect_flags, flow_flags);
+    if (s->flags & SIG_FLAG_BOTHDIR) {
+        // add also in the other DetectEngineStateDirection
+        DeStateSignatureAppend(tx_data->de_state, s, inspect_flags,
+                flow_flags ^ (STREAM_TOSERVER | STREAM_TOCLIENT));
+    }
     StoreStateTxHandleFiles(sgh, f, tx_data->de_state, flow_flags, tx, tx_id, file_no_match);
 
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
@@ -243,13 +244,17 @@ void DetectRunStoreStateTx(
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
-        for (int i = 0; i < DETECT_ENGINE_STATE_DIRECTIONS; i++) {
-            s->dir_state[i].cnt = 0;
-            s->dir_state[i].filestore_cnt = 0;
-            s->dir_state[i].flags = 0;
-            /* reset 'cur' back to the list head */
-            s->dir_state[i].cur = s->dir_state[i].head;
-        }
+        s->dir_state[0].cnt = 0;
+        s->dir_state[0].filestore_cnt = 0;
+        s->dir_state[0].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[0].cur = s->dir_state[0].head;
+
+        s->dir_state[1].cnt = 0;
+        s->dir_state[1].filestore_cnt = 0;
+        s->dir_state[1].flags = 0;
+        /* reset 'cur' back to the list head */
+        s->dir_state[1].cur = s->dir_state[1].head;
     }
 }
 
