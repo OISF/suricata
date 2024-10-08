@@ -48,18 +48,14 @@ unsafe extern "C" fn template_buffer_get_data(
     let tx = cast_pointer!(tx, TemplateTransaction);
     if flags & Direction::ToClient as u8 != 0 {
         if let Some(ref response) = tx.response {
-            if !response.is_empty() {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-                return true;
-            }
-        }
-    } else if let Some(ref request) = tx.request {
-        if !request.is_empty() {
-            *len = request.len() as u32;
-            *buf = request.as_ptr();
+            *len = response.len() as u32;
+            *buf = response.as_ptr();
             return true;
         }
+    } else if let Some(ref request) = tx.request {
+        *len = request.len() as u32;
+        *buf = request.as_ptr();
+        return true;
     }
     return false;
 }
