@@ -59,8 +59,7 @@
 #ifdef UNITTESTS
 static void DetectHttpUriRegisterTests(void);
 #endif
-static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s);
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
@@ -70,8 +69,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const int list_id);
 static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s);
+static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
