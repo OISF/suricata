@@ -296,12 +296,8 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
     if (resp > 0) {
         jb_set_uint(js, "status", (uint32_t)resp);
     } else if (tx->response_status != NULL) {
-        const size_t status_size = bstr_len(tx->response_status) * 2 + 1;
-        char status_string[status_size];
-        BytesToStringBuffer(bstr_ptr(tx->response_status), bstr_len(tx->response_status),
-                status_string, status_size);
-        unsigned int val = strtoul(status_string, NULL, 10);
-        jb_set_uint(js, "status", val);
+        jb_set_string_from_bytes(js, "status_str", bstr_ptr(tx->response_status),
+                (uint32_t)bstr_len(tx->response_status));
     }
 
     htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
