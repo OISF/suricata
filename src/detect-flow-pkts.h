@@ -20,7 +20,9 @@
 
 void DetectFlowPktsToClientRegister(void);
 void DetectFlowPktsToServerRegister(void);
+void DetectFlowPktsEitherRegister(void);
 void DetectFlowBytesToClientRegister(void);
 void DetectFlowBytesToServerRegister(void);
+void DetectFlowBytesEitherRegister(void);
 
 #endif /* SURICATA_DETECT_FLOW_PKTS_H */
