@@ -2814,6 +2814,8 @@ jobs:
           path: /var/cache/apt/archives
           key: ${{ github.job }}-apt
 
+      - run: ls -l /var/cache/apt/archives/
+
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
