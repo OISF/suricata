@@ -67,7 +67,7 @@ jobs:
     name: AlmaLinux 9
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -141,7 +141,7 @@ jobs:
 
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
-
+      - uses: ./.github/actions/install-cbindgen
       # Download and extract dependency archives created during prep
       # job.
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -223,7 +223,7 @@ jobs:
     name: AlmaLinux 9 Test Templates
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -287,6 +287,8 @@ jobs:
 
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      - uses: ./.github/actions/install-cbindgen
 
       # Download and extract dependency archives created during prep
       # job.
@@ -528,6 +530,8 @@ jobs:
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
 
+      - uses: ./.github/actions/install-cbindgen
+
       # Prebuild check for duplicate SIDs
       - name: Check for duplicate SIDs
         run: |
@@ -656,7 +660,7 @@ jobs:
     name: Fedora 39 (Suricata Verify codecov)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -717,6 +721,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+      - uses: ./.github/actions/install-cbindgen
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -752,7 +757,7 @@ jobs:
     name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -812,6 +817,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+      - uses: ./.github/actions/install-cbindgen
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -857,7 +863,7 @@ jobs:
     name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -906,6 +912,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: ./.github/actions/install-cbindgen
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
           name: prep
@@ -946,7 +953,7 @@ jobs:
     name: Fedora 40 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:40
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -1005,6 +1012,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: ./.github/actions/install-cbindgen
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
           name: prep
@@ -1046,7 +1054,7 @@ jobs:
     name: Fedora 40 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:40
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -1094,6 +1102,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+      - uses: ./.github/actions/install-cbindgen
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -1137,7 +1146,7 @@ jobs:
     name: Fedora 40 (non-root, debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:40
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -1179,6 +1188,7 @@ jobs:
                 zlib-devel
       - run: adduser suricata
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+      - uses: ./.github/actions/install-cbindgen
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -1285,11 +1295,12 @@ jobs:
           else
             exit 0
           fi
+
   almalinux-9-minimal-recommended-dependecies:
     name: AlmaLinux 9 (Minimal/Recommended Build)
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1324,6 +1335,7 @@ jobs:
 
 
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+      - uses: ./.github/actions/install-cbindgen
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       
