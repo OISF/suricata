@@ -77,6 +77,8 @@ Major changes
     - sip.to
     - sip.content_type
     - sip.content_length
+- MySQL parser and logger have been introduced.
+- The MySQL keywords ``mysql.command`` and ``mysql.command`` have been introduced.
 
 Removals
 ~~~~~~~~
