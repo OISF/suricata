@@ -161,3 +161,28 @@ void PacketDestructor(Packet *p)
     AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     PACKET_PROFILING_RESET(p);
 }
+
+inline void SCPacketSetReleasePacket(Packet *p, void (*ReleasePacket)(Packet *p))
+{
+    p->ReleasePacket = ReleasePacket;
+}
+
+inline void SCPacketSetLiveDevice(Packet *p, LiveDevice *device)
+{
+    p->livedev = device;
+}
+
+inline void SCPacketSetDatalink(Packet *p, int datalink)
+{
+    p->datalink = datalink;
+}
+
+inline void SCPacketSetTime(Packet *p, SCTime_t ts)
+{
+    p->ts = ts;
+}
+
+inline void SCPacketSetSource(Packet *p, enum PktSrcEnum source)
+{
+    p->pkt_src = (uint8_t)source;
+}
