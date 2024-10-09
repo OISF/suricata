@@ -107,11 +107,11 @@ static void *SimpleWorker(void *arg)
 
         /* Setup the packet, these will become functions to avoid
          * internal Packet access. */
-        PKT_SET_SRC(p, PKT_SRC_WIRE);
-        p->ts = SCTIME_FROM_TIMEVAL(&pkthdr.ts);
-        p->datalink = datalink;
-        p->livedev = device;
-        p->ReleasePacket = ReleasePacket;
+        SCPacketSetSource(p, PKT_SRC_WIRE);
+        SCPacketSetTime(p, SCTIME_FROM_TIMEVAL(&pkthdr.ts));
+        SCPacketSetDatalink(p, datalink);
+        SCPacketSetLiveDevice(p, device);
+        SCPacketSetReleasePacket(p, ReleasePacket);
 
         if (PacketSetData(p, packet, pkthdr.len) == -1) {
             TmqhOutputPacketpool(tv, p);
