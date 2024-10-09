@@ -16,8 +16,8 @@
  */
 
 use super::{
-    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCopy,
-    InspectionBufferLength, InspectionBufferPtr, SCTransformTableElmt,
+    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCheckAndExpand,
+    InspectionBufferLength, InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
 };
 use crate::detect::SIGMATCH_NOOPT;
 
@@ -33,14 +33,16 @@ unsafe extern "C" fn strip_whitespace_setup(
     return DetectSignatureAddTransform(s, G_TRANSFORM_STRIP_WHITESPACE_ID, ptr::null_mut());
 }
 
-fn strip_whitespace_transform_do(input: &[u8]) -> Vec<u8> {
-    let mut r = Vec::with_capacity(input.len());
-    for c in input {
-        if !(*c).is_ascii_whitespace() {
-            r.push(*c);
-        }
+fn strip_whitespace_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
+    let mut nb = 0;
+    // seems faster than writing one byte at a time via
+    // for (i, o) in input.iter().filter(|c| !matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' ')).zip(output)
+    for subslice in input.split(|c| matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' '))
+    {
+        output[nb..nb + subslice.len()].copy_from_slice(subslice);
+        nb += subslice.len();
     }
-    return r;
+    return nb as u32;
 }
 
 #[no_mangle]
@@ -52,10 +54,17 @@ unsafe extern "C" fn strip_whitespace_transform(buffer: *mut c_void, _ctx: *mut 
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = strip_whitespace_transform_do(input);
+    let output = InspectionBufferCheckAndExpand(buffer, input_len);
+    if output.is_null() {
+        // allocation failure
+        return;
+    }
+    let output = std::slice::from_raw_parts_mut(output, input_len as usize);
+
+    let output_len = strip_whitespace_transform_do(input, output);
 
     unsafe {
-        InspectionBufferCopy(buffer, output.as_ptr(), output.len() as u32);
+        InspectionBufferTruncate(buffer, output_len);
     }
 }
 
@@ -64,8 +73,8 @@ unsafe extern "C" fn strip_whitespace_validate(
     content: *const u8, len: u16, _ctx: *mut c_void,
 ) -> bool {
     let input = build_slice!(content, len as usize);
-    for c in input {
-        if (*c).is_ascii_whitespace() {
+    for &c in input {
+        if matches!(c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' ') {
             return false;
         }
     }

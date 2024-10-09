@@ -46,4 +46,6 @@ extern "C" {
     pub fn InspectionBufferLength(buf: *const c_void) -> u32;
     pub fn InspectionBufferCopy(ibuf: *const c_void, buf: *const u8, buf_len: u32);
     pub fn DetectHelperTransformRegister(kw: *const SCTransformTableElmt) -> c_int;
+    pub fn InspectionBufferCheckAndExpand(ibuf: *const c_void, buf_len: u32) -> *mut u8;
+    pub fn InspectionBufferTruncate(ibuf: *const c_void, buf_len: u32);
 }
