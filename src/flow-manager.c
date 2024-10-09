@@ -820,11 +820,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
     while (1)
     {
-        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
-            TmThreadsSetFlag(th_v, THV_PAUSED);
-            TmThreadTestThreadUnPaused(th_v);
-            TmThreadsUnsetFlag(th_v, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(th_v);
 
         bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 
@@ -1085,11 +1081,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
     while (1)
     {
-        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
-            TmThreadsSetFlag(th_v, THV_PAUSED);
-            TmThreadTestThreadUnPaused(th_v);
-            TmThreadsUnsetFlag(th_v, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(th_v);
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
