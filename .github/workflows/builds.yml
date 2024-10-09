@@ -170,7 +170,7 @@ jobs:
     name: AlmaLinux 9
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -256,6 +256,7 @@ jobs:
       #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
       #    cd cppclean
       #    python3 setup.py install
+      - uses: ./.github/actions/install-cbindgen
       - name: Configuring
         run: |
           ./autogen.sh
@@ -286,7 +287,7 @@ jobs:
     name: AlmaLinux 9 Test Templates
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -357,6 +358,7 @@ jobs:
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: rustup component add rustfmt
       - run: rustup component add clippy
+      - uses: ./.github/actions/install-cbindgen
       - name: Build
         run: |
           ./autogen.sh
@@ -558,7 +560,7 @@ jobs:
     name: Fedora 38 (Suricata Verify codecov)
     runs-on: ubuntu-latest
     container: fedora:38
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -619,6 +621,7 @@ jobs:
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -652,7 +655,7 @@ jobs:
     name: Fedora 38 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:38
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -713,6 +716,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -758,7 +762,7 @@ jobs:
     name: Fedora 38 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:38
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
 
       # Cache Rust stuff.
@@ -806,6 +810,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -904,6 +909,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -992,6 +998,7 @@ jobs:
                 zlib-devel
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -1033,7 +1040,7 @@ jobs:
     name: Fedora 39 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       - run: |
           dnf -y install \
@@ -1076,6 +1083,7 @@ jobs:
       - run: adduser suricata
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: ./.github/actions/install-cbindgen
         with:
           name: prep
           path: prep
@@ -1178,11 +1186,12 @@ jobs:
           else
             exit 0
           fi
+
   almalinux-9-minimal-recommended-dependecies:
     name: AlmaLinux 9 (Minimal/Recommended Build)
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps]
+    needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1222,6 +1231,7 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
+      - uses: ./.github/actions/install-cbindgen
 
       - name: Install minimal dependencies
         run: ./scripts/docs-almalinux9-minimal-build.sh
