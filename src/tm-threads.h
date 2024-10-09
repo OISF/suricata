@@ -288,4 +288,7 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
 
+/** \breif Wait for a thread to become unpaused. */
+void TmThreadsWaitForUnpause(ThreadVars *tv);
+
 #endif /* SURICATA_TM_THREADS_H */
