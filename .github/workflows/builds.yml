@@ -3219,7 +3219,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
           path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          key: windows-msys2-mingw64-cargo
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -3275,7 +3275,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
           path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          key: windows-msys2-mingw64-cargo
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -3319,7 +3319,7 @@ jobs:
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
           path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          key: windows-msys2-mingw64-cargo
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
