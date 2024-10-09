@@ -78,7 +78,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 void DetectTemplateRustBufferRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.template-rust") == NULL) {
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
     /* TEMPLATE_END_REMOVE */
