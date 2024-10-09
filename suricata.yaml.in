@@ -677,6 +677,8 @@ af-packet:
     # will not be copied.
     #copy-mode: ips
     #copy-iface: eth1
+    # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+    #role: unknown
     #  For eBPF and XDP setup including bypass, filter and load balancing, please
     #  see doc/userguide/capture-hardware/ebpf-xdp.rst for more info.
 
@@ -736,6 +738,8 @@ af-xdp:
     # Defaults are:
     #gro-flush-timeout: 2000000
     #napi-defer-hard-irq: 2
+    # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+    #role: unknown
 
 dpdk:
   eal-params:
@@ -782,6 +786,8 @@ dpdk:
       # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
       copy-mode: none
       copy-iface: none # or PCIe address of the second interface
+      # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+      #role: unknown
 
     - interface: default
       threads: auto
@@ -827,6 +833,8 @@ pcap:
     # set snaplen, if not set it defaults to MTU if MTU can be known
     # via ioctl call and to full capture if not.
     #snaplen: 1518
+    # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+    #role: unknown
   # Put default values here
   - interface: default
     #checksum-checks: auto
@@ -1991,6 +1999,8 @@ netmap:
    #checksum-checks: auto
    # BPF filter to apply to this interface. The pcap filter syntax apply here.
    #bpf-filter: port 80 or udp
+   # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+   #role: unknown
  #- interface: eth3
    #threads: auto
    #copy-mode: tap
@@ -2040,6 +2050,8 @@ pfring:
     #  checksum off-loading is used. (default)
     # Warning: 'checksum-validation' must be set to yes to have any validation
     #checksum-checks: auto
+    # Role options are: trusted, untrusted, and unknown. If not specified, unknown will be used.
+    #role: unknown
   # Second interface
   #- interface: eth1
   #  threads: 3

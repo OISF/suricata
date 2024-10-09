@@ -25,6 +25,8 @@
 #include "queue.h"
 #include "util-storage.h"
 
+typedef enum DeviceRole_ { ROLE_UNKNOWN, ROLE_TRUSTED, ROLE_UNTRUSTED } DeviceRole;
+
 #define OFFLOAD_FLAG_SG     (1<<0)
 #define OFFLOAD_FLAG_TSO    (1<<1)
 #define OFFLOAD_FLAG_GSO    (1<<2)
@@ -40,6 +42,10 @@ int LiveGetOffload(void);
 
 #define MAX_DEVNAME 10
 
+#define ROLE_UNKNOWN_STR   "unknown"
+#define ROLE_TRUSTED_STR   "trusted"
+#define ROLE_UNTRUSTED_STR "untrusted"
+
 #ifdef HAVE_DPDK
 typedef struct {
     struct rte_mempool *pkt_mp;
@@ -49,6 +55,7 @@ typedef struct {
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
+    struct LiveDevice_ *copy_dev; /**< copy-iface live device (valid in IPS mode only) */
     char dev_short[MAX_DEVNAME + 1];
     int mtu; /* MTU of the device */
     bool tenant_id_set;
@@ -63,6 +70,7 @@ typedef struct LiveDevice_ {
 
     uint32_t tenant_id;     /**< tenant id in multi-tenancy */
     uint32_t offload_orig;  /**< original offload settings to restore @exit */
+    DeviceRole role;        /**< device role, used with role keyword. */
 #ifdef HAVE_DPDK
     // DPDK resources that needs to be cleaned after workers are stopped and devices closed
     DPDKDeviceResources dpdk_vars;
@@ -73,13 +81,16 @@ typedef struct LiveDevice_ {
 
 typedef struct LiveDeviceName_ {
     char *dev;  /**< the device (e.g. "eth0") */
+    char *copy_dev; /**< device copied to (valid in IPS mode only, e.g. "eth1") */
+    char *role;     /**< the device role (e.g. "trusted","untrusted") */
     TAILQ_ENTRY(LiveDeviceName_) next;
 } LiveDeviceName;
 
 void LiveDevRegisterExtension(void);
 
-int LiveRegisterDeviceName(const char *dev);
-int LiveRegisterDevice(const char *dev);
+int LiveRegisterDeviceName(const char *dev, const char *copy_dev);
+int LiveRegisterDeviceNameAndRole(const char *dev, const char *copy_dev, const char *role);
+int LiveRegisterDevice(const char *dev, const char *role);
 int LiveDevUseBypass(LiveDevice *dev);
 void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family);
 void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family);

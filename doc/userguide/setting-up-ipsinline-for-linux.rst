@@ -432,3 +432,19 @@ The `copy-mode` variable can take the following values:
 
 - `ips`: the drop keyword is honored and matching packets are dropped.
 - `tap`: no drop occurs, Suricata acts as a bridge
+
+Interface role
+~~~~~~~~~~~~~~
+An interface's role can be configured to be: **trusted**,
+**untrusted**, or **unknown**. Role is used to describe the
+interface and enables the use of the origin and destination keywords
+for discerning between traffic that might only be of concern when
+originating from or targeting a particular interface. This is useful
+in IPS mode as device tenancy is not supported. Currently only
+supported when running with afpacket or dpdk. For example:
+
+::
+  dpdk:
+    interfaces:
+      - interface: 0000:3b:00.1
+        role: trusted

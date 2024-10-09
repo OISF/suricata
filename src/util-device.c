@@ -90,11 +90,12 @@ int LiveGetOffload(void)
  * to be created during runmode init, use LiveRegisterDevice()
  *
  *  \param dev string with the device name
+ *  \param copy_dev string with the name of the device being copied to (valid in IPS mode only)
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDeviceName(const char *dev)
+int LiveRegisterDeviceName(const char *dev, const char *copy_dev)
 {
     LiveDeviceName *pd = NULL;
 
@@ -109,9 +110,83 @@ int LiveRegisterDeviceName(const char *dev)
         return -1;
     }
 
+    if (copy_dev) {
+        pd->copy_dev = SCStrdup(copy_dev);
+        if (unlikely(pd->copy_dev == NULL)) {
+            SCFree(pd->dev);
+            SCFree(pd);
+            return -1;
+        }
+    }
+
+    pd->role = SCStrdup(ROLE_UNKNOWN_STR);
+    if (unlikely(pd->role == NULL)) {
+        SCFree(pd->dev);
+        SCFree(pd);
+        return -1;
+    }
+
     TAILQ_INSERT_TAIL(&pre_live_devices, pd, next);
 
-    SCLogDebug("Device \"%s\" registered.", dev);
+    SCLogDebug("Device \"%s\" with role \"%s\" registered.", dev, ROLE_UNKNOWN_STR);
+    return 0;
+}
+
+/**
+ *  \brief Add a device for monitoring
+ *
+ * To be used during option parsing. When a device has
+ * to be created during runmode init, use LiveRegisterDevice()
+ * Differs from LiveRegisterDeviceName by allowing for configurable
+ * role of a given device. Limited to devices/interfaces defined in
+ * suricata.yaml.
+ *
+ *  \param dev string with the device name
+ *  \param copy_dev string with the name of the device being copied to (valid in IPS mode only)
+ *  \param role string with the device role
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int LiveRegisterDeviceNameAndRole(const char *dev, const char *copy_dev, const char *role)
+{
+    LiveDeviceName *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(LiveDeviceName));
+    if (unlikely(pd == NULL)) {
+        return -1;
+    }
+
+    pd->dev = SCStrdup(dev);
+    if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
+
+    if (copy_dev) {
+        pd->copy_dev = SCStrdup(copy_dev);
+        if (unlikely(pd->copy_dev == NULL)) {
+            SCFree(pd->dev);
+            SCFree(pd);
+            return -1;
+        }
+    }
+
+    if (unlikely(role == NULL)) {
+        pd->role = SCStrdup(ROLE_UNKNOWN_STR);
+    } else {
+        pd->role = SCStrdup(role);
+    }
+
+    if (unlikely(pd->role == NULL)) {
+        SCFree(pd->dev);
+        SCFree(pd);
+        return -1;
+    }
+
+    TAILQ_INSERT_TAIL(&pre_live_devices, pd, next);
+
+    SCLogDebug("Device \"%s\" with role \"%s\" registered.", dev, role);
     return 0;
 }
 
@@ -119,11 +194,12 @@ int LiveRegisterDeviceName(const char *dev)
  *  \brief Add a pcap device for monitoring and create structure
  *
  *  \param dev string with the device name
+ *  \param role string with the device role
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDevice(const char *dev)
+int LiveRegisterDevice(const char *dev, const char *role)
 {
     LiveDevice *pd = NULL;
 
@@ -152,7 +228,15 @@ int LiveRegisterDevice(const char *dev)
     pd->id = (uint16_t)id;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
-    SCLogDebug("Device \"%s\" registered and created.", dev);
+    if (strncmp(role, ROLE_TRUSTED_STR, strlen(ROLE_TRUSTED_STR)) == 0) {
+        pd->role = ROLE_TRUSTED;
+    } else if (strncmp(role, ROLE_UNTRUSTED_STR, strlen(ROLE_UNTRUSTED_STR)) == 0) {
+        pd->role = ROLE_UNTRUSTED;
+    } else {
+        pd->role = ROLE_UNKNOWN;
+    }
+
+    SCLogDebug("Device \"%s\" with role \"%s\" registered and created.", dev, role);
     return 0;
 }
 
@@ -291,9 +375,20 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
             if ((!strcmp(subchild->name, itemname))) {
                 if (!strcmp(subchild->val, "default"))
                     break;
-                SCLogConfig("Adding %s %s from config file",
-                          itemname, subchild->val);
-                LiveRegisterDeviceName(subchild->val);
+
+                const char *copy_iface = NULL;
+                if (ConfGetChildValue(child, "copy-iface", &copy_iface) == 1) {
+                    SCLogDebug("%s %s has copy-iface %s", itemname, subchild->val, copy_iface);
+                }
+                const char *role = NULL;
+                if (ConfGetChildValue(child, "role", &role) == 1) {
+                    SCLogConfig("Adding %s %s with role %s from config file", itemname,
+                            subchild->val, role);
+                    LiveRegisterDeviceNameAndRole(subchild->val, copy_iface, role);
+                } else {
+                    SCLogConfig("Adding %s %s from config file", itemname, subchild->val);
+                    LiveRegisterDeviceName(subchild->val, copy_iface);
+                }
                 i++;
             }
         }
@@ -441,15 +536,29 @@ LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
  */
 void LiveDeviceFinalize(void)
 {
-    LiveDeviceName *ld, *pld;
+    LiveDevice *ld;
+    LiveDeviceName *ldn, *pldn;
     SCLogDebug("Finalize live device");
     /* Iter on devices and register them */
-    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
-        if (ld->dev) {
-            LiveRegisterDevice(ld->dev);
-            SCFree(ld->dev);
+    TAILQ_FOREACH_SAFE (ldn, &pre_live_devices, next, pldn) {
+        if (ldn->dev) {
+            LiveRegisterDevice(ldn->dev, ldn->role);
         }
-        SCFree(ld);
+    }
+
+    /* Iter on devices and update with copy device then cleanup */
+    TAILQ_FOREACH_SAFE (ldn, &pre_live_devices, next, pldn) {
+        if (ldn->dev) {
+            if (ldn->copy_dev) {
+                ld = LiveGetDevice(ldn->dev);
+                ld->copy_dev = LiveGetDevice(ldn->copy_dev);
+
+                SCFree(ldn->copy_dev);
+            }
+            SCFree(ldn->dev);
+            SCFree(ldn->role);
+        }
+        SCFree(ldn);
     }
 }
 
