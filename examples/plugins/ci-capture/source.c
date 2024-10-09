@@ -20,6 +20,7 @@
 #include "tm-modules.h"
 #include "tm-threads-common.h"
 #include "tm-threads.h"
+#include "packet.h"
 
 #include "source.h"
 
@@ -69,11 +70,11 @@ static TmEcode ReceiveLoop(ThreadVars *tv, void *data, void *slot)
     if (unlikely(p == NULL)) {
         return TM_ECODE_FAILED;
     }
-    PKT_SET_SRC(p, PKT_SRC_WIRE);
+    SCPacketSetSource(p, PKT_SRC_WIRE);
     struct timeval now;
     gettimeofday(&now, NULL);
-    p->ts = SCTIME_FROM_TIMEVAL(&now);
-    p->datalink = LINKTYPE_ETHERNET;
+    SCPacketSetTime(p, SCTIME_FROM_TIMEVAL(&now));
+    SCPacketSetDatalink(p, LINKTYPE_ETHERNET);
     p->flags |= PKT_IGNORE_CHECKSUM;
 
     if (unlikely(PacketCopyData(p, DNS_REQUEST, sizeof(DNS_REQUEST)) != 0)) {
