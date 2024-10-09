@@ -2434,6 +2434,13 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     runs-on: ubuntu-22.04
     steps:
+      - name: Restore Cache Netmap
+        uses: actions/cache/restore@v4
+        id: netmap-cache
+        with:
+          path: netmap/
+          key: netmap-git
+
       # Cache Rust stuff.
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -2489,11 +2496,19 @@ jobs:
                 linux-headers-$(uname -r)
 
       - name: Checkout Netmap repository
+        if: steps.netmap-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
         with:
           repository: luigirizzo/netmap
           # gets cloned to $GITHUB_WORKSPACE/netmap/
           path: netmap/
+
+      - name: Save Netmap Cache
+        if: steps.netmap-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: netmap/
+          key: netmap-git
 
       - name: Compile and install Netmap
         run: |
