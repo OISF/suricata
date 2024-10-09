@@ -192,6 +192,10 @@ uint64_t UtilCpuGetTicks(void)
     ::: "%eax", "%ecx", "%edx");
 #endif
 
+#elif defined(__GNUC__) && defined(__aarch64__)
+    __asm__ __volatile__("isb\n\t"
+                         "mrs %0,  cntvct_el0\n\t"
+                         : "=r"(val));
 #else /* #if defined(__GNU__) */
 //#warning Using inferior version of UtilCpuGetTicks
     struct timeval now;
