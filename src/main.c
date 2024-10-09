@@ -16,9 +16,12 @@
  */
 
 #include "suricata.h"
+#include "util-cpu.h"
 
 int main(int argc, char **argv)
 {
+    UtilCpuSpecificInit();
+
     /* Pre-initialization tasks: initialize global context and variables. */
     SuricataPreInit(argv[0]);
 
