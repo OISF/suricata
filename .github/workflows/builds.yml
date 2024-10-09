@@ -35,6 +35,12 @@ env:
 
 jobs:
 
+  check-rate-limit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/rate_limit
+
   prepare-deps:
     name: Prepare dependencies
     uses: ./.github/workflows/prepare-deps.yml
