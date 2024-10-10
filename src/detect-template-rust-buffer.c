@@ -69,8 +69,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         } else {
             rs_template_get_response_buffer(txv, &data, &data_len);
         }
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }
