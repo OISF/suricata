@@ -65,7 +65,8 @@ static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 void DetectHttpMethodRegisterTests(void);
 #endif
 void DetectHttpMethodFree(void *);
-static bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttpMethodValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id);
@@ -161,35 +162,26 @@ static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-static bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpMethodValidateCallback(
+        const Signature *s, const DetectContentData *cd, const char **sigerror)
 {
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_http_method_buffer_id)
-            continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-            const DetectContentData *cd = (const DetectContentData *)sm->ctx;
-            if (cd->content && cd->content_len) {
-                if (cd->content[cd->content_len - 1] == 0x20) {
-                    *sigerror = "http_method pattern with trailing space";
-                    SCLogError("%s", *sigerror);
-                    return false;
-                } else if (cd->content[0] == 0x20) {
-                    *sigerror = "http_method pattern with leading space";
-                    SCLogError("%s", *sigerror);
-                    return false;
-                } else if (cd->content[cd->content_len - 1] == 0x09) {
-                    *sigerror = "http_method pattern with trailing tab";
-                    SCLogError("%s", *sigerror);
-                    return false;
-                } else if (cd->content[0] == 0x09) {
-                    *sigerror = "http_method pattern with leading tab";
-                    SCLogError("%s", *sigerror);
-                    return false;
-                }
-            }
+    if (cd->content && cd->content_len) {
+        if (cd->content[cd->content_len - 1] == 0x20) {
+            *sigerror = "http_method pattern with trailing space";
+            SCLogError("%s", *sigerror);
+            return false;
+        } else if (cd->content[0] == 0x20) {
+            *sigerror = "http_method pattern with leading space";
+            SCLogError("%s", *sigerror);
+            return false;
+        } else if (cd->content[cd->content_len - 1] == 0x09) {
+            *sigerror = "http_method pattern with trailing tab";
+            SCLogError("%s", *sigerror);
+            return false;
+        } else if (cd->content[0] == 0x09) {
+            *sigerror = "http_method pattern with leading tab";
+            SCLogError("%s", *sigerror);
+            return false;
         }
     }
     return true;

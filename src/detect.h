@@ -451,21 +451,6 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
-typedef struct DetectBufferType_ {
-    char name[32];
-    char description[128];
-    int id;
-    int parent_id;
-    bool mpm;
-    bool packet; /**< compat to packet matches */
-    bool frame;  /**< is about Frame inspection */
-    bool supports_transforms;
-    bool multi_instance; /**< buffer supports multiple buffer instances per tx */
-    void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
-    bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
-    DetectEngineTransforms transforms;
-} DetectBufferType;
-
 struct DetectEnginePktInspectionEngine;
 
 /**
