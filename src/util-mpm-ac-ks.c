@@ -1403,6 +1403,7 @@ void MpmACTileRegister(void)
     mpm_table[MPM_AC_KS].AddPattern = SCACTileAddPatternCS;
     mpm_table[MPM_AC_KS].AddPatternNocase = SCACTileAddPatternCI;
     mpm_table[MPM_AC_KS].Prepare = SCACTilePreparePatterns;
+    mpm_table[MPM_AC_KS].CacheRuleset = NULL;
     mpm_table[MPM_AC_KS].Search = SCACTileSearch;
     mpm_table[MPM_AC_KS].PrintCtx = SCACTilePrintInfo;
 #ifdef UNITTESTS

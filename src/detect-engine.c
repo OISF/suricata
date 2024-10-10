@@ -2989,14 +2989,23 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-/*
- * getting & (re)setting the internal sig i
- */
+bool DetectEngineMpmCachingEnabled(void)
+{
+    const char *strval = NULL;
+    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
+        return false;
 
-//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx)
-//{
-//    return de_ctx->signum;
-//}
+    int sgh_mpm_caching = 0;
+    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    return (bool)sgh_mpm_caching;
+}
+
+const char *DetectEngineMpmCachingGetPath(void)
+{
+    const char *strval = NULL;
+    ConfGet("detect.sgh-mpm-caching-path", &strval);
+    return strval;
+}
 
 void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
 {
