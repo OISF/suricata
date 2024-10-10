@@ -2293,6 +2293,19 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+# nDPI support (no library checks for this stub)
+    AC_ARG_ENABLE(ndpi,
+           AS_HELP_STRING([--enable-ndpi], [Enable nDPI support]),
+           [enable_ndpi=$enableval],[enable_ndpi=no])
+    if test "x$enable_ndpi" = "xyes"; then
+        AM_CONDITIONAL([BUILD_NDPI], [true])
+        ndpi_comment=""
+    else
+        AM_CONDITIONAL([BUILD_NDPI], [false])
+        ndpi_comment="#"
+    fi
+    AC_SUBST([ndpi_comment])
+
     AC_ARG_ENABLE(warnings,
            AS_HELP_STRING([--enable-warnings], [Enable supported C compiler warnings]),[enable_warnings=$enableval],[enable_warnings=no])
     AS_IF([test "x$enable_warnings" = "xyes"], [
@@ -2513,6 +2526,7 @@ AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
 AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/pfring/Makefile)
+AC_CONFIG_FILES(plugins/ndpi-dummy/Makefile)
 
 AC_OUTPUT
 
