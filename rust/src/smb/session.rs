@@ -61,6 +61,7 @@ impl SMBState {
                 _ => { false },
             };
             if hit {
+                tx.tx_data.updated = [true; 2];
                 return Some(tx);
             }
         }

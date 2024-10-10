@@ -88,6 +88,7 @@ impl DCERPCUDPState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.req_done || !tx_old.resp_done {
+                    tx_old.tx_data.updated = [true; 2];
                     tx_old.req_done = true;
                     tx_old.resp_done = true;
                     break;
@@ -164,6 +165,7 @@ impl DCERPCUDPState {
         }
 
         if let Some(tx) = otx {
+            tx.tx_data.updated = [true; 2];
             let done = (hdr.flags1 & PFCL1_FRAG) == 0 || (hdr.flags1 & PFCL1_LASTFRAG) != 0;
 
             match hdr.pkt_type {

@@ -935,7 +935,10 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
                         (pkt_dir == STREAM_TOSERVER) ? ts_disrupt_flags : tc_disrupt_flags);
             AppLayerParserFileTxHousekeeping(f, tx, pkt_dir, (bool)pkt_dir_trunc);
         }
-
+        if (txd) {
+            // should be reset by parser next time it updates the tx
+            txd->updated[(pkt_dir & STREAM_TOSERVER) ? 0 : 1] = false;
+        }
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
         if (tx_progress_tc < tx_end_state_tc) {

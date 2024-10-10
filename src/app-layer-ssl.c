@@ -2687,6 +2687,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
         AppLayerParserState *pstate, StreamSlice stream_slice)
 {
     SSLState *ssl_state = (SSLState *)alstate;
+    ssl_state->tx_data.updated[0] = true;
+    ssl_state->tx_data.updated[1] = true;
     uint32_t counter = 0;
     ssl_state->f = f;
     const uint8_t *input = StreamSliceGetData(&stream_slice);
