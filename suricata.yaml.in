@@ -1615,6 +1615,9 @@ stream:
   #midstream-policy: ignore
   inline: auto                  # auto will use inline mode in IPS mode, yes or no set it statically
   reassembly:
+    urgent:
+      policy: oob              # drop, inline, oob (1 byte, see RFC 6093, 3.1), gap
+      oob-limit-policy: drop
     memcap: 256 MiB
     #memcap-policy: ignore
     depth: 1 MiB                # reassemble 1 MiB into a stream
