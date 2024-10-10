@@ -44,6 +44,7 @@
 #include "flow-storage.h"
 #include "flow-bypass.h"
 #include "flow-spare-pool.h"
+#include "flow-callbacks.h"
 
 #include "stream-tcp-private.h"
 
@@ -503,6 +504,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
+
+    SCFlowRunUpdateCallbacks(tv, f, p);
 }
 
 /** \brief Entry point for packet flow handling

@@ -140,7 +140,7 @@
 Flow *FlowAlloc(void);
 void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
-void FlowInit(Flow *, const Packet *);
+void FlowInit(ThreadVars *, Flow *, const Packet *);
 uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 
 /* flow end counter logic */
