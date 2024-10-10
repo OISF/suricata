@@ -178,6 +178,7 @@ enum {
     /* stream has no segments for forced reassembly, but only segments that
      * have been sent for detection, but are stuck in the detection queues */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_TX_DETECTION = 2,
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
