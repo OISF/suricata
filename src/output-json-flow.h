@@ -27,5 +27,8 @@
 void JsonFlowLogRegister(void);
 void EveAddFlow(Flow *f, JsonBuilder *js);
 void EveAddAppProto(Flow *f, JsonBuilder *js);
+#ifdef HAVE_NDPI
+void EveAddnDPIProto(Flow *f, JsonBuilder *js, ThreadVars *tv);
+#endif
 
 #endif /* SURICATA_OUTPUT_JSON_FLOW_H */

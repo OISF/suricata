@@ -167,7 +167,12 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
             WARN_ONCE(WOT_SNPRINTF, "Failed to write file info record. Output filename truncated.");
         } else {
             JsonBuilder *js_fileinfo =
-                    JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
+                    JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL
+#ifdef HAVE_NDPI
+                            ,
+                            tv
+#endif
+                    );
             if (likely(js_fileinfo != NULL)) {
                 jb_close(js_fileinfo);
                 FILE *out = fopen(js_metadata_filename, "w");
