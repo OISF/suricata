@@ -65,7 +65,7 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
 /* helper struct for OutputJSONMemBufferCallback */
 typedef struct OutputJSONMemBufferWrapper_ {
     MemBuffer **buffer; /**< buffer to use & expand as needed */
-    size_t expand_by;   /**< expand by this size */
+    uint32_t expand_by; /**< expand by this size */
 } OutputJSONMemBufferWrapper;
 
 typedef struct OutputJsonCommonSettings_ {
@@ -97,7 +97,7 @@ json_t *SCJsonString(const char *val);
 void CreateEveFlowId(JsonBuilder *js, const Flow *f);
 void EveFileInfo(JsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags);
 void EveTcpFlags(uint8_t flags, JsonBuilder *js);
-void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);
+void EvePacket(const Packet *p, JsonBuilder *js, uint32_t max_length);
 JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx);
 JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,

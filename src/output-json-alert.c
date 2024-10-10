@@ -601,8 +601,8 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
         if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
             uint8_t printable_buf[cbd.payload->offset + 1];
             uint32_t offset = 0;
-            PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf), cbd.payload->buffer,
-                    cbd.payload->offset);
+            PrintStringsToBuffer(printable_buf, &offset, cbd.payload->offset + 1,
+                    cbd.payload->buffer, cbd.payload->offset);
             jb_set_string(jb, "payload_printable", (char *)printable_buf);
         }
         return true;
