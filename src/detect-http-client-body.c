@@ -167,6 +167,14 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
+    // we cannot use a bidirectional rule with a fast pattern to client and this
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT) {
+        SCLogError("fast_pattern cannot be used on to_client keyword for "
+                   "bidirectional rule with a streaming buffer to server %u",
+                s->id);
+        return -1;
+    }
+    s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
     return 0;
 }
 
