@@ -159,8 +159,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         if (b == NULL || b_len == 0)
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
 
     return buffer;
@@ -198,8 +197,8 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
             goto end;
         }
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, rawdata, rawdata_len, transforms);
     }
 
     const uint32_t data_len = buffer->inspect_len;
@@ -253,8 +252,8 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
             return;
 
         /* setup buffer and apply transforms */
-        InspectionBufferSetup(det_ctx, list_id, buffer, rawdata, rawdata_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, ctx->transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, rawdata, rawdata_len, ctx->transforms);
     }
 
     const uint32_t data_len = buffer->inspect_len;
