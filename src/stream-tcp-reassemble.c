@@ -28,10 +28,12 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "packet.h"
 #include "detect.h"
 #include "flow.h"
 #include "threads.h"
 #include "conf.h"
+#include "action-globals.h"
 
 #include "flow-util.h"
 
@@ -604,6 +606,15 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
     SCReturn;
 }
 
+static void StreamTcpReassembleExceptionPolicyStatsIncr(
+        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
+{
+    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 /**
  *  \brief check if stream in pkt direction has depth reached
  *
@@ -757,12 +768,65 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(0);
     }
 
+    uint16_t *urg_offset;
+    if (PKT_IS_TOSERVER(p)) {
+        urg_offset = &ssn->urg_offset_ts;
+    } else {
+        urg_offset = &ssn->urg_offset_tc;
+    }
+
     const TCPHdr *tcph = PacketGetTCP(p);
+    /* segment sequence number, offset by previously accepted
+     * URG OOB data. */
+    uint32_t seg_seq = TCP_GET_RAW_SEQ(tcph) - (*urg_offset);
+    uint8_t urg_data = 0;
+
+    /* if stream_config.urgent_policy == TCP_STREAM_URGENT_DROP, we won't get here */
+    if (tcph->th_flags & TH_URG) {
+        const uint16_t urg_ptr = SCNtohs(tcph->th_urp);
+        if (urg_ptr > 0 && urg_ptr <= p->payload_len &&
+                (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB ||
+                        stream_config.urgent_policy == TCP_STREAM_URGENT_GAP)) {
+            /* track up to 64k out of band URG bytes. Fall back to inline
+             * when that budget is exceeded. */
+            if ((*urg_offset) < UINT16_MAX) {
+                if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB)
+                    (*urg_offset)++;
+
+                if ((*urg_offset) == UINT16_MAX) {
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_URGENT_OOB_LIMIT_REACHED);
+                }
+            } else {
+                /* OOB limit DROP is handled here */
+                if (stream_config.urgent_oob_limit_policy == TCP_STREAM_URGENT_DROP) {
+                    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_URG);
+                    SCReturnInt(0);
+                }
+            }
+            urg_data = 1; /* only treat last 1 byte as out of band. */
+            if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
+                StatsIncr(tv, ra_ctx->counter_tcp_urgent_oob);
+            }
+
+            /* depending on hitting the OOB limit, update urg_data or not */
+            if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB &&
+                    (*urg_offset) == UINT16_MAX &&
+                    stream_config.urgent_oob_limit_policy == TCP_STREAM_URGENT_INLINE) {
+                urg_data = 0;
+            } else {
+                if (urg_ptr == 1 && p->payload_len == 1) {
+                    SCLogDebug("no non-URG data");
+                    SCReturnInt(0);
+                }
+            }
+        }
+    }
+
+    const uint16_t payload_len = p->payload_len - urg_data;
 
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
-    uint32_t size =
-            StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_RAW_SEQ(tcph), p->payload_len);
+    uint32_t size = StreamTcpReassembleCheckDepth(ssn, stream, seg_seq, payload_len);
     SCLogDebug("ssn %p: check depth returned %"PRIu32, ssn, size);
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
@@ -776,9 +840,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(0);
     }
 
-    DEBUG_VALIDATE_BUG_ON(size > p->payload_len);
-    if (size > p->payload_len)
-        size = p->payload_len;
+    DEBUG_VALIDATE_BUG_ON(size > payload_len);
+    if (size > payload_len)
+        size = payload_len;
 
     TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx);
     if (seg == NULL) {
@@ -790,7 +854,8 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     DEBUG_VALIDATE_BUG_ON(size > UINT16_MAX);
     TCP_SEG_LEN(seg) = (uint16_t)size;
-    seg->seq = TCP_GET_RAW_SEQ(tcph);
+    /* set SEQUENCE number, adjusted to any URG pointer offset */
+    seg->seq = seg_seq;
 
     /* HACK: for TFO SYN packets the seq for data starts at + 1 */
     if (TCP_HAS_TFO(p) && p->payload_len && (tcph->th_flags & TH_SYN))
@@ -804,8 +869,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
                 APPLAYER_PROTO_DETECTION_SKIPPED);
     }
 
-    int r = StreamTcpReassembleInsertSegment(
-            tv, ra_ctx, stream, seg, p, p->payload, p->payload_len);
+    int r = StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, seg, p, p->payload, payload_len);
     if (r < 0) {
         if (r == -SC_ENOMEM) {
             ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
@@ -1931,15 +1995,6 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
         SCReturnInt(-1);
 
     SCReturnInt(0);
-}
-
-static void StreamTcpReassembleExceptionPolicyStatsIncr(
-        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
-{
-    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
-    if (likely(tv && id > 0)) {
-        StatsIncr(tv, id);
-    }
 }
 
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,

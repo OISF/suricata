@@ -632,8 +632,7 @@ static void StreamTcpSegmentAddPacketData(
  *  In case of error, this function returns the segment to the pool
  */
 int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *seg, Packet *p,
-        uint8_t *pkt_data, uint16_t pkt_datalen)
+        TcpStream *stream, TcpSegment *seg, Packet *p, uint8_t *pkt_data, uint16_t pkt_datalen)
 {
     SCEnter();
 

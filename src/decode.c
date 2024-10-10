@@ -889,6 +889,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "stream memcap";
         case PKT_DROP_REASON_STREAM_MIDSTREAM:
             return "stream midstream";
+        case PKT_DROP_REASON_STREAM_URG:
+            return "stream urgent";
         case PKT_DROP_REASON_STREAM_REASSEMBLY:
             return "stream reassembly";
         case PKT_DROP_REASON_APPLAYER_ERROR:
@@ -929,6 +931,8 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.stream_memcap";
         case PKT_DROP_REASON_STREAM_MIDSTREAM:
             return "ips.drop_reason.stream_midstream";
+        case PKT_DROP_REASON_STREAM_URG:
+            return "ips.drop_reason.stream_urgent";
         case PKT_DROP_REASON_STREAM_REASSEMBLY:
             return "ips.drop_reason.stream_reassembly";
         case PKT_DROP_REASON_APPLAYER_ERROR:
