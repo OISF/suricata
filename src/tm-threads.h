@@ -291,7 +291,9 @@ bool TmThreadsTimeSubsysIsReady(void);
  *
  * Check if a thread should wait to be unpaused and wait if so, or
  * until the thread kill flag is set.
+ *
+ * \returns true if the thread was unpaused, false if killed.
  */
-void TmThreadsWaitForUnpause(ThreadVars *tv);
+bool TmThreadsWaitForUnpause(ThreadVars *tv);
 
 #endif /* SURICATA_TM_THREADS_H */
