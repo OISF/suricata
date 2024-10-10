@@ -38,6 +38,16 @@
 #define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
 #define STREAMTCP_INIT_FLAG_BYPASS                 BIT_U8(2)
 #define STREAMTCP_INIT_FLAG_INLINE                 BIT_U8(3)
+/** flag to drop packets with URG flag set */
+#define STREAMTCP_INIT_FLAG_DROP_URG BIT_U8(4)
+
+enum TcpStreamUrgentHandling {
+    TCP_STREAM_URGENT_INLINE, /**< treat as inline data */
+#define TCP_STREAM_URGENT_DEFAULT TCP_STREAM_URGENT_INLINE
+    TCP_STREAM_URGENT_DROP, /**< drop TCP packet with URG flag */
+    TCP_STREAM_URGENT_OOB,  /**< treat 1 byte of URG data as OOB */
+    TCP_STREAM_URGENT_GAP,  /**< treat 1 byte of URG data as GAP */
+};
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -69,6 +79,8 @@ typedef struct TcpStreamCnf_ {
     enum ExceptionPolicy ssn_memcap_policy;
     enum ExceptionPolicy reassembly_memcap_policy;
     enum ExceptionPolicy midstream_policy;
+    enum TcpStreamUrgentHandling urgent_policy;
+    enum TcpStreamUrgentHandling urgent_oob_limit_policy;
 
     /* default to "LINUX" timestamp behavior if true*/
     bool liberal_timestamps;

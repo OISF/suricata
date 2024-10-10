@@ -4157,6 +4157,11 @@
                                 "stream_reassembly": {
                                     "type": "integer"
                                 },
+                                "stream_urgent": {
+                                    "description":
+                                            "Number of packets dropped due to TCP urgent flag",
+                                    "type": "integer"
+                                },
                                 "nfq_error": {
                                     "type": "integer"
                                 },
@@ -5315,6 +5320,10 @@
                         },
                         "urg": {
                             "description": "Number of TCP packets with the urgent flag set",
+                            "type": "integer"
+                        },
+                        "urgent_oob_data": {
+                            "description": "Number of OOB bytes tracked in TCP urgent handling",
                             "type": "integer"
                         }
                     },

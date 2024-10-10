@@ -288,6 +288,8 @@ typedef struct TcpSession_ {
     int8_t data_first_seen_dir;
     /** track all the tcp flags we've seen */
     uint8_t tcp_packet_flags;
+    uint16_t urg_offset_ts;            /**< SEQ offset from accepted OOB urg bytes */
+    uint16_t urg_offset_tc;            /**< SEQ offset from accepted OOB urg bytes */
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint32_t flags;
     uint32_t reassembly_depth; /**< reassembly depth for the stream */

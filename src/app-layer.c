@@ -684,6 +684,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
     /* If a gap notification, relay the notification on to the
      * app-layer if known. */
     if (flags & STREAM_GAP) {
+        SCLogDebug("GAP of size %u", data_len);
         if (alproto == ALPROTO_UNKNOWN) {
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(*stream);
             SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);

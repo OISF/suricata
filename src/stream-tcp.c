@@ -336,6 +336,17 @@ static inline bool StreamTcpInlineDropInvalid(void)
             && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
 }
 
+/** \internal
+ *  \brief See if stream engine is dropping URG packets in inline mode
+ *  \retval false no
+ *  \retval true yes
+ */
+static inline bool StreamTcpInlineDropUrg(void)
+{
+    return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) &&
+            stream_config.urgent_policy == TCP_STREAM_URGENT_DROP);
+}
+
 /* hack: stream random range code expects random values in range of 0-RAND_MAX,
  * but we can get both <0 and >RAND_MAX values from RandomGet
  */
@@ -349,6 +360,22 @@ static int RandomGetWrap(void)
 
     return r % RAND_MAX;
 }
+
+static const char *UrgentPolicyToString(enum TcpStreamUrgentHandling pol)
+{
+    switch (pol) {
+        case TCP_STREAM_URGENT_OOB:
+            return "oob";
+        case TCP_STREAM_URGENT_INLINE:
+            return "inline";
+        case TCP_STREAM_URGENT_DROP:
+            return "drop";
+        case TCP_STREAM_URGENT_GAP:
+            return "gap";
+    }
+    return NULL;
+}
+
 
 /** \brief          To initialize the stream global configuration data
  *
@@ -497,6 +524,46 @@ void StreamTcpInitConfig(bool quiet)
         }
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
+    }
+
+    const char *temp_urgpol = NULL;
+    if (ConfGet("stream.reassembly.urgent.policy", &temp_urgpol) == 1 && temp_urgpol != NULL) {
+        if (strcmp(temp_urgpol, "inline") == 0) {
+            stream_config.urgent_policy = TCP_STREAM_URGENT_INLINE;
+        } else if (strcmp(temp_urgpol, "drop") == 0) {
+            stream_config.urgent_policy = TCP_STREAM_URGENT_DROP;
+        } else if (strcmp(temp_urgpol, "oob") == 0) {
+            stream_config.urgent_policy = TCP_STREAM_URGENT_OOB;
+        } else if (strcmp(temp_urgpol, "gap") == 0) {
+            stream_config.urgent_policy = TCP_STREAM_URGENT_GAP;
+        } else {
+            FatalError("stream.reassembly.urgent.policy: invalid value '%s'", temp_urgpol);
+        }
+    } else {
+        stream_config.urgent_policy = TCP_STREAM_URGENT_DEFAULT;
+    }
+    if (!quiet) {
+        SCLogConfig("stream.reassembly.urgent.policy\": %s", UrgentPolicyToString(stream_config.urgent_policy));
+    }
+    if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
+        const char *temp_urgoobpol = NULL;
+        if (ConfGet("stream.reassembly.urgent.oob-limit-policy", &temp_urgoobpol) == 1 &&
+                temp_urgoobpol != NULL) {
+            if (strcmp(temp_urgoobpol, "inline") == 0) {
+                stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_INLINE;
+            } else if (strcmp(temp_urgoobpol, "drop") == 0) {
+                stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DROP;
+            } else if (strcmp(temp_urgoobpol, "gap") == 0) {
+                stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_GAP;
+            } else {
+                FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'", temp_urgoobpol);
+            }
+        } else {
+            stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DEFAULT;
+        }
+        if (!quiet) {
+            SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s", UrgentPolicyToString(stream_config.urgent_oob_limit_policy));
+        }
     }
 
     if ((ConfGetInt("stream.max-syn-queued", &value)) == 1) {
@@ -5351,6 +5418,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         StreamTcpSetEvent(p, STREAM_PKT_BROKEN_ACK);
     }
 
+    if ((p->tcph->th_flags & TH_URG) && StreamTcpInlineDropUrg()) {
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_URG);
+        SCLogDebug("dropping urgent packet");
+        SCReturnInt(0);
+    }
+
     /* If we are on IPS mode, and got a drop action triggered from
      * the IP only module, or from a reassembled msg and/or from an
      * applayer detection, then drop the rest of the packets of the
@@ -5793,6 +5866,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     stt->ra_ctx->counter_tcp_reass_data_normal_fail = StatsRegisterCounter("tcp.insert_data_normal_fail", tv);
     stt->ra_ctx->counter_tcp_reass_data_overlap_fail = StatsRegisterCounter("tcp.insert_data_overlap_fail", tv);
+    stt->ra_ctx->counter_tcp_urgent_oob = StatsRegisterCounter("tcp.urgent_oob_data", tv);
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);
