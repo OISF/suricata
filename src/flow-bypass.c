@@ -94,9 +94,9 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         return TM_ECODE_OK;
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    TmThreadsWaitForUnpause(th_v);
 
     while (1) {
-        TmThreadsWaitForUnpause(th_v);
         SCLogDebug("Dumping the table");
         gettimeofday(&tv, NULL);
         TIMEVAL_TO_TIMESPEC(&tv, &curtime);

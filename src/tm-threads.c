@@ -303,10 +303,9 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsWaitForUnpause(tv);
 
-    while(run) {
-        TmThreadsWaitForUnpause(tv);
-
+    while (run) {
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
         if (r == TM_ECODE_FAILED) {
@@ -453,12 +452,11 @@ static void *TmThreadsSlotVar(void *td)
     // enter infinite loops. They use this as the core loop. As a result, at this
     // point the worker threads can be considered both initialized and running.
     TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
+    TmThreadsWaitForUnpause(tv);
 
     s = (TmSlot *)tv->tm_slots;
 
     while (run) {
-        TmThreadsWaitForUnpause(tv);
-
         /* input a packet */
         p = tv->tmqh_in(tv);
 
