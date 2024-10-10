@@ -407,11 +407,7 @@ static void *StatsMgmtThread(void *arg)
 
     TmThreadsSetFlag(tv_local, THV_INIT_DONE | THV_RUNNING);
     while (1) {
-        if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
-            TmThreadsSetFlag(tv_local, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv_local);
-            TmThreadsUnsetFlag(tv_local, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(tv_local);
 
         struct timeval cur_timev;
         gettimeofday(&cur_timev, NULL);
@@ -489,11 +485,7 @@ static void *StatsWakeupThread(void *arg)
     TmThreadsSetFlag(tv_local, THV_INIT_DONE | THV_RUNNING);
 
     while (1) {
-        if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
-            TmThreadsSetFlag(tv_local, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv_local);
-            TmThreadsUnsetFlag(tv_local, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(tv_local);
 
         struct timeval cur_timev;
         gettimeofday(&cur_timev, NULL);

@@ -597,11 +597,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
     SCLogDebug("loader thread started");
     while (1)
     {
-        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
-            TmThreadsSetFlag(th_v, THV_PAUSED);
-            TmThreadTestThreadUnPaused(th_v);
-            TmThreadsUnsetFlag(th_v, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(th_v);
 
         /* see if we have tasks */
 

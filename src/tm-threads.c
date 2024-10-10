@@ -305,11 +305,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while(run) {
-        if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            TmThreadsSetFlag(tv, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv);
-            TmThreadsUnsetFlag(tv, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(tv);
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
@@ -360,6 +356,15 @@ error:
     tv->stream_pq = NULL;
     pthread_exit((void *) -1);
     return NULL;
+}
+
+void TmThreadsWaitForUnpause(ThreadVars *tv)
+{
+    if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
+        TmThreadsSetFlag(tv, THV_PAUSED);
+        TmThreadTestThreadUnPaused(tv);
+        TmThreadsUnsetFlag(tv, THV_PAUSED);
+    }
 }
 
 static void *TmThreadsSlotVar(void *td)
@@ -442,11 +447,7 @@ static void *TmThreadsSlotVar(void *td)
     s = (TmSlot *)tv->tm_slots;
 
     while (run) {
-        if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            TmThreadsSetFlag(tv, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv);
-            TmThreadsUnsetFlag(tv, THV_PAUSED);
-        }
+        TmThreadsWaitForUnpause(tv);
 
         /* input a packet */
         p = tv->tmqh_in(tv);
