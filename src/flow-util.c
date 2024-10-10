@@ -29,6 +29,7 @@
 #include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
+#include "flow-callbacks.h"
 #include "flow-var.h"
 #include "app-layer.h"
 
@@ -142,7 +143,7 @@ static inline void FlowSetICMPv6CounterPart(Flow *f)
 
 /* initialize the flow from the first packet
  * we see from it. */
-void FlowInit(Flow *f, const Packet *p)
+void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
 {
     SCEnter();
     SCLogDebug("flow %p", f);
@@ -202,6 +203,8 @@ void FlowInit(Flow *f, const Packet *p)
         MacSet *ms = MacSetInit(10);
         FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
     }
+
+    SCFlowRunInitCallbacks(tv, f, p);
 
     SCReturn;
 }
