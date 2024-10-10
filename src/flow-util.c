@@ -29,6 +29,7 @@
 #include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
+#include "flow-callbacks.h"
 #include "flow-var.h"
 #include "app-layer.h"
 
@@ -202,6 +203,8 @@ void FlowInit(Flow *f, const Packet *p)
         MacSet *ms = MacSetInit(10);
         FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
     }
+
+    SCFlowRunInitCallbacks(f, p);
 
     SCReturn;
 }
