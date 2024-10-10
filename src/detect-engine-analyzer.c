@@ -39,6 +39,7 @@
 #include "detect-pcre.h"
 #include "detect-bytejump.h"
 #include "detect-bytetest.h"
+#include "detect-isdataat.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
 #include "detect-tcp-ack.h"
@@ -853,6 +854,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_close(js);
                 break;
             }
+            case DETECT_ABSENT: {
+                const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+                jb_open_object(js, "absent");
+                jb_set_bool(js, "or_else", dad->or_else);
+                jb_close(js);
+                break;
+            }
+
             case DETECT_IPOPTS: {
                 const DetectIpOptsData *cd = (const DetectIpOptsData *)smd->ctx;
 

@@ -403,6 +403,14 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
     if (ffc == NULL) {
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
+    if (ffc->head == NULL) {
+        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                          engine->progress);
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
 
     int local_file_id = 0;
     File *file = ffc->head;
