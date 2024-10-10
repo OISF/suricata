@@ -56,8 +56,7 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         if (!GetBuf(txv, flow_flags, &b, &b_len))
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
     return buffer;
 }
@@ -115,8 +114,8 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
             (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
                     void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
-            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw)) kw->Setup;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx *de, void *ptr)) kw->Free;
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw))kw->Setup;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx *de, void *ptr))kw->Free;
     DETECT_TBLSIZE_IDX++;
     return DETECT_TBLSIZE_IDX - 1;
 }
