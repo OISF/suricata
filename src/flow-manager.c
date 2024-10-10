@@ -817,11 +817,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    bool run = TmThreadsWaitForUnpause(th_v);
 
-    while (1)
-    {
-        TmThreadsWaitForUnpause(th_v);
-
+    while (run) {
         bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 
         /* Get the time */
@@ -1078,10 +1076,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     FlowQueuePrivate ret_queue = { NULL, NULL, 0 };
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    bool run = TmThreadsWaitForUnpause(th_v);
 
-    while (1)
-    {
-        TmThreadsWaitForUnpause(th_v);
+    while (run) {
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 

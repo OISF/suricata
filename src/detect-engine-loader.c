@@ -595,10 +595,8 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE | THV_RUNNING);
     SCLogDebug("loader thread started");
-    while (1)
-    {
-        TmThreadsWaitForUnpause(th_v);
-
+    bool run = TmThreadsWaitForUnpause(th_v);
+    while (run) {
         /* see if we have tasks */
 
         DetectLoaderControl *loader = &loaders[ftd->instance];
