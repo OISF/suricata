@@ -231,7 +231,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
-    char run = 1;
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
@@ -303,21 +302,20 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+    bool run = TmThreadsWaitForUnpause(tv);
 
-    while(run) {
-        TmThreadsWaitForUnpause(tv);
-
+    while (run) {
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
         if (r == TM_ECODE_FAILED) {
             TmThreadsSetFlag(tv, THV_FAILED);
-            run = 0;
+            run = false;
         }
         if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
-            run = 0;
+            run = false;
         }
         if (r == TM_ECODE_DONE) {
-            run = 0;
+            run = false;
         }
     }
     StatsSyncCounters(tv);
@@ -361,7 +359,7 @@ error:
 /**
  * Also returns if the kill flag is set.
  */
-void TmThreadsWaitForUnpause(ThreadVars *tv)
+bool TmThreadsWaitForUnpause(ThreadVars *tv)
 {
     if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
         TmThreadsSetFlag(tv, THV_PAUSED);
@@ -370,11 +368,13 @@ void TmThreadsWaitForUnpause(ThreadVars *tv)
             SleepUsec(100);
 
             if (TmThreadsCheckFlag(tv, THV_KILL))
-                break;
+                return false;
         }
 
         TmThreadsUnsetFlag(tv, THV_PAUSED);
     }
+
+    return true;
 }
 
 static void *TmThreadsSlotVar(void *td)
@@ -382,7 +382,6 @@ static void *TmThreadsSlotVar(void *td)
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
-    char run = 1;
     TmEcode r = TM_ECODE_OK;
 
     CaptureStatsSetup(tv);
@@ -453,12 +452,11 @@ static void *TmThreadsSlotVar(void *td)
     // enter infinite loops. They use this as the core loop. As a result, at this
     // point the worker threads can be considered both initialized and running.
     TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
+    bool run = TmThreadsWaitForUnpause(tv);
 
     s = (TmSlot *)tv->tm_slots;
 
     while (run) {
-        TmThreadsWaitForUnpause(tv);
-
         /* input a packet */
         p = tv->tmqh_in(tv);
 
@@ -490,7 +488,7 @@ static void *TmThreadsSlotVar(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            run = 0;
+            run = false;
         }
     } /* while (run) */
     StatsSyncCounters(tv);
