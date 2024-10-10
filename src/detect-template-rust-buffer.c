@@ -53,11 +53,11 @@ static int g_template_rust_id = 0;
 void DetectTemplateRustBufferRegister(void)
 {
     /* TEMPLATE_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.template-rust") == NULL) {
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
     /* TEMPLATE_END_REMOVE */
-    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_rust_buffer";
+    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template.buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
             "Template content modifier to match on the template buffers";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].Setup = DetectTemplateRustBufferSetup;
@@ -153,14 +153,14 @@ static int DetectTemplateRustBufferTest(void)
     /* This rule should match. */
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
                                       "msg:\"TEMPLATE Test Rule\"; "
-                                      "template_rust_buffer; content:\"World!\"; "
+                                      "template.buffer; content:\"World!\"; "
                                       "sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     /* This rule should not match. */
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
                                       "msg:\"TEMPLATE Test Rule\"; "
-                                      "template_rust_buffer; content:\"W0rld!\"; "
+                                      "template.buffer; content:\"W0rld!\"; "
                                       "sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 

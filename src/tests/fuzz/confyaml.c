@@ -85,8 +85,6 @@ app-layer:\n\
       enabled: yes\n\
     template:\n\
       enabled: yes\n\
-    template-rust:\n\
-      enabled: yes\n\
     modbus:\n\
       enabled: yes\n\
       detection-ports:\n\
