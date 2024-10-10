@@ -317,6 +317,7 @@ noinst_HEADERS = \
 	feature.h \
 	flow-bit.h \
 	flow-bypass.h \
+	flow-callbacks.h \
 	flow.h \
 	flow-hash.h \
 	flow-manager.h \
@@ -875,6 +876,7 @@ libsuricata_c_a_SOURCES = \
 	feature.c \
 	flow-bit.c \
 	flow-bypass.c \
+	flow-callbacks.c \
 	flow.c \
 	flow-hash.c \
 	flow-manager.c \
