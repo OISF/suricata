@@ -39,6 +39,7 @@
 #include "flow-manager.h"
 #include "flow-storage.h"
 #include "flow-spare-pool.h"
+#include "flow-callbacks.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-cache.h"
@@ -1059,7 +1060,7 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
         StatsDecr(tv, ftd->counter_tcp_active_sessions);
     }
     StatsDecr(tv, ftd->counter_flow_active);
-
+    SCFlowRunFinishCallbacks(tv, f);
     FlowClearMemory(f, f->protomap);
     FLOWLOCK_UNLOCK(f);
 }
