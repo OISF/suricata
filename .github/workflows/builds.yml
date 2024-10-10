@@ -73,8 +73,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -324,8 +324,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -404,8 +404,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -476,8 +476,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -573,8 +573,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -667,8 +667,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -764,8 +764,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -960,8 +960,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -1234,8 +1234,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -1306,8 +1306,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
@@ -1363,8 +1363,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -1437,8 +1437,9 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
+
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1553,8 +1554,9 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
+
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1658,8 +1660,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1795,8 +1797,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1882,8 +1884,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1985,8 +1987,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -2085,8 +2087,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2172,8 +2174,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -2236,8 +2238,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2318,8 +2320,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2622,8 +2624,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2712,8 +2714,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       # Setup apt package caching.
       - name: Setup apt package caching
@@ -2806,8 +2808,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2890,8 +2892,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2964,8 +2966,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -3034,8 +3036,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - run: |
          brew install \
           autoconf \
@@ -3099,8 +3101,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -3155,8 +3157,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -3199,8 +3201,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -3245,8 +3247,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
