@@ -51,6 +51,7 @@
 #include "util-conf.h"
 #include "detect-flowbits.h"
 #include "util-var-name.h"
+#include "detect-icmp-id.h"
 
 static int rule_warnings_only = 0;
 
@@ -921,6 +922,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
                 jb_open_object(js, "tcp_mss");
                 SCDetectU16ToJson(js, cd);
+                jb_close(js);
+                break;
+            }
+            case DETECT_ICMP_ID: {
+                const DetectIcmpIdData *cd = (const DetectIcmpIdData *)smd->ctx;
+                jb_open_object(js, "id");
+                jb_set_uint(js, "number", cd->id);
                 jb_close(js);
                 break;
             }
