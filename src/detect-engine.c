@@ -105,6 +105,9 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
+static inline void InspectionBufferApplyTransformsInternal(
+        InspectionBuffer *, const DetectEngineTransforms *);
+
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
@@ -1557,6 +1560,27 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
     return buffer;
 }
 
+static inline void InspectionBufferApplyTransformsInternal(
+        InspectionBuffer *buffer, const DetectEngineTransforms *transforms)
+{
+    if (transforms) {
+        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
+            const int id = transforms->transforms[i].transform;
+            if (id == 0)
+                break;
+            BUG_ON(sigmatch_table[id].Transform == NULL);
+            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
+            SCLogDebug("applied transform %s", sigmatch_table[id].name);
+        }
+    }
+}
+
+void InspectionBufferApplyTransforms(
+        InspectionBuffer *buffer, const DetectEngineTransforms *transforms)
+{
+    InspectionBufferApplyTransformsInternal(buffer, transforms);
+}
+
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 {
     memset(buffer, 0, sizeof(*buffer));
@@ -1591,11 +1615,10 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->len = 0;
     buffer->initialized = true;
 
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferApplyTransformsInternal(buffer, transforms);
 }
 
-/** \brief setup the buffer with our initial data */
-void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+static inline void InspectionBufferSetupInternal(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
@@ -1612,6 +1635,21 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
     buffer->initialized = true;
+}
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+{
+    InspectionBufferSetupInternal(det_ctx, list_id, buffer, data, data_len);
+}
+
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len,
+        const DetectEngineTransforms *transforms)
+{
+    InspectionBufferSetupInternal(det_ctx, list_id, buffer, data, data_len);
+    InspectionBufferApplyTransformsInternal(buffer, transforms);
 }
 
 void InspectionBufferFree(InspectionBuffer *buffer)
@@ -1709,21 +1747,6 @@ bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_lis
     }
 
     return true;
-}
-
-void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
-        const DetectEngineTransforms *transforms)
-{
-    if (transforms) {
-        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
-            const int id = transforms->transforms[i].transform;
-            if (id == 0)
-                break;
-            BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
-            SCLogDebug("applied transform %s", sigmatch_table[id].name);
-        }
-    }
 }
 
 static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)

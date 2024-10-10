@@ -79,8 +79,8 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         SCLogDebug("have data!");
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }
@@ -105,8 +105,8 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
         }
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }
