@@ -6586,6 +6586,16 @@
         "tls": {
             "type": "object",
             "properties": {
+                "certificate": {
+                    "type": "string"
+                },
+                "chain": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "client": {
                     "type": "object",
                     "properties": {
