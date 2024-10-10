@@ -265,6 +265,9 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (p->tcph->th_flags & (TH_RST)) {
         StatsIncr(tv, dtv->counter_tcp_rst);
     }
+    if (p->tcph->th_flags & (TH_URG)) {
+        StatsIncr(tv, dtv->counter_tcp_urg);
+    }
 #ifdef DEBUG
     SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s%s",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_HLEN(p), len,

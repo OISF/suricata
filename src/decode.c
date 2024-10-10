@@ -541,6 +541,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
     dtv->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     dtv->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
+    dtv->counter_tcp_urg = StatsRegisterCounter("tcp.urg", tv);
 
     dtv->counter_udp = StatsRegisterCounter("decoder.udp", tv);
     dtv->counter_sctp = StatsRegisterCounter("decoder.sctp", tv);

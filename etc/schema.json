@@ -5312,6 +5312,10 @@
                         },
                         "synack": {
                             "type": "integer"
+                        },
+                        "urg": {
+                            "description": "Number of TCP packets with the urgent flag set",
+                            "type": "integer"
                         }
                     },
                     "additionalProperties": false
