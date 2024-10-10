@@ -953,7 +953,7 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     fclose(fp);
 }
 
-static int RulesGroupByProto(DetectEngineCtx *de_ctx)
+static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
 
@@ -964,8 +964,8 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         if (s->type == SIG_TYPE_IPONLY)
             continue;
 
-        int p;
-        for (p = 0; p < 256; p++) {
+        /* traverse over IP protocol list from libc */
+        for (int p = 0; p < 256; p++) {
             if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
                 continue;
             }
@@ -973,6 +973,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
                 continue;
             }
 
+            /* Signatures that are !IP only, ICMP, SCTP are handlnd here */
             if (s->flags & SIG_FLAG_TOCLIENT) {
                 SigGroupHeadAppendSig(de_ctx, &sgh_tc[p], s);
             }
@@ -1063,8 +1064,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
-                             const DetectPort *a, int ipproto)
+static int PortIsPriority(const DetectEngineCtx *de_ctx, const DetectPort *a, int ipproto)
 {
     DetectPort *w = de_ctx->tcp_whitelist;
     if (ipproto == IPPROTO_UDP)
@@ -1082,7 +1082,7 @@ static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
-static int RuleSetWhitelist(Signature *s)
+static int RuleSetScore(Signature *s)
 {
     DetectPort *p = NULL;
     if (s->flags & SIG_FLAG_TOSERVER)
@@ -1519,8 +1519,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
         int wl = s->init_data->score;
         while (p) {
-            int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? DETECT_PGSCORE_RULE_PORT_WHITELISTED
-                                                            : 0;
+            int pwl = PortIsPriority(de_ctx, p, ipproto) ? DETECT_PGSCORE_RULE_PORT_WHITELISTED : 0;
             pwl = MAX(wl,pwl);
 
             DetectPort *lookup = DetectPortHashLookup(de_ctx, p);
@@ -1786,7 +1785,7 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         DetectContentPropagateLimits(s);
         SigParseApplyDsizeToContent(s);
 
-        RuleSetWhitelist(s);
+        RuleSetScore(s);
 
         /* if keyword engines are enabled in the config, handle them here */
         if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
@@ -1891,7 +1890,7 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
     de_ctx->flow_gh[0].udp = RulesGroupByPorts(de_ctx, IPPROTO_UDP, SIG_FLAG_TOCLIENT);
 
     /* Setup the other IP Protocols (so not TCP/UDP) */
-    RulesGroupByProto(de_ctx);
+    RulesGroupByIPProto(de_ctx);
 
     /* now for every rule add the source group to our temp lists */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
