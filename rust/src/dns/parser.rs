@@ -361,16 +361,39 @@ pub fn dns_parse_body<'a>(
 ) -> IResult<&'a [u8], DNSMessage> {
     let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
-    let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
-    let (i, additionals) = dns_parse_answer(i, message, header.additional_rr as usize)?;
+
+    let mut invalid_authorities = false;
+    let mut authorities = Vec::new();
+    let mut i_next = i;
+    let authorities_parsed = dns_parse_answer(i, message, header.authority_rr as usize);
+    if let Ok((i, authorities_ok)) = authorities_parsed {
+        authorities = authorities_ok;
+        i_next = i;
+    } else {
+        invalid_authorities = true;
+    }
+
+    let mut invalid_additionals = false;
+    let mut additionals = Vec::new();
+    if !invalid_authorities {
+        let additionals_parsed = dns_parse_answer(i_next, message, header.additional_rr as usize);
+        if let Ok((i, additionals_ok)) = additionals_parsed {
+                additionals = additionals_ok;
+                i_next = i;
+            } else {
+                invalid_additionals = true;
+            }
+    }
     Ok((
-        i,
+        i_next,
         DNSMessage {
             header,
             queries,
             answers,
             authorities,
+            invalid_authorities,
             additionals,
+            invalid_additionals,
         },
     ))
 }
