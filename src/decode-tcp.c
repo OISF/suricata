@@ -257,6 +257,9 @@ static int DecodeTCPPacket(
     if (tcph->th_flags & (TH_RST)) {
         StatsIncr(tv, dtv->counter_tcp_rst);
     }
+    if (tcph->th_flags & (TH_URG)) {
+        StatsIncr(tv, dtv->counter_tcp_urg);
+    }
 
 #ifdef DEBUG
     SCLogDebug("TCP sp: %u -> dp: %u - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s%s", p->sp,
