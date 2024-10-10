@@ -1086,6 +1086,14 @@ completed).
 
   emergency-recovery: 30                  #Percentage of 10000 prealloc'd flows.
 
+If aggressive flow pruning in emergency-mode is not desired, it can be disabled by
+configuring flow.force_reuse.
+
+::
+
+  flow:
+    force_reuse: false
+
 Flow Time-Outs
 ~~~~~~~~~~~~~~
 
