@@ -74,8 +74,8 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, software, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, software, b_len, transforms);
     }
 
     return buffer;

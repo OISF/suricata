@@ -61,7 +61,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t flow_flags, void *txv, const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -77,8 +77,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, hassh, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, hassh, b_len, transforms);
     }
 
     return buffer;
