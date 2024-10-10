@@ -781,7 +781,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
     fb->head = f;
 
     /* initialize and return */
-    FlowInit(f, p);
+    FlowInit(tv, f, p);
     f->flow_hash = hash;
     f->fb = fb;
     FlowUpdateState(f, FLOW_STATE_NEW);
@@ -886,7 +886,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         fb->head = f;
 
         /* got one, now lock, initialize and return */
-        FlowInit(f, p);
+        FlowInit(tv, f, p);
         f->flow_hash = hash;
         f->fb = fb;
         FlowUpdateState(f, FLOW_STATE_NEW);
@@ -951,7 +951,7 @@ flow_removed:
             fb->head = f;
 
             /* initialize and return */
-            FlowInit(f, p);
+            FlowInit(tv, f, p);
             f->flow_hash = hash;
             f->fb = fb;
             FlowUpdateState(f, FLOW_STATE_NEW);
