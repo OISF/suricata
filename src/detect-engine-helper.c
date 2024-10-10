@@ -121,6 +121,33 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
     return DETECT_TBLSIZE_IDX - 1;
 }
 
+int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
+{
+    if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
+        void *tmp = SCRealloc(
+                sigmatch_table, (DETECT_TBLSIZE + DETECT_TBLSIZE_STEP) * sizeof(SigTableElmt));
+        if (unlikely(tmp == NULL)) {
+            return -1;
+        }
+        sigmatch_table = tmp;
+        DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
+    }
+
+    sigmatch_table[DETECT_TBLSIZE_IDX].name = kw->name;
+    sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
+    sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
+    sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Transform =
+            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
+    sigmatch_table[DETECT_TBLSIZE_IDX].TransformValidate = (bool (*)(
+            const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
+            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+    DETECT_TBLSIZE_IDX++;
+    return DETECT_TBLSIZE_IDX - 1;
+}
+
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id, uint32_t index, MultiGetTxBuffer GetBuf)
@@ -143,4 +170,14 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
     InspectionBufferSetupMulti(buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
+}
+
+const uint8_t *InspectionBufferPtr(InspectionBuffer *buf)
+{
+    return buf->inspect;
+}
+
+uint32_t InspectionBufferLength(InspectionBuffer *buf)
+{
+    return buf->inspect_len;
 }

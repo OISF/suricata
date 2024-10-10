@@ -308,15 +308,12 @@ noinst_HEADERS = \
 	detect-tos.h \
 	detect-transform-base64.h \
 	detect-transform-casechange.h \
-	detect-transform-compress-whitespace.h \
-	detect-transform-dotprefix.h \
 	detect-transform-header-lowercase.h \
 	detect-transform-md5.h \
 	detect-transform-pcrexform.h \
 	detect-transform-sha1.h \
 	detect-transform-sha256.h \
 	detect-transform-strip-pseudo-headers.h \
-	detect-transform-strip-whitespace.h \
 	detect-transform-urldecode.h \
 	detect-transform-xor.h \
 	detect-ttl.h \
@@ -881,15 +878,12 @@ libsuricata_c_a_SOURCES = \
 	detect-tos.c \
 	detect-transform-base64.c \
 	detect-transform-casechange.c \
-	detect-transform-compress-whitespace.c \
-	detect-transform-dotprefix.c \
 	detect-transform-header-lowercase.c \
 	detect-transform-md5.c \
 	detect-transform-pcrexform.c \
 	detect-transform-sha1.c \
 	detect-transform-sha256.c \
 	detect-transform-strip-pseudo-headers.c \
-	detect-transform-strip-whitespace.c \
 	detect-transform-urldecode.c \
 	detect-transform-xor.c \
 	detect-ttl.c \
