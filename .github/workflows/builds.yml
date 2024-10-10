@@ -176,8 +176,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -384,8 +384,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -476,8 +476,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -567,8 +567,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -662,8 +662,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -857,8 +857,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -1127,8 +1127,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -1197,8 +1197,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Cache RPMs
         uses: actions/cache@v3.3.1
@@ -1249,8 +1249,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Install dependencies
         run: |
           apt update
@@ -1363,8 +1363,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Install dependencies
         run: |
           apt update
@@ -1461,8 +1461,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Install dependencies
         run: |
@@ -1545,8 +1545,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - name: Install dependencies
         run: |
           apt update
@@ -1607,8 +1607,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Install dependencies
         run: |
@@ -1686,8 +1686,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - name: Install dependencies
         run: |
@@ -1959,8 +1959,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - run: apt update
       - run: |
@@ -2046,8 +2046,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - run: apt update
       - run: |
@@ -2124,8 +2124,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - run: apt update
       - run: |
@@ -2206,8 +2206,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - run: |
           echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
@@ -2277,8 +2277,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
 
       - run: |
           apt update
@@ -2345,8 +2345,8 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - run: |
          brew install \
           autoconf \
@@ -2410,8 +2410,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2465,8 +2465,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2508,8 +2508,8 @@ jobs:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
         with:
-          path: ~/.cargo
-          key: windows-msys2-mingw64-cargo
+          path: ~/.cargo/registry
+          key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2542,4 +2542,3 @@ jobs:
           # need cwd in path due to dlls (see above)
           PATH="$PATH:$(pwd)" ./src/suricata --build-info
       - run: make install
-
