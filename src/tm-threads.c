@@ -358,11 +358,21 @@ error:
     return NULL;
 }
 
+/**
+ * Also returns if the kill flag is set.
+ */
 void TmThreadsWaitForUnpause(ThreadVars *tv)
 {
     if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
         TmThreadsSetFlag(tv, THV_PAUSED);
-        TmThreadTestThreadUnPaused(tv);
+
+        while (TmThreadsCheckFlag(tv, THV_PAUSE)) {
+            SleepUsec(100);
+
+            if (TmThreadsCheckFlag(tv, THV_KILL))
+                break;
+        }
+
         TmThreadsUnsetFlag(tv, THV_PAUSED);
     }
 }
@@ -1734,24 +1744,6 @@ static void TmThreadDeinitMC(ThreadVars *tv)
     if (tv->ctrl_cond) {
         SCCtrlCondDestroy(tv->ctrl_cond);
         SCFree(tv->ctrl_cond);
-    }
-}
-
-/**
- * \brief Tests if the thread represented in the arg has been unpaused or not.
- *
- *        The function would return if the thread tv has been unpaused or if the
- *        kill flag for the thread has been set.
- *
- * \param tv Pointer to the TV instance.
- */
-void TmThreadTestThreadUnPaused(ThreadVars *tv)
-{
-    while (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-        SleepUsec(100);
-
-        if (TmThreadsCheckFlag(tv, THV_KILL))
-            break;
     }
 }
 
