@@ -24,20 +24,18 @@
 #ifndef SURICATA_SOURCE_NAPATECH_H
 #define SURICATA_SOURCE_NAPATECH_H
 
-void TmModuleNapatechStreamRegister(void);
-TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
-void TmModuleNapatechDecodeRegister(void);
+void TmModuleReceiveNapatechRegister(int slot);
+void TmModuleDecodeNapatechRegister(int slot);
 
-#ifdef HAVE_NAPATECH
+TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
+
 #include <nt.h>
 
-struct NapatechStreamDevConf
-{
+struct NapatechStreamDevConf {
     uint16_t stream_id;
 };
 
 int NapatechSetPortmap(int port, int peer);
 int NapatechGetAdapter(uint8_t port);
 
-#endif /* HAVE_NAPATECH */
 #endif /* SURICATA_SOURCE_NAPATECH_H */

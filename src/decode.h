@@ -38,10 +38,6 @@
 #include "app-layer-protos.h"
 #endif
 
-#ifdef HAVE_NAPATECH
-#include "util-napatech.h"
-#endif /* HAVE_NAPATECH */
-
 typedef enum {
     CHECKSUM_VALIDATION_DISABLE,
     CHECKSUM_VALIDATION_ENABLE,
@@ -548,9 +544,6 @@ typedef struct Packet_
 #endif /* WINDIVERT */
 #ifdef HAVE_DPDK
         DPDKPacketVars dpdk_v;
-#endif
-#ifdef HAVE_NAPATECH
-        NapatechPacketVars ntpv;
 #endif
 #ifdef HAVE_AF_XDP
         AFXDPPacketVars afxdp_v;

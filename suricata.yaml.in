@@ -81,6 +81,7 @@ stats:
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:
   @pfring_comment@- @prefix@/lib/@PACKAGE_NAME@/pfring.so
+  @napatech_comment@- @prefix@/lib/@PACKAGE_NAME@/napatech.so
 # - /path/to/plugin.so
 
 # Configure the type of alert (and other) logging you would like.

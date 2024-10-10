@@ -23,10 +23,16 @@
  */
 
 #include "suricata-common.h"
+#include "suricata-plugin.h"
+
 #include "tm-threads.h"
+
+#include "runmode-napatech.h"
+#include "source-napatech.h" // need NapatechStreamDevConf structure
+#include "util-napatech.h"
+
 #include "conf.h"
 #include "runmodes.h"
-#include "output.h"
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
@@ -34,16 +40,10 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-device.h"
-#include "util-napatech.h"
-#include "runmode-napatech.h"
-#include "source-napatech.h" // need NapatechStreamDevConf structure
 
 static const char *default_mode = "workers";
 
-#ifdef HAVE_NAPATECH
-
-#define NT_RUNMODE_AUTOFP  1
-#define NT_RUNMODE_WORKERS 2
+#define NT_RUNMODE_WORKERS 1
 
 #define MAX_STREAMS 256
 static uint16_t num_configured_streams = 0;
@@ -77,26 +77,19 @@ bool NapatechUseHWBypass(void)
     return (use_hw_bypass != 0);
 }
 
-#endif
-
 const char *RunModeNapatechGetDefaultMode(void)
 {
     return default_mode;
 }
 
-void RunModeNapatechRegister(void)
+void RunModeNapatechRegister(int slot)
 {
-#ifdef HAVE_NAPATECH
-    RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "workers",
+    RunModeRegisterNewRunMode(slot, "workers",
             "Workers Napatech mode, each thread does all"
             " tasks from acquisition to logging",
             RunModeNapatechWorkers, NULL);
     return;
-#endif
 }
-
-
-#ifdef HAVE_NAPATECH
 
 static int NapatechRegisterDeviceStreams(void)
 {
@@ -154,8 +147,8 @@ static int NapatechRegisterDeviceStreams(void)
                 FatalError("or disable auto-config in the conf file before running.");
             }
         } else {
-            SCLogInfo("Registering Napatech device: %s - active stream%sfound.",
-                    plive_dev_buf, stream_config[inst].is_active ? " " : " NOT ");
+            SCLogInfo("Registering Napatech device: %s - active stream%sfound.", plive_dev_buf,
+                    stream_config[inst].is_active ? " " : " NOT ");
         }
         LiveRegisterDevice(plive_dev_buf);
 
@@ -181,7 +174,7 @@ static void *NapatechConfigParser(const char *device)
         return NULL;
     }
 
-    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof(struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         SCLogError("Failed to allocate memory for NAPATECH device name.");
         return NULL;
@@ -194,7 +187,7 @@ static void *NapatechConfigParser(const char *device)
         return NULL;
     }
 
-    return (void *) conf;
+    return (void *)conf;
 }
 
 static int NapatechGetThreadsCount(void *conf __attribute__((unused)))
@@ -221,8 +214,7 @@ static int NapatechInit(int runmode)
         FatalError("Unable to find existing Napatech Streams");
     }
 
-    struct NapatechStreamDevConf *conf =
-                            SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof(struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         FatalError("Failed to allocate memory for NAPATECH device.");
     }
@@ -265,5 +257,3 @@ int RunModeNapatechWorkers(void)
 {
     return NapatechInit(NT_RUNMODE_WORKERS);
 }
-
-#endif
