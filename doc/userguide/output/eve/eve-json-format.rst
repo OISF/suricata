@@ -2682,6 +2682,10 @@ References:
 .. _PostgreSQL message format - BackendKeyData: https://www.postgresql.org/docs
    /current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-BACKENDKEYDATA
 
+Field Reference
+~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/pgsql.rst
 
 Event type: IKE
 ---------------
@@ -2937,6 +2941,11 @@ Example of QUIC logging with CYU, JA3 and JA4 hashes (note that the JA4 hash is 
     "ja4": "q13d0310h3_55b375c5d22e_cd85d2d88918"
   }
 
+Output Reference
+~~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/quic.rst
+
 Event type: DHCP
 -----------------
 
@@ -3048,4 +3057,3 @@ Example of ARP logging: request and response
     "dest_mac": "00:1d:09:f0:92:ab",
     "dest_ip": "10.10.10.1"
   }
-

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,9 +41,6 @@
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
-
-#define DEFAULT_LOG_FILENAME "profile.log"
-#define DEFAULT_LOG_MODE_APPEND "yes"
 
 static pthread_mutex_t packet_profile_lock;
 static FILE *packet_profile_csv_fp = NULL;
@@ -434,9 +431,6 @@ void SCProfilingDumpPacketStats(void)
 #endif
     total = 0;
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
@@ -447,9 +441,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             if (pd->cnt == 0) {
@@ -472,9 +463,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
             if (pd->cnt == 0) {
@@ -601,9 +589,6 @@ void SCProfilingDumpPacketStats(void)
 #endif
     total = 0;
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
@@ -614,9 +599,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             if (pd->cnt == 0) {
@@ -639,9 +621,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
             if (pd->cnt == 0) {

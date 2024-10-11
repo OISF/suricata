@@ -141,6 +141,9 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
         }
         decode_length = nbytes;
     }
+    if (decode_length == 0) {
+        return;
+    }
 
     uint32_t decoded_size = Base64DecodeBufferSize(decode_length);
     uint8_t decoded[decoded_size];

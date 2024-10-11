@@ -151,6 +151,11 @@ def setup(app):
     else:
         app.add_stylesheet('css/suricata.css')
 
+    # Build generated pages if they don't exist. For example, when on
+    # RTD and we're build from git instead of a distribution package.
+    if not os.path.exists("./_generated"):
+        os.system("./generate-evedoc.sh")
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
@@ -338,3 +343,11 @@ rst_epilog = """
     "sysconfdir": os.getenv("sysconfdir", "/etc"),
     "localstatedir": os.getenv("localstatedir", "/var"),
 }
+
+# Custom code generate some documentation.
+# evedoc = "./evedoc.py"
+# eve_schema = "../../etc/schema.json"
+# os.makedirs("_generated", exist_ok=True)
+# subprocess.call([evedoc, "--output", "_generated/eve-index.rst", eve_schema])
+# for proto in ["quic", "pgsql"]:
+#     subprocess.call([evedoc, "--output", "_generated/{}.rst".format(proto), "--object", proto, eve_schema])
