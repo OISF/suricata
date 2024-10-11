@@ -30,6 +30,7 @@
 #include "stream.h"
 #include "runmodes.h"
 #include "threadvars.h"
+#include "thread-storage.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
@@ -919,7 +920,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
-    tv = SCCalloc(1, sizeof(ThreadVars));
+    tv = SCCalloc(1, sizeof(ThreadVars) + ThreadStorageSize());
     if (unlikely(tv == NULL))
         goto error;
 
@@ -1576,6 +1577,8 @@ static void TmThreadFree(ThreadVars *tv)
         return;
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
+
+    ThreadFreeStorage(tv);
 
     if (tv->flow_queue) {
         BUG_ON(tv->flow_queue->qlen != 0);
