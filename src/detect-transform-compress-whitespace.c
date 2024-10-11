@@ -38,7 +38,8 @@ static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature 
 #ifdef UNITTESTS
 static void DetectTransformCompressWhitespaceRegisterTests(void);
 #endif
-static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options);
+static void TransformCompressWhitespace(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 static bool TransformCompressWhitespaceValidate(
         const uint8_t *content, uint16_t content_len, void *options);
 
@@ -103,7 +104,8 @@ static bool TransformCompressWhitespaceValidate(
     return true;
 }
 
-static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
+static void TransformCompressWhitespace(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -167,7 +169,7 @@ static int DetectTransformCompressWhitespaceTest01(void)
     InspectionBufferInit(&buffer, 9);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformCompressWhitespace(&buffer, NULL);
+    TransformCompressWhitespace(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -186,7 +188,7 @@ static int DetectTransformCompressWhitespaceTest02(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformCompressWhitespace(&buffer, NULL);
+    TransformCompressWhitespace(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

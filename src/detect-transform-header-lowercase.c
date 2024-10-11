@@ -46,7 +46,8 @@ static int DetectTransformHeaderLowercaseSetup(
     SCReturnInt(r);
 }
 
-static void DetectTransformHeaderLowercase(InspectionBuffer *buffer, void *options)
+static void DetectTransformHeaderLowercase(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;

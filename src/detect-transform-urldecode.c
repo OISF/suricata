@@ -40,7 +40,8 @@ static int DetectTransformUrlDecodeSetup (DetectEngineCtx *, Signature *, const 
 static void DetectTransformUrlDecodeRegisterTests(void);
 #endif
 
-static void TransformUrlDecode(InspectionBuffer *buffer, void *options);
+static void TransformUrlDecode(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 void DetectTransformUrlDecodeRegister(void)
 {
@@ -115,7 +116,8 @@ static bool BufferUrlDecode(const uint8_t *input, const uint32_t input_len, uint
     return changed;
 }
 
-static void TransformUrlDecode(InspectionBuffer *buffer, void *options)
+static void TransformUrlDecode(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     uint32_t output_size;
     bool changed;
@@ -144,7 +146,7 @@ static int DetectTransformUrlDecodeTest01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformUrlDecode(&buffer, NULL);
+    TransformUrlDecode(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF (buffer.inspect_len != strlen("Suricata is 'awesome!'%00%ZZ%4"));
     FAIL_IF (memcmp(buffer.inspect, "Suricata is 'awesome!'%00%ZZ%4", buffer.inspect_len) != 0);

@@ -77,6 +77,7 @@ Major changes
     - sip.to
     - sip.content_type
     - sip.content_length
+- New transform ``luaxform`` that uses a Lua script for sticky buffer transformation.  More details in :ref:`lua-transform`
 
 Removals
 ~~~~~~~~

@@ -56,8 +56,7 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         if (!GetBuf(txv, flow_flags, &b, &b_len))
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
     return buffer;
 }
@@ -140,7 +139,7 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }

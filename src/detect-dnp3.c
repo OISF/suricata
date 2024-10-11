@@ -166,8 +166,8 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         }
 
         SCLogDebug("tx %p data %p data_len %u", tx, tx->buffer, tx->buffer_len);
-        InspectionBufferSetup(det_ctx, list_id, buffer, tx->buffer, tx->buffer_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, tx->buffer, tx->buffer_len, transforms);
     }
     return buffer;
 }
