@@ -452,6 +452,7 @@ noinst_HEADERS = \
 	suricata-common.h \
 	suricata.h \
 	suricata-plugin.h \
+	thread-callbacks.h \
 	thread-storage.h \
 	threads-debug.h \
 	threads.h \
@@ -1020,6 +1021,7 @@ libsuricata_c_a_SOURCES = \
 	stream-tcp-sack.c \
 	stream-tcp-util.c \
 	suricata.c \
+	thread-callbacks.c \
 	thread-storage.c \
 	threads.c \
 	tm-modules.c \
