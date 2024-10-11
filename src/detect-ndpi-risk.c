@@ -258,7 +258,7 @@ static int DetectnDPIRiskTest01(void)
 {
     DetectnDPIRiskData *data = DetectnDPIRiskParse("NDPI_PROBING_ATTEMPT", false);
     FAIL_IF_NULL(data);
-    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT));
+    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT)));
     FAIL_IF(data->negated != 0);
     DetectnDPIRiskFree(NULL, data);
     PASS;
@@ -268,7 +268,7 @@ static int DetectnDPIRiskTest02(void)
 {
     DetectnDPIRiskData *data = DetectnDPIRiskParse("NDPI_PROBING_ATTEMPT", true);
     FAIL_IF_NULL(data);
-    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT));
+    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT)));
     FAIL_IF(data->negated == 0);
     DetectnDPIRiskFree(NULL, data);
     PASS;
@@ -290,7 +290,7 @@ static int DetectnDPIRiskTest03(void)
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
 
     data = (DetectnDPIRiskData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
-    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT));
+    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT)));
     FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -314,7 +314,7 @@ static int DetectnDPIRiskTest04(void)
     data = (DetectnDPIRiskData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF_NULL(data);
 
-    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT));
+    FAIL_IF(!(NDPI_ISSET_BIT(data->risk_mask, NDPI_PROBING_ATTEMPT)));
     FAIL_IF(data->negated == 0);
 
     DetectEngineCtxFree(de_ctx);
