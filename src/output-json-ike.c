@@ -90,7 +90,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         goto error;
     }
 
-    OutputJsonBuilderBuffer(jb, thread->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread->ctx);
 
     jb_free(jb);
     return TM_ECODE_OK;

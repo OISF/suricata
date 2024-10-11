@@ -757,7 +757,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             EveAddVerdict(jb, p);
         }
 
-        OutputJsonBuilderBuffer(jb, aft->ctx);
+        OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
         jb_free(jb);
     }
 
@@ -767,7 +767,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
             EvePacket(p, packetjs, 0);
-            OutputJsonBuilderBuffer(packetjs, aft->ctx);
+            OutputJsonBuilderBuffer(tv, p, p->flow, packetjs, aft->ctx);
             jb_free(packetjs);
         }
     }
@@ -801,7 +801,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         AlertJsonHeader(p, pa, jb, json_output_ctx->flags, NULL, NULL);
 
-        OutputJsonBuilderBuffer(jb, aft->ctx);
+        OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
         jb_free(jb);
     }
 
