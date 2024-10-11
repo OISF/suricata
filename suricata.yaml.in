@@ -1702,12 +1702,12 @@ detect:
     default: mpm
 
   # the grouping values above control how many groups are created per
-  # direction. Port whitelisting forces that port to get its own group.
+  # direction. Port priority setting forces that port to get its own group.
   # Very common ports will benefit, as well as ports with many expensive
   # rules.
   grouping:
-    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
-    #udp-whitelist: 53, 135, 5060
+    #tcp-priority-ports: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+    #udp-priority-ports: 53, 135, 5060
 
   # Thresholding hash table settings.
   thresholds:

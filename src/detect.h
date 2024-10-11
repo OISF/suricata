@@ -974,8 +974,8 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *dport_hash_table;
 
-    DetectPort *tcp_whitelist;
-    DetectPort *udp_whitelist;
+    DetectPort *tcp_priorityports;
+    DetectPort *udp_priorityports;
 
     /** table for storing the string representation with the parsers result */
     HashListTable *address_table;
