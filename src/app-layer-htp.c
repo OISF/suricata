@@ -3134,7 +3134,6 @@ static int HTPParserTest02(void)
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
     FAIL_IF(r != 0);
 
-
     http_state = f->alstate;
     FAIL_IF_NULL(http_state);
 
@@ -3155,8 +3154,6 @@ static int HTPParserTest02(void)
     UTHFreeFlow(f);
     PASS;
 }
-    
-
 
 /** \test Test case where method is invalid and data is sent in smaller chunks
  *        and check the response of the parser from HTP library. */
@@ -3194,13 +3191,12 @@ static int HTPParserTest03(void)
     htp_state = f->alstate;
     FAIL_IF_NULL(htp_state);
 
-
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-   
-    FAIL_IF(h!=NULL);
+
+    FAIL_IF(h != NULL);
     FAIL_IF(tx->request_method_number != HTP_M_UNKNOWN);
     FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
 
@@ -3242,8 +3238,8 @@ static int HTPParserTest04(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
     htp_header_t *h = htp_table_get_index(tx->request_headers, 0, NULL);
-   
-    FAIL_IF(h!=NULL);
+
+    FAIL_IF(h != NULL);
     FAIL_IF(tx->request_method_number != HTP_M_UNKNOWN);
     FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_0_9);
 
@@ -3468,7 +3464,6 @@ static int HTPParserTest07(void)
     FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref,
                     bstr_len(tx_ud->request_uri_normalized)) != 0);
 
-    
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
@@ -3531,7 +3526,7 @@ libhtp:\n\
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
-    
+
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
@@ -3586,7 +3581,6 @@ libhtp:\n\
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
     FAIL_IF(r != 0);
-    
 
     htp_state = f->alstate;
     FAIL_IF_NULL(htp_state);
@@ -3599,7 +3593,7 @@ libhtp:\n\
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
-    
+
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
@@ -3646,7 +3640,6 @@ static int HTPParserTest10(void)
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         FAIL_IF(r != 0);
-            
     }
 
     htp_state = f->alstate;
@@ -3673,7 +3666,6 @@ static int HTPParserTest10(void)
     UTHFreeFlow(f);
     PASS;
 }
-   
 
 /** \test double encoding in path
  */
@@ -3783,7 +3775,6 @@ static int HTPParserTest12(void)
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         FAIL_IF(r != 0);
-           
     }
 
     htp_state = f->alstate;
@@ -3859,7 +3850,6 @@ static int HTPParserTest13(void)
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
         FAIL_IF(r != 0);
     }
-    
 
     htp_state = f->alstate;
     FAIL_IF_NULL(htp_state);
@@ -3889,7 +3879,7 @@ static int HTPParserTest13(void)
 /** \test Test basic config */
 static int HTPParserConfigTest01(void)
 {
-    int ret =0;
+    int ret = 0;
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -3928,9 +3918,8 @@ libhtp:\n\
     FAIL_IF(strcmp(node->name, "0") != 0);
     node = TAILQ_FIRST(&node->head);
     FAIL_IF_NULL(node);
-    
+
     FAIL_IF(strcmp(node->name, "apache-tomcat") != 0);
-    
 
     int i = 0;
     ConfNode *n;
@@ -3942,7 +3931,7 @@ libhtp:\n\
     node = ConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
 
-    TAILQ_FOREACH(n, &node->head, next) {
+    TAILQ_FOREACH (n, &node->head, next) {
         FAIL_IF_NULL(n);
         switch(i) {
             case 0:
