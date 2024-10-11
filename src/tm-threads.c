@@ -29,6 +29,7 @@
 #include "suricata.h"
 #include "stream.h"
 #include "runmodes.h"
+#include "thread-callbacks.h"
 #include "threadvars.h"
 #include "thread-storage.h"
 #include "tm-queues.h"
@@ -1011,6 +1012,8 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
 
     if (mucond != 0)
         TmThreadInitMC(tv);
+
+    SCThreadRunInitCallbacks(tv);
 
     return tv;
 
