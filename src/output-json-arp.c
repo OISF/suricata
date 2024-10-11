@@ -90,7 +90,7 @@ static int JsonArpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     JSONFormatAndAddMACAddr(jb, "dest_mac", arph->dest_mac, false);
     jb_set_string(jb, "dest_ip", dstip);
     jb_close(jb); /* arp */
-    OutputJsonBuilderBuffer(jb, thread);
+    OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread);
     jb_free(jb);
 
     return TM_ECODE_OK;
