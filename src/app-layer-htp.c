@@ -3113,7 +3113,6 @@ static int HTPParserTest01a(void)
 /** \test See how it deals with an incomplete request. */
 static int HTPParserTest02(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3124,8 +3123,7 @@ static int HTPParserTest02(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3134,16 +3132,11 @@ static int HTPParserTest02(void)
 
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
+
 
     http_state = f->alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
@@ -3157,20 +3150,18 @@ static int HTPParserTest02(void)
     FAIL_IF(strcmp(method, "POST") != 0);
     SCFree(method);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
+    
+
 
 /** \test Test case where method is invalid and data is sent in smaller chunks
  *        and check the response of the parser from HTP library. */
 static int HTPParserTest03(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "HELLO / HTTP/1.0\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3182,8 +3173,7 @@ static int HTPParserTest03(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3199,43 +3189,31 @@ static int HTPParserTest03(void)
         else flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
     }
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
+
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    FAIL_IF_NULL(tx);
 
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_UNKNOWN ||
-        h != NULL || tx->request_protocol_number != HTP_PROTOCOL_1_0)
-    {
-        printf("expected method M_UNKNOWN and got %s: , expected protocol "
-                "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+   
+    FAIL_IF(h!=NULL);
+    FAIL_IF(tx->request_method_number != HTP_M_UNKNOWN);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test case where invalid data is sent and check the response of the
  *        parser from HTP library. */
 static int HTPParserTest04(void)
 {
-    int result = 0;
     Flow *f = NULL;
     HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "World!\r\n";
@@ -3247,8 +3225,7 @@ static int HTPParserTest04(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3257,33 +3234,23 @@ static int HTPParserTest04(void)
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1,
             STREAM_TOSERVER | STREAM_START | STREAM_EOF, httpbuf1, httplen1);
-    if (r != 0) {
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_UNKNOWN ||
-        h != NULL || tx->request_protocol_number != HTP_PROTOCOL_0_9)
-    {
-        printf("expected method M_UNKNOWN and got %s: , expected protocol "
-                "NULL and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h = htp_table_get_index(tx->request_headers, 0, NULL);
+   
+    FAIL_IF(h!=NULL);
+    FAIL_IF(tx->request_method_number != HTP_M_UNKNOWN);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_0_9);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test both sides of a http stream mixed up to see if the HTP parser
@@ -3439,7 +3406,7 @@ static int HTPParserTest06(void)
     FAIL_IF(tx->response_status_number != 200);
     FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
 
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    htp_header_t *h = htp_table_get_index(tx->request_headers, 0, NULL);
     FAIL_IF_NULL(h);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -3452,7 +3419,6 @@ static int HTPParserTest06(void)
  */
 static int HTPParserTest07(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /awstats.pl?/migratemigrate%20=%20| HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3464,8 +3430,7 @@ static int HTPParserTest07(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3484,53 +3449,30 @@ static int HTPParserTest07(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
     }
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     uint8_t ref[] = "/awstats.pl?/migratemigrate = |";
     size_t reflen = sizeof(ref) - 1;
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
-            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
-                   (uintmax_t)reflen,
-                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
-            goto end;
-        }
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref,
-                   bstr_len(tx_ud->request_uri_normalized)) != 0)
-        {
-            printf("normalized uri \"");
-            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
-            printf("\" != \"");
-            PrintRawUriFp(stdout, ref, reflen);
-            printf("\": ");
-            goto end;
-        }
-    }
+    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref,
+                    bstr_len(tx_ud->request_uri_normalized)) != 0);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 #include "conf-yaml-loader.h"
@@ -3539,7 +3481,6 @@ end:
  */
 static int HTPParserTest08(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3567,8 +3508,7 @@ libhtp:\n\
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3579,47 +3519,33 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk returned %" PRId32 ", expected"
-                " 0: ", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Abort
  */
 static int HTPParserTest09(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3648,8 +3574,7 @@ libhtp:\n\
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3660,45 +3585,36 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk returned %" PRId32 ", expected"
-                " 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
+    
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
+
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
                        bstr_len(tx_ud->request_uri_normalized));
     }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Host:www.google.com <- missing space between name:value (rfc violation)
  */
 static int HTPParserTest10(void)
 {
-    int result = 0;
+
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nHost:www.google.com\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3710,8 +3626,7 @@ static int HTPParserTest10(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3730,57 +3645,35 @@ static int HTPParserTest10(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
+            
     }
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (h == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(h);
 
     char *name = bstr_util_strdup_to_c(h->name);
-    if (name == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(name);
 
-    if (strcmp(name, "Host") != 0) {
-        printf("header name not \"Host\", instead \"%s\": ", name);
-        free(name);
-        goto end;
-    }
-    free(name);
+    FAIL_IF(strcmp(name, "Host") != 0);
+    SCFree(name);
 
     char *value = bstr_util_strdup_to_c(h->value);
-    if (value == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(value);
 
-    if (strcmp(value, "www.google.com") != 0) {
-        printf("header value not \"www.google.com\", instead \"%s\": ", value);
-        free(value);
-        goto end;
-    }
-    free(value);
+    FAIL_IF(strcmp(value, "www.google.com") != 0);
+    SCFree(value);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
+   
 
 /** \test double encoding in path
  */
@@ -3798,8 +3691,7 @@ static int HTPParserTest11(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3818,22 +3710,14 @@ static int HTPParserTest11(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
     }
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (tx != NULL && tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (4 != bstr_len(tx_ud->request_uri_normalized)) {
@@ -3879,8 +3763,7 @@ static int HTPParserTest12(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3899,22 +3782,15 @@ static int HTPParserTest12(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
+           
     }
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL)
-        goto end;
+    FAIL_IF_NULL(tx);
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (7 != bstr_len(tx_ud->request_uri_normalized)) {
@@ -3951,7 +3827,6 @@ static int HTPParserTest12(void)
  */
 static int HTPParserTest13(void)
 {
-    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nHost:www.google.com\rName: Value\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3963,8 +3838,7 @@ static int HTPParserTest13(void)
     memset(&ssn, 0, sizeof(ssn));
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
@@ -3983,64 +3857,39 @@ static int HTPParserTest13(void)
             flags = STREAM_TOSERVER;
 
         r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, flags, &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            goto end;
-        }
+        FAIL_IF(r != 0);
     }
+    
 
     htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
-
+    FAIL_IF_NULL(htp_state);
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (h == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(h);
 
+    FAIL_IF_NULL(tx->request_method);
     char *name = bstr_util_strdup_to_c(h->name);
-    if (name == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(name);
 
-    if (strcmp(name, "Host") != 0) {
-        printf("header name not \"Host\", instead \"%s\": ", name);
-        free(name);
-        goto end;
-    }
-    free(name);
+    FAIL_IF(strcmp(name, "Host") != 0);
+    SCFree(name);
 
     char *value = bstr_util_strdup_to_c(h->value);
-    if (value == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(value);
 
-    if (strcmp(value, "www.google.com\rName: Value") != 0) {
-        printf("header value not \"www.google.com\", instead \"");
-        PrintRawUriFp(stdout, (uint8_t *)value, strlen(value));
-        printf("\": ");
-        free(value);
-        goto end;
-    }
-    free(value);
+    FAIL_IF(strcmp(value, "www.google.com\rName: Value") != 0);
+    SCFree(value);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test basic config */
 static int HTPParserConfigTest01(void)
 {
-    int ret = 0;
+    int ret =0;
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -4069,147 +3918,89 @@ libhtp:\n\
 
     ConfNode *outputs;
     outputs = ConfGetNode("libhtp.default-config.personality");
-    if (outputs == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(outputs);
 
     outputs = ConfGetNode("libhtp.server-config");
-    if (outputs == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(outputs);
 
     ConfNode *node = TAILQ_FIRST(&outputs->head);
-    if (node == NULL) {
-        goto end;
-    }
-    if (strcmp(node->name, "0") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "0") != 0);
     node = TAILQ_FIRST(&node->head);
-    if (node == NULL) {
-        goto end;
-    }
-    if (strcmp(node->name, "apache-tomcat") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    
+    FAIL_IF(strcmp(node->name, "apache-tomcat") != 0);
+    
 
     int i = 0;
     ConfNode *n;
 
     ConfNode *node2 = ConfNodeLookupChild(node, "personality");
-    if (node2 == NULL) {
-        goto end;
-    }
-    if (strcmp(node2->val, "Tomcat_6_0") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node2);
+    FAIL_IF(strcmp(node2->val, "Tomcat_6_0") != 0);
 
     node = ConfNodeLookupChild(node, "address");
-    if (node == NULL) {
-        goto end;
-    }
-    TAILQ_FOREACH(n, &node->head, next) {
-        if (n == NULL) {
-            goto end;
-        }
+    FAIL_IF_NULL(node);
 
+    TAILQ_FOREACH(n, &node->head, next) {
+        FAIL_IF_NULL(n);
         switch(i) {
             case 0:
-                if (strcmp(n->name, "0") != 0) {
-                    goto end;
-                }
-                if (strcmp(n->val, "192.168.1.0/24") != 0) {
-                    goto end;
-                }
+                FAIL_IF(strcmp(n->name, "0") != 0);
+                FAIL_IF(strcmp(n->val, "192.168.1.0/24") != 0);
                 break;
             case 1:
-                if (strcmp(n->name, "1") != 0) {
-                    goto end;
-                }
-                if (strcmp(n->val, "127.0.0.0/8") != 0) {
-                    goto end;
-                }
+                FAIL_IF(strcmp(n->name, "1") != 0);
+                FAIL_IF(strcmp(n->val, "127.0.0.0/8") != 0);
                 break;
             case 2:
-                if (strcmp(n->name, "2") != 0) {
-                    goto end;
-                }
-                if (strcmp(n->val, "::1") != 0) {
-                    goto end;
-                }
+                FAIL_IF(strcmp(n->name, "2") != 0);
+                FAIL_IF(strcmp(n->val, "::1") != 0);
                 break;
             default:
-                goto end;
+                FAIL;
         }
         i++;
     }
 
     outputs = ConfGetNode("libhtp.server-config");
-    if (outputs == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(outputs);
     node = TAILQ_FIRST(&outputs->head);
     node = TAILQ_NEXT(node, next);
-    if (node == NULL) {
-        goto end;
-    }
-    if (strcmp(node->name, "1") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "1") != 0);
     node = TAILQ_FIRST(&node->head);
-    if (node == NULL) {
-        goto end;
-    }
-    if (strcmp(node->name, "iis7") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->name, "iis7") != 0);
 
     node2 = ConfNodeLookupChild(node, "personality");
-    if (node2 == NULL) {
-        goto end;
-    }
-    if (strcmp(node2->val, "IIS_7_0") != 0) {
-        goto end;
-    }
+    FAIL_IF_NULL(node2);
+    FAIL_IF(strcmp(node2->val, "IIS_7_0") != 0);
 
     node = ConfNodeLookupChild(node, "address");
-    if (node == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(node);
 
     i = 0;
     TAILQ_FOREACH(n, &node->head, next) {
-        if (n == NULL) {
-            goto end;
-        }
+        FAIL_IF_NULL(n);
 
         switch(i) {
             case 0:
-                if (strcmp(n->name, "0") != 0) {
-                    goto end;
-                }
-                if (strcmp(n->val, "192.168.0.0/24") != 0) {
-                    goto end;
-                }
+                FAIL_IF(strcmp(n->name, "0") != 0);
+                FAIL_IF(strcmp(n->val, "192.168.0.0/24") != 0);
                 break;
             case 1:
-                if (strcmp(n->name, "1") != 0) {
-                    goto end;
-                }
-                if (strcmp(n->val, "192.168.10.0/24") != 0) {
-                    goto end;
-                }
+                FAIL_IF(strcmp(n->name, "1") != 0);
+                FAIL_IF(strcmp(n->val, "192.168.10.0/24") != 0);
                 break;
             default:
-                goto end;
+                FAIL;
         }
         i++;
     }
 
-    ret = 1;
+    PASS;
 
-end:
     ConfDeInit();
     ConfRestoreContextBackup();
 
