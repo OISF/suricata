@@ -953,7 +953,7 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     fclose(fp);
 }
 
-static int RulesGroupByProto(DetectEngineCtx *de_ctx)
+static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
 
@@ -964,8 +964,8 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         if (s->type == SIG_TYPE_IPONLY)
             continue;
 
-        int p;
-        for (p = 0; p < 256; p++) {
+        /* traverse over IP protocol list from libc */
+        for (int p = 0; p < 256; p++) {
             if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
                 continue;
             }
@@ -973,6 +973,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
                 continue;
             }
 
+            /* Signatures that are ICMP, SCTP, not IP only are handled here */
             if (s->flags & SIG_FLAG_TOCLIENT) {
                 SigGroupHeadAppendSig(de_ctx, &sgh_tc[p], s);
             }
@@ -1891,7 +1892,7 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
     de_ctx->flow_gh[0].udp = RulesGroupByPorts(de_ctx, IPPROTO_UDP, SIG_FLAG_TOCLIENT);
 
     /* Setup the other IP Protocols (so not TCP/UDP) */
-    RulesGroupByProto(de_ctx);
+    RulesGroupByIPProto(de_ctx);
 
     /* now for every rule add the source group to our temp lists */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
