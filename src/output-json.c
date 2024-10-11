@@ -955,7 +955,8 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     return 0;
 }
 
-int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
+int OutputJsonBuilderBuffer(
+        ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *js, OutputJsonThreadCtx *ctx)
 {
     LogFileCtx *file_ctx = ctx->file_ctx;
     MemBuffer **buffer = &ctx->buffer;
@@ -966,6 +967,8 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
     if (file_ctx->is_pcap_offline) {
         jb_set_string(js, "pcap_filename", PcapFileGetFilename());
     }
+
+    SCEveRunCallbacks(tv, p, f, js);
 
     jb_close(js);
 
