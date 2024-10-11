@@ -31,6 +31,7 @@
 #define SURICATA_OUTPUT_EVE_H
 
 #include "suricata-common.h"
+#include "rust.h"
 #include "conf.h"
 
 typedef uint32_t ThreadId;
@@ -172,5 +173,34 @@ typedef struct SCEveFileType_ {
 bool SCRegisterEveFileType(SCEveFileType *);
 
 SCEveFileType *SCEveFindFileType(const char *name);
+
+typedef void (*EveUserCallbackFn)(
+        ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb, void *user);
+
+/** \brief Register a callback for adding extra information to EVE logs.
+ *
+ * Allow users to register a callback for each EVE log. The callback
+ * is called just before the root object on the JsonBuilder is to be
+ * closed.
+ *
+ * New objects and fields can be append, but exist entries cannot be modified.
+ *
+ * Packet and Flow will be provided if available, but will other be
+ * NULL.
+ *
+ * Limitations: At this time the callbacks will only be called for EVE
+ * loggers that use JsonBuilder, notably this means it won't be called
+ * for stats records at this time.
+ *
+ * \returns true if callback is registered, false is not due to memory
+ *     allocation error.
+ */
+bool EveRegisterCallback(EveUserCallbackFn fn, void *user);
+
+/** \internal
+ *
+ * Run EVE callbacks.
+ */
+void EveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb);
 
 #endif
