@@ -501,7 +501,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* Close the tls object. */
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, aft->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, aft->ctx);
     jb_free(js);
 
     return 0;

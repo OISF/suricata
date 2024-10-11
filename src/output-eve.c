@@ -15,10 +15,49 @@
  * 02110-1301, USA.
  */
 
+#include "suricata-common.h"
 #include "output-eve.h"
 #include "util-debug.h"
+#include "rust.h"
+
+typedef struct EveUserCallback_ {
+    SCEveUserCallbackFn fn;
+    void *user;
+    struct EveUserCallback_ *next;
+} EveUserCallback;
+
+static EveUserCallback *eve_user_callbacks = NULL;
 
 static TAILQ_HEAD(, SCEveFileType_) output_types = TAILQ_HEAD_INITIALIZER(output_types);
+
+bool SCEveRegisterCallback(SCEveUserCallbackFn fn, void *user)
+{
+    EveUserCallback *cb = SCCalloc(1, sizeof(*cb));
+    if (cb == NULL) {
+        return false;
+    }
+    cb->fn = fn;
+    cb->user = user;
+    if (eve_user_callbacks == NULL) {
+        eve_user_callbacks = cb;
+    } else {
+        EveUserCallback *current = eve_user_callbacks;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = cb;
+    }
+    return true;
+}
+
+void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb)
+{
+    EveUserCallback *cb = eve_user_callbacks;
+    while (cb != NULL) {
+        cb->fn(tv, p, f, jb, cb->user);
+        cb = cb->next;
+    }
+}
 
 static bool IsBuiltinTypeName(const char *name)
 {
