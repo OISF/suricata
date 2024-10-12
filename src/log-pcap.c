@@ -528,8 +528,10 @@ static int PcapLogSegmentCallback(
     struct PcapLogCallbackContext *pctx = (struct PcapLogCallbackContext *)data;
 
     if (seg->pcap_hdr_storage->pktlen) {
-        pctx->pl->h->ts.tv_sec = seg->pcap_hdr_storage->ts.tv_sec;
-        pctx->pl->h->ts.tv_usec = seg->pcap_hdr_storage->ts.tv_usec;
+        struct timeval tv;
+        SCTIME_TO_TIMEVAL(&tv, seg->pcap_hdr_storage->ts);
+        pctx->pl->h->ts.tv_sec = tv.tv_sec;
+        pctx->pl->h->ts.tv_usec = tv.tv_usec;
         pctx->pl->h->len = seg->pcap_hdr_storage->pktlen + buflen;
         pctx->pl->h->caplen = seg->pcap_hdr_storage->pktlen + buflen;
         MemBufferReset(pctx->buf);

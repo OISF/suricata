@@ -569,8 +569,7 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, const Packet *pp)
 {
     if (GET_PKT_DATA(rp) != NULL && GET_PKT_LEN(rp) > pp->payload_len) {
-        seg->pcap_hdr_storage->ts.tv_sec = SCTIME_SECS(rp->ts);
-        seg->pcap_hdr_storage->ts.tv_usec = SCTIME_USECS(rp->ts);
+        seg->pcap_hdr_storage->ts = rp->ts;
         seg->pcap_hdr_storage->pktlen = GET_PKT_LEN(rp) - pp->payload_len;
         /*
          * pkt_hdr members are initially allocated 64 bytes of memory. Thus,
@@ -582,8 +581,7 @@ static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, c
                     seg->pcap_hdr_storage->alloclen, seg->pcap_hdr_storage->pktlen);
             if (tmp_pkt_hdr == NULL) {
                 SCLogDebug("Failed to realloc");
-                seg->pcap_hdr_storage->ts.tv_sec = 0;
-                seg->pcap_hdr_storage->ts.tv_usec = 0;
+                seg->pcap_hdr_storage->ts = SCTIME_INITIALIZER;
                 seg->pcap_hdr_storage->pktlen = 0;
                 return;
             } else {
@@ -594,8 +592,7 @@ static void StreamTcpSegmentAddPacketDataDo(TcpSegment *seg, const Packet *rp, c
         memcpy(seg->pcap_hdr_storage->pkt_hdr, GET_PKT_DATA(rp),
                 (size_t)GET_PKT_LEN(rp) - pp->payload_len);
     } else {
-        seg->pcap_hdr_storage->ts.tv_sec = 0;
-        seg->pcap_hdr_storage->ts.tv_usec = 0;
+        seg->pcap_hdr_storage->ts = SCTIME_INITIALIZER;
         seg->pcap_hdr_storage->pktlen = 0;
     }
 }
