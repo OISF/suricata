@@ -68,7 +68,7 @@ typedef struct VarNameStore_ {
     HashListTable *names;
     HashListTable *ids;
     uint32_t max_id;
-    struct timeval free_after;
+    SCTime_t free_after;
     TAILQ_ENTRY(VarNameStore_) next;
 } VarNameStore;
 typedef VarNameStore *VarNameStorePtr;
@@ -260,13 +260,10 @@ int VarNameStoreActivate(void)
     if (new_active) {
         VarNameStore *old_active = SC_ATOMIC_GET(active);
         if (old_active) {
-            struct timeval ts, add;
-            memset(&ts, 0, sizeof(ts));
-            memset(&add, 0, sizeof(add));
+            struct timeval ts;
             gettimeofday(&ts, NULL);
-            add.tv_sec = 60;
-            timeradd(&ts, &add, &ts);
-            old_active->free_after = ts;
+            SCTime_t free_after = SCTIME_ADD_SECS(SCTIME_FROM_TIMEVAL(&ts), 60);
+            old_active->free_after = free_after;
 
             TAILQ_INSERT_TAIL(&free_list, old_active, next);
             SCLogDebug("old active is stored in free list");
@@ -275,16 +272,16 @@ int VarNameStoreActivate(void)
         SC_ATOMIC_SET(active, new_active);
         SCLogDebug("new store active");
 
-        struct timeval now;
-        memset(&now, 0, sizeof(now));
-        gettimeofday(&now, NULL);
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        SCTime_t now = SCTIME_FROM_TIMEVAL(&tv);
 
         VarNameStore *s = NULL;
         while ((s = TAILQ_FIRST(&free_list))) {
             char timebuf[64];
-            CreateIsoTimeString(SCTIME_FROM_TIMEVAL(&s->free_after), timebuf, sizeof(timebuf));
+            CreateIsoTimeString(s->free_after, timebuf, sizeof(timebuf));
 
-            if (!timercmp(&now, &s->free_after, >)) {
+            if (SCTIME_CMP_LTE(now, s->free_after)) {
                 SCLogDebug("not yet freeing store %p before %s", s, timebuf);
                 break;
             }
