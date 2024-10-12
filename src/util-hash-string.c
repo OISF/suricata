@@ -38,8 +38,8 @@ uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
 char StringHashCompareFunc(void *data1, uint16_t datalen1,
                            void *data2, uint16_t datalen2)
 {
-    int len1 = strlen((char *)data1);
-    int len2 = strlen((char *)data2);
+    size_t len1 = strlen((char *)data1);
+    size_t len2 = strlen((char *)data2);
 
     if (len1 == len2 && memcmp(data1, data2, len1) == 0) {
         return 1;
