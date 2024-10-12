@@ -115,15 +115,6 @@ SCTime_t TimeGet(void);
 /** \brief initialize a 'struct timespec' from a 'struct timeval'. */
 #define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
 
-/** \brief compare two 'struct timeval' and return if the first is earlier than the second */
-static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
-{
-    /* from man timercmp on Linux: "Some systems (but not Linux/glibc), have a broken timercmp()
-     * implementation, in which CMP of >=, <=, and == do not work; portable applications can instead
-     * use ... !timercmp(..., >) */
-    return !timercmp(first, second, >);
-}
-
 #ifndef timeradd
 #define timeradd(a, b, r)                                                                          \
     do {                                                                                           \
