@@ -250,10 +250,12 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, JsonBuilder *js, ui
         AlertJsonMetadata(pa, js);
     }
 
-    if (pa->json_array_last_index >= 0) {
+    if (pa->json_info.json_string != NULL) {
         jb_open_object(js, "extra");
-        for (int8_t i = 0; i <= pa->json_array_last_index; i++) {
-            jb_set_formatted(js, pa->json_strings[i]);
+        const struct JsonInfoList *json_info = &pa->json_info;
+        while (json_info) {
+            jb_set_formatted(js, json_info->json_string);
+            json_info = json_info->next;
         }
         jb_close(js);
     }
