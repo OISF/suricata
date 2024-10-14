@@ -112,7 +112,7 @@ jobs:
           cd ..
           tar zcf suricata-verify.tar.gz suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
         with:
           name: prep
           path: |
