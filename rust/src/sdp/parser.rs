@@ -48,8 +48,7 @@ pub struct SdpMessage {
     pub phone_number: Option<String>,
     pub connection_data: Option<String>,
     pub bandwidths: Option<Vec<String>>,
-    pub time: String,
-    pub repeat_time: Option<String>,
+    pub time_description: Vec<TimeDescription>,
     pub time_zone: Option<String>,
     pub encryption_key: Option<String>,
     pub attributes: Option<Vec<String>>,
@@ -64,6 +63,12 @@ pub struct MediaDescription {
     pub bandwidths: Option<Vec<String>>,
     pub encryption_key: Option<String>,
     pub attributes: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub struct TimeDescription {
+    pub time: String,
+    pub repeat_time: Option<String>,
 }
 
 // token-char = %x21 / %x23-27 / %x2A-2B / %x2D-2E / %x30-39 / %x41-5A / %x5E-7E
@@ -149,8 +154,7 @@ pub fn sdp_parse_message(i: &[u8]) -> IResult<&[u8], SdpMessage> {
     let (i, phone_number) = opt(parse_phone_number)(i)?;
     let (i, connection_data) = opt(parse_connection_data)(i)?;
     let (i, bandwidths) = opt(parse_bandwidth)(i)?;
-    let (i, time) = parse_time(i)?;
-    let (i, repeat_time) = opt(parse_repeat_times)(i)?;
+    let (i, time_description) = many1(parse_time_description)(i)?;
     let (i, time_zone) = opt(parse_time_zone)(i)?;
     let (i, encryption_key) = opt(parse_encryption_key)(i)?;
     let (i, attributes) = opt(parse_attributes)(i)?;
@@ -167,8 +171,7 @@ pub fn sdp_parse_message(i: &[u8]) -> IResult<&[u8], SdpMessage> {
             phone_number,
             connection_data,
             bandwidths,
-            time,
-            repeat_time,
+            time_description,
             time_zone,
             encryption_key,
             attributes,
@@ -307,6 +310,12 @@ fn parse_bandwidth(i: &[u8]) -> IResult<&[u8], Vec<String>> {
     ))(i)?;
     let vec = bws.iter().map(|bw| format!("{}:{}", bw.0, bw.2)).collect();
     Ok((i, vec))
+}
+
+fn parse_time_description(i: &[u8]) -> IResult<&[u8], TimeDescription> {
+    let (i, time) = parse_time(i)?;
+    let (i, repeat_time) = opt(parse_repeat_times)(i)?;
+    Ok((i, TimeDescription { time, repeat_time }))
 }
 
 fn parse_time(i: &[u8]) -> IResult<&[u8], String> {
