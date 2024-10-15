@@ -82,10 +82,11 @@ static InspectionBuffer *QuicHashGetData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static bool DetectQuicHashValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectQuicHashValidateCallback(
+        const Signature *s, const char **sigerror, const DetectBufferType *dbt)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_buffer_id)
+        if (s->init_data->buffers[x].id != (uint32_t)dbt->id)
             continue;
         const SigMatch *sm = s->init_data->buffers[x].head;
         for (; sm != NULL; sm = sm->next) {
