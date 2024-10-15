@@ -5,7 +5,7 @@
 
 # But as this is an example in the Suricata source tree we'll look for
 # includes in the source tree.
-CPPFLAGS +=	-I@top_srcdir@/src -DHAVE_CONFIG_H
+CPPFLAGS +=	-I@top_srcdir@/src -I@top_srcdir@/rust/gen -I@top_srcdir@/rust/dist -DHAVE_CONFIG_H
 
 # Currently the Suricata logging system requires this to be even for
 # plugins.
