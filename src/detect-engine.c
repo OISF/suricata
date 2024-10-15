@@ -1301,7 +1301,7 @@ void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int
 }
 
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror))
+        bool (*ValidateCallback)(const Signature *, const char **sigerror, uint32_t))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -1315,7 +1315,7 @@ bool DetectEngineBufferRunValidateCallback(
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (map && map->ValidateCallback) {
-        return map->ValidateCallback(s, sigerror);
+        return map->ValidateCallback(s, sigerror, map->id);
     }
     return true;
 }

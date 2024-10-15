@@ -59,7 +59,7 @@ const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *));
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror));
+        bool (*ValidateCallback)(const Signature *, const char **sigerror, uint32_t));
 
 /* detect engine related buffer funcs */
 
