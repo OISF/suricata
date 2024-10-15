@@ -1332,8 +1332,9 @@ void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int
     }
 }
 
-void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror))
+void DetectBufferTypeRegisterValidateCallback(
+        const char *name, bool (*ValidateCallback)(const Signature *, const char **sigerror,
+                                  const DetectBufferType *))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -1346,8 +1347,9 @@ bool DetectEngineBufferRunValidateCallback(
         const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror)
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
-    if (map && map->ValidateCallback) {
-        return map->ValidateCallback(s, sigerror);
+    // only run validation if the buffer is not transformed
+    if (map && map->ValidateCallback && map->transforms.cnt == 0) {
+        return map->ValidateCallback(s, sigerror, map);
     }
     return true;
 }

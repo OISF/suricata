@@ -59,11 +59,6 @@
 #define BUFFER_DESC  "sip request uri"
 static int g_buffer_id = 0;
 
-static bool DetectSipUriValidateCallback(const Signature *s, const char **sigerror)
-{
-    return DetectUrilenValidateContent(s, g_buffer_id, sigerror);
-}
-
 static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx,
                                        Signature *s)
 {
@@ -121,8 +116,7 @@ void DetectSipUriRegister(void)
     DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
             DetectSipUriSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME,
-            DetectSipUriValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectUrilenValidateContent);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
