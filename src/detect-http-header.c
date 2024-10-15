@@ -638,7 +638,7 @@ void DetectHttpRequestHeaderRegister(void)
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_HEADERS, GetHttp1HeaderData, 2, 0);
+            HTP_REQUEST_HEADERS, GetHttp1HeaderData, 2, HTP_REQUEST_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_request_header", "HTTP header name and value");
     g_http_request_header_buffer_id = DetectBufferTypeGetByName("http_request_header");
@@ -671,7 +671,7 @@ void DetectHttpResponseHeaderRegister(void)
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_HEADERS, GetHttp1HeaderData, 2, 0);
+            HTP_RESPONSE_HEADERS, GetHttp1HeaderData, 2, HTP_RESPONSE_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_response_header", "HTTP header name and value");
     g_http_response_header_buffer_id = DetectBufferTypeGetByName("http_response_header");
