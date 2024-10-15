@@ -4158,15 +4158,27 @@
                                 "type": "string"
                             }
                         },
-                        "time": {
-                            "type": "string",
-                            "optional": true,
-                            "description": "Start and stop times for a session"
-                        },
-                        "repeat_time": {
-                            "type": "string",
-                            "optional": true,
-                            "description": "Specify repeat times for a session"
+                        "time_descriptions": {
+                            "type": "array",
+                            "description": "A list of time descriptions for a session",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "time": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Start and stop times for a session"
+                                    },
+                                    "repeat_time": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Specify repeat times for a session"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
                         },
                         "timezone": {
                             "type": "string",
