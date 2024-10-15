@@ -19,7 +19,7 @@
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-use super::parser::{MediaDescription, SdpMessage};
+use super::parser::{MediaDescription, SdpMessage, TimeDescription};
 
 pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("sdp")?;
@@ -45,10 +45,7 @@ pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> 
     if let Some(bws) = &msg.bandwidths {
         log_bandwidth(bws, js)?;
     }
-    js.set_string("time", &msg.time)?;
-    if let Some(repeat_time) = &msg.repeat_time {
-        js.set_string("repeat_time", repeat_time)?;
-    }
+    log_time_description(&msg.time_description, js)?;
     if let Some(tz) = &msg.time_zone {
         js.set_string("timezone", tz)?;
     }
@@ -60,6 +57,22 @@ pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> 
     }
     if let Some(media) = &msg.media_description {
         log_media_description(media, js)?;
+    }
+    js.close()?;
+    Ok(())
+}
+
+fn log_time_description(
+    time: &Vec<TimeDescription>, js: &mut JsonBuilder,
+) -> Result<(), JsonError> {
+    js.open_array("time_descriptions")?;
+    for t in time {
+        js.start_object()?;
+        js.set_string("time", &t.time)?;
+        if let Some(repeat_time) = &t.repeat_time {
+            js.set_string("repeat_time", repeat_time)?;
+        }
+        js.close()?;
     }
     js.close()?;
     Ok(())
