@@ -8,6 +8,12 @@ on:
     paths-ignore:
       - "doc/**"
 
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scan-build:
     name: Scan-build
@@ -15,7 +21,7 @@ jobs:
     container: ubuntu:24.04
     steps:
       - name: Cache scan-build
-        uses: actions/cache@v3.3.1
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
           path: ~/.cargo
           key: scan-build
@@ -63,7 +69,8 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: scan-build-18 ./configure --enable-dpdk --enable-nfqueue --enable-nflog

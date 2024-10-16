@@ -3,13 +3,19 @@ name: New Authors Check
 on:
   pull_request:
 
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-id:
     name: New Author Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v3
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -17,13 +23,13 @@ jobs:
       - name: Export known authors from master branch
         run: git log --format="%an <%ae>" origin/master | sort | uniq > authors.txt
       - name: Export authors from new commits
-        run: git log --format="%an <%ae>" origin/${GITHUB_BASE_REF}... | sort | uniq > commit-authors.txt
+        run: git log --format="%an <%ae>" ${{ github.event.pull_request.base.sha }}... | sort | uniq > commit-authors.txt
       - name: Check new authors
         run: |
           touch new-authors.txt
           while read -r author; do
              echo "Checking author: ${author}"
-             if ! grep -q "^${author}\$" authors.txt; then
+             if ! grep -qFx "${author}" authors.txt; then
                  echo "ERROR: ${author} NOT FOUND"
                  echo "::warning ::New author found: ${author}"
                  echo "${author}" >> new-authors.txt
@@ -35,7 +41,7 @@ jobs:
       - run: echo ${{ github.event.number }} > new-authors/pr-number.txt
       - run: ls -l
       - name: Upload new authors
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
         with:
           name: new-authors
           path: new-authors
