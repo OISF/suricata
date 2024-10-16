@@ -382,7 +382,7 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
 
     /* tls subjectaltname */
     if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECTALTNAME)
-        JsonTlsLogIssuer(js, ssl_state);
+        JsonTlsLogSAN(js, ssl_state);
 
     /* tls session resumption */
     if (tls_ctx->fields & LOG_TLS_FIELD_SESSION_RESUMED)
