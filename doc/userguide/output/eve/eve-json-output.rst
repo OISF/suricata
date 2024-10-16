@@ -273,6 +273,7 @@ The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
+**Note that this will disable ``extended`` logging.**
 
 ARP
 ~~~
