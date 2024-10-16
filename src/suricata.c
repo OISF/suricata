@@ -202,6 +202,10 @@ uint16_t g_vlan_mask = 0xffff;
  * comparing flows */
 uint16_t g_livedev_mask = 0xffff;
 
+/** determine (without branching) if we include the recursion levels when hashing or
+ * comparing flows */
+uint8_t g_recurlvl_mask = 0xff;
+
 /* flag to disable hashing almost globally, to be similar to disabling nss
  * support */
 bool g_disable_hashing = false;
@@ -2913,6 +2917,10 @@ void SuricataInit(void)
     if (ConfGetBool("livedev.use-for-tracking", &tracking) == 1 && !tracking) {
         /* Ignore livedev id when comparing flows. */
         g_livedev_mask = 0x0000;
+    }
+    if (ConfGetBool("decoder.recursion-level.use-for-tracking", &tracking) == 1 && !tracking) {
+        /* Ignore recursion level when comparing flows. */
+        g_recurlvl_mask = 0x00;
     }
     SetupUserMode(&suricata);
     InitRunAs(&suricata);

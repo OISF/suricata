@@ -2780,6 +2780,24 @@ Using this default configuration, Teredo detection will run on UDP port
 3544. If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
+Recursion Level
+~~~~~~~~~~~~~~~
+
+Flow matching via recursion level can be disabled. It is enabled by
+default.
+
+::
+
+    decoder:
+      # Depending on packet pickup, incoming and outgoing tunnelled packets
+      # can be scanned before the kernel has stripped and encapsulated headers,
+      # respectively, leading to incoming and outgoing flows not being associated.
+      recursion-level:
+        use-for-tracking: true
+
+Using this default setting, flows will be associated only if the compared packet
+headers are encapsulated in the same number of headers.
+
 Advanced Options
 ----------------
 
