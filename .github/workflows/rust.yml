@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read #  to fetch code (actions/checkout)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-rust:
     name: Check Rust
@@ -18,7 +22,7 @@ jobs:
     container: almalinux:9
     steps:
       - name: Cache rust
-        uses: actions/cache@v3.3.1
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
         with:
           path: ~/.cargo
           key: check-rust
@@ -69,7 +73,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install cbindgen
         run: cargo install --debug cbindgen
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
