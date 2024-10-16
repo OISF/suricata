@@ -75,8 +75,8 @@ SCProfilePacketData packet_profile_data6[257]; /**< all proto's + tunnel */
 SCProfilePacketData packet_profile_tmm_data4[TMM_SIZE][257];
 SCProfilePacketData packet_profile_tmm_data6[TMM_SIZE][257];
 
-SCProfilePacketData packet_profile_app_data4[TMM_SIZE][257];
-SCProfilePacketData packet_profile_app_data6[TMM_SIZE][257];
+SCProfilePacketData packet_profile_app_data4[ALPROTO_MAX][257];
+SCProfilePacketData packet_profile_app_data6[ALPROTO_MAX][257];
 
 SCProfilePacketData packet_profile_app_pd_data4[257];
 SCProfilePacketData packet_profile_app_pd_data6[257];
