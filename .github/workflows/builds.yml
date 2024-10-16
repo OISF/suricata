@@ -518,7 +518,6 @@ jobs:
                 autoconf \
                 automake \
                 cargo-vendor \
-                cbindgen \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
