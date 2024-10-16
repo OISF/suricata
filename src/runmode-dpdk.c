@@ -125,6 +125,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_MULTICAST_MODE              1
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION         1
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD 1
+#define DPDK_CONFIG_DEFAULT_VLAN_STRIP                  0
 #define DPDK_CONFIG_DEFAULT_COPY_MODE                   "none"
 #define DPDK_CONFIG_DEFAULT_COPY_INTERFACE              "none"
 
@@ -136,6 +137,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .checksum_checks = "checksum-checks",
     .checksum_checks_offload = "checksum-checks-offload",
     .mtu = "mtu",
+    .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
@@ -616,6 +618,13 @@ static int ConfigSetChecksumOffload(DPDKIfaceConfig *iconf, int entry_bool)
     SCReturnInt(0);
 }
 
+static int ConfigSetVlanStrip(DPDKIfaceConfig *iconf, int entry_bool)
+{
+    SCEnter();
+    iconf->vlan_strip_enabled = entry_bool;
+    SCReturn;
+}
+
 static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
@@ -804,6 +813,13 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
                      ? ConfigSetChecksumOffload(
                                iconf, DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD)
                      : ConfigSetChecksumOffload(iconf, entry_bool);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = ConfGetChildValueBoolWithDefault(
+                     if_root, if_default, dpdk_yaml.vlan_strip_offload, &entry_bool) != 1
+                     ? ConfigSetVlanStrip(iconf, DPDK_CONFIG_DEFAULT_VLAN_STRIP)
+                     : ConfigSetVlanStrip(iconf, entry_bool);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -1191,6 +1207,20 @@ static void PortConfSetChsumOffload(const DPDKIfaceConfig *iconf,
     }
 }
 
+static void PortConfSetVlanOffload(const DPDKIfaceConfig *iconf,
+        const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
+{
+    if (iconf->vlan_strip_enabled) {
+        if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_VLAN_STRIP) {
+            port_conf->rxmode.offloads |= RTE_ETH_RX_OFFLOAD_VLAN_STRIP;
+            SCLogConfig("%s: hardware VLAN stripping enabled", iconf->iface);
+        } else {
+            SCLogWarning("%s: hardware VLAN stripping enabled but not supported, disabling",
+                    iconf->iface);
+        }
+    }
+}
+
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
@@ -1212,6 +1242,7 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
     PortConfSetRSSConf(iconf, dev_info, port_conf);
     PortConfSetChsumOffload(iconf, dev_info, port_conf);
     DeviceSetMTU(port_conf, iconf->mtu);
+    PortConfSetVlanOffload(iconf, dev_info, port_conf);
 
     if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
         port_conf->txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
