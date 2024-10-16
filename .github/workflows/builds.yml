@@ -194,17 +194,9 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core epel-release
@@ -259,19 +251,27 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace
-      #- name: Setup cppclean
-      #  run: |
-      #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
-      #    cd cppclean
-      #    python3 setup.py install
+
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: ./.github/actions/install-cbindgen
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Configuring
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2 distcheck
+      - run: make -j ${{ env.CPUS }} distcheck
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          MAKEFLAGS: "-j ${{ env.CPUS }}"
       - run: test -e doc/userguide/suricata.1
       - name: Checking includes
         run: |
@@ -279,7 +279,7 @@ jobs:
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
-      - run: make install
+      - run: make install install-conf
       - run: suricatasc -h
       - run: suricata-update -V
       - name: Check if Suricata-Update example configuration files are installed
@@ -312,17 +312,9 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
           dnf -y install dnf-plugins-core epel-release
@@ -366,14 +358,28 @@ jobs:
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: rustup component add rustfmt
       - run: rustup component add clippy
+
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
       - uses: ./.github/actions/install-cbindgen
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Build
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-          make -j2
+          make -j ${{ env.CPUS }}
       - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --list-app-layer-protos | grep foobar
       - name: Verify rustfmt
         run: rustfmt -v --check src/applayerfoobar/*.rs
@@ -402,26 +408,9 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      # Prebuild check for duplicate SIDs
-      - name: Check for duplicate SIDs
-        run: |
-          dups=$(sed -n 's/^alert.*sid:\([[:digit:]]*\);.*/\1/p' ./rules/*.rules|sort|uniq -d|tr '\n' ' ')
-          if [[ "${dups}" != "" ]]; then
-            echo "::error::Duplicate SIDs found:${dups}"
-            exit 1
-          fi
-
-      # Download and extract dependency archives created during prep
-      # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-        with:
-          name: prep
-          path: prep
-      - run: tar xvf prep/libhtp.tar.gz
-      - run: tar xvf prep/suricata-update.tar.gz
-      - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
           yum -y install dnf-plugins-core
@@ -461,12 +450,36 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+
+      - uses: ./.github/actions/install-cbindgen
+
+      # Prebuild check for duplicate SIDs
+      - name: Check for duplicate SIDs
+        run: |
+          dups=$(sed -n 's/^alert.*sid:\([[:digit:]]*\);.*/\1/p' ./rules/*.rules|sort|uniq -d|tr '\n' ' ')
+          if [[ "${dups}" != "" ]]; then
+            echo "::error::Duplicate SIDs found:${dups}"
+            exit 1
+          fi
+
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/libhtp.tar.gz
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Configuring
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2 check
+      - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
           cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
@@ -493,6 +506,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install system packages
         run: |
@@ -542,7 +558,7 @@ jobs:
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
         run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
       - run: suricatasc -h
@@ -563,6 +579,9 @@ jobs:
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
       - run: suricatasc -h
+      # Test build after clean.
+      - run: make clean
+      - run: make -j ${{ env.CPUS }}
 
   fedora-39-sv-codecov:
     name: Fedora 39 (Suricata Verify codecov)
