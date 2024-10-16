@@ -109,7 +109,7 @@ jobs:
 
       # Now checkout Suricata for the bundle script.
       - name: Checking out Suricata
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
 
       - name: Fetching libhtp
         run: |
@@ -194,7 +194,7 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
 
       # Download and extract dependency archives created during prep
       # job.
@@ -312,7 +312,7 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
 
       # Download and extract dependency archives created during prep
       # job.
@@ -402,7 +402,7 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
 
       # Prebuild check for duplicate SIDs
       - name: Check for duplicate SIDs
