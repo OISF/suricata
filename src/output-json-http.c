@@ -493,7 +493,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         }
     }
 
-    OutputJsonBuilderBuffer(js, jhl->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, jhl->ctx);
     jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);

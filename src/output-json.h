@@ -103,7 +103,8 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
 JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, uint64_t tx_id, OutputJsonCtx *eve_ctx);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
-int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx);
+int OutputJsonBuilderBuffer(
+        ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *js, OutputJsonThreadCtx *ctx);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
 
 OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);

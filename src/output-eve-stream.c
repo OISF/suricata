@@ -425,7 +425,7 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     /* Close stream. */
     jb_close(js);
 
-    OutputJsonBuilderBuffer(js, td->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, td->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
