@@ -113,6 +113,8 @@ class SuricataSC:
                 "memcap-show",
                 "dataset-add",
                 "dataset-remove",
+                "datajson-add",
+                "datajson-remove",
                 "get-flow-stats-by-id",
                 "dataset-clear",
                 "dataset-lookup",

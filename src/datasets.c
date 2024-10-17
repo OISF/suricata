@@ -2300,3 +2300,188 @@ int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len)
     }
     return -1;
 }
+
+typedef int (*DatajsonOpFunc)(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json);
+
+static int DatajsonOpSerialized(Dataset *set, const char *string, const char *json,
+        DatajsonOpFunc DatasetOpString, DatajsonOpFunc DatasetOpMd5, DatajsonOpFunc DatasetOpSha256,
+        DatajsonOpFunc DatasetOpIPv4, DatajsonOpFunc DatasetOpIPv6)
+{
+    int ret;
+
+    if (set == NULL)
+        return -1;
+    if (strlen(string) == 0)
+        return -1;
+
+    DataJsonType jvalue = { .value = NULL, .len = 0 };
+    if (json) {
+        if (ParseJsonLine(json, strlen(json), &jvalue) < 0) {
+            SCLogNotice("bad json value for dataset %s/%s", set->name, set->load);
+            return -1;
+        }
+    }
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING: {
+            uint32_t decoded_size = Base64DecodeBufferSize(strlen(string));
+            uint8_t decoded[decoded_size];
+            uint32_t num_decoded = Base64Decode(
+                    (const uint8_t *)string, strlen(string), Base64ModeStrict, decoded);
+            if (num_decoded == 0)
+                goto operror;
+            ret = DatasetOpString(set, decoded, num_decoded, &jvalue);
+            if (ret <= 0) {
+                SCFree(jvalue.value);
+            }
+            return ret;
+        }
+        case DATASET_TYPE_MD5: {
+            if (strlen(string) != 32)
+                goto operror;
+            uint8_t hash[16];
+            if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
+                goto operror;
+            ret = DatasetOpMd5(set, hash, 16, &jvalue);
+            if (ret <= 0) {
+                SCFree(jvalue.value);
+            }
+            return ret;
+        }
+        case DATASET_TYPE_SHA256: {
+            if (strlen(string) != 64)
+                goto operror;
+            uint8_t hash[32];
+            if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
+                goto operror;
+            ret = DatasetOpSha256(set, hash, 32, &jvalue);
+            if (ret <= 0) {
+                SCFree(jvalue.value);
+            }
+            return ret;
+        }
+        case DATASET_TYPE_IPV4: {
+            struct in_addr in;
+            if (inet_pton(AF_INET, string, &in) != 1)
+                goto operror;
+            ret = DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4, &jvalue);
+            if (ret <= 0) {
+                SCFree(jvalue.value);
+            }
+            return ret;
+        }
+        case DATASET_TYPE_IPV6: {
+            struct in6_addr in6;
+            if (ParseIpv6String(set, string, &in6) != 0) {
+                SCLogError("Dataset failed to import %s as IPv6", string);
+                goto operror;
+            }
+            ret = DatasetOpIPv6(set, (uint8_t *)&in6.s6_addr, 16, &jvalue);
+            if (ret <= 0) {
+                SCFree(jvalue.value);
+            }
+            return ret;
+        }
+    }
+    return -1;
+operror:
+    SCFree(jvalue.value);
+    return -2;
+}
+
+/** \brief add serialized data to json set
+ *  \retval int 1 added
+ *  \retval int 0 already in hash
+ *  \retval int -1 API error (not added)
+ *  \retval int -2 DATA error
+ */
+int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
+{
+    return DatajsonOpSerialized(set, value, json, DatasetAddStringwJson, DatasetAddMd5wJson,
+            DatasetAddSha256wJson, DatasetAddIPv4wJson, DatasetAddIPv6wJson);
+}
+
+/**
+ *  \retval 1 data was removed from the hash
+ *  \retval 0 data not removed (busy)
+ *  \retval -1 data not found
+ */
+static int DatajsonRemoveString(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    StringTypeJson lookup = {
+        .ptr = (uint8_t *)data, .len = data_len, .json.value = NULL, .json.len = 0
+    };
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+static int DatajsonRemoveIPv4(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 4)
+        return -2;
+
+    IPv4TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.ipv4, data, 4);
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+static int DatajsonRemoveIPv6(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    IPv6TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.ipv6, data, 16);
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+static int DatajsonRemoveMd5(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    Md5TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.md5, data, 16);
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+static int DatajsonRemoveSha256(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 32)
+        return -2;
+
+    Sha256TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.sha256, data, 32);
+    return THashRemoveFromHash(set->hash, &lookup);
+}
+
+/** \brief remove serialized data from set
+ *  \retval int 1 removed
+ *  \retval int 0 found but busy (not removed)
+ *  \retval int -1 API error (not removed)
+ *  \retval int -2 DATA error */
+int DatajsonRemoveSerialized(Dataset *set, const char *string)
+{
+    return DatajsonOpSerialized(set, string, NULL, DatajsonRemoveString, DatajsonRemoveMd5,
+            DatajsonRemoveSha256, DatajsonRemoveIPv4, DatajsonRemoveIPv6);
+}
