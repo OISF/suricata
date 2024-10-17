@@ -215,8 +215,16 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
 }
 
 /* Eve format logging */
-static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
+static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f
+#ifdef HAVE_NDPI
+        ,
+        ThreadVars *tv
+#endif
+)
 {
+#ifdef HAVE_NDPI
+    ndpiJsonBuilder(f, jb, tv);
+#endif
     EveAddAppProto(f, jb);
     jb_open_object(jb, "flow");
     EveAddFlow(f, jb);
@@ -338,7 +346,12 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    EveFlowLogJSON(thread, jb, f);
+    EveFlowLogJSON(thread, jb, f
+#ifdef HAVE_NDPI
+            ,
+            tv
+#endif
+    );
 
     OutputJsonBuilderBuffer(jb, thread);
     jb_free(jb);

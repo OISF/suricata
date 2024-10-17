@@ -120,4 +120,7 @@ OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
 void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
 
+#ifdef HAVE_NDPI
+void ndpiJsonBuilder(Flow *f, JsonBuilder *js, ThreadVars *tv);
+#endif
 #endif /* SURICATA_OUTPUT_JSON_H */
