@@ -663,13 +663,6 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
         tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
     }
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_JA3) &&
-            Ja3IsDisabled("fields")) {
-        /* JA3 is disabled, so don't log any JA3 fields */
-        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3;
-        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3S;
-    }
-
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
         SCLogWarning("Both 'certificate' and 'chain' contains the top "
