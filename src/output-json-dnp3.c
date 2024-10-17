@@ -246,7 +246,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     jb_open_object(js, "dnp3");
     JsonDNP3LogRequest(js, tx);
     jb_close(js);
-    OutputJsonBuilderBuffer(js, thread->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
     jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);
@@ -267,7 +267,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     jb_open_object(js, "dnp3");
     JsonDNP3LogResponse(js, tx);
     jb_close(js);
-    OutputJsonBuilderBuffer(js, thread->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
     jb_free(js);
 
     SCReturnInt(TM_ECODE_OK);

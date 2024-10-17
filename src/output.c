@@ -927,7 +927,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         goto error;
     }
 
-    OutputJsonBuilderBuffer(js, thread);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, thread);
     jb_free(js);
 
     return TM_ECODE_OK;

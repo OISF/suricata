@@ -2310,6 +2310,42 @@ fi
     ])
     AC_SUBST(RUST_FEATURES)
 
+# nDPI support (no library checks for this stub)
+    NDPI_HOME=
+    AC_ARG_ENABLE(ndpi,
+           AS_HELP_STRING([--enable-ndpi], [Enable nDPI support]),
+           [enable_ndpi=$enableval],[enable_ndpi=no])
+    AC_ARG_WITH([ndpi],
+           [  --with-ndpi=<path>    path to nDPI source tree.],
+           [NDPI_HOME="$withval"])
+
+    if ! test -z "${NDPI_HOME}" = "yes"; then
+        AC_MSG_CHECKING(for nDPI source)
+        if test ! -z "$NDPI_HOME" ; then :
+            AC_MSG_RESULT(found in $NDPI_HOME)
+            NDPI_LIB=$NDPI_HOME/src/lib/libndpi.a
+            AC_MSG_CHECKING(for $NDPI_LIB)
+            if test -r $NDPI_LIB ; then :
+                AC_MSG_RESULT(found $NDPI_LIB)
+            fi
+            CPPFLAGS="${CPPFLAGS} -I$NDPI_HOME/src/include"
+            NDPI_LIB="$NDPI_HOME/src/lib/libndpi.a"
+            AC_SUBST([NDPI_LIB])
+        else
+            AC_MSG_RESULT(not found)
+            enable_ndpi="no"
+        fi
+    fi
+
+    if test "x$enable_ndpi" = "xyes"; then
+        AM_CONDITIONAL([BUILD_NDPI], [true])
+        ndpi_comment=""
+    else
+        AM_CONDITIONAL([BUILD_NDPI], [false])
+        ndpi_comment="#"
+    fi
+    AC_SUBST([ndpi_comment])
+
     AC_ARG_ENABLE(warnings,
            AS_HELP_STRING([--enable-warnings], [Enable supported C compiler warnings]),[enable_warnings=$enableval],[enable_warnings=no])
     AS_IF([test "x$enable_warnings" = "xyes"], [
@@ -2531,6 +2567,7 @@ AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.exampl
 AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/pfring/Makefile)
 AC_CONFIG_FILES(plugins/napatech/Makefile)
+AC_CONFIG_FILES(plugins/ndpi-dummy/Makefile)
 
 AC_OUTPUT
 
@@ -2586,6 +2623,9 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Plugin support (experimental):           ${plugin_support}
   DPDK Bond PMD:                           ${enable_dpdk_bond_pmd}
+
+Plugins:
+  nDPI                                     ${enable_ndpi}
 
 Development settings:
   Coccinelle / spatch:                     ${enable_coccinelle}
