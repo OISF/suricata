@@ -340,6 +340,28 @@ Signature example::
 
  alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toclient:20; sid:1;)
 
+flow.pkts_either
+------------------
+
+Flow number of packets in either direction (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+flow.pkts_either uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
+Syntax::
+
+ flow.pkts_either: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.pkts_either:3    # exactly 3
+ flow.pkts_either:<3   # smaller than 3
+ flow.pkts_either:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has 20 packets in either dir"; flow.pkts_either:20; sid:1;)
+
 flow.pkts_toserver
 ------------------
 
@@ -405,3 +427,25 @@ The number of packets can be matched exactly, or compared using the _op_ setting
 Signature example::
 
  alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toserver:<2000; sid:1;)
+
+flow.bytes_either
+-------------------
+
+Flow number of bytes in either direction (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+flow.bytes_either uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
+
+Syntax::
+
+ flow.bytes_either: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.bytes_either:3    # exactly 3
+ flow.bytes_either:<3   # smaller than 3
+ flow.bytes_either:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has greater than 3000 bytes in either dir"; flow.bytes_either:>3000; sid:1;)
