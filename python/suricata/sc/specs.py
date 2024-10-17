@@ -194,6 +194,38 @@ argsd = {
             "required": 1,
         },
     ],
+    "datajson-add": [
+        {
+            "name": "setname",
+            "required": 1,
+        },
+        {
+            "name": "settype",
+            "required": 1,
+        },
+        {
+            "name": "datavalue",
+            "required": 1,
+        },
+        {
+            "name": "datajson",
+            "required": 1,
+        },
+    ],
+    "datajson-remove": [
+        {
+            "name": "setname",
+            "required": 1,
+        },
+        {
+            "name": "settype",
+            "required": 1,
+        },
+        {
+            "name": "datavalue",
+            "required": 1,
+        },
+    ],
     "get-flow-stats-by-id": [
         {
             "name": "flow_id",

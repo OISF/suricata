@@ -69,4 +69,7 @@ int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
 int DatasetLookupSerialized(Dataset *set, const char *string);
 
+int DatajsonAddSerialized(Dataset *set, const char *string, const char *json);
+int DatajsonRemoveSerialized(Dataset *set, const char *string);
+
 #endif /* SURICATA_DATASETS_H */
