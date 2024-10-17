@@ -25,4 +25,8 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
 
 bool RegisterPlugin(SCPlugin *, void *);
 
+SCAppLayerPlugin *SCPluginFindAppLayerByIndex(size_t i);
+
+extern size_t app_layer_plugins_nb;
+
 #endif /* SURICATA_UTIL_PLUGIN_H */
