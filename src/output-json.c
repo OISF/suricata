@@ -734,6 +734,7 @@ static int CreateJSONEther(
         if (PacketIsEthernet(p)) {
             const EthernetHdr *ethh = PacketGetEthernet(p);
             jb_open_object(js, "ether");
+            jb_set_uint(js, "ether_type", ethh->eth_type);
             const uint8_t *src;
             const uint8_t *dst;
             switch (dir) {
