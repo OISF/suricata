@@ -338,6 +338,7 @@ extern int DETECT_TBLSIZE_IDX;
 #define DETECT_TBLSIZE_STEP 256
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);
+void SigTableInit(void);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
 
