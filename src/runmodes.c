@@ -758,7 +758,8 @@ void RunModeInitializeOutputs(void)
     char tls_store_present = 0;
 
     // ALPROTO_MAX is set to its final value
-    LoggerId logger_bits[ALPROTO_MAX] = { 0 };
+    LoggerId logger_bits[ALPROTO_MAX];
+    memset(logger_bits, 0, ALPROTO_MAX * sizeof(LoggerId));
     TAILQ_FOREACH(output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
