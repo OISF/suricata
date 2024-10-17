@@ -341,6 +341,7 @@ outputs:
         - pgsql:
             enabled: no
             # passwords: yes           # enable output of passwords. Disabled by default
+        - stun
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -1173,6 +1174,9 @@ app-layer:
 
     sip:
       #enabled: yes
+
+    stun:
+      enabled: no
 
     ldap:
       tcp:

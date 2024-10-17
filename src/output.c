@@ -74,6 +74,7 @@
 #include "output-json-dhcp.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
+#include "output-json-stun.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
@@ -1083,6 +1084,8 @@ void OutputRegisterLoggers(void)
             JsonLogThreadDeinit);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
+    /* Stun JSON logger. */
+    JsonStunLogRegister();
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,

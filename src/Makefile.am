@@ -389,6 +389,7 @@ noinst_HEADERS = \
 	output-json-smb.h \
 	output-json-smtp.h \
 	output-json-stats.h \
+	output-json-stun.h \
 	output-json-tls.h \
 	output-eve-syslog.h \
 	output-lua.h \
@@ -956,6 +957,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-smb.c \
 	output-json-smtp.c \
 	output-json-stats.c \
+	output-json-stun.c \
 	output-json-tls.c \
 	output-eve.c \
 	output-eve-syslog.c \
