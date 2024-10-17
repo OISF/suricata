@@ -3011,7 +3011,7 @@ void SuricataPostInit(void)
 #endif
 
     if (limit_nproc) {
-#if defined(HAVE_SYS_RESOURCE_H)
+#if defined(HAVE_SYS_RESOURCE_H) && defined(RLIMIT_NPROC)
 #ifdef linux
         if (geteuid() == 0) {
             SCLogWarning("setrlimit has no effet when running as root.");
