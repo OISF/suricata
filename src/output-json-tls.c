@@ -76,6 +76,8 @@ SC_ATOMIC_EXTERN(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CLIENT_CHAIN      (1 << 15)
 #define LOG_TLS_FIELD_JA4               (1 << 16)
 #define LOG_TLS_FIELD_SUBJECTALTNAME    (1 << 17)
+#define LOG_TLS_FIELD_CLIENT_ALPNS      (1 << 18)
+#define LOG_TLS_FIELD_SERVER_ALPNS      (1 << 19)
 
 typedef struct {
     const char *name;
@@ -102,6 +104,8 @@ TlsFields tls_fields[] = {
     { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN },
     { "ja4", LOG_TLS_FIELD_JA4 },
     { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
+    { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
+    { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
     { NULL, -1 },
     // clang-format on
 };
@@ -444,6 +448,14 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
     /* tls ja4 */
     if (tls_ctx->fields & LOG_TLS_FIELD_JA4)
         JsonTlsLogSCJA4(js, ssl_state);
+
+    if (tls_ctx->fields & LOG_TLS_FIELD_CLIENT_ALPNS) {
+        JsonTlsLogAlpns(js, &ssl_state->client_connp, "client_alpns");
+    }
+
+    if (tls_ctx->fields & LOG_TLS_FIELD_SERVER_ALPNS) {
+        JsonTlsLogAlpns(js, &ssl_state->server_connp, "server_alpns");
+    }
 
     if (tls_ctx->fields & LOG_TLS_FIELD_CLIENT) {
         const bool log_cert = (tls_ctx->fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
