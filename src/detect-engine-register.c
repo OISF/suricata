@@ -450,7 +450,7 @@ void SigTableCleanup(void)
     }
 }
 
-void SigTableSetup(void)
+void SigTableInit(void)
 {
     if (sigmatch_table == NULL) {
         DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC + DETECT_TBLSIZE_STEP;
@@ -458,10 +458,12 @@ void SigTableSetup(void)
         if (sigmatch_table == NULL) {
             DETECT_TBLSIZE = 0;
             FatalError("Could not allocate sigmatch_table");
-            return;
         }
     }
+}
 
+void SigTableSetup(void)
+{
     DetectSidRegister();
     DetectPriorityRegister();
     DetectPrefilterRegister();
