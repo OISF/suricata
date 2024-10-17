@@ -905,42 +905,39 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                 tctx->alpd_tctx, f, p->payload, p->payload_len, IPPROTO_UDP, flags, &reverse_flow);
         PACKET_PROFILING_APP_PD_END(tctx);
 
-        switch (*alproto) {
-            case ALPROTO_UNKNOWN:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                    // Use recognized side
-                    f->alproto = *alproto_otherdir;
-                    // do not keep ALPROTO_UNKNOWN for this side so as not to loop
-                    *alproto = *alproto_otherdir;
-                    if (*alproto_otherdir == ALPROTO_FAILED) {
-                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
-                    }
-                } else {
-                    // First side of protocol is unknown
-                    *alproto = ALPROTO_FAILED;
+        if (*alproto == ALPROTO_UNKNOWN) {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                // do not keep ALPROTO_UNKNOWN for this side so as not to loop
+                *alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                 }
-                break;
-            case ALPROTO_FAILED:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                    // Use recognized side
-                    f->alproto = *alproto_otherdir;
-                    if (*alproto_otherdir == ALPROTO_FAILED) {
-                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
-                    }
+            } else {
+                // First side of protocol is unknown
+                *alproto = ALPROTO_FAILED;
+            }
+        } else if (*alproto == ALPROTO_FAILED) {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                 }
-                // else wait for second side of protocol
-                break;
-            default:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != ALPROTO_FAILED) {
-                    if (*alproto_otherdir != *alproto) {
-                        AppLayerDecoderEventsSetEventRaw(
-                                &p->app_layer_events, APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-                        // data already sent to parser, we cannot change the protocol to use the one
-                        // of the server
-                    }
-                } else {
-                    f->alproto = *alproto;
+            }
+            // else wait for second side of protocol
+        } else {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != ALPROTO_FAILED) {
+                if (*alproto_otherdir != *alproto) {
+                    AppLayerDecoderEventsSetEventRaw(
+                            &p->app_layer_events, APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
+                    // data already sent to parser, we cannot change the protocol to use the one
+                    // of the server
                 }
+            } else {
+                f->alproto = *alproto;
+            }
         }
         if (*alproto_otherdir == ALPROTO_UNKNOWN) {
             if (f->alproto == ALPROTO_UNKNOWN) {
@@ -1027,11 +1024,56 @@ void AppLayerListSupportedProtocols(void)
 }
 
 /***** Setup/General Registration *****/
+static void AppLayerNamesSetup(void)
+{
+    RegisterAppProtoString(ALPROTO_UNKNOWN, "unknown");
+    RegisterAppProtoString(ALPROTO_HTTP1, "http1");
+    RegisterAppProtoString(ALPROTO_FTP, "ftp");
+    RegisterAppProtoString(ALPROTO_SMTP, "smtp");
+    RegisterAppProtoString(ALPROTO_TLS, "tls");
+    RegisterAppProtoString(ALPROTO_SSH, "ssh");
+    RegisterAppProtoString(ALPROTO_IMAP, "imap");
+    RegisterAppProtoString(ALPROTO_JABBER, "jabber");
+    RegisterAppProtoString(ALPROTO_SMB, "smb");
+    RegisterAppProtoString(ALPROTO_DCERPC, "dcerpc");
+    RegisterAppProtoString(ALPROTO_IRC, "irc");
+    RegisterAppProtoString(ALPROTO_DNS, "dns");
+    RegisterAppProtoString(ALPROTO_MODBUS, "modbus");
+    RegisterAppProtoString(ALPROTO_ENIP, "enip");
+    RegisterAppProtoString(ALPROTO_DNP3, "dnp3");
+    RegisterAppProtoString(ALPROTO_NFS, "nfs");
+    RegisterAppProtoString(ALPROTO_NTP, "ntp");
+    RegisterAppProtoString(ALPROTO_FTPDATA, "ftp-data");
+    RegisterAppProtoString(ALPROTO_TFTP, "tftp");
+    RegisterAppProtoString(ALPROTO_IKE, "ike");
+    RegisterAppProtoString(ALPROTO_KRB5, "krb5");
+    RegisterAppProtoString(ALPROTO_QUIC, "quic");
+    RegisterAppProtoString(ALPROTO_DHCP, "dhcp");
+    RegisterAppProtoString(ALPROTO_SNMP, "snmp");
+    RegisterAppProtoString(ALPROTO_SIP, "sip");
+    RegisterAppProtoString(ALPROTO_RFB, "rfb");
+    RegisterAppProtoString(ALPROTO_MQTT, "mqtt");
+    RegisterAppProtoString(ALPROTO_PGSQL, "pgsql");
+    RegisterAppProtoString(ALPROTO_TELNET, "telnet");
+    RegisterAppProtoString(ALPROTO_WEBSOCKET, "websocket");
+    RegisterAppProtoString(ALPROTO_LDAP, "ldap");
+    RegisterAppProtoString(ALPROTO_DOH2, "doh2");
+    RegisterAppProtoString(ALPROTO_TEMPLATE, "template");
+    RegisterAppProtoString(ALPROTO_RDP, "rdp");
+    RegisterAppProtoString(ALPROTO_HTTP2, "http2");
+    RegisterAppProtoString(ALPROTO_BITTORRENT_DHT, "bittorrent-dht");
+    RegisterAppProtoString(ALPROTO_POP3, "pop3");
+    RegisterAppProtoString(ALPROTO_HTTP, "http");
+#ifdef UNITTESTS
+    RegisterAppProtoString(ALPROTO_TEST, "test");
+#endif
+}
 
 int AppLayerSetup(void)
 {
     SCEnter();
 
+    AppLayerNamesSetup();
     AppLayerProtoDetectSetup();
     AppLayerParserSetup();
 

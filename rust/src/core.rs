@@ -252,7 +252,13 @@ pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
-        ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn SCUpdateAlprotoFailed(alproto: AppProto) {
+    unsafe {
+        ALPROTO_FAILED = alproto;
     }
 }
 
