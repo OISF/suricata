@@ -415,6 +415,7 @@ pub unsafe extern "C" fn rs_ssh_parse_request(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
+    state.transaction.tx_data.updated_ts = true;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, false, pstate, flow, &stream_slice);
     } else {
@@ -431,6 +432,7 @@ pub unsafe extern "C" fn rs_ssh_parse_response(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
+    state.transaction.tx_data.updated_tc = true;
     if hdr.flags < SSHConnectionState::SshStateBannerDone {
         return state.parse_banner(buf, true, pstate, flow, &stream_slice);
     } else {

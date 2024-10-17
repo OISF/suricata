@@ -203,6 +203,8 @@ impl EnipState {
     fn purge_tx_flood(&mut self) {
         let mut event_set = false;
         for tx in self.transactions.iter_mut() {
+            tx.tx_data.updated_tc = true;
+            tx.tx_data.updated_ts = true;
             tx.done = true;
             if !event_set {
                 tx.tx_data.set_event(EnipEvent::TooManyTransactions as u8);
@@ -216,6 +218,8 @@ impl EnipState {
             if let Some(req) = &tx.request {
                 if tx.response.is_none() {
                     tx.done = true;
+                    tx.tx_data.updated_tc = true;
+                    tx.tx_data.updated_ts = true;
                     if response_matches_request(req, pdu) {
                         return Some(tx);
                     }
