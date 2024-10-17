@@ -79,6 +79,7 @@ Major changes
     - sip.content_length
 - Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
   <upgrade/8.0-napatech-plugin>`.
+- SDP sticky buffers have been introduced.
 
 Removals
 ~~~~~~~~
