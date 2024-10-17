@@ -28,7 +28,6 @@ void JsonTlsLogRegister(void);
 
 #include "app-layer-ssl.h"
 
-void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *js);
 
 #endif /* SURICATA_OUTPUT_JSON_TLS_H */
