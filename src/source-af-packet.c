@@ -609,8 +609,7 @@ void TmModuleDecodeAFPRegister (void)
     tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
-
-static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
+static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose, const bool peer_update);
 
 static inline void AFPDumpCounters(AFPThreadVars *ptv)
 {
@@ -1290,7 +1289,7 @@ static int AFPTryReopen(AFPThreadVars *ptv)
     /* ref cnt 0, we can close the old socket */
     AFPCloseSocket(ptv);
 
-    int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
+    int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0, false);
     if (afp_activate_r != 0) {
         if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
             SCLogWarning("%s: can't reopen interface", ptv->iface);
@@ -1334,7 +1333,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 break;
             }
         }
-        r = AFPCreateSocket(ptv, ptv->iface, 1);
+        r = AFPCreateSocket(ptv, ptv->iface, 1, true);
         if (r < 0) {
             switch (-r) {
                 case AFP_FATAL_ERROR:
@@ -1345,7 +1344,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                             "%s: failed to init socket for interface, retrying soon", ptv->iface);
             }
         }
-        AFPPeersListReachedInc();
     }
     if (ptv->afp_state == AFP_STATE_UP) {
         SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
@@ -1869,7 +1867,8 @@ static int SetEbpfFilter(AFPThreadVars *ptv)
 }
 #endif
 
-static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
+/** \param peer_update increment peers reached */
+static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose, const bool peer_update)
 {
     int r;
     int ret = AFP_FATAL_ERROR;
@@ -1994,7 +1993,10 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         }
     }
 #endif
-
+    /* bind() done, allow next thread to continue */
+    if (peer_update) {
+        AFPPeersListReachedInc();
+    }
     ret = AFPSetupRing(ptv, devname);
     if (ret != 0)
         goto socket_err;
