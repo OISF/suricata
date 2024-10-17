@@ -69,19 +69,18 @@ enum AppProtoEnum {
     // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)
     ALPROTO_HTTP,
 
-    /* used by the probing parser when alproto detection fails
-     * permanently for that particular stream */
-    ALPROTO_FAILED,
 #ifdef UNITTESTS
     ALPROTO_TEST,
 #endif /* UNITESTS */
     /* keep last */
-    ALPROTO_MAX,
+    ALPROTO_MAX_STATIC,
 };
 // NOTE: if ALPROTO's get >= 256, update SignatureNonPrefilterStore
 
 /* not using the enum as that is a unsigned int, so 4 bytes */
 typedef uint16_t AppProto;
+extern AppProto ALPROTO_FAILED;
+extern AppProto ALPROTO_MAX;
 
 static inline bool AppProtoIsValid(AppProto a)
 {
@@ -172,5 +171,7 @@ const char *AppProtoToString(AppProto alproto);
  * \retval alproto App layer protocol id, or ALPROTO_UNKNOWN.
  */
 AppProto StringToAppProto(const char *proto_name);
+
+void RegisterAppProtoString(AppProto alproto, const char *proto_name);
 
 #endif /* SURICATA_APP_LAYER_PROTOS_H */

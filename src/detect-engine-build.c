@@ -625,7 +625,8 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     } mpm_stats[max_buffer_type_id];
     memset(mpm_stats, 0x00, sizeof(mpm_stats));
 
-    uint32_t alstats[ALPROTO_MAX] = {0};
+    uint32_t alstats[ALPROTO_MAX];
+    memset(alstats, 0, ALPROTO_MAX * sizeof(uint32_t));
     uint32_t mpm_sizes[max_buffer_type_id][256];
     memset(mpm_sizes, 0, sizeof(mpm_sizes));
     uint32_t alproto_mpm_bufs[ALPROTO_MAX][max_buffer_type_id];
