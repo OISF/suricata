@@ -82,16 +82,29 @@ typedef struct {
     uint64_t flag;
 } TlsFields;
 
-TlsFields tls_fields[] = { { "version", LOG_TLS_FIELD_VERSION },
-    { "subject", LOG_TLS_FIELD_SUBJECT }, { "issuer", LOG_TLS_FIELD_ISSUER },
-    { "serial", LOG_TLS_FIELD_SERIAL }, { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
-    { "not_before", LOG_TLS_FIELD_NOTBEFORE }, { "not_after", LOG_TLS_FIELD_NOTAFTER },
-    { "sni", LOG_TLS_FIELD_SNI }, { "certificate", LOG_TLS_FIELD_CERTIFICATE },
-    { "chain", LOG_TLS_FIELD_CHAIN }, { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
-    { "ja3", LOG_TLS_FIELD_JA3 }, { "ja3s", LOG_TLS_FIELD_JA3S },
-    { "client", LOG_TLS_FIELD_CLIENT }, { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
-    { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN }, { "ja4", LOG_TLS_FIELD_JA4 },
-    { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME }, { NULL, -1 } };
+TlsFields tls_fields[] = {
+    // clang-format off
+    { "version", LOG_TLS_FIELD_VERSION },
+    { "subject", LOG_TLS_FIELD_SUBJECT },
+    { "issuer", LOG_TLS_FIELD_ISSUER },
+    { "serial", LOG_TLS_FIELD_SERIAL },
+    { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
+    { "not_before", LOG_TLS_FIELD_NOTBEFORE },
+    { "not_after", LOG_TLS_FIELD_NOTAFTER },
+    { "sni", LOG_TLS_FIELD_SNI },
+    { "certificate", LOG_TLS_FIELD_CERTIFICATE },
+    { "chain", LOG_TLS_FIELD_CHAIN },
+    { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { "ja3", LOG_TLS_FIELD_JA3 },
+    { "ja3s", LOG_TLS_FIELD_JA3S },
+    { "client", LOG_TLS_FIELD_CLIENT },
+    { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
+    { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN },
+    { "ja4", LOG_TLS_FIELD_JA4 },
+    { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
+    { NULL, -1 },
+    // clang-format on
+};
 
 typedef struct OutputTlsCtx_ {
     uint32_t flags;  /** Store mode */
