@@ -1559,22 +1559,6 @@ pub unsafe extern "C" fn ScDetectEnipRegister() {
         true,
     );
     let kw = SCSigTableElmt {
-        name: b"enip_command\0".as_ptr() as *const libc::c_char,
-        desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
-        AppLayerTxMatch: Some(command_match),
-        Setup: command_setup,
-        Free: Some(command_free),
-        flags: 0,
-    };
-    G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_ENIP_COMMAND_BUFFER_ID = DetectHelperBufferRegister(
-        b"enip.command\0".as_ptr() as *const libc::c_char,
-        ALPROTO_ENIP,
-        true,
-        true,
-    );
-    let kw = SCSigTableElmt {
         name: b"enip.cip_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-status\0".as_ptr() as *const libc::c_char,
