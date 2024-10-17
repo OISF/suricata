@@ -312,6 +312,9 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
     const InspectionBuffer *buffer = HttpRequestBodyGetDataCallback(
             det_ctx, engine->v2.transforms, f, flags, txv, engine->sm_list, engine->sm_list_base);
     if (buffer == NULL || buffer->inspect == NULL) {
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
