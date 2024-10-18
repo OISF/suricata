@@ -38,8 +38,6 @@
 #include "util-ja4.h"
 #include "util-time.h"
 
-SC_ATOMIC_EXTERN(unsigned int, cert_id);
-
 #define LOG_TLS_FIELD_VERSION           (1 << 0)
 #define LOG_TLS_FIELD_SUBJECT           (1 << 1)
 #define LOG_TLS_FIELD_ISSUER            (1 << 2)
