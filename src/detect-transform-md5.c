@@ -39,7 +39,7 @@ static int DetectTransformToMd5Setup (DetectEngineCtx *, Signature *, const char
 #ifdef UNITTESTS
 static void DetectTransformToMd5RegisterTests(void);
 #endif
-static void TransformToMd5(InspectionBuffer *buffer, void *options);
+static void TransformToMd5(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 
 void DetectTransformMd5Register(void)
 {
@@ -80,7 +80,7 @@ static int DetectTransformToMd5Setup (DetectEngineCtx *de_ctx, Signature *s, con
     SCReturnInt(r);
 }
 
-static void TransformToMd5(InspectionBuffer *buffer, void *options)
+static void TransformToMd5(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -101,7 +101,7 @@ static int DetectTransformToMd5Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToMd5(&buffer, NULL);
+    TransformToMd5(NULL, &buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

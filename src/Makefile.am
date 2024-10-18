@@ -310,6 +310,7 @@ noinst_HEADERS = \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
 	detect-transform-header-lowercase.h \
+	detect-transform-luaxform.h \
 	detect-transform-md5.h \
 	detect-transform-pcrexform.h \
 	detect-transform-sha1.h \
@@ -879,6 +880,7 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
 	detect-transform-header-lowercase.c \
+	detect-transform-luaxform.c \
 	detect-transform-md5.c \
 	detect-transform-pcrexform.c \
 	detect-transform-sha1.c \
