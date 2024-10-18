@@ -276,7 +276,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jb, f);
     EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOSERVER);
-    OutputJsonBuilderBuffer(jb, jhl);
+    OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
     jb_free(jb);
 
     /* only log a response record if we actually have seen response packets */
@@ -286,7 +286,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jb, f);
         EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOCLIENT);
-        OutputJsonBuilderBuffer(jb, jhl);
+        OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
         jb_free(jb);
     }
     SCReturnInt(TM_ECODE_OK);
