@@ -92,6 +92,7 @@ SCEnumCharMap tls_decoder_event_table[] = {
     { "INVALID_SNI_TYPE", TLS_DECODER_EVENT_INVALID_SNI_TYPE },
     { "INVALID_SNI_LENGTH", TLS_DECODER_EVENT_INVALID_SNI_LENGTH },
     { "TOO_MANY_RECORDS_IN_PACKET", TLS_DECODER_EVENT_TOO_MANY_RECORDS_IN_PACKET },
+    { "INVALID_ALERT_MESSAGE", TLS_DECODER_EVENT_INVALID_ALERT },
     /* certificate decoding messages */
     { "INVALID_CERTIFICATE", TLS_DECODER_EVENT_INVALID_CERTIFICATE },
     { "CERTIFICATE_INVALID_LENGTH", TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH },
@@ -1915,6 +1916,38 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
 
 /**
  * \internal
+ * \brief TLS Alert parser
+ *
+ * \param sslstate  Pointer to the SSL state.
+ * \param input     Pointer to the received input data.
+ * \param input_len Length in bytes of the received data.
+ * \param direction 1 toclient, 0 toserver
+ *
+ * \retval The number of bytes parsed on success, 0 if nothing parsed, -1 on failure.
+ */
+static int SSLv3ParseAlertProtocol(
+        SSLState *ssl_state, const uint8_t *input, uint32_t input_len, uint8_t direction)
+{
+    if (input_len < 2) {
+        SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_ALERT);
+        return -1;
+    }
+
+    /* assume a record > 2 to be an encrypted alert record */
+    if (input_len == 2) {
+        uint8_t level = input[0];
+        // uint8_t desc = input[1];
+
+        /* if level Fatal, we consider the tx finished */
+        if (level == 2) {
+            ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
+        }
+    }
+    return 0;
+}
+
+/**
+ * \internal
  * \brief TLS Heartbeat parser (see RFC 6520)
  *
  * \param sslstate  Pointer to the SSL state.
@@ -2540,11 +2573,17 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             }
             break;
 
-        case SSLV3_ALERT_PROTOCOL:
+        case SSLV3_ALERT_PROTOCOL: {
             AppLayerFrameNewByPointer(ssl_state->f, &stream_slice, input + parsed,
                     ssl_state->curr_connp->record_length, direction, TLS_FRAME_ALERT_DATA);
-            break;
 
+            int retval = SSLv3ParseAlertProtocol(ssl_state, input + parsed, record_len, direction);
+            if (retval < 0) {
+                SCLogDebug("SSLv3ParseAlertProtocol returned %d", retval);
+                return SSL_DECODER_ERROR(-1);
+            }
+            break;
+        }
         case SSLV3_APPLICATION_PROTOCOL:
             /* In TLSv1.3 early data (0-RTT) could be sent before the
                handshake is complete (rfc8446, section 2.3). We should
