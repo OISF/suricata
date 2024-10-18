@@ -41,6 +41,7 @@
 #include "flow-spare-pool.h"
 
 #include "stream-tcp.h"
+#include "stream-tcp-cache.h"
 
 #include "util-device.h"
 
