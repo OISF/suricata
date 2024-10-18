@@ -31,6 +31,7 @@ typedef struct DPDKIfaceConfigAttributes_ {
     const char *checksum_checks;
     const char *checksum_checks_offload;
     const char *mtu;
+    const char *vlan_strip_enabled;
     const char *rss_hf;
     const char *mempool_size;
     const char *mempool_cache_size;
