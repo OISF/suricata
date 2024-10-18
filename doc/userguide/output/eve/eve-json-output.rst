@@ -46,6 +46,13 @@ Output types::
       #             ## publish is using a Redis channel. "channel" is an alias for publish
       #             ## xadd is using a Redis stream. "stream" is an alias for xadd
       #  key: suricata ## string denoting the key/channel/stream to use (default to suricata)
+      #  stream-maxlen: 100000        ## Automatically trims the stream length to at most
+                                      ## this number of events. Set to 0 to disable trimming.
+                                      ## Only used when mode is set to xadd/stream.
+      #  stream-trim-exact: false     ## Trim exactly to the maximum stream length above.
+                                      ## Default: use inexact trimming (inexact by a few
+                                      ## tens of items)
+                                      ## Only used when mode is set to xadd/stream.
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
       # connection at the cost of some memory. There is no flushing implemented

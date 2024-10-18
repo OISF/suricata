@@ -45,6 +45,7 @@ typedef struct RedisSetup_ {
     uint16_t  port;
     int is_async;
     int  batch_size;
+    char *stream_format;
 } RedisSetup;
 
 typedef struct SCLogRedisContext_ {
