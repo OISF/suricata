@@ -916,6 +916,14 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         lf_ctx->filetype.filetype->Deinit(lf_ctx->filetype.init_data);
     }
 
+#ifdef HAVE_LIBHIREDIS
+    if (lf_ctx->type == LOGFILE_TYPE_REDIS) {
+        if (lf_ctx->redis_setup.stream_format != NULL) {
+            SCFree(lf_ctx->redis_setup.stream_format);
+        }
+    }
+#endif
+
     memset(lf_ctx, 0, sizeof(*lf_ctx));
     SCFree(lf_ctx);
 
