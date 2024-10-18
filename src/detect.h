@@ -1594,11 +1594,6 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
-void AlertQueueInit(DetectEngineThreadCtx *det_ctx);
-void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
-void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
-        uint8_t alert_flags);
-
 int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 
 int DetectMetadataHashInit(DetectEngineCtx *de_ctx);
