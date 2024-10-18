@@ -392,12 +392,6 @@ typedef struct SCProfileDetectCtx_ {
     pthread_mutex_t data_m;
 } SCProfileDetectCtx;
 
-void SCProfilingRulesGlobalInit(void);
-void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
-void SCProfilingRuleInitCounters(DetectEngineCtx *);
-void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
-void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
-void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
 int SCProfileRuleStart(Packet *p);
 json_t *SCProfileRuleTriggerDump(DetectEngineCtx *de_ctx);
 void SCProfileRuleStartCollection(void);
