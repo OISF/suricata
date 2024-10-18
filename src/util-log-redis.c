@@ -34,14 +34,15 @@
 #include <event2/thread.h>
 #endif /* HAVE_LIBEVENT_PTHREADS */
 
-static const char * redis_lpush_cmd = "LPUSH";
-static const char * redis_rpush_cmd = "RPUSH";
-static const char * redis_publish_cmd = "PUBLISH";
+static const char *redis_lpush_cmd = "LPUSH";
+static const char *redis_rpush_cmd = "RPUSH";
+static const char *redis_publish_cmd = "PUBLISH";
 static const char *redis_xadd_cmd = "XADD";
-static const char * redis_default_key = "suricata";
-static const char * redis_default_server = "127.0.0.1";
+static const char *redis_default_key = "suricata";
+static const char *redis_default_server = "127.0.0.1";
 static const char *redis_default_format = "%s %s %s";
 static const char *redis_stream_format = "%s %s * eve %s";
+static const char *redis_stream_format_maxlen_tmpl = "%s %s MAXLEN %c %d * eve %s";
 
 static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx);
 static void SCLogFileCloseRedis(LogFileCtx *log_ctx);
@@ -525,8 +526,22 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
     } else if(!strcmp(redis_mode,"channel") || !strcmp(redis_mode,"publish")) {
         log_ctx->redis_setup.command = redis_publish_cmd;
     } else if (!strcmp(redis_mode, "stream") || !strcmp(redis_mode, "xadd")) {
+        int exact = 0;
+        int ret_maxlen, ret_exact;
+        intmax_t maxlen = 0;
         log_ctx->redis_setup.command = redis_xadd_cmd;
         log_ctx->redis_setup.format = redis_stream_format;
+        ret_maxlen = ConfGetChildValueInt(redis_node, "stream-maxlen", &maxlen);
+        ret_exact = ConfGetChildValueBool(redis_node, "stream-trim-exact", &exact);
+        if (ret_maxlen && maxlen > 0) {
+            /* we do not need a lot of space here since we only build another
+               format string, whose length is limited by the length of the
+               maxlen integer formatted as a string */
+            log_ctx->redis_setup.stream_format = SCCalloc(100, sizeof(char));
+            snprintf(log_ctx->redis_setup.stream_format, 100, redis_stream_format_maxlen_tmpl, "%s",
+                    "%s", (ret_exact && exact) ? '=' : '~', maxlen, "%s");
+            log_ctx->redis_setup.format = log_ctx->redis_setup.stream_format;
+        }
     } else {
         FatalError("Invalid redis mode: %s", redis_mode);
     }
