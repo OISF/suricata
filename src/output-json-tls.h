@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,9 +26,9 @@
 
 void JsonTlsLogRegister(void);
 
-#include "app-layer-ssl.h"
+/* For JsonBuilder. */
+#include "rust.h"
 
-void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *js);
 
 #endif /* SURICATA_OUTPUT_JSON_TLS_H */
