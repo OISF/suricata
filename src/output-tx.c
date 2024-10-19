@@ -345,6 +345,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("not pseudo, no app update: skip");
         return TM_ECODE_OK;
     }
+    if ((p->flags & PKT_STREAM_EST) == 0 && p->proto == IPPROTO_TCP) {
+        return TM_ECODE_OK;
+    }
     SCLogDebug("pseudo, or app update: run output");
 
     OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
