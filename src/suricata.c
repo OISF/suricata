@@ -400,6 +400,7 @@ void GlobalsDestroy(void)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
+    DatalinkTableDeinit();
 
 #ifdef HAVE_DPDK
     DPDKCleanupEAL();
@@ -2884,6 +2885,7 @@ int InitGlobal(void)
 
     /* Initialize the configuration module. */
     ConfInit();
+    DatalinkTableInit();
 
     VarNameStoreInit();
 
