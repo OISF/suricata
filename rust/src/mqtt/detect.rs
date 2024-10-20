@@ -374,6 +374,27 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result
 #[no_mangle]
 pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code: u8) -> u8 {
     for msg in tx.msg.iter() {
+        match msg.op {
+            MQTTOperation::UNSUBACK(ref unsuback) => {
+                if let Some(ref reason_codes) = unsuback.reason_codes {
+                    for rc in reason_codes.iter() {
+                        if *rc == code {
+                            return 1;
+                        }
+                    }
+                }
+            }
+            MQTTOperation::SUBACK(ref suback) => {
+                for rc in suback.qoss.iter() {
+                    if *rc == code {
+                        return 1;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    for msg in tx.msg.iter() {
         if let MQTTOperation::UNSUBACK(ref unsuback) = msg.op {
             if let Some(ref reason_codes) = unsuback.reason_codes {
                 for rc in reason_codes.iter() {
