@@ -243,16 +243,29 @@ fn mqtt_tx_get_reason_code(tx: &MQTTTransaction) -> Option<u8> {
     return None;
 }
 
-fn mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code: &DetectUintData<u8>) -> c_int {
+fn mqtt_tx_suback_unsuback_has_reason_code(
+    tx: &MQTTTransaction, code: &DetectUintData<u8>,
+) -> c_int {
     for msg in tx.msg.iter() {
-        if let MQTTOperation::UNSUBACK(ref unsuback) = msg.op {
-            if let Some(ref reason_codes) = unsuback.reason_codes {
-                for rc in reason_codes.iter() {
+        match msg.op {
+            MQTTOperation::UNSUBACK(ref unsuback) => {
+                if let Some(ref reason_codes) = unsuback.reason_codes {
+                    for rc in reason_codes.iter() {
+                        if detect_match_uint(code, *rc) {
+                            return 1;
+                        }
+                    }
+                }
+            }
+            MQTTOperation::SUBACK(ref suback) => {
+                // in SUBACK these are stored as "QOS granted" historically
+                for rc in suback.qoss.iter() {
                     if detect_match_uint(code, *rc) {
                         return 1;
                     }
                 }
             }
+            _ => {}
         }
     }
     return 0;
@@ -476,7 +489,7 @@ unsafe extern "C" fn mqtt_reason_code_match(
             return 1;
         }
     }
-    return mqtt_tx_unsuback_has_reason_code(tx, ctx);
+    return mqtt_tx_suback_unsuback_has_reason_code(tx, ctx);
 }
 
 unsafe extern "C" fn mqtt_reason_code_free(_de: *mut c_void, ctx: *mut c_void) {
