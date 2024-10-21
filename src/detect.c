@@ -781,6 +781,10 @@ static inline void DetectRulePacketRules(
             goto next; // handle sig in DetectRunFrame
         }
 
+        /* skip pkt sigs for flow end packets */
+        if ((p->flags & PKT_PSEUDO_STREAM_END) != 0 && s->type == SIG_TYPE_PKT)
+            goto next;
+
         /* don't run mask check for stateful rules.
          * There we depend on prefilter */
         if ((s->mask & scratch->pkt_mask) != s->mask) {
