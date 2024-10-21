@@ -38,26 +38,26 @@
 #include "util-ja4.h"
 #include "util-time.h"
 
-#define LOG_TLS_FIELD_VERSION           (1 << 0)
-#define LOG_TLS_FIELD_SUBJECT           (1 << 1)
-#define LOG_TLS_FIELD_ISSUER            (1 << 2)
-#define LOG_TLS_FIELD_SERIAL            (1 << 3)
-#define LOG_TLS_FIELD_FINGERPRINT       (1 << 4)
-#define LOG_TLS_FIELD_NOTBEFORE         (1 << 5)
-#define LOG_TLS_FIELD_NOTAFTER          (1 << 6)
-#define LOG_TLS_FIELD_SNI               (1 << 7)
-#define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
-#define LOG_TLS_FIELD_CHAIN             (1 << 9)
-#define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
-#define LOG_TLS_FIELD_JA3               (1 << 11)
-#define LOG_TLS_FIELD_JA3S              (1 << 12)
-#define LOG_TLS_FIELD_CLIENT            (1 << 13) /**< client fields (issuer, subject, etc) */
-#define LOG_TLS_FIELD_CLIENT_CERT       (1 << 14)
-#define LOG_TLS_FIELD_CLIENT_CHAIN      (1 << 15)
-#define LOG_TLS_FIELD_JA4               (1 << 16)
-#define LOG_TLS_FIELD_SUBJECTALTNAME    (1 << 17)
-#define LOG_TLS_FIELD_CLIENT_ALPNS      (1 << 18)
-#define LOG_TLS_FIELD_SERVER_ALPNS      (1 << 19)
+#define LOG_TLS_FIELD_VERSION         BIT_U64(0)
+#define LOG_TLS_FIELD_SUBJECT         BIT_U64(1)
+#define LOG_TLS_FIELD_ISSUER          BIT_U64(2)
+#define LOG_TLS_FIELD_SERIAL          BIT_U64(3)
+#define LOG_TLS_FIELD_FINGERPRINT     BIT_U64(4)
+#define LOG_TLS_FIELD_NOTBEFORE       BIT_U64(5)
+#define LOG_TLS_FIELD_NOTAFTER        BIT_U64(6)
+#define LOG_TLS_FIELD_SNI             BIT_U64(7)
+#define LOG_TLS_FIELD_CERTIFICATE     BIT_U64(8)
+#define LOG_TLS_FIELD_CHAIN           BIT_U64(9)
+#define LOG_TLS_FIELD_SESSION_RESUMED BIT_U64(10)
+#define LOG_TLS_FIELD_JA3             BIT_U64(11)
+#define LOG_TLS_FIELD_JA3S            BIT_U64(12)
+#define LOG_TLS_FIELD_CLIENT          BIT_U64(13) /**< client fields (issuer, subject, etc) */
+#define LOG_TLS_FIELD_CLIENT_CERT     BIT_U64(14)
+#define LOG_TLS_FIELD_CLIENT_CHAIN    BIT_U64(15)
+#define LOG_TLS_FIELD_JA4             BIT_U64(16)
+#define LOG_TLS_FIELD_SUBJECTALTNAME  BIT_U64(17)
+#define LOG_TLS_FIELD_CLIENT_ALPNS    BIT_U64(18)
+#define LOG_TLS_FIELD_SERVER_ALPNS    BIT_U64(19)
 
 typedef struct {
     const char *name;
