@@ -901,8 +901,7 @@ void OutputRegisterRootLoggers(void)
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log, "bittorrent_dht");
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_MYSQL, SCMysqlLogger, "mysql");
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MYSQL, SCMysqlLogger, "mysql");
 
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();

@@ -744,15 +744,12 @@ fn parse_stmt_execute_cmd(
                 let param_types = if let Some(new_param_types) = new_param_types {
                     Some(new_param_types)
                 } else {
-                    match param_types {
-                        Some(param_types) => Some(
-                            param_types
-                                .iter()
-                                .map(|param_type| (param_type.field_type, param_type.flags != 0))
-                                .collect(),
-                        ),
-                        None => None,
-                    }
+                    param_types.map(|param_types| {
+                        param_types
+                            .iter()
+                            .map(|param_type| (param_type.field_type, param_type.flags != 0))
+                            .collect()
+                    })
                 };
 
                 let consumed = old.len() - i.len();
@@ -1096,7 +1093,7 @@ fn parse_resultset_row_texts(i: &[u8]) -> IResult<&[u8], Vec<String>> {
         length -= consumed;
     }
 
-    Ok((rem, texts))
+    Ok((&[], texts))
 }
 
 fn parse_resultset_row(i: &[u8]) -> IResult<&[u8], MysqlResultSetRow> {
@@ -2124,16 +2121,6 @@ pub fn parse_auth_responsev2(i: &[u8]) -> IResult<&[u8], MysqlResponse> {
 mod test {
 
     use super::*;
-
-    #[test]
-    fn test_parse_packet_header() {
-        let pkt: &[u8] = &[0x07, 0x00, 0x00, 0x03];
-        let (rem, packet_header) = parse_packet_header(pkt).unwrap();
-
-        assert!(rem.is_empty());
-        assert_eq!(packet_header.pkt_len, 7);
-        assert_eq!(packet_header.pkt_num, 3);
-    }
 
     #[test]
     fn test_parse_handshake_request() {

@@ -308,7 +308,7 @@ impl MysqlState {
     }
 
     fn new_tx(&mut self, command: String) -> MysqlTransaction {
-        let mut tx = MysqlTransaction::new(self.version.clone().unwrap());
+        let mut tx = MysqlTransaction::new(self.version.clone().unwrap_or_default());
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         tx.tls = self.tls;
@@ -528,7 +528,7 @@ impl MysqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if !probe(i).is_ok() {
+            if probe(i).is_err() {
                 SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
@@ -894,7 +894,7 @@ impl MysqlState {
         }
 
         if self.response_gap {
-            if !probe(i).is_ok() {
+            if probe(i).is_err() {
                 SCLogDebug!("Suricata interprets there's a gap in the response");
                 return AppLayerResult::ok();
             }
