@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1037,22 +1037,6 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
 }
 #endif
 
-static StreamingBufferBlock *GetBlock(const StreamingBuffer *sb, const uint64_t offset)
-{
-    StreamingBufferBlock *blk = sb->head;
-    if (blk == NULL)
-        return NULL;
-
-    for ( ; blk != NULL; blk = SBB_RB_NEXT(blk)) {
-        if (blk->offset >= offset)
-            return blk;
-        else if ((blk->offset + blk->len) > offset) {
-            return blk;
-        }
-    }
-    return NULL;
-}
-
 static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_blk)
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
@@ -1088,7 +1072,8 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
         *data_len = mydata_len;
     } else {
         SCLogDebug("block mode");
-        StreamingBufferBlock *blk = GetBlock(&stream->sb, offset);
+        StreamingBufferBlock key = { .offset = offset, .len = 0 };
+        StreamingBufferBlock *blk = SBB_RB_FIND_INCLUSIVE((struct SBB *)&stream->sb.sbb_tree, &key);
         if (blk == NULL) {
             *data = NULL;
             *data_len = 0;
@@ -1951,6 +1936,15 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCReturnInt(0);
 }
 
+static void StreamTcpReassembleExceptionPolicyStatsIncr(
+        ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
+{
+    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p)
 {
@@ -2017,6 +2011,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
                     p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_REASSEMBLY);
+            StreamTcpReassembleExceptionPolicyStatsIncr(
+                    tv, ra_ctx, stream_config.reassembly_memcap_policy);
             SCReturnInt(-1);
         }
 
