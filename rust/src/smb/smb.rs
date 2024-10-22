@@ -2229,7 +2229,7 @@ pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut AppLayerEventType,
-) -> i8 {
+) -> std::os::raw::c_int {
     SMBEvent::get_event_info_by_id(event_id, event_name, event_type)
 }
 
