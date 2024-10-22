@@ -2994,11 +2994,11 @@ static const char *SSLStateGetFrameNameById(const uint8_t frame_id)
     return name;
 }
 
-static int SSLStateGetEventInfo(const char *event_name,
-                         int *event_id, AppLayerEventType *event_type)
+static int SSLStateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
-    if (*event_id == -1) {
+    int value = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
+    if (value == -1) {
         SCLogError("event \"%s\" not present in "
                    "ssl's enum map table.",
                 event_name);
@@ -3006,13 +3006,14 @@ static int SSLStateGetEventInfo(const char *event_name,
         return -1;
     }
 
+    *event_id = (uint8_t)value;
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
 
-static int SSLStateGetEventInfoById(int event_id, const char **event_name,
-                                    AppLayerEventType *event_type)
+static int SSLStateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, tls_decoder_event_table);
     if (*event_name == NULL) {

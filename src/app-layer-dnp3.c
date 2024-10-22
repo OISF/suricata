@@ -1435,17 +1435,18 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
 /**
  * \brief App-layer support.
  */
-static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
-    AppLayerEventType *event_type)
+static int DNP3StateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, dnp3_decoder_event_table);
-    if (*event_id == -1) {
+    int value = SCMapEnumNameToValue(event_name, dnp3_decoder_event_table);
+    if (value == -1) {
         SCLogError("Event \"%s\" not present in "
                    "the DNP3 enum event map table.",
                 event_name);
         return -1;
     }
 
+    *event_id = (uint8_t)value;
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
@@ -1454,8 +1455,8 @@ static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
 /**
  * \brief App-layer support.
  */
-static int DNP3StateGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+static int DNP3StateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, dnp3_decoder_event_table);
     if (*event_name == NULL) {

@@ -55,8 +55,8 @@ enum {
 
 int AppLayerGetPktEventInfo(const char *event_name, int *event_id);
 
-int AppLayerGetEventInfoById(int event_id, const char **event_name,
-                             AppLayerEventType *event_type);
+int AppLayerGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type);
 void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event);
 
 static inline int AppLayerDecoderEventsIsEventSet(
@@ -76,6 +76,7 @@ static inline int AppLayerDecoderEventsIsEventSet(
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
 void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
-int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type);
+int DetectEngineGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type);
 
 #endif /* SURICATA_APP_LAYER_EVENTS_H */

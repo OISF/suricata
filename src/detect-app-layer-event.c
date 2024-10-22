@@ -247,7 +247,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
         }
 
         int r;
-        int event_id = 0;
+        uint8_t event_id = 0;
         if (!needs_detctx) {
             r = AppLayerParserGetEventInfo(ipproto, alproto, event_name, &event_id, &event_type);
         } else {
@@ -265,10 +265,6 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
                         alproto_name, event_name);
                 return -3;
             }
-        }
-        if (event_id > UINT8_MAX) {
-            SCLogWarning("app-layer-event keyword's id has invalid value");
-            return -4;
         }
         data = SCCalloc(1, sizeof(*data));
         if (unlikely(data == NULL))

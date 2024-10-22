@@ -2718,11 +2718,11 @@ void *HtpGetTxForH2(void *alstate)
     return NULL;
 }
 
-static int HTPStateGetEventInfo(const char *event_name,
-                         int *event_id, AppLayerEventType *event_type)
+static int HTPStateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, http_decoder_event_table);
-    if (*event_id == -1) {
+    int value = SCMapEnumNameToValue(event_name, http_decoder_event_table);
+    if (value == -1) {
         SCLogError("event \"%s\" not present in "
                    "http's enum map table.",
                 event_name);
@@ -2730,13 +2730,14 @@ static int HTPStateGetEventInfo(const char *event_name,
         return -1;
     }
 
+    *event_id = (uint8_t)value;
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
 
-static int HTPStateGetEventInfoById(int event_id, const char **event_name,
-                                    AppLayerEventType *event_type)
+static int HTPStateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, http_decoder_event_table);
     if (*event_name == NULL) {

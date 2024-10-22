@@ -48,8 +48,8 @@ SCEnumCharMap app_layer_event_pkt_table[ ] = {
       -1 },
 };
 
-int AppLayerGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+int AppLayerGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, app_layer_event_pkt_table);
     if (*event_name == NULL) {
@@ -161,16 +161,22 @@ SCEnumCharMap det_ctx_event_table[] = {
     { NULL, -1 },
 };
 
-int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
+int DetectEngineGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, det_ctx_event_table);
-    if (*event_id == -1) {
+    int value = SCMapEnumNameToValue(event_name, det_ctx_event_table);
+    if (value == -1) {
         SCLogError("event \"%s\" not present in "
                    "det_ctx's enum map table.",
                 event_name);
         /* this should be treated as fatal */
         return -1;
+    } else if (value > UINT8_MAX) {
+        SCLogError("event \"%s\" has invalid value", event_name);
+        /* this should be treated as fatal */
+        return -1;
     }
+    *event_id = (uint8_t)value;
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
