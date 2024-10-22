@@ -67,8 +67,8 @@ static void TFTPStateTxFree(void *state, uint64_t tx_id)
     rs_tftp_state_tx_free(state, tx_id);
 }
 
-static int TFTPStateGetEventInfo(const char *event_name, int *event_id,
-    AppLayerEventType *event_type)
+static int TFTPStateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
     return -1;
 }
