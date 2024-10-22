@@ -330,6 +330,9 @@
                 },
                 "type": {
                     "type": "string"
+                },
+                "code": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
