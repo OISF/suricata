@@ -932,6 +932,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_close(js);
                 break;
             }
+            case DETECT_FLOW_AGE: {
+                const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
+                jb_open_object(js, "flow_age");
+                SCDetectU32ToJson(js, cd);
+                jb_close(js);
+                break;
+            }
         }
         jb_close(js);
 
