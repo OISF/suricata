@@ -144,9 +144,8 @@ static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
 static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
                                                             AppLayerEventType *event_type)
 {
-    int event_id = 0;
-    int r = AppLayerGetPktEventInfo(arg, &event_id);
-    if (r < 0 || r > UINT8_MAX) {
+    uint8_t event_id = 0;
+    if (AppLayerGetPktEventInfo(arg, &event_id) != 0) {
         SCLogError("app-layer-event keyword "
                    "supplied with packet based event - \"%s\" that isn't "
                    "supported yet.",
@@ -247,7 +246,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
         }
 
         int r;
-        int event_id = 0;
+        uint8_t event_id = 0;
         if (!needs_detctx) {
             r = AppLayerParserGetEventInfo(ipproto, alproto, event_name, &event_id, &event_type);
         } else {
@@ -265,10 +264,6 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
                         alproto_name, event_name);
                 return -3;
             }
-        }
-        if (event_id > UINT8_MAX) {
-            SCLogWarning("app-layer-event keyword's id has invalid value");
-            return -4;
         }
         data = SCCalloc(1, sizeof(*data));
         if (unlikely(data == NULL))
