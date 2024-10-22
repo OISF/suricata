@@ -445,7 +445,7 @@ pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *m
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
-pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
+pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> c_int;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
@@ -590,7 +590,7 @@ pub trait AppLayerEvent {
         event_id: std::os::raw::c_int,
         event_name: *mut *const std::os::raw::c_char,
         event_type: *mut core::AppLayerEventType,
-    ) -> i8;
+    ) -> std::os::raw::c_int;
 }
 
 /// Generic `get_info_info` implementation for enums implementing
@@ -634,7 +634,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
-) -> i8 {
+) -> std::os::raw::c_int {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
         *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;

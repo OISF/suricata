@@ -98,7 +98,7 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
                 event_id: std::os::raw::c_int,
                 event_name: *mut *const std::os::raw::c_char,
                 event_type: *mut #crate_id::core::AppLayerEventType,
-            ) -> i8 {
+            ) -> std::os::raw::c_int {
                 #crate_id::applayer::get_event_info_by_id::<#name>(event_id, event_name, event_type)
             }
 
