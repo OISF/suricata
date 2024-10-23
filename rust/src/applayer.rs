@@ -374,7 +374,7 @@ pub struct RustParser {
     /// Function to get an event id from a description
     pub get_eventinfo:      crate::sys::SCAppLayerStateGetEventInfoFn,
     /// Function to get an event description from an event id
-    pub get_eventinfo_byid: Option<GetEventInfoByIdFn>,
+    pub get_eventinfo_byid: crate::sys::SCAppLayerStateGetEventInfoByIdFn,
 
     /// Function to allocate local storage
     pub localstorage_new:   Option<LocalStorageNewFn>,
@@ -443,7 +443,6 @@ pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
-pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
