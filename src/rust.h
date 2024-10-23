@@ -21,6 +21,7 @@
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 #include "rust-context.h"
+#include "app-layer-ext.h"
 #include "rust-bindings.h"
 
 #define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")

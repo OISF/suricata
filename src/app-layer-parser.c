@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "app-layer.h"
+#include "app-layer-ext.h"
 #include "app-layer-detect-proto.h"
 
 #include "app-layer-ftp.h"
@@ -552,9 +553,8 @@ void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
-    int (*StateGetEventInfo)(const char *event_name, int *event_id,
-                             AppLayerEventType *event_type))
+void AppLayerParserRegisterGetEventInfo(
+        uint8_t ipproto, AppProto alproto, SCAppLayerStateGetEventInfoFn StateGetEventInfo)
 {
     SCEnter();
 

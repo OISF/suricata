@@ -372,7 +372,7 @@ pub struct RustParser {
     pub tx_get_progress:    crate::sys::SCAppLayerStateGetProgressFn,
 
     /// Function to get an event id from a description
-    pub get_eventinfo:      Option<GetEventInfoFn>,
+    pub get_eventinfo:      crate::sys::SCAppLayerStateGetEventInfoFn,
     /// Function to get an event description from an event id
     pub get_eventinfo_byid: Option<GetEventInfoByIdFn>,
 
@@ -443,7 +443,6 @@ pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
-pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
@@ -621,7 +620,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
         Ok(Some(event)) => event.as_i32(),
         _ => -1,
     };
-    *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_type = crate::sys::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
     *event_id = event as std::os::raw::c_int;
     return 0;
 }

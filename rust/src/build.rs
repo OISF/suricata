@@ -12,6 +12,8 @@ fn main() {
         .header("../src/app-layer-ext.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .allowlist_item("SC.*")
+        .allowlist_item("AppLayer.*")
+        .rustified_enum("AppLayerEventType")
         .generate()
         .unwrap();
 

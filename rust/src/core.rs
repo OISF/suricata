@@ -25,13 +25,8 @@ use crate::debug_validate_fail;
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[allow(non_camel_case_types)]
-pub enum AppLayerEventType {
-    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
-    APP_LAYER_EVENT_TYPE_PACKET = 2,
-}
+/// Re-export for now.
+pub use crate::sys::AppLayerEventType;
 
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
