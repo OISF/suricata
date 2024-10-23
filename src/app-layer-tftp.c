@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,17 +27,12 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "conf.h"
-
-#include "util-unittest.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-tftp.h"
-#include "rust.h"
 
 /* The default port to probe if not provided in the configuration file. */
 #define TFTP_DEFAULT_PORT "69"

@@ -24,12 +24,8 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "decode.h"
-#include "threads.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -41,7 +37,6 @@
 #include "util-enum.h"
 #include "util-mpm.h"
 #include "util-debug.h"
-#include "util-print.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -53,7 +48,6 @@
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 
-#include "decode-events.h"
 #include "conf.h"
 
 #include "util-mem.h"

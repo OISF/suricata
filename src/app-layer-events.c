@@ -22,11 +22,7 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#include "suricata-common.h"
-#include "decode.h"
-#include "flow.h"
 #include "app-layer-events.h"
-#include "app-layer-parser.h"
 #include "util-enum.h"
 
 int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id)
