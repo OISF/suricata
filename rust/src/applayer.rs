@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto,Direction};
+use crate::core::{self,DetectEngineState,Flow,AppProto,Direction};
 use crate::filecontainer::FileContainer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
@@ -587,7 +587,7 @@ pub trait AppLayerEvent {
         event_id: std::os::raw::c_int,
         event_name: *mut *const std::os::raw::c_char,
         event_type: *mut core::AppLayerEventType,
-    ) -> i8;
+    ) -> std::os::raw::c_int;
 }
 
 /// Generic `get_info_info` implementation for enums implementing
@@ -631,7 +631,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_id: std::os::raw::c_int,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
-) -> i8 {
+) -> std::os::raw::c_int {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
         *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
