@@ -20,14 +20,14 @@ Comparison modes
 ----------------
 
 Integers can be matched for
-* Equality
-* Inequality
-* Greater than
-* Less than
-* Range
-* Negated range
-* Bitmask
-* Negated Bitmask
+  * Equality
+  * Inequality
+  * Greater than
+  * Less than
+  * Range
+  * Negated range
+  * Bitmask
+  * Negated Bitmask
 
 .. note::
 
