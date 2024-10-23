@@ -19,6 +19,7 @@ noinst_HEADERS = \
 	app-layer-dnp3-objects.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
+	app-layer-ext.h \
 	app-layer-frames.h \
 	app-layer-ftp.h \
 	app-layer.h \
