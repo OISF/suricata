@@ -37,23 +37,14 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "decode.h"
-#include "threads.h"
-#include "counters.h"
 
 #include "util-print.h"
-#include "util-pool.h"
-#include "util-radix-tree.h"
-#include "util-file.h"
 #include "util-byte.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-expectation.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -66,11 +57,8 @@
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
 
-#include "util-spm.h"
 #include "util-debug.h"
-#include "util-time.h"
 #include "util-misc.h"
-#include "util-enum.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -80,8 +68,6 @@
 #include "detect-engine-build.h"
 #include "detect-engine-state.h"
 #include "detect-parse.h"
-
-#include "decode-events.h"
 
 #include "util-memcmp.h"
 #include "util-random.h"
