@@ -52,6 +52,7 @@
 #include "detect-flowbits.h"
 #include "util-var-name.h"
 #include "detect-icmp-id.h"
+#include "detect-tcp-window.h"
 
 static int rule_warnings_only = 0;
 
@@ -936,6 +937,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 jb_open_object(js, "flow_age");
                 SCDetectU32ToJson(js, cd);
+                jb_close(js);
+                break;
+            }
+            case DETECT_WINDOW: {
+                const DetectWindowData *wd = (const DetectWindowData *)smd->ctx;
+                jb_open_object(js, "window");
+                jb_set_uint(js, "size", wd->size);
+                jb_set_bool(js, "negated", wd->negated);
                 jb_close(js);
                 break;
             }
