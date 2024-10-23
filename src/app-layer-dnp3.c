@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,12 +23,8 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "util-hashlist.h"
 
-#include "util-print.h"
 #include "util-spm-bs.h"
 #include "util-enum.h"
 
