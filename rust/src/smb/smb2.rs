@@ -152,7 +152,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
             // get the request info. If we don't have it, there is nothing
             // we can do except skip this record.
             let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
-            let (offset, file_guid) = match state.ssn2vecoffset_map.remove(&guid_key) {
+            let (offset, file_guid) = match state.read_offset_cache.pop(&guid_key) {
                 Some(o) => (o.offset, o.guid),
                 None => {
                     SCLogDebug!("SMBv2 READ response: reply to unknown request {:?}",rd);
@@ -544,7 +544,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                         // store read guid,offset in map
                         let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
                         let guidoff = SMBFileGUIDOffset::new(rd.guid.to_vec(), rd.rd_offset);
-                        state.ssn2vecoffset_map.insert(guid_key, guidoff);
+                        state.read_offset_cache.put(guid_key, guidoff);
                 }
             } else {
                 events.push(SMBEvent::MalformedData);
@@ -667,7 +667,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                 SCLogDebug!("SMBv2: read response => EOF");
 
                 let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_OFFSET);
-                let file_guid = if let Some(o) = state.ssn2vecoffset_map.remove(&guid_key) {
+                let file_guid = if let Some(o) = state.read_offset_cache.pop(&guid_key) {
                     o.guid
                 } else {
                     SCLogDebug!("SMBv2 READ response: reply to unknown request");
