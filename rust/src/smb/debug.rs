@@ -69,12 +69,12 @@ impl SMBState {
 
     #[cfg(feature = "debug")]
     pub fn _debug_state_stats(&self) {
-        SCLogDebug!("ssn2vec_map {} guid2name_cache {} read_offset_cache {} ssn2tree_cache {} ssnguid2vec_map {} file_ts_guid {} file_tc_guid {} transactions {}",
+        SCLogDebug!("ssn2vec_map {} guid2name_cache {} read_offset_cache {} ssn2tree_cache {} dcerpc_rec_frag_cache {} file_ts_guid {} file_tc_guid {} transactions {}",
             self.ssn2vec_map.len(),
             self.guid2name_cache.len(),
             self.read_offset_cache.len(),
             self.ssn2tree_cache.len(),
-            self.ssnguid2vec_map.len(),
+            self.dcerpc_rec_frag_cache.len(),
             self.file_ts_guid.len(),
             self.file_tc_guid.len(),
             self.transactions.len());
