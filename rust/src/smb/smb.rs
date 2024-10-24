@@ -28,7 +28,6 @@
 use std;
 use std::str;
 use std::ffi::{self, CString};
-use std::collections::HashMap;
 use std::collections::VecDeque;
  
 use nom7::{Err, Needed};
@@ -90,6 +89,8 @@ pub static mut SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE: usize = 128;
 pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 512;
 /// For SMBState::dcerpc_rec_frag_cache
 pub static mut SMB_CFG_MAX_FRAG_CACHE_SIZE: usize = 128;
+/// For SMBState::ssn2vec_cache
+pub static mut SMB_CFG_MAX_SSN2VEC_CACHE_SIZE: usize = 512;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -697,7 +698,7 @@ pub struct SMBState<> {
     pub state_data: AppLayerStateData,
 
     /// map ssn/tree/msgid to vec (guid/name/share)
-    pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
+    pub ssn2vec_cache: LruCache<SMBCommonHdr, Vec<u8>>,
 
     /// map guid to filename
     ///
@@ -785,7 +786,7 @@ impl SMBState {
     pub fn new() -> Self {
         Self {
             state_data:AppLayerStateData::new(),
-            ssn2vec_map:HashMap::new(),
+            ssn2vec_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_SSN2VEC_CACHE_SIZE }).unwrap()),
             guid2name_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             read_offset_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE }).unwrap()),
             ssn2tree_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
@@ -2495,6 +2496,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-dcerpc-frag-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-session-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_SSN2VEC_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-session-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-session-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
