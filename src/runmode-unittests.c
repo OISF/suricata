@@ -240,6 +240,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     AppLayerSetup();
 
     /* hardcoded initialization code */
+    SigTableInit();
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 

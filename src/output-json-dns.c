@@ -331,7 +331,7 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     }
 out:
     if (r || r2) {
-        OutputJsonBuilderBuffer(jb, td->ctx);
+        OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
     }
     jb_free(jb);
     return TM_ECODE_OK;
@@ -363,7 +363,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
         jb_close(jb);
 
-        OutputJsonBuilderBuffer(jb, td->ctx);
+        OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         jb_free(jb);
     }
 
@@ -392,7 +392,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         jb_set_int(jb, "version", 2);
         SCDnsLogJsonAnswer(txptr, td->dnslog_ctx->flags, jb);
         jb_close(jb);
-        OutputJsonBuilderBuffer(jb, td->ctx);
+        OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         jb_free(jb);
     }
 
@@ -432,7 +432,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         }
 
         if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb)) {
-            OutputJsonBuilderBuffer(jb, td->ctx);
+            OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         }
         jb_free(jb);
     }
