@@ -91,27 +91,27 @@ TlsFields tls_fields[] = {
 };
 
 // clang-format off
-static const uint64_t BASIC_FIELDS = \
-    LOG_TLS_FIELD_SUBJECT |
-    LOG_TLS_FIELD_ISSUER |
-    LOG_TLS_FIELD_SUBJECTALTNAME;
+#define BASIC_FIELDS                            \
+    (LOG_TLS_FIELD_SUBJECT |                    \
+     LOG_TLS_FIELD_ISSUER |                     \
+     LOG_TLS_FIELD_SUBJECTALTNAME)
 // clang-format on
 
 // clang-format off
-static const uint64_t EXTENDED_FIELDS = \
-    BASIC_FIELDS |
-    LOG_TLS_FIELD_VERSION |
-    LOG_TLS_FIELD_SERIAL |
-    LOG_TLS_FIELD_FINGERPRINT |
-    LOG_TLS_FIELD_NOTBEFORE |
-    LOG_TLS_FIELD_NOTAFTER |
-    LOG_TLS_FIELD_JA3 |
-    LOG_TLS_FIELD_JA3S |
-    LOG_TLS_FIELD_JA4 |
-    LOG_TLS_FIELD_CLIENT |
-    LOG_TLS_FIELD_CLIENT_ALPNS |
-    LOG_TLS_FIELD_SERVER_ALPNS |
-    LOG_TLS_FIELD_SNI;
+#define EXTENDED_FIELDS                         \
+    (BASIC_FIELDS |                             \
+     LOG_TLS_FIELD_VERSION |                    \
+     LOG_TLS_FIELD_SERIAL |                     \
+     LOG_TLS_FIELD_FINGERPRINT |                \
+     LOG_TLS_FIELD_NOTBEFORE |                  \
+     LOG_TLS_FIELD_NOTAFTER |                   \
+     LOG_TLS_FIELD_JA3 |                        \
+     LOG_TLS_FIELD_JA3S |                       \
+     LOG_TLS_FIELD_JA4 |                        \
+     LOG_TLS_FIELD_CLIENT |                     \
+     LOG_TLS_FIELD_CLIENT_ALPNS |               \
+     LOG_TLS_FIELD_SERVER_ALPNS |               \
+     LOG_TLS_FIELD_SNI)
 // clang-format on
 
 typedef struct OutputTlsCtx_ {
