@@ -129,7 +129,7 @@ def patch_app_layer_protos_h(protoname):
     open(filename, "w").write(output.getvalue())
 
 def patch_app_layer_protos_c(protoname):
-    filename = "src/app-layer-protos.c"
+    filename = "src/app-layer.c"
     print("Patching %s." % (filename))
     output = io.StringIO()
 
