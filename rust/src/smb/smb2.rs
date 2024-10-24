@@ -299,7 +299,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
 
             /* update key-guid map */
             let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GUID);
-            state.ssn2vec_map.insert(guid_key, wr.guid.to_vec());
+            state.ssn2vec_cache.put(guid_key, wr.guid.to_vec());
 
             let file_guid = wr.guid.to_vec();
             let file_name = match state.guid2name_cache.get(&file_guid) {
@@ -448,7 +448,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                                         b"<unknown>".to_vec()
                                     } else {
                                         guid_key.msg_id -= 1;
-                                        match state.ssn2vec_map.get(&guid_key) {
+                                        match state.ssn2vec_cache.get(&guid_key) {
                                             Some(n) => { n.to_vec() },
                                             None => { b"<unknown>".to_vec()},
                                         }
@@ -558,7 +558,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                 SCLogDebug!("create_options {:08x}", cr.create_options);
 
                 let name_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_FILENAME);
-                state.ssn2vec_map.insert(name_key, cr.data.to_vec());
+                state.ssn2vec_cache.put(name_key, cr.data.to_vec());
 
                 let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
                 let tx = state.new_create_tx(cr.data, cr.disposition, del, dir, tx_hdr);
@@ -651,7 +651,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                     /* search key-guid map */
                     let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
                         r.session_id, r.tree_id, r.message_id);
-                    let _guid_vec = state.ssn2vec_map.remove(&guid_key).unwrap_or_default();
+                    let _guid_vec = state.ssn2vec_cache.pop(&guid_key).unwrap_or_default();
                     SCLogDebug!("SMBv2 write response for GUID {:?}", _guid_vec);
                 } else {
                     events.push(SMBEvent::MalformedData);
@@ -693,7 +693,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                     SCLogDebug!("SMBv2: Create response => {:?}", cr);
 
                     let guid_key = SMBCommonHdr::from2_notree(r, SMBHDR_TYPE_FILENAME);
-                    if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
+                    if let Some(mut p) = state.ssn2vec_cache.pop(&guid_key) {
                         p.retain(|&i|i != 0x00);
                         _ = state.guid2name_cache.put(cr.guid.to_vec(), p);
                     } else {

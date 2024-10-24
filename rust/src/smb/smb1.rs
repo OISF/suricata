@@ -479,7 +479,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
 
                     let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
                     let name_val = cr.file_name.to_vec();
-                    state.ssn2vec_map.insert(name_key, name_val);
+                    state.ssn2vec_cache.put(name_key, name_val);
 
                     let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
                     let tx = state.new_create_tx(&cr.file_name,
@@ -537,7 +537,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
 
                     let _name = state.guid2name_cache.pop(&fid);
-                    state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
+                    state.ssn2vec_cache.put(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
 
                     SCLogDebug!("closing FID {:?}/{:?}", cd.fid, fid);
                     smb1_close_file(state, &fid, Direction::ToServer);
@@ -727,7 +727,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                         SCLogDebug!("Create AndX {:?}", cr);
 
                         let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
-                        if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
+                        if let Some(mut p) = state.ssn2vec_cache.pop(&guid_key) {
                             p.retain(|&i|i != 0x00);
 
                             let mut fid = cr.fid.to_vec();
@@ -767,7 +767,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
             }
         },
         SMB1_COMMAND_CLOSE => {
-            let fid = state.ssn2vec_map.remove(&SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID));
+            let fid = state.ssn2vec_cache.pop(&SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID));
             if let Some(fid) = fid {
                 SCLogDebug!("closing FID {:?}", fid);
                 smb1_close_file(state, &fid, Direction::ToClient);
@@ -857,7 +857,7 @@ pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
             let mut pipe_dcerpc = false;
             if rd.pipe.is_some() {
                 let pipe = rd.pipe.unwrap();
-                state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID),
+                state.ssn2vec_cache.put(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID),
                         pipe.fid.to_vec());
 
                 let mut frankenfid = pipe.fid.to_vec();
@@ -893,7 +893,7 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
             SCLogDebug!("TRANS response {:?}", rd);
 
             // see if we have a stored fid
-            let fid = state.ssn2vec_map.remove(
+            let fid = state.ssn2vec_cache.pop(
                     &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)).unwrap_or_default();
             SCLogDebug!("FID {:?}", fid);
 
