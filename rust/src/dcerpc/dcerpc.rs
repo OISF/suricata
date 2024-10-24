@@ -1332,7 +1332,7 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         get_tx: rs_dcerpc_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        tx_get_progress: Some(rs_dcerpc_get_alstate_progress),
         get_eventinfo: None,
         get_eventinfo_byid : None,
         localstorage_new: None,

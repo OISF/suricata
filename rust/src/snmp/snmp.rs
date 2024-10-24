@@ -395,7 +395,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_tx             : rs_snmp_state_get_tx,
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_snmp_tx_get_alstate_progress,
+        tx_get_progress    : Some(rs_snmp_tx_get_alstate_progress),
         get_eventinfo      : Some(SNMPEvent::get_event_info),
         get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,

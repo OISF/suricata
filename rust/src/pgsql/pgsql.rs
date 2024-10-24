@@ -806,7 +806,7 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         get_tx: SCPgsqlStateGetTx,
         tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
         tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
-        tx_get_progress: SCPgsqlTxGetALStateProgress,
+        tx_get_progress: Some(SCPgsqlTxGetALStateProgress),
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,

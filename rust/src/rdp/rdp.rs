@@ -482,7 +482,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx: rs_rdp_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_rdp_tx_get_progress,
+        tx_get_progress: Some(rs_rdp_tx_get_progress),
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,

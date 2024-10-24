@@ -352,7 +352,7 @@ pub unsafe extern "C" fn rs_websocket_register_parser() {
         get_tx: rs_websocket_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_websocket_tx_get_alstate_progress,
+        tx_get_progress: Some(rs_websocket_tx_get_alstate_progress),
         get_eventinfo: Some(WebSocketEvent::get_event_info),
         get_eventinfo_byid: Some(WebSocketEvent::get_event_info_by_id),
         localstorage_new: None,

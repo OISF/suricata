@@ -1539,7 +1539,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_tx: rs_http2_state_get_tx,
         tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
-        tx_get_progress: rs_http2_tx_get_alstate_progress,
+        tx_get_progress: Some(rs_http2_tx_get_alstate_progress),
         get_eventinfo: Some(HTTP2Event::get_event_info),
         get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),
         localstorage_new: None,

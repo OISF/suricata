@@ -369,7 +369,7 @@ pub struct RustParser {
     pub tx_comp_st_ts:      c_int,
     pub tx_comp_st_tc:      c_int,
     /// Function returning the current transaction progress
-    pub tx_get_progress:    StateGetProgressFn,
+    pub tx_get_progress:    crate::sys::SCAppLayerStateGetProgressFn,
 
     /// Function to get an event id from a description
     pub get_eventinfo:      Option<GetEventInfoFn>,
@@ -443,7 +443,6 @@ pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
-pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
