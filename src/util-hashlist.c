@@ -32,6 +32,58 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 
+HashListTable *HashListTableInitWithCtx(uint32_t size,
+        uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*FreeWithCtx)(void *, void *))
+{
+    sc_errno = SC_OK;
+    HashListTable *ht = NULL;
+
+    if (size == 0) {
+        sc_errno = SC_EINVAL;
+        goto error;
+    }
+
+    if (Hash == NULL) {
+        sc_errno = SC_EINVAL;
+        goto error;
+    }
+
+    /* setup the filter */
+    ht = SCCalloc(1, sizeof(HashListTable));
+    if (unlikely(ht == NULL)) {
+        sc_errno = SC_ENOMEM;
+        goto error;
+    }
+    ht->array_size = size;
+    ht->Hash = Hash;
+    ht->FreeWithCtx = FreeWithCtx;
+
+    if (Compare != NULL)
+        ht->Compare = Compare;
+    else
+        ht->Compare = HashListTableDefaultCompare;
+
+    /* setup the bitarray */
+    ht->array = SCCalloc(ht->array_size, sizeof(HashListTableBucket *));
+    if (ht->array == NULL) {
+        sc_errno = SC_ENOMEM;
+        goto error;
+    }
+
+    ht->listhead = NULL;
+    ht->listtail = NULL;
+    return ht;
+
+error:
+    if (ht != NULL) {
+        if (ht->array != NULL)
+            SCFree(ht->array);
+
+        SCFree(ht);
+    }
+    return NULL;
+}
 HashListTable *HashListTableInit(uint32_t size,
         uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t),
         char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *))
@@ -83,6 +135,32 @@ error:
         SCFree(ht);
     }
     return NULL;
+}
+
+void HashListTableFreeWithCtx(void *ctx, HashListTable *ht)
+{
+    uint32_t i = 0;
+
+    if (ht == NULL)
+        return;
+
+    /* free the buckets */
+    for (i = 0; i < ht->array_size; i++) {
+        HashListTableBucket *hashbucket = ht->array[i];
+        while (hashbucket != NULL) {
+            HashListTableBucket *next_hashbucket = hashbucket->bucknext;
+            if (ht->FreeWithCtx != NULL)
+                ht->FreeWithCtx(ctx, hashbucket->data);
+            SCFree(hashbucket);
+            hashbucket = next_hashbucket;
+        }
+    }
+
+    /* free the array */
+    if (ht->array != NULL)
+        SCFree(ht->array);
+
+    SCFree(ht);
 }
 
 void HashListTableFree(HashListTable *ht)

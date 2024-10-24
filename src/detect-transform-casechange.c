@@ -53,7 +53,8 @@ static int DetectTransformToLowerSetup(DetectEngineCtx *de_ctx, Signature *s, co
  *  \param buffer Inspection buffer
  *  \param optstr options string
  */
-static void DetectTransformToLower(InspectionBuffer *buffer, void *options)
+static void DetectTransformToLower(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -93,7 +94,8 @@ static int DetectTransformToUpperSetup(DetectEngineCtx *de_ctx, Signature *s, co
  *  \param buffer Inspection buffer
  *  \param optstr options string
  */
-static void DetectTransformToUpper(InspectionBuffer *buffer, void *options)
+static void DetectTransformToUpper(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
