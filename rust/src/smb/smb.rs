@@ -28,12 +28,13 @@
 use std;
 use std::str;
 use std::ffi::{self, CString};
-
-use std::collections::HashMap;
 use std::collections::VecDeque;
  
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
+
+use lru::LruCache;
+use std::num::NonZeroUsize;
 
 use crate::core::*;
 use crate::applayer;
@@ -80,6 +81,15 @@ pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
 pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 16777216;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+/// max size of the per state guid2name cache
+pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
+
+pub static mut SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE: usize = 1024;
+pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 1024;
+// ssnguid2vec_map
+pub static mut SMB_CFG_MAX_FRAG_CACHE_SIZE: usize = 128;
+// ssn2vec_map
+pub static mut SMB_CFG_MAX_SSN2VEC_CACHE_SIZE: usize = 1024;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -682,22 +692,30 @@ pub fn u32_as_bytes(i: u32) -> [u8;4] {
     return [o1, o2, o3, o4]
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct SMBState<> {
     pub state_data: AppLayerStateData,
 
     /// map ssn/tree/msgid to vec (guid/name/share)
-    pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
-    /// map guid to filename
-    pub guid2name_map: HashMap<Vec<u8>, Vec<u8>>,
-    /// map ssn key to read offset
-    pub ssn2vecoffset_map: HashMap<SMBCommonHdr, SMBFileGUIDOffset>,
+    pub ssn2vec_map: LruCache<SMBCommonHdr, Vec<u8>>,
 
-    pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
+    /// map guid to (filename, timestamp)
+    ///
+    /// Lifecycle of the members:
+    /// - Added by CREATE responses
+    /// - Removed by CLOSE requests
+    /// - Post GAP logic removes based on timestamp, as the CLOSE
+    ///   commands may have been missed.
+    ///
+    pub guid2name_map: LruCache<Vec<u8>, Vec<u8>>,
+    /// map ssn key to read offset
+    pub ssn2vecoffset_map: LruCache<SMBCommonHdr, SMBFileGUIDOffset>,
+
+    pub ssn2tree_map: LruCache<SMBCommonHdr, SMBTree>,
 
     // store partial data records that are transferred in multiple
     // requests for DCERPC.
-    pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
+    pub ssnguid2vec_map: LruCache<SMBHashKeyHdrGuid, Vec<u8>>,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -755,16 +773,22 @@ impl State<SMBTransaction> for SMBState {
     }
 }
 
+impl Default for SMBState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
         Self {
             state_data:AppLayerStateData::new(),
-            ssn2vec_map:HashMap::new(),
-            guid2name_map:HashMap::new(),
-            ssn2vecoffset_map:HashMap::new(),
-            ssn2tree_map:HashMap::new(),
-            ssnguid2vec_map:HashMap::new(),
+            ssn2vec_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_SSN2VEC_CACHE_SIZE }).unwrap()),
+            guid2name_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
+            ssn2vecoffset_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE }).unwrap()),
+            ssn2tree_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
+            ssnguid2vec_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_FRAG_CACHE_SIZE }).unwrap()),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -785,8 +809,9 @@ impl SMBState {
             dialect:0,
             dialect_vec: None,
             dcerpc_ifaces: None,
+            max_read_size: 0,
+            max_write_size: 0,
             ts: 0,
-            ..Default::default()
         }
     }
 
@@ -1043,7 +1068,7 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
+    pub fn get_service_for_guid(&mut self, guid: &[u8]) -> (&'static str, bool)
     {
         let (name, is_dcerpc) = match self.guid2name_map.get(guid) {
             Some(n) => {
@@ -1860,19 +1885,30 @@ impl SMBState {
     /// handle a gap in the TOSERVER direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
+        SCLogDebug!("GAP of size {} in toserver direction", gap_size);
         let consumed = self.handle_skip(Direction::ToServer, gap_size);
+        if consumed == gap_size {
+            /* no need to tag ssn as gap'd as we got it in our skip logic. */
+            return AppLayerResult::ok();
+        }
+
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
+            if consumed2 == new_gap_size {
+                /* no need to tag ssn as gap'd as we got it in our file logic. */
+                return AppLayerResult::ok();
+            }
+
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
             }
         }
-        SCLogDebug!("GAP of size {} in toserver direction", gap_size);
+
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         return AppLayerResult::ok();
@@ -1881,19 +1917,30 @@ impl SMBState {
     /// handle a gap in the TOCLIENT direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
+        SCLogDebug!("GAP of size {} in toclient direction", gap_size);
         let consumed = self.handle_skip(Direction::ToClient, gap_size);
+        if consumed == gap_size {
+            /* no need to tag ssn as gap'd as we got it in our skip logic. */
+            return AppLayerResult::ok();
+        }
+
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
+            if consumed2 == new_gap_size {
+                /* no need to tag ssn as gap'd as we got it in our file logic. */
+                return AppLayerResult::ok();
+            }
+
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
             }
         }
-        SCLogDebug!("GAP of size {} in toclient direction", gap_size);
+
         self.tc_ssn_gap = true;
         self.tc_gap = true;
         return AppLayerResult::ok();
@@ -2401,10 +2448,71 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid value for smb.max-tx");
             }
         }
+        let retval = conf_get("app-layer.protocols.smb.max-guid-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_GUID_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-guid-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-guid-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-rec-offset-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-rec-offset-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-rec-offset-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-tree-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_TREE_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-tree-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-tree-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-dcerpc-frag-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_FRAG_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-dcerpc-frag-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-dcerpc-frag-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-ssn2vec-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_SSN2VEC_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-ssn2vec-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-ssn2vec-cache-size value");
+            }
+        }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
                 SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
         SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
                 SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
+        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
