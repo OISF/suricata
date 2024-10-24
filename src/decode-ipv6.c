@@ -551,6 +551,10 @@ static const IPV6Hdr *DecodeIPV6Packet(
         return NULL;
     }
 
+#ifdef HAVE_NDPI
+    p->ip_len = len;
+#endif
+
     SET_IPV6_SRC_ADDR(ip6h, &p->src);
     SET_IPV6_DST_ADDR(ip6h, &p->dst);
 

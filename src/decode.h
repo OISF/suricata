@@ -573,6 +573,10 @@ typedef struct Packet_
     uint8_t *payload;
     uint16_t payload_len;
 
+#ifdef HAVE_NDPI
+    uint16_t ip_len;
+#endif
+
     /* IPS action to take */
     uint8_t action;
 

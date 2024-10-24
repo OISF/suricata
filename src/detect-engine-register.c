@@ -210,6 +210,10 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
+#ifdef HAVE_NDPI
+#include "detect-ndpi-protocol.h"
+#include "detect-ndpi-risk.h"
+#endif
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -694,6 +698,11 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+
+#ifdef HAVE_NDPI
+    DetectnDPIProtocolRegister();
+    DetectnDPIRiskRegister();
+#endif
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

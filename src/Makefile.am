@@ -236,6 +236,8 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	detect-modbus.h \
+	detect-ndpi-protocol.h \
+	detect-ndpi-risk.h \
 	detect-quic-sni.h \
 	detect-quic-ua.h \
 	detect-quic-version.h \
@@ -811,6 +813,8 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \
 	detect-msg.c \
+	detect-ndpi-protocol.c \
+	detect-ndpi-risk.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
 	detect-noalert.c \

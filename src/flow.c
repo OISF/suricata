@@ -387,6 +387,41 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
+#ifdef HAVE_NDPI
+    if (tv->ndpi_struct && f->ndpi_flow && (!f->detection_completed) && (p->ip_len > 0)) {
+        uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 /* TICK_RESOLUTION */ +
+                           p->ts.usecs / (1000000 / 1000 /* TICK_RESOLUTION */);
+
+        f->detected_l7_protocol = ndpi_detection_process_packet(tv->ndpi_struct, f->ndpi_flow,
+                PacketIsIPv4(p) ? (void *)PacketGetIPv4(p) : (void *)PacketGetIPv6(p), p->ip_len,
+                time_ms, NULL);
+
+        if (ndpi_is_protocol_detected(f->detected_l7_protocol) != 0) {
+            if (!ndpi_is_proto_unknown(f->detected_l7_protocol.proto)) {
+                if (!ndpi_extra_dissection_possible(tv->ndpi_struct, f->ndpi_flow))
+                    f->detection_completed = 1;
+            }
+        } else {
+            u_int16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
+
+            if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
+                u_int8_t proto_guessed;
+
+                f->detected_l7_protocol =
+                        ndpi_detection_giveup(tv->ndpi_struct, f->ndpi_flow, &proto_guessed);
+                f->detection_completed = 1;
+            }
+        }
+
+        if (f->detection_completed) {
+            SCLogDebug("Detected protocol: %s | app protocol: %s | category: %s",
+                    ndpi_get_proto_name(tv->ndpi_struct, f->detected_l7_protocol.master_protocol),
+                    ndpi_get_proto_name(tv->ndpi_struct, f->detected_l7_protocol.app_protocol),
+                    ndpi_category_get_name(tv->ndpi_struct, f->detected_l7_protocol.category));
+        }
+    }
+#endif
+
     const int pkt_dir = FlowGetPacketDirection(f, p);
 #ifdef CAPTURE_OFFLOAD
     int state = f->flow_state;

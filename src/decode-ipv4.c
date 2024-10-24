@@ -500,6 +500,10 @@ static const IPV4Hdr *DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t l
         return NULL;
     }
 
+#ifdef HAVE_NDPI
+    p->ip_len = len;
+#endif
+
     /* set the address struct */
     SET_IPV4_SRC_ADDR(ip4h, &p->src);
     SET_IPV4_DST_ADDR(ip4h, &p->dst);

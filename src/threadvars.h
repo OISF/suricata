@@ -135,6 +135,10 @@ typedef struct ThreadVars_ {
     struct FlowQueue_ *flow_queue;
     bool break_loop;
 
+#ifdef HAVE_NDPI
+    struct ndpi_detection_module_struct *ndpi_struct;
+#endif
+
 } ThreadVars;
 
 /** Thread setup flags: */
