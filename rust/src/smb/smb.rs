@@ -86,6 +86,8 @@ pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
 pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
 /// SMBState::read_offset_cache
 pub static mut SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE: usize = 128;
+/// For SMBState::ssn2tree_cache
+pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 512;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -707,8 +709,8 @@ pub struct SMBState<> {
 
     /// map ssn key to read offset
     pub read_offset_cache: LruCache<SMBCommonHdr, SMBFileGUIDOffset>,
-
-    pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
+    /// Map session key to SMBTree
+    pub ssn2tree_cache: LruCache<SMBCommonHdr, SMBTree>,
 
     // store partial data records that are transferred in multiple
     // requests for DCERPC.
@@ -784,7 +786,7 @@ impl SMBState {
             ssn2vec_map:HashMap::new(),
             guid2name_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             read_offset_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE }).unwrap()),
-            ssn2tree_map:HashMap::new(),
+            ssn2tree_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
             ssnguid2vec_map:HashMap::new(),
             skip_ts:0,
             skip_tc:0,
@@ -1302,7 +1304,7 @@ impl SMBState {
                                 // if complete.
                                 let tree_key = SMBCommonHdr::new(SMBHDR_TYPE_SHARE,
                                                                  r.ssn_id as u64, r.tree_id as u32, 0);
-                                let is_pipe = match self.ssn2tree_map.get(&tree_key) {
+                                let is_pipe = match self.ssn2tree_cache.get(&tree_key) {
                                     Some(n) => n.is_pipe,
                                     None => false,
                                 };
@@ -1638,7 +1640,7 @@ impl SMBState {
                             if r.command == SMB1_COMMAND_READ_ANDX {
                                 let tree_key = SMBCommonHdr::new(SMBHDR_TYPE_SHARE,
                                         r.ssn_id as u64, r.tree_id as u32, 0);
-                                let is_pipe = match self.ssn2tree_map.get(&tree_key) {
+                                let is_pipe = match self.ssn2tree_cache.get(&tree_key) {
                                     Some(n) => n.is_pipe,
                                         None => false,
                                 };
@@ -2467,6 +2469,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-read-offset-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-tree-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_TREE_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-tree-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-tree-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
