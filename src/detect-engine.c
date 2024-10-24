@@ -63,6 +63,8 @@
 
 #include "detect-engine-loader.h"
 
+#include "detect-engine-alert.h"
+
 #include "util-classification-config.h"
 #include "util-reference-config.h"
 #include "util-threshold-config.h"

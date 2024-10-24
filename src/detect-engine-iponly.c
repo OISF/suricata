@@ -47,6 +47,7 @@
 #include "detect-threshold.h"
 #include "util-classification-config.h"
 #include "util-rule-vars.h"
+#include "detect-engine-alert.h"
 
 #include "flow-util.h"
 #include "util-debug.h"

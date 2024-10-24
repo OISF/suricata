@@ -48,9 +48,6 @@ void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 
 int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
 
-TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
-TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
-
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
