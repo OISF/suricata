@@ -28,7 +28,6 @@
 use std;
 use std::str;
 use std::ffi::{self, CString};
-use std::collections::HashMap;
 use std::collections::VecDeque;
  
 use nom7::{Err, Needed};
@@ -89,6 +88,8 @@ pub static mut SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE: usize = 1024;
 pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 1024;
 // ssnguid2vec_map
 pub static mut SMB_CFG_MAX_FRAG_CACHE_SIZE: usize = 128;
+// ssn2vec_map
+pub static mut SMB_CFG_MAX_SSN2VEC_CACHE_SIZE: usize = 1024;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -696,7 +697,7 @@ pub struct SMBState<> {
     pub state_data: AppLayerStateData,
 
     /// map ssn/tree/msgid to vec (guid/name/share)
-    pub ssn2vec_map: HashMap<SMBCommonHdr, Vec<u8>>,
+    pub ssn2vec_map: LruCache<SMBCommonHdr, Vec<u8>>,
 
     /// map guid to (filename, timestamp)
     ///
@@ -783,7 +784,7 @@ impl SMBState {
     pub fn new() -> Self {
         Self {
             state_data:AppLayerStateData::new(),
-            ssn2vec_map:HashMap::new(),
+            ssn2vec_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_SSN2VEC_CACHE_SIZE }).unwrap()),
             guid2name_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             ssn2vecoffset_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE }).unwrap()),
             ssn2tree_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
@@ -2493,6 +2494,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-dcerpc-frag-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-ssn2vec-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_SSN2VEC_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-ssn2vec-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-ssn2vec-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
