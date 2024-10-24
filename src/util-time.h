@@ -106,6 +106,13 @@ typedef struct {
 #define SCTIME_CMP_LTE(a, b) SCTIME_CMP((a), (b), <=)
 #define SCTIME_CMP_NEQ(a, b) SCTIME_CMP((a), (b), !=)
 
+static inline SCTime_t SCTimeGetTime(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return SCTIME_FROM_TIMEVAL(&tv);
+}
+
 void TimeInit(void);
 void TimeDeinit(void);
 
