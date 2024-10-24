@@ -49,13 +49,16 @@ Provide a possibility to further alter/extend the relationships in the datastruc
 
 # Proposed solution (etc/schema-proposal.json)
 
-Considering schema.json already contains the output fields, I believe it can be the most suitable place to hold information about these relationships. Detection keywords can be added to individual output fields, possibly with the use of JSON references. The information can then be centralized and no extra file needs to be created. At the same time, it is simple enough to be hand-editable and it is easy to extend. 
+Considering schema.json already contains the output fields, I believe it can be the most suitable place to hold information about these relationships. Detection keywords can be added to individual output fields, possibly with the use of JSON references. The information can then be centralized and no extra file needs to be created to hold the relationships. At the same time, it is simple enough to be hand-editable and it is easy to extend. 
 
 To make it managable in a text editor I thought of describing the relationship primarily in one direction e.g. what eve.json fields are described by what keywords. The other direction, what fields are affected by what keywords, can be obtained by inversing the data structure.
 
 The keyword and the eve.json fields can be in three states (somewhat similar to Git) - tracked, unassigned, ignored.
+Unassigned is the default state when no detect keywords were found for the given schema property.
+Value `ignored` would be used to suppress tracking and reporting of the schema field by the developer-facing tool. 
+A missing `detect-keywords` field / empty array / array containg `unassigned` keyword would signify the field needs to be decided upon or it needs to be paired with a keyword.
 
-Currently I think this would be sufficient to add to schema fields (detect-keywords array). Value `ignored` would be used to suppress tracking and reporting of the schema field by the developer-facing tool. A missing `detect-keywords` field / empty array / array containg `unassigned` keyword would signify the field needs to be decided upon or it needs to be paired with a keyword.
+A simple suggestion is:
 
 ```json
 properties.http.properties {
@@ -64,11 +67,19 @@ properties.http.properties {
                 },
                 "url": {
                     "type": "string",
-                    "exact-match": "http.uri.raw",
                     "detect-keywords": [
-                        "http.uri.raw",
-                        "http.uri",
-                        "http.urilen"
+                        {
+                            "keyword": "http.uri.raw",
+                            "exact-match": true
+                        },
+                        {
+                            "keyword": "http.uri",
+                            "exact-match": true
+                        },
+                        {
+                            "keyword": "http.urilen",
+                            "exact-match": true
+                        }
                     ]
                 },
                 "version": {
@@ -77,6 +88,84 @@ properties.http.properties {
                 ...
 }
 ```
+
+## Update PR\#11951
+
+We agreed that to accomplish the task a lot of manual effort will be needed. 
+To not waste the resources, we thought of creating a more complete picture of the keyword relationships - hierarchy of the keywords.
+
+To realize this:
+
+* each keyword can have children, 
+* children buffers are partial detect buffers of the parent,
+* children on the same level are related but not the same,
+* if possible, form parent-child relationship, otherwise add a sibling
+
+In schema objects we should define the lowest possible detect keywords from the chain.
+That then means that all higher-level keywords would at least partially match the schema property.
+
+Example:
+
+```
+http_request_frame -> http.request_header -> http.request_line -> http.method, http.uri, http.uri.raw, http.version
+- http.uri.raw is not parent of http.uri, because http.uri is not exactly subset of http.uri.raw - it is normalized so the buffer can be different
+
+file.name -> filename, fileext 
+because filename and fileext are subset of file.name
+```
+
+Some keywords have aliases - e.g. `http.response_body` have an alias of `http_server_body`.
+However, some keywords can act like an aliases but only in the given context - e.g. `file.data` can be the alias of `http.response_body` but only if we consider HTTP traffic in the direction to the client.
+As a result, this context should be noted in the hierarchy to give us a complete and exact overview.
+
+### Keyword hierarchy
+
+Capturing these relationships in either schema.json or `--list-keywords` output would be rather impractical. 
+I suggest to create a new file or extend Suricata with a new `--list-keywords-json` argument.
+The example file of how the relationships could look like is captured in `./keyword-relationships.json`.
+The top level nodes add context to the keywords, and the more nested the object is the more specific it is. 
+The context nodes not related to the actual keywords are rule protocols (alert **http / tcp / ... **) and potentially traffic direction.
+Nodes from the deeper levels describe the actual keywords with their relationships.
+Keywords that describe the exactly same thing in the given context can be connected through `aliasof`.
+
+The schema (`./etc/schema-proposal-v2.json`) can then be extended with references to the file with the keyword relationships. (Referencing is a matter of implementation and can be done either with JSON references or in a tool-specific way.) 
+
+```
+Schema.json - http.url:
+{
+  "detect-keywords": [
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.uri.raw"
+      },
+      "exact-match": true
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.uri"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/urilen"
+      },
+      "exact-match": false
+    }
+  ]
+}
+```
+
+
+
+With this proposal, individual keyword objects could be ad-hoc extended while still describing the actual relationship with the higher level keywords.
+In the keyword-relationship file, one keyword can be present multiple times but always at different places. 
+Keyword `file.data` would be defined as a subchild of http_response_frame, http_request_frame, smb_toclient_frame, etc. 
+However, in each place it has a different meaning. 
+As a result, schema.json fields (e.g. fileinfo.filename or files.filename) then needs to explicitly reference all relevant uses as can be seen in the schema proposal file.
+
+
+
 
 ### To detect unassigned schema objects
 1) Scan all schema objects and check if they have detect-keywords field and it contains "untracked" or a known keyword

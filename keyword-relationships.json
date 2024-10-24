@@ -1,0 +1,118 @@
+{
+  // we need to provide detection context, some keywords can be used in multiple contexts with different buffers being inspected
+  {
+    "keyword": "http",
+    "subkeywords": [
+      {
+        "keyword": "none", // not specifying any sticky buffer or frame etc.
+        "subkeywords": [
+          {
+            "keyword": "http_response_frame",
+            "subkeywords": [
+              {
+                "keyword": "http.response_header",
+                "subkeywords": [
+                  {
+                    "keyword": "http.response_line",
+                    "subkeywords": [
+                      {
+                        "keyword": "http.stat_code",
+                        "subkeywords": []
+                      },
+                      {
+                        "keyword": "http.stat_msg",
+                        "schema-fields": [
+                          {
+                            "$ref": "#/$schema/http.status",
+                            "exact-match": false
+                          }
+                        ]
+                        "subkeywords": []
+                      }
+                    ]
+                  },
+                  {
+                    "keyword": "http.location",
+                    "subkeywords": []
+                  },
+                  {
+                    "keyword": "http.server",
+                    "subkeywords": []
+                  },
+                  {
+                    "keyword": "http.content_type",
+                    "subkeywords": []
+                  },
+                  {
+                    "keyword": "http.content_len",
+                    "subkeywords": []
+                  },
+                  {
+                    "keyword": "http.connection",
+                    "subkeywords": []
+                  }
+                ]
+              },
+              {
+                "keyword": "http.start", // can be applied to both request and response, but here we are in the subset of "http_response_frame", so only consider response parts
+                "aliasof": "http.response_header", // by looking up all aliases of the keyword it can be determined it is bidirectional because it is also an alias of http.request_header
+                // Important note: it is an alias **BUT ONLY IN THIS CONTEXT** so http and response direction (toclient) - the top level nodes can be extended with the direction to be more explicit -> http.toclient.http_response_frame.http...
+                "subkeywords": [
+                ]
+              },
+              {
+                "keyword": "file_data",
+                "id": "http.response_body.file_data",
+                "aliasof": "http.response_body",
+                "subkeywords": [
+                ]
+              },
+              {
+                "keyword": "http.response_body",
+                "id": "http.response_body",
+                "subkeywords": [
+                
+                ]
+              },
+              {
+                "keyword": "http_server_body",
+                "aliasof": "http.response_body", // means this is 100% equal, below a variant with full path specification
+                "aliasof": "http.subkeywords[keyword=="none"].subkeywords[keyword=="http_response_frame"].subkeywords[keyword=="http.response_body"].response_body",
+                // file.data cannot be alias because it is request/response universal, two different trees  would need to be created
+                // alternatively keywords can be identified by pseudo-ids e.g. "http.file.data" for file.data to not have to specify full path but to be also able to identify the keyword precisely.
+                "subkeywords": [
+                ],
+              },                  
+            ]
+          },
+        ]
+      },
+    ]
+  },
+  {
+  },
+  "http" {
+    "subkeywords": [
+      {
+
+      }
+
+    ]
+    .raw {
+      .http_frame {
+        .http_response_line {
+          .file.data
+        }
+      }
+    }
+  }
+  .smb {
+  }
+  .tcp {
+  }
+  .tcp-pkt {
+  }
+
+  // the top level objects should be the protocols that can be specified in the rules http, tcp, tcp-pkt, tcp-stream, smb, ...
+  // e.g. file* keywords can be used in different protocols but mean different things
+}
