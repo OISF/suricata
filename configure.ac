@@ -741,6 +741,28 @@
         exit 1
     fi
 
+    LIBHWLOC=""
+    PKG_CHECK_MODULES([HWLOC], [hwloc >= 2.0.0],
+        [AC_DEFINE([HAVE_HWLOC], [1], [Define if hwloc library is present and meets version requirements])],
+        LIBHWLOC="no")
+
+    if test "$LIBHWLOC" = "no"; then
+        echo
+        echo "   ERROR!  hwloc library version > 2.0.0 not found, go get it"
+        echo "   from https://www.open-mpi.org/projects/hwloc/ "
+        echo "   or your distribution:"
+        echo
+        echo "   Ubuntu: apt-get install hwloc libhwloc-dev"
+        echo "   Fedora: dnf install  hwloc hwloc-devel"
+        echo "   CentOS/RHEL: yum install hwloc hwloc-devel"
+        echo
+        exit 1
+    else
+        CFLAGS="${CFLAGS} ${HWLOC_CFLAGS}"
+        LDFLAGS="${LDFLAGS} ${HWLOC_LIBS}"
+        enable_hwloc="yes"
+    fi
+
   # libpthread
     AC_ARG_WITH(libpthread_includes,
             [  --with-libpthread-includes=DIR  libpthread include directory],
@@ -2562,6 +2584,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   JA4 support:                             ${enable_ja4}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}
+  Hwloc support:                           ${enable_hwloc}
   Libnet support:                          ${enable_libnet}
   liblz4 support:                          ${enable_liblz4}
   Landlock support:                        ${enable_landlock}

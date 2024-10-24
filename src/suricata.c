@@ -111,6 +111,7 @@
 #include "tmqh-packetpool.h"
 #include "tm-queuehandlers.h"
 
+#include "util-affinity.h"
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-coredump-config.h"
@@ -2295,6 +2296,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     StreamTcpFreeConfig(STREAM_VERBOSE);
     DefragDestroy();
     HttpRangeContainersDestroy();
+    TopologyDestroy();
 
     TmqResetQueues();
 #ifdef PROFILING
