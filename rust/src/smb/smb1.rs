@@ -527,7 +527,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
         },
         SMB1_COMMAND_TREE_DISCONNECT => {
             let tree_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_SHARE);
-            state.ssn2tree_map.remove(&tree_key);
+            state.ssn2tree_map.pop(&tree_key);
             false
         },
         SMB1_COMMAND_CLOSE => {
@@ -702,7 +702,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                     if found {
                         let tree = SMBTree::new(share_name.to_vec(), is_pipe);
                         let tree_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_SHARE);
-                        state.ssn2tree_map.insert(tree_key, tree);
+                        state.ssn2tree_map.put(tree_key, tree);
                     }
                     found
                 },
@@ -716,7 +716,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
             // normally removed when processing request,
             // but in case we missed that try again here
             let tree_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_SHARE);
-            state.ssn2tree_map.remove(&tree_key);
+            state.ssn2tree_map.pop(&tree_key);
             false
         },
         SMB1_COMMAND_NT_CREATE_ANDX => {

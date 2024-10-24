@@ -208,7 +208,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         SCLogDebug!("SMBv2/READ: looks like dcerpc");
                         // insert fake tree to assist in follow up lookups
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
-                        state.ssn2tree_map.insert(tree_key, tree);
+                        state.ssn2tree_map.put(tree_key, tree);
                         if !is_dcerpc {
                             _ = state.guid2name_map.put(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
                         }
@@ -352,7 +352,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
 
                         let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
-                        state.ssn2tree_map.insert(tree_key, tree);
+                        state.ssn2tree_map.put(tree_key, tree);
                         if !is_dcerpc {
                             _ = state.guid2name_map.put(file_guid.to_vec(),
                                 b"suricata::dcerpc".to_vec());
@@ -484,7 +484,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
         },
         SMB2_COMMAND_TREE_DISCONNECT => {
             let tree_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_SHARE);
-            state.ssn2tree_map.remove(&tree_key);
+            state.ssn2tree_map.pop(&tree_key);
             false
         }
         SMB2_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -728,7 +728,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
             // normally removed when processing request,
             // but in case we missed that try again here
             let tree_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_SHARE);
-            state.ssn2tree_map.remove(&tree_key);
+            state.ssn2tree_map.pop(&tree_key);
             false
         }
         SMB2_COMMAND_TREE_CONNECT => {
@@ -756,7 +756,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                     if found {
                         let tree = SMBTree::new(share_name.to_vec(), is_pipe);
                         let tree_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_SHARE);
-                        state.ssn2tree_map.insert(tree_key, tree);
+                        state.ssn2tree_map.put(tree_key, tree);
                     }
                     true
                 } else {

@@ -86,6 +86,7 @@ pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
 pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
 
 pub static mut SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE: usize = 1024;
+pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 1024;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -707,7 +708,7 @@ pub struct SMBState<> {
     /// map ssn key to read offset
     pub ssn2vecoffset_map: LruCache<SMBCommonHdr, SMBFileGUIDOffset>,
 
-    pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
+    pub ssn2tree_map: LruCache<SMBCommonHdr, SMBTree>,
 
     // store partial data records that are transferred in multiple
     // requests for DCERPC.
@@ -783,7 +784,7 @@ impl SMBState {
             ssn2vec_map:HashMap::new(),
             guid2name_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             ssn2vecoffset_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE }).unwrap()),
-            ssn2tree_map:HashMap::new(),
+            ssn2tree_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
             ssnguid2vec_map:HashMap::new(),
             skip_ts:0,
             skip_tc:0,
@@ -2466,6 +2467,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-rec-offset-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-tree-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_TREE_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-tree-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-tree-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
