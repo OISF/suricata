@@ -200,3 +200,28 @@ uint64_t UtilCpuGetTicks(void)
 #endif
     return val;
 }
+
+/**
+ * \brief Enable automatic misaligned memory access emulation on SPARC
+ * architecture
+ *
+ * Note: 'ta 6' tells the kernel to synthesize any unaligned accesses this
+ * process makes, instead of just signalling an error and terminating the
+ * process.
+ */
+void UtilCpuEnableSparcMisalignEmulation(void)
+{
+#ifdef __sparc
+    __asm("ta 6");
+#endif /* __sparc */
+}
+
+/**
+ * \brief Specific CPU init
+ */
+void UtilCpuSpecificInit(void)
+{
+#ifdef __sparc
+	UtilCpuEnableSparcMisalignEmulation();
+#endif /* __sparc */
+}

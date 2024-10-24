@@ -302,7 +302,7 @@ extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
 #else
 #define SCSetThreadName(n) ({ \
     strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
-}
+})
 #endif
 
 
