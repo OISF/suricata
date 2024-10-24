@@ -1138,9 +1138,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
+        // also if it is not the same direction, but
+        // this is a bidirectional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
-                direction == engine->dir)
-        {
+                (direction == engine->dir || ((s->flags & SIG_FLAG_BOTHDIR) && direction == 1))) {
+
             void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
                 if (engine->alproto != ALPROTO_UNKNOWN) {
@@ -1176,6 +1178,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 }
             }
 
+            uint8_t engine_flags = flow_flags;
+            if (direction != engine->dir) {
+                engine_flags = flow_flags ^ (STREAM_TOCLIENT | STREAM_TOSERVER);
+            }
             /* run callback: but bypass stream callback if we can */
             uint8_t match;
             if (unlikely(engine->stream && can->stream_stored)) {
@@ -1185,7 +1191,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
                 match = engine->v2.Callback(
-                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, tx_ptr, tx->tx_id);
+                        de_ctx, det_ctx, engine, s, f, engine_flags, alstate, tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
@@ -1219,7 +1225,19 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 inspect_flags |= BIT_U32(engine->id);
             }
             break;
+        } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_BOTHDIR &&
+                   direction != engine->dir) {
+            // for bidirectional rules, the engines on the opposite direction
+            // are ordered by progress on the different side
+            // so we have a two mixed-up lists, and we skip the elements
+            if (direction == 0 && engine->next == NULL) {
+                // do not match yet on request only
+                break;
+            }
+            engine = engine->next;
+            continue;
         }
+
         engine = engine->next;
     } while (engine != NULL);
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",
