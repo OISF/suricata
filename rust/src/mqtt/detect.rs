@@ -1122,7 +1122,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         keyword_name,
         b"unsubscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         unsub_topic_get_data_wrapper,
     );
@@ -1140,7 +1140,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
     G_MQTT_TYPE_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
+        true,
         true,
     );
 
@@ -1166,7 +1166,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         keyword_name,
         b"subscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         sub_topic_get_data_wrapper,
     );
@@ -1185,7 +1185,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
     G_MQTT_REASON_CODE_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.reason_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
+        true,
         true,
     );
     let kw = SCSigTableElmt {
@@ -1202,8 +1202,8 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
     G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
         true,
+        false, // only to client
     );
     let kw = SCSigTableElmt {
         name: b"mqtt.qos\0".as_ptr() as *const libc::c_char,
@@ -1236,7 +1236,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.publish.topic\0".as_ptr() as *const libc::c_char,
         b"MQTT PUBLISH topic\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        true, // PUBLISH goes both ways
         true,
         mqtt_pub_topic_get_data,
     );
@@ -1255,7 +1255,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.publish.message\0".as_ptr() as *const libc::c_char,
         b"MQTT PUBLISH message\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        true, // PUBLISH goes both ways
         true,
         mqtt_pub_msg_get_data,
     );
@@ -1322,7 +1322,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.willtopic\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT will topic\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_willtopic_get_data,
     );
@@ -1341,7 +1341,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.willmessage\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT will message\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_willmsg_get_data,
     );
@@ -1360,7 +1360,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.username\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT username\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_username_get_data,
     );
@@ -1379,7 +1379,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.protocol_string\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT protocol string\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_protocolstring_get_data,
     );
@@ -1398,7 +1398,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.password\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT password\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_password_get_data,
     );
@@ -1417,7 +1417,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
         b"mqtt.connect.clientid\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT clientid\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false,
+        false, // only to server
         true,
         mqtt_conn_clientid_get_data,
     );
