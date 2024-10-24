@@ -531,6 +531,9 @@ typedef struct SignatureInitDataBuffer_ {
                      set up. */
     bool multi_capable; /**< true if we can have multiple instances of this buffer, so e.g. for
                            http.uri. */
+    /** delay use of this buffer beyond its normal progress
+     * to be just in time for postmatch */
+    bool delay_postmatch;
     /* sig match list */
     SigMatch *head;
     SigMatch *tail;
