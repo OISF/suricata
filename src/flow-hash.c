@@ -38,6 +38,7 @@
 #include "flow-storage.h"
 #include "flow-timeout.h"
 #include "flow-spare-pool.h"
+#include "flow-callbacks.h"
 #include "app-layer-parser.h"
 
 #include "util-time.h"
@@ -781,7 +782,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
     fb->head = f;
 
     /* initialize and return */
-    FlowInit(f, p);
+    FlowInit(tv, f, p);
     f->flow_hash = hash;
     f->fb = fb;
     FlowUpdateState(f, FLOW_STATE_NEW);
@@ -886,7 +887,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         fb->head = f;
 
         /* got one, now lock, initialize and return */
-        FlowInit(f, p);
+        FlowInit(tv, f, p);
         f->flow_hash = hash;
         f->fb = fb;
         FlowUpdateState(f, FLOW_STATE_NEW);
@@ -951,7 +952,7 @@ flow_removed:
             fb->head = f;
 
             /* initialize and return */
-            FlowInit(f, p);
+            FlowInit(tv, f, p);
             f->flow_hash = hash;
             f->fb = fb;
             FlowUpdateState(f, FLOW_STATE_NEW);
@@ -1242,6 +1243,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
         }
 #endif
 
+        SCFlowRunFinishCallbacks(tv, f);
         FlowClearMemory(f, f->protomap);
 
         /* leave locked */

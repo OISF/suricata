@@ -85,7 +85,7 @@ static int g_droplog_flows_start = 1;
  *
  * \return return TM_ECODE_OK on success
  */
-static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
+static int DropLogJSON(ThreadVars *tv, JsonDropLogThread *aft, const Packet *p)
 {
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
 
@@ -191,7 +191,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJsonBuilderBuffer(js, aft->ctx);
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, aft->ctx);
     jb_free(js);
 
     return TM_ECODE_OK;
@@ -326,7 +326,7 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
 static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonDropLogThread *td = thread_data;
-    int r = DropLogJSON(td, p);
+    int r = DropLogJSON(tv, td, p);
     if (r < 0)
         return -1;
 

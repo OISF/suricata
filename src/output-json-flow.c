@@ -340,7 +340,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     EveFlowLogJSON(thread, jb, f);
 
-    OutputJsonBuilderBuffer(jb, thread);
+    OutputJsonBuilderBuffer(tv, NULL, f, jb, thread);
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
