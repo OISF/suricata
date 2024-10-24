@@ -1735,6 +1735,10 @@
                 "src_mac": {
                     "type": "string"
                 },
+                "ether_type": {
+                    "type": "integer",
+                    "description": "Ethernet type value "
+                },
                 "dest_macs": {
                     "type": "array",
                     "minItems": 1,
@@ -5385,6 +5389,9 @@
                                     "type": "object",
                                     "properties": {
                                         "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_ethertype": {
                                             "type": "integer"
                                         }
                                     },
