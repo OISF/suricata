@@ -1067,7 +1067,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
 {
     SCEnter();
     int r;
-    if (unlikely(IS_DISRUPTED(flags))) {
+    if (unlikely((flags & STREAM_EOF) != 0 || IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
         uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
