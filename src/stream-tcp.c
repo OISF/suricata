@@ -7022,8 +7022,8 @@ int StreamTcpSegmentForSession(
             }
             server_node = TCPSEG_RB_NEXT(server_node);
         } else {
-            if (TimevalEarlier(
-                        &client_node->pcap_hdr_storage->ts, &server_node->pcap_hdr_storage->ts)) {
+            if (SCTIME_CMP_LT(
+                        client_node->pcap_hdr_storage->ts, server_node->pcap_hdr_storage->ts)) {
                 StreamingBufferSegmentGetData(
                         &client_stream->sb, &client_node->sbseg, &seg_data, &seg_datalen);
                 ret = CallbackFunc(p, client_node, data, seg_data, seg_datalen);

@@ -63,7 +63,7 @@ RB_PROTOTYPE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
  * used if the session-dump option is enabled.
  */
 typedef struct TcpSegmentPcapHdrStorage_ {
-    struct timeval ts;
+    SCTime_t ts;
     uint32_t pktlen;
     uint32_t alloclen;
     uint8_t *pkt_hdr;
