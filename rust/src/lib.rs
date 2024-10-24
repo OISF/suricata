@@ -134,3 +134,6 @@ pub mod ldap;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;
+
+// Generated Rust bindings from C.
+pub mod sys;

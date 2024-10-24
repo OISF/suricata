@@ -5,6 +5,7 @@ license = "GPL-2.0-only"
 description = "Suricata Rust components"
 edition = "2021"
 rust-version = "1.67.1"
+build = "src/build.rs"
 
 [workspace]
 members = [".", "./derive"]
@@ -72,3 +73,11 @@ suricata-lua-sys = { version = "0.1.0-alpha.1" }
 [dev-dependencies]
 test-case = "~3.3.1"
 hex = "~0.4.3"
+
+[build-dependencies]
+# Pin as bindgen 0.70.1 requires Rust 1.70.0+
+bindgen = "=0.69.4"
+
+# Most recent version to support Rust 1.67. 0.5.9 requires 1.70.0.
+# - Not used directly but Suricata, but by bindgen.
+home = "=0.5.5"
