@@ -910,7 +910,7 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
                 let key = SMBHashKeyHdrGuid::new(SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid);
                 SCLogDebug!("SMBv1/TRANS: queueing data for len {} key {:?}", rd.data.len(), key);
-                state.ssnguid2vec_map.insert(key, rd.data.to_vec());
+                state.ssnguid2vec_map.put(key, rd.data.to_vec());
             } else if is_dcerpc {
                 SCLogDebug!("SMBv1 TRANS TO PIPE");
                 let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);

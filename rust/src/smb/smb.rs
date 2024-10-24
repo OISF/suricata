@@ -87,6 +87,8 @@ pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
 
 pub static mut SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE: usize = 1024;
 pub static mut SMB_CFG_MAX_TREE_CACHE_SIZE: usize = 1024;
+// ssnguid2vec_map
+pub static mut SMB_CFG_MAX_FRAG_CACHE_SIZE: usize = 128;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -712,7 +714,7 @@ pub struct SMBState<> {
 
     // store partial data records that are transferred in multiple
     // requests for DCERPC.
-    pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
+    pub ssnguid2vec_map: LruCache<SMBHashKeyHdrGuid, Vec<u8>>,
 
     skip_ts: u32,
     skip_tc: u32,
@@ -785,7 +787,7 @@ impl SMBState {
             guid2name_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             ssn2vecoffset_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE }).unwrap()),
             ssn2tree_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
-            ssnguid2vec_map:HashMap::new(),
+            ssnguid2vec_map:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_FRAG_CACHE_SIZE }).unwrap()),
             skip_ts:0,
             skip_tc:0,
             file_ts_left:0,
@@ -2479,6 +2481,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-tree-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-dcerpc-frag-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_FRAG_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-dcerpc-frag-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-dcerpc-frag-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
