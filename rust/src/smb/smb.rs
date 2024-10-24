@@ -84,6 +84,8 @@ pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
 /// max size of the per state guid2name cache
 pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
+/// SMBState::read_offset_cache
+pub static mut SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE: usize = 128;
 
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
@@ -704,7 +706,7 @@ pub struct SMBState<> {
     pub guid2name_cache: LruCache<Vec<u8>, Vec<u8>>,
 
     /// map ssn key to read offset
-    pub ssn2vecoffset_map: HashMap<SMBCommonHdr, SMBFileGUIDOffset>,
+    pub read_offset_cache: LruCache<SMBCommonHdr, SMBFileGUIDOffset>,
 
     pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
 
@@ -781,7 +783,7 @@ impl SMBState {
             state_data:AppLayerStateData::new(),
             ssn2vec_map:HashMap::new(),
             guid2name_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
-            ssn2vecoffset_map:HashMap::new(),
+            read_offset_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE }).unwrap()),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
             skip_ts:0,
@@ -2453,6 +2455,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-guid-cache-size value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.smb.max-read-offset-cache-size");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE = v;
+                } else {
+                    SCLogError!("Invalid max-read-offset-cache-size value");
+                }
+            } else {
+                SCLogError!("Invalid max-read-offset-cache-size value");
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",

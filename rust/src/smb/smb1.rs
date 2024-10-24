@@ -406,7 +406,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     let mut fid = rr.fid.to_vec();
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
                     let fidoff = SMBFileGUIDOffset::new(fid, rr.offset);
-                    state.ssn2vecoffset_map.insert(fid_key, fidoff);
+                    state.read_offset_cache.put(fid_key, fidoff);
                 },
                 _ => {
                     events.push(SMBEvent::MalformedData);
@@ -1038,7 +1038,7 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                     return;
                 }
                 let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
-                let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
+                let (offset, file_fid) = match state.read_offset_cache.pop(&fid_key) {
                     Some(o) => (o.offset, o.guid),
                     None => {
                         SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
