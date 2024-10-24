@@ -1102,6 +1102,7 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].AddPattern = SCACAddPatternCS;
     mpm_table[MPM_AC].AddPatternNocase = SCACAddPatternCI;
     mpm_table[MPM_AC].Prepare = SCACPreparePatterns;
+    mpm_table[MPM_AC].CacheRuleset = NULL;
     mpm_table[MPM_AC].Search = SCACSearch;
     mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
 #ifdef UNITTESTS
