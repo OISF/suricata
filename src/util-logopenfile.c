@@ -31,6 +31,7 @@
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-path.h"
+#include "util-misc.h"
 #include "util-time.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
@@ -125,7 +126,7 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
     log_ctx->fp = SCLogOpenUnixSocketFp(log_ctx->filename, log_ctx->sock_type, 0);
     if (log_ctx->fp) {
         /* Connected at last (or reconnected) */
-        SCLogNotice("Reconnected socket \"%s\"", log_ctx->filename);
+        SCLogDebug("Reconnected socket \"%s\"", log_ctx->filename);
     } else if (disconnected) {
         SCLogWarning("Reconnect failed: %s (will keep trying)", strerror(errno));
     }
@@ -189,6 +190,22 @@ static inline void OutputWriteLock(pthread_mutex_t *m)
 }
 
 /**
+ * \brief Flush a log file.
+ */
+static void SCLogFileFlushNoLock(LogFileCtx *log_ctx)
+{
+    log_ctx->bytes_since_last_flush = 0;
+    SCFflushUnlocked(log_ctx->fp);
+}
+
+static void SCLogFileFlush(LogFileCtx *log_ctx)
+{
+    OutputWriteLock(&log_ctx->fp_mutex);
+    SCLogFileFlushNoLock(log_ctx);
+    SCMutexUnlock(&log_ctx->fp_mutex);
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
@@ -223,8 +240,15 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
                         log_ctx->filename);
             }
             log_ctx->output_errors++;
-        } else {
-            SCFflushUnlocked(log_ctx->fp);
+            return ret;
+        }
+
+        log_ctx->bytes_since_last_flush += buffer_len;
+
+        if (log_ctx->buffer_size && log_ctx->bytes_since_last_flush >= log_ctx->buffer_size) {
+            SCLogDebug("%s: flushing %" PRIu64 " during write", log_ctx->filename,
+                    log_ctx->bytes_since_last_flush);
+            SCLogFileFlushNoLock(log_ctx);
         }
     }
 
@@ -247,35 +271,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     } else
 #endif
     {
-
-        /* Check for rotation. */
-        if (log_ctx->rotation_flag) {
-            log_ctx->rotation_flag = 0;
-            SCConfLogReopen(log_ctx);
-        }
-
-        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-            time_t now = time(NULL);
-            if (now >= log_ctx->rotate_time) {
-                SCConfLogReopen(log_ctx);
-                log_ctx->rotate_time = now + log_ctx->rotate_interval;
-            }
-        }
-
-        if (log_ctx->fp) {
-            clearerr(log_ctx->fp);
-            if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
-                /* Only the first error is logged */
-                if (!log_ctx->output_errors) {
-                    SCLogError("%s error while writing to %s",
-                            ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
-                            log_ctx->filename);
-                }
-                log_ctx->output_errors++;
-            } else {
-                fflush(log_ctx->fp);
-            }
-        }
+        ret = SCLogFileWriteNoLock(buffer, buffer_len, log_ctx);
     }
 
     SCMutexUnlock(&log_ctx->fp_mutex);
@@ -307,8 +303,11 @@ static char *SCLogFilenameFromPattern(const char *pattern)
 static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
 {
     SCLogDebug("Closing %s", log_ctx->filename);
-    if (log_ctx->fp)
+    if (log_ctx->fp) {
+        if (log_ctx->buffer_size)
+            SCFflushUnlocked(log_ctx->fp);
         fclose(log_ctx->fp);
+    }
 
     if (log_ctx->output_errors) {
         SCLogError("There were %" PRIu64 " output errors to %s", log_ctx->output_errors,
@@ -399,8 +398,8 @@ error_exit:
  *  \retval FILE* on success
  *  \retval NULL on error
  */
-static FILE *
-SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
+static FILE *SCLogOpenFileFp(
+        const char *path, const char *append_setting, uint32_t mode, const uint32_t buffer_size)
 {
     FILE *ret = NULL;
 
@@ -436,7 +435,18 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
         }
     }
 
+    /* Set buffering behavior */
+    if (buffer_size == 0) {
+        setbuf(ret, NULL);
+        SCLogConfig("Setting output to %s non-buffered", filename);
+    } else {
+        if (setvbuf(ret, NULL, _IOFBF, buffer_size) < 0)
+            FatalError("unable to set %s to buffered: %d", filename, buffer_size);
+        SCLogConfig("Setting output to %s buffered [limit %d bytes]", filename, buffer_size);
+    }
+
     SCFree(filename);
+
     return ret;
 }
 
@@ -516,6 +526,22 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (filetype == NULL)
         filetype = DEFAULT_LOG_FILETYPE;
 
+    /* Determine the buffering for this output device; a value of 0 means to not buffer;
+     * any other value must be a multiple of 4096
+     */
+    uint32_t buffer_size = LOGFILE_EVE_BUFFER_SIZE;
+    const char *buffer_size_value = ConfNodeLookupChildValue(conf, "buffer-size");
+    if (buffer_size_value != NULL) {
+        uint32_t value;
+        if (ParseSizeStringU32(buffer_size_value, &value) < 0) {
+            FatalError("Error parsing "
+                       "buffer-size - %s. Killing engine",
+                    buffer_size_value);
+        }
+        buffer_size = value;
+    }
+
+    SCLogDebug("buffering: %s -> %d", buffer_size_value, buffer_size);
     const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
     if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
@@ -560,6 +586,10 @@ SCConfLogOpenGeneric(ConfNode *conf,
         }
     }
 #endif
+    if (!(strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0 || strcasecmp(filetype, "file") == 0)) {
+        SCLogConfig("buffering setting ignored for %s output types", filetype);
+    }
+
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
 #ifdef BUILD_WITH_UNIXSOCKET
@@ -582,8 +612,10 @@ SCConfLogOpenGeneric(ConfNode *conf,
     } else if (strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0 ||
                strcasecmp(filetype, "file") == 0) {
         log_ctx->is_regular = 1;
+        log_ctx->buffer_size = buffer_size;
         if (!log_ctx->threaded) {
-            log_ctx->fp = SCLogOpenFileFp(log_path, append, log_ctx->filemode);
+            log_ctx->fp =
+                    SCLogOpenFileFp(log_path, append, log_ctx->filemode, log_ctx->buffer_size);
             if (log_ctx->fp == NULL)
                 return -1; // Error already logged by Open...Fp routine
         } else {
@@ -645,7 +677,8 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     /* Reopen the file. Append is forced in case the file was not
      * moved as part of a rotation process. */
     SCLogDebug("Reopening log file %s.", log_ctx->filename);
-    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "yes", log_ctx->filemode);
+    log_ctx->fp =
+            SCLogOpenFileFp(log_ctx->filename, "yes", log_ctx->filemode, log_ctx->buffer_size);
     if (log_ctx->fp == NULL) {
         return -1; // Already logged by Open..Fp routine.
     }
@@ -666,6 +699,7 @@ LogFileCtx *LogFileNewCtx(void)
 
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+    lf_ctx->Flush = SCLogFileFlush;
 
     return lf_ctx;
 }
@@ -820,7 +854,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         }
         SCLogDebug("%s: thread open -- using name %s [replaces %s] - thread %d [slot %d]",
                 t_thread_name, fname, log_path, entry->internal_thread_id, entry->slot_number);
-        thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
+        thread->fp = SCLogOpenFileFp(fname, append, thread->filemode, parent_ctx->buffer_size);
         if (thread->fp == NULL) {
             goto error;
         }
@@ -928,6 +962,12 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCFree(lf_ctx);
 
     SCReturnInt(1);
+}
+
+void LogFileFlush(LogFileCtx *file_ctx)
+{
+    SCLogDebug("%s: bytes-to-flush %ld", file_ctx->filename, file_ctx->bytes_since_last_flush);
+    file_ctx->Flush(file_ctx);
 }
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)

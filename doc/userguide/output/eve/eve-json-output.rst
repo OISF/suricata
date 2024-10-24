@@ -17,6 +17,32 @@ can then be processed by 3rd party tools like Logstash (ELK) or jq.
 If ``ethernet`` is set to yes, then ethernet headers will be added to events
 if available.
 
+Output Buffering
+~~~~~~~~~~~~~~~~
+
+Output flushing is controlled by values in the configuration section ``heartbeat``. By default, Suricata's
+output is synchronous with little possibility that written data will not be persisted. However, if ``output.buffer-size``
+has a non-zero value, then some data may be written for the output, but not actually flushed. ``buffer-size`` bytes
+may be held in memory and written a short time later opening the possibility -- but limited -- for output data
+loss.
+
+Hence, a heartbeat mechanism is introduced to limit the amount of time buffered data may exist before being
+flushed.  Control is provided to instruct Suricata's detection threads to flush their EVE output. With default
+values, there is no change in output buffering and flushing behavior. ``output-flush-interval`` controls
+how often Suricata's detect threads will flush output in a heartbeat fashion. A value of ``0`` means
+"never"; non-zero values must be in ``[1-60]`` seconds.
+
+Flushing should be considered when ``outputs.buffer-size`` is greater than 0 to limit the amount and
+age of buffered, but not persisted, output data.  Flushing is never needed when ``buffer-size`` is ``0``.
+
+
+::
+
+   heartbeat:
+     #output-flush-interval: 0
+
+
+
 Output types
 ~~~~~~~~~~~~
 
@@ -30,6 +56,10 @@ Output types::
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off
+      # Specify the amount of buffering, in bytes, for
+      # this output type. The default value 0 means "no
+      # buffering".
+      #buffer-size: 0
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -230,7 +260,7 @@ In the ``custom`` option values from both columns can be used. The
 DNS
 ~~~
 
-.. note:: 
+.. note::
 
    As of Suricata 7.0 the v1 EVE DNS format has been removed.
 
