@@ -2460,7 +2460,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         if let Some(val) = retval {
             if let Ok(v) = val.parse::<usize>() {
                 if v > 0 {
-                    SMB_CFG_MAX_GUID_CACHE_SIZE = v;
+                    SMB_CFG_MAX_REC_OFFSET_CACHE_SIZE = v;
                 } else {
                     SCLogError!("Invalid max-rec-offset-cache-size value");
                 }
