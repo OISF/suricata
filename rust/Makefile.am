@@ -35,16 +35,19 @@ RUST_TARGET = --target $(host_triplet)
 endif
 
 all-local: Cargo.toml
+	mkdir -p $(abs_top_builddir)/rust/gen
 if HAVE_CYGPATH
 	cd $(abs_top_srcdir)/rust && \
 		@rustup_home@ CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
+    SURICATA_LUA_SYS_HEADER_DST="$(e_rustdir)/gen" \
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else
 	cd $(abs_top_srcdir)/rust && \
 		@rustup_home@ CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+    SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen" \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
@@ -57,9 +60,6 @@ endif
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
-	mkdir -p $(abs_top_builddir)/rust/gen
-	cp -a $(RUST_SURICATA_LIBDIR)/build/suricata-lua-sys-*/out/lua/*.h \
-		$(abs_top_builddir)/rust/gen/
 
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
