@@ -1732,6 +1732,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
     RegisterIMAPParsers();
+    rs_mysql_register_parser();
 
     /** POP3 */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_POP3, "pop3");

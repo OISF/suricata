@@ -2386,6 +2386,35 @@
             },
             "additionalProperties": false
         },
+        "mysql": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "version": {
+                    "type": "string",
+                    "description": "Mysql server version"
+                },
+                "tls": {
+                    "type": "boolean"
+                },
+                "command": {
+                    "type": "string",
+                    "description": "sql query statement or some utility commands like ping."
+                },
+                "affected_rows": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "optional": true,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Comma separated result from sql statement"
+                }
+            }
+        },
         "ldap": {
             "type": "object",
             "optional": true,
@@ -4666,6 +4695,10 @@
                                     "description": "Errors encountered parsing MQTT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "mysql": {
+                                    "description": "Errors encountered parsing MySQL protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "nfs_tcp": {
                                     "description": "Errors encountered parsing NFS/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4841,6 +4874,10 @@
                                     "description": "Number of flows for MQTT protocol",
                                     "type": "integer"
                                 },
+                                "mysql": {
+                                    "description": "Number of flows for MySQL protocol",
+                                    "type": "integer"
+                                },
                                 "nfs_tcp": {
                                     "description": "Number of flows for NFS/TCP protocol",
                                     "type": "integer"
@@ -5009,6 +5046,10 @@
                                 },
                                 "mqtt": {
                                     "description": "Number of transactions for MQTT protocol",
+                                    "type": "integer"
+                                },
+                                "mysql": {
+                                    "description": "Number of flows for MySQL protocol",
                                     "type": "integer"
                                 },
                                 "nfs_tcp": {
