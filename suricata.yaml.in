@@ -194,6 +194,7 @@ outputs:
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
             # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
             # websocket-payload-printable: yes # Requires metadata; enable dumping of WebSocket Payload in printable format
+            # file-data: yes # Requires metadata; enable dumping of the file data in base64 format
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
