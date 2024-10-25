@@ -171,6 +171,12 @@
                         "items": {
                             "type": "integer"
                         }
+                    },
+                    "data": {
+                        "type": "string"
+                    },
+                    "offset": {
+                        "type": "integer"
                     }
                 }
             }

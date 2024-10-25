@@ -67,6 +67,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include <stdint.h>
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -85,6 +86,7 @@
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
 #define LOG_JSON_PAYLOAD_LENGTH           BIT_U16(13)
 #define LOG_JSON_REFERENCE                BIT_U16(14)
+#define LOG_JSON_FILE_DATA                BIT_U16(15)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -431,7 +433,8 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
     }
 }
 
-static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id)
+static void AlertAddFiles(
+        const Packet *p, JsonBuilder *jb, const uint64_t tx_id, int32_t file_dump_length)
 {
     const uint8_t direction =
             (p->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT;
@@ -452,7 +455,7 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
                 jb_open_array(jb, "files");
             }
             jb_start_object(jb);
-            EveFileInfo(jb, file, tx_id, file->flags);
+            EveFileInfo(jb, file, tx_id, file->flags, file_dump_length);
             jb_close(jb);
             file = file->next;
         }
@@ -680,7 +683,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
                 /* including fileinfo data is configured by the metadata setting */
                 if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
-                    AlertAddFiles(p, jb, pa->tx_id);
+                    AlertAddFiles(p, jb, pa->tx_id,
+                            json_output_ctx->flags & LOG_JSON_FILE_DATA
+                                    ? json_output_ctx->payload_buffer_size
+                                    : -1);
                 }
             }
 
@@ -945,6 +951,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
         SetFlag(conf, "payload-length", LOG_JSON_PAYLOAD_LENGTH, &flags);
+        SetFlag(conf, "file-data", LOG_JSON_FILE_DATA, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",

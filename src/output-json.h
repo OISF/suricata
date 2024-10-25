@@ -95,7 +95,8 @@ typedef struct OutputJsonThreadCtx_ {
 json_t *SCJsonString(const char *val);
 
 void CreateEveFlowId(JsonBuilder *js, const Flow *f);
-void EveFileInfo(JsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags);
+void EveFileInfo(JsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags,
+        int32_t file_dump);
 void EveTcpFlags(uint8_t flags, JsonBuilder *js);
 void EvePacket(const Packet *p, JsonBuilder *js, uint32_t max_length);
 JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
