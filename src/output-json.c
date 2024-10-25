@@ -147,6 +147,9 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const ui
             if (ff->flags & FILE_SHA1) {
                 jb_set_hex(jb, "sha1", (uint8_t *)ff->sha1, (uint32_t)sizeof(ff->sha1));
             }
+            if (ff->flags & FILE_SHA256) {
+                jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
+            }
             break;
         case FILE_STATE_TRUNCATED:
             JB_SET_STRING(jb, "state", "TRUNCATED");
@@ -157,10 +160,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const ui
         default:
             JB_SET_STRING(jb, "state", "UNKNOWN");
             break;
-    }
-
-    if (ff->flags & FILE_SHA256) {
-        jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
     }
 
     if (flags & FILE_STORED) {
