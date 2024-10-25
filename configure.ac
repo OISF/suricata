@@ -2567,7 +2567,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Landlock support:                        ${enable_landlock}
   Systemd support:                         ${enable_systemd}
 
-  Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
   Rust compiler path:                      ${RUSTC}
   Rust compiler version:                   ${rust_compiler_version}
