@@ -86,50 +86,20 @@ const char *RunModeUnixSocketGetDefaultMode(void)
     return "autofp";
 }
 
-#define MEMCAPS_MAX 7
-static MemcapCommand memcaps[MEMCAPS_MAX] = {
+static MemcapCommand memcaps[] = {
     {
-        "stream",
-        StreamTcpSetMemcap,
-        StreamTcpGetMemcap,
-        StreamTcpMemuseCounter,
+            "stream",
+            StreamTcpSetMemcap,
+            StreamTcpGetMemcap,
+            StreamTcpMemuseCounter,
     },
-    {
-        "stream-reassembly",
-        StreamTcpReassembleSetMemcap,
-        StreamTcpReassembleGetMemcap,
-        StreamTcpReassembleMemuseGlobalCounter
-    },
-    {
-        "flow",
-        FlowSetMemcap,
-        FlowGetMemcap,
-        FlowGetMemuse
-    },
-    {
-        "applayer-proto-http",
-        HTPSetMemcap,
-        HTPGetMemcap,
-        HTPMemuseGlobalCounter
-    },
-    {
-        "defrag",
-        DefragTrackerSetMemcap,
-        DefragTrackerGetMemcap,
-        DefragTrackerGetMemuse
-    },
-    {
-        "ippair",
-        IPPairSetMemcap,
-        IPPairGetMemcap,
-        IPPairGetMemuse
-    },
-    {
-        "host",
-        HostSetMemcap,
-        HostGetMemcap,
-        HostGetMemuse
-    },
+    { "stream-reassembly", StreamTcpReassembleSetMemcap, StreamTcpReassembleGetMemcap,
+            StreamTcpReassembleMemuseGlobalCounter },
+    { "flow", FlowSetMemcap, FlowGetMemcap, FlowGetMemuse },
+    { "applayer-proto-http", HTPSetMemcap, HTPGetMemcap, HTPMemuseGlobalCounter },
+    { "defrag", DefragTrackerSetMemcap, DefragTrackerGetMemcap, DefragTrackerGetMemuse },
+    { "ippair", IPPairSetMemcap, IPPairGetMemcap, IPPairGetMemuse },
+    { "host", HostSetMemcap, HostGetMemcap, HostGetMemuse },
 };
 
 float MemcapsGetPressure(void)
@@ -1523,7 +1493,6 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
     char *memcap = NULL;
     char *value_str = NULL;
     uint64_t value;
-    int i;
 
     json_t *jarg = json_object_get(cmd, "config");
     if (!json_is_string(jarg)) {
@@ -1549,7 +1518,7 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(memcaps); i++) {
         if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].SetFunc) {
             int updated = memcaps[i].SetFunc(value);
             char message[150];
@@ -1592,7 +1561,6 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
 TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
 {
     char *memcap = NULL;
-    int i;
 
     json_t *jarg = json_object_get(cmd, "config");
     if (!json_is_string(jarg)) {
@@ -1601,7 +1569,7 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
     }
     memcap = (char *)json_string_value(jarg);
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(memcaps); i++) {
         if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].GetFunc) {
             char str[50];
             uint64_t val = memcaps[i].GetFunc();
@@ -1632,7 +1600,6 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
 TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
 {
     json_t *jmemcaps = json_array();
-    int i;
 
     if (jmemcaps == NULL) {
         json_object_set_new(answer, "message",
@@ -1640,7 +1607,7 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(memcaps); i++) {
         json_t *jobj = json_object();
         if (jobj == NULL) {
             json_decref(jmemcaps);
