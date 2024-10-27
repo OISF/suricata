@@ -185,6 +185,7 @@ typedef struct FtpDataState_ {
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
 void FTPParserCleanup(void);
+int FTPSetMemcap(uint64_t size);
 uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
 
