@@ -174,6 +174,16 @@ uint64_t FTPMemcapGlobalCounter(void)
     return tmpval;
 }
 
+int FTPSetMemcap(uint64_t size)
+{
+    if ((uint64_t)SC_ATOMIC_GET(ftp_memcap) < size) {
+        SC_ATOMIC_SET(ftp_memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
 /**
  *  \brief Check if alloc'ing "size" would mean we're over memcap
  *

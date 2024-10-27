@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -110,5 +110,9 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, ui
         uint32_t data_len);
 
 void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
+
+uint64_t HTPByteRangeMemcapGlobalCounter(void);
+uint64_t HTPByteRangeMemuseGlobalCounter(void);
+int HTPByteRangeSetMemcap(uint64_t);
 
 #endif /* SURICATA_APP_LAYER_HTP_RANGE_H */
