@@ -122,7 +122,7 @@ typedef int (*THashOutputFunc)(void *output_ctx, const uint8_t *data, const uint
 typedef int (*THashFormatFunc)(const void *in_data, char *output, size_t output_size);
 
 typedef struct THashDataConfig_ {
-    uint64_t memcap;
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
@@ -161,8 +161,9 @@ typedef struct THashTableContext_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define THASH_CHECK_MEMCAP(ctx, size) \
-    ((((uint64_t)SC_ATOMIC_GET((ctx)->memuse) + (uint64_t)(size)) <= (ctx)->config.memcap))
+#define THASH_CHECK_MEMCAP(ctx, size)                                                              \
+    ((((uint64_t)SC_ATOMIC_GET((ctx)->memuse) + (uint64_t)(size)) <=                               \
+            SC_ATOMIC_GET((ctx)->config.memcap)))
 
 #define THashIncrUsecnt(h) \
     (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
