@@ -6396,6 +6396,42 @@
                         },
                         "memuse": {
                             "type": "integer"
+                        },
+                        "byterange": {
+                            "type": "object",
+                            "properties": {
+                                "memcap": {
+                                    "type": "integer"
+                                },
+                                "memuse": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "host": {
+                    "type": "object",
+                    "properties": {
+                        "memcap": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ippair": {
+                    "type": "object",
+                    "properties": {
+                        "memcap": {
+                            "type": "integer"
+                        },
+                        "memuse": {
+                            "type": "integer"
                         }
                     },
                     "additionalProperties": false
