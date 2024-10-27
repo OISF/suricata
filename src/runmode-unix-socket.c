@@ -44,7 +44,9 @@
 #include "defrag-hash.h"
 #include "ippair.h"
 #include "app-layer.h"
+#include "app-layer-ftp.h"
 #include "app-layer-htp-mem.h"
+#include "app-layer-htp-range.h"
 #include "host-bit.h"
 
 #include "util-misc.h"
@@ -97,9 +99,12 @@ static MemcapCommand memcaps[] = {
             StreamTcpReassembleMemuseGlobalCounter },
     { "flow", FlowSetMemcap, FlowGetMemcap, FlowGetMemuse },
     { "applayer-proto-http", HTPSetMemcap, HTPGetMemcap, HTPMemuseGlobalCounter },
+    { "applayer-proto-http-byterange", HTPByteRangeSetMemcap, HTPByteRangeMemcapGlobalCounter,
+            HTPByteRangeMemuseGlobalCounter },
     { "defrag", DefragTrackerSetMemcap, DefragTrackerGetMemcap, DefragTrackerGetMemuse },
     { "ippair", IPPairSetMemcap, IPPairGetMemcap, IPPairGetMemuse },
     { "host", HostSetMemcap, HostGetMemcap, HostGetMemuse },
+    { "ftp", FTPSetMemcap, FTPMemcapGlobalCounter, FTPMemuseGlobalCounter },
 };
 
 float MemcapsGetPressure(void)
