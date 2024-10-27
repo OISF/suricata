@@ -31,6 +31,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-expectation.h"
 #include "app-layer-ftp.h"
+#include "app-layer-htp-range.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-frames.h"
 #include "stream-tcp-reassemble.h"
@@ -1113,6 +1114,12 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("ftp.memuse", FTPMemuseGlobalCounter);
     StatsRegisterGlobalCounter("ftp.memcap", FTPMemcapGlobalCounter);
     StatsRegisterGlobalCounter("app_layer.expectations", ExpectationGetCounter);
+    StatsRegisterGlobalCounter("http.byterange.memuse", HTPByteRangeMemuseGlobalCounter);
+    StatsRegisterGlobalCounter("http.byterange.memcap", HTPByteRangeMemcapGlobalCounter);
+    StatsRegisterGlobalCounter("ippair.memuse", IPPairGetMemuse);
+    StatsRegisterGlobalCounter("ippair.memcap", IPPairGetMemuse);
+    StatsRegisterGlobalCounter("host.memuse", HostGetMemuse);
+    StatsRegisterGlobalCounter("host.memcap", HostGetMemcap);
 }
 
 static bool IsAppLayerErrorExceptionPolicyStatsValid(enum ExceptionPolicy policy)

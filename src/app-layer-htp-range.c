@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,6 +41,28 @@ ContainerTHashTable ContainerUrlRangeList;
 static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b);
 
 #define CONTAINER_URLRANGE_HASH_SIZE 256
+
+int HTPByteRangeSetMemcap(uint64_t size)
+{
+    if (size == 0 || (uint64_t)SC_ATOMIC_GET(ContainerUrlRangeList.ht->memuse) < size) {
+        SC_ATOMIC_SET(ContainerUrlRangeList.ht->config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+uint64_t HTPByteRangeMemcapGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(ContainerUrlRangeList.ht->config.memcap);
+    return tmpval;
+}
+
+uint64_t HTPByteRangeMemuseGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(ContainerUrlRangeList.ht->memuse);
+    return tmpval;
+}
 
 int HttpRangeContainerBufferCompare(HttpRangeContainerBuffer *a, HttpRangeContainerBuffer *b)
 {
