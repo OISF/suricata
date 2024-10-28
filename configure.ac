@@ -2456,6 +2456,7 @@ if test "$WINDOWS_PATH" = "yes"; then
 
     e_sysconfdir="${e_winbase}\\\\"
     e_defaultruledir="$e_winbase\\\\rules\\\\"
+    e_hscachedir="$e_winbase\\\\cache\\\\hs\\\\"
     e_magic_file="$e_winbase\\\\magic.mgc"
     e_logdir="$e_winbase\\\\log"
     e_logfilesdir="$e_logdir\\\\files"
@@ -2477,6 +2478,7 @@ else
     EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
+    EXPAND_VARIABLE(localstatedir, e_hscachedir, "/lib/suricata/cache/hs")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
     EXPAND_VARIABLE(localstatedir, e_defaultruledir, "/lib/suricata/rules")
 
@@ -2490,6 +2492,7 @@ AC_SUBST(e_logcertsdir)
 AC_SUBST(e_sysconfdir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_localstatedir)
+AC_SUBST(e_hscachedir)
 AC_SUBST(e_datadir)
 AC_DEFINE_UNQUOTED([DATA_DIR],["$e_datadir"],[Our DATA_DIR])
 AC_SUBST(e_magic_file)
