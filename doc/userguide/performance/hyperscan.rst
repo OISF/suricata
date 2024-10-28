@@ -82,3 +82,28 @@ if it is present on the system in case of the "auto" setting.
 
 If the current suricata installation does not have hyperscan
 support, refer to :ref:`installation`
+
+Hyperscan caching
+~~~~~~~~~~~~~~~~~
+
+Upon startup, Hyperscan compiles and optimizes the ruleset into its own
+internal structure. Suricata optimizes the startup process by saving
+the Hyperscan internal structures to disk and loading them on the next start.
+This prevents the recompilation of the ruleset and results in faster
+initialization. If the ruleset is changed, new necessary cache files are
+automatically created.
+
+To enable this function, in `suricata.yaml` configure:
+
+::
+
+  detect:
+    # Cache MPM contexts to the disk to avoid rule compilation at the startup.
+    # Cache files are created in the standard library directory.
+    sgh-mpm-caching: yes
+    sgh-mpm-caching-path: /var/lib/suricata/cache/hs
+
+
+**Note**:
+You might need to create and adjust permissions to the default caching folder
+path, especially if you are running Suricata as a non-root user.
