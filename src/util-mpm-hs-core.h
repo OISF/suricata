@@ -87,6 +87,12 @@ typedef struct PatternDatabase_ {
     bool cached;
 } PatternDatabase;
 
+typedef struct PatternDatabaseCache_ {
+    uint32_t hs_dbs_cnt;
+    uint32_t hs_dbs_cache_loaded_cnt;
+    uint32_t hs_dbs_cache_saved_cnt;
+} PatternDatabaseCache;
+
 const char *HSErrorToStr(hs_error_t error_code);
 
 #endif /* BUILD_HYPERSCAN */
