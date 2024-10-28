@@ -94,17 +94,13 @@ enum PktSrcEnum {
 
 #include "util-validate.h"
 
+#include "app-layer-events.h"
+
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
 
 struct PktPool_;
-
-/* declare these here as they are called from the
- * PACKET_RECYCLE and PACKET_CLEANUP macro's. */
-typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
-void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
-void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 
 /* Address */
 typedef struct Address_ {
