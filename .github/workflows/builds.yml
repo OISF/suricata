@@ -95,6 +95,7 @@ jobs:
                 automake \
                 cargo-vendor \
                 cbindgen \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -251,6 +252,7 @@ jobs:
                 autoconf \
                 automake \
                 cbindgen \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -497,6 +499,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo-vendor \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -594,6 +597,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo-vendor \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -883,6 +887,7 @@ jobs:
                 cargo \
                 cbindgen \
                 ccache \
+                clang \
                 diffutils \
                 file-devel \
                 gcc \
@@ -1074,6 +1079,7 @@ jobs:
                 cargo \
                 cbindgen \
                 ccache \
+                clang \
                 diffutils \
                 file-devel \
                 gcc \
@@ -1325,14 +1331,14 @@ jobs:
             sudo \
             git \
             libtool \
-            which
+            which \
+            clang
 
       - name: Install Almalinux 9 extra repositories
         run : |
           dnf -y update
           dnf -y install dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb
-
 
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
       - uses: ./.github/actions/install-cbindgen
@@ -2101,6 +2107,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                clang \
                 git \
                 jq \
                 libtool \
@@ -2253,6 +2260,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                clang \
                 git \
                 jq \
                 libtool \
@@ -2541,6 +2549,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                clang \
                 git \
                 jq \
                 libtool \
@@ -2636,6 +2645,7 @@ jobs:
               autoconf \
               automake \
               build-essential \
+              clang \
               cmake \
               curl \
               dpdk-dev \
@@ -2821,6 +2831,7 @@ jobs:
               automake \
               build-essential \
               cmake \
+              clang \
               curl \
               dpdk-dev \
               git \
@@ -3107,7 +3118,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3163,7 +3174,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3207,7 +3218,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3267,6 +3278,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \

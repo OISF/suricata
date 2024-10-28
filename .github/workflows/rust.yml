@@ -35,6 +35,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo-vendor \
+                clang \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
