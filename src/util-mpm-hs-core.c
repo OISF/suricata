@@ -33,6 +33,11 @@
 
 #include <hs.h>
 
+// Encode major, minor, and patch into a single 32-bit integer.
+#define HS_VERSION_ENCODE(major, minor, patch) (((major) << 24) | ((minor) << 16) | ((patch) << 8))
+#define HS_VERSION_AT_LEAST(major, minor, patch)                                                   \
+    (HS_VERSION_32BIT >= HS_VERSION_ENCODE(major, minor, patch))
+
 /**
  * Translates Hyperscan error codes to human-readable messages.
  *
@@ -69,12 +74,18 @@ const char *HSErrorToStr(hs_error_t error_code)
             return "HS_BAD_ALLOC: The memory allocator did not return correctly aligned memory";
         case HS_SCRATCH_IN_USE:
             return "HS_SCRATCH_IN_USE: The scratch region was already in use";
+#if HS_VERSION_AT_LEAST(4, 4, 0)
         case HS_ARCH_ERROR:
             return "HS_ARCH_ERROR: Unsupported CPU architecture";
+#endif // HS_VERSION_AT_LEAST(4, 4, 0)
+#if HS_VERSION_AT_LEAST(4, 6, 0)
         case HS_INSUFFICIENT_SPACE:
             return "HS_INSUFFICIENT_SPACE: Provided buffer was too small";
+#endif // HS_VERSION_AT_LEAST(4, 6, 0)
+#if HS_VERSION_AT_LEAST(5, 1, 1)
         case HS_UNKNOWN_ERROR:
             return "HS_UNKNOWN_ERROR: Unexpected internal error";
+#endif // HS_VERSION_AT_LEAST(5, 1, 1)
         default:
             return "Unknown error code";
     }
