@@ -84,6 +84,11 @@ typedef struct MpmPattern_ {
  * one per sgh. */
 #define MPMCTX_FLAGS_GLOBAL     BIT_U8(0)
 #define MPMCTX_FLAGS_NODEPTH    BIT_U8(1)
+#define MPMCTX_FLAGS_CACHE_TO_DISK BIT_U8(2)
+
+typedef struct MpmConfig_ {
+    const char *cache_dir_path;
+} MpmConfig;
 
 typedef struct MpmCtx_ {
     void *ctx;
@@ -149,6 +154,10 @@ typedef struct MpmTableElmt_ {
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
 
+    MpmConfig *(*ConfigInit)(void);
+    void (*ConfigDeinit)(MpmConfig **);
+    void (*ConfigCacheDirSet)(MpmConfig *, const char *dir_path);
+
     /** function pointers for adding patterns to the mpm ctx.
      *
      *  \param mpm_ctx Mpm context to add the pattern to
@@ -162,7 +171,8 @@ typedef struct MpmTableElmt_ {
      */
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
-    int  (*Prepare)(struct MpmCtx_ *);
+    int (*Prepare)(MpmConfig *, struct MpmCtx_ *);
+    int (*CacheRuleset)(MpmConfig *);
     /** \retval cnt number of patterns that matches: once per pattern max. */
     uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint32_t);
     void (*PrintCtx)(struct MpmCtx_ *);
