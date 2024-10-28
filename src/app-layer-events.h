@@ -26,7 +26,7 @@
 #define SURICATA_APP_LAYER_EVENTS_H
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
-#include "decode.h"
+#include "suricata-common.h"
 #include "util-enum.h"
 
 typedef enum SCAppLayerEventType {
@@ -37,7 +37,7 @@ typedef enum SCAppLayerEventType {
 /**
  * \brief Data structure to store app layer decoder events.
  */
-struct AppLayerDecoderEvents_ {
+typedef struct AppLayerDecoderEvents_ {
     /* array of events */
     uint8_t *events;
     /* number of events in the above buffer */
@@ -46,7 +46,7 @@ struct AppLayerDecoderEvents_ {
     uint8_t events_buffer_size;
     /* last logged */
     uint8_t event_last_logged;
-};
+} AppLayerDecoderEvents;
 
 /* app layer pkt level events */
 enum {
