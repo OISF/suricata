@@ -104,7 +104,6 @@ struct PktPool_;
  * PACKET_RECYCLE and PACKET_CLEANUP macro's. */
 typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
-void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 
 /* Address */
 typedef struct Address_ {
