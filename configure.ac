@@ -2269,6 +2269,9 @@ fi
        fi
     fi
 
+    AC_PATH_PROG([BINDGEN], [bindgen], [no])
+    AM_CONDITIONAL([HAVE_BINDGEN], [test "x$BINDGEN" != "xno"])
+
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version 2>&1 | cut -d' ' -f2-)

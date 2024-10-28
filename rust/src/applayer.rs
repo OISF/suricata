@@ -18,10 +18,11 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType,AppProto};
+use crate::core::{self,DetectEngineState,AppProto};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
+use crate::sys::SCAppLayerEventType;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
@@ -457,8 +458,8 @@ pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, event_id: *mut u8, *mut AppLayerEventType) -> c_int;
-pub type GetEventInfoByIdFn = unsafe extern "C" fn (event_id: u8, *mut *const c_char, *mut AppLayerEventType) -> c_int;
+pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, event_id: *mut u8, *mut SCAppLayerEventType) -> c_int;
+pub type GetEventInfoByIdFn = unsafe extern "C" fn (event_id: u8, *mut *const c_char, *mut SCAppLayerEventType) -> c_int;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
@@ -596,13 +597,13 @@ pub trait AppLayerEvent {
     unsafe extern "C" fn get_event_info(
         event_name: *const std::os::raw::c_char,
         event_id: *mut u8,
-        event_type: *mut core::AppLayerEventType,
+        event_type: *mut SCAppLayerEventType,
     ) -> std::os::raw::c_int;
 
     unsafe extern "C" fn get_event_info_by_id(
         event_id: u8,
         event_name: *mut *const std::os::raw::c_char,
-        event_type: *mut core::AppLayerEventType,
+        event_type: *mut SCAppLayerEventType,
     ) -> std::os::raw::c_int;
 }
 
@@ -625,7 +626,7 @@ pub trait AppLayerEvent {
 pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_name: *const std::os::raw::c_char,
     event_id: *mut u8,
-    event_type: *mut core::AppLayerEventType,
+    event_type: *mut SCAppLayerEventType,
 ) -> std::os::raw::c_int {
     if event_name.is_null() {
         return -1;
@@ -637,7 +638,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
             return -1;
         }
     };
-    *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_type = SCAppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
     *event_id = event;
     return 0;
 }
@@ -648,11 +649,11 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
 pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_id: u8,
     event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
+    event_type: *mut SCAppLayerEventType,
 ) -> std::os::raw::c_int {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_type = SCAppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
     return -1;

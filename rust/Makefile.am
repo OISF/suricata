@@ -38,12 +38,18 @@ if HAVE_CYGPATH
 CARGO_ENV =	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
-		SURICATA_LUA_SYS_HEADER_DST="$(e_rustdir)/gen"
+		SURICATA_LUA_SYS_HEADER_DST="$(e_rustdir)/gen" \
+		TOP_BUILDDIR=$(abs_top_builddir) \
+		TOP_SRCDIR=$(abs_top_srcdir) \
+		RUST_GENDIR=$(e_rustdir)/gen
 else
 CARGO_ENV =	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen"
+		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen" \
+		TOP_BUILDDIR=$(abs_top_builddir) \
+		TOP_SRCDIR=$(abs_top_srcdir) \
+		RUST_GENDIR=$(abs_top_builddir)/rust/gen
 endif
 
 all-local: Cargo.toml
@@ -83,6 +89,21 @@ check:
 vendor:
 	$(CARGO_ENV) $(CARGO) vendor
 
+update-bindings:
+if HAVE_BINDGEN
+	$(BINDGEN) \
+		-o src/_sys.rs \
+		--disable-header-comment \
+		--allowlist-type 'SCAppLayerEventType' \
+		--rustified-enum 'SCAppLayerEventType' \
+		$(abs_top_srcdir)/src/bindgen.h \
+		-- \
+		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)
+else
+	@echo "error: bindgen not installed, can't update bindings"
+	exit 1
+endif
+
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
 	cd $(abs_top_srcdir)/rust && \
@@ -93,7 +114,10 @@ gen/rust-bindings.h:
 endif
 
 doc:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
+	CARGO_HOME=$(CARGO_HOME) \
+		$(CARGO_ENV) \
+		SURICATA_LUA_SYS_HEADER_DST="" $(CARGO) doc \
+		--all-features --no-deps
 
 if HAVE_CBINDGEN
 dist/rust-bindings.h:
