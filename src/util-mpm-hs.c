@@ -38,6 +38,7 @@
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-mpm-hs.h"
+#include "util-mpm-hs-core.h"
 #include "util-memcpy.h"
 #include "util-hash.h"
 #include "util-hash-lookup3.h"
@@ -379,7 +380,7 @@ typedef struct SCHSCompileData_ {
     unsigned int pattern_cnt;
 } SCHSCompileData;
 
-static SCHSCompileData *SCHSAllocCompileData(unsigned int pattern_cnt)
+static SCHSCompileData *CompileDataAlloc(unsigned int pattern_cnt)
 {
     SCHSCompileData *cd = SCCalloc(pattern_cnt, sizeof(SCHSCompileData));
     if (cd == NULL) {
@@ -422,7 +423,7 @@ error:
     return NULL;
 }
 
-static void SCHSFreeCompileData(SCHSCompileData *cd)
+static void CompileDataFree(SCHSCompileData *cd)
 {
     if (cd == NULL) {
         return;
@@ -444,15 +445,6 @@ static void SCHSFreeCompileData(SCHSCompileData *cd)
     }
     SCFree(cd);
 }
-
-typedef struct PatternDatabase_ {
-    SCHSPattern **parray;
-    hs_database_t *hs_db;
-    uint32_t pattern_cnt;
-
-    /* Reference count: number of MPM contexts using this pattern database. */
-    uint32_t ref_cnt;
-} PatternDatabase;
 
 static uint32_t SCHSPatternHash(const SCHSPattern *p, uint32_t hash)
 {
@@ -570,6 +562,174 @@ static PatternDatabase *PatternDatabaseAlloc(uint32_t pattern_cnt)
     return pd;
 }
 
+static int HSCheckPatterns(MpmCtx *mpm_ctx, SCHSCtx *ctx)
+{
+    if (mpm_ctx->pattern_cnt == 0 || ctx->init_hash == NULL) {
+        SCLogDebug("no patterns supplied to this mpm_ctx");
+        return 0;
+    }
+    return 1;
+}
+
+static void HSPatternArrayPopulate(SCHSCtx *ctx, PatternDatabase *pd)
+{
+    for (uint32_t i = 0, p = 0; i < INIT_HASH_SIZE; i++) {
+        SCHSPattern *node = ctx->init_hash[i];
+        SCHSPattern *nnode = NULL;
+        while (node != NULL) {
+            nnode = node->next;
+            node->next = NULL;
+            pd->parray[p++] = node;
+            node = nnode;
+        }
+    }
+}
+
+static void HSPatternArrayInit(SCHSCtx *ctx, PatternDatabase *pd)
+{
+    HSPatternArrayPopulate(ctx, pd);
+    /* we no longer need the hash, so free its memory */
+    SCFree(ctx->init_hash);
+    ctx->init_hash = NULL;
+}
+
+static int HSGlobalPatternDatabaseInit(void)
+{
+    if (g_db_table == NULL) {
+        g_db_table = HashTableInit(INIT_DB_HASH_SIZE, PatternDatabaseHash,
+                                   PatternDatabaseCompare,
+                                   PatternDatabaseTableFree);
+        if (g_db_table == NULL) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static void HSLogCompileError(hs_compile_error_t *compile_err)
+{
+    SCLogError("failed to compile hyperscan database");
+    if (compile_err) {
+        SCLogError("compile error: %s", compile_err->message);
+        hs_free_compile_error(compile_err);
+    }
+}
+
+static int HSScratchAlloc(const hs_database_t *db)
+{
+    SCMutexLock(&g_scratch_proto_mutex);
+    hs_error_t err = hs_alloc_scratch(db, &g_scratch_proto);
+    SCMutexUnlock(&g_scratch_proto_mutex);
+    if (err != HS_SUCCESS) {
+        SCLogError("failed to allocate scratch");
+        return -1;
+    }
+    return 0;
+}
+
+static int PatternDatabaseGetSize(PatternDatabase *pd, size_t *db_size)
+{
+    hs_error_t err = hs_database_size(pd->hs_db, db_size);
+    if (err != HS_SUCCESS) {
+        SCLogError("failed to query database size: %s", HSErrorToStr(err));
+        return -1;
+    }
+    return 0;
+}
+
+static void SCHSCleanupOnError(PatternDatabase *pd, SCHSCompileData *cd)
+{
+    if (pd) {
+        PatternDatabaseFree(pd);
+    }
+    if (cd) {
+        CompileDataFree(cd);
+    }
+}
+
+static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
+{
+    if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
+        *ext = SCCalloc(1, sizeof(hs_expr_ext_t));
+        if ((*ext) == NULL) {
+            return -1;
+        }
+        if (p->flags & MPM_PATTERN_FLAG_OFFSET) {
+            (*ext)->flags |= HS_EXT_FLAG_MIN_OFFSET;
+            (*ext)->min_offset = p->offset + p->len;
+        }
+        if (p->flags & MPM_PATTERN_FLAG_DEPTH) {
+            (*ext)->flags |= HS_EXT_FLAG_MAX_OFFSET;
+            (*ext)->max_offset = p->offset + p->depth;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Initialize the pattern database - try to get existing pd
+ * from the global hash table, or load it from disk if caching is enabled.
+ *
+ * \param PatternDatabase* [in/out] Pointer to the pattern database to use.
+ * \param SCHSCompileData* [in] Pointer to the compile data.
+ * \retval 0 On success, negative value on failure.
+ */
+static int PatternDatabaseGetCached(PatternDatabase **pd, SCHSCompileData *cd)
+{
+    /* Check global hash table to see if we've seen this pattern database
+     * before, and reuse the Hyperscan database if so. */
+    PatternDatabase *pd_cached = HashTableLookup(g_db_table, *pd, 1);
+    if (pd_cached != NULL) {
+        SCLogDebug("Reusing cached database %p with %" PRIu32
+                   " patterns (ref_cnt=%" PRIu32 ")",
+                   pd_cached->hs_db, pd_cached->pattern_cnt,
+                   pd_cached->ref_cnt);
+        pd_cached->ref_cnt++;
+        PatternDatabaseFree(*pd);
+        CompileDataFree(cd);
+        *pd = pd_cached;
+        return 0;
+    }
+
+    return -1; // not cached
+}
+
+static int PatternDatabaseCompile(PatternDatabase *pd, SCHSCompileData *cd)
+{
+    for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
+        const SCHSPattern *p = pd->parray[i];
+        cd->ids[i] = i;
+        cd->flags[i] = HS_FLAG_SINGLEMATCH;
+        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
+            cd->flags[i] |= HS_FLAG_CASELESS;
+        }
+        cd->expressions[i] = HSRenderPattern(p->original_pat, p->len);
+        if (CompileDataExtensionsInit(&cd->ext[i], p) != 0) {
+            return -1;
+        }
+    }
+
+    hs_compile_error_t *compile_err = NULL;
+    hs_error_t err = hs_compile_ext_multi((const char *const *)cd->expressions, cd->flags, cd->ids,
+            (const hs_expr_ext_t *const *)cd->ext, cd->pattern_cnt, HS_MODE_BLOCK, NULL, &pd->hs_db,
+            &compile_err);
+    if (err != HS_SUCCESS) {
+        HSLogCompileError(compile_err);
+        return -1;
+    }
+
+    if (HSScratchAlloc(pd->hs_db) != 0) {
+        return -1;
+    }
+
+    if (HashTableAdd(g_db_table, pd, 1) < 0) {
+        return -1;
+    }
+    pd->ref_cnt = 1;
+    return 0;
+}
+
 /**
  * \brief Process the patterns added to the mpm, and create the internal tables.
  *
@@ -579,135 +739,51 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
 {
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
 
-    if (mpm_ctx->pattern_cnt == 0 || ctx->init_hash == NULL) {
-        SCLogDebug("no patterns supplied to this mpm_ctx");
+    if (HSCheckPatterns(mpm_ctx, ctx) == 0) {
         return 0;
     }
 
-    hs_error_t err;
-    hs_compile_error_t *compile_err = NULL;
-    SCHSCompileData *cd = NULL;
-    PatternDatabase *pd = NULL;
-
-    cd = SCHSAllocCompileData(mpm_ctx->pattern_cnt);
-    if (cd == NULL) {
+    SCHSCompileData *cd = CompileDataAlloc(mpm_ctx->pattern_cnt);
+    PatternDatabase *pd = PatternDatabaseAlloc(mpm_ctx->pattern_cnt);
+    if (cd == NULL || pd == NULL) {
         goto error;
     }
 
-    pd = PatternDatabaseAlloc(mpm_ctx->pattern_cnt);
-    if (pd == NULL) {
-        goto error;
-    }
-
-    /* populate the pattern array with the patterns in the hash */
-    for (uint32_t i = 0, p = 0; i < INIT_HASH_SIZE; i++) {
-        SCHSPattern *node = ctx->init_hash[i], *nnode = NULL;
-        while (node != NULL) {
-            nnode = node->next;
-            node->next = NULL;
-            pd->parray[p++] = node;
-            node = nnode;
-        }
-    }
-
-    /* we no longer need the hash, so free its memory */
-    SCFree(ctx->init_hash);
-    ctx->init_hash = NULL;
-
+    HSPatternArrayInit(ctx, pd);
     /* Serialise whole database compilation as a relatively easy way to ensure
      * dedupe is safe. */
     SCMutexLock(&g_db_table_mutex);
+    if (HSGlobalPatternDatabaseInit() == -1) {
+        SCMutexUnlock(&g_db_table_mutex);
+        goto error;
+    }
 
-    /* Init global pattern database hash if necessary. */
-    if (g_db_table == NULL) {
-        g_db_table = HashTableInit(INIT_DB_HASH_SIZE, PatternDatabaseHash,
-                                   PatternDatabaseCompare,
-                                   PatternDatabaseTableFree);
-        if (g_db_table == NULL) {
+    if (PatternDatabaseGetCached(&pd, cd) == 0 && pd != NULL) {
+        ctx->pattern_db = pd;
+        if (PatternDatabaseGetSize(pd, &ctx->hs_db_size) != 0) {
             SCMutexUnlock(&g_db_table_mutex);
             goto error;
         }
-    }
 
-    /* Check global hash table to see if we've seen this pattern database
-     * before, and reuse the Hyperscan database if so. */
-    PatternDatabase *pd_cached = HashTableLookup(g_db_table, pd, 1);
-
-    if (pd_cached != NULL) {
-        SCLogDebug("Reusing cached database %p with %" PRIu32
-                   " patterns (ref_cnt=%" PRIu32 ")",
-                   pd_cached->hs_db, pd_cached->pattern_cnt,
-                   pd_cached->ref_cnt);
-        pd_cached->ref_cnt++;
-        ctx->pattern_db = pd_cached;
+        if (pd->ref_cnt == 1) {
+            // freshly allocated
+            mpm_ctx->memory_cnt++;
+            mpm_ctx->memory_size += ctx->hs_db_size;
+        }
         SCMutexUnlock(&g_db_table_mutex);
-        PatternDatabaseFree(pd);
-        SCHSFreeCompileData(cd);
         return 0;
     }
 
     BUG_ON(ctx->pattern_db != NULL); /* already built? */
-
-    for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
-        const SCHSPattern *p = pd->parray[i];
-
-        cd->ids[i] = i;
-        cd->flags[i] = HS_FLAG_SINGLEMATCH;
-        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
-            cd->flags[i] |= HS_FLAG_CASELESS;
-        }
-
-        cd->expressions[i] = HSRenderPattern(p->original_pat, p->len);
-
-        if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
-            cd->ext[i] = SCCalloc(1, sizeof(hs_expr_ext_t));
-            if (cd->ext[i] == NULL) {
-                SCMutexUnlock(&g_db_table_mutex);
-                goto error;
-            }
-
-            if (p->flags & MPM_PATTERN_FLAG_OFFSET) {
-                cd->ext[i]->flags |= HS_EXT_FLAG_MIN_OFFSET;
-                cd->ext[i]->min_offset = p->offset + p->len;
-            }
-            if (p->flags & MPM_PATTERN_FLAG_DEPTH) {
-                cd->ext[i]->flags |= HS_EXT_FLAG_MAX_OFFSET;
-                cd->ext[i]->max_offset = p->offset + p->depth;
-            }
-        }
-    }
-
     BUG_ON(mpm_ctx->pattern_cnt == 0);
 
-    err = hs_compile_ext_multi((const char *const *)cd->expressions, cd->flags,
-                               cd->ids, (const hs_expr_ext_t *const *)cd->ext,
-                               cd->pattern_cnt, HS_MODE_BLOCK, NULL, &pd->hs_db,
-                               &compile_err);
-
-    if (err != HS_SUCCESS) {
-        SCLogError("failed to compile hyperscan database");
-        if (compile_err) {
-            SCLogError("compile error: %s", compile_err->message);
-        }
-        hs_free_compile_error(compile_err);
+    if (PatternDatabaseCompile(pd, cd) != 0) {
         SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
 
     ctx->pattern_db = pd;
-
-    SCMutexLock(&g_scratch_proto_mutex);
-    err = hs_alloc_scratch(pd->hs_db, &g_scratch_proto);
-    SCMutexUnlock(&g_scratch_proto_mutex);
-    if (err != HS_SUCCESS) {
-        SCLogError("failed to allocate scratch");
-        SCMutexUnlock(&g_db_table_mutex);
-        goto error;
-    }
-
-    err = hs_database_size(pd->hs_db, &ctx->hs_db_size);
-    if (err != HS_SUCCESS) {
-        SCLogError("failed to query database size");
+    if (PatternDatabaseGetSize(pd, &ctx->hs_db_size) != 0) {
         SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
@@ -715,26 +791,12 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += ctx->hs_db_size;
 
-    SCLogDebug("Built %" PRIu32 " patterns into a database of size %" PRIuMAX
-               " bytes", mpm_ctx->pattern_cnt, (uintmax_t)ctx->hs_db_size);
-
-    /* Cache this database globally for later. */
-    pd->ref_cnt = 1;
-    int r = HashTableAdd(g_db_table, pd, 1);
     SCMutexUnlock(&g_db_table_mutex);
-    if (r < 0)
-        goto error;
-
-    SCHSFreeCompileData(cd);
+    CompileDataFree(cd);
     return 0;
 
 error:
-    if (pd) {
-        PatternDatabaseFree(pd);
-    }
-    if (cd) {
-        SCHSFreeCompileData(cd);
-    }
+    SCHSCleanupOnError(pd, cd);
     return -1;
 }
 
