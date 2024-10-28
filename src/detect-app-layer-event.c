@@ -141,8 +141,8 @@ static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                            aled->event_id);
 }
 
-static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
-                                                            AppLayerEventType *event_type)
+static DetectAppLayerEventData *DetectAppLayerEventParsePkt(
+        const char *arg, SCAppLayerEventType *event_type)
 {
     uint8_t event_id = 0;
     if (AppLayerGetPktEventInfo(arg, &event_id) != 0) {
@@ -193,7 +193,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
     while (*arg != '\0' && isspace((unsigned char)*arg))
         arg++;
 
-    AppLayerEventType event_type;
+    SCAppLayerEventType event_type;
     DetectAppLayerEventData *data = NULL;
 
     if (strchr(arg, '.') == NULL) {
