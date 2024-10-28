@@ -1045,6 +1045,9 @@ typedef struct DetectEngineCtx_ {
 
     /* number of signatures using filestore, limited as u16 */
     uint16_t filestore_cnt;
+
+    /* If enabled, MPM matchers can store compiled pattern databases to disk */
+    bool mpm_cache_to_disk;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

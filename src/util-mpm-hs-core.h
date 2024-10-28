@@ -85,10 +85,12 @@ typedef struct PatternDatabase_ {
     uint32_t ref_cnt;
     /* Signals if the matcher has loaded/saved the pattern database to disk */
     bool cached;
+    /* Matcher will not cache this pattern DB */
+    bool no_cache;
 } PatternDatabase;
 
 typedef struct PatternDatabaseCache_ {
-    uint32_t hs_dbs_cnt;
+    uint32_t hs_cacheable_dbs_cnt;
     uint32_t hs_dbs_cache_loaded_cnt;
     uint32_t hs_dbs_cache_saved_cnt;
 } PatternDatabaseCache;

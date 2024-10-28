@@ -237,7 +237,11 @@ void HSSaveCacheIterator(void *data, void *aux)
 {
     PatternDatabase *pd = (PatternDatabase *)data;
     PatternDatabaseCache *pd_stats = (PatternDatabaseCache *)aux;
-    pd_stats->hs_dbs_cnt++;
+    if (pd->no_cache)
+        return;
+
+    // count only cacheable DBs
+    pd_stats->hs_cacheable_dbs_cnt++;
     if (pd->cached) {
         pd_stats->hs_dbs_cache_loaded_cnt++;
         return;

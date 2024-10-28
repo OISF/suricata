@@ -403,7 +403,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
 
     ret = 0;
 
-    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
+    if (de_ctx->mpm_cache_to_disk && mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
         mpm_table[de_ctx->mpm_matcher].CacheRuleset();
     }
 

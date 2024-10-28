@@ -2457,6 +2457,24 @@ retry:
     return -1;
 }
 
+static bool DetectEngineMpmCachingEnabled(void)
+{
+    const char *strval = NULL;
+    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
+        return false;
+
+    int sgh_mpm_caching = 0;
+    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    return (bool)sgh_mpm_caching;
+}
+
+const char *DetectEngineMpmCachingGetPath(void)
+{
+    const char *strval = NULL;
+    ConfGet("detect.sgh-mpm-caching-path", &strval);
+    return strval;
+}
+
 static DetectEngineCtx *DetectEngineCtxInitReal(
         enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
@@ -2488,6 +2506,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     de_ctx->failure_fatal = (failure_fatal == 1);
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
+    de_ctx->mpm_cache_to_disk = DetectEngineMpmCachingEnabled();
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
     SCLogConfig("pattern matchers: MPM: %s, SPM: %s",
         mpm_table[de_ctx->mpm_matcher].name,
@@ -2999,24 +3018,6 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     return 0;
-}
-
-bool DetectEngineMpmCachingEnabled(void)
-{
-    const char *strval = NULL;
-    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
-        return false;
-
-    int sgh_mpm_caching = 0;
-    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
-    return (bool)sgh_mpm_caching;
-}
-
-const char *DetectEngineMpmCachingGetPath(void)
-{
-    const char *strval = NULL;
-    ConfGet("detect.sgh-mpm-caching-path", &strval);
-    return strval;
 }
 
 void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
