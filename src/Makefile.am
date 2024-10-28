@@ -541,6 +541,7 @@ noinst_HEADERS = \
 	util-mpm-ac-ks.h \
 	util-mpm.h \
 	util-mpm-hs.h \
+	util-mpm-hs-core.h \
 	util-optimize.h \
 	util-pages.h \
 	util-path.h \
@@ -1099,6 +1100,7 @@ libsuricata_c_a_SOURCES = \
 	util-mpm-ac-ks-small.c \
 	util-mpm.c \
 	util-mpm-hs.c \
+	util-mpm-hs-core.c \
 	util-pages.c \
 	util-path.c \
 	util-pidfile.c \
