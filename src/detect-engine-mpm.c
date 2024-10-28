@@ -295,7 +295,7 @@ int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
             MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
                 }
             }
         }
@@ -524,7 +524,7 @@ int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx)
             SCLogDebug("%s: %d mpm_Ctx %p", am->name, r, mpm_ctx);
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
                     SCLogDebug("%s: %d", am->name, r);
                 }
             }
@@ -689,7 +689,7 @@ int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx)
             MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, 0);
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
                     SCLogDebug("%s: %d", am->name, r);
                 }
             }
@@ -744,40 +744,40 @@ int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
     if (de_ctx->sgh_mpm_context_proto_tcp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_udp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_other_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_stream != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(de_ctx->mpm_cfg, mpm_ctx);
         }
     }
 
@@ -1577,6 +1577,9 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 
     MpmInitCtx(ms->mpm_ctx, de_ctx->mpm_matcher);
 
+    if (de_ctx->mpm_cfg && de_ctx->mpm_cfg->cache_dir_path)
+        ms->mpm_ctx->flags |= MPMCTX_FLAGS_CACHE_TO_DISK;
+
     const bool mpm_supports_endswith =
             (mpm_table[de_ctx->mpm_matcher].feature_flags & MPM_FEATURE_FLAG_ENDSWITH) != 0;
 
@@ -1621,7 +1624,7 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     } else {
         if (ms->sgh_mpm_context == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
             if (mpm_table[ms->mpm_ctx->mpm_type].Prepare != NULL) {
-                mpm_table[ms->mpm_ctx->mpm_type].Prepare(ms->mpm_ctx);
+                mpm_table[ms->mpm_ctx->mpm_type].Prepare(de_ctx->mpm_cfg, ms->mpm_ctx);
             }
         }
     }

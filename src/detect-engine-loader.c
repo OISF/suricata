@@ -33,6 +33,7 @@
 #include "tm-threads.h"
 #include "queue.h"
 
+#include "detect-engine.h"
 #include "detect-engine-loader.h"
 #include "detect-engine-build.h"
 #include "detect-engine-analyzer.h"
@@ -399,6 +400,10 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
         goto end;
 
     ret = 0;
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
+    }
 
  end:
     gettimeofday(&de_ctx->last_reload, NULL);
