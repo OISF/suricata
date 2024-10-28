@@ -34,6 +34,11 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
+CARGO_VARS = 	TOP_BUILDDIR=$(abs_top_builddir) \
+		TOP_SRCDIR=$(abs_top_srcdir) \
+		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen"
+
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 if HAVE_CYGPATH
@@ -46,8 +51,7 @@ if HAVE_CYGPATH
 else
 	cd $(abs_top_srcdir)/rust && \
 		@rustup_home@ CARGO_HOME="$(CARGO_HOME)" \
-		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen" \
+		$(CARGO_VARS) \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
@@ -93,7 +97,10 @@ gen/rust-bindings.h:
 endif
 
 doc:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
+	CARGO_HOME=$(CARGO_HOME) \
+		$(CARGO_VARS) \
+		SURICATA_LUA_SYS_HEADER_DST="" $(CARGO) doc \
+		--all-features --no-deps
 
 if HAVE_CBINDGEN
 dist/rust-bindings.h:

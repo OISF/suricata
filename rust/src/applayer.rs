@@ -18,8 +18,9 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto,Direction};
+use crate::core::{self,DetectEngineState,Flow,AppProto,Direction};
 use crate::filecontainer::FileContainer;
+use crate::sys::AppLayerEventType;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
@@ -583,13 +584,13 @@ pub trait AppLayerEvent {
     unsafe extern "C" fn get_event_info(
         event_name: *const std::os::raw::c_char,
         event_id: *mut u8,
-        event_type: *mut core::AppLayerEventType,
+        event_type: *mut AppLayerEventType,
     ) -> std::os::raw::c_int;
 
     unsafe extern "C" fn get_event_info_by_id(
         event_id: u8,
         event_name: *mut *const std::os::raw::c_char,
-        event_type: *mut core::AppLayerEventType,
+        event_type: *mut AppLayerEventType,
     ) -> std::os::raw::c_int;
 }
 
@@ -612,7 +613,7 @@ pub trait AppLayerEvent {
 pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_name: *const std::os::raw::c_char,
     event_id: *mut u8,
-    event_type: *mut core::AppLayerEventType,
+    event_type: *mut AppLayerEventType,
 ) -> std::os::raw::c_int {
     if event_name.is_null() {
         return -1;
@@ -624,7 +625,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
             return -1;
         }
     };
-    *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_type = AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
     *event_id = event;
     return 0;
 }
@@ -635,11 +636,11 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
 pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
     event_id: u8,
     event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
+    event_type: *mut AppLayerEventType,
 ) -> std::os::raw::c_int {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_type = AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
     return -1;

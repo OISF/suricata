@@ -54,6 +54,7 @@ use crate::smb::session::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
+use crate::sys::AppLayerEventType;
 
 #[derive(AppLayerFrameType)]
 pub enum SMBFrameType {
