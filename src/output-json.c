@@ -161,6 +161,8 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const ui
             break;
     }
 
+    /* Log sha256 even if incomplete as it can be useful to correlate with
+       stored file */
     if (ff->flags & FILE_SHA256) {
         jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
     }
