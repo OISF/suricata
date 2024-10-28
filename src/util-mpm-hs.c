@@ -33,16 +33,19 @@
 #include "detect-engine-build.h"
 
 #include "conf.h"
+#include "util-conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-mpm-hs.h"
+#include "util-mpm-hs-cache.h"
 #include "util-mpm-hs-core.h"
 #include "util-memcpy.h"
 #include "util-hash.h"
 #include "util-hash-lookup3.h"
 #include "util-hyperscan.h"
+#include "util-path.h"
 
 #ifdef BUILD_HYPERSCAN
 
@@ -551,6 +554,7 @@ static PatternDatabase *PatternDatabaseAlloc(uint32_t pattern_cnt)
     pd->pattern_cnt = pattern_cnt;
     pd->ref_cnt = 0;
     pd->hs_db = NULL;
+    pd->cached = false;
 
     /* alloc the pattern array */
     pd->parray = (SCHSPattern **)SCCalloc(pd->pattern_cnt, sizeof(SCHSPattern *));
@@ -675,7 +679,8 @@ static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
  * \param SCHSCompileData* [in] Pointer to the compile data.
  * \retval 0 On success, negative value on failure.
  */
-static int PatternDatabaseGetCached(PatternDatabase **pd, SCHSCompileData *cd)
+static int PatternDatabaseGetCached(
+        PatternDatabase **pd, SCHSCompileData *cd, const char *cache_dir_path)
 {
     /* Check global hash table to see if we've seen this pattern database
      * before, and reuse the Hyperscan database if so. */
@@ -690,6 +695,26 @@ static int PatternDatabaseGetCached(PatternDatabase **pd, SCHSCompileData *cd)
         CompileDataFree(cd);
         *pd = pd_cached;
         return 0;
+    } else if (cache_dir_path) {
+        pd_cached = *pd;
+        uint64_t db_lookup_hash = HSHashDb(pd_cached);
+        if (HSLoadCache(&pd_cached->hs_db, db_lookup_hash, cache_dir_path) == 0) {
+            pd_cached->ref_cnt = 1;
+            pd_cached->cached = true;
+            if (HSScratchAlloc(pd_cached->hs_db) != 0) {
+                goto recover;
+            }
+            if (HashTableAdd(g_db_table, pd_cached, 1) < 0) {
+                goto recover;
+            }
+            CompileDataFree(cd);
+            return 0;
+
+        recover:
+            pd_cached->ref_cnt = 0;
+            pd_cached->cached = false;
+            return -1;
+        }
     }
 
     return -1; // not cached
@@ -751,6 +776,7 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     }
 
     HSPatternArrayInit(ctx, pd);
+    pd->no_cache = !(mpm_ctx->flags & MPMCTX_FLAGS_CACHE_TO_DISK);
     /* Serialise whole database compilation as a relatively easy way to ensure
      * dedupe is safe. */
     SCMutexLock(&g_db_table_mutex);
@@ -759,7 +785,8 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
         goto error;
     }
 
-    if (PatternDatabaseGetCached(&pd, cd) == 0 && pd != NULL) {
+    const char *cache_path = pd->no_cache || !mpm_conf ? NULL : mpm_conf->cache_dir_path;
+    if (PatternDatabaseGetCached(&pd, cd, cache_path) == 0 && pd != NULL) {
         ctx->pattern_db = pd;
         if (PatternDatabaseGetSize(pd, &ctx->hs_db_size) != 0) {
             SCMutexUnlock(&g_db_table_mutex);
@@ -799,6 +826,35 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
 error:
     SCHSCleanupOnError(pd, cd);
     return -1;
+}
+
+/**
+ * \brief Cache the initialized and compiled ruleset
+ */
+static int SCHSCacheRuleset(MpmConfig *mpm_conf)
+{
+    if (!mpm_conf || !mpm_conf->cache_dir_path) {
+        return -1;
+    }
+
+    SCLogDebug("Caching the loaded ruleset to %s", mpm_conf->cache_dir_path);
+    if (SCCreateDirectoryTree(mpm_conf->cache_dir_path, true) != 0) {
+        SCLogWarning("Failed to create Hyperscan cache folder, make sure "
+                     "the  parent folder is writeable "
+                     "or adjust sgh-mpm-caching-path setting (%s)",
+                mpm_conf->cache_dir_path);
+        return -1;
+    }
+    PatternDatabaseCache pd_stats = { 0 };
+    struct HsIteratorData iter_data = { .pd_stats = &pd_stats,
+        .cache_path = mpm_conf->cache_dir_path };
+    SCMutexLock(&g_db_table_mutex);
+    HashTableIterate(g_db_table, HSSaveCacheIterator, &iter_data);
+    SCMutexUnlock(&g_db_table_mutex);
+    SCLogNotice("Rule group caching - loaded: %u newly cached: %u total cacheable: %u",
+            pd_stats.hs_dbs_cache_loaded_cnt, pd_stats.hs_dbs_cache_saved_cnt,
+            pd_stats.hs_cacheable_dbs_cnt);
+    return 0;
 }
 
 /**
@@ -1096,6 +1152,25 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
     printf("\n");
 }
 
+static MpmConfig *SCHSConfigInit(void)
+{
+    MpmConfig *c = SCCalloc(1, sizeof(MpmConfig));
+    return c;
+}
+
+static void SCHSConfigDeinit(MpmConfig **c)
+{
+    if (c != NULL) {
+        SCFree(*c);
+        (*c) = NULL;
+    }
+}
+
+static void SCHSConfigCacheDirSet(MpmConfig *c, const char *dir_path)
+{
+    c->cache_dir_path = dir_path;
+}
+
 /************************** Mpm Registration ***************************/
 
 /**
@@ -1108,13 +1183,13 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].InitThreadCtx = SCHSInitThreadCtx;
     mpm_table[MPM_HS].DestroyCtx = SCHSDestroyCtx;
     mpm_table[MPM_HS].DestroyThreadCtx = SCHSDestroyThreadCtx;
-    mpm_table[MPM_HS].ConfigInit = NULL;
-    mpm_table[MPM_HS].ConfigDeinit = NULL;
-    mpm_table[MPM_HS].ConfigCacheDirSet = NULL;
+    mpm_table[MPM_HS].ConfigInit = SCHSConfigInit;
+    mpm_table[MPM_HS].ConfigDeinit = SCHSConfigDeinit;
+    mpm_table[MPM_HS].ConfigCacheDirSet = SCHSConfigCacheDirSet;
     mpm_table[MPM_HS].AddPattern = SCHSAddPatternCS;
     mpm_table[MPM_HS].AddPatternNocase = SCHSAddPatternCI;
     mpm_table[MPM_HS].Prepare = SCHSPreparePatterns;
-    mpm_table[MPM_HS].CacheRuleset = NULL;
+    mpm_table[MPM_HS].CacheRuleset = SCHSCacheRuleset;
     mpm_table[MPM_HS].Search = SCHSSearch;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;
