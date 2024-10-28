@@ -37,7 +37,7 @@ install-conf:
 	install -d "$(DESTDIR)$(e_rundir)"
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 	install -m 770 -d "$(DESTDIR)$(e_datadir)"
-	install -m 660 -d "$(DESTDIR)$(e_sghcachedir)"
+	install -m 770 -d "$(DESTDIR)$(e_sghcachedir)"
 
 install-rules:
 if INSTALL_SURICATA_UPDATE
