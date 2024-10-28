@@ -1213,8 +1213,7 @@ static void FTPSetMpmState(void)
     MpmInitCtx(ftp_mpm_ctx, FTP_MPM);
 
     SCFTPSetMpmState(ftp_mpm_ctx);
-    mpm_table[FTP_MPM].Prepare(ftp_mpm_ctx);
-
+    mpm_table[FTP_MPM].Prepare(NULL, ftp_mpm_ctx);
 }
 
 static void FTPFreeMpmState(void)
