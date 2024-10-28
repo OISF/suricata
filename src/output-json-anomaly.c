@@ -181,7 +181,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         const char *event_name = NULL;
         uint8_t event_code = decoder_events->events[i];
-        AppLayerEventType event_type;
+        SCAppLayerEventType event_type;
         int r;
         if (is_pktlayer) {
             r = AppLayerGetEventInfoById(event_code, &event_name, &event_type);

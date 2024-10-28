@@ -1645,7 +1645,7 @@ static void SMTPFreeMpmState(void)
 }
 
 static int SMTPStateGetEventInfo(
-        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
+        const char *event_name, uint8_t *event_id, SCAppLayerEventType *event_type)
 {
     if (SCAppLayerGetEventIdByName(event_name, smtp_decoder_event_table, event_id) == 0) {
         *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
@@ -1655,7 +1655,7 @@ static int SMTPStateGetEventInfo(
 }
 
 static int SMTPStateGetEventInfoById(
-        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
+        uint8_t event_id, const char **event_name, SCAppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, smtp_decoder_event_table);
     if (*event_name == NULL) {
