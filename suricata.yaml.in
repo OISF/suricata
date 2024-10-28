@@ -1745,6 +1745,10 @@ detect:
     toclient-groups: 3
     toserver-groups: 25
   sgh-mpm-context: auto
+  # Cache MPM contexts to the disk to avoid rule compilation at the startup.
+  # Cache files are created in the standard library directory.
+  sgh-mpm-caching: yes
+  sgh-mpm-caching-path: @e_sghcachedir@
   # inspection-recursion-limit: 3000
   # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
