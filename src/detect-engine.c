@@ -2556,6 +2556,39 @@ retry:
     return -1;
 }
 
+bool DetectEngineMpmCachingEnabled(void)
+{
+    const char *strval = NULL;
+    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
+        return false;
+
+    int sgh_mpm_caching = 0;
+    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    return (bool)sgh_mpm_caching;
+}
+
+const char *DetectEngineMpmCachingGetPath(void)
+{
+    if (DetectEngineMpmCachingEnabled() == false) {
+        return NULL;
+    }
+
+    char yamlpath[] = "detect.sgh-mpm-caching-path";
+    const char *strval = NULL;
+    ConfGet(yamlpath, &strval);
+
+    if (strval != NULL) {
+        return strval;
+    }
+
+    static bool notified = false;
+    if (!notified) {
+        SCLogInfo("%s has no path specified, using %s", yamlpath, SGH_CACHE_DIR);
+        notified = true;
+    }
+    return SGH_CACHE_DIR;
+}
+
 static DetectEngineCtx *DetectEngineCtxInitReal(
         enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
@@ -2591,6 +2624,17 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     SCLogConfig("pattern matchers: MPM: %s, SPM: %s",
         mpm_table[de_ctx->mpm_matcher].name,
         spm_table[de_ctx->spm_matcher].name);
+
+    if (mpm_table[de_ctx->mpm_matcher].ConfigInit) {
+        de_ctx->mpm_cfg = mpm_table[de_ctx->mpm_matcher].ConfigInit();
+        if (de_ctx->mpm_cfg == NULL) {
+            goto error;
+        }
+    }
+    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
+        mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
+                de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+    }
 
     de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);
     if (de_ctx->spm_global_thread_ctx == NULL) {
@@ -2718,6 +2762,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SCProfilingPrefilterDestroyCtx(de_ctx);
 #endif
 
+    if (mpm_table[de_ctx->mpm_matcher].ConfigDeinit) {
+        mpm_table[de_ctx->mpm_matcher].ConfigDeinit(&de_ctx->mpm_cfg);
+    }
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
      */
