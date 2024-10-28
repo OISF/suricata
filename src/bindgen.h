@@ -15,17 +15,21 @@
  * 02110-1301, USA.
  */
 
-#ifndef SURICATA_RUST_H
-#define SURICATA_RUST_H
+/**
+ * \file Input to bindgen to generate Rust bindings.
+ *
+ * This file should include every header that should have Rust
+ * bindings generated for it. It is then used by bindgen to generate
+ * the Rust bindings.
+ */
 
-// hack for include orders cf SCSha256
-typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
-#include "rust-context.h"
+#ifndef SURICATA_BINDGEN_H
+#define SURICATA_BINDGEN_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "app-layer-protos.h"
 #include "app-layer-events.h"
-#include "rust-bindings.h"
 
-#define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
-#define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
-#define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")
-
-#endif /* !SURICATA_RUST_H */
+#endif
