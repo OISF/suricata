@@ -23,6 +23,7 @@
  */
 
 #include "app-layer-events.h"
+#include "rust.h"
 #include "util-enum.h"
 
 int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id)

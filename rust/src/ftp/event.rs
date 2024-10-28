@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::core::AppLayerEventType;
+use crate::sys::AppLayerEventType;
 use std::os::raw::{c_char, c_int};
 
 #[derive(Debug, PartialEq, Eq, AppLayerEvent)]

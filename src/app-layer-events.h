@@ -27,8 +27,12 @@
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
 #include "decode.h"
-#include "rust.h"
 #include "util-enum.h"
+
+typedef enum AppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+} AppLayerEventType;
 
 /**
  * \brief Data structure to store app layer decoder events.
