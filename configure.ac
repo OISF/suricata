@@ -2167,7 +2167,6 @@ fi
     AM_CONDITIONAL([HAVE_RUST],true)
     AC_SUBST([CARGO], [$CARGO])
 
-    enable_rust="yes"
     rust_compiler_version=$($RUSTC --version)
     rustc_version=$(echo "$rust_compiler_version" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
     cargo_version_output=$($CARGO --version)
@@ -2567,7 +2566,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Landlock support:                        ${enable_landlock}
   Systemd support:                         ${enable_systemd}
 
-  Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
   Rust compiler path:                      ${RUSTC}
   Rust compiler version:                   ${rust_compiler_version}
