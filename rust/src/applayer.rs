@@ -18,13 +18,15 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,Flow,AppProto,Direction};
+use crate::core::{self,DetectEngineState,Flow,Direction};
 use crate::filecontainer::FileContainer;
 use crate::sys::SCAppLayerEventType;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
 use crate::core::StreamingBufferConfig;
+
+pub use crate::sys::AppProto;
 
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
