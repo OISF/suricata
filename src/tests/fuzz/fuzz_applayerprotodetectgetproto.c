@@ -43,9 +43,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         MpmTableSetup();
         SpmTableSetup();
         EngineModeSetIDS();
-        AppLayerProtoDetectSetup();
-        AppLayerParserSetup();
-        AppLayerParserRegisterProtocolParsers();
+        AppLayerSetup();
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     }
