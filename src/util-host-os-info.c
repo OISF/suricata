@@ -376,63 +376,34 @@ static int SCHInfoTestInvalidOSFlavour01(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 0;
+    FAIL_IF(SCHInfoAddHostOSInfo("bamboo", "192.168.1.1", SC_HINFO_IS_IPV4) != -1);
+    FAIL_IF(SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("windows", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("solaris", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("hpux10", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("hpux11", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("irix", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("bsd", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("bsd", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("old_linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("old_linux", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("macos", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("vista", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map));
+    FAIL_IF(SCHInfoAddHostOSInfo("windows2k3", "192.168.1.1", SC_HINFO_IS_IPV4) !=
+            SCMapEnumNameToValue("windows2k3", sc_hinfo_os_policy_map));
 
-    if (SCHInfoAddHostOSInfo("bamboo", "192.168.1.1", SC_HINFO_IS_IPV4) != -1) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("windows", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("solaris", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("hpux10", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("hpux11", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("irix", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("bsd", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("bsd", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("old_linux", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("old_linux", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("macos", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("vista", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-    if (SCHInfoAddHostOSInfo("windows2k3", "192.168.1.1", SC_HINFO_IS_IPV4) !=
-        SCMapEnumNameToValue("windows2k3", sc_hinfo_os_policy_map)) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1604,8 +1575,7 @@ void SCHInfoRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("SCHInfoTesInvalidOSFlavour01",
-                   SCHInfoTestInvalidOSFlavour01);
+    UtRegisterTest("SCHInfoTestInvalidOSFlavour01", SCHInfoTestInvalidOSFlavour01);
     UtRegisterTest("SCHInfoTestInvalidIPV4Address02",
                    SCHInfoTestInvalidIPV4Address02);
     UtRegisterTest("SCHInfoTestInvalidIPV6Address03",
