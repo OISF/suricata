@@ -549,7 +549,6 @@ noinst_HEADERS = \
 	util-profiling.h \
 	util-profiling-locks.h \
 	util-proto-name.h \
-	util-radix-tree.h \
 	util-radix-tree-common.h \
 	util-radix4-tree.h \
 	util-radix6-tree.h \
@@ -1107,7 +1106,6 @@ libsuricata_c_a_SOURCES = \
 	util-profiling-rulegroups.c \
 	util-profiling-rules.c \
 	util-proto-name.c \
-	util-radix-tree.c \
 	util-radix4-tree.c \
 	util-radix6-tree.c \
 	util-random.c \
