@@ -37,7 +37,8 @@ endif
 CARGO_VARS = 	TOP_BUILDDIR=$(abs_top_builddir) \
 		TOP_SRCDIR=$(abs_top_srcdir) \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen"
+		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen" \
+		CFLAGS="$(CFLAGS)"
 
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
