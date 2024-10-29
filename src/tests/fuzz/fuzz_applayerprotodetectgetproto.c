@@ -9,7 +9,7 @@
 #include "suricata.h"
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
-#include "app-layer-parser.h"
+#include "app-layer.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 
@@ -43,9 +43,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         MpmTableSetup();
         SpmTableSetup();
         EngineModeSetIDS();
-        AppLayerProtoDetectSetup();
-        AppLayerParserSetup();
-        AppLayerParserRegisterProtocolParsers();
+        AppLayerSetup();
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     }
