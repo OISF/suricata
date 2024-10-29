@@ -97,6 +97,9 @@ if HAVE_BINDGEN
 		--allowlist-type 'SCAppLayerEventType' \
 		--rustified-enum 'SCAppLayerEventType' \
 		--allowlist-type 'SCAppLayerStateGetEventInfoByIdFn' \
+		--allowlist-type 'AppProto' \
+		--allowlist-type 'AppProtoEnum' \
+		--rustified-enum 'AppProtoEnum' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)
