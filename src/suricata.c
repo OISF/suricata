@@ -1600,6 +1600,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 g_detect_disabled = suri->disabled_detect = 1;
             } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
                 g_disable_hashing = true;
+                // for rust
+                SCDisableHashing();
             } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
                 unittests_fatal = 1;
