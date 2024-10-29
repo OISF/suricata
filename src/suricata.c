@@ -202,10 +202,6 @@ uint16_t g_vlan_mask = 0xffff;
  * comparing flows */
 uint16_t g_livedev_mask = 0xffff;
 
-/* flag to disable hashing almost globally, to be similar to disabling nss
- * support */
-bool g_disable_hashing = false;
-
 /* snapshot of the system's hugepages before system intitialization. */
 SystemHugepageSnapshot *prerun_snap = NULL;
 
@@ -1375,7 +1371,6 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"disable-detection", 0, 0, 0},
-        {"disable-hashing", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
         {"unittests-coverage", 0, &coverage_unittests, 1},
         {"user", required_argument, 0, 0},
@@ -1598,8 +1593,6 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
-            } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
-                g_disable_hashing = true;
             } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
                 unittests_fatal = 1;

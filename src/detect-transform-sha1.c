@@ -72,11 +72,6 @@ void DetectTransformSha1Register(void)
 static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    if (g_disable_hashing) {
-        SCLogError("SHA1 hashing has been disabled, "
-                   "needed for to_sha1 keyword");
-        SCReturnInt(-1);
-    }
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA1, NULL);
     SCReturnInt(r);
 }

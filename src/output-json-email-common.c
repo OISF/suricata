@@ -180,9 +180,7 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *
     if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
         EveEmailLogJSONCustom(email_ctx, js, tx);
 
-    if (!g_disable_hashing) {
-        EveEmailLogJSONMd5(email_ctx, js, tx);
-    }
+    EveEmailLogJSONMd5(email_ctx, js, tx);
 
     jb_close(js);
     SCReturnInt(TM_ECODE_OK);

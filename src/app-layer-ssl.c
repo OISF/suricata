@@ -3168,7 +3168,7 @@ static void CheckJA3Enabled(void)
         enable_ja3 = true;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
-    if (!ssl_config.disable_ja3 && !g_disable_hashing) {
+    if (!ssl_config.disable_ja3) {
         /* The feature is available, i.e. _could_ be activated by a rule or
             even is enabled in the configuration. */
         ProvidesFeature(FEATURE_JA3);
@@ -3193,7 +3193,7 @@ static void CheckJA4Enabled(void)
         enable_ja4 = true;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja4, enable_ja4);
-    if (!ssl_config.disable_ja4 && !g_disable_hashing) {
+    if (!ssl_config.disable_ja4) {
         /* The feature is available, i.e. _could_ be activated by a rule or
             even is enabled in the configuration. */
         ProvidesFeature(FEATURE_JA4);
@@ -3307,16 +3307,6 @@ void RegisterSSLParsers(void)
         CheckJA4Enabled();
 #endif /* HAVE_JA4 */
 
-        if (g_disable_hashing) {
-            if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
-                SCLogWarning("MD5 calculation has been disabled, disabling JA3");
-                SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
-            }
-            if (SC_ATOMIC_GET(ssl_config.enable_ja4)) {
-                SCLogWarning("Hashing has been disabled, disabling JA4");
-                SC_ATOMIC_SET(ssl_config.enable_ja4, 0);
-            }
-        } else {
             if (RunmodeIsUnittests()) {
 #ifdef HAVE_JA3
                 SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
@@ -3325,7 +3315,6 @@ void RegisterSSLParsers(void)
                 SC_ATOMIC_SET(ssl_config.enable_ja4, 1);
 #endif /* HAVE_JA4 */
             }
-        }
     } else {
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
@@ -3339,7 +3328,7 @@ void RegisterSSLParsers(void)
  */
 void SSLEnableJA3(void)
 {
-    if (g_disable_hashing || ssl_config.disable_ja3) {
+    if (ssl_config.disable_ja3) {
         return;
     }
     if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
@@ -3356,7 +3345,7 @@ void SSLEnableJA3(void)
  */
 void SSLEnableJA4(void)
 {
-    if (g_disable_hashing || ssl_config.disable_ja4) {
+    if (ssl_config.disable_ja4) {
         return;
     }
     if (SC_ATOMIC_GET(ssl_config.enable_ja4)) {
