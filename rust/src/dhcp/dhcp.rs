@@ -17,12 +17,13 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, Flow, IPPROTO_UDP};
 use crate::dhcp::parser::*;
+use crate::sys::AppProtoEnum;
 use std;
 use std::ffi::CString;
 
-pub(super) static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static ALPROTO_DHCP: AppProto = AppProtoEnum::ALPROTO_DHCP as AppProto;
 
 static DHCP_MIN_FRAME_LEN: u32 = 232;
 
@@ -305,10 +306,9 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
     let ip_proto_str = CString::new("udp").unwrap();
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        ALPROTO_DHCP = alproto;
+        AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_DHCP);
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for DHCP.");
