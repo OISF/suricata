@@ -2106,7 +2106,7 @@ fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppPro
             }
     }
     SCLogDebug!("no smb");
-    unsafe { return ALPROTO_FAILED; }
+    return ALPROTO_FAILED;
 }
 
 // probing confirmation parser
