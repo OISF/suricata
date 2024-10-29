@@ -2461,14 +2461,6 @@ if test "$WINDOWS_PATH" = "yes"; then
     e_logfilesdir="$e_logdir\\\\files"
     e_logcertsdir="$e_logdir\\\\certs"
     e_datarulesdir="$e_winbase\\\\rules\\\\"
-    if test "x$HAVE_CYGPATH" != "xno"; then
-        # turn srcdir into abs path and convert to the
-        # mixed output (/c/Users/dev into  c:/Users/dev)
-        e_rustdir="$(cygpath -a -t mixed ${srcdir})/rust"
-    else
-        e_abs_srcdir=$(cd $srcdir && pwd)
-        e_rustdir="$e_abs_srcdir/rust"
-    fi
 else
     EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
     EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
@@ -2480,9 +2472,8 @@ else
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
     EXPAND_VARIABLE(localstatedir, e_defaultruledir, "/lib/suricata/rules")
 
-    e_abs_srcdir=$(cd $srcdir && pwd)
-    EXPAND_VARIABLE(e_abs_srcdir, e_rustdir, "/rust")
 fi
+
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
 AC_SUBST(e_logfilesdir)
