@@ -194,6 +194,26 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
     if (ffc == NULL) {
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES);
     } else if (ffc->head == NULL) {
+        if (s->flags & SIG_FLAG_FILESTORE) {
+            /* If the signature has filestore, we need to check if we are in
+               a scope of capture where we need to prepare the capture for
+               an upcoming file. */
+            if (s->filestore_ctx && (s->filestore_ctx->scope == FILESTORE_SCOPE_TX)) {
+                /* In scope TX, we need to prepare file storage for file that could
+                   appear on the transaction so we store the transaction.
+                   We need to only increment filestore_cnt if the tx_id is changed.
+                */
+                if (det_ctx->filestore_cnt == 0 ||
+                        det_ctx->filestore[det_ctx->filestore_cnt - 1].tx_id != tx_id) {
+                    det_ctx->filestore[det_ctx->filestore_cnt].file_id = 0;
+                    det_ctx->filestore[det_ctx->filestore_cnt].tx_id = tx_id;
+                    det_ctx->filestore_cnt++;
+                }
+            }
+            /* Other scopes than TX are going to be handled in post match without
+               any setup needed here so we can just return a match for them. */
+            SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH);
+        }
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
 
