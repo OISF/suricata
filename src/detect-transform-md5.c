@@ -71,11 +71,6 @@ void DetectTransformMd5Register(void)
 static int DetectTransformToMd5Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    if (g_disable_hashing) {
-        SCLogError("MD5 hashing has been disabled, "
-                   "needed for to_md5 keyword");
-        SCReturnInt(-1);
-    }
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_MD5, NULL);
     SCReturnInt(r);
 }

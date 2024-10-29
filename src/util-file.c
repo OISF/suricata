@@ -180,13 +180,8 @@ void FileForceHashParseCfg(ConfNode *conf)
                      "found. Please use 'force-hash: [md5]' instead");
 
         if (ConfValIsTrue(force_md5)) {
-            if (g_disable_hashing) {
-                SCLogInfo(
-                        "not forcing md5 calculation for logged files: hashing globally disabled");
-            } else {
-                FileForceMd5Enable();
-                SCLogInfo("forcing md5 calculation for logged files");
-            }
+            FileForceMd5Enable();
+            SCLogInfo("forcing md5 calculation for logged files");
         }
     }
 
@@ -198,33 +193,18 @@ void FileForceHashParseCfg(ConfNode *conf)
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
             if (strcasecmp("md5", field->val) == 0) {
-                if (g_disable_hashing) {
-                    SCLogInfo("not forcing md5 calculation for logged files: hashing globally "
-                              "disabled");
-                } else {
-                    FileForceMd5Enable();
-                    SCLogConfig("forcing md5 calculation for logged or stored files");
-                }
+                FileForceMd5Enable();
+                SCLogConfig("forcing md5 calculation for logged or stored files");
             }
 
             if (strcasecmp("sha1", field->val) == 0) {
-                if (g_disable_hashing) {
-                    SCLogInfo("not forcing sha1 calculation for logged files: hashing globally "
-                              "disabled");
-                } else {
-                    FileForceSha1Enable();
-                    SCLogConfig("forcing sha1 calculation for logged or stored files");
-                }
+                FileForceSha1Enable();
+                SCLogConfig("forcing sha1 calculation for logged or stored files");
             }
 
             if (strcasecmp("sha256", field->val) == 0) {
-                if (g_disable_hashing) {
-                    SCLogInfo("not forcing sha256 calculation for logged files: hashing globally "
-                              "disabled");
-                } else {
-                    FileForceSha256Enable();
-                    SCLogConfig("forcing sha256 calculation for logged or stored files");
-                }
+                FileForceSha256Enable();
+                SCLogConfig("forcing sha256 calculation for logged or stored files");
             }
         }
     }

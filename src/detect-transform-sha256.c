@@ -72,11 +72,6 @@ void DetectTransformSha256Register(void)
 static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    if (g_disable_hashing) {
-        SCLogError("SHA256 hashing has been disabled, "
-                   "needed for to_sha256 keyword");
-        SCReturnInt(-1);
-    }
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA256, NULL);
     SCReturnInt(r);
 }
