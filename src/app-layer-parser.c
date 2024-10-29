@@ -530,9 +530,8 @@ void AppLayerParserRegisterStateProgressCompletionStatus(
     alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc = tc;
 }
 
-void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
-        int (*StateGetEventInfoById)(
-                uint8_t event_id, const char **event_name, SCAppLayerEventType *event_type))
+void AppLayerParserRegisterGetEventInfoById(
+        uint8_t ipproto, AppProto alproto, SCAppLayerStateGetEventInfoByIdFn StateGetEventInfoById)
 {
     SCEnter();
 

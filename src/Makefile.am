@@ -42,6 +42,7 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
+	app-layer-types.h \
 	app-layer-imap.h \
 	build-info.h \
 	conf.h \
