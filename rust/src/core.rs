@@ -21,6 +21,8 @@ use std;
 use crate::filecontainer::*;
 use crate::flow::Flow;
 
+pub use crate::sys::{AppProto, AppProtoEnum};
+
 /// Opaque C types.
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
@@ -33,11 +35,8 @@ pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
-// Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = u16;
-
-pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub const ALPROTO_FAILED : AppProto = 1;
+pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as u16;
+pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as u16;
 
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
