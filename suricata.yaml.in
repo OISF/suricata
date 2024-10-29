@@ -1188,11 +1188,11 @@ app-layer:
       tcp:
         enabled: yes
         detection-ports:
-          dp: 389
+          dp: 389, 3268
       udp:
         enabled: yes
         detection-ports:
-          dp: 389
+          dp: 389, 3268
       # Maximum number of live LDAP transactions per flow
       # max-tx: 1024
 
