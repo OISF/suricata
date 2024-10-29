@@ -696,6 +696,7 @@ void SigTableSetup(void)
     ScDetectSipRegister();
     ScDetectTemplateRegister();
 
+#ifdef HAVE_PLUGINS
     for (size_t i = 0; i < app_layer_plugins_nb; i++) {
         SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
         if (app_layer_plugin == NULL) {
@@ -705,6 +706,7 @@ void SigTableSetup(void)
             app_layer_plugin->KeywordsRegister();
         }
     }
+#endif
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

@@ -1746,6 +1746,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     } else {
         SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
     }
+#ifdef HAVE_PLUGINS
     for (size_t i = 0; i < app_layer_plugins_nb; i++) {
         SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
         if (app_layer_plugin == NULL) {
@@ -1753,6 +1754,7 @@ void AppLayerParserRegisterProtocolParsers(void)
         }
         app_layer_plugin->Register();
     }
+#endif
 
     ValidateParsers();
 }

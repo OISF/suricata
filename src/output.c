@@ -1106,6 +1106,8 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+
+#ifdef HAVE_PLUGINS
     for (size_t i = 0; i < app_layer_plugins_nb; i++) {
         SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
         if (app_layer_plugin == NULL) {
@@ -1120,4 +1122,5 @@ void OutputRegisterLoggers(void)
         RegisterSimpleJsonApplayerLogger((AppProto)(ALPROTO_MAX_STATIC + i),
                 (EveJsonSimpleTxLogFunc)app_layer_plugin->Logger, NULL);
     }
+#endif
 }
