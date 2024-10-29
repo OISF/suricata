@@ -194,7 +194,15 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
     if (ffc == NULL) {
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES);
     } else if (ffc->head == NULL) {
-        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
+        if (s->flags & SIG_FLAG_FILESTORE) {
+            if (s->filestore_ctx && (s->filestore_ctx->scope == FILESTORE_SCOPE_TX)) {
+                det_ctx->filestore[det_ctx->filestore_cnt].file_id = 0;
+                det_ctx->filestore[det_ctx->filestore_cnt].tx_id = det_ctx->tx_id;
+                det_ctx->filestore_cnt++;
+            }
+            SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH);
+        } else
+            SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
 
     uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
