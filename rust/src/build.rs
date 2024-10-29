@@ -16,6 +16,8 @@ fn main() {
         .header(format!("{}/src/app-layer-events.h", &src_dir))
         .allowlist_item("SCAppLayerEventType")
         .rustified_enum("SCAppLayerEventType")
+        .header(format!("{}/src/app-layer-types.h", &src_dir))
+        .allowlist_item("SCAppLayer.*")
         .clang_arg("-DHAVE_CONFIG_H")
         .clang_arg("-D__SCFILENAME__=\"\"")
         .clang_arg(format!("-I{}/src", &build_dir))
