@@ -496,7 +496,6 @@ fn register_pattern_probe(proto: u8) -> i8 {
         "ACK\0",
         "BYE\0",
         "CANCEL\0",
-        "UPDATE\0",
         "REFER\0",
         "PRACK\0",
         "SUBSCRIBE\0",
@@ -526,6 +525,16 @@ fn register_pattern_probe(proto: u8) -> i8 {
             0,
             core::Direction::ToClient as u8,
         );
+        if proto == core::IPPROTO_UDP {
+            r |= AppLayerProtoDetectPMRegisterPatternCS(
+                proto,
+                ALPROTO_SIP,
+                "UPDATE\0".as_ptr() as *const std::os::raw::c_char,
+                "UPDATE".len() as u16,
+                0,
+                core::Direction::ToServer as u8,
+            );
+        }
     }
 
     if r == 0 {
