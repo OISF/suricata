@@ -37,6 +37,7 @@
 #include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
+#include "util-radix4-tree.h"
 #include "util-radix-tree.h"
 #include "util-file.h"
 #include "reputation.h"
@@ -766,7 +767,7 @@ typedef struct SCFPSupportSMList_ {
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* Lookup trees */
-    SCRadixTree *tree_ipv4src, *tree_ipv4dst;
+    SCRadix4Tree tree_ipv4src, tree_ipv4dst;
     SCRadixTree *tree_ipv6src, *tree_ipv6dst;
 
     /* Used to build the radix trees */
