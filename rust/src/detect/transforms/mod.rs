@@ -22,6 +22,7 @@ use std::os::raw::{c_char, c_int, c_void};
 pub mod compress_whitespace;
 pub mod dotprefix;
 pub mod strip_whitespace;
+pub mod hash;
 
 #[repr(C)]
 #[allow(non_snake_case)]

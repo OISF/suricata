@@ -205,6 +205,13 @@ unsafe fn finalize<D: Digest>(digest: D, out: *mut u8, len: u32) {
     output.copy_from_slice(&result);
 }
 
+pub static mut G_DISABLE_HASHING: bool = false;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDisableHashing() {
+    G_DISABLE_HASHING = true;
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
