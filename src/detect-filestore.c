@@ -98,6 +98,45 @@ void DetectFilestoreRegister(void)
     g_file_match_list_id = DetectBufferTypeRegister("files");
 }
 
+static void FilestoreTriggerFlowStorage(Flow *f, int toserver_dir, int toclient_dir)
+{
+    /* set in flow and AppLayerStateData */
+    AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
+    if (toclient_dir) {
+        f->file_flags |= FLOWFILE_STORE_TC;
+        if (sd != NULL) {
+            sd->file_flags |= FLOWFILE_STORE_TC;
+        }
+    }
+    if (toserver_dir) {
+        f->file_flags |= FLOWFILE_STORE_TS;
+        if (sd != NULL) {
+            sd->file_flags |= FLOWFILE_STORE_TS;
+        }
+    }
+    /* Start storage for all existing files attached to the flow in correct direction */
+    void *alstate = FlowGetAppState(f);
+    if (alstate != NULL) {
+        uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
+        for (uint64_t tx_id = 0; tx_id < total_txs; tx_id++) {
+            void *txv = AppLayerParserGetTx(f->proto, f->alproto, alstate, tx_id);
+            DEBUG_VALIDATE_BUG_ON(txv == NULL);
+            if (txv != NULL) {
+                AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
+                DEBUG_VALIDATE_BUG_ON(txd == NULL);
+                if (txd != NULL) {
+                    if (toclient_dir) {
+                        txd->file_flags |= FLOWFILE_STORE_TC;
+                    }
+                    if (toserver_dir) {
+                        txd->file_flags |= FLOWFILE_STORE_TS;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /**
  *  \brief apply the post match filestore with options
  */
@@ -170,20 +209,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
             }
         }
     } else if (this_flow) {
-        /* set in flow and AppLayerStateData */
-        AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
-        if (toclient_dir) {
-            f->file_flags |= FLOWFILE_STORE_TC;
-            if (sd != NULL) {
-                sd->file_flags |= FLOWFILE_STORE_TC;
-            }
-        }
-        if (toserver_dir) {
-            f->file_flags |= FLOWFILE_STORE_TS;
-            if (sd != NULL) {
-                sd->file_flags |= FLOWFILE_STORE_TS;
-            }
-        }
+        FilestoreTriggerFlowStorage(f, toserver_dir, toclient_dir);
     } else {
         FileStoreFileById(fc, file_id);
     }
@@ -207,11 +233,36 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
+    if (p->flow == NULL) {
+#ifndef DEBUG
+        SCReturnInt(0);
+#else
+        BUG_ON(1);
+#endif
+    }
+
     if (det_ctx->filestore_cnt == 0) {
+        if (s->filestore_ctx && (s->filestore_ctx->scope == FILESTORE_SCOPE_SSN)) {
+            int toserver_dir = 0;
+            int toclient_dir = 0;
+            switch (s->filestore_ctx->direction) {
+                case FILESTORE_DIR_BOTH:
+                    toserver_dir = 1;
+                    toclient_dir = 1;
+                    break;
+                case FILESTORE_DIR_TOSERVER:
+                    toserver_dir = 1;
+                    break;
+                case FILESTORE_DIR_TOCLIENT:
+                    toclient_dir = 1;
+                    break;
+            }
+            FilestoreTriggerFlowStorage(p->flow, toserver_dir, toclient_dir);
+        }
         SCReturnInt(0);
     }
 
-    if ((s->filestore_ctx == NULL && !(s->flags & SIG_FLAG_FILESTORE)) || p->flow == NULL) {
+    if (s->filestore_ctx == NULL && !(s->flags & SIG_FLAG_FILESTORE)) {
 #ifndef DEBUG
         SCReturnInt(0);
 #else
