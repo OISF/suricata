@@ -2292,9 +2292,6 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     IPPairShutdown();
     HostCleanup();
     StreamTcpFreeConfig(STREAM_VERBOSE);
-#ifdef PROFILE_RULES
-    SCProfilingDestroy();
-#endif
     DefragDestroy();
     HttpRangeContainersDestroy();
 

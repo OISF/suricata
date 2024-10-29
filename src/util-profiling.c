@@ -126,18 +126,6 @@ static void FormatNumber(uint64_t num, char *str, size_t size)
         snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
 }
 
-void SCProfilingDestroy(void)
-{
-    if (packet_profile_app_data4) {
-        SCFree(packet_profile_app_data4);
-        packet_profile_app_data4 = NULL;
-    }
-    if (packet_profile_app_data6) {
-        SCFree(packet_profile_app_data6);
-        packet_profile_app_data6 = NULL;
-    }
-}
-
 /**
  * \brief Initialize profiling.
  */
@@ -287,6 +275,15 @@ SCProfilingInit(void)
 void
 SCProfilingDestroy(void)
 {
+    if (packet_profile_app_data4) {
+        SCFree(packet_profile_app_data4);
+        packet_profile_app_data4 = NULL;
+    }
+    if (packet_profile_app_data6) {
+        SCFree(packet_profile_app_data6);
+        packet_profile_app_data6 = NULL;
+    }
+
     if (profiling_packets_enabled) {
         pthread_mutex_destroy(&packet_profile_lock);
     }

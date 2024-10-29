@@ -363,7 +363,6 @@ extern thread_local int profiling_rules_entered;
 #ifndef PROFILING
 void SCProfilingInit(void);
 #endif
-void SCProfilingDestroy(void);
 
 /**
  * Extra data for rule profiling.
