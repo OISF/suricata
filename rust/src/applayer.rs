@@ -388,7 +388,7 @@ pub struct RustParser {
     /// Function to get an event id from a description
     pub get_eventinfo:      Option<GetEventInfoFn>,
     /// Function to get an event description from an event id
-    pub get_eventinfo_byid: Option<GetEventInfoByIdFn>,
+    pub get_eventinfo_byid: crate::sys::SCAppLayerStateGetEventInfoByIdFn,
 
     /// Function to allocate local storage
     pub localstorage_new:   Option<LocalStorageNewFn>,

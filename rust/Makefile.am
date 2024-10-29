@@ -96,6 +96,7 @@ if HAVE_BINDGEN
 		--disable-header-comment \
 		--allowlist-type 'SCAppLayerEventType' \
 		--rustified-enum 'SCAppLayerEventType' \
+		--allowlist-type 'SCAppLayerStateGetEventInfoByIdFn' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)

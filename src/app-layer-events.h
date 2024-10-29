@@ -27,12 +27,8 @@
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
 #include "suricata-common.h"
+#include "app-layer-types.h"
 #include "util-enum.h"
-
-typedef enum SCAppLayerEventType {
-    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
-    APP_LAYER_EVENT_TYPE_PACKET = 2,
-} SCAppLayerEventType;
 
 /**
  * \brief Data structure to store app layer decoder events.
