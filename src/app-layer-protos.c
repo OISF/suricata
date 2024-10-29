@@ -70,9 +70,6 @@ const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_POP3, "pop3" },
     { ALPROTO_HTTP, "http" },
     { ALPROTO_FAILED, "failed" },
-#ifdef UNITTESTS
-    { ALPROTO_TEST, "test" },
-#endif
 };
 
 const char *AppProtoToString(AppProto alproto)

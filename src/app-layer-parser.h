@@ -315,8 +315,6 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir);
 void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
                                   void (*RegisterUnittests)(void));
 void AppLayerParserRegisterUnittests(void);
-void AppLayerParserBackupParserTable(void);
-void AppLayerParserRestoreParserTable(void);
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min);
 #endif
 
