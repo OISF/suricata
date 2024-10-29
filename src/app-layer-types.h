@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,18 +15,17 @@
  * 02110-1301, USA.
  */
 
-#ifndef SURICATA_RUST_H
-#define SURICATA_RUST_H
+#ifndef SURICATA_APP_LAYER_TYPES_H
+#define SURICATA_APP_LAYER_TYPES_H
 
-// hack for include orders cf SCSha256
-typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
-#include "rust-context.h"
-#include "app-layer-events.h"
-#include "app-layer-types.h"
-#include "rust-bindings.h"
+#include <stdint.h>
 
-#define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
-#define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
-#define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")
+typedef enum SCAppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+} SCAppLayerEventType;
 
-#endif /* !SURICATA_RUST_H */
+typedef int (*SCAppLayerStateGetEventInfoByIdFn)(
+        uint8_t event_id, const char **event_name, SCAppLayerEventType *event_type);
+
+#endif /* !SURICATA_APP_LAYER_TYPES_H */
