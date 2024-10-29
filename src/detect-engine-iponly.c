@@ -902,6 +902,7 @@ error:
 }
 
 static const SCRadix4Config iponly_radix4_config = { SigNumArrayFree, SigNumArrayPrint };
+static const SCRadix6Config iponly_radix6_config = { SigNumArrayFree, SigNumArrayPrint };
 
 /**
  * \brief Setup the IP Only detection engine context
@@ -913,8 +914,8 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
 {
     io_ctx->tree_ipv4src = SCRadix4TreeInitialize();
     io_ctx->tree_ipv4dst = SCRadix4TreeInitialize();
-    io_ctx->tree_ipv6src = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
-    io_ctx->tree_ipv6dst = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
+    io_ctx->tree_ipv6src = SCRadix6TreeInitialize();
+    io_ctx->tree_ipv6dst = SCRadix6TreeInitialize();
 
     io_ctx->sig_mapping = SCCalloc(1, de_ctx->sig_array_len * sizeof(uint32_t));
     if (io_ctx->sig_mapping == NULL) {
@@ -957,13 +958,8 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     SCRadix4TreeRelease(&io_ctx->tree_ipv4src, &iponly_radix4_config);
     SCRadix4TreeRelease(&io_ctx->tree_ipv4dst, &iponly_radix4_config);
 
-    if (io_ctx->tree_ipv6src != NULL)
-        SCRadixReleaseRadixTree(io_ctx->tree_ipv6src);
-    io_ctx->tree_ipv6src = NULL;
-
-    if (io_ctx->tree_ipv6dst != NULL)
-        SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
-    io_ctx->tree_ipv6dst = NULL;
+    SCRadix6TreeRelease(&io_ctx->tree_ipv6src, &iponly_radix6_config);
+    SCRadix6TreeRelease(&io_ctx->tree_ipv6dst, &iponly_radix6_config);
 
     if (io_ctx->sig_mapping != NULL)
         SCFree(io_ctx->sig_mapping);
@@ -1012,16 +1008,16 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         (void)SCRadix4TreeFindBestMatch(
                 &io_ctx->tree_ipv4src, (uint8_t *)&GET_IPV4_SRC_ADDR_U32(p), &user_data_src);
     } else if (p->src.family == AF_INET6) {
-        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)&GET_IPV6_SRC_ADDR(p),
-                                              io_ctx->tree_ipv6src, &user_data_src);
+        (void)SCRadix6TreeFindBestMatch(
+                &io_ctx->tree_ipv6src, (uint8_t *)&GET_IPV6_SRC_ADDR(p), &user_data_src);
     }
 
     if (p->dst.family == AF_INET) {
         (void)SCRadix4TreeFindBestMatch(
                 &io_ctx->tree_ipv4dst, (uint8_t *)&GET_IPV4_DST_ADDR_U32(p), &user_data_dst);
     } else if (p->dst.family == AF_INET6) {
-        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)&GET_IPV6_DST_ADDR(p),
-                                              io_ctx->tree_ipv6dst, &user_data_dst);
+        (void)SCRadix6TreeFindBestMatch(
+                &io_ctx->tree_ipv6dst, (uint8_t *)&GET_IPV6_DST_ADDR(p), &user_data_dst);
     }
 
     src = user_data_src;
@@ -1142,7 +1138,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
     IPOnlyCIDRItem *src, *dst;
     SCRadix4Node *node4 = NULL;
-    SCRadixNode *node = NULL;
+    SCRadix6Node *node6 = NULL;
 
     /* Prepare Src radix trees */
     for (src = (de_ctx->io_ctx).ip_src; src != NULL; ) {
@@ -1249,20 +1245,15 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
             void *user_data = NULL;
             if (src->netmask == 128)
-                (void)SCRadixFindKeyIPV6ExactMatch((uint8_t *)&src->ip[0],
-                                                    (de_ctx->io_ctx).tree_ipv6src,
-                                                    &user_data);
+                (void)SCRadix6TreeFindExactMatch(
+                        &de_ctx->io_ctx.tree_ipv6src, (uint8_t *)&src->ip[0], &user_data);
             else
-                (void)SCRadixFindKeyIPV6Netblock((uint8_t *)&src->ip[0],
-                                                  (de_ctx->io_ctx).tree_ipv6src,
-                                                  src->netmask, &user_data);
-
+                (void)SCRadix6TreeFindNetblock(&de_ctx->io_ctx.tree_ipv6src, (uint8_t *)&src->ip[0],
+                        src->netmask, &user_data);
             if (user_data == NULL) {
                 /* Not found, look if there's a subnet of this range with bigger netmask */
-                (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)&src->ip[0],
-                                                   (de_ctx->io_ctx).tree_ipv6src,
-                                                   &user_data);
-
+                (void)SCRadix6TreeFindBestMatch(
+                        &de_ctx->io_ctx.tree_ipv6src, (uint8_t *)&src->ip[0], &user_data);
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
@@ -1278,13 +1269,12 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                         sna->array[src->signum / 8] |= tmp;
 
                     if (src->netmask == 128)
-                        node = SCRadixAddKeyIPV6((uint8_t *)&src->ip[0],
-                                                 (de_ctx->io_ctx).tree_ipv6src, sna);
+                        node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
+                                &iponly_radix6_config, (uint8_t *)&src->ip[0], sna);
                     else
-                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&src->ip[0],
-                                                         (de_ctx->io_ctx).tree_ipv6src,
-                                                         sna, src->netmask);
-                    if (node == NULL)
+                        node6 = SCRadix6AddKeyIPV6Netblock(&de_ctx->io_ctx.tree_ipv6src,
+                                &iponly_radix6_config, (uint8_t *)&src->ip[0], src->netmask, sna);
+                    if (node6 == NULL)
                         SCLogError("Error inserting in the src "
                                    "ipv6 radix tree");
                 } else {
@@ -1302,13 +1292,12 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                         sna->array[src->signum / 8] |= tmp;
 
                     if (src->netmask == 128)
-                        node = SCRadixAddKeyIPV6((uint8_t *)&src->ip[0],
-                                                 (de_ctx->io_ctx).tree_ipv6src, sna);
+                        node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
+                                &iponly_radix6_config, (uint8_t *)&src->ip[0], sna);
                     else
-                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&src->ip[0],
-                                                         (de_ctx->io_ctx).tree_ipv6src,
-                                                         sna, src->netmask);
-                    if (node == NULL)
+                        node6 = SCRadix6AddKeyIPV6Netblock(&de_ctx->io_ctx.tree_ipv6src,
+                                &iponly_radix6_config, (uint8_t *)&src->ip[0], src->netmask, sna);
+                    if (node6 == NULL)
                         SCLogError("Error inserting in the src "
                                    "ipv6 radix tree");
                 }
@@ -1429,22 +1418,17 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
             void *user_data = NULL;
             if (dst->netmask == 128)
-                (void) SCRadixFindKeyIPV6ExactMatch((uint8_t *)&dst->ip[0],
-                                                    (de_ctx->io_ctx).tree_ipv6dst,
-                                                    &user_data);
+                (void)SCRadix6TreeFindExactMatch(
+                        &de_ctx->io_ctx.tree_ipv6dst, (uint8_t *)&dst->ip[0], &user_data);
             else
-                (void) SCRadixFindKeyIPV6Netblock((uint8_t *)&dst->ip[0],
-                                                  (de_ctx->io_ctx).tree_ipv6dst,
-                                                  dst->netmask, &user_data);
-
+                (void)SCRadix6TreeFindNetblock(&de_ctx->io_ctx.tree_ipv6dst, (uint8_t *)&dst->ip[0],
+                        dst->netmask, &user_data);
             if (user_data == NULL) {
                 /** Not found, look if there's a subnet of this range with
                  * bigger netmask
                  */
-                (void) SCRadixFindKeyIPV6BestMatch((uint8_t *)&dst->ip[0],
-                                                   (de_ctx->io_ctx).tree_ipv6dst,
-                                                   &user_data);
-
+                (void)SCRadix6TreeFindBestMatch(
+                        &de_ctx->io_ctx.tree_ipv6dst, (uint8_t *)&dst->ip[0], &user_data);
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
@@ -1459,14 +1443,12 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                         sna->array[dst->signum / 8] |= tmp;
 
                     if (dst->netmask == 128)
-                        node = SCRadixAddKeyIPV6((uint8_t *)&dst->ip[0],
-                                                 (de_ctx->io_ctx).tree_ipv6dst, sna);
+                        node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
+                                &iponly_radix6_config, (uint8_t *)&dst->ip[0], sna);
                     else
-                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&dst->ip[0],
-                                                         (de_ctx->io_ctx).tree_ipv6dst,
-                                                          sna, dst->netmask);
-
-                    if (node == NULL)
+                        node6 = SCRadix6AddKeyIPV6Netblock(&de_ctx->io_ctx.tree_ipv6dst,
+                                &iponly_radix6_config, (uint8_t *)&dst->ip[0], dst->netmask, sna);
+                    if (node6 == NULL)
                         SCLogError("Error inserting in the dst "
                                    "ipv6 radix tree");
                 } else {
@@ -1484,14 +1466,12 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                         sna->array[dst->signum / 8] |= tmp;
 
                     if (dst->netmask == 128)
-                        node = SCRadixAddKeyIPV6((uint8_t *)&dst->ip[0],
-                                                 (de_ctx->io_ctx).tree_ipv6dst, sna);
+                        node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
+                                &iponly_radix6_config, (uint8_t *)&dst->ip[0], sna);
                     else
-                        node = SCRadixAddKeyIPV6Netblock((uint8_t *)&dst->ip[0],
-                                                         (de_ctx->io_ctx).tree_ipv6dst,
-                                                         sna, dst->netmask);
-
-                    if (node == NULL)
+                        node6 = SCRadix6AddKeyIPV6Netblock(&de_ctx->io_ctx.tree_ipv6dst,
+                                &iponly_radix6_config, (uint8_t *)&dst->ip[0], dst->netmask, sna);
+                    if (node6 == NULL)
                         SCLogError("Error inserting in the dst "
                                    "ipv6 radix tree");
                 }
