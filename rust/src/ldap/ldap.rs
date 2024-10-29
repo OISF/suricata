@@ -617,7 +617,7 @@ const PARSER_NAME: &[u8] = b"ldap\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
-    let default_port = CString::new("389").unwrap();
+    let default_port = CString::new("[389, 3268]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
@@ -674,7 +674,7 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
-    let default_port = CString::new("389").unwrap();
+    let default_port = CString::new("[389, 3268]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
