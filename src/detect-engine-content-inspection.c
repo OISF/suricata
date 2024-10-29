@@ -772,7 +772,7 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
         return false;
 }
 
-uint8_t DetectEngineContentInspectionBufferMulti(DetectEngineCtx *de_ctx,
+int DetectEngineContentInspectionBufferMulti(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
         const InspectionBuffer *b, uint32_t local_id)
 {

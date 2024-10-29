@@ -2219,7 +2219,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
 
         // The GetData functions set buffer->flags to DETECT_CI_FLAGS_SINGLE
         // This is not meant for streaming buffers
-        uint8_t match = DetectEngineContentInspectionBufferMulti(
+        int match = DetectEngineContentInspectionBufferMulti(
                 de_ctx, det_ctx, s, engine->smd, f, buffer, local_id);
         switch (match) {
             case DETECT_ENGINE_INSPECT_SIG_MATCH:
