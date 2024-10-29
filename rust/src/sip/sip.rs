@@ -496,7 +496,6 @@ fn register_pattern_probe(proto: u8) -> i8 {
         "ACK\0",
         "BYE\0",
         "CANCEL\0",
-        "UPDATE\0",
         "REFER\0",
         "PRACK\0",
         "SUBSCRIBE\0",
