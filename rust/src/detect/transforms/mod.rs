@@ -25,6 +25,7 @@ pub mod dotprefix;
 pub mod hash;
 pub mod http_headers;
 pub mod strip_whitespace;
+pub mod xor;
 
 #[repr(C)]
 #[allow(non_snake_case)]
