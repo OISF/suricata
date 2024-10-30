@@ -308,7 +308,6 @@ noinst_HEADERS = \
 	detect-transform-base64.h \
 	detect-transform-pcrexform.h \
 	detect-transform-urldecode.h \
-	detect-transform-xor.h \
 	detect-ttl.h \
 	detect-udphdr.h \
 	detect-uricontent.h \
@@ -868,7 +867,6 @@ libsuricata_c_a_SOURCES = \
 	detect-transform-base64.c \
 	detect-transform-pcrexform.c \
 	detect-transform-urldecode.c \
-	detect-transform-xor.c \
 	detect-ttl.c \
 	detect-udphdr.c \
 	detect-uricontent.c \
@@ -1133,7 +1131,6 @@ EXTRA_DIST = \
 	tests/detect-icmpv6hdr.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
-	tests/detect-transform-xor.c \
 	tests/detect-ttl.c \
 	tests/source-pcap.c \
 	tests/app-layer-htp-file.c \
