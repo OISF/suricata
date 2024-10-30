@@ -35,9 +35,9 @@ unsafe extern "C" fn url_decode_setup(
 
 fn hex_value(i: u8) -> Option<u8> {
     match i {
-        0x30..0x39 => Some(i - 0x30),
-        0x41..0x46 => Some(i - 0x41 + 10),
-        0x61..0x66 => Some(i - 0x61 + 10),
+        0x30..=0x39 => Some(i - 0x30),
+        0x41..=0x46 => Some(i - 0x41 + 10),
+        0x61..=0x66 => Some(i - 0x61 + 10),
         _ => None,
     }
 }
