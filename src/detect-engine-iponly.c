@@ -1220,7 +1220,6 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                         SCLogError("Error inserting in the"
                                    " src ipv4 radix tree ip %s netmask %" PRIu8,
                                 tmpstr, src->netmask);
-                        //SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
                         exit(-1);
                     }
                 }
@@ -1493,20 +1492,6 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
         dst = dst->next;
         SCFree(tmpaux);
     }
-
-    /* print all the trees: for debugging it might print too much info
-    SCLogDebug("Radix tree src ipv4:");
-    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
-    SCLogDebug("Radix tree src ipv6:");
-    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv6src);
-    SCLogDebug("__________________");
-
-    SCLogDebug("Radix tree dst ipv4:");
-    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4dst);
-    SCLogDebug("Radix tree dst ipv6:");
-    SCRadixPrintTree((de_ctx->io_ctx).tree_ipv6dst);
-    SCLogDebug("__________________");
-    */
 }
 
 /**
