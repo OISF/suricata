@@ -1116,6 +1116,17 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
     SCReturn;
 }
 
+static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, SigNumArray *sna)
+{
+    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
+    if (src->negated > 0)
+        /* Unset it */
+        sna->array[src->signum / 8] &= ~tmp;
+    else
+        /* Set it */
+        sna->array[src->signum / 8] |= tmp;
+}
+
 /**
  * \brief Build the radix trees from the lists of parsed addresses in CIDR format
  *        the result should be 4 radix trees: src/dst ipv4 and src/dst ipv6
@@ -1133,15 +1144,14 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
        IPOnlyCIDRListPrint((de_ctx->io_ctx).ip_dst);
      */
 
-    IPOnlyCIDRListQSort(&(de_ctx->io_ctx).ip_src);
-    IPOnlyCIDRListQSort(&(de_ctx->io_ctx).ip_dst);
+    IPOnlyCIDRListQSort(&de_ctx->io_ctx.ip_src);
+    IPOnlyCIDRListQSort(&de_ctx->io_ctx.ip_dst);
 
-    IPOnlyCIDRItem *src, *dst;
     SCRadix4Node *node4 = NULL;
     SCRadix6Node *node6 = NULL;
 
     /* Prepare Src radix trees */
-    for (src = (de_ctx->io_ctx).ip_src; src != NULL; ) {
+    for (IPOnlyCIDRItem *src = de_ctx->io_ctx.ip_src; src != NULL;) {
         if (src->family == AF_INET) {
         /*
             SCLogDebug("To IPv4");
@@ -1171,16 +1181,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-
-                    if (src->negated > 0)
-                        /* Unset it */
-                        sna->array[src->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[src->signum / 8] |= tmp;
+                    IPOnlyPrepareUpdateBitarray(src, sna);
 
                     if (src->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4src,
@@ -1195,18 +1196,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SCLogDebug("Best match found");
 
                     /* Found, copy the sig num table, add this signum and insert */
-                    SigNumArray *sna = NULL;
-                    sna = SigNumArrayCopy((SigNumArray *) user_data);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-
-                    if (src->negated > 0)
-                        /* Unset it */
-                        sna->array[src->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[src->signum / 8] |= tmp;
+                    SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
+                    IPOnlyPrepareUpdateBitarray(src, sna);
 
                     if (src->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4src,
@@ -1228,16 +1219,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-
-                /* Update the sig */
-                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-
-                if (src->negated > 0)
-                    /* Unset it */
-                    sna->array[src->signum / 8] &= ~tmp;
-                else
-                    /* Set it */
-                    sna->array[src->signum / 8] |= tmp;
+                IPOnlyPrepareUpdateBitarray(src, sna);
             }
         } else if (src->family == AF_INET6) {
             SCLogDebug("To IPv6");
@@ -1256,16 +1238,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-
-                    if (src->negated > 0)
-                        /* Unset it */
-                        sna->array[src->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[src->signum / 8] |= tmp;
+                    IPOnlyPrepareUpdateBitarray(src, sna);
 
                     if (src->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
@@ -1278,17 +1251,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                    "ipv6 radix tree");
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
-                    SigNumArray *sna = NULL;
-                    sna = SigNumArrayCopy((SigNumArray *)user_data);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-                    if (src->negated > 0)
-                        /* Unset it */
-                        sna->array[src->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[src->signum / 8] |= tmp;
+                    SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
+                    IPOnlyPrepareUpdateBitarray(src, sna);
 
                     if (src->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
@@ -1303,15 +1267,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
             } else {
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-
-                /* Update the sig */
-                uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
-                if (src->negated > 0)
-                    /* Unset it */
-                    sna->array[src->signum / 8] &= ~tmp;
-                else
-                    /* Set it */
-                    sna->array[src->signum / 8] |= tmp;
+                IPOnlyPrepareUpdateBitarray(src, sna);
             }
         }
         IPOnlyCIDRItem *tmpaux = src;
@@ -1322,9 +1278,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
     SCLogDebug("dsts:");
 
     /* Prepare Dst radix trees */
-    for (dst = (de_ctx->io_ctx).ip_dst; dst != NULL; ) {
+    for (IPOnlyCIDRItem *dst = de_ctx->io_ctx.ip_dst; dst != NULL;) {
         if (dst->family == AF_INET) {
-
             SCLogDebug("To IPv4");
             SCLogDebug("Item has netmask %"PRIu8" negated: %s; IP: %s; signum:"
                        " %"PRIu32"", dst->netmask, (dst->negated)?"yes":"no",
@@ -1351,15 +1306,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /** Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-
-                    /** Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                    if (dst->negated > 0)
-                        /** Unset it */
-                        sna->array[dst->signum / 8] &= ~tmp;
-                    else
-                        /** Set it */
-                        sna->array[dst->signum / 8] |= tmp;
+                    IPOnlyPrepareUpdateBitarray(dst, sna);
 
                     if (dst->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4dst,
@@ -1374,17 +1321,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                     SCLogDebug("Best match found");
 
                     /* Found, copy the sig num table, add this signum and insert */
-                    SigNumArray *sna = NULL;
-                    sna = SigNumArrayCopy((SigNumArray *) user_data);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                    if (dst->negated > 0)
-                        /* Unset it */
-                        sna->array[dst->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[dst->signum / 8] |= tmp;
+                    SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
+                    IPOnlyPrepareUpdateBitarray(dst, sna);
 
                     if (dst->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4dst,
@@ -1402,15 +1340,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-
-                /* Update the sig */
-                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                if (dst->negated > 0)
-                    /* Unset it */
-                    sna->array[dst->signum / 8] &= ~tmp;
-                else
-                    /* Set it */
-                    sna->array[dst->signum / 8] |= tmp;
+                IPOnlyPrepareUpdateBitarray(dst, sna);
             }
         } else if (dst->family == AF_INET6) {
             SCLogDebug("To IPv6");
@@ -1431,15 +1361,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                    if (dst->negated > 0)
-                        /* Unset it */
-                        sna->array[dst->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[dst->signum / 8] |= tmp;
+                    IPOnlyPrepareUpdateBitarray(dst, sna);
 
                     if (dst->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
@@ -1452,17 +1374,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                                    "ipv6 radix tree");
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
-                    SigNumArray *sna = NULL;
-                    sna = SigNumArrayCopy((SigNumArray *)user_data);
-
-                    /* Update the sig */
-                    uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                    if (dst->negated > 0)
-                        /* Unset it */
-                        sna->array[dst->signum / 8] &= ~tmp;
-                    else
-                        /* Set it */
-                        sna->array[dst->signum / 8] |= tmp;
+                    SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
+                    IPOnlyPrepareUpdateBitarray(dst, sna);
 
                     if (dst->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
@@ -1477,15 +1390,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
             } else {
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-
-                /* Update the sig */
-                uint8_t tmp = (uint8_t)(1 << (dst->signum % 8));
-                if (dst->negated > 0)
-                    /* Unset it */
-                    sna->array[dst->signum / 8] &= ~tmp;
-                else
-                    /* Set it */
-                    sna->array[dst->signum / 8] |= tmp;
+                IPOnlyPrepareUpdateBitarray(dst, sna);
             }
         }
         IPOnlyCIDRItem *tmpaux = dst;
