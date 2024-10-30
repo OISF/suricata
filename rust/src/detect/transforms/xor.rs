@@ -94,7 +94,7 @@ unsafe extern "C" fn xor_transform(buffer: *mut c_void, ctx: *mut c_void) {
     let output = std::slice::from_raw_parts_mut(output, input_len as usize);
 
     let ctx = cast_pointer!(ctx, DetectTransformXorData);
-    xor_transform_do(input, output, &ctx);
+    xor_transform_do(input, output, ctx);
 
     InspectionBufferTruncate(buffer, input_len);
 }
