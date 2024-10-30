@@ -53,9 +53,8 @@
 // tx_id value to use when there is no transaction
 #define PACKET_ALERT_NOTX UINT64_MAX
 
-/* forward declarations for the structures from detect-engine-sigorder.h */
+/* forward declaration for sigorder logic in detect-engine-sigorder.[ch] */
 struct SCSigOrderFunc_;
-struct SCSigSignatureWrapper_;
 
 /* Forward declarations for structures from Rust. */
 typedef struct SCDetectRequiresStatus SCDetectRequiresStatus;
