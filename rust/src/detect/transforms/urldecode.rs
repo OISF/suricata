@@ -51,18 +51,18 @@ fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
                     state = (2, i);
                 } else {
                     output[nb] = v | (hex_value(state.1).unwrap() << 4);
-                    nb = nb + 1;
+                    nb += 1;
                     state = (0u8, 0u8);
                 }
             } else {
                 output[nb] = b'%';
-                nb = nb + 1;
+                nb += 1;
                 if state.0 > 1 {
                     output[nb] = state.1;
-                    nb = nb + 1;
+                    nb += 1;
                 }
                 output[nb] = i;
-                nb = nb + 1;
+                nb += 1;
                 state = (0u8, 0u8);
             }
         } else if i == b'%' {
@@ -73,15 +73,15 @@ fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
             } else {
                 output[nb] = i;
             }
-            nb = nb + 1;
+            nb += 1;
         }
     }
     if state.0 > 0 {
         output[nb] = b'%';
-        nb = nb + 1;
+        nb += 1;
         if state.0 == 2 {
             output[nb] = state.1;
-            nb = nb + 1;
+            nb += 1;
         }
     }
     return nb as u32;
