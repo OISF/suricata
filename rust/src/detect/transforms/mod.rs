@@ -23,6 +23,7 @@ pub mod casechange;
 pub mod compress_whitespace;
 pub mod dotprefix;
 pub mod hash;
+pub mod http_headers;
 pub mod strip_whitespace;
 
 #[repr(C)]
