@@ -219,7 +219,6 @@
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
-#include "detect-transform-casechange.h"
 #include "detect-transform-header-lowercase.h"
 #include "detect-transform-base64.h"
 
