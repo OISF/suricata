@@ -215,11 +215,9 @@
 #include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
 
-#include "detect-transform-strip-pseudo-headers.h"
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
-#include "detect-transform-header-lowercase.h"
 #include "detect-transform-base64.h"
 
 #include "util-rule-vars.h"
