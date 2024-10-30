@@ -307,7 +307,6 @@ noinst_HEADERS = \
 	detect-tos.h \
 	detect-transform-base64.h \
 	detect-transform-pcrexform.h \
-	detect-transform-urldecode.h \
 	detect-ttl.h \
 	detect-udphdr.h \
 	detect-uricontent.h \
@@ -866,7 +865,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tos.c \
 	detect-transform-base64.c \
 	detect-transform-pcrexform.c \
-	detect-transform-urldecode.c \
 	detect-ttl.c \
 	detect-udphdr.c \
 	detect-uricontent.c \
