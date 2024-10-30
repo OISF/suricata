@@ -1050,9 +1050,11 @@ static int LogFileTypePrepare(
                     &json_ctx->file_ctx->filetype.init_data) < 0) {
             return -1;
         }
-        if (json_ctx->filetype->ThreadInit(json_ctx->file_ctx->filetype.init_data, 0,
-                    &json_ctx->file_ctx->filetype.thread_data) < 0) {
-            return -1;
+        if (json_ctx->filetype->ThreadInit) {
+            if (json_ctx->filetype->ThreadInit(json_ctx->file_ctx->filetype.init_data, 0,
+                        &json_ctx->file_ctx->filetype.thread_data) < 0) {
+                return -1;
+            }
         }
         json_ctx->file_ctx->filetype.filetype = json_ctx->filetype;
     }
