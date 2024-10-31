@@ -34,12 +34,12 @@ pub extern "C" fn SCDnsLuaGetRrname(clua: &mut CLuaState, tx: &mut DNSTransactio
 
     if let Some(request) = &tx.request {
         if let Some(query) = request.queries.first() {
-            lua.pushstring(&String::from_utf8_lossy(&query.name));
+            lua.pushstring(&String::from_utf8_lossy(&query.name.value));
             return 1;
         }
     } else if let Some(response) = &tx.response {
         if let Some(query) = response.queries.first() {
-            lua.pushstring(&String::from_utf8_lossy(&query.name));
+            lua.pushstring(&String::from_utf8_lossy(&query.name.value));
             return 1;
         }
     }
@@ -84,7 +84,7 @@ pub extern "C" fn SCDnsLuaGetQueryTable(clua: &mut CLuaState, tx: &mut DNSTransa
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(&String::from_utf8_lossy(&query.name));
+            lua.pushstring(&String::from_utf8_lossy(&query.name.value));
             lua.settable(-3);
 
             lua.settable(-3);
@@ -101,7 +101,7 @@ pub extern "C" fn SCDnsLuaGetQueryTable(clua: &mut CLuaState, tx: &mut DNSTransa
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(&String::from_utf8_lossy(&query.name));
+            lua.pushstring(&String::from_utf8_lossy(&query.name.value));
             lua.settable(-3);
 
             lua.settable(-3);
@@ -138,11 +138,11 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(&String::from_utf8_lossy(&answer.name));
+            lua.pushstring(&String::from_utf8_lossy(&answer.name.value));
             lua.settable(-3);
 
             // All rdata types are pushed to "addr" for backwards compatibility
-            match answer.data {
+            match &answer.data {
                 DNSRData::A(ref bytes) | DNSRData::AAAA(ref bytes) => {
                     if !bytes.is_empty() {
                         lua.pushstring("addr");
@@ -150,12 +150,18 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                         lua.settable(-3);
                     }
                 }
-                DNSRData::CNAME(ref bytes)
-                | DNSRData::MX(ref bytes)
-                | DNSRData::NS(ref bytes)
-                | DNSRData::TXT(ref bytes)
+                DNSRData::CNAME(name)
+                | DNSRData::MX(name)
+                | DNSRData::NS(name)
+                | DNSRData::PTR(name) => {
+                    if !name.value.is_empty() {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&name.value));
+                        lua.settable(-3);
+                    }
+                }
+                DNSRData::TXT(ref bytes)
                 | DNSRData::NULL(ref bytes)
-                | DNSRData::PTR(ref bytes)
                 | DNSRData::Unknown(ref bytes) => {
                     if !bytes.is_empty() {
                         lua.pushstring("addr");
@@ -164,9 +170,9 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                     }
                 }
                 DNSRData::SOA(ref soa) => {
-                    if !soa.mname.is_empty() {
+                    if !soa.mname.value.is_empty() {
                         lua.pushstring("addr");
-                        lua.pushstring(&String::from_utf8_lossy(&soa.mname));
+                        lua.pushstring(&String::from_utf8_lossy(&soa.mname.value));
                         lua.settable(-3);
                     }
                 }
@@ -177,7 +183,7 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                 }
                 DNSRData::SRV(ref srv) => {
                     lua.pushstring("addr");
-                    lua.pushstring(&String::from_utf8_lossy(&srv.target));
+                    lua.pushstring(&String::from_utf8_lossy(&srv.target.value));
                     lua.settable(-3);
                 }
                 DNSRData::OPT(ref opt) => {
@@ -227,7 +233,7 @@ pub extern "C" fn SCDnsLuaGetAuthorityTable(
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(&String::from_utf8_lossy(&answer.name));
+            lua.pushstring(&String::from_utf8_lossy(&answer.name.value));
             lua.settable(-3);
 
             lua.settable(-3);
