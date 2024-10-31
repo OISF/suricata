@@ -144,7 +144,7 @@ pub struct DNSHeader {
 
 #[derive(Debug)]
 pub struct DNSQueryEntry {
-    pub name: Vec<u8>,
+    pub name: DNSName,
     pub rrtype: u16,
     pub rrclass: u16,
 }
@@ -152,9 +152,9 @@ pub struct DNSQueryEntry {
 #[derive(Debug, PartialEq, Eq)]
 pub struct DNSRDataSOA {
     /// Primary name server for this zone
-    pub mname: Vec<u8>,
+    pub mname: DNSName,
     /// Authority's mailbox
-    pub rname: Vec<u8>,
+    pub rname: DNSName,
     /// Serial version number
     pub serial: u32,
     /// Refresh interval (seconds)
@@ -186,7 +186,22 @@ pub struct DNSRDataSRV {
     /// Port
     pub port: u16,
     /// Target
-    pub target: Vec<u8>,
+    pub target: DNSName,
+}
+
+bitflags! {
+    #[derive(Default)]
+    pub struct DNSNameFlags: u8 {
+        const INFINITE_LOOP = 0b0000_0001;
+        const TRUNCATED     = 0b0000_0010;
+        const LABEL_LIMIT   = 0b0000_0100;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DNSName {
+    pub value: Vec<u8>,
+    pub flags: DNSNameFlags,
 }
 
 /// Represents RData of various formats
@@ -196,10 +211,10 @@ pub enum DNSRData {
     A(Vec<u8>),
     AAAA(Vec<u8>),
     // RData is a domain name
-    CNAME(Vec<u8>),
-    PTR(Vec<u8>),
-    MX(Vec<u8>),
-    NS(Vec<u8>),
+    CNAME(DNSName),
+    PTR(DNSName),
+    MX(DNSName),
+    NS(DNSName),
     // RData is text
     TXT(Vec<u8>),
     NULL(Vec<u8>),
@@ -213,7 +228,7 @@ pub enum DNSRData {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DNSAnswerEntry {
-    pub name: Vec<u8>,
+    pub name: DNSName,
     pub rrtype: u16,
     pub rrclass: u16,
     pub ttl: u32,
@@ -873,9 +888,9 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(
     if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if !query.name.is_empty() {
-                *len = query.name.len() as u32;
-                *buf = query.name.as_ptr();
+            if !query.name.value.is_empty() {
+                *len = query.name.value.len() as u32;
+                *buf = query.name.value.as_ptr();
                 return 1;
             }
         }
@@ -906,7 +921,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
     if let Some(request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
-            if !query.name.is_empty() {
+            if !query.name.value.is_empty() {
                 *rrtype = query.rrtype;
                 return 1;
             }
