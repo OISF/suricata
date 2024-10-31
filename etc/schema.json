@@ -996,6 +996,9 @@
                 "rrname": {
                     "type": "string"
                 },
+		"rrname_truncated": {
+		    "type": "boolean"
+		},
                 "rrtype": {
                     "type": "string"
                 },
@@ -1129,6 +1132,10 @@
                             "opcode": {
                                 "description": "DNS opcode as an integer",
                                 "type": "integer"
+                            },
+                            "rrname_truncated": {
+                                "description": "Set to true if the rrname was too long and truncated by Suricata",
+                                "type": "boolean"
                             }
                         },
                         "additionalProperties": false
