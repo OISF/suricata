@@ -2208,7 +2208,6 @@ static int InitSignalHandler(SCInstance *suri)
  * Will be run once per pcap in unix-socket mode */
 void PreRunInit(const int runmode)
 {
-    HttpRangeContainersInit();
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
@@ -2231,32 +2230,27 @@ void PreRunInit(const int runmode)
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
     OutputFilestoreRegisterGlobalCounters();
+    HttpRangeContainersInit();
 }
 
 /* tasks we need to run before packets start flowing,
  * but after we dropped privs */
 void PreRunPostPrivsDropInit(const int runmode)
 {
-    StatsSetupPostConfigPreOutput();
-    RunModeInitializeOutputs();
-    DatasetsInit();
-
     if (runmode == RUNMODE_UNIX_SOCKET) {
-        /* As the above did some necessary startup initialization, it
-         * also setup some outputs where only one is allowed, so
-         * deinitialize to the state that unix-mode does after every
-         * pcap. */
-        PostRunDeinit(RUNMODE_PCAP_FILE, NULL);
         return;
     }
 
+    StatsSetupPostConfigPreOutput();
+    RunModeInitializeOutputs();
+    DatasetsInit();
     StatsSetupPostConfigPostOutput();
 }
 
-/* clean up / shutdown code for both the main modes and for
- * unix socket mode.
+/** \brief clean up / shutdown code for packet modes
  *
- * Will be run once per pcap in unix-socket mode */
+ *  Shuts down packet modes, so regular packet runmodes and the
+ *  per pcap mode in the unix socket. */
 void PostRunDeinit(const int runmode, struct timeval *start_time)
 {
     if (runmode == RUNMODE_UNIX_SOCKET)
@@ -2964,12 +2958,11 @@ void SuricataInit(void)
         prerun_snap = SystemHugepageSnapshotCreate();
 
     SCSetStartTime(&suricata);
-    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
-            suricata.capture_plugin_name, suricata.capture_plugin_args);
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
-
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name,
+            suricata.capture_plugin_args);
     return;
 
 out:
