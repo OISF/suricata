@@ -2,9 +2,9 @@
 alert dns any any -> any any (msg:"SURICATA DNS malformed request data"; flow:to_server; app-layer-event:dns.malformed_data; classtype:protocol-command-decode; sid:2240002; rev:2;)
 alert dns any any -> any any (msg:"SURICATA DNS malformed response data"; flow:to_client; app-layer-event:dns.malformed_data; classtype:protocol-command-decode; sid:2240003; rev:2;)
 # Response flag set on to_server packet
-alert dns any any -> any any (msg:"SURICATA DNS Not a request"; flow:to_server; app-layer-event:dns.not_a_request; classtype:protocol-command-decode; sid:2240004; rev:2;)
+alert dns any any -> any any (msg:"SURICATA DNS Not a request"; flow:to_server; app-layer-event:dns.not_request; classtype:protocol-command-decode; sid:2240004; rev:3;)
 # Response flag not set on to_client packet
-alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client; app-layer-event:dns.not_a_response; classtype:protocol-command-decode; sid:2240005; rev:2;)
+alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client; app-layer-event:dns.not_response; classtype:protocol-command-decode; sid:2240005; rev:3;)
 # Z flag (reserved) not 0
 alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns.z_flag_set; classtype:protocol-command-decode; sid:2240006; rev:2;)
 alert dns any any -> any any (msg:"SURICATA DNS Invalid opcode"; app-layer-event:dns.invalid_opcode; classtype:protocol-command-decode; sid:2240007; rev:1;)
