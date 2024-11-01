@@ -8,3 +8,12 @@ alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client;
 # Z flag (reserved) not 0
 alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns.z_flag_set; classtype:protocol-command-decode; sid:2240006; rev:2;)
 alert dns any any -> any any (msg:"SURICATA DNS Invalid opcode"; app-layer-event:dns.invalid_opcode; classtype:protocol-command-decode; sid:2240007; rev:1;)
+
+# A resource name was too long (over 1025 chars)
+alert dns any any -> any any (msg:"SURICATA DNS Name too long"; app-layer-event:dns.name_too_long; classtype:protocol-command-decode; sid:224008; rev:1;)
+
+# An infinite loop was found while decoding a DNS resource name.
+alert dns any any -> any any (msg:"SURICATA DNS Infinite loop"; app-layer-event:dns.infinite_loop; classtype:protocol-command-decode; sid:224009; rev:1;)
+
+# Suricata's maximum number of DNS name labels was reached while parsing a resource name.
+alert dns any any -> any any (msg:"SURICATA DNS Too many labels"; app-layer-event:dns.too_many_labels; classtype:protocol-command-decode; sid:224010; rev:1;)

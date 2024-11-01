@@ -81,7 +81,7 @@ static MAX_NAME_LEN: usize = 1025;
 /// Parameters:
 ///   start: the start of the name
 ///   message: the complete message that start is a part of with the DNS header
-pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8], DNSName> {
+pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8], parse_flags: &mut DNSNameFlags) -> IResult<&'b [u8], DNSName> {
     let mut pos = start;
     let mut pivot = start;
     let mut name: Vec<u8> = Vec::with_capacity(32);
@@ -166,6 +166,8 @@ pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8
         }
     }
 
+    parse_flags.insert(flags);
+
     // If we followed a pointer we return the position after the first
     // pointer followed. Is there a better way to see if these slices
     // diverged from each other?  A straight up comparison would
@@ -188,7 +190,7 @@ pub fn dns_parse_name<'b>(start: &'b [u8], message: &'b [u8]) -> IResult<&'b [u8
 /// multi-string TXT entry as a single quote string, similar to the
 /// output of dig. Something to consider for a future version.
 fn dns_parse_answer<'a>(
-    slice: &'a [u8], message: &'a [u8], count: usize,
+    slice: &'a [u8], message: &'a [u8], count: usize, flags: &mut DNSNameFlags,
 ) -> IResult<&'a [u8], Vec<DNSAnswerEntry>> {
     let mut answers = Vec::new();
     let mut input = slice;
@@ -201,8 +203,10 @@ fn dns_parse_answer<'a>(
         data: &'a [u8],
     }
 
-    fn subparser<'a>(i: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], Answer<'a>> {
-        let (i, name) = dns_parse_name(i, message)?;
+    fn subparser<'a>(
+        i: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+    ) -> IResult<&'a [u8], Answer<'a>> {
+        let (i, name) = dns_parse_name(i, message, flags)?;
         let (i, rrtype) = be_u16(i)?;
         let (i, rrclass) = be_u16(i)?;
         let (i, ttl) = be_u32(i)?;
@@ -218,7 +222,7 @@ fn dns_parse_answer<'a>(
     }
 
     for _ in 0..count {
-        match subparser(input, message) {
+        match subparser(input, message, flags) {
             Ok((rem, val)) => {
                 let n = match val.rrtype {
                     DNS_RECORD_TYPE_TXT => {
@@ -236,7 +240,7 @@ fn dns_parse_answer<'a>(
                     }
                 };
                 let result: IResult<&'a [u8], Vec<DNSRData>> =
-                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype)))(val.data);
+                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype, flags)))(val.data);
                 match result {
                     Ok((_, rdatas)) => {
                         for rdata in rdatas {
@@ -266,18 +270,19 @@ fn dns_parse_answer<'a>(
 
 pub fn dns_parse_response_body<'a>(
     i: &'a [u8], message: &'a [u8], header: DNSHeader,
-) -> IResult<&'a [u8], DNSResponse> {
-    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
-    let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize)?;
-    let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize)?;
+) -> IResult<&'a [u8], (DNSResponse, DNSNameFlags)> {
+    let mut flags = DNSNameFlags::default();
+    let (i, queries) = count(|b| dns_parse_query(b, message, &mut flags), header.questions as usize)(i)?;
+    let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize, &mut flags)?;
+    let (i, authorities) = dns_parse_answer(i, message, header.authority_rr as usize, &mut flags)?;
     Ok((
         i,
-        DNSResponse {
+        (DNSResponse {
             header,
             queries,
             answers,
             authorities,
-        },
+        }, flags),
     ))
 }
 
@@ -286,9 +291,9 @@ pub fn dns_parse_response_body<'a>(
 /// Arguments are suitable for using with call!:
 ///
 ///    call!(complete_dns_message_buffer)
-pub fn dns_parse_query<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSQueryEntry> {
+pub fn dns_parse_query<'a>(input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags) -> IResult<&'a [u8], DNSQueryEntry> {
     let i = input;
-    let (i, name) = dns_parse_name(i, message)?;
+    let (i, name) = dns_parse_name(i, message, flags)?;
     let (i, rrtype) = be_u16(i)?;
     let (i, rrclass) = be_u16(i)?;
     Ok((
@@ -309,22 +314,30 @@ fn dns_parse_rdata_aaaa(input: &[u8]) -> IResult<&[u8], DNSRData> {
     rest(input).map(|(input, data)| (input, DNSRData::AAAA(data.to_vec())))
 }
 
-fn dns_parse_rdata_cname<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
-    dns_parse_name(input, message).map(|(input, name)| (input, DNSRData::CNAME(name)))
+fn dns_parse_rdata_cname<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message, flags).map(|(input, name)| (input, DNSRData::CNAME(name)))
 }
 
-fn dns_parse_rdata_ns<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
-    dns_parse_name(input, message).map(|(input, name)| (input, DNSRData::NS(name)))
+fn dns_parse_rdata_ns<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message, flags).map(|(input, name)| (input, DNSRData::NS(name)))
 }
 
-fn dns_parse_rdata_ptr<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
-    dns_parse_name(input, message).map(|(input, name)| (input, DNSRData::PTR(name)))
+fn dns_parse_rdata_ptr<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message, flags).map(|(input, name)| (input, DNSRData::PTR(name)))
 }
 
-fn dns_parse_rdata_soa<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_soa<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
     let i = input;
-    let (i, mname) = dns_parse_name(i, message)?;
-    let (i, rname) = dns_parse_name(i, message)?;
+    let (i, mname) = dns_parse_name(i, message, flags)?;
+    let (i, rname) = dns_parse_name(i, message, flags)?;
     let (i, serial) = be_u32(i)?;
     let (i, refresh) = be_u32(i)?;
     let (i, retry) = be_u32(i)?;
@@ -344,20 +357,24 @@ fn dns_parse_rdata_soa<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u
     ))
 }
 
-fn dns_parse_rdata_mx<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_mx<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
     // For MX we skip over the preference field before
     // parsing out the name.
     let (i, _) = be_u16(input)?;
-    let (i, name) = dns_parse_name(i, message)?;
+    let (i, name) = dns_parse_name(i, message, flags)?;
     Ok((i, DNSRData::MX(name)))
 }
 
-fn dns_parse_rdata_srv<'a>(input: &'a [u8], message: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+fn dns_parse_rdata_srv<'a>(
+    input: &'a [u8], message: &'a [u8], flags: &mut DNSNameFlags,
+) -> IResult<&'a [u8], DNSRData> {
     let i = input;
     let (i, priority) = be_u16(i)?;
     let (i, weight) = be_u16(i)?;
     let (i, port) = be_u16(i)?;
-    let (i, target) = dns_parse_name(i, message)?;
+    let (i, target) = dns_parse_name(i, message, flags)?;
     Ok((
         i,
         DNSRData::SRV(DNSRDataSRV {
@@ -398,26 +415,26 @@ fn dns_parse_rdata_unknown(input: &[u8]) -> IResult<&[u8], DNSRData> {
 }
 
 pub fn dns_parse_rdata<'a>(
-    input: &'a [u8], message: &'a [u8], rrtype: u16,
+    input: &'a [u8], message: &'a [u8], rrtype: u16, flags: &mut DNSNameFlags
 ) -> IResult<&'a [u8], DNSRData> {
     match rrtype {
         DNS_RECORD_TYPE_A => dns_parse_rdata_a(input),
         DNS_RECORD_TYPE_AAAA => dns_parse_rdata_aaaa(input),
-        DNS_RECORD_TYPE_CNAME => dns_parse_rdata_cname(input, message),
-        DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message),
-        DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
-        DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message),
-        DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message),
+        DNS_RECORD_TYPE_CNAME => dns_parse_rdata_cname(input, message, flags),
+        DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message, flags),
+        DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message, flags),
+        DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message, flags),
+        DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message, flags),
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
         DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
-        DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message),
+        DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message, flags),
         _ => dns_parse_rdata_unknown(input),
     }
 }
 
 /// Parse a DNS request.
-pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
+pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], (DNSRequest, DNSNameFlags)> {
     let i = input;
     let (i, header) = dns_parse_header(i)?;
     dns_parse_request_body(i, input, header)
@@ -425,10 +442,11 @@ pub fn dns_parse_request(input: &[u8]) -> IResult<&[u8], DNSRequest> {
 
 pub fn dns_parse_request_body<'a>(
     input: &'a [u8], message: &'a [u8], header: DNSHeader,
-) -> IResult<&'a [u8], DNSRequest> {
+) -> IResult<&'a [u8], (DNSRequest, DNSNameFlags)> {
+    let mut flags = DNSNameFlags::default();
     let i = input;
-    let (i, queries) = count(|b| dns_parse_query(b, message), header.questions as usize)(i)?;
-    Ok((i, DNSRequest { header, queries }))
+    let (i, queries) = count(|b| dns_parse_query(b, message, &mut flags), header.questions as usize)(i)?;
+    Ok((i, (DNSRequest { header, queries }, flags)))
 }
 
 #[cfg(test)]
@@ -447,7 +465,8 @@ mod tests {
             0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, /* .com.... */
         ];
         let expected_remainder: &[u8] = &[0x00, 0x01, 0x00];
-        let (remainder, name) = dns_parse_name(buf, buf).unwrap();
+        let mut flags = DNSNameFlags::default();
+        let (remainder, name) = dns_parse_name(buf, buf, &mut flags).unwrap();
         assert_eq!("client-cf.dropbox.com".as_bytes(), &name.value[..]);
         assert_eq!(remainder, expected_remainder);
     }
@@ -481,7 +500,8 @@ mod tests {
 
         // The name at offset 54 is the complete name.
         let start1 = &buf[54..];
-        let res1 = dns_parse_name(start1, message);
+        let mut flags = DNSNameFlags::default();
+        let res1 = dns_parse_name(start1, message, &mut flags);
         assert_eq!(
             res1,
             Ok((
@@ -496,7 +516,8 @@ mod tests {
         // The second name starts at offset 80, but is just a pointer
         // to the first.
         let start2 = &buf[80..];
-        let res2 = dns_parse_name(start2, message);
+        let mut flags = DNSNameFlags::default();
+        let res2 = dns_parse_name(start2, message, &mut flags);
         assert_eq!(
             res2,
             Ok((
@@ -511,7 +532,8 @@ mod tests {
         // The third name starts at offset 94, but is a pointer to a
         // portion of the first.
         let start3 = &buf[94..];
-        let res3 = dns_parse_name(start3, message);
+        let mut flags = DNSNameFlags::default();
+        let res3 = dns_parse_name(start3, message, &mut flags);
         assert_eq!(
             res3,
             Ok((
@@ -526,7 +548,8 @@ mod tests {
         // The fourth name starts at offset 110, but is a pointer to a
         // portion of the first.
         let start4 = &buf[110..];
-        let res4 = dns_parse_name(start4, message);
+        let mut flags = DNSNameFlags::default();
+        let res4 = dns_parse_name(start4, message, &mut flags);
         assert_eq!(
             res4,
             Ok((
@@ -567,7 +590,8 @@ mod tests {
         // packet).
         let start: &[u8] = &buf[100..];
 
-        let res = dns_parse_name(start, message);
+        let mut flags = DNSNameFlags::default();
+        let res = dns_parse_name(start, message, &mut flags);
         assert_eq!(
             res,
             Ok((
@@ -595,7 +619,7 @@ mod tests {
 
         let res = dns_parse_request(pkt);
         match res {
-            Ok((rem, request)) => {
+            Ok((rem, (request, _flags))) => {
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
                 assert!(!rem.is_empty());
@@ -626,7 +650,7 @@ mod tests {
     }
 
     /// Parse a DNS response.
-    fn dns_parse_response(message: &[u8]) -> IResult<&[u8], DNSResponse> {
+    fn dns_parse_response(message: &[u8]) -> IResult<&[u8], (DNSResponse, DNSNameFlags)> {
         let i = message;
         let (i, header) = dns_parse_header(i)?;
         dns_parse_response_body(i, message, header)
@@ -653,7 +677,7 @@ mod tests {
 
         let res = dns_parse_response(pkt);
         match res {
-            Ok((rem, response)) => {
+            Ok((rem, (response, _flags))) => {
                 // The response should be full parsed.
                 assert_eq!(rem.len(), 0);
 
@@ -745,7 +769,7 @@ mod tests {
 
         let res = dns_parse_response(pkt);
         match res {
-            Ok((rem, response)) => {
+            Ok((rem, (response, _flags))) => {
                 // For now we have some remainder data as there is an
                 // additional record type we don't parse yet.
                 assert!(!rem.is_empty());
@@ -812,7 +836,7 @@ mod tests {
 
         let res = dns_parse_response(pkt);
         match res {
-            Ok((rem, response)) => {
+            Ok((rem, (response, _flags))) => {
                 // The response should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
@@ -924,7 +948,7 @@ mod tests {
 
         let res = dns_parse_response(pkt);
         match res {
-            Ok((rem, response)) => {
+            Ok((rem, (response, _flags))) => {
                 // The data should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
@@ -978,7 +1002,8 @@ mod tests {
             }
         }
 
-        let (rem, name) = dns_parse_name(&buf, &buf).unwrap();
+        let mut flags = DNSNameFlags::default();
+        let (rem, name) = dns_parse_name(&buf, &buf, &mut flags).unwrap();
         assert_eq!(name.value.len(), MAX_NAME_LEN);
         assert!(name.flags.contains(DNSNameFlags::TRUNCATED));
         assert!(rem.is_empty());
@@ -995,7 +1020,8 @@ mod tests {
         // This should fail as we've hit the segment limit without a
         // pointer, we'd need to keep parsing more segments to figure
         // out where the next data point lies.
-        assert!(dns_parse_name(&buf, &buf).is_err());
+        let mut flags = DNSNameFlags::default();
+        assert!(dns_parse_name(&buf, &buf, &mut flags).is_err());
     }
 
     #[test]
@@ -1015,7 +1041,8 @@ mod tests {
         buf.push(0b1100_0000);
         buf.push(0b000_0000);
 
-        let (_rem, name) = dns_parse_name(&buf[4..], &buf).unwrap();
+        let mut flags = DNSNameFlags::default();
+        let (_rem, name) = dns_parse_name(&buf[4..], &buf, &mut flags).unwrap();
         assert_eq!(name.value.len(), 255);
         assert!(name.flags.contains(DNSNameFlags::TRUNCATED));
     }
@@ -1025,6 +1052,7 @@ mod tests {
         let mut buf = vec![];
         buf.push(0b1100_0000);
         buf.push(0b0000_0000);
-        assert!(dns_parse_name(&buf, &buf).is_err());
+        let mut flags = DNSNameFlags::default();
+        assert!(dns_parse_name(&buf, &buf, &mut flags).is_err());
     }
 }

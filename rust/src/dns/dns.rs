@@ -129,6 +129,12 @@ pub enum DNSEvent {
     NotResponse,
     ZFlagSet,
     InvalidOpcode,
+    /// A DNS resource name was exessively long and was truncated.
+    NameTooLong,
+    /// An infinite loop was found while parsing a name.
+    InfiniteLoop,
+    /// Too many labels were found.
+    TooManyLabels,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -418,7 +424,7 @@ impl DNSState {
         };
 
         match parser::dns_parse_request_body(body, input, header) {
-            Ok((_, request)) => {
+            Ok((_, (request, parse_flags))) => {
                 if request.header.flags & 0x8000 != 0 {
                     SCLogDebug!("DNS message is not a request");
                     self.set_event(DNSEvent::NotRequest);
@@ -439,6 +445,18 @@ impl DNSState {
 
                 if opcode >= 7 {
                     self.set_event(DNSEvent::InvalidOpcode);
+                }
+
+                if parse_flags.contains(DNSNameFlags::TRUNCATED) {
+                    self.set_event(DNSEvent::NameTooLong);
+                }
+                
+                if parse_flags.contains(DNSNameFlags::INFINITE_LOOP) {
+                    self.set_event(DNSEvent::InfiniteLoop);
+                }
+                
+                if parse_flags.contains(DNSNameFlags::LABEL_LIMIT) {
+                    self.set_event(DNSEvent::TooManyLabels);
                 }
 
                 return true;
@@ -490,7 +508,7 @@ impl DNSState {
         };
 
         match parser::dns_parse_response_body(body, input, header) {
-            Ok((_, response)) => {
+            Ok((_, (response, parse_flags))) => {
                 SCLogDebug!("Response header flags: {}", response.header.flags);
 
                 if response.header.flags & 0x8000 == 0 {
@@ -517,6 +535,18 @@ impl DNSState {
 
                 if opcode >= 7 {
                     self.set_event(DNSEvent::InvalidOpcode);
+                }
+
+                if parse_flags.contains(DNSNameFlags::TRUNCATED) {
+                    self.set_event(DNSEvent::NameTooLong);
+                }
+                
+                if parse_flags.contains(DNSNameFlags::INFINITE_LOOP) {
+                    self.set_event(DNSEvent::InfiniteLoop);
+                }
+                
+                if parse_flags.contains(DNSNameFlags::LABEL_LIMIT) {
+                    self.set_event(DNSEvent::TooManyLabels);
                 }
 
                 return true;
@@ -720,7 +750,7 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
     }
 
     match parser::dns_parse_request(input) {
-        Ok((_, request)) => {
+        Ok((_, (request, _))) => {
             return probe_header_validity(&request.header, dlen);
         }
         Err(Err::Incomplete(_)) => match parser::dns_parse_header(input) {
