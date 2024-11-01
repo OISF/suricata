@@ -615,13 +615,13 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
         return -1;
     }
 
-    let event = match CStr::from_ptr(event_name).to_str().map(T::from_string) {
-        Ok(Some(event)) => event.as_i32(),
-        _ => -1,
-    };
-    *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
-    return 0;
+    if let Ok(Some(event)) = CStr::from_ptr(event_name).to_str().map(T::from_string) {
+        *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event.as_i32() as std::os::raw::c_int;
+        0
+    } else {
+        -1
+    }
 }
 
 /// Generic `get_info_info_by_id` implementation for enums implementing
