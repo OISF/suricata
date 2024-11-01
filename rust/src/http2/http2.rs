@@ -498,7 +498,7 @@ pub enum HTTP2Event {
     ExtraHeaderData,
     LongFrameData,
     StreamIdReuse,
-    InvalidHTTP1Settings,
+    InvalidHttp1Settings,
     FailedDecompression,
     InvalidRange,
     HeaderIntegerOverflow,
