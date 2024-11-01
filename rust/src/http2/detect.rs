@@ -962,7 +962,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
     match base64::decode(input) {
         Ok(dec) => {
             if dec.len() % 6 != 0 {
-                state.set_event(HTTP2Event::InvalidHTTP1Settings);
+                state.set_event(HTTP2Event::InvalidHttp1Settings);
             }
 
             let head = parser::HTTP2FrameHeader {
@@ -983,12 +983,12 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
                     });
                 }
                 Err(_) => {
-                    state.set_event(HTTP2Event::InvalidHTTP1Settings);
+                    state.set_event(HTTP2Event::InvalidHttp1Settings);
                 }
             }
         }
         Err(_) => {
-            state.set_event(HTTP2Event::InvalidHTTP1Settings);
+            state.set_event(HTTP2Event::InvalidHttp1Settings);
         }
     }
 }
