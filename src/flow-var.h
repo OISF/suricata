@@ -33,6 +33,7 @@
 #define FLOWVAR_TYPE_STR 1
 #define FLOWVAR_TYPE_INT 2
 
+typedef uint8_t FlowVarKeyLenType;
 /** Struct used to hold the string data type for flowvars */
 typedef struct FlowVarTypeStr {
     uint8_t *value;
@@ -46,9 +47,9 @@ typedef struct FlowVarTypeInt_ {
 
 /** Generic Flowvar Structure */
 typedef struct FlowVar_ {
-    uint8_t type;       /* type, DETECT_FLOWVAR in this case */
+    uint16_t type; /* type, DETECT_FLOWVAR in this case */
     uint8_t datatype;
-    uint16_t keylen;
+    FlowVarKeyLenType keylen;
     uint32_t idx;       /* name idx */
     GenericVar *next;   /* right now just implement this as a list,
                          * in the long run we have think of something
@@ -63,12 +64,13 @@ typedef struct FlowVar_ {
 /** Flowvar Interface API */
 
 void FlowVarAddIdValue(Flow *, uint32_t id, uint8_t *value, uint16_t size);
-void FlowVarAddKeyValue(Flow *f, uint8_t *key, uint16_t keysize, uint8_t *value, uint16_t size);
+void FlowVarAddKeyValue(
+        Flow *f, uint8_t *key, FlowVarKeyLenType keylen, uint8_t *value, uint16_t size);
 
 void FlowVarAddIntNoLock(Flow *, uint32_t, uint32_t);
 void FlowVarAddInt(Flow *, uint32_t, uint32_t);
 FlowVar *FlowVarGet(Flow *, uint32_t);
-FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen);
+FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, FlowVarKeyLenType keylen);
 void FlowVarFree(FlowVar *);
 void FlowVarPrint(GenericVar *);
 
