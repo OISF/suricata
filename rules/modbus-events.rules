@@ -4,8 +4,6 @@ alert modbus any any -> any any (msg:"SURICATA Modbus invalid Protocol version";
 alert modbus any any -> any any (msg:"SURICATA Modbus unsolicited response"; app-layer-event:modbus.unsolicited_response; classtype:protocol-command-decode; sid:2250002; rev:2;)
 # Malformed request or response. Malformed means length field is wrong
 alert modbus any any -> any any (msg:"SURICATA Modbus invalid Length"; app-layer-event:modbus.invalid_length; classtype:protocol-command-decode; sid:2250003; rev:2;)
-# Unit identifier field is incorrect
-alert modbus any any -> any any (msg:"SURICATA Modbus invalid Unit Identifier"; app-layer-event:modbus.invalid_unit_identifier; classtype:protocol-command-decode; sid:2250004; rev:2;)
 # Modbus Function code is incorrect
 alert modbus any any -> any any (msg:"SURICATA Modbus invalid Function code"; app-layer-event:modbus.invalid_function_code; classtype:protocol-command-decode; sid:2250005; rev:2;)
 # Modbus Request/Response value field is incorrect
