@@ -263,6 +263,44 @@ Syntax::
 
     dataset-dump
 
+datajson-add
+~~~~~~~~~~~~
+
+Unix Socket command to add data to a set. On success, the addition becomes
+active instantly.
+
+Syntax::
+
+    datajson-add <set name> <set type> <data> <json_info>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+data
+  Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
+
+Example adding 'google.com' to set 'myset'::
+
+    datajson-add myset string Z29vZ2xlLmNvbQ== {"city":"Mountain View"}
+
+datajson-remove
+~~~~~~~~~~~~~~~
+
+Unix Socket command to remove data from a set. On success, the removal becomes
+active instantly.
+
+Syntax::
+
+    datajson-remove <set name> <set type> <data>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+data
+  Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
+
 File formats
 ------------
 
