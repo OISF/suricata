@@ -5799,12 +5799,12 @@ libhtp:\n\
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    FAIL_IF((PacketAlertCheck(p1, 1)));
+    FAIL_IF((PacketAlertCheck(p1, 2)));
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    FAIL_IF((PacketAlertCheck(p1, 1)));
+    FAIL_IF((PacketAlertCheck(p1, 2)));
 
     r = AppLayerParserParse(
             &th_v, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
