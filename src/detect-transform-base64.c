@@ -37,6 +37,8 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
+#define FROMBASE64_ERROR_BUFFER_VALUE ("BASE64_ECODE_BUF")
+#define FROMBASE64_ERROR_BUFFER_SIZE  (sizeof(FROMBASE64_ERROR_BUFFER_VALUE) - 1)
 static int DetectTransformFromBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -151,6 +153,9 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     if (num_decoded > 0) {
         //            PrintRawDataFp(stdout, output, b64data->decoded_len);
         InspectionBufferCopy(buffer, decoded, num_decoded);
+    } else if (b64d->flags & DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR) {
+        InspectionBufferCopy(
+                buffer, (uint8_t *)FROMBASE64_ERROR_BUFFER_VALUE, FROMBASE64_ERROR_BUFFER_SIZE);
     }
 }
 
