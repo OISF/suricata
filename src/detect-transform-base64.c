@@ -91,7 +91,8 @@ static int DetectTransformFromBase64DecodeSetup(
 
     SCEnter();
 
-    SCDetectTransformFromBase64Data *b64d = DetectTransformFromBase64DecodeParse(opts_str);
+    SCDetectTransformFromBase64Data *b64d =
+            DetectTransformFromBase64DecodeParse(opts_str ? opts_str : "");
     if (b64d == NULL)
         SCReturnInt(r);
 
@@ -151,6 +152,8 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
     if (num_decoded > 0) {
         //            PrintRawDataFp(stdout, output, b64data->decoded_len);
         InspectionBufferCopy(buffer, decoded, num_decoded);
+    } else if (b64d->flags & DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR) {
+        InspectionBufferTruncate(buffer, 0);
     }
 }
 
@@ -355,6 +358,28 @@ static int DetectTransformFromBase64DecodeTest08(void)
     InspectionBufferFree(&buffer);
     PASS;
 }
+
+/* input is not base64 encoded with set_error */
+static int DetectTransformFromBase64DecodeTest09(void)
+{
+    /* A portion of this string will be decoded */
+    const uint8_t *input = (const uint8_t *)"This is not base64-encoded";
+    uint32_t input_len = strlen((char *)input);
+
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len,
+        .mode = Base64ModeRFC2045,
+        .flags = DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR };
+
+    InspectionBuffer buffer;
+    InspectionBufferInit(&buffer, input_len);
+    InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
+    // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    TransformFromBase64Decode(&buffer, &b64d);
+    FAIL_IF_NOT(buffer.inspect_len == 15);
+    // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
+    InspectionBufferFree(&buffer);
+    PASS;
+}
 static void DetectTransformFromBase64DecodeRegisterTests(void)
 {
     UtRegisterTest("DetectTransformFromBase64DecodeTest01", DetectTransformFromBase64DecodeTest01);
@@ -367,5 +392,6 @@ static void DetectTransformFromBase64DecodeRegisterTests(void)
     UtRegisterTest("DetectTransformFromBase64DecodeTest06", DetectTransformFromBase64DecodeTest06);
     UtRegisterTest("DetectTransformFromBase64DecodeTest07", DetectTransformFromBase64DecodeTest07);
     UtRegisterTest("DetectTransformFromBase64DecodeTest08", DetectTransformFromBase64DecodeTest08);
+    UtRegisterTest("DetectTransformFromBase64DecodeTest09", DetectTransformFromBase64DecodeTest09);
 }
 #endif
