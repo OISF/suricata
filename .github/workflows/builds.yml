@@ -2296,7 +2296,7 @@ jobs:
     needs: [ prepare-deps, prepare-cbindgen ]
     strategy:
       matrix:
-        dpdk_version: [ 22.11.8, 21.11.9, 20.11.10, 19.11.14 ]
+        dpdk_version: [ 24.11.2, 23.11.4, 22.11.8, 21.11.9, 20.11.10, 19.11.14 ]
     steps:
 
       # Cache Rust stuff.
