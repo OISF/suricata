@@ -2615,7 +2615,12 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk
+      - run: |
+          CFLAGS="${DEFAULT_CFLAGS}"
+          if [[ ${{ matrix.dpdk_version }} == 23.11* ]]; then
+            CFLAGS+=" -DALLOW_EXPERIMENTAL_API"
+          fi
+          ./configure CFLAGS="$CFLAGS" --enable-warnings --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       # IDS config
