@@ -503,7 +503,7 @@ static void SetBpfStringFromFile(char *filename)
     char *bpf_filter = NULL;
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
-    uint32_t bpf_len = 0;
+    size_t bpf_len = 0;
     SCStat st;
     FILE *fp = NULL;
     size_t nm = 0;
@@ -518,7 +518,8 @@ static void SetBpfStringFromFile(char *filename)
         SCLogError("Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
-    bpf_len = st.st_size + 1;
+    // st.st_size is signed on Windows
+    bpf_len = ((size_t)(st.st_size)) + 1;
 
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL)) {
