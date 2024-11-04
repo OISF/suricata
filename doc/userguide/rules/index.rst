@@ -38,6 +38,8 @@ Suricata Rules
    smtp-keywords
    websocket-keywords
    app-layer
+   ndpi-protocol
+   ndpi-risk
    xbits
    noalert
    thresholding
