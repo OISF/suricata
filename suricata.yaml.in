@@ -82,6 +82,7 @@ stats:
 plugins:
   @pfring_comment@- @prefix@/lib/@PACKAGE_NAME@/pfring.so
   @napatech_comment@- @prefix@/lib/@PACKAGE_NAME@/napatech.so
+  @ndpi_comment@- @prefix@/lib/@PACKAGE_NAME@/ndpi.so
 # - /path/to/plugin.so
 
 # Configure the type of alert (and other) logging you would like.
