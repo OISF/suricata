@@ -210,7 +210,7 @@
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
     AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
     AC_CHECK_FUNCS([socket setenv select putenv dup2 endgrent endpwent atexit munmap])
-    AC_CHECK_FUNCS([setrlimit])
+    AC_CHECK_FUNCS([setrlimit setvbuf])
 
     AC_CHECK_FUNCS([fwrite_unlocked])
 
@@ -274,7 +274,7 @@
             ;;
         *-*-linux*)
             # Always compile with -fPIC on Linux for shared library support.
-            CFLAGS="${CFLAGS} -fPIC"
+            CFLAGS="${CFLAGS} -fPIC -DOS_LINUX"
             RUST_LDADD="-ldl -lrt -lm"
             can_build_shared_library="yes"
             AC_DEFINE([SYSTEMD_NOTIFY], [1], [make Suricata notify systemd on startup])
@@ -687,6 +687,7 @@
     if test "$with_libhs_includes" != "no"; then
         CPPFLAGS="${CPPFLAGS} -I${with_libhs_includes}"
     fi
+    AS_UNSET(ac_cv_header_hs_h)
     AC_CHECK_HEADER(hs.h,HYPERSCAN="yes",HYPERSCAN="no")
     if test "$HYPERSCAN" = "yes"; then
         if test "$with_libhs_libraries" != "no"; then
@@ -1622,6 +1623,7 @@
         AC_CHECK_LIB([htp], [htp_config_set_compression_bomb_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Found htp_config_set_compression_bomb_limit function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_compression_time_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Found htp_config_set_compression_time_limit function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_max_tx],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_MAX_TX],[1],[Found htp_config_set_max_tx function in libhtp]) ,,[-lhtp])
+        AC_CHECK_LIB([htp], [htp_config_set_number_headers_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_HEADERS_LIMIT],[1],[Found htp_config_set_number_headers_limit function in libhtp]) ,,[-lhtp])
     ])
 
     if test "x$enable_non_bundled_htp" = "xno"; then
@@ -1648,6 +1650,7 @@
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT],[1],[Assuming htp_config_set_compression_bomb_limit function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT],[1],[Assuming htp_config_set_compression_time_limit function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_MAX_TX],[1],[Assuming htp_config_set_max_tx function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_HEADERS_LIMIT],[1],[Assuming htp_config_set_number_headers_limit function in bundled libhtp])
         else
             echo
             echo "  ERROR: Libhtp is not bundled. Get libhtp by doing:"
@@ -1843,60 +1846,77 @@
                 AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
                 [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
-    AC_ARG_ENABLE(napatech_bypass,
-                AS_HELP_STRING([--disable-napatech-bypass],[Disable Bypass feature on Napatech cards]),
-                [ napatech_bypass=$enableval ],
-                [ napatech_bypass=yes])
-    AC_ARG_WITH(napatech_includes,
-                [  --with-napatech-includes=DIR   napatech include directory],
-                [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
-    AC_ARG_WITH(napatech_libraries,
-                [  --with-napatech-libraries=DIR  napatech library directory],
-                [with_napatech_libraries="$withval"],[with_napatech_libraries="/opt/napatech3/lib"])
-
-    if test "$enable_napatech" = "yes"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
-        LDFLAGS="${LDFLAGS} -L${with_napatech_libraries}"
-        LIBS="${LIBS} -lntapi"
-        AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
-        if test "$NAPATECH" != "no"; then
-            NAPATECH=""
-            AC_CHECK_LIB(ntapi, NT_Init,NAPATECH="yes",NAPATECH="no")
-        fi
-
-        if test "$NAPATECH" = "no"; then
+    AS_IF([test "x$enable_napatech" = "xyes"], [
+        if test "x$enable_shared" = "xno"; then
             echo
-            echo "  ERROR! libntapi library not found"
+            echo "   ERROR! napatech cannot be enabled with --disable-shared"
             echo
             exit 1
-        else
-            AC_CHECK_LIB(numa, numa_available,, LIBNUMA="no")
-            if test "$LIBNUMA" = "no"; then
+        fi
+        AC_ARG_ENABLE(napatech_bypass,
+                    AS_HELP_STRING([--disable-napatech-bypass],[Disable Bypass feature on Napatech cards]),
+                    [ napatech_bypass=$enableval ],
+                    [ napatech_bypass=yes])
+        AC_ARG_WITH(napatech_includes,
+                    [  --with-napatech-includes=DIR   napatech include directory],
+                    [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
+        AC_ARG_WITH(napatech_libraries,
+                    [  --with-napatech-libraries=DIR  napatech library directory],
+                    [with_napatech_libraries="$withval"],[with_napatech_libraries="/opt/napatech3/lib"])
+
+        if test "$enable_napatech" = "yes"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
+            LDFLAGS="${LDFLAGS} -L${with_napatech_libraries}"
+            LIBS="${LIBS} -lntapi"
+            AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
+            if test "$NAPATECH" != "no"; then
+                NAPATECH=""
+                AC_CHECK_LIB(ntapi, NT_Init,NAPATECH="yes",NAPATECH="no")
+            fi
+
+            if test "$NAPATECH" = "no"; then
                 echo
-                echo "  WARNING: libnuma is required to use Napatech auto-config"
-                echo "      libnuma is not found.  Go get it"
-                echo "      from http://github.com/numactl/numactl or your distribution:"
-                echo "          Ubuntu: apt-get install libnuma-dev"
-                echo "          Fedora: dnf install numactl-devel"
-                echo "          CentOS/RHEL: yum install numactl-devel"
+                echo "  ERROR! libntapi library not found"
                 echo
                 exit 1
-            fi
-        fi
-
-        AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
-        if test "$napatech_bypass" = "yes"; then
-            AC_CHECK_LIB(ntapi, NT_FlowOpenAttrInit,NTFLOW="yes",NTFLOW="no")
-            if test "$NTFLOW" = "yes"; then
-                echo "   Napatech Flow Processing is Enabled (--disable-napatech-bypass if not needed)"
-                AC_DEFINE([NAPATECH_ENABLE_BYPASS],[1],(Napatech flowdirector support))
             else
-                echo "Napatech Flow Processing is not available"
+                AC_CHECK_LIB(numa, numa_available,, LIBNUMA="no")
+                if test "$LIBNUMA" = "no"; then
+                    echo
+                    echo "  WARNING: libnuma is required to use Napatech auto-config"
+                    echo "      libnuma is not found.  Go get it"
+                    echo "      from http://github.com/numactl/numactl or your distribution:"
+                    echo "          Ubuntu: apt-get install libnuma-dev"
+                    echo "          Fedora: dnf install numactl-devel"
+                    echo "          CentOS/RHEL: yum install numactl-devel"
+                    echo
+                    exit 1
+                fi
             fi
-        else
-            echo "Napatech Flow Processing is Disabled."
+
+            AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
+            if test "$napatech_bypass" = "yes"; then
+                AC_CHECK_LIB(ntapi, NT_FlowOpenAttrInit,NTFLOW="yes",NTFLOW="no")
+                if test "$NTFLOW" = "yes"; then
+                    echo "   Napatech Flow Processing is Enabled (--disable-napatech-bypass if not needed)"
+                    AC_DEFINE([NAPATECH_ENABLE_BYPASS],[1],(Napatech flowdirector support))
+                else
+                    echo "Napatech Flow Processing is not available"
+                fi
+            else
+                echo "Napatech Flow Processing is Disabled."
+            fi
         fi
+        ])
+
+    if test "x$enable_napatech" = "xyes"; then
+        AM_CONDITIONAL([BUILD_NAPATECH], [true])
+        napatech_comment=""
+    else
+        AM_CONDITIONAL([BUILD_NAPATECH], [false])
+        napatech_comment="#"
     fi
+    AC_SUBST([napatech_comment])
 
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
@@ -2534,10 +2554,12 @@ AC_CONFIG_FILES(python/Makefile python/suricata/config/defaults.py)
 AC_CONFIG_FILES(ebpf/Makefile)
 AC_CONFIG_FILES(libsuricata-config)
 AC_CONFIG_FILES(examples/plugins/c-json-filetype/Makefile)
+AC_CONFIG_FILES(examples/plugins/c-custom-loggers/Makefile)
 AC_CONFIG_FILES(examples/plugins/ci-capture/Makefile)
 AC_CONFIG_FILES(examples/lib/simple/Makefile examples/lib/simple/Makefile.example)
 AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/pfring/Makefile)
+AC_CONFIG_FILES(plugins/napatech/Makefile)
 
 AC_OUTPUT
 

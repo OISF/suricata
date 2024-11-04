@@ -90,7 +90,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
         StatsSetupPrivate(&tv);
 
-        extern uint16_t max_pending_packets;
+        extern uint32_t max_pending_packets;
         max_pending_packets = 128;
         PacketPoolInit();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,9 +42,6 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define DEFAULT_LOG_FILENAME "profile.log"
-#define DEFAULT_LOG_MODE_APPEND "yes"
-
 static pthread_mutex_t packet_profile_lock;
 static FILE *packet_profile_csv_fp = NULL;
 
@@ -75,8 +72,8 @@ SCProfilePacketData packet_profile_data6[257]; /**< all proto's + tunnel */
 SCProfilePacketData packet_profile_tmm_data4[TMM_SIZE][257];
 SCProfilePacketData packet_profile_tmm_data6[TMM_SIZE][257];
 
-SCProfilePacketData packet_profile_app_data4[TMM_SIZE][257];
-SCProfilePacketData packet_profile_app_data6[TMM_SIZE][257];
+SCProfilePacketData packet_profile_app_data4[ALPROTO_MAX][257];
+SCProfilePacketData packet_profile_app_data6[ALPROTO_MAX][257];
 
 SCProfilePacketData packet_profile_app_pd_data4[257];
 SCProfilePacketData packet_profile_app_pd_data6[257];
@@ -434,9 +431,6 @@ void SCProfilingDumpPacketStats(void)
 #endif
     total = 0;
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
@@ -447,9 +441,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             if (pd->cnt == 0) {
@@ -472,9 +463,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
             if (pd->cnt == 0) {
@@ -601,9 +589,6 @@ void SCProfilingDumpPacketStats(void)
 #endif
     total = 0;
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             total += pd->tot;
@@ -614,9 +599,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
             if (pd->cnt == 0) {
@@ -639,9 +621,6 @@ void SCProfilingDumpPacketStats(void)
     }
 
     for (int m = 0; m < TMM_SIZE; m++) {
-        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
-            continue;
-
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
             if (pd->cnt == 0) {
@@ -1298,6 +1277,7 @@ const char *PacketProfileLoggerIdToString(LoggerId id)
         CASE_CODE(LOGGER_JSON_FRAME);
         CASE_CODE(LOGGER_JSON_STREAM);
         CASE_CODE(LOGGER_JSON_ARP);
+        CASE_CODE(LOGGER_USER);
 
         case LOGGER_SIZE:
             return "UNKNOWN";

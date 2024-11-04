@@ -18,10 +18,18 @@ outputs:
       #  server: 127.0.0.1
       #  port: 6379
       #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish
+      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish, xadd|stream
       #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
       #             ## publish is using a Redis channel. "channel" is an alias for publish
-      #  key: suricata ## key or channel to use (default to suricata)
+      #             ## xadd is using a Redis stream. "stream" is an alias for xadd
+      #  key: suricata ## string denoting the key/channel/stream to use (default to suricata)
+      #  stream-maxlen: 100000        ## Automatically trims the stream length to at most
+                                      ## this number of events. Set to 0 to disable trimming.
+                                      ## Only used when mode is set to xadd/stream.
+      #  stream-trim-exact: false     ## Trim exactly to the maximum stream length above.
+                                      ## Default: use inexact trimming (inexact by a few
+                                      ## tens of items)
+                                      ## Only used when mode is set to xadd/stream.
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
       # connection at the cost of some memory. There is no flushing implemented
@@ -37,7 +45,7 @@ outputs:
       pcap-file: false
 
       # Community Flow ID
-      # Adds a 'community_id' field to EVE records. These are meant to give
+      # Adds a 'community-id' field to EVE records. These are meant to give
       # records a predictable flow ID that can be used to match records to
       # output of other tools such as Zeek (Bro).
       #
@@ -75,6 +83,19 @@ outputs:
             # payload-length: yes      # enable dumping payload length, including the gaps
             # packet: yes              # enable dumping of packet (without stream segments)
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
+            # If you want metadata, use:
+            # metadata:
+              # Include the decoded application layer (ie. http, dns)
+              #app-layer: true
+              # Log the current state of the flow record.
+              #flow: true
+              #rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                #metadata: true
+                # Log the raw rule text.
+                #raw: false
+                #reference: false      # include reference information from the rule
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
             # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
@@ -168,7 +189,8 @@ outputs:
             # session id
             #session-resumption: no
             # custom controls which TLS fields that are included in eve-log
-            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4]
+            # WARNING: enabling custom disables extended logging.
+            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname, client, client_certificate, client_chain, client_alpns, server_alpns]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,

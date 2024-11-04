@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -515,12 +515,18 @@ impl DCERPCState {
             if found {
                 match dir {
                     Direction::ToServer => {
+                        if tx.req_done || tx.req_lost {
+                            continue;
+                        }
                         let resp_cmd = get_resp_type_for_req(cmd);
                         if resp_cmd != tx.resp_cmd {
                             continue;
                         }
                     }
                     Direction::ToClient => {
+                        if tx.resp_done || tx.resp_lost {
+                            continue;
+                        }
                         let req_cmd = get_req_type_for_resp(cmd);
                         if req_cmd != tx.req_cmd {
                             continue;
@@ -606,6 +612,7 @@ impl DCERPCState {
     /// * Success: Number of bytes successfully parsed.
     /// * Failure: -1 in case of Incomplete data or Eof.
     ///            -2 in case of Error while parsing.
+    ///            -3 in case of invalid DCERPC header.
     pub fn process_header(&mut self, input: &[u8]) -> i32 {
         match parser::parse_dcerpc_header(input) {
             Ok((leftover_bytes, header)) => {
@@ -617,7 +624,7 @@ impl DCERPCState {
                         header.rpc_vers,
                         header.rpc_vers_minor
                     );
-                    return -1;
+                    return -3;
                 }
                 self.header = Some(header);
                 (input.len() - leftover_bytes.len()) as i32
@@ -980,7 +987,7 @@ impl DCERPCState {
                 self.extend_buffer(buffer, direction);
                 return AppLayerResult::ok();
             }
-            if parsed == -2 {
+            if parsed < 0 {
                 return AppLayerResult::err();
             }
             self.bytes_consumed += parsed;

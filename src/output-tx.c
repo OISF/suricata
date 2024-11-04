@@ -49,7 +49,7 @@ typedef struct OutputTxLogger_ {
     AppProto alproto;
     TxLogger LogFunc;
     TxLoggerCondition LogCondition;
-    OutputCtx *output_ctx;
+    void *initdata;
     struct OutputTxLogger_ *next;
     const char *name;
     LoggerId logger_id;
@@ -58,18 +58,13 @@ typedef struct OutputTxLogger_ {
     int ts_log_progress;
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
-    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
 static OutputTxLogger **list = NULL;
 
-int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
-                           TxLogger LogFunc,
-                           OutputCtx *output_ctx, int tc_log_progress,
-                           int ts_log_progress, TxLoggerCondition LogCondition,
-                           ThreadInitFunc ThreadInit,
-                           ThreadDeinitFunc ThreadDeinit,
-                           void (*ThreadExitPrintStats)(ThreadVars *, void *))
+int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
+        void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (list == NULL) {
         list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
@@ -91,12 +86,11 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     op->alproto = alproto;
     op->LogFunc = LogFunc;
     op->LogCondition = LogCondition;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (alproto == ALPROTO_UNKNOWN) {
         op->tc_log_progress = 0;
@@ -560,7 +554,7 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void
         while (logger) {
             if (logger->ThreadInit) {
                 void *retptr = NULL;
-                if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+                if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                     OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                     /* todo */ BUG_ON(ts == NULL);
 
@@ -631,25 +625,6 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
-
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-        OutputLoggerThreadStore *store = op_thread_data->store[alproto];
-        OutputTxLogger *logger = list[alproto];
-
-        while (logger && store) {
-            if (logger->ThreadExitPrintStats) {
-                logger->ThreadExitPrintStats(tv, store->thread_data);
-            }
-
-            logger = logger->next;
-            store = store->next;
-        }
-    }
-}
-
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
@@ -679,8 +654,8 @@ void OutputTxLoggerRegister (void)
     if (unlikely(list == NULL)) {
         FatalError("Failed to allocate OutputTx list");
     }
-    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
-        OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit, OutputTxLog,
+            OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)

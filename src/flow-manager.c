@@ -41,6 +41,7 @@
 #include "flow-spare-pool.h"
 
 #include "stream-tcp.h"
+#include "stream-tcp-cache.h"
 
 #include "util-device.h"
 
@@ -817,15 +818,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    bool run = TmThreadsWaitForUnpause(th_v);
 
-    while (1)
-    {
-        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
-            TmThreadsSetFlag(th_v, THV_PAUSED);
-            TmThreadTestThreadUnPaused(th_v);
-            TmThreadsUnsetFlag(th_v, THV_PAUSED);
-        }
-
+    while (run) {
         bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 
         /* Get the time */
@@ -1021,7 +1016,7 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
     FlowRecyclerThreadData *ftd = SCCalloc(1, sizeof(FlowRecyclerThreadData));
     if (ftd == NULL)
         return TM_ECODE_FAILED;
-    if (OutputFlowLogThreadInit(t, NULL, &ftd->output_thread_data) != TM_ECODE_OK) {
+    if (OutputFlowLogThreadInit(t, &ftd->output_thread_data) != TM_ECODE_OK) {
         SCLogError("initializing flow log API for thread failed");
         SCFree(ftd);
         return TM_ECODE_FAILED;
@@ -1082,14 +1077,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     FlowQueuePrivate ret_queue = { NULL, NULL, 0 };
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    bool run = TmThreadsWaitForUnpause(th_v);
 
-    while (1)
-    {
-        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
-            TmThreadsSetFlag(th_v, THV_PAUSED);
-            TmThreadTestThreadUnPaused(th_v);
-            TmThreadsUnsetFlag(th_v, THV_PAUSED);
-        }
+    while (run) {
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 

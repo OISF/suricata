@@ -130,7 +130,7 @@ typedef struct THashDataConfig_ {
     uint32_t data_size;
     int (*DataSet)(void *dst, void *src);
     void (*DataFree)(void *);
-    uint32_t (*DataHash)(void *);
+    uint32_t (*DataHash)(uint32_t, void *);
     bool (*DataCompare)(void *, void *);
     bool (*DataExpired)(void *, SCTime_t ts);
     uint32_t (*DataSize)(void *);
@@ -171,7 +171,7 @@ typedef struct THashTableContext_ {
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
-        uint32_t (*DataHash)(void *), bool (*DataCompare)(void *, void *),
+        uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
         bool (*DataExpired)(void *, SCTime_t), uint32_t (*DataSize)(void *), bool reset_memcap,
         uint64_t memcap, uint32_t hashsize);
 

@@ -240,14 +240,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
  *  logging, etc. */
 #define FLOW_PKT_LAST_PSEUDO            0x80
 
-#define FLOW_END_FLAG_STATE_NEW         0x01
-#define FLOW_END_FLAG_STATE_ESTABLISHED 0x02
-#define FLOW_END_FLAG_STATE_CLOSED      0x04
-#define FLOW_END_FLAG_EMERGENCY         0x08
-#define FLOW_END_FLAG_TIMEOUT           0x10
-#define FLOW_END_FLAG_FORCED            0x20
-#define FLOW_END_FLAG_SHUTDOWN          0x40
-#define FLOW_END_FLAG_STATE_BYPASSED    0x80
+#define FLOW_END_FLAG_EMERGENCY 0x01
+#define FLOW_END_FLAG_TIMEOUT   0x02
+#define FLOW_END_FLAG_FORCED    0x04
+#define FLOW_END_FLAG_SHUTDOWN  0x08
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -674,23 +670,6 @@ static inline int64_t FlowGetId(const Flow *f)
      * max out there. */
     id &= 0x7ffffffffffffLL;
     return id;
-}
-
-static inline void FlowSetEndFlags(Flow *f)
-{
-    const int state = f->flow_state;
-    if (state == FLOW_STATE_NEW)
-        f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
-    else if (state == FLOW_STATE_ESTABLISHED)
-        f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
-    else if (state == FLOW_STATE_CLOSED)
-        f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
-    else if (state == FLOW_STATE_LOCAL_BYPASSED)
-        f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
-#ifdef CAPTURE_OFFLOAD
-    else if (state == FLOW_STATE_CAPTURE_BYPASSED)
-        f->flow_end_flags = FLOW_END_FLAG_STATE_BYPASSED;
-#endif
 }
 
 static inline bool FlowIsBypassed(const Flow *f)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2012-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,24 @@
 /**
  * \file
  *
- * \author Giuseppe Longo <giuseppe@glongo.it>
+ * \author nPulse Technologies, LLC.
+ * \author Matt Keeler <mk@npulsetech.com>
  */
+#ifndef SURICATA_SOURCE_NAPATECH_H
+#define SURICATA_SOURCE_NAPATECH_H
 
-#ifndef SURICATA_DETECT_SIP_STAT_CODE_H
-#define SURICATA_DETECT_SIP_STAT_CODE_H
+void TmModuleReceiveNapatechRegister(int slot);
+void TmModuleDecodeNapatechRegister(int slot);
 
-void DetectSipStatCodeRegister(void);
+TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
 
-#endif /* SURICATA_DETECT_SIP_STAT_CODE_H */
+#include <nt.h>
+
+struct NapatechStreamDevConf {
+    uint16_t stream_id;
+};
+
+int NapatechSetPortmap(int port, int peer);
+int NapatechGetAdapter(uint8_t port);
+
+#endif /* SURICATA_SOURCE_NAPATECH_H */

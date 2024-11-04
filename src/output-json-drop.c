@@ -178,7 +178,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
-                AlertJsonHeader(NULL, p, pa, js, 0, &addr, NULL);
+                AlertJsonHeader(p, pa, js, 0, &addr, NULL);
                 logged = 1;
                 break;
             }
@@ -186,7 +186,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         if (logged == 0) {
             if (p->alerts.drop.action != 0) {
                 const PacketAlert *pa = &p->alerts.drop;
-                AlertJsonHeader(NULL, p, pa, js, 0, &addr, NULL);
+                AlertJsonHeader(p, pa, js, 0, &addr, NULL);
             }
         }
     }
@@ -390,8 +390,7 @@ static bool JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
 
 void JsonDropLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME,
-        "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
-        JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME, "eve-log.drop",
+            JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition, JsonDropLogThreadInit,
+            JsonDropLogThreadDeinit);
 }

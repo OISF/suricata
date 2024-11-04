@@ -35,7 +35,6 @@
 #include "util-conf.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-base64.h"    // decode base64
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-path.h"
@@ -240,7 +239,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int ParseIpv6String(Dataset *set, char *line, struct in6_addr *in6)
+static int ParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 {
     /* Checking IPv6 case */
     char *got_colon = strchr(line, ':');
@@ -518,13 +517,12 @@ static int DatasetLoadString(Dataset *set)
         if (r == NULL) {
             line[strlen(line) - 1] = '\0';
             SCLogDebug("line: '%s'", line);
-
+            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
             // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[strlen(line)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
-                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint8_t decoded[decoded_size];
+            uint32_t num_decoded =
+                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+            if (num_decoded == 0 && strlen(line) > 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
@@ -540,12 +538,11 @@ static int DatasetLoadString(Dataset *set)
 
             *r = '\0';
 
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[strlen(line)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code = DecodeBase64(decoded, (uint32_t)strlen(line), (const uint8_t *)line,
-                    (uint32_t)strlen(line), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
+            uint8_t decoded[decoded_size];
+            uint32_t num_decoded =
+                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+            if (num_decoded == 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
             }
@@ -1604,16 +1601,16 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
 {
     if (set == NULL)
         return -1;
+    if (strlen(string) == 0)
+        return -1;
 
     switch (set->type) {
         case DATASET_TYPE_STRING: {
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[strlen(string)];
-            uint32_t consumed = 0, num_decoded = 0;
-            Base64Ecode code =
-                    DecodeBase64(decoded, (uint32_t)strlen(string), (const uint8_t *)string,
-                            (uint32_t)strlen(string), &consumed, &num_decoded, Base64ModeStrict);
-            if (code == BASE64_ECODE_ERR) {
+            uint32_t decoded_size = Base64DecodeBufferSize(strlen(string));
+            uint8_t decoded[decoded_size];
+            uint32_t num_decoded = Base64Decode(
+                    (const uint8_t *)string, strlen(string), Base64ModeStrict, decoded);
+            if (num_decoded == 0) {
                 return -2;
             }
 
@@ -1642,10 +1639,12 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             return DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4);
         }
         case DATASET_TYPE_IPV6: {
-            struct in6_addr in;
-            if (inet_pton(AF_INET6, string, &in) != 1)
+            struct in6_addr in6;
+            if (ParseIpv6String(set, string, &in6) != 0) {
+                SCLogError("Dataset failed to import %s as IPv6", string);
                 return -2;
-            return DatasetOpIPv6(set, (uint8_t *)&in.s6_addr, 16);
+            }
+            return DatasetOpIPv6(set, (uint8_t *)&in6.s6_addr, 16);
         }
     }
     return -1;
@@ -1751,4 +1750,24 @@ int DatasetRemoveSerialized(Dataset *set, const char *string)
 {
     return DatasetOpSerialized(set, string, DatasetRemoveString, DatasetRemoveMd5,
             DatasetRemoveSha256, DatasetRemoveIPv4, DatasetRemoveIPv6);
+}
+
+int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    if (set == NULL)
+        return -1;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING:
+            return DatasetRemoveString(set, data, data_len);
+        case DATASET_TYPE_MD5:
+            return DatasetRemoveMd5(set, data, data_len);
+        case DATASET_TYPE_SHA256:
+            return DatasetRemoveSha256(set, data, data_len);
+        case DATASET_TYPE_IPV4:
+            return DatasetRemoveIPv4(set, data, data_len);
+        case DATASET_TYPE_IPV6:
+            return DatasetRemoveIPv6(set, data, data_len);
+    }
+    return -1;
 }

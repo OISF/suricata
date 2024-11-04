@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,9 +25,8 @@
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-sha256.h"
+#include "util-hash-lookup3.h"
 #include "util-thash.h"
-#include "util-print.h"
-#include "util-base64.h"    // decode base64
 
 int Sha256StrSet(void *dst, void *src)
 {
@@ -46,15 +45,10 @@ bool Sha256StrCompare(void *a, void *b)
     return (memcmp(as->sha256, bs->sha256, sizeof(as->sha256)) == 0);
 }
 
-uint32_t Sha256StrHash(void *s)
+uint32_t Sha256StrHash(uint32_t hash_seed, void *s)
 {
     Sha256Type *str = s;
-    uint32_t hash = 5381;
-
-    for (int i = 0; i < (int)sizeof(str->sha256); i++) {
-        hash = ((hash << 5) + hash) + str->sha256[i]; /* hash * 33 + c */
-    }
-    return hash;
+    return hashword((uint32_t *)str->sha256, sizeof(str->sha256) / 4, hash_seed);
 }
 
 // data stays in hash

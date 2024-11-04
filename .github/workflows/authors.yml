@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -41,7 +41,7 @@ jobs:
       - run: echo ${{ github.event.number }} > new-authors/pr-number.txt
       - run: ls -l
       - name: Upload new authors
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
         with:
           name: new-authors
           path: new-authors

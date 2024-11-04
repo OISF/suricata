@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,22 +41,20 @@ typedef struct OutputPacketLoggerThreadData_ {
 typedef struct OutputPacketLogger_ {
     PacketLogger LogFunc;
     PacketLogCondition ConditionFunc;
-    OutputCtx *output_ctx;
+    /** Data that will be passed to the ThreadInit callback. */
+    void *initdata;
     struct OutputPacketLogger_ *next;
     const char *name;
     LoggerId logger_id;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputPacketLogger;
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int SCOutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, void *initdata, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
     OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -64,11 +62,10 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 
     op->LogFunc = LogFunc;
     op->ConditionFunc = ConditionFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
     op->logger_id = logger_id;
 
     if (list == NULL)
@@ -137,7 +134,7 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, v
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 
@@ -185,22 +182,6 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputPacketLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
 static uint32_t OutputPacketLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
@@ -212,9 +193,8 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit,
-        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
-        OutputPacketLog, OutputPacketLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
+            OutputPacketLog, OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

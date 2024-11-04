@@ -203,13 +203,7 @@
 #include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
-#include "detect-sip-protocol.h"
-#include "detect-sip-stat-code.h"
-#include "detect-sip-stat-msg.h"
-#include "detect-sip-request-line.h"
-#include "detect-sip-response-line.h"
 #include "detect-target.h"
-#include "detect-template-rust-buffer.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
 #include "detect-quic-version.h"
@@ -668,13 +662,7 @@ void SigTableSetup(void)
     DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();
     DetectSipUriRegister();
-    DetectSipProtocolRegister();
-    DetectSipStatCodeRegister();
-    DetectSipStatMsgRegister();
-    DetectSipRequestLineRegister();
-    DetectSipResponseLineRegister();
     DetectTargetRegister();
-    DetectTemplateRustBufferRegister();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
     DetectQuicVersionRegister();
@@ -708,6 +696,8 @@ void SigTableSetup(void)
     ScDetectEnipRegister();
     ScDetectMqttRegister();
     ScDetectRfbRegister();
+    ScDetectSipRegister();
+    ScDetectTemplateRegister();
 
 #ifdef HAVE_NDPI
     DetectnDPIProtocolRegister();

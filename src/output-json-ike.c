@@ -184,5 +184,5 @@ void JsonIKELogRegister(void)
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonIKELog", "eve-log.ike",
             OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELogThreadInit,
-            JsonIKELogThreadDeinit, NULL);
+            JsonIKELogThreadDeinit);
 }

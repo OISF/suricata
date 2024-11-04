@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,34 +40,30 @@ bool g_filedata_logger_enabled = false;
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFiledataLogger_ {
-    FiledataLogger LogFunc;
-    OutputCtx *output_ctx;
+    SCFiledataLogger LogFunc;
+    void *initdata;
     struct OutputFiledataLogger_ *next;
     const char *name;
     LoggerId logger_id;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputFiledataLogger;
 
 static OutputFiledataLogger *list = NULL;
 
-int OutputRegisterFiledataLogger(LoggerId id, const char *name,
-    FiledataLogger LogFunc, OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int SCOutputRegisterFiledataLogger(LoggerId id, const char *name, SCFiledataLogger LogFunc,
+        void *initdata, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFiledataLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -222,7 +218,7 @@ TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadDa
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 

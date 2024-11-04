@@ -33,7 +33,7 @@ pub enum FtpEvent {
 /// Unsafe as called from C.
 #[no_mangle]
 pub unsafe extern "C" fn ftp_get_event_info(
-    event_name: *const c_char, event_id: *mut c_int, event_type: *mut AppLayerEventType,
+    event_name: *const c_char, event_id: *mut u8, event_type: *mut AppLayerEventType,
 ) -> c_int {
     crate::applayer::get_event_info::<FtpEvent>(event_name, event_id, event_type)
 }
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn ftp_get_event_info(
 /// Unsafe as called from C.
 #[no_mangle]
 pub unsafe extern "C" fn ftp_get_event_info_by_id(
-    event_id: c_int, event_name: *mut *const c_char, event_type: *mut AppLayerEventType,
+    event_id: u8, event_name: *mut *const c_char, event_type: *mut AppLayerEventType,
 ) -> c_int {
     crate::applayer::get_event_info_by_id::<FtpEvent>(event_id, event_name, event_type) as c_int
 }

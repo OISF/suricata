@@ -44,15 +44,12 @@ typedef struct OutputStatsLogger_ {
     const char *name;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputStatsLogger;
 
 static OutputStatsLogger *list = NULL;
 
-int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *output_ctx,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputStatsLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -63,7 +60,6 @@ int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -170,27 +166,10 @@ static TmEcode OutputStatsLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputStatsLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputStatsLoggerThreadData *op_thread_data = (OutputStatsLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputStatsLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
-}
-
 void TmModuleStatsLoggerRegister (void)
 {
     tmm_modules[TMM_STATSLOGGER].name = "__stats_logger__";
     tmm_modules[TMM_STATSLOGGER].ThreadInit = OutputStatsLogThreadInit;
-    tmm_modules[TMM_STATSLOGGER].ThreadExitPrintStats = OutputStatsLogExitPrintStats;
     tmm_modules[TMM_STATSLOGGER].ThreadDeinit = OutputStatsLogThreadDeinit;
     tmm_modules[TMM_STATSLOGGER].cap_flags = 0;
 }

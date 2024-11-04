@@ -114,6 +114,8 @@ pub struct AppLayerTxData {
     /// STREAM_TOCLIENT: file tx , files only in toclient dir
     /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
     pub file_tx: u8,
+    /// Number of times this tx data has already been logged for one stream match
+    pub stream_logged: u8,
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -152,6 +154,7 @@ impl AppLayerTxData {
             files_stored: 0,
             file_flags: 0,
             file_tx: 0,
+            stream_logged: 0,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
@@ -174,6 +177,7 @@ impl AppLayerTxData {
             files_stored: 0,
             file_flags: 0,
             file_tx: 0,
+            stream_logged: 0,
             detect_flags_ts,
             detect_flags_tc,
             de_state: std::ptr::null_mut(),
@@ -440,8 +444,8 @@ pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
-pub type GetEventInfoByIdFn = unsafe extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
+pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, event_id: *mut u8, *mut AppLayerEventType) -> c_int;
+pub type GetEventInfoByIdFn = unsafe extern "C" fn (event_id: u8, *mut *const c_char, *mut AppLayerEventType) -> c_int;
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
@@ -565,7 +569,7 @@ impl LoggerFlags {
 /// derive AppLayerEvent.
 pub trait AppLayerEvent {
     /// Return the enum variant of the given ID.
-    fn from_id(id: i32) -> Option<Self> where Self: std::marker::Sized;
+    fn from_id(id: u8) -> Option<Self> where Self: std::marker::Sized;
 
     /// Convert the enum variant to a C-style string (suffixed with \0).
     fn to_cstring(&self) -> &str;
@@ -574,19 +578,19 @@ pub trait AppLayerEvent {
     fn from_string(s: &str) -> Option<Self> where Self: std::marker::Sized;
 
     /// Return the ID value of the enum variant.
-    fn as_i32(&self) -> i32;
+    fn as_u8(&self) -> u8;
 
     unsafe extern "C" fn get_event_info(
         event_name: *const std::os::raw::c_char,
-        event_id: *mut std::os::raw::c_int,
+        event_id: *mut u8,
         event_type: *mut core::AppLayerEventType,
     ) -> std::os::raw::c_int;
 
     unsafe extern "C" fn get_event_info_by_id(
-        event_id: std::os::raw::c_int,
+        event_id: u8,
         event_name: *mut *const std::os::raw::c_char,
         event_type: *mut core::AppLayerEventType,
-    ) -> i8;
+    ) -> std::os::raw::c_int;
 }
 
 /// Generic `get_info_info` implementation for enums implementing
@@ -607,7 +611,7 @@ pub trait AppLayerEvent {
 #[inline(always)]
 pub unsafe fn get_event_info<T: AppLayerEvent>(
     event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
+    event_id: *mut u8,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     if event_name.is_null() {
@@ -615,11 +619,13 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
     }
 
     let event = match CStr::from_ptr(event_name).to_str().map(T::from_string) {
-        Ok(Some(event)) => event.as_i32(),
-        _ => -1,
+        Ok(Some(event)) => event.as_u8(),
+        _ => {
+            return -1;
+        }
     };
     *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
-    *event_id = event as std::os::raw::c_int;
+    *event_id = event;
     return 0;
 }
 
@@ -627,10 +633,10 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
 /// AppLayerEvent.
 #[inline(always)]
 pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
-    event_id: std::os::raw::c_int,
+    event_id: u8,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
-) -> i8 {
+) -> std::os::raw::c_int {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
         *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;

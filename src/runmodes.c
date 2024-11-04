@@ -35,7 +35,6 @@
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
 #include "runmode-ipfw.h"
-#include "runmode-napatech.h"
 #include "runmode-netmap.h"
 #include "runmode-nflog.h"
 #include "runmode-nfq.h"
@@ -133,8 +132,6 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "ERF_FILE";
         case RUNMODE_DAG:
             return "ERF_DAG";
-        case RUNMODE_NAPATECH:
-            return "NAPATECH";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
         case RUNMODE_AFP_DEV:
@@ -226,7 +223,6 @@ void RunModeRegisterRunModes(void)
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
     RunModeErfDagRegister();
-    RunModeNapatechRegister();
     RunModeIdsAFPRegister();
     RunModeIdsAFXDPRegister();
     RunModeIdsNetmapRegister();
@@ -320,9 +316,6 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
-                break;
-            case RUNMODE_NAPATECH:
-                custom_mode = RunModeNapatechGetDefaultMode();
                 break;
             case RUNMODE_AFP_DEV:
                 custom_mode = RunModeAFPGetDefaultMode();
@@ -600,16 +593,14 @@ static void SetupOutput(
 {
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
-        OutputRegisterFlowLogger(module->name, module->FlowLogFunc,
-            output_ctx, module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        SCOutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         return;
     }
     /* stats logger doesn't run in the packet path */
     if (module->StatsLogFunc) {
-        OutputRegisterStatsLogger(module->name, module->StatsLogFunc,
-            output_ctx,module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterStatsLogger(module->name, module->StatsLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         return;
     }
 
@@ -619,39 +610,31 @@ static void SetupOutput(
 
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
-        OutputRegisterPacketLogger(module->logger_id, module->name,
-            module->PacketLogFunc, module->PacketConditionFunc, output_ctx,
-            module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        SCOutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
+                module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
-        OutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
-                module->TxLogFunc, output_ctx, module->tc_log_progress,
-                module->ts_log_progress, module->TxLogCondition,
-                module->ThreadInit, module->ThreadDeinit,
-                module->ThreadExitPrintStats);
+        SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
+                module->TxLogFunc, output_ctx, module->tc_log_progress, module->ts_log_progress,
+                module->TxLogCondition, module->ThreadInit, module->ThreadDeinit);
         /* Not used with wild card loggers */
         if (module->alproto != ALPROTO_UNKNOWN) {
             logger_bits[module->alproto] |= BIT_U32(module->logger_id);
         }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
-        OutputRegisterFiledataLogger(module->logger_id, module->name,
-            module->FiledataLogFunc, output_ctx, module->ThreadInit,
-            module->ThreadDeinit, module->ThreadExitPrintStats);
+        SCOutputRegisterFiledataLogger(module->logger_id, module->name, module->FiledataLogFunc,
+                output_ctx, module->ThreadInit, module->ThreadDeinit);
         filedata_logger_count++;
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
-        OutputRegisterFileLogger(module->logger_id, module->name,
-            module->FileLogFunc, output_ctx, module->ThreadInit,
-            module->ThreadDeinit, module->ThreadExitPrintStats);
+        SCOutputRegisterFileLogger(module->logger_id, module->name, module->FileLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
         file_logger_count++;
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
-        OutputRegisterStreamingLogger(module->logger_id, module->name,
-            module->StreamingLogFunc, output_ctx, module->stream_type,
-            module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        SCOutputRegisterStreamingLogger(module->logger_id, module->name, module->StreamingLogFunc,
+                output_ctx, module->stream_type, module->ThreadInit, module->ThreadDeinit);
     } else {
         SCLogError("Unknown logger type: name=%s", module->name);
     }

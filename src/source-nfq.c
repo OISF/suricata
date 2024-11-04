@@ -97,7 +97,7 @@ static TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **dat
 
 #else /* we do have NFQ support */
 
-extern uint16_t max_pending_packets;
+extern uint32_t max_pending_packets;
 
 #define MAX_ALREADY_TREATED 5
 #define NFQ_VERDICT_RETRY_COUNT 3
@@ -227,7 +227,7 @@ void NFQInitConfig(bool quiet)
         }
     }
 
-    (void)ConfGetBool("nfq.fail-open", (int *)&boolval);
+    (void)ConfGetBool("nfq.fail-open", &boolval);
     if (boolval) {
 #ifdef HAVE_NFQ_SET_QUEUE_FLAGS
         SCLogInfo("Enabling fail-open on queue");

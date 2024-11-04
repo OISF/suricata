@@ -71,10 +71,31 @@ Major changes
 - PF_RING support has been moved to a plugin. See :doc:`PF_RING plugin
   <upgrade/8.0-pfring-plugin>`.
 - LDAP parser and logger have been introduced.
+- The following sticky buffers for matching SIP headers have been implemented:
+    - sip.via
+    - sip.from
+    - sip.to
+    - sip.content_type
+    - sip.content_length
+- Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
+  <upgrade/8.0-napatech-plugin>`.
 
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+
+Deprecations
+~~~~~~~~~~~~
+- The ``http-log`` output is now deprecated and will be removed in Suricata 9.0.
+- The ``tls-log`` output is now deprecated and will be removed in Suricata 9.0.
+- The ``syslog`` output is now deprecated and will be removed in
+  Suricata 9.0. Note that this is the standalone ``syslog`` output and
+  does affect the ``eve`` outputs ability to send to syslog.
+
+Logging changes
+~~~~~~~~~~~~~~~
+- RFB security result is now consistently logged as ``security_result`` when it was
+  sometimes logged with a dash instead of an underscore.
 
 Upgrading 6.0 to 7.0
 --------------------

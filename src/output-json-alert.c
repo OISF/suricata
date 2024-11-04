@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2023 Open Information Security Foundation
+/* Copyright (C) 2013-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,6 +63,7 @@
 #include "util-print.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
+#include "util-reference-config.h"
 #include "util-validate.h"
 
 #include "action-globals.h"
@@ -83,6 +84,7 @@
 #define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
 #define LOG_JSON_PAYLOAD_LENGTH           BIT_U16(13)
+#define LOG_JSON_REFERENCE                BIT_U16(14)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -169,18 +171,37 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     jb_close(js);
 }
 
-static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx,
-        const PacketAlert *pa, JsonBuilder *js)
+static void AlertJsonReference(const PacketAlert *pa, JsonBuilder *jb)
+{
+    if (!pa->s->references) {
+        return;
+    }
+
+    const DetectReference *kv = pa->s->references;
+    jb_open_array(jb, "references");
+    while (kv) {
+        /* Note that the key and reference sizes have been bound
+         * checked during parsing
+         */
+        const size_t size_needed = kv->key_len + kv->reference_len + 1;
+        char kv_store[size_needed];
+        snprintf(kv_store, size_needed, "%s%s", kv->key, kv->reference);
+        jb_append_string(jb, kv_store);
+        kv = kv->next;
+    }
+    jb_close(jb);
+}
+
+static void AlertJsonMetadata(const PacketAlert *pa, JsonBuilder *js)
 {
     if (pa->s->metadata && pa->s->metadata->json_str) {
         jb_set_formatted(js, pa->s->metadata->json_str);
     }
 }
 
-void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
-        uint16_t flags, JsonAddrInfo *addr, char *xff_buffer)
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, JsonBuilder *js, uint16_t flags,
+        JsonAddrInfo *addr, char *xff_buffer)
 {
-    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -221,8 +242,12 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
         AlertJsonSourceTarget(p, pa, js, addr);
     }
 
-    if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
-        AlertJsonMetadata(json_output_ctx, pa, js);
+    if ((flags & LOG_JSON_REFERENCE)) {
+        AlertJsonReference(pa, js);
+    }
+
+    if (flags & LOG_JSON_RULE_METADATA) {
+        AlertJsonMetadata(pa, js);
     }
 
     if (flags & LOG_JSON_RULE) {
@@ -576,8 +601,8 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
         if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
             uint8_t printable_buf[cbd.payload->offset + 1];
             uint32_t offset = 0;
-            PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf), cbd.payload->buffer,
-                    cbd.payload->offset);
+            PrintStringsToBuffer(printable_buf, &offset, cbd.payload->offset + 1,
+                    cbd.payload->buffer, cbd.payload->offset);
             jb_set_string(jb, "payload_printable", (char *)printable_buf);
         }
         return true;
@@ -642,7 +667,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 
         /* alert */
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
+        AlertJsonHeader(p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
 
         if (PacketIsTunnel(p)) {
             AlertJsonTunnel(p, jb);
@@ -777,7 +802,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         /* just the timestamp, no tuple */
         jb_set_string(jb, "timestamp", timebuf);
 
-        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL, NULL);
+        AlertJsonHeader(p, pa, jb, json_output_ctx->flags, NULL, NULL);
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
@@ -905,6 +930,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
                     SetFlag(rule_metadata, "raw", LOG_JSON_RULE, &flags);
                     SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA,
                             &flags);
+                    SetFlag(rule_metadata, "reference", LOG_JSON_REFERENCE, &flags);
                 }
                 SetFlag(metadata, "flow", LOG_JSON_FLOW, &flags);
                 SetFlag(metadata, "app-layer", LOG_JSON_APP_LAYER, &flags);
@@ -1027,8 +1053,7 @@ error:
 
 void JsonAlertLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
-        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
-        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME, "eve-log.alert",
+            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition, JsonAlertLogThreadInit,
+            JsonAlertLogThreadDeinit);
 }

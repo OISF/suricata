@@ -264,11 +264,6 @@ noinst_HEADERS = \
 	detect-sameip.h \
 	detect-sid.h \
 	detect-sip-method.h \
-	detect-sip-protocol.h \
-	detect-sip-request-line.h \
-	detect-sip-response-line.h \
-	detect-sip-stat-code.h \
-	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
@@ -294,7 +289,6 @@ noinst_HEADERS = \
 	detect-tcp-window.h \
 	detect-template2.h \
 	detect-template.h \
-	detect-template-rust-buffer.h \
 	detect-threshold.h \
 	detect-tls-alpn.h \
 	detect-tls-cert-fingerprint.h \
@@ -417,7 +411,6 @@ noinst_HEADERS = \
 	runmode-erf-dag.h \
 	runmode-erf-file.h \
 	runmode-ipfw.h \
-	runmode-napatech.h \
 	runmode-netmap.h \
 	runmode-nflog.h \
 	runmode-nfq.h \
@@ -435,7 +428,6 @@ noinst_HEADERS = \
 	source-erf-dag.h \
 	source-erf-file.h \
 	source-ipfw.h \
-	source-napatech.h \
 	source-netmap.h \
 	source-nflog.h \
 	source-nfq.h \
@@ -476,7 +468,6 @@ noinst_HEADERS = \
 	util-action.h \
 	util-affinity.h \
 	util-atomic.h \
-	util-base64.h \
 	util-bpf.h \
 	util-buffer.h \
 	util-byte.h \
@@ -547,7 +538,6 @@ noinst_HEADERS = \
 	util-mpm-ac-ks.h \
 	util-mpm.h \
 	util-mpm-hs.h \
-	util-napatech.h \
 	util-optimize.h \
 	util-pages.h \
 	util-path.h \
@@ -845,11 +835,6 @@ libsuricata_c_a_SOURCES = \
 	detect-sameip.c \
 	detect-sid.c \
 	detect-sip-method.c \
-	detect-sip-protocol.c \
-	detect-sip-request-line.c \
-	detect-sip-response-line.c \
-	detect-sip-stat-code.c \
-	detect-sip-stat-msg.c \
 	detect-sip-uri.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
@@ -875,7 +860,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tcp-window.c \
 	detect-template2.c \
 	detect-template.c \
-	detect-template-rust-buffer.c \
 	detect-threshold.c \
 	detect-tls.c \
 	detect-tls-alpn.c \
@@ -997,7 +981,6 @@ libsuricata_c_a_SOURCES = \
 	runmode-erf-dag.c \
 	runmode-erf-file.c \
 	runmode-ipfw.c \
-	runmode-napatech.c \
 	runmode-netmap.c \
 	runmode-nflog.c \
 	runmode-nfq.c \
@@ -1014,7 +997,6 @@ libsuricata_c_a_SOURCES = \
 	source-erf-dag.c \
 	source-erf-file.c \
 	source-ipfw.c \
-	source-napatech.c \
 	source-netmap.c \
 	source-nflog.c \
 	source-nfq.c \
@@ -1044,7 +1026,6 @@ libsuricata_c_a_SOURCES = \
 	util-action.c \
 	util-affinity.c \
 	util-atomic.c \
-	util-base64.c \
 	util-bpf.c \
 	util-buffer.c \
 	util-byte.c \
@@ -1111,7 +1092,6 @@ libsuricata_c_a_SOURCES = \
 	util-mpm-ac-ks-small.c \
 	util-mpm.c \
 	util-mpm-hs.c \
-	util-napatech.c \
 	util-pages.c \
 	util-path.c \
 	util-pidfile.c \
@@ -1198,7 +1178,6 @@ EXTRA_DIST = \
 	tests/detect-http-user-agent.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
-	tests/detect-template-buffer.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \

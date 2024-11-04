@@ -330,6 +330,9 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                             node = existing;
                         } else {
                             node = ConfNodeNew();
+                            if (unlikely(node == NULL)) {
+                                goto fail;
+                            }
                             node->name = SCStrdup(value);
                             node->parent = parent;
                             if (node->name && strchr(node->name, '_')) {
@@ -555,11 +558,6 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     int ret;
     ConfNode *root = ConfGetNode(prefix);
 
-    if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError("failed to initialize yaml parser.");
-        return -1;
-    }
-
     struct stat stat_buf;
     /* coverity[toctou] */
     if (stat(filename, &stat_buf) == 0) {
@@ -569,6 +567,11 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
                     filename);
             return -1;
         }
+    }
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        SCLogError("failed to initialize yaml parser.");
+        return -1;
     }
 
     /* coverity[toctou] */

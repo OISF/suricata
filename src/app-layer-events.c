@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2022 Open Information Security Foundation
+/* Copyright (C) 2014-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,12 +22,24 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#include "suricata-common.h"
-#include "decode.h"
-#include "flow.h"
 #include "app-layer-events.h"
-#include "app-layer-parser.h"
 #include "util-enum.h"
+
+int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id)
+{
+    int value = SCMapEnumNameToValue(event_name, table);
+    if (value == -1) {
+        SCLogError("event \"%s\" not present in enum table.", event_name);
+        /* this should be treated as fatal */
+        return -1;
+    } else if (value < -1 || value > UINT8_MAX) {
+        SCLogError("event \"%s\" has out of range value", event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+    *event_id = (uint8_t)value;
+    return 0;
+}
 
 /* events raised during protocol detection are stored in the
  * packets storage, not in the flow. */
@@ -48,8 +60,8 @@ SCEnumCharMap app_layer_event_pkt_table[ ] = {
       -1 },
 };
 
-int AppLayerGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+int AppLayerGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, app_layer_event_pkt_table);
     if (*event_name == NULL) {
@@ -65,18 +77,9 @@ int AppLayerGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
-int AppLayerGetPktEventInfo(const char *event_name, int *event_id)
+int AppLayerGetPktEventInfo(const char *event_name, uint8_t *event_id)
 {
-    *event_id = SCMapEnumNameToValue(event_name, app_layer_event_pkt_table);
-    if (*event_id == -1) {
-        SCLogError("event \"%s\" not present in "
-                   "app-layer-event's packet event table.",
-                event_name);
-        /* this should be treated as fatal */
-        return -1;
-    }
-
-    return 0;
+    return SCAppLayerGetEventIdByName(event_name, app_layer_event_pkt_table, event_id);
 }
 
 #define DECODER_EVENTS_BUFFER_STEPS 8
@@ -161,17 +164,12 @@ SCEnumCharMap det_ctx_event_table[] = {
     { NULL, -1 },
 };
 
-int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
+int DetectEngineGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, det_ctx_event_table);
-    if (*event_id == -1) {
-        SCLogError("event \"%s\" not present in "
-                   "det_ctx's enum map table.",
-                event_name);
-        /* this should be treated as fatal */
-        return -1;
+    if (SCAppLayerGetEventIdByName(event_name, det_ctx_event_table, event_id) == 0) {
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
     }
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
+    return -1;
 }

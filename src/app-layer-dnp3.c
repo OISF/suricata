@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,12 +23,8 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "util-byte.h"
 #include "util-unittest.h"
-#include "util-hashlist.h"
 
-#include "util-print.h"
 #include "util-spm-bs.h"
 #include "util-enum.h"
 
@@ -1435,27 +1431,21 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
 /**
  * \brief App-layer support.
  */
-static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
-    AppLayerEventType *event_type)
+static int DNP3StateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, dnp3_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError("Event \"%s\" not present in "
-                   "the DNP3 enum event map table.",
-                event_name);
-        return -1;
+    if (SCAppLayerGetEventIdByName(event_name, dnp3_decoder_event_table, event_id) == 0) {
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
     }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
+    return -1;
 }
 
 /**
  * \brief App-layer support.
  */
-static int DNP3StateGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+static int DNP3StateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, dnp3_decoder_event_table);
     if (*event_name == NULL) {

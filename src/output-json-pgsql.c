@@ -61,7 +61,7 @@ typedef struct LogPgsqlLogThread_ {
 
 bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb)
 {
-    return rs_pgsql_logger(vtx, PGSQL_DEFAULTS, jb);
+    return SCPgsqlLogger(vtx, PGSQL_DEFAULTS, jb);
 }
 
 static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
@@ -76,7 +76,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
         return TM_ECODE_FAILED;
     }
 
-    if (!rs_pgsql_logger(txptr, thread->pgsqllog_ctx->flags, jb)) {
+    if (!SCPgsqlLogger(txptr, thread->pgsqllog_ctx->flags, jb)) {
         goto error;
     }
 
@@ -192,7 +192,7 @@ void JsonPgsqlLogRegister(void)
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPgsqlLog", "eve-log.pgsql",
             OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
-            JsonPgsqlLogThreadDeinit, NULL);
+            JsonPgsqlLogThreadDeinit);
 
     SCLogDebug("PostgreSQL JSON logger registered.");
 }

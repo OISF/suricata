@@ -403,6 +403,9 @@ The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 TLS parameters and certificates logging (tls.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. attention:: tls-log is deprecated in Suricata 8.0 and will be
+               removed in Suricata 9.0.
+
 The TLS handshake parameters can be logged in a line based log as well.
 By default, the logfile is `tls.log` in the suricata log directory.
 See :ref:`Custom TLS logging <output-custom-tls-logging>` for details
@@ -423,6 +426,9 @@ Example:
 
 A line based log of HTTP requests (http.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attention:: http-log is deprecated in Suricata 8.0 and will be
+               removed in Suricata 9.0.
 
 This log keeps track of all HTTP-traffic events. It contains the HTTP
 request, hostname, URI and the User-Agent. This information will be
@@ -575,6 +581,10 @@ section as described above.
 Syslog
 ~~~~~~
 
+.. attention:: The syslog output is deprecated in Suricata 8.0 and
+               will be removed in Suricata 9.0. Please migrate to the
+               ``eve`` output which has the ability to send to syslog.
+
 With this option it is possible to send all alert and event output to syslog.
 
 ::
@@ -649,6 +659,7 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
       toserver-groups: 25
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
+    stream-tx-log-limit: 4
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -682,6 +693,11 @@ bugs in Suricata cause big problems. Often Suricata has to deal with
 complicated issues. It could end up in an 'endless loop' due to a bug,
 meaning it will repeat its actions over and over again. With the
 option inspection-recursion-limit you can limit this action.
+
+The stream-tx-log-limit defines the maximum number of times a
+transaction will get logged for a stream-only rule match.
+This is meant to avoid logging the same data an arbitrary number
+of times.
 
 *Example 4	Detection-engine grouping tree*
 
@@ -1046,7 +1062,7 @@ what to do in case memcap is hit: 'drop-packet', 'pass-packet', 'reject', or
   flow:
     memcap: 33554432              #The maximum amount of bytes the flow-engine will make use of.
     memcap-policy: bypass         #How to handle the flow if memcap is reached (IPS mode)
-    hash_size: 65536              #Flows will be organized in a hash-table. With this option you can set the
+    hash-size: 65536              #Flows will be organized in a hash-table. With this option you can set the
                                   #size of the hash-table.
     Prealloc: 10000               #The amount of flows Suricata has to keep ready in memory.
 
@@ -1055,21 +1071,20 @@ flow-engine goes into the emergency-mode. In this mode, the engine
 will make use of shorter time-outs. It lets flows expire in a more
 aggressive manner so there will be more space for new Flows.
 
-There are two options: emergency_recovery and prune_flows. The
-emergency recovery is set on 30. This is the percentage of prealloc'd
-flows after which the flow-engine will be back to normal (when 30
-percent of the 10000 flows is completed).
+``emergency-recovery`` defines the percentage of flows that the engine needs to
+prune before clearing the **emergency mode**. The default ``emergency-recovery``
+value is 30. This is the percentage of prealloc'd flows after which the flow
+-engine will be back to normal (when 30 percent of the 10000 flows are
+completed).
 
-	If during the emergency-mode, the aggressive time-outs do not
+	If during the **emergency-mode** the aggressive time-outs do not
 	have the desired result, this option is the final resort. It
 	ends some flows even if they have not reached their time-outs
-	yet. The prune-flows option shows how many flows there will be
-	terminated at each time a new flow is set up.
+	yet.
 
 ::
 
-  emergency_recovery: 30                  #Percentage of 1000 prealloc'd flows.
-  prune_flows: 5                          #Amount of flows being terminated during the emergency mode.
+  emergency-recovery: 30                  #Percentage of 10000 prealloc'd flows.
 
 Flow Time-Outs
 ~~~~~~~~~~~~~~
@@ -1105,27 +1120,27 @@ UDP, ICMP and default (all other protocols).
       new: 30                     #Time-out in seconds after the last activity in this flow in a New state.
       established: 300            #Time-out in seconds after the last activity in this flow in a Established
                                   #state.
-      emergency_new: 10           #Time-out in seconds after the last activity in this flow in a New state
+      emergency-new: 10           #Time-out in seconds after the last activity in this flow in a New state
                                   #during the emergency mode.
-      emergency_established: 100  #Time-out in seconds after the last activity in this flow in a Established
+      emergency-established: 100  #Time-out in seconds after the last activity in this flow in a Established
                                   #state in the emergency mode.
     tcp:
       new: 60
       established: 3600
       closed: 120
-      emergency_new: 10
-      emergency_established: 300
-      emergency_closed: 20
+      emergency-new: 10
+      emergency-established: 300
+      emergency-closed: 20
     udp:
       new: 30
       established: 300
-      emergency_new: 10
-      emergency_established: 100
+      emergency-new: 10
+      emergency-established: 100
     icmp:
       new: 30
       established: 300
-      emergency_new: 10
-      emergency_established: 100
+      emergency-new: 10
+      emergency-established: 100
 
 Stream-engine
 ~~~~~~~~~~~~~
@@ -1158,10 +1173,10 @@ option can be set off by entering 'no' instead of 'yes'.
   stream:
     memcap: 64mb                # Max memory usage (in bytes) for TCP session tracking
     memcap-policy: ignore       # In IPS mode, call memcap policy if memcap is reached
-    checksum_validation: yes    # Validate packet checksum, reject packets with invalid checksums.
+    checksum-validation: yes    # Validate packet checksum, reject packets with invalid checksums.
 
 To mitigate Suricata from being overloaded by fast session creation,
-the option prealloc_sessions instructs Suricata to keep a number of
+the option prealloc-sessions instructs Suricata to keep a number of
 sessions ready in memory.
 
 A TCP-session starts with the three-way-handshake. After that, data
@@ -1192,10 +1207,10 @@ anomalies in streams. See :ref:`host-os-policy`.
 
 ::
 
-    prealloc_sessions: 32768     # 32k sessions prealloc'd
+    prealloc-sessions: 32768     # 32k sessions prealloc'd
     midstream: false             # do not allow midstream session pickups
     midstream-policy: drop-flow  # in IPS mode, drop flows that start midstream
-    async_oneside: false         # do not enable async stream handling
+    async-oneside: false         # do not enable async stream handling
     inline: no                   # stream inline mode
     drop-invalid: yes            # drop invalid packets
     bypass: no
@@ -1242,7 +1257,7 @@ this is 1MB. This setting can be overridden per stream by the protocol
 parsers that do file extraction.
 
 Inspection of reassembled data is done in chunks. The size of these
-chunks is set with ``toserver_chunk_size`` and ``toclient_chunk_size``.
+chunks is set with ``toserver-chunk-size`` and ``toclient-chunk-size``.
 To avoid making the borders predictable, the sizes can be varied by
 adding in a random factor.
 
@@ -1252,8 +1267,8 @@ adding in a random factor.
       memcap: 256mb             # Memory reserved for stream data reconstruction (in bytes)
       memcap-policy: ignore     # What to do when memcap for reassembly is hit
       depth: 1mb                # The depth of the reassembling.
-      toserver_chunk_size: 2560 # inspect raw stream in chunks of at least this size
-      toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
+      toserver-chunk-size: 2560 # inspect raw stream in chunks of at least this size
+      toclient-chunk-size: 2560 # inspect raw stream in chunks of at least
       randomize-chunk-size: yes
       #randomize-chunk-range: 10
 
@@ -1340,7 +1355,7 @@ Asn1 (`Abstract Syntax One
 <http://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One>`_) is a
 standard notation to structure and describe data.
 
-Within Asn1_max_frames there are several frames. To protect itself,
+Within Asn1-max-frames there are several frames. To protect itself,
 Suricata will inspect a maximum of 256. You can set this amount
 differently if wanted.
 
@@ -1353,7 +1368,7 @@ Limit for the maximum number of asn1 frames to decode (default 256):
 
 ::
 
-   asn1_max_frames: 256
+   asn1-max-frames: 256
 
 .. _suricata-yaml-configure-ftp:
 
@@ -1573,6 +1588,10 @@ use of libhtp.
        #compression-bomb-limit: 1 Mb
        # Maximum time spent decompressing a single transaction in usec
        #decompression-time-limit: 100000
+       # Maximum number of live transactions per flow
+       #max-tx: 512
+       # Maximum used number of HTTP1 headers in one request or response
+       #headers-limit: 1024
 
 Other parameters are customizable from Suricata.
 ::
@@ -2294,10 +2313,10 @@ Add the numbers of the options repeat_mark and route_queue to the NFQ-rule::
 
   nfq:
      mode: accept                 #By default the packet will be accepted or dropped by Suricata
-     repeat_mark: 1               #If the mode is set to 'repeat', the packets will be marked after being
+     repeat-mark: 1               #If the mode is set to 'repeat', the packets will be marked after being
                                   #processed by Suricata.
-     repeat_mask: 1
-     route_queue: 2               #Here you can assign the queue-number of the tool that Suricata has to
+     repeat-mask: 1
+     route-queue: 2               #Here you can assign the queue-number of the tool that Suricata has to
                                   #send the packets to after processing them.
 
 *Example 1 NFQ1*
@@ -2508,10 +2527,10 @@ use of.
   host-os-policy:
     windows: [0.0.0.0/0]
     bsd: []
-    bsd_right: []
-    old_linux: []
+    bsd-right: []
+    old-linux: []
     linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
-    old_solaris: []
+    old-solaris: []
     solaris: ["::1"]
     hpux10: []
     hpux11: []
@@ -2620,6 +2639,9 @@ Example:
   Content negated: no
   Original content: abc
   Final content: bc
+
+
+.. _rule-and-packet-profiling-settings:
 
 Rule and Packet Profiling settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

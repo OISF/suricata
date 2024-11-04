@@ -24,12 +24,8 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "decode.h"
-#include "threads.h"
 
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -41,7 +37,6 @@
 #include "util-enum.h"
 #include "util-mpm.h"
 #include "util-debug.h"
-#include "util-print.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -53,7 +48,6 @@
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 
-#include "decode-events.h"
 #include "conf.h"
 
 #include "util-mem.h"
@@ -1004,7 +998,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
         /* decoder event */
         return -1;
     }
-    // copy in temporary null-terminated buffer to call StringParseUint32
+    // copy in temporary null-terminated buffer for conversion
     char strbuf[24];
     int len = 23;
     if (line->len - i < len) {
@@ -1012,7 +1006,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
     }
     memcpy(strbuf, line->buf + i, len);
     strbuf[len] = '\0';
-    if (StringParseUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
+    if (ByteExtractStringUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
         /* decoder event */
         return -1;
     }
@@ -1650,25 +1644,18 @@ static void SMTPFreeMpmState(void)
     }
 }
 
-static int SMTPStateGetEventInfo(const char *event_name,
-                          int *event_id, AppLayerEventType *event_type)
+static int SMTPStateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError("event \"%s\" not present in "
-                   "smtp's enum map table.",
-                event_name);
-        /* yes this is fatal */
-        return -1;
+    if (SCAppLayerGetEventIdByName(event_name, smtp_decoder_event_table, event_id) == 0) {
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
     }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
+    return -1;
 }
 
-static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+static int SMTPStateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, smtp_decoder_event_table);
     if (*event_name == NULL) {

@@ -46,7 +46,7 @@
 #include "util-conf.h"
 
 /* Magic numbers to make the rules of a certain order fall in the same group */
-#define DETECT_PGSCORE_RULE_PORT_WHITELISTED 111 /* Rule port group contains a whitelisted port */
+#define DETECT_PGSCORE_RULE_PORT_PRIORITIZED 111 /* Rule port group contains a priority port */
 #define DETECT_PGSCORE_RULE_MPM_FAST_PATTERN 99  /* Rule contains an MPM fast pattern */
 #define DETECT_PGSCORE_RULE_MPM_NEGATED      77  /* Rule contains a negated MPM */
 #define DETECT_PGSCORE_RULE_NO_MPM           55  /* Rule does not contain MPM */
@@ -487,27 +487,11 @@ static int SignatureCreateMask(Signature *s)
             {
                 DetectFlagsData *fl = (DetectFlagsData *)sm->ctx;
 
-                if (fl->flags & TH_SYN) {
+                if (fl->flags & MASK_TCP_INITDEINIT_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
                 }
-                if (fl->flags & TH_RST) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
-                }
-                if (fl->flags & TH_FIN) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
-                }
-                if (fl->flags & TH_URG) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
-                }
-                if (fl->flags & TH_ECN) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
-                }
-                if (fl->flags & TH_CWR) {
+                if (fl->flags & MASK_TCP_UNUSUAL_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
                 }
@@ -969,7 +953,7 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     fclose(fp);
 }
 
-static int RulesGroupByProto(DetectEngineCtx *de_ctx)
+static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
 
@@ -980,8 +964,8 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         if (s->type == SIG_TYPE_IPONLY)
             continue;
 
-        int p;
-        for (p = 0; p < 256; p++) {
+        /* traverse over IP protocol list from libc */
+        for (int p = 0; p < 256; p++) {
             if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
                 continue;
             }
@@ -989,6 +973,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
                 continue;
             }
 
+            /* Signatures that are ICMP, SCTP, not IP only are handled here */
             if (s->flags & SIG_FLAG_TOCLIENT) {
                 SigGroupHeadAppendSig(de_ctx, &sgh_tc[p], s);
             }
@@ -1079,15 +1064,14 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
-                             const DetectPort *a, int ipproto)
+static int PortIsPriority(const DetectEngineCtx *de_ctx, const DetectPort *a, int ipproto)
 {
-    DetectPort *w = de_ctx->tcp_whitelist;
+    DetectPort *w = de_ctx->tcp_priorityports;
     if (ipproto == IPPROTO_UDP)
-        w = de_ctx->udp_whitelist;
+        w = de_ctx->udp_priorityports;
 
     while (w) {
-        /* Make sure the whitelist port falls in the port range of a */
+        /* Make sure the priority port falls in the port range of a */
         DEBUG_VALIDATE_BUG_ON(a->port > a->port2);
         if (a->port == w->port && w->port2 == a->port2) {
             return 1;
@@ -1098,7 +1082,7 @@ static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
-static int RuleSetWhitelist(Signature *s)
+static int RuleSetScore(Signature *s)
 {
     DetectPort *p = NULL;
     if (s->flags & SIG_FLAG_TOSERVER)
@@ -1109,27 +1093,27 @@ static int RuleSetWhitelist(Signature *s)
         return 0;
 
     /* for sigs that don't use 'any' as port, see if we want to
-     * whitelist poor sigs */
+     * prioritize poor sigs */
     int wl = 0;
     if (!(p->port == 0 && p->port2 == 65535)) {
         /* pure pcre, bytetest, etc rules */
         if (RuleInspectsPayloadHasNoMpm(s)) {
-            SCLogDebug("Rule %u MPM has 1 byte fast_pattern. Whitelisting SGH's.", s->id);
+            SCLogDebug("Rule %u MPM has 1 byte fast_pattern. Prioritizing SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_MPM_FAST_PATTERN;
 
         } else if (RuleMpmIsNegated(s)) {
-            SCLogDebug("Rule %u MPM is negated. Whitelisting SGH's.", s->id);
+            SCLogDebug("Rule %u MPM is negated. Prioritizing SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_MPM_NEGATED;
 
             /* one byte pattern in packet/stream payloads */
         } else if (s->init_data->mpm_sm != NULL &&
                    s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH &&
                    RuleGetMpmPatternSize(s) == 1) {
-            SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
+            SCLogDebug("Rule %u No MPM. Payload inspecting. Prioritizing SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_NO_MPM;
 
         } else if (DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
-            SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
+            SCLogDebug("Rule %u Needs SYN, so inspected often. Prioritizing SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_SYN_ONLY;
         }
     }
@@ -1247,7 +1231,7 @@ static int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list,
 
     /* insert the ports into the tmplist, where it will
      * be sorted descending on 'cnt' and on whether a group
-     * is whitelisted. */
+     * is prioritized. */
     tmplist = port_list;
     SortGroupList(&groups, &tmplist, SortCompare);
     uint32_t left = unique_groups;
@@ -1535,8 +1519,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
         int wl = s->init_data->score;
         while (p) {
-            int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? DETECT_PGSCORE_RULE_PORT_WHITELISTED
-                                                            : 0;
+            int pwl = PortIsPriority(de_ctx, p, ipproto) ? DETECT_PGSCORE_RULE_PORT_PRIORITIZED : 0;
             pwl = MAX(wl,pwl);
 
             DetectPort *lookup = DetectPortHashLookup(de_ctx, p);
@@ -1633,11 +1616,11 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     }
 #if 0
     for (iter = list ; iter != NULL; iter = iter->next) {
-        SCLogInfo("PORT %u-%u %p (sgh=%s, whitelisted=%s/%d)",
+        SCLogInfo("PORT %u-%u %p (sgh=%s, prioritized=%s/%d)",
                 iter->port, iter->port2, iter->sh,
                 iter->flags & PORT_SIGGROUPHEAD_COPY ? "ref" : "own",
-                iter->sh->init->whitelist ? "true" : "false",
-                iter->sh->init->whitelist);
+                iter->sh->init->score ? "true" : "false",
+                iter->sh->init->score);
     }
 #endif
     SCLogPerf("%s %s: %u port groups, %u unique SGH's, %u copies",
@@ -1802,7 +1785,7 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         DetectContentPropagateLimits(s);
         SigParseApplyDsizeToContent(s);
 
-        RuleSetWhitelist(s);
+        RuleSetScore(s);
 
         /* if keyword engines are enabled in the config, handle them here */
         if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
@@ -1907,7 +1890,7 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
     de_ctx->flow_gh[0].udp = RulesGroupByPorts(de_ctx, IPPROTO_UDP, SIG_FLAG_TOCLIENT);
 
     /* Setup the other IP Protocols (so not TCP/UDP) */
-    RulesGroupByProto(de_ctx);
+    RulesGroupByIPProto(de_ctx);
 
     /* now for every rule add the source group to our temp lists */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {

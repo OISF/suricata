@@ -22,11 +22,11 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
+use crate::core::{AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
-use crate::core::{Flow, AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -36,17 +36,18 @@ static mut PGSQL_MAX_TX: usize = 1024;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
-pub enum PgsqlTransactionState {
-    Init = 0,
-    RequestReceived,
-    ResponseDone,
-    FlushedOut,
+pub enum PgsqlTxProgress {
+    TxInit = 0,
+    TxReceived,
+    TxDone,
+    TxFlushedOut,
 }
 
 #[derive(Debug)]
 pub struct PgsqlTransaction {
     pub tx_id: u64,
-    pub tx_state: PgsqlTransactionState,
+    pub tx_req_state: PgsqlTxProgress,
+    pub tx_res_state: PgsqlTxProgress,
     pub request: Option<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
@@ -72,7 +73,8 @@ impl PgsqlTransaction {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            tx_state: PgsqlTransactionState::Init,
+            tx_req_state: PgsqlTxProgress::TxInit,
+            tx_res_state: PgsqlTxProgress::TxInit,
             request: None,
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
@@ -97,28 +99,30 @@ impl PgsqlTransaction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PgsqlStateProgress {
     IdleState,
+    // Related to Frontend-received messages //
     SSLRequestReceived,
-    SSLRejectedReceived,
     StartupMessageReceived,
-    SASLAuthenticationReceived,
     SASLInitialResponseReceived,
-    // SSPIAuthenticationReceived, // TODO implement
     SASLResponseReceived,
+    PasswordMessageReceived,
+    SimpleQueryReceived,
+    CancelRequestReceived,
+    ConnectionTerminated,
+    // Related to Backend-received messages //
+    SSLRejectedReceived,
+    // SSPIAuthenticationReceived, // TODO implement
+    SASLAuthenticationReceived,
     SASLAuthenticationContinueReceived,
     SASLAuthenticationFinalReceived,
     SimpleAuthenticationReceived,
-    PasswordMessageReceived,
     AuthenticationOkReceived,
     ParameterSetup,
     BackendKeyReceived,
     ReadyForQueryReceived,
-    SimpleQueryReceived,
     RowDescriptionReceived,
     DataRowReceived,
     CommandCompletedReceived,
     ErrorMessageReceived,
-    CancelRequestReceived,
-    ConnectionTerminated,
     #[cfg(test)]
     UnknownState,
     Finished,
@@ -203,8 +207,11 @@ impl PgsqlState {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
-                if tx_old.tx_state < PgsqlTransactionState::ResponseDone {
-                    tx_old.tx_state = PgsqlTransactionState::FlushedOut;
+                if tx_old.tx_res_state < PgsqlTxProgress::TxDone {
+                    // we don't check for TxReqDone for the majority of requests are basically completed
+                    // when they're parsed, as of now
+                    tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
+                    tx_old.tx_res_state = PgsqlTxProgress::TxFlushedOut;
                     //TODO set event
                     break;
                 }
@@ -238,26 +245,6 @@ impl PgsqlState {
         // If we don't need a new transaction, just return the current one
         SCLogDebug!("find_or_create state is {:?}", &self.state_progress);
         return self.transactions.back_mut();
-    }
-
-    /// Process State progress to decide if PgsqlTransaction is finished
-    ///
-    /// As Pgsql transactions are bidirectional and may be comprised of several
-    /// responses, we must track State progress to decide on tx completion
-    fn is_tx_completed(&self) -> bool {
-        if let PgsqlStateProgress::ReadyForQueryReceived
-        | PgsqlStateProgress::SSLRejectedReceived
-        | PgsqlStateProgress::SimpleAuthenticationReceived
-        | PgsqlStateProgress::SASLAuthenticationReceived
-        | PgsqlStateProgress::SASLAuthenticationContinueReceived
-        | PgsqlStateProgress::SASLAuthenticationFinalReceived
-        | PgsqlStateProgress::ConnectionTerminated
-        | PgsqlStateProgress::Finished = self.state_progress
-        {
-            true
-        } else {
-            false
-        }
     }
 
     /// Define PgsqlState progression, based on the request received
@@ -313,6 +300,22 @@ impl PgsqlState {
         }
     }
 
+    /// Process State progress to decide if request is finished
+    ///
+    fn request_is_complete(state: PgsqlStateProgress) -> bool {
+        match state {
+            PgsqlStateProgress::SSLRequestReceived
+            | PgsqlStateProgress::StartupMessageReceived
+            | PgsqlStateProgress::SimpleQueryReceived
+            | PgsqlStateProgress::PasswordMessageReceived
+            | PgsqlStateProgress::SASLInitialResponseReceived
+            | PgsqlStateProgress::SASLResponseReceived
+            | PgsqlStateProgress::CancelRequestReceived
+            | PgsqlStateProgress::ConnectionTerminated => true,
+            _ => false,
+        }
+    }
+
     fn parse_request(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
@@ -341,16 +344,38 @@ impl PgsqlState {
             );
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                     start = rem;
-                    if let Some(state) = PgsqlState::request_next_state(&request) {
+                    let new_state = PgsqlState::request_next_state(&request);
+
+                    if let Some(state) = new_state {
                         self.state_progress = state;
                     };
-                    let tx_completed = self.is_tx_completed();
+                    // PostreSQL progress states can be represented as a finite state machine
+                    // After the connection phase, the backend/ server will be mostly waiting in a state of `ReadyForQuery`, unless
+                    // it's processing some request.
+                    // When the frontend wants to cancel a request, it will send a CancelRequest message over a new connection - to
+                    // which there won't be any responses.
+                    // If the frontend wants to terminate the connection, the backend won't send any confirmation after receiving a
+                    // Terminate request.
+                    // A simplified finite state machine for PostgreSQL v3 can be found at:
+                    // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.request = Some(request);
-                        if tx_completed {
-                            tx.tx_state = PgsqlTransactionState::ResponseDone;
+                        if let Some(state) = new_state {
+                            if Self::request_is_complete(state) {
+                                // The request is always complete at this point
+                                tx.tx_req_state = PgsqlTxProgress::TxDone;
+                                if state == PgsqlStateProgress::ConnectionTerminated
+                                    || state == PgsqlStateProgress::CancelRequestReceived
+                                {
+                                    /* The server won't send any responses to such requests, so transaction should be over */
+                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                }
+                                sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                    flow,
+                                    Direction::ToServer as i32,
+                                );
+                            }
                         }
                     } else {
                         // If there isn't a new transaction, we'll consider Suri should move on
@@ -450,6 +475,21 @@ impl PgsqlState {
         }
     }
 
+    /// Process State progress to decide if response is finished
+    ///
+    fn response_is_complete(state: PgsqlStateProgress) -> bool {
+        match state {
+            PgsqlStateProgress::ReadyForQueryReceived
+            | PgsqlStateProgress::SSLRejectedReceived
+            | PgsqlStateProgress::SimpleAuthenticationReceived
+            | PgsqlStateProgress::SASLAuthenticationReceived
+            | PgsqlStateProgress::SASLAuthenticationContinueReceived
+            | PgsqlStateProgress::SASLAuthenticationFinalReceived
+            | PgsqlStateProgress::Finished => true,
+            _ => false,
+        }
+    }
+
     fn parse_response(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
@@ -471,33 +511,42 @@ impl PgsqlState {
         while !start.is_empty() {
             match PgsqlState::state_based_resp_parsing(self.state_progress, start) {
                 Ok((rem, response)) => {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                     start = rem;
                     SCLogDebug!("Response is {:?}", &response);
-                    if let Some(state) = self.response_process_next_state(&response, flow) {
+                    let new_state = self.response_process_next_state(&response, flow);
+                    if let Some(state) = new_state {
                         self.state_progress = state;
-                    };
-                    let tx_completed = self.is_tx_completed();
-                    let curr_state = self.state_progress;
+                    }
                     if let Some(tx) = self.find_or_create_tx() {
-                        if curr_state == PgsqlStateProgress::DataRowReceived {
-                            tx.incr_row_cnt();
-                        } else if curr_state == PgsqlStateProgress::CommandCompletedReceived
-                            && tx.get_row_cnt() > 0
-                        {
-                            // let's summarize the info from the data_rows in one response
-                            let dummy_resp =
-                                PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
-                                    identifier: b'D',
-                                    row_cnt: tx.get_row_cnt(),
-                                    data_size: tx.data_size, // total byte count of all data_row messages combined
-                                });
-                            tx.responses.push(dummy_resp);
-                            tx.responses.push(response);
-                        } else {
-                            tx.responses.push(response);
-                            if tx_completed {
-                                tx.tx_state = PgsqlTransactionState::ResponseDone;
+                        if tx.tx_res_state == PgsqlTxProgress::TxInit {
+                            tx.tx_res_state = PgsqlTxProgress::TxReceived;
+                        }
+                        if let Some(state) = new_state {
+                            if state == PgsqlStateProgress::DataRowReceived {
+                                tx.incr_row_cnt();
+                            } else if state == PgsqlStateProgress::CommandCompletedReceived
+                                && tx.get_row_cnt() > 0
+                            {
+                                // let's summarize the info from the data_rows in one response
+                                let dummy_resp = PgsqlBEMessage::ConsolidatedDataRow(
+                                    ConsolidatedDataRowPacket {
+                                        identifier: b'D',
+                                        row_cnt: tx.get_row_cnt(),
+                                        data_size: tx.data_size, // total byte count of all data_row messages combined
+                                    },
+                                );
+                                tx.responses.push(dummy_resp);
+                                tx.responses.push(response);
+                            } else {
+                                tx.responses.push(response);
+                                if Self::response_is_complete(state) {
+                                    tx.tx_req_state = PgsqlTxProgress::TxDone;
+                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                        flow,
+                                        Direction::ToClient as i32,
+                                    );
+                                }
                             }
                         }
                     } else {
@@ -549,15 +598,30 @@ fn probe_tc(input: &[u8]) -> bool {
     false
 }
 
+fn pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> PgsqlTxProgress {
+    let tx_safe: &mut PgsqlTransaction;
+    unsafe {
+        tx_safe = cast_pointer!(tx, PgsqlTransaction);
+    }
+    tx_safe.tx_req_state
+}
+
+fn pgsql_tx_get_res_state(tx: *mut std::os::raw::c_void) -> PgsqlTxProgress {
+    let tx_safe: &mut PgsqlTransaction;
+    unsafe {
+        tx_safe = cast_pointer!(tx, PgsqlTransaction);
+    }
+    tx_safe.tx_res_state
+}
+
 // C exports.
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
+pub unsafe extern "C" fn SCPgsqlProbingParserTS(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
@@ -580,11 +644,10 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
+pub unsafe extern "C" fn SCPgsqlProbingParserTC(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
@@ -610,7 +673,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_new(
+pub extern "C" fn SCPgsqlStateNew(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = PgsqlState::new();
@@ -619,13 +682,13 @@ pub extern "C" fn rs_pgsql_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_free(state: *mut std::os::raw::c_void) {
+pub extern "C" fn SCPgsqlStateFree(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut PgsqlState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub extern "C" fn SCPgsqlStateTxFree(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -634,7 +697,7 @@ pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_request(
+pub unsafe extern "C" fn SCPgsqlParseRequest(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -647,7 +710,6 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
         }
     }
 
-
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
     if stream_slice.is_gap() {
@@ -659,7 +721,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_response(
+pub unsafe extern "C" fn SCPgsqlParseResponse(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -682,7 +744,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_state_get_tx(
+pub unsafe extern "C" fn SCPgsqlStateGetTx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
@@ -697,7 +759,7 @@ pub unsafe extern "C" fn rs_pgsql_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub extern "C" fn SCPgsqlStateGetTxCount(state: *mut std::os::raw::c_void) -> u64 {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -706,19 +768,15 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
-    let tx_safe: &mut PgsqlTransaction;
-    unsafe {
-        tx_safe = cast_pointer!(tx, PgsqlTransaction);
-    }
-    return tx_safe.tx_state;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void, _direction: u8,
+pub unsafe extern "C" fn SCPgsqlTxGetALStateProgress(
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_pgsql_tx_get_state(tx) as i32;
+    if direction == Direction::ToServer as u8 {
+        return pgsql_tx_get_req_state(tx) as i32;
+    }
+
+    // Direction has only two possible values, so we don't need to check for the other one
+    pgsql_tx_get_res_state(tx) as i32
 }
 
 export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
@@ -728,27 +786,27 @@ export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
 const PARSER_NAME: &[u8] = b"pgsql\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_register_parser() {
+pub unsafe extern "C" fn SCRegisterPgsqlParser() {
     let default_port = CString::new("[5432]").unwrap();
     let mut stream_depth = PGSQL_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_pgsql_probing_parser_ts),
-        probe_tc: Some(rs_pgsql_probing_parser_tc),
+        probe_ts: Some(SCPgsqlProbingParserTS),
+        probe_tc: Some(SCPgsqlProbingParserTC),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_pgsql_state_new,
-        state_free: rs_pgsql_state_free,
-        tx_free: rs_pgsql_state_tx_free,
-        parse_ts: rs_pgsql_parse_request,
-        parse_tc: rs_pgsql_parse_response,
-        get_tx_count: rs_pgsql_state_get_tx_count,
-        get_tx: rs_pgsql_state_get_tx,
-        tx_comp_st_ts: PgsqlTransactionState::RequestReceived as i32,
-        tx_comp_st_tc: PgsqlTransactionState::ResponseDone as i32,
-        tx_get_progress: rs_pgsql_tx_get_alstate_progress,
+        state_new: SCPgsqlStateNew,
+        state_free: SCPgsqlStateFree,
+        tx_free: SCPgsqlStateTxFree,
+        parse_ts: SCPgsqlParseRequest,
+        parse_tc: SCPgsqlParseResponse,
+        get_tx_count: SCPgsqlStateGetTxCount,
+        get_tx: SCPgsqlStateGetTx,
+        tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
+        tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
+        tx_get_progress: SCPgsqlTxGetALStateProgress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,

@@ -884,6 +884,9 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
+    /* maximum number of times a tx will get logged for a stream-only rule match */
+    uint8_t stream_tx_log_limit;
+
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;
 
@@ -971,8 +974,8 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *dport_hash_table;
 
-    DetectPort *tcp_whitelist;
-    DetectPort *udp_whitelist;
+    DetectPort *tcp_priorityports;
+    DetectPort *udp_priorityports;
 
     /** table for storing the string representation with the parsers result */
     HashListTable *address_table;
@@ -1590,11 +1593,6 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
 
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
-
-void AlertQueueInit(DetectEngineThreadCtx *det_ctx);
-void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
-void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
-        uint8_t alert_flags);
 
 int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 

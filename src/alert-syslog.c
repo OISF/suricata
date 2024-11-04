@@ -87,6 +87,8 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  */
 static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 {
+    SCLogWarning("The syslog output has been deprecated and will be removed in Suricata 9.0.");
+
     OutputInitResult result = { NULL, false };
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
@@ -382,8 +384,8 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 void AlertSyslogRegister (void)
 {
 #ifndef OS_WIN32
-    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
-        AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
+    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog", AlertSyslogInitCtx,
+            AlertSyslogLogger, AlertSyslogCondition, AlertSyslogThreadInit,
+            AlertSyslogThreadDeinit);
 #endif /* !OS_WIN32 */
 }

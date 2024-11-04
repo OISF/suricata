@@ -734,7 +734,6 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
 void JsonFileLogRegister (void)
 {
     /* register as child of eve-log */
-    OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog",
-        "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
-        JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
+    OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog", "eve-log.files",
+            OutputFileLogInitSub, JsonFileLogger, JsonFileLogThreadInit, JsonFileLogThreadDeinit);
 }

@@ -450,13 +450,11 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
 
 void JsonAnomalyLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyLogger,
-        JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME, "eve-log.anomaly",
+            JsonAnomalyLogInitCtxSub, JsonAnomalyLogger, JsonAnomalyLogCondition,
+            JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit);
 
-    OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN,
-        JsonAnomalyTxLogger, JsonAnomalyLogThreadInit,
-        JsonAnomalyLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME, "eve-log.anomaly",
+            JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN, JsonAnomalyTxLogger,
+            JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit);
 }

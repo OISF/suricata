@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,34 +42,30 @@ bool g_file_logger_enabled = false;
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFileLogger_ {
-    FileLogger LogFunc;
-    OutputCtx *output_ctx;
+    SCFileLogger LogFunc;
+    void *initdata;
     struct OutputFileLogger_ *next;
     const char *name;
     LoggerId logger_id;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputFileLogger;
 
 static OutputFileLogger *list = NULL;
 
-int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int SCOutputRegisterFileLogger(LoggerId id, const char *name, SCFileLogger LogFunc, void *initdata,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFileLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -186,7 +182,7 @@ TmEcode OutputFileLogThreadInit(ThreadVars *tv, OutputFileLoggerThreadData **dat
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 

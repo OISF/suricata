@@ -26,12 +26,6 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "threads.h"
-
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -40,21 +34,13 @@
 #include "app-layer-frames.h"
 #include "app-layer-ssl.h"
 
-#include "decode-events.h"
 #include "conf.h"
 
 #include "feature.h"
 
-#include "util-spm.h"
-#include "util-unittest.h"
 #include "util-debug.h"
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-byte.h"
 #include "util-ja3.h"
 #include "util-enum.h"
-#include "flow-util.h"
-#include "flow-private.h"
 #include "util-validate.h"
 
 SCEnumCharMap tls_frame_table[] = {
@@ -856,7 +842,8 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         goto invalid_length;
     }
 
-    const bool enable_ja3 = SC_ATOMIC_GET(ssl_config.enable_ja3);
+    const bool enable_ja3 =
+            SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL;
 
     if (enable_ja3 || SC_ATOMIC_GET(ssl_config.enable_ja4)) {
         JA3Buffer *ja3_cipher_suites = NULL;
@@ -1120,8 +1107,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
     if (!(HAS_SPACE(elliptic_curves_len)))
         goto invalid_length;
 
-    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) && ja3_elliptic_curves) {
         uint16_t ec_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_processed_len < elliptic_curves_len)
@@ -1177,8 +1163,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
     if (!(HAS_SPACE(ec_pf_len)))
         goto invalid_length;
 
-    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) && ja3_elliptic_curves_pf) {
         uint8_t ec_pf_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_pf_processed_len < ec_pf_len)
@@ -1336,7 +1321,9 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
     int ret;
     int rc;
-    const bool ja3 = (SC_ATOMIC_GET(ssl_config.enable_ja3) == 1);
+    // if ja3_hash is already computed, do not use new hello to augment ja3_str
+    const bool ja3 =
+            (SC_ATOMIC_GET(ssl_config.enable_ja3) == 1) && ssl_state->curr_connp->ja3_hash == NULL;
 
     JA3Buffer *ja3_extensions = NULL;
     JA3Buffer *ja3_elliptic_curves = NULL;
@@ -2993,25 +2980,18 @@ static const char *SSLStateGetFrameNameById(const uint8_t frame_id)
     return name;
 }
 
-static int SSLStateGetEventInfo(const char *event_name,
-                         int *event_id, AppLayerEventType *event_type)
+static int SSLStateGetEventInfo(
+        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError("event \"%s\" not present in "
-                   "ssl's enum map table.",
-                event_name);
-        /* yes this is fatal */
-        return -1;
+    if (SCAppLayerGetEventIdByName(event_name, tls_decoder_event_table, event_id) == 0) {
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
     }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
+    return -1;
 }
 
-static int SSLStateGetEventInfoById(int event_id, const char **event_name,
-                                    AppLayerEventType *event_type)
+static int SSLStateGetEventInfoById(
+        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, tls_decoder_event_table);
     if (*event_name == NULL) {

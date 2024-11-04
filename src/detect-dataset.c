@@ -40,6 +40,12 @@
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-conf.h"
+#include "util-validate.h"
+
+#define DETECT_DATASET_CMD_SET      0
+#define DETECT_DATASET_CMD_UNSET    1
+#define DETECT_DATASET_CMD_ISNOTSET 2
+#define DETECT_DATASET_CMD_ISSET    3
 
 int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -91,8 +97,14 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
                 return 1;
             break;
         }
+        case DETECT_DATASET_CMD_UNSET: {
+            int r = DatasetRemove(sd->set, data, data_len);
+            if (r == 1)
+                return 1;
+            break;
+        }
         default:
-            abort();
+            DEBUG_VALIDATE_BUG_ON("unknown dataset command");
     }
     return 0;
 }

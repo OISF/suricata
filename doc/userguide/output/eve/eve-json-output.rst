@@ -41,10 +41,18 @@ Output types::
       #  server: 127.0.0.1
       #  port: 6379
       #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish
+      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish, xadd|stream
       #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
       #             ## publish is using a Redis channel. "channel" is an alias for publish
-      #  key: suricata ## key or channel to use (default to suricata)
+      #             ## xadd is using a Redis stream. "stream" is an alias for xadd
+      #  key: suricata ## string denoting the key/channel/stream to use (default to suricata)
+      #  stream-maxlen: 100000        ## Automatically trims the stream length to at most
+                                      ## this number of events. Set to 0 to disable trimming.
+                                      ## Only used when mode is set to xadd/stream.
+      #  stream-trim-exact: false     ## Trim exactly to the maximum stream length above.
+                                      ## Default: use inexact trimming (inexact by a few
+                                      ## tens of items)
+                                      ## Only used when mode is set to xadd/stream.
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
       # connection at the cost of some memory. There is no flushing implemented
@@ -88,6 +96,9 @@ Metadata::
 
                 # Log the raw rule text.
                 #raw: false
+
+                # Include the rule reference information
+                #reference: false
 
 Anomaly
 ~~~~~~~
@@ -270,6 +281,7 @@ The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
+**Note that this will disable ``extended`` logging.**
 
 ARP
 ~~~

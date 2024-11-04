@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,10 +19,10 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-base64-decode.h"
-#include "util-base64.h"
 #include "util-byte.h"
 #include "util-print.h"
 #include "detect-engine-build.h"
+#include "rust.h"
 
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
@@ -67,7 +67,6 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
     DetectBase64Decode *data = (DetectBase64Decode *)smd->ctx;
-    int decode_len;
 
 #if 0
     printf("Input data:\n");
@@ -76,6 +75,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 
     if (data->relative) {
         payload += det_ctx->buffer_offset;
+        DEBUG_VALIDATE_BUG_ON(det_ctx->buffer_offset > payload_len);
         payload_len -= det_ctx->buffer_offset;
     }
 
@@ -87,19 +87,18 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
         payload_len -= data->offset;
     }
 
-    decode_len = MIN(payload_len, data->bytes);
-
+    uint32_t decode_len = MIN(payload_len, data->bytes);
 #if 0
     printf("Decoding:\n");
     PrintRawDataFp(stdout, payload, decode_len);
 #endif
 
-    uint32_t consumed = 0, num_decoded = 0;
-    (void)DecodeBase64(det_ctx->base64_decoded, det_ctx->base64_decoded_len_max, payload,
-            decode_len, &consumed, &num_decoded, Base64ModeRFC4648);
-    det_ctx->base64_decoded_len = num_decoded;
-    SCLogDebug("Decoded %d bytes from base64 data.",
-        det_ctx->base64_decoded_len);
+    if (decode_len > 0) {
+        uint32_t num_decoded =
+                Base64Decode(payload, decode_len, Base64ModeRFC4648, det_ctx->base64_decoded);
+        det_ctx->base64_decoded_len = num_decoded;
+        SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
+    }
 #if 0
     if (det_ctx->base64_decoded_len) {
         printf("Decoded data:\n");

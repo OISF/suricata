@@ -65,7 +65,7 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, vo
 void LogHttpLogRegister (void)
 {
     OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log", LogHttpLogInitCtx, ALPROTO_HTTP1,
-            LogHttpLogger, LogHttpLogThreadInit, LogHttpLogThreadDeinit, NULL);
+            LogHttpLogger, LogHttpLogThreadInit, LogHttpLogThreadDeinit);
 }
 
 #define LOG_HTTP_CF_REQUEST_HOST 'h'
@@ -547,6 +547,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
  * */
 OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
 {
+    SCLogWarning("The http-log output has been deprecated and will be removed in Suricata 9.0.");
     OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {

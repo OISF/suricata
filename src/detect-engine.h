@@ -74,7 +74,6 @@ bool DetectEngineBufferTypeSupportsMultiInstanceGetById(
         const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsFramesGetById(const DetectEngineCtx *de_ctx, const int id);
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
-const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 int DetectEngineBufferTypeGetByIdTransforms(
         DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt);
 void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int id, Signature *s);
@@ -191,8 +190,6 @@ void DetectEngineSetParseMetadata(void);
 void DetectEngineUnsetParseMetadata(void);
 int DetectEngineMustParseMetadata(void);
 
-SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
-SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
 bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id);
 
 int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);

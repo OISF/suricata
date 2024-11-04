@@ -93,10 +93,10 @@ typedef struct AppLayerParserProtoCtx_
     AppLayerGetTxIteratorFunc StateGetTxIterator;
     int complete_ts;
     int complete_tc;
-    int (*StateGetEventInfoById)(int event_id, const char **event_name,
-                                 AppLayerEventType *event_type);
-    int (*StateGetEventInfo)(const char *event_name,
-                             int *event_id, AppLayerEventType *event_type);
+    int (*StateGetEventInfoById)(
+            uint8_t event_id, const char **event_name, AppLayerEventType *event_type);
+    int (*StateGetEventInfo)(
+            const char *event_name, uint8_t *event_id, AppLayerEventType *event_type);
 
     AppLayerStateData *(*GetStateData)(void *state);
     AppLayerTxData *(*GetTxData)(void *tx);
@@ -531,8 +531,8 @@ void AppLayerParserRegisterStateProgressCompletionStatus(
 }
 
 void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
-    int (*StateGetEventInfoById)(int event_id, const char **event_name,
-                                 AppLayerEventType *event_type))
+        int (*StateGetEventInfoById)(
+                uint8_t event_id, const char **event_name, AppLayerEventType *event_type))
 {
     SCEnter();
 
@@ -553,8 +553,8 @@ void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
 }
 
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
-    int (*StateGetEventInfo)(const char *event_name, int *event_id,
-                             AppLayerEventType *event_type))
+        int (*StateGetEventInfo)(
+                const char *event_name, uint8_t *event_id, AppLayerEventType *event_type))
 {
     SCEnter();
 
@@ -1100,7 +1100,7 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
-                    int *event_id, AppLayerEventType *event_type)
+        uint8_t *event_id, AppLayerEventType *event_type)
 {
     SCEnter();
     const int ipproto_map = FlowGetProtoMapping(ipproto);
@@ -1109,8 +1109,8 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
     SCReturnInt(r);
 }
 
-int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_id,
-                    const char **event_name, AppLayerEventType *event_type)
+int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, uint8_t event_id,
+        const char **event_name, AppLayerEventType *event_type)
 {
     SCEnter();
     const int ipproto_map = FlowGetProtoMapping(ipproto);
@@ -1210,7 +1210,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
     if (((direction == 0 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TS) == 0) ||
                 (direction == 1 && (pstate->flags & APP_LAYER_PARSER_SFRAME_TC) == 0)) &&
             input != NULL && f->proto == IPPROTO_TCP) {
-        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        Frame *frame = AppLayerFrameGetLastOpenByType(f, direction, FRAME_STREAM_TYPE);
         if (frame == NULL) {
             int64_t frame_len = -1;
             if (flags & STREAM_EOF)
@@ -1231,7 +1231,7 @@ static void HandleStreamFrames(Flow *f, StreamSlice stream_slice, const uint8_t 
             }
         }
     } else if (flags & STREAM_EOF) {
-        Frame *frame = AppLayerFrameGetById(f, direction, FRAME_STREAM_ID);
+        Frame *frame = AppLayerFrameGetLastOpenByType(f, direction, FRAME_STREAM_TYPE);
         SCLogDebug("EOF closing: frame %p", frame);
         if (frame) {
             /* calculate final frame length */
@@ -1727,7 +1727,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_template_register_parser();
     SCRfbRegisterParser();
     SCMqttRegisterParser();
-    rs_pgsql_register_parser();
+    SCRegisterPgsqlParser();
     rs_rdp_register_parser();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
@@ -1768,60 +1768,6 @@ uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
-static AppLayerParserCtx alp_ctx_backup_unittest;
-
-typedef struct TestState_ {
-    uint8_t test;
-} TestState;
-
-/**
- *  \brief  Test parser function to test the memory deallocation of app layer
- *          parser of occurrence of an error.
- */
-static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
-{
-    SCEnter();
-    SCReturnStruct(APP_LAYER_ERROR);
-}
-
-/** \brief Function to allocates the Test protocol state memory
- */
-static void *TestProtocolStateAlloc(void *orig_state, AppProto proto_orig)
-{
-    SCEnter();
-    void *s = SCMalloc(sizeof(TestState));
-    if (unlikely(s == NULL))
-        goto end;
-    memset(s, 0, sizeof(TestState));
- end:
-    SCReturnPtr(s, "TestState");
-}
-
-/** \brief Function to free the Test Protocol state memory
- */
-static void TestProtocolStateFree(void *s)
-{
-    SCFree(s);
-}
-
-static uint64_t TestGetTxCnt(void *state)
-{
-    /* single tx */
-    return 1;
-}
-
-static void TestStateTransactionFree(void *state, uint64_t tx_id)
-{
-    /* do nothing */
-}
-
-static void *TestGetTx(void *state, uint64_t tx_id)
-{
-    TestState *test_state = (TestState *)state;
-    return test_state;
-}
-
 void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
                                   void (*RegisterUnittests)(void))
 {
@@ -1830,109 +1776,6 @@ void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
         RegisterUnittests = RegisterUnittests;
     SCReturn;
 }
-
-void AppLayerParserBackupParserTable(void)
-{
-    SCEnter();
-    alp_ctx_backup_unittest = alp_ctx;
-    memset(&alp_ctx, 0, sizeof(alp_ctx));
-    SCReturn;
-}
-
-void AppLayerParserRestoreParserTable(void)
-{
-    SCEnter();
-    alp_ctx = alp_ctx_backup_unittest;
-    memset(&alp_ctx_backup_unittest, 0, sizeof(alp_ctx_backup_unittest));
-    SCReturn;
-}
-
-/**
- * \test Test the deallocation of app layer parser memory on occurrence of
- *       error in the parsing process.
- */
-static int AppLayerParserTest01(void)
-{
-    AppLayerParserBackupParserTable();
-
-    Flow *f = NULL;
-    uint8_t testbuf[] = { 0x11 };
-    uint32_t testlen = sizeof(testbuf);
-    TcpSession ssn;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&ssn, 0, sizeof(ssn));
-
-    /* Register the Test protocol state and parser functions */
-    AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TEST, STREAM_TOSERVER, TestProtocolParser);
-    AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TEST,
-                          TestProtocolStateAlloc, TestProtocolStateFree);
-    AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEST, TestStateTransactionFree);
-    AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEST, TestGetTx);
-    AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestGetTxCnt);
-
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    FAIL_IF_NULL(f);
-    f->protoctx = &ssn;
-    f->alproto = ALPROTO_TEST;
-    f->proto = IPPROTO_TCP;
-
-    StreamTcpInitConfig(true);
-
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
-                                STREAM_TOSERVER | STREAM_EOF, testbuf,
-                                testlen);
-    FAIL_IF(r != -1);
-
-    FAIL_IF(!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
-
-    AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(true);
-    UTHFreeFlow(f);
-    PASS;
-}
-
-/**
- * \test Test the deallocation of app layer parser memory on occurrence of
- *       error in the parsing process for UDP.
- */
-static int AppLayerParserTest02(void)
-{
-    AppLayerParserBackupParserTable();
-
-    Flow *f = NULL;
-    uint8_t testbuf[] = { 0x11 };
-    uint32_t testlen = sizeof(testbuf);
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    /* Register the Test protocol state and parser functions */
-    AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TEST, STREAM_TOSERVER,
-                      TestProtocolParser);
-    AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TEST,
-                          TestProtocolStateAlloc, TestProtocolStateFree);
-    AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TEST, TestStateTransactionFree);
-    AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TEST, TestGetTx);
-    AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestGetTxCnt);
-
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
-    FAIL_IF_NULL(f);
-    f->alproto = ALPROTO_TEST;
-    f->proto = IPPROTO_UDP;
-    f->protomap = FlowGetProtoMapping(f->proto);
-
-    StreamTcpInitConfig(true);
-
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
-                                STREAM_TOSERVER | STREAM_EOF, testbuf,
-                                testlen);
-    FAIL_IF(r != -1);
-
-    AppLayerParserRestoreParserTable();
-    StreamTcpFreeConfig(true);
-    UTHFreeFlow(f);
-    PASS;
-}
-
 
 void AppLayerParserRegisterUnittests(void)
 {
@@ -1950,9 +1793,6 @@ void AppLayerParserRegisterUnittests(void)
             ctx->RegisterUnittests();
         }
     }
-
-    UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01);
-    UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02);
 
     SCReturn;
 }

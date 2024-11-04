@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,81 +24,101 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-time.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
 #include "app-layer-parser.h"
-#include "output.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-
-#include "util-logopenfile.h"
+#include "conf.h"
+#include "output-json-tls.h"
+#include "output-json.h"
+#include "output.h"
+#include "threadvars.h"
+#include "util-debug.h"
 #include "util-ja3.h"
 #include "util-ja4.h"
+#include "util-time.h"
 
-#include "output-json.h"
-#include "output-json-tls.h"
-
-SC_ATOMIC_EXTERN(unsigned int, cert_id);
-
-#define LOG_TLS_DEFAULT                 0
-#define LOG_TLS_EXTENDED                (1 << 0)
-#define LOG_TLS_CUSTOM                  (1 << 1)
-#define LOG_TLS_SESSION_RESUMPTION      (1 << 2)
-
-#define LOG_TLS_FIELD_VERSION           (1 << 0)
-#define LOG_TLS_FIELD_SUBJECT           (1 << 1)
-#define LOG_TLS_FIELD_ISSUER            (1 << 2)
-#define LOG_TLS_FIELD_SERIAL            (1 << 3)
-#define LOG_TLS_FIELD_FINGERPRINT       (1 << 4)
-#define LOG_TLS_FIELD_NOTBEFORE         (1 << 5)
-#define LOG_TLS_FIELD_NOTAFTER          (1 << 6)
-#define LOG_TLS_FIELD_SNI               (1 << 7)
-#define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
-#define LOG_TLS_FIELD_CHAIN             (1 << 9)
-#define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
-#define LOG_TLS_FIELD_JA3               (1 << 11)
-#define LOG_TLS_FIELD_JA3S              (1 << 12)
-#define LOG_TLS_FIELD_CLIENT            (1 << 13) /**< client fields (issuer, subject, etc) */
-#define LOG_TLS_FIELD_CLIENT_CERT       (1 << 14)
-#define LOG_TLS_FIELD_CLIENT_CHAIN      (1 << 15)
-#define LOG_TLS_FIELD_JA4               (1 << 16)
-#define LOG_TLS_FIELD_SUBJECTALTNAME    (1 << 17)
+#define LOG_TLS_FIELD_VERSION         BIT_U64(0)
+#define LOG_TLS_FIELD_SUBJECT         BIT_U64(1)
+#define LOG_TLS_FIELD_ISSUER          BIT_U64(2)
+#define LOG_TLS_FIELD_SERIAL          BIT_U64(3)
+#define LOG_TLS_FIELD_FINGERPRINT     BIT_U64(4)
+#define LOG_TLS_FIELD_NOTBEFORE       BIT_U64(5)
+#define LOG_TLS_FIELD_NOTAFTER        BIT_U64(6)
+#define LOG_TLS_FIELD_SNI             BIT_U64(7)
+#define LOG_TLS_FIELD_CERTIFICATE     BIT_U64(8)
+#define LOG_TLS_FIELD_CHAIN           BIT_U64(9)
+#define LOG_TLS_FIELD_SESSION_RESUMED BIT_U64(10)
+#define LOG_TLS_FIELD_JA3             BIT_U64(11)
+#define LOG_TLS_FIELD_JA3S            BIT_U64(12)
+#define LOG_TLS_FIELD_CLIENT          BIT_U64(13) /**< client fields (issuer, subject, etc) */
+#define LOG_TLS_FIELD_CLIENT_CERT     BIT_U64(14)
+#define LOG_TLS_FIELD_CLIENT_CHAIN    BIT_U64(15)
+#define LOG_TLS_FIELD_JA4             BIT_U64(16)
+#define LOG_TLS_FIELD_SUBJECTALTNAME  BIT_U64(17)
+#define LOG_TLS_FIELD_CLIENT_ALPNS    BIT_U64(18)
+#define LOG_TLS_FIELD_SERVER_ALPNS    BIT_U64(19)
 
 typedef struct {
     const char *name;
     uint64_t flag;
 } TlsFields;
 
-TlsFields tls_fields[] = { { "version", LOG_TLS_FIELD_VERSION },
-    { "subject", LOG_TLS_FIELD_SUBJECT }, { "issuer", LOG_TLS_FIELD_ISSUER },
-    { "serial", LOG_TLS_FIELD_SERIAL }, { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
-    { "not_before", LOG_TLS_FIELD_NOTBEFORE }, { "not_after", LOG_TLS_FIELD_NOTAFTER },
-    { "sni", LOG_TLS_FIELD_SNI }, { "certificate", LOG_TLS_FIELD_CERTIFICATE },
-    { "chain", LOG_TLS_FIELD_CHAIN }, { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
-    { "ja3", LOG_TLS_FIELD_JA3 }, { "ja3s", LOG_TLS_FIELD_JA3S },
-    { "client", LOG_TLS_FIELD_CLIENT }, { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
-    { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN }, { "ja4", LOG_TLS_FIELD_JA4 },
-    { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME }, { NULL, -1 } };
+TlsFields tls_fields[] = {
+    // clang-format off
+    { "version", LOG_TLS_FIELD_VERSION },
+    { "subject", LOG_TLS_FIELD_SUBJECT },
+    { "issuer", LOG_TLS_FIELD_ISSUER },
+    { "serial", LOG_TLS_FIELD_SERIAL },
+    { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
+    { "not_before", LOG_TLS_FIELD_NOTBEFORE },
+    { "not_after", LOG_TLS_FIELD_NOTAFTER },
+    { "sni", LOG_TLS_FIELD_SNI },
+    { "certificate", LOG_TLS_FIELD_CERTIFICATE },
+    { "chain", LOG_TLS_FIELD_CHAIN },
+    { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { "ja3", LOG_TLS_FIELD_JA3 },
+    { "ja3s", LOG_TLS_FIELD_JA3S },
+    { "client", LOG_TLS_FIELD_CLIENT },
+    { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
+    { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN },
+    { "ja4", LOG_TLS_FIELD_JA4 },
+    { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
+    { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
+    { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
+    { NULL, -1 },
+    // clang-format on
+};
+
+// clang-format off
+#define BASIC_FIELDS                            \
+    (LOG_TLS_FIELD_SUBJECT |                    \
+     LOG_TLS_FIELD_ISSUER |                     \
+     LOG_TLS_FIELD_SUBJECTALTNAME)
+// clang-format on
+
+// clang-format off
+#define EXTENDED_FIELDS                         \
+    (BASIC_FIELDS |                             \
+     LOG_TLS_FIELD_VERSION |                    \
+     LOG_TLS_FIELD_SERIAL |                     \
+     LOG_TLS_FIELD_FINGERPRINT |                \
+     LOG_TLS_FIELD_NOTBEFORE |                  \
+     LOG_TLS_FIELD_NOTAFTER |                   \
+     LOG_TLS_FIELD_JA3 |                        \
+     LOG_TLS_FIELD_JA3S |                       \
+     LOG_TLS_FIELD_JA4 |                        \
+     LOG_TLS_FIELD_CLIENT |                     \
+     LOG_TLS_FIELD_CLIENT_ALPNS |               \
+     LOG_TLS_FIELD_SERVER_ALPNS |               \
+     LOG_TLS_FIELD_SNI)
+// clang-format on
 
 typedef struct OutputTlsCtx_ {
-    uint32_t flags;  /** Store mode */
     uint64_t fields; /** Store fields */
+    bool session_resumed;
     OutputJsonCtx *eve_ctx;
 } OutputTlsCtx;
-
 
 typedef struct JsonTlsLogThread_ {
     OutputTlsCtx *tlslog_ctx;
@@ -354,87 +374,79 @@ static void JsonTlsLogClientCert(
     }
 }
 
-void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state)
+static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
-    JsonTlsLogSubject(js, ssl_state);
-
-    /* tls issuerdn */
-    JsonTlsLogIssuer(js, ssl_state);
-
-    /* tls subjectaltname */
-    JsonTlsLogSAN(js, ssl_state);
-
-    /* tls session resumption */
-    JsonTlsLogSessionResumed(js, ssl_state);
-}
-
-static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
-                                 SSLState *ssl_state)
-{
-    /* tls subject */
-    if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT)
+    if (fields & LOG_TLS_FIELD_SUBJECT)
         JsonTlsLogSubject(js, ssl_state);
 
     /* tls issuerdn */
-    if (tls_ctx->fields & LOG_TLS_FIELD_ISSUER)
+    if (fields & LOG_TLS_FIELD_ISSUER)
         JsonTlsLogIssuer(js, ssl_state);
 
     /* tls subjectaltname */
-    if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECTALTNAME)
-        JsonTlsLogIssuer(js, ssl_state);
+    if (fields & LOG_TLS_FIELD_SUBJECTALTNAME)
+        JsonTlsLogSAN(js, ssl_state);
 
     /* tls session resumption */
-    if (tls_ctx->fields & LOG_TLS_FIELD_SESSION_RESUMED)
+    if (fields & LOG_TLS_FIELD_SESSION_RESUMED)
         JsonTlsLogSessionResumed(js, ssl_state);
 
     /* tls serial */
-    if (tls_ctx->fields & LOG_TLS_FIELD_SERIAL)
+    if (fields & LOG_TLS_FIELD_SERIAL)
         JsonTlsLogSerial(js, ssl_state);
 
     /* tls fingerprint */
-    if (tls_ctx->fields & LOG_TLS_FIELD_FINGERPRINT)
+    if (fields & LOG_TLS_FIELD_FINGERPRINT)
         JsonTlsLogFingerprint(js, ssl_state);
 
     /* tls sni */
-    if (tls_ctx->fields & LOG_TLS_FIELD_SNI)
+    if (fields & LOG_TLS_FIELD_SNI)
         JsonTlsLogSni(js, ssl_state);
 
     /* tls version */
-    if (tls_ctx->fields & LOG_TLS_FIELD_VERSION)
+    if (fields & LOG_TLS_FIELD_VERSION)
         JsonTlsLogVersion(js, ssl_state);
 
     /* tls notbefore */
-    if (tls_ctx->fields & LOG_TLS_FIELD_NOTBEFORE)
+    if (fields & LOG_TLS_FIELD_NOTBEFORE)
         JsonTlsLogNotBefore(js, ssl_state);
 
     /* tls notafter */
-    if (tls_ctx->fields & LOG_TLS_FIELD_NOTAFTER)
+    if (fields & LOG_TLS_FIELD_NOTAFTER)
         JsonTlsLogNotAfter(js, ssl_state);
 
     /* tls certificate */
-    if (tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE)
+    if (fields & LOG_TLS_FIELD_CERTIFICATE)
         JsonTlsLogCertificate(js, &ssl_state->server_connp);
 
     /* tls chain */
-    if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
+    if (fields & LOG_TLS_FIELD_CHAIN)
         JsonTlsLogChain(js, &ssl_state->server_connp);
 
     /* tls ja3_hash */
-    if (tls_ctx->fields & LOG_TLS_FIELD_JA3)
+    if (fields & LOG_TLS_FIELD_JA3)
         JsonTlsLogJa3(js, ssl_state);
 
     /* tls ja3s */
-    if (tls_ctx->fields & LOG_TLS_FIELD_JA3S)
+    if (fields & LOG_TLS_FIELD_JA3S)
         JsonTlsLogJa3S(js, ssl_state);
 
     /* tls ja4 */
-    if (tls_ctx->fields & LOG_TLS_FIELD_JA4)
+    if (fields & LOG_TLS_FIELD_JA4)
         JsonTlsLogSCJA4(js, ssl_state);
 
-    if (tls_ctx->fields & LOG_TLS_FIELD_CLIENT) {
-        const bool log_cert = (tls_ctx->fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
-        const bool log_chain = (tls_ctx->fields & LOG_TLS_FIELD_CLIENT_CHAIN) != 0;
+    if (fields & LOG_TLS_FIELD_CLIENT_ALPNS) {
+        JsonTlsLogAlpns(js, &ssl_state->client_connp, "client_alpns");
+    }
+
+    if (fields & LOG_TLS_FIELD_SERVER_ALPNS) {
+        JsonTlsLogAlpns(js, &ssl_state->server_connp, "server_alpns");
+    }
+
+    if (fields & LOG_TLS_FIELD_CLIENT) {
+        const bool log_cert = (fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
+        const bool log_chain = (fields & LOG_TLS_FIELD_CLIENT_CHAIN) != 0;
         if (HasClientCert(&ssl_state->client_connp)) {
             jb_open_object(js, "client");
             JsonTlsLogClientCert(js, &ssl_state->client_connp, log_cert, log_chain);
@@ -443,55 +455,12 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
     }
 }
 
-static bool JsonTlsLogJSONExtendedAux(void *vtx, JsonBuilder *tjs)
-{
-    SSLState *state = (SSLState *)vtx;
-    JsonTlsLogJSONBasic(tjs, state);
-
-    /* tls serial */
-    JsonTlsLogSerial(tjs, state);
-
-    /* tls fingerprint */
-    JsonTlsLogFingerprint(tjs, state);
-
-    /* tls sni */
-    JsonTlsLogSni(tjs, state);
-
-    /* tls version */
-    JsonTlsLogVersion(tjs, state);
-
-    /* tls notbefore */
-    JsonTlsLogNotBefore(tjs, state);
-
-    /* tls notafter */
-    JsonTlsLogNotAfter(tjs, state);
-
-    /* tls ja3 */
-    JsonTlsLogJa3(tjs, state);
-
-    /* tls ja3s */
-    JsonTlsLogJa3S(tjs, state);
-
-    /* tls ja4 */
-    JsonTlsLogSCJA4(tjs, state);
-
-    JsonTlsLogAlpns(tjs, &state->client_connp, "client_alpns");
-    JsonTlsLogAlpns(tjs, &state->server_connp, "server_alpns");
-
-    if (HasClientCert(&state->client_connp)) {
-        jb_open_object(tjs, "client");
-        JsonTlsLogClientCert(tjs, &state->client_connp, false, false);
-        jb_close(tjs);
-    }
-    return true;
-}
-
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
 {
+    SSLState *state = (SSLState *)vtx;
     jb_open_object(tjs, "tls");
-    bool r = JsonTlsLogJSONExtendedAux(vtx, tjs);
-    jb_close(tjs);
-    return r;
+    JsonTlsLogFields(tjs, state, EXTENDED_FIELDS);
+    return jb_close(tjs);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
@@ -506,9 +475,9 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL) &&
+                ssl_state->server_connp.cert0_subject == NULL) &&
             ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
-            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0) &&
+                    (!tls_ctx->session_resumed)) &&
             ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
@@ -520,18 +489,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     jb_open_object(js, "tls");
 
-    /* log custom fields */
-    if (tls_ctx->flags & LOG_TLS_CUSTOM) {
-        JsonTlsLogJSONCustom(tls_ctx, js, ssl_state);
-    }
-    /* log extended */
-    else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        JsonTlsLogJSONExtendedAux(ssl_state, js);
-    }
-    /* log basic */
-    else {
-        JsonTlsLogJSONBasic(js, ssl_state);
-    }
+    JsonTlsLogFields(js, ssl_state, tls_ctx->fields);
 
     /* print original application level protocol when it have been changed
        because of STARTTLS, HTTP CONNECT, or similar. */
@@ -594,12 +552,12 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
 
 static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
 {
-    OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
+    OutputTlsCtx *tls_ctx = SCCalloc(1, sizeof(OutputTlsCtx));
     if (unlikely(tls_ctx == NULL))
         return NULL;
 
-    tls_ctx->flags = LOG_TLS_DEFAULT;
-    tls_ctx->fields = 0;
+    tls_ctx->fields = BASIC_FIELDS;
+    tls_ctx->session_resumed = false;
 
     if (conf == NULL)
         return tls_ctx;
@@ -607,13 +565,13 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
     if (extended) {
         if (ConfValIsTrue(extended)) {
-            tls_ctx->flags = LOG_TLS_EXTENDED;
+            tls_ctx->fields = EXTENDED_FIELDS;
         }
     }
 
     ConfNode *custom = ConfNodeLookupChild(conf, "custom");
     if (custom) {
-        tls_ctx->flags = LOG_TLS_CUSTOM;
+        tls_ctx->fields = 0;
         ConfNode *field;
         TAILQ_FOREACH(field, &custom->head, next)
         {
@@ -635,14 +593,8 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
 
     const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
     if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
-        tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
-    }
-
-    if ((tls_ctx->fields & LOG_TLS_FIELD_JA3) &&
-            Ja3IsDisabled("fields")) {
-        /* JA3 is disabled, so don't log any JA3 fields */
-        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3;
-        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3S;
+        tls_ctx->fields |= LOG_TLS_FIELD_SESSION_RESUMED;
+        tls_ctx->session_resumed = true;
     }
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
@@ -718,5 +670,5 @@ void JsonTlsLogRegister (void)
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",
             OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
-            JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
+            JsonTlsLogThreadInit, JsonTlsLogThreadDeinit);
 }

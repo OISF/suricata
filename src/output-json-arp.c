@@ -105,7 +105,7 @@ void JsonArpLogRegister(void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_ARP, "eve-log", "JsonArpLog", "eve-log.arp",
             OutputJsonLogInitSub, JsonArpLogger, JsonArpLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            JsonLogThreadDeinit);
 
     SCLogDebug("ARP JSON logger registered.");
 }

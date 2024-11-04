@@ -511,9 +511,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 void OutputFilestoreRegister(void)
 {
     OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
-            OutputFilestoreLogInitCtx, OutputFilestoreLogger,
-            OutputFilestoreLogThreadInit, OutputFilestoreLogThreadDeinit,
-            NULL);
+            OutputFilestoreLogInitCtx, OutputFilestoreLogger, OutputFilestoreLogThreadInit,
+            OutputFilestoreLogThreadDeinit);
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);

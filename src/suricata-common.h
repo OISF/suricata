@@ -491,8 +491,14 @@ typedef enum {
     LOGGER_JSON_METADATA,
     LOGGER_JSON_FRAME,
     LOGGER_JSON_STREAM,
-    LOGGER_SIZE,
     LOGGER_JSON_ARP,
+
+    /* An ID that can be used by loggers registered by plugins and/or
+     * library users. */
+    LOGGER_USER,
+
+    /* Must come last. */
+    LOGGER_SIZE,
 } LoggerId;
 
 /* If we don't have Lua, create a typedef for lua_State so the

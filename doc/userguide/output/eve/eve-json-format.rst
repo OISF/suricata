@@ -1889,7 +1889,7 @@ Fields
 * "client_protocol_version.major", "client_protocol_version.minor": The RFB protocol version agreed by the client.
 * "authentication.security_type": Security type agreed upon in the logged transaction, e.g. ``2`` is VNC auth.
 * "authentication.vnc.challenge", "authentication.vnc.response": Only available when security type 2 is used. Contains the challenge and response byte buffers exchanged by the server and client as hex strings.
-* "authentication.security-result": Result of the authentication process (``OK``, ``FAIL`` or ``TOOMANY``).
+* "authentication.security_result": Result of the authentication process (``OK``, ``FAIL`` or ``TOOMANY``).
 * "screen_shared": Boolean value describing whether the client requested screen sharing.
 * "framebuffer": Contains metadata about the initial screen setup process. Only available when the handshake completed this far.
 * "framebuffer.width", "framebuffer.height": Screen size as offered by the server.
@@ -1919,7 +1919,7 @@ Example of RFB logging, with full VNC style authentication parameters:
         "challenge": "0805b790b58e967f2b350a0c99de3881",
         "response": "aecb26faeaaa62179636a5934bac1078"
       },
-      "security-result": "OK"
+      "security_result": "OK"
     },
     "screen_shared": false,
     "framebuffer": {
@@ -2682,6 +2682,10 @@ References:
 .. _PostgreSQL message format - BackendKeyData: https://www.postgresql.org/docs
    /current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-BACKENDKEYDATA
 
+Field Reference
+~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/pgsql.rst
 
 Event type: IKE
 ---------------
@@ -2937,6 +2941,11 @@ Example of QUIC logging with CYU, JA3 and JA4 hashes (note that the JA4 hash is 
     "ja4": "q13d0310h3_55b375c5d22e_cd85d2d88918"
   }
 
+Output Reference
+~~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/quic.rst
+
 Event type: DHCP
 -----------------
 
@@ -3048,4 +3057,3 @@ Example of ARP logging: request and response
     "dest_mac": "00:1d:09:f0:92:ab",
     "dest_ip": "10.10.10.1"
   }
-

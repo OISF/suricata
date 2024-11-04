@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,31 +40,33 @@ typedef struct OutputFlowLoggerThreadData_ {
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFlowLogger_ {
     FlowLogger LogFunc;
-    OutputCtx *output_ctx;
+
+    /** Data that will be passed to the ThreadInit callback. */
+    void *initdata;
+
     struct OutputFlowLogger_ *next;
+
+    /** A name for this logger, used for debugging only. */
     const char *name;
+
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
-    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputFlowLogger;
 
 static OutputFlowLogger *list = NULL;
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int SCOutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->output_ctx = output_ctx;
+    op->initdata = initdata;
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -88,8 +90,6 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 
     if (list == NULL)
         return TM_ECODE_OK;
-
-    FlowSetEndFlags(f);
 
     OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     OutputFlowLogger *logger = list;
@@ -120,7 +120,7 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 /** \brief thread init for the flow logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data)
 {
     OutputFlowLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
@@ -134,7 +134,7 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->initdata, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
 

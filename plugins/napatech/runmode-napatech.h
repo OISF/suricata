@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Open Information Security Foundation
+/* Copyright (C) 2012-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,14 +16,25 @@
  */
 
 /**
- * \file
+ *  \file
  *
- * \author FirstName LastName <yourname@domain>
+ *  \autor nPulse Technologies, LLC.
+ *  \author Matt Keeler <mk@npulsetech.com>
  */
 
-#ifndef SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H
-#define SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H
+#ifndef SURICATA_RUNMODE_NAPATECH_H
+#define SURICATA_RUNMODE_NAPATECH_H
 
-void DetectTemplateRustBufferRegister(void);
+#include <nt.h>
 
-#endif /* SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H */
+int RunModeNapatechWorkers(void);
+void RunModeNapatechRegister(int slot);
+const char *RunModeNapatechGetDefaultMode(void);
+
+uint16_t NapatechGetNumConfiguredStreams(void);
+uint16_t NapatechGetNumFirstStream(void);
+uint16_t NapatechGetNumLastStream(void);
+bool NapatechIsAutoConfigEnabled(void);
+bool NapatechUseHWBypass(void);
+
+#endif /* SURICATA_RUNMODE_NAPATECH_H */

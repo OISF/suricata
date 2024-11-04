@@ -287,14 +287,6 @@ extern thread_local int profiling_prefilter_entered;
     (det_ctx)->prefilter_bytes += (bytes);                                                         \
     (det_ctx)->prefilter_bytes_called++
 
-struct SCProfileDetectCtx_;
-void SCProfilingRulesGlobalInit(void);
-void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
-void SCProfilingRuleInitCounters(DetectEngineCtx *);
-void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
-void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
-void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
-
 void SCProfilingKeywordsGlobalInit(void);
 void SCProfilingKeywordDestroyCtx(DetectEngineCtx *);//struct SCProfileKeywordDetectCtx_ *);
 void SCProfilingKeywordInitCounters(DetectEngineCtx *);

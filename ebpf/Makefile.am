@@ -1,5 +1,5 @@
 EXTRA_DIST= include bypass_filter.c filter.c lb.c vlan_filter.c xdp_filter.c \
-	    xdp_lb.c hash_func01.h
+	    xdp_lb.c hash_func01.h llvm_bpfload.h
 
 if BUILD_EBPF
 

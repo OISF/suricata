@@ -233,36 +233,37 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f
     CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
     jb_set_string(jb, "end", timebuf2);
 
-    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
     jb_set_uint(jb, "age", age);
 
     if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)
         JB_SET_TRUE(jb, "emergency");
-    const char *state = NULL;
-    if (f->flow_end_flags & FLOW_END_FLAG_STATE_NEW)
-        state = "new";
-    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_ESTABLISHED)
-        state = "established";
-    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_CLOSED)
-        state = "closed";
-    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
-        state = "bypassed";
-        int flow_state = f->flow_state;
-        switch (flow_state) {
-            case FLOW_STATE_LOCAL_BYPASSED:
-                JB_SET_STRING(jb, "bypass", "local");
-                break;
-#ifdef CAPTURE_OFFLOAD
-            case FLOW_STATE_CAPTURE_BYPASSED:
-                JB_SET_STRING(jb, "bypass", "capture");
-                break;
-#endif
-            default:
-                SCLogError("Invalid flow state: %d, contact developers", flow_state);
-        }
-    }
 
-    jb_set_string(jb, "state", state);
+    const int flow_state = f->flow_state;
+    switch (flow_state) {
+        case FLOW_STATE_NEW:
+            JB_SET_STRING(jb, "state", "new");
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            JB_SET_STRING(jb, "state", "established");
+            break;
+        case FLOW_STATE_CLOSED:
+            JB_SET_STRING(jb, "state", "closed");
+            break;
+        case FLOW_STATE_LOCAL_BYPASSED:
+            JB_SET_STRING(jb, "state", "bypassed");
+            JB_SET_STRING(jb, "bypass", "local");
+            break;
+#ifdef CAPTURE_OFFLOAD
+        case FLOW_STATE_CAPTURE_BYPASSED:
+            JB_SET_STRING(jb, "state", "bypassed");
+            JB_SET_STRING(jb, "bypass", "capture");
+            break;
+#endif
+        case FLOW_STATE_SIZE:
+            DEBUG_VALIDATE_BUG_ON(1);
+            SCLogDebug("invalid flow state: %d, contact developers", flow_state);
+    }
 
     const char *reason = NULL;
     if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
@@ -362,5 +363,5 @@ void JsonFlowLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog", "eve-log.flow",
-            OutputJsonLogInitSub, JsonFlowLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, JsonFlowLogger, JsonLogThreadInit, JsonLogThreadDeinit);
 }

@@ -51,10 +51,10 @@ typedef struct AppLayerParser {
     const int complete_tc;
     int (*StateGetProgress)(void *alstate, uint8_t direction);
 
-    int (*StateGetEventInfo)(const char *event_name,
-                             int *event_id, AppLayerEventType *event_type);
-    int (*StateGetEventInfoById)(int event_id, const char **event_name,
-                                  AppLayerEventType *event_type);
+    int (*StateGetEventInfo)(
+            const char *event_name, uint8_t *event_id, AppLayerEventType *event_type);
+    int (*StateGetEventInfoById)(
+            uint8_t event_id, const char **event_name, AppLayerEventType *event_type);
 
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);

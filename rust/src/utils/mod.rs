@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,15 +15,4 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Giuseppe Longo <giuseppe@glongo.it>
- */
-
-#ifndef SURICATA_DETECT_SIP_REQUEST_LINE_H
-#define SURICATA_DETECT_SIP_REQUEST_LINE_H
-
-void DetectSipRequestLineRegister(void);
-
-#endif /* SURICATA_DETECT_SIP_REQUEST_LINE_H */
+pub mod base64;

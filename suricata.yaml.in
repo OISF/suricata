@@ -81,6 +81,7 @@ stats:
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:
   @pfring_comment@- @prefix@/lib/@PACKAGE_NAME@/pfring.so
+  @napatech_comment@- @prefix@/lib/@PACKAGE_NAME@/napatech.so
 # - /path/to/plugin.so
 
 # Configure the type of alert (and other) logging you would like.
@@ -111,10 +112,18 @@ outputs:
       #  server: 127.0.0.1
       #  port: 6379
       #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish
+      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish, xadd|stream
       #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
       #             ## publish is using a Redis channel. "channel" is an alias for publish
-      #  key: suricata ## key or channel to use (default to suricata)
+      #             ## xadd is using a Redis stream. "stream" is an alias for xadd
+      #  key: suricata ## string denoting the key/channel/stream to use (default to suricata)
+      #  stream-maxlen: 100000        ## Automatically trims the stream length to at most
+                                      ## this number of events. Set to 0 to disable trimming.
+                                      ## Only used when mode is set to xadd/stream.
+      #  stream-trim-exact: false     ## Trim exactly to the maximum stream length above.
+                                      ## Default: use inexact trimming (inexact by a few
+                                      ## tens of items)
+                                      ## Only used when mode is set to xadd/stream.
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
       # connection at the cost of some memory. There is no flushing implemented
@@ -168,6 +177,19 @@ outputs:
             # payload-length: yes      # enable dumping payload length, including the gaps
             # packet: yes              # enable dumping of packet (without stream segments)
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
+            # If you want metadata, use:
+            # metadata:
+              # Include the decoded application layer (ie. http, dns)
+              #app-layer: true
+              # Log the current state of the flow record.
+              #flow: true
+              #rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                #metadata: true
+                # Log the raw rule text.
+                #raw: false
+                #reference: false      # include reference information from the rule
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
             # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
@@ -258,7 +280,8 @@ outputs:
             # session id
             #session-resumption: no
             # custom controls which TLS fields that are included in eve-log
-            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname]
+            # WARNING: enabling custom disables extended logging.
+            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname, client, client_certificate, client_chain, client_alpns, server_alpns]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
@@ -352,29 +375,6 @@ outputs:
         #   state-update: false             # log packets triggering a TCP state update
         #   spurious-retransmission: false  # log spurious retransmission packets
 
-  # a line based log of HTTP requests (no alerts)
-  - http-log:
-      enabled: no
-      filename: http.log
-      append: yes
-      #extended: yes     # enable this for extended logging information
-      #custom: yes       # enable the custom logging format (defined by customformat)
-      #customformat: "%{%D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # a line based log of TLS handshake parameters (no alerts)
-  - tls-log:
-      enabled: no  # Log TLS connections.
-      filename: tls.log # File to store TLS logs.
-      append: yes
-      #extended: yes     # Log extended information like fingerprint
-      #custom: yes       # enabled the custom logging format (defined by customformat)
-      #customformat: "%{%D-%H:%M:%S}t.%z %a:%p -> %A:%P %v %n %d %D"
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-      # output TLS transaction where the session is resumed using a
-      # session id
-      #session-resumption: no
-
   # output module to store certificates chain to disk
   - tls-store:
       enabled: no
@@ -456,16 +456,6 @@ outputs:
       totals: yes       # stats for all threads merged together
       threads: no       # per thread stats
       #null-values: yes  # print counters that have value 0. Default: no
-
-  # a line based alerts log similar to fast.log into syslog
-  - syslog:
-      enabled: no
-      # reported identity to syslog. If omitted the program name (usually
-      # suricata) will be used.
-      #identity: "suricata"
-      facility: local5
-      #level: Info ## possible levels: Emergency, Alert, Critical,
-                   ## Error, Warning, Notice, Info, Debug
 
   # Output module for storing files on disk. Files are stored in
   # directory names consisting of the first 2 characters of the
@@ -775,6 +765,7 @@ dpdk:
       checksum-checks: true # if Suricata should validate checksums
       checksum-checks-offload: true # if possible offload checksum validation to the NIC (saves Suricata resources)
       mtu: 1500 # Set MTU of the device in bytes
+      vlan-strip-offload: false # if possible enable hardware vlan stripping
       # rss-hash-functions: 0x0 # advanced configuration option, use only if you use untested NIC card and experience RSS warnings,
       # For `rss-hash-functions` use hexadecimal 0x01ab format to specify RSS hash function flags - DumpRssFlags can help (you can see output if you use -vvv option during Suri startup)
       # setting auto to rss_hf sets the default RSS hash functions (based on IP addresses)
@@ -810,6 +801,7 @@ dpdk:
       checksum-checks: true
       checksum-checks-offload: true
       mtu: 1500
+      vlan-strip-offload: false
       rss-hash-functions: auto
       mempool-size: 65535
       mempool-cache-size: 257
@@ -860,6 +852,8 @@ pcap-file:
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
+  # Read buffer size set using setvbuf. Max value is 64 MiB. Linux only.
+  #buffer-size: 128 KiB
 
 # See "Advanced Capture Options" below for more options, including Netmap
 # and PF_RING.
@@ -1116,6 +1110,8 @@ app-layer:
            #decompression-time-limit: 100000
            # Maximum number of live transactions per flow
            #max-tx: 512
+           # Maximum used number of HTTP1 headers in one request or response
+           #headers-limit: 1024
 
          server-config:
 
@@ -1704,6 +1700,8 @@ detect:
     toserver-groups: 25
   sgh-mpm-context: auto
   inspection-recursion-limit: 3000
+  # maximum number of times a tx will get logged for a stream-only rule match
+  # stream-tx-log-limit: 4
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
   #delayed-detect: yes
@@ -1715,12 +1713,12 @@ detect:
     default: mpm
 
   # the grouping values above control how many groups are created per
-  # direction. Port whitelisting forces that port to get its own group.
+  # direction. Port priority setting forces that port to get its own group.
   # Very common ports will benefit, as well as ports with many expensive
   # rules.
   grouping:
-    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
-    #udp-whitelist: 53, 135, 5060
+    #tcp-priority-ports: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+    #udp-priority-ports: 53, 135, 5060
 
   # Thresholding hash table settings.
   thresholds:

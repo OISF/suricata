@@ -63,6 +63,8 @@
 
 #include "detect-engine-loader.h"
 
+#include "detect-engine-alert.h"
+
 #include "util-classification-config.h"
 #include "util-reference-config.h"
 #include "util-threshold-config.h"
@@ -2662,8 +2664,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 #endif
     }
 
-    DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
-    DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
+    DetectPortCleanupList(de_ctx, de_ctx->tcp_priorityports);
+    DetectPortCleanupList(de_ctx, de_ctx->udp_priorityports);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
     SCClassConfDeinit(de_ctx);
@@ -2904,55 +2906,76 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     SCLogDebug("de_ctx->inspection_recursion_limit: %d",
                de_ctx->inspection_recursion_limit);
 
-    /* parse port grouping whitelisting settings */
+    // default value is 4
+    de_ctx->stream_tx_log_limit = 4;
+    if (ConfGetInt("detect.stream-tx-log-limit", &value) == 1) {
+        if (value >= 0 && value <= UINT8_MAX) {
+            de_ctx->stream_tx_log_limit = (uint8_t)value;
+        } else {
+            SCLogWarning("Invalid value for detect-engine.stream-tx-log-limit: must be between 0 "
+                         "and 255, will default to 4");
+        }
+    }
+
+    /* parse port grouping priority settings */
 
     const char *ports = NULL;
-    (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
+    (void)ConfGet("detect.grouping.tcp-priority-ports", &ports);
     if (ports) {
-        SCLogConfig("grouping: tcp-whitelist %s", ports);
+        SCLogConfig("grouping: tcp-priority-ports %s", ports);
     } else {
-        ports = "53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080";
-        SCLogConfig("grouping: tcp-whitelist (default) %s", ports);
-
+        (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
+        if (ports) {
+            SCLogConfig(
+                    "grouping: tcp-priority-ports from legacy 'tcp-whitelist' setting: %s", ports);
+        } else {
+            ports = "53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080";
+            SCLogConfig("grouping: tcp-priority-ports (default) %s", ports);
+        }
     }
-    if (DetectPortParse(de_ctx, &de_ctx->tcp_whitelist, ports) != 0) {
+    if (DetectPortParse(de_ctx, &de_ctx->tcp_priorityports, ports) != 0) {
         SCLogWarning("'%s' is not a valid value "
-                     "for detect.grouping.tcp-whitelist",
+                     "for detect.grouping.tcp-priority-ports",
                 ports);
     }
-    DetectPort *x = de_ctx->tcp_whitelist;
+    DetectPort *x = de_ctx->tcp_priorityports;
     for ( ; x != NULL;  x = x->next) {
         if (x->port != x->port2) {
             SCLogWarning("'%s' is not a valid value "
-                         "for detect.grouping.tcp-whitelist: only single ports allowed",
+                         "for detect.grouping.tcp-priority-ports: only single ports allowed",
                     ports);
-            DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
-            de_ctx->tcp_whitelist = NULL;
+            DetectPortCleanupList(de_ctx, de_ctx->tcp_priorityports);
+            de_ctx->tcp_priorityports = NULL;
             break;
         }
     }
 
     ports = NULL;
-    (void)ConfGet("detect.grouping.udp-whitelist", &ports);
+    (void)ConfGet("detect.grouping.udp-priority-ports", &ports);
     if (ports) {
-        SCLogConfig("grouping: udp-whitelist %s", ports);
+        SCLogConfig("grouping: udp-priority-ports %s", ports);
     } else {
-        ports = "53, 135, 5060";
-        SCLogConfig("grouping: udp-whitelist (default) %s", ports);
-
+        (void)ConfGet("detect.grouping.udp-whitelist", &ports);
+        if (ports) {
+            SCLogConfig(
+                    "grouping: udp-priority-ports from legacy 'udp-whitelist' setting: %s", ports);
+        } else {
+            ports = "53, 135, 5060";
+            SCLogConfig("grouping: udp-priority-ports (default) %s", ports);
+        }
     }
-    if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {
+    if (DetectPortParse(de_ctx, &de_ctx->udp_priorityports, ports) != 0) {
         SCLogWarning("'%s' is not a valid value "
-                     "for detect.grouping.udp-whitelist",
+                     "for detect.grouping.udp-priority-ports",
                 ports);
     }
-    for (x = de_ctx->udp_whitelist; x != NULL;  x = x->next) {
+    for (x = de_ctx->udp_priorityports; x != NULL; x = x->next) {
         if (x->port != x->port2) {
             SCLogWarning("'%s' is not a valid value "
-                         "for detect.grouping.udp-whitelist: only single ports allowed",
+                         "for detect.grouping.udp-priority-ports: only single ports allowed",
                     ports);
-            DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
-            de_ctx->udp_whitelist = NULL;
+            DetectPortCleanupList(de_ctx, de_ctx->udp_priorityports);
+            de_ctx->udp_priorityports = NULL;
             break;
         }
     }
@@ -3920,12 +3943,12 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     new_de_ctx->tenant_path = SCStrdup(filename);
     if (new_de_ctx->tenant_path == NULL) {
         SCLogError("Failed to duplicate path");
-        goto error;
+        goto new_de_ctx_error;
     }
 
     if (SigLoadSignatures(new_de_ctx, NULL, false) < 0) {
         SCLogError("Loading signatures failed.");
-        goto error;
+        goto new_de_ctx_error;
     }
 
     DetectEngineAddToMaster(new_de_ctx);
@@ -3934,6 +3957,9 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     DetectEngineMoveToFreeList(old_de_ctx);
     DetectEngineDeReference(&old_de_ctx);
     return 0;
+
+new_de_ctx_error:
+    DetectEngineCtxFree(new_de_ctx);
 
 error:
     DetectEngineDeReference(&old_de_ctx);

@@ -105,6 +105,14 @@ typedef struct {
 #define SCTIME_CMP_LT(a, b)  SCTIME_CMP((a), (b), <)
 #define SCTIME_CMP_LTE(a, b) SCTIME_CMP((a), (b), <=)
 #define SCTIME_CMP_NEQ(a, b) SCTIME_CMP((a), (b), !=)
+#define SCTIME_CMP_EQ(a, b)  SCTIME_CMP((a), (b), ==)
+
+static inline SCTime_t SCTimeGetTime(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return SCTIME_FROM_TIMEVAL(&tv);
+}
 
 void TimeInit(void);
 void TimeDeinit(void);
@@ -114,15 +122,6 @@ SCTime_t TimeGet(void);
 
 /** \brief initialize a 'struct timespec' from a 'struct timeval'. */
 #define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
-
-/** \brief compare two 'struct timeval' and return if the first is earlier than the second */
-static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
-{
-    /* from man timercmp on Linux: "Some systems (but not Linux/glibc), have a broken timercmp()
-     * implementation, in which CMP of >=, <=, and == do not work; portable applications can instead
-     * use ... !timercmp(..., >) */
-    return !timercmp(first, second, >);
-}
 
 #ifndef timeradd
 #define timeradd(a, b, r)                                                                          \

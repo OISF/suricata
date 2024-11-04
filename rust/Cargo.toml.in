@@ -58,7 +58,7 @@ sha1 = "~0.10.5"
 md-5 = "~0.10.1"
 regex = "~1.5.5"
 lazy_static = "~1.4.0"
-base64 = "~0.13.0"
+base64 = "~0.22.1"
 bendy = { version = "~0.3.3", default-features = false }
 asn1-rs = { version = "~0.6.1" }
 ldap-parser = { version = "~0.4.0" }
@@ -67,7 +67,7 @@ time = "~0.3.36"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 
-suricata-lua-sys = { git = "https://github.com/jasonish/suricata-lua-sys", version = "0.1.0-alpha.1" }
+suricata-lua-sys = { version = "0.1.0-alpha.3" }
 
 [dev-dependencies]
 test-case = "~3.3.1"

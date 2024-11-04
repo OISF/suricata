@@ -50,8 +50,6 @@ static char logging_dir_not_writable;
 #define LOGGING_WRITE_ISSUE_LIMIT 6
 
 typedef struct LogTlsStoreLogThread_ {
-    uint32_t tls_cnt;
-
     uint8_t*   enc_buf;
     size_t     enc_buf_len;
 } LogTlsStoreLogThread;
@@ -384,16 +382,6 @@ static TmEcode LogTlsStoreLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void LogTlsStoreLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    LogTlsStoreLogThread *aft = (LogTlsStoreLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-
-    SCLogInfo("(%s) certificates extracted %" PRIu32 "", tv->name, aft->tls_cnt);
-}
-
 /**
  *  \internal
  *
@@ -447,14 +435,13 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
 
 void LogTlsStoreRegister (void)
 {
-    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME,
-        "tls-store", LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
-        LogTlsStoreCondition, LogTlsStoreLogThreadInit,
-        LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
+    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME, "tls-store",
+            LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger, LogTlsStoreCondition,
+            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit);
 
     OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE_CLIENT, MODULE_NAME, "tls-store",
             LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLoggerClient, LogTlsStoreConditionClient,
-            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
+            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit);
 
     SC_ATOMIC_INIT(cert_id);
     SC_ATOMIC_SET(cert_id, 1);
