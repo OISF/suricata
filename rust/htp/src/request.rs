@@ -1363,7 +1363,7 @@ impl ConnectionParser {
 
             if let Ok((_, line)) = take_till_lf(work) {
                 self.request_data_consume(input, line.len());
-                work = line;
+                work = &line[..line.len() - 1];
             } else {
                 return self.handle_request_absent_lf(input);
             }
@@ -1470,9 +1470,7 @@ impl ConnectionParser {
 
     /// Process a chunk of inbound (client or request) data.
     pub fn request_data(
-        &mut self,
-        mut chunk: ParserData,
-        timestamp: Option<OffsetDateTime>,
+        &mut self, mut chunk: ParserData, timestamp: Option<OffsetDateTime>,
     ) -> HtpStreamState {
         // Reset the bytes consumed counter
         self.request_bytes_consumed = 0;
