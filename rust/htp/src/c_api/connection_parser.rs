@@ -27,8 +27,7 @@ fn datetime_from_sec_usec(sec: i64, usec: i64) -> Option<OffsetDateTime> {
 #[no_mangle]
 #[allow(clippy::useless_conversion)]
 pub unsafe extern "C" fn htp_connp_close(
-    connp: *mut ConnectionParser,
-    timestamp: *const libc::timeval,
+    connp: *mut ConnectionParser, timestamp: *const libc::timeval,
 ) {
     if let Some(connp) = connp.as_mut() {
         connp.close(
@@ -94,8 +93,7 @@ pub unsafe extern "C" fn htp_connp_user_data(connp: *const ConnectionParser) -> 
 /// When calling this method, you have to ensure that connp is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_connp_set_user_data(
-    connp: *mut ConnectionParser,
-    user_data: *mut libc::c_void,
+    connp: *mut ConnectionParser, user_data: *mut libc::c_void,
 ) {
     if let Some(connp) = connp.as_mut() {
         connp.set_user_data(Box::new(user_data))
@@ -110,12 +108,8 @@ pub unsafe extern "C" fn htp_connp_set_user_data(
 #[no_mangle]
 #[allow(clippy::useless_conversion)]
 pub unsafe extern "C" fn htp_connp_open(
-    connp: *mut ConnectionParser,
-    client_addr: *const libc::c_char,
-    client_port: libc::c_int,
-    server_addr: *const libc::c_char,
-    server_port: libc::c_int,
-    timestamp: *const libc::timeval,
+    connp: *mut ConnectionParser, client_addr: *const libc::c_char, client_port: libc::c_int,
+    server_addr: *const libc::c_char, server_port: libc::c_int, timestamp: *const libc::timeval,
 ) {
     if let Some(connp) = connp.as_mut() {
         connp.open(
@@ -149,8 +143,7 @@ pub unsafe extern "C" fn htp_connp_open(
 #[no_mangle]
 #[allow(clippy::useless_conversion)]
 pub unsafe extern "C" fn htp_connp_request_close(
-    connp: *mut ConnectionParser,
-    timestamp: *const libc::timeval,
+    connp: *mut ConnectionParser, timestamp: *const libc::timeval,
 ) {
     if let Some(connp) = connp.as_mut() {
         connp.request_close(
@@ -172,9 +165,7 @@ pub unsafe extern "C" fn htp_connp_request_close(
 #[no_mangle]
 #[allow(clippy::useless_conversion)]
 pub unsafe extern "C" fn htp_connp_request_data(
-    connp: *mut ConnectionParser,
-    timestamp: *const libc::timeval,
-    data: *const libc::c_void,
+    connp: *mut ConnectionParser, timestamp: *const libc::timeval, data: *const libc::c_void,
     len: libc::size_t,
 ) -> HtpStreamState {
     connp
@@ -200,9 +191,7 @@ pub unsafe extern "C" fn htp_connp_request_data(
 #[no_mangle]
 #[allow(clippy::useless_conversion)]
 pub unsafe extern "C" fn htp_connp_response_data(
-    connp: *mut ConnectionParser,
-    timestamp: *const libc::timeval,
-    data: *const libc::c_void,
+    connp: *mut ConnectionParser, timestamp: *const libc::timeval, data: *const libc::c_void,
     len: libc::size_t,
 ) -> HtpStreamState {
     connp
@@ -239,8 +228,7 @@ pub unsafe extern "C" fn htp_connp_tx_size(connp: *const ConnectionParser) -> is
 /// When calling this method, you have to ensure that connp is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_connp_tx(
-    connp: *mut ConnectionParser,
-    tx_id: usize,
+    connp: *mut ConnectionParser, tx_id: usize,
 ) -> *const Transaction {
     connp
         .as_ref()

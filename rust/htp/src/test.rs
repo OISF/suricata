@@ -361,8 +361,7 @@ fn request_body_data(tx: &mut Transaction, d: &ParserData) -> Result<()> {
 /// # Safety
 /// Input pointer must be non-null.
 pub unsafe extern "C" fn libhtprsFuzzRun(
-    input: *const u8,
-    input_len: u32,
+    input: *const u8, input_len: u32,
 ) -> *mut std::os::raw::c_void {
     let mut cfg = TestConfig();
     cfg.set_server_personality(HtpServerPersonality::IDS)

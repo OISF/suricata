@@ -239,8 +239,7 @@ impl Uri {
 
     /// Generate a normalized uri string.
     pub fn generate_normalized_uri(
-        &self,
-        mut logger: Option<Logger>,
+        &self, mut logger: Option<Logger>,
     ) -> (Option<Bstr>, Option<Bstr>) {
         // On the first pass determine the length of the final bstrs
         let mut partial_len = 0usize;
@@ -499,10 +498,8 @@ mod test {
                 fragment: None,
             })]
     fn test_parse_uri(
-        #[case] input: &[u8],
-        #[case] expected_normalized: Option<&str>,
-        #[case] expected_partial: Option<&str>,
-        #[case] expected: Uri,
+        #[case] input: &[u8], #[case] expected_normalized: Option<&str>,
+        #[case] expected_partial: Option<&str>, #[case] expected: Uri,
     ) {
         let mut uri = Uri::default();
         uri.parse_uri(input);

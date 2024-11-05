@@ -68,12 +68,8 @@ impl Connection {
     /// Opens a connection. This function will essentially only store the provided data
     /// for future reference.
     pub fn open(
-        &mut self,
-        client_addr: Option<IpAddr>,
-        client_port: Option<u16>,
-        server_addr: Option<IpAddr>,
-        server_port: Option<u16>,
-        timestamp: Option<OffsetDateTime>,
+        &mut self, client_addr: Option<IpAddr>, client_port: Option<u16>,
+        server_addr: Option<IpAddr>, server_port: Option<u16>, timestamp: Option<OffsetDateTime>,
     ) {
         self.client_addr = client_addr;
         self.client_port = client_port;

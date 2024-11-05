@@ -291,9 +291,7 @@ impl Decompressor {
     /// Creates a new decompressor with `encoding` and adds a callback to be called
     /// when data is ready.
     pub fn new_with_callback(
-        encoding: HtpContentEncoding,
-        callback: CallbackFn,
-        options: Options,
+        encoding: HtpContentEncoding, callback: CallbackFn, options: Options,
     ) -> std::io::Result<Self> {
         Self::callback(callback).prepend(encoding, options)
     }
@@ -701,8 +699,7 @@ struct InnerDecompressor {
 impl InnerDecompressor {
     /// Returns a new writer according to the content encoding type and whether to passthrough.
     fn writer(
-        encoding: HtpContentEncoding,
-        options: &Options,
+        encoding: HtpContentEncoding, options: &Options,
     ) -> std::io::Result<(Box<dyn BufWriter>, bool)> {
         let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
 
@@ -738,9 +735,7 @@ impl InnerDecompressor {
     /// Create a new `InnerDecompressor` given a content encoding type and the
     /// next (`inner`) decompressor to call.
     fn new(
-        encoding: HtpContentEncoding,
-        inner: Box<dyn Decompress>,
-        options: Options,
+        encoding: HtpContentEncoding, inner: Box<dyn Decompress>, options: Options,
     ) -> std::io::Result<Self> {
         let (writer, passthrough) = Self::writer(encoding, &options)?;
         Ok(Self {

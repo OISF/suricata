@@ -242,8 +242,7 @@ pub unsafe extern "C" fn htp_tx_request_headers_size(tx: *const Transaction) -> 
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_request_header(
-    tx: *const Transaction,
-    ckey: *const libc::c_char,
+    tx: *const Transaction, ckey: *const libc::c_char,
 ) -> *const Header {
     tx.as_ref()
         .map(|tx| htp_headers_get(&tx.request_headers, ckey))
@@ -260,8 +259,7 @@ pub unsafe extern "C" fn htp_tx_request_header(
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_request_header_index(
-    tx: *const Transaction,
-    index: usize,
+    tx: *const Transaction, index: usize,
 ) -> *const Header {
     tx.as_ref()
         .map(|tx| {
@@ -554,8 +552,7 @@ pub unsafe extern "C" fn htp_tx_response_headers_size(tx: *const Transaction) ->
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_response_header(
-    tx: *const Transaction,
-    ckey: *const libc::c_char,
+    tx: *const Transaction, ckey: *const libc::c_char,
 ) -> *const Header {
     tx.as_ref()
         .map(|tx| htp_headers_get(&tx.response_headers, ckey))
@@ -572,8 +569,7 @@ pub unsafe extern "C" fn htp_tx_response_header(
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_response_header_index(
-    tx: *const Transaction,
-    index: usize,
+    tx: *const Transaction, index: usize,
 ) -> *const Header {
     tx.as_ref()
         .map(|tx| {
@@ -707,8 +703,7 @@ pub unsafe extern "C" fn htp_tx_index(tx: *const Transaction) -> isize {
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_register_response_body_data(
-    tx: *mut Transaction,
-    cbk_fn: DataExternalCallbackFn,
+    tx: *mut Transaction, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(tx) = tx.as_mut() {
         tx.hook_response_body_data.register_extern(cbk_fn)

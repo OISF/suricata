@@ -208,12 +208,7 @@ impl Logger {
     }
     /// Logs a message to the logger channel.
     pub fn log(
-        &mut self,
-        file: &str,
-        line: u32,
-        level: HtpLogLevel,
-        code: HtpLogCode,
-        msg: String,
+        &mut self, file: &str, line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
     ) {
         // Ignore messages below our log level.
         if level <= self.level {
@@ -240,11 +235,7 @@ pub struct Message {
 impl Message {
     /// Returns a new Message instance
     pub fn new(
-        file: &str,
-        line: u32,
-        level: HtpLogLevel,
-        code: HtpLogCode,
-        msg: String,
+        file: &str, line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
     ) -> Message {
         Self {
             file: file.to_string(),

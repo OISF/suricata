@@ -557,8 +557,7 @@ fn SmallChunks() {
 }
 
 fn ConnectionParsing_RequestHeaderData_REQUEST_HEADER_DATA(
-    tx: &mut Transaction,
-    d: &ParserData,
+    tx: &mut Transaction, d: &ParserData,
 ) -> Result<()> {
     let mut counter = *tx.user_data::<i32>().unwrap_or(&0);
     let data = d.as_slice();
@@ -613,8 +612,7 @@ fn RequestHeaderData() {
 }
 
 fn ConnectionParsing_RequestTrailerData_REQUEST_TRAILER_DATA(
-    tx: &mut Transaction,
-    d: &ParserData,
+    tx: &mut Transaction, d: &ParserData,
 ) -> Result<()> {
     let mut counter = *tx.user_data::<i32>().unwrap_or(&0);
     let data = d.as_slice();
@@ -657,8 +655,7 @@ fn RequestTrailerData() {
 }
 
 fn ConnectionParsing_ResponseHeaderData_RESPONSE_HEADER_DATA(
-    tx: &mut Transaction,
-    d: &ParserData,
+    tx: &mut Transaction, d: &ParserData,
 ) -> Result<()> {
     let mut counter = *tx.user_data::<i32>().unwrap_or(&0);
     let data = d.as_slice();
@@ -714,8 +711,7 @@ fn ResponseHeaderData() {
 }
 
 fn ConnectionParsing_ResponseTrailerData_RESPONSE_TRAILER_DATA(
-    tx: &mut Transaction,
-    d: &ParserData,
+    tx: &mut Transaction, d: &ParserData,
 ) -> Result<()> {
     let mut counter = *tx.user_data::<i32>().unwrap_or(&0);
     let data = d.as_slice();

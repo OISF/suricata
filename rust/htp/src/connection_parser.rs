@@ -596,12 +596,8 @@ impl ConnectionParser {
 
     /// Opens connection.
     pub fn open(
-        &mut self,
-        client_addr: Option<IpAddr>,
-        client_port: Option<u16>,
-        server_addr: Option<IpAddr>,
-        server_port: Option<u16>,
-        timestamp: Option<OffsetDateTime>,
+        &mut self, client_addr: Option<IpAddr>, client_port: Option<u16>,
+        server_addr: Option<IpAddr>, server_port: Option<u16>, timestamp: Option<OffsetDateTime>,
     ) {
         // Check connection parser state first.
         if self.request_status != HtpStreamState::NEW || self.response_status != HtpStreamState::NEW

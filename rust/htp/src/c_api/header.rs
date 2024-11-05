@@ -16,8 +16,7 @@ use std::convert::TryFrom;
 /// When calling this method, you have to ensure that headers is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_headers_get(
-    headers: *const Headers,
-    ckey: *const libc::c_char,
+    headers: *const Headers, ckey: *const libc::c_char,
 ) -> *const Header {
     if let (Some(headers), Some(ckey)) = (headers.as_ref(), ckey.as_ref()) {
         headers
@@ -58,8 +57,7 @@ pub unsafe extern "C" fn htp_headers_flags(headers: *const Headers) -> u64 {
 /// When calling this method, you have to ensure that header is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_headers_get_index(
-    headers: *const Headers,
-    index: usize,
+    headers: *const Headers, index: usize,
 ) -> *const Header {
     headers
         .as_ref()

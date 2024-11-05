@@ -81,10 +81,7 @@ impl Header {
     }
 
     pub fn new_with_flags(
-        name_bytes: &[u8],
-        name_flags: u64,
-        value_bytes: &[u8],
-        value_flags: u64,
+        name_bytes: &[u8], name_flags: u64, value_bytes: &[u8], value_flags: u64,
     ) -> Self {
         Self::new(
             Name::new(name_bytes, name_flags),
@@ -562,8 +559,7 @@ mod test {
     #[case::incomplete_eoh(b"k1:v1\r\nk2:v2\r", Ok((b!("k2:v2\r"), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0)], false))), None)]
     #[case::incomplete_eoh_null(b"k1:v1\nk2:v2\0v2\r\nk3:v3\r", Ok((b!("k3:v3\r"), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0), Header::new_with_flags(b"k2", 0, b"v2\0v2", 0)], false))), None)]
     fn test_headers(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ParsedHeaders>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], ParsedHeaders>,
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedHeaders>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -618,8 +614,7 @@ mod test {
             true
         )))))]
     fn test_headers_eoh(
-        #[case] input: &[u8],
-        #[case] diff_req_expected: Option<IResult<&[u8], ParsedHeaders>>,
+        #[case] input: &[u8], #[case] diff_req_expected: Option<IResult<&[u8], ParsedHeaders>>,
     ) {
         let expected = Ok((
             b!(""),
@@ -658,8 +653,7 @@ mod test {
     #[case::crlf(b"K V\r\nk1:v1\r\n", Ok((b!("k1:v1\r\n"), Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"K V", HeaderFlags::MISSING_COLON))), None)]
     #[case::lf(b"K V\nk1:v1\r\n", Ok((b!("k1:v1\r\n"), Header::new_with_flags(b"", HeaderFlags::MISSING_COLON, b"K V", HeaderFlags::MISSING_COLON))), None)]
     fn test_header_sans_colon(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], Header>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], Header>,
         #[case] response_parser_expected: Option<IResult<&[u8], Header>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -717,8 +711,7 @@ mod test {
     #[case::non_token(b"K\x0c:Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\x0c", HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), None)]
     #[case::non_token_trailing(b"K\r :Value\r\n V\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K\r ", HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS, b"Value V", HeaderFlags::FOLDING))), None)]
     fn test_header(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], Header>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], Header>,
         #[case] diff_res_expected: Option<IResult<&[u8], Header>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -738,8 +731,7 @@ mod test {
     #[case::colon_whitespace(b": value", Ok((b!("value"), 0)), None)]
     #[case::colon_tab(b":\t value", Ok((b!("value"), 0)), None)]
     fn test_separators(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], u64>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], u64>,
         #[case] diff_res_expected: Option<IResult<&[u8], u64>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -772,8 +764,7 @@ mod test {
     #[case::surrounding_internal_space(b" Hello invalid : world", Ok((b!(": world"), Name {name: b"Hello invalid".to_vec(), flags: HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE | HeaderFlags::NAME_NON_TOKEN_CHARS})), None)]
     #[case::only_space_name(b"   : world", Ok((b!(": world"), Name {name: b"".to_vec(), flags: HeaderFlags::NAME_LEADING_WHITESPACE | HeaderFlags::NAME_TRAILING_WHITESPACE })), None)]
     fn test_name(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], Name>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], Name>,
         #[case] diff_res_expected: Option<IResult<&[u8], Name>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -816,8 +807,7 @@ mod test {
     #[case::crlfcrlf(b"\r\n\r\n", Ok((b!("\r\n"), (b!("\r\n"), 0))), None)]
     #[case::null(b"\0a", Err(Error(NomError::new(b!("\0a"), Tag))), None)]
     fn test_eol(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ParsedBytes>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], ParsedBytes>,
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -851,8 +841,7 @@ mod test {
     #[case::crlfcrlf(b"\r\n\r\n", Ok((b!("\r\n"), (b!("\r\n"), 0))), None)]
     #[case::null(b"\0a", Ok((b!("a"), (b!("\0"), HeaderFlags::NULL_TERMINATED))), None)]
     fn test_null_or_eol(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ParsedBytes>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], ParsedBytes>,
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -887,8 +876,7 @@ mod test {
     #[case::special_fold_2(b"\r\n\r\t next", Err(Error(NomError::new(b!("\r\t next"), Tag))), None)]
     #[case::fold_res(b"\r    hello \n", Err(Error(NomError::new(b!("\r    hello \n"), Tag))), Some(Ok((b!("   hello \n"), (b!("\r"), b!(" "), HeaderFlags::FOLDING)))))]
     fn test_folding(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], FoldingBytes>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], FoldingBytes>,
         #[case] diff_res_expected: Option<IResult<&[u8], FoldingBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -919,8 +907,7 @@ mod test {
     #[case::res_fold(b"\r a", Err(Error(NomError::new(b!("\r a"), Tag))), Some(Ok((b!("a"), ((b!("\r"), HeaderFlags::FOLDING), Some(b!(" ")))))))]
     #[case::multi_space_line(b"\n  \r\n\n", Ok((b!(" \r\n\n"), ((b!("\n"), HeaderFlags::FOLDING), Some(b!(" "))))), None)]
     fn test_folding_or_terminator(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], FoldingOrTerminator>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], FoldingOrTerminator>,
         #[case] diff_res_expected: Option<IResult<&[u8], FoldingOrTerminator>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -952,8 +939,7 @@ mod test {
     #[case::req_special_fold_res_value_2(b"value\n\rmore", Ok((b!("\rmore"), (b!("value"), ((b!("\n"), 0), None)))), Some(Ok((b!("more"), (b!("value"), ((b!("\n\r"), 0), None))))))]
     #[case::special_fold(b"value\r\n\rmore", Ok((b!("\rmore"), (b!("value"), ((b!("\r\n"), 0), None)))), None)]
     fn test_value_bytes(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], ValueBytes>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], ValueBytes>,
         #[case] diff_res_expected: Option<IResult<&[u8], ValueBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
@@ -987,8 +973,7 @@ mod test {
     #[case::value_wrapping_with_colon(b"b\r\n c: d\r\nAAA", Ok((b!("AAA"), Value {value: b"b c: d".to_vec(), flags: HeaderFlags::FOLDING})), Some(Ok((b!("c: d\r\nAAA"), Value {value: b"b".to_vec(), flags: 0}))))]
     #[case::value_wrapping_with_colon_no_tokens(b"b\r\n : d\r\nAAA", Ok((b!("AAA"), Value {value: b"b : d".to_vec(), flags: HeaderFlags::FOLDING})), Some(Ok((b!("AAA"), Value {value: b"b : d".to_vec(), flags: HeaderFlags::FOLDING}))))]
     fn test_value(
-        #[case] input: &[u8],
-        #[case] expected: IResult<&[u8], Value>,
+        #[case] input: &[u8], #[case] expected: IResult<&[u8], Value>,
         #[case] diff_res_expected: Option<IResult<&[u8], Value>>,
     ) {
         let req_parser = Parser::new(Side::Request);

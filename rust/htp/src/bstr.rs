@@ -38,8 +38,7 @@ impl Bstr {
     /// Each element yielded is guaranteed not to include the splitter substring.
     /// Returns a Vector of the substrings.
     pub fn split_str_collect<'b, B: ?Sized + AsRef<[u8]>>(
-        &'b self,
-        splitter: &'b B,
+        &'b self, splitter: &'b B,
     ) -> Vec<&'b [u8]> {
         self.s.as_bstr().split_str(splitter.as_ref()).collect()
     }
@@ -414,9 +413,7 @@ mod tests {
     #[case(4, "AbCd", "EFGH", "AbCd")]
     #[case(20, "abcd", "efGHij", "abcdefGHij")]
     fn test_add_no_ex(
-        #[case] capacity: usize,
-        #[case] input: &str,
-        #[case] input_add: &str,
+        #[case] capacity: usize, #[case] input: &str, #[case] input_add: &str,
         #[case] expected: &str,
     ) {
         let mut b = Bstr::with_capacity(capacity);

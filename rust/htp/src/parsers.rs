@@ -470,9 +470,7 @@ mod test {
     #[should_panic]
     #[case("username=\"ivanr   ", "", "")]
     fn test_parse_authorization_digest(
-        #[case] input: &str,
-        #[case] username: &str,
-        #[case] remaining: &str,
+        #[case] input: &str, #[case] username: &str, #[case] remaining: &str,
     ) {
         assert_eq!(
             parse_authorization_digest(input.as_bytes()).unwrap(),
@@ -532,9 +530,7 @@ mod test {
         ""
     )]
     fn test_credentials(
-        #[case] input: &str,
-        #[case] username: &str,
-        #[case] password: Option<&str>,
+        #[case] input: &str, #[case] username: &str, #[case] password: Option<&str>,
         #[case] remaining: &str,
     ) {
         assert_eq!(
@@ -642,10 +638,8 @@ mod test {
     #[case("[::1]x", "[::1]", None, false, "x")]
     #[case("[::1", "[::1", None, false, "")]
     fn test_parse_hostport(
-        #[case] input: &str,
-        #[case] hostname: &str,
-        #[case] parsed_port: Option<(&str, Option<u16>)>,
-        #[case] valid: bool,
+        #[case] input: &str, #[case] hostname: &str,
+        #[case] parsed_port: Option<(&str, Option<u16>)>, #[case] valid: bool,
         #[case] remaining: &str,
     ) {
         assert_eq!(

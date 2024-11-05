@@ -257,10 +257,7 @@ pub fn trimmed(input: &[u8]) -> &[u8] {
 /// in the first predicate element and an empty binary string is returned
 /// in the second element.
 pub fn split_on_predicate<F>(
-    input: &[u8],
-    reverse: bool,
-    do_trim: bool,
-    predicate: F,
+    input: &[u8], reverse: bool, do_trim: bool, predicate: F,
 ) -> (&[u8], &[u8])
 where
     F: FnMut(&u8) -> bool,
@@ -345,9 +342,7 @@ pub fn hex_digits() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 
 /// Determines if the given line is a request terminator.
 fn is_line_terminator(
-    server_personality: HtpServerPersonality,
-    data: &[u8],
-    next_no_lf: bool,
+    server_personality: HtpServerPersonality, data: &[u8], next_no_lf: bool,
 ) -> bool {
     // Is this the end of request headers?
     if server_personality == HtpServerPersonality::IIS_5_0 {
@@ -638,10 +633,7 @@ mod tests {
     #[case("abcdefg\n\rhijk", "hijk", "abcdefg\n\r", Eol::LFCR)]
     #[case("abcdefg\n\r\r\nhijk", "\r\nhijk", "abcdefg\n\r", Eol::LFCR)]
     fn test_take_till_eol(
-        #[case] input: &str,
-        #[case] remaining: &str,
-        #[case] parsed: &str,
-        #[case] eol: Eol,
+        #[case] input: &str, #[case] remaining: &str, #[case] parsed: &str, #[case] eol: Eol,
     ) {
         assert_eq!(
             take_till_eol(input.as_bytes()).unwrap(),
@@ -754,10 +746,7 @@ mod tests {
     #[case("   555555555    ", "", "", "555555555")]
     #[case("   555555555    500", "500", "", "555555555")]
     fn test_ascii_digits(
-        #[case] input: &str,
-        #[case] remaining: &str,
-        #[case] leading: &str,
-        #[case] digits: &str,
+        #[case] input: &str, #[case] remaining: &str, #[case] leading: &str, #[case] digits: &str,
     ) {
         // Returns (any trailing non-LWS characters, (non-LWS leading characters, ascii digits))
         assert_eq!(
@@ -803,9 +792,7 @@ mod tests {
         "\x20\x09\x0b\x0c"
     )]
     fn test_take_chunked_ctl_chars(
-        #[case] input: &str,
-        #[case] remaining: &str,
-        #[case] hex_digits: &str,
+        #[case] input: &str, #[case] remaining: &str, #[case] hex_digits: &str,
     ) {
         //(trailing non-LWS characters, found hex digits)
         assert_eq!(
@@ -833,9 +820,7 @@ mod tests {
     #[case("ONE", false, true, ("ONE", ""))]
     #[case("ONE", true, true, ("ONE", ""))]
     fn test_split_on_predicate(
-        #[case] input: &str,
-        #[case] reverse: bool,
-        #[case] trim: bool,
+        #[case] input: &str, #[case] reverse: bool, #[case] trim: bool,
         #[case] expected: (&str, &str),
     ) {
         assert_eq!(

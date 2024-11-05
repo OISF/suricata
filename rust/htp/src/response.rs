@@ -1482,9 +1482,7 @@ impl ConnectionParser {
 
     /// Process a chunk of outbound (server or response) data.
     pub fn response_data(
-        &mut self,
-        mut chunk: ParserData,
-        timestamp: Option<OffsetDateTime>,
+        &mut self, mut chunk: ParserData, timestamp: Option<OffsetDateTime>,
     ) -> HtpStreamState {
         // Reset consumed data tracker
         self.response_bytes_consumed = 0;

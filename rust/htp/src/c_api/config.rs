@@ -42,8 +42,7 @@ pub unsafe extern "C" fn htp_config_register_log(cfg: *mut Config, cbk_fn: LogEx
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_body_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_body_data.register_extern(cbk_fn)
@@ -55,8 +54,7 @@ pub unsafe extern "C" fn htp_config_register_request_body_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_complete(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_complete.register_extern(cbk_fn)
@@ -68,8 +66,7 @@ pub unsafe extern "C" fn htp_config_register_request_complete(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_headers(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_headers.register_extern(cbk_fn)
@@ -81,8 +78,7 @@ pub unsafe extern "C" fn htp_config_register_request_headers(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_header_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_header_data.register_extern(cbk_fn)
@@ -94,8 +90,7 @@ pub unsafe extern "C" fn htp_config_register_request_header_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_line(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_line.register_extern(cbk_fn)
@@ -108,8 +103,7 @@ pub unsafe extern "C" fn htp_config_register_request_line(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_start(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_start.register_extern(cbk_fn)
@@ -121,8 +115,7 @@ pub unsafe extern "C" fn htp_config_register_request_start(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_trailer(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_trailer.register_extern(cbk_fn)
@@ -134,8 +127,7 @@ pub unsafe extern "C" fn htp_config_register_request_trailer(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_request_trailer_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_trailer_data.register_extern(cbk_fn)
@@ -147,8 +139,7 @@ pub unsafe extern "C" fn htp_config_register_request_trailer_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_body_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_body_data.register_extern(cbk_fn)
@@ -160,8 +151,7 @@ pub unsafe extern "C" fn htp_config_register_response_body_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_complete(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_complete.register_extern(cbk_fn)
@@ -173,8 +163,7 @@ pub unsafe extern "C" fn htp_config_register_response_complete(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_headers(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_headers.register_extern(cbk_fn)
@@ -186,8 +175,7 @@ pub unsafe extern "C" fn htp_config_register_response_headers(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_header_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_header_data.register_extern(cbk_fn)
@@ -199,8 +187,7 @@ pub unsafe extern "C" fn htp_config_register_response_header_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_start(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_start.register_extern(cbk_fn)
@@ -212,8 +199,7 @@ pub unsafe extern "C" fn htp_config_register_response_start(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_trailer(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_trailer.register_extern(cbk_fn)
@@ -225,8 +211,7 @@ pub unsafe extern "C" fn htp_config_register_response_trailer(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_response_trailer_data(
-    cfg: *mut Config,
-    cbk_fn: DataExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: DataExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_trailer_data.register_extern(cbk_fn)
@@ -238,8 +223,7 @@ pub unsafe extern "C" fn htp_config_register_response_trailer_data(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_register_transaction_complete(
-    cfg: *mut Config,
-    cbk_fn: TxExternalCallbackFn,
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_transaction_complete.register_extern(cbk_fn)
@@ -253,8 +237,7 @@ pub unsafe extern "C" fn htp_config_register_transaction_complete(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_backslash_convert_slashes(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_backslash_convert_slashes(enabled == 1)
@@ -278,8 +261,7 @@ pub unsafe extern "C" fn htp_config_set_bestfit_replacement_byte(cfg: *mut Confi
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_compression_bomb_limit(
-    cfg: *mut Config,
-    bomblimit: libc::size_t,
+    cfg: *mut Config, bomblimit: libc::size_t,
 ) {
     if let Ok(bomblimit) = bomblimit.try_into() {
         if let Some(cfg) = cfg.as_mut() {
@@ -293,8 +275,7 @@ pub unsafe extern "C" fn htp_config_set_compression_bomb_limit(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_compression_time_limit(
-    cfg: *mut Config,
-    timelimit: libc::c_uint,
+    cfg: *mut Config, timelimit: libc::c_uint,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.compression_options.set_time_limit(timelimit)
@@ -375,8 +356,7 @@ pub unsafe extern "C" fn htp_config_set_number_headers_limit(cfg: *mut Config, l
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_nul_encoded_terminates(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_nul_encoded_terminates(enabled == 1)
@@ -398,8 +378,7 @@ pub unsafe extern "C" fn htp_config_set_nul_raw_terminates(cfg: *mut Config, ena
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_parse_request_cookies(
-    _cfg: *mut Config,
-    _parse_request_cookies: libc::c_int,
+    _cfg: *mut Config, _parse_request_cookies: libc::c_int,
 ) {
     // do nothing, but keep API
 }
@@ -412,8 +391,7 @@ pub unsafe extern "C" fn htp_config_set_parse_request_cookies(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_path_separators_compress(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_path_separators_compress(enabled == 1)
@@ -440,8 +418,7 @@ pub unsafe extern "C" fn htp_config_set_plusspace_decode(cfg: *mut Config, enabl
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_path_separators_decode(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_path_separators_decode(enabled == 1)
@@ -453,8 +430,7 @@ pub unsafe extern "C" fn htp_config_set_path_separators_decode(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_request_decompression(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_request_decompression(enabled == 1)
@@ -466,8 +442,7 @@ pub unsafe extern "C" fn htp_config_set_request_decompression(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_decompression_layer_limit(
-    cfg: *mut Config,
-    limit: libc::c_int,
+    cfg: *mut Config, limit: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_decompression_layer_limit(if limit <= 0 {
@@ -493,8 +468,7 @@ pub unsafe extern "C" fn htp_config_set_allow_space_uri(cfg: *mut Config, allow_
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_server_personality(
-    cfg: *mut Config,
-    personality: HtpServerPersonality,
+    cfg: *mut Config, personality: HtpServerPersonality,
 ) -> HtpStatus {
     cfg.as_mut()
         .map(|cfg| cfg.set_server_personality(personality).into())
@@ -517,8 +491,7 @@ pub unsafe extern "C" fn htp_config_set_u_encoding_decode(cfg: *mut Config, enab
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_url_encoding_invalid_handling(
-    cfg: *mut Config,
-    handling: HtpUrlEncodingHandling,
+    cfg: *mut Config, handling: HtpUrlEncodingHandling,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_url_encoding_invalid_handling(handling)
@@ -531,8 +504,7 @@ pub unsafe extern "C" fn htp_config_set_url_encoding_invalid_handling(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_utf8_convert_bestfit(
-    cfg: *mut Config,
-    enabled: libc::c_int,
+    cfg: *mut Config, enabled: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_utf8_convert_bestfit(enabled == 1)
@@ -544,8 +516,7 @@ pub unsafe extern "C" fn htp_config_set_utf8_convert_bestfit(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_double_decode_normalized_query(
-    cfg: *mut Config,
-    set: bool,
+    cfg: *mut Config, set: bool,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_double_decode_normalized_query(set)
@@ -580,8 +551,7 @@ pub unsafe extern "C" fn htp_config_set_normalized_uri_include_all(cfg: *mut Con
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_tx_auto_destroy(
-    cfg: *mut Config,
-    tx_auto_destroy: libc::c_int,
+    cfg: *mut Config, tx_auto_destroy: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_tx_auto_destroy(tx_auto_destroy == 1)
@@ -605,8 +575,7 @@ pub unsafe extern "C" fn htp_config_set_tx_auto_destroy(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_flush_incomplete(
-    cfg: *mut Config,
-    flush_incomplete: libc::c_int,
+    cfg: *mut Config, flush_incomplete: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_flush_incomplete(flush_incomplete == 1)
@@ -619,8 +588,7 @@ pub unsafe extern "C" fn htp_config_set_flush_incomplete(
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_config_set_parse_urlencoded(
-    cfg: *mut Config,
-    parse_urlencoded: libc::c_int,
+    cfg: *mut Config, parse_urlencoded: libc::c_int,
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_parse_urlencoded(parse_urlencoded == 1)

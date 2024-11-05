@@ -181,8 +181,7 @@ fn x2c(input: &[u8]) -> IResult<&[u8], u8> {
 ///
 /// Sets i to decoded byte
 fn path_decode_u_encoding<'a>(
-    i: &'a [u8],
-    cfg: &DecoderConfig,
+    i: &'a [u8], cfg: &DecoderConfig,
 ) -> IResult<&'a [u8], (u8, u64, HtpUnwanted)> {
     let mut flags = 0;
     let mut expected_status_code = HtpUnwanted::IGNORE;
@@ -477,8 +476,7 @@ fn path_decode_control(mut byte: u8, cfg: &DecoderConfig) -> (u8, HtpUnwanted) {
 /// Returns decoded bytes, flags set during decoding, and corresponding status code
 
 fn path_decode_uri<'a>(
-    input: &'a [u8],
-    cfg: &DecoderConfig,
+    input: &'a [u8], cfg: &DecoderConfig,
 ) -> IResult<&'a [u8], (Vec<u8>, u64, HtpUnwanted)> {
     fold_many0(
         alt((path_decode_percent(cfg), path_parse_other(cfg))),
@@ -509,10 +507,7 @@ fn path_decode_uri<'a>(
 /// Decode the parsed uri path inplace according to the settings in the
 /// transaction configuration structure.
 pub fn path_decode_uri_inplace(
-    decoder_cfg: &DecoderConfig,
-    flag: &mut u64,
-    status: &mut HtpUnwanted,
-    path: &mut Bstr,
+    decoder_cfg: &DecoderConfig, flag: &mut u64, status: &mut HtpUnwanted, path: &mut Bstr,
 ) {
     if let Ok((_, (consumed, flags, expected_status_code))) =
         path_decode_uri(path.as_slice(), decoder_cfg)
@@ -531,8 +526,7 @@ pub fn path_decode_uri_inplace(
 ///
 /// Returns decoded bytes, flags set during decoding, and corresponding status code
 fn decode_uri<'a>(
-    input: &'a [u8],
-    cfg: &DecoderConfig,
+    input: &'a [u8], cfg: &DecoderConfig,
 ) -> IResult<&'a [u8], (Vec<u8>, u64, HtpUnwanted)> {
     fold_many0(
         alt((decode_percent(cfg), decode_plus(cfg), unencoded_byte(cfg))),
@@ -553,9 +547,7 @@ fn decode_uri<'a>(
 /// Performs decoding of the uri string, according to the configuration specified
 /// by cfg. Various flags might be set.
 pub fn decode_uri_with_flags(
-    decoder_cfg: &DecoderConfig,
-    flags: &mut u64,
-    input: &[u8],
+    decoder_cfg: &DecoderConfig, flags: &mut u64, input: &[u8],
 ) -> Result<Bstr> {
     let (_, (consumed, f, _)) = decode_uri(input, decoder_cfg)?;
     if f.is_set(HtpFlags::URLEN_INVALID_ENCODING) {
@@ -849,9 +841,7 @@ mod test {
     #[case("/\0ABC", "/\0ABC", "/\0ABC", "/\0ABC")]
     #[case("/one%2ftwo", "/one/two", "/one/two", "/one/two")]
     fn test_decode_uri(
-        #[case] input: &str,
-        #[case] expected_process: &str,
-        #[case] expected_preserve: &str,
+        #[case] input: &str, #[case] expected_process: &str, #[case] expected_preserve: &str,
         #[case] expected_remove: &str,
     ) {
         let i = Bstr::from(input);
@@ -890,9 +880,7 @@ mod test {
     #[case("/\0ABC", "/\0ABC", "/\0ABC", "/\0ABC")]
     #[case("/one%2ftwo", "/one/two", "/one/two", "/one/two")]
     fn test_decode_uri_decode(
-        #[case] input: &str,
-        #[case] expected_process: &str,
-        #[case] expected_preserve: &str,
+        #[case] input: &str, #[case] expected_process: &str, #[case] expected_preserve: &str,
         #[case] expected_remove: &str,
     ) {
         let i = Bstr::from(input);
@@ -956,11 +944,8 @@ mod test {
         HtpFlags::PATH_ENCODED_SEPARATOR
     )]
     fn test_path_decode_uri_inplace(
-        #[case] input: &str,
-        #[case] expected_process: &str,
-        #[case] expected_preserve: &str,
-        #[case] expected_remove: &str,
-        #[case] flags: u64,
+        #[case] input: &str, #[case] expected_process: &str, #[case] expected_preserve: &str,
+        #[case] expected_remove: &str, #[case] flags: u64,
     ) {
         let mut cfg = Config::default();
         let mut response_status_expected_number = HtpUnwanted::IGNORE;
@@ -1028,11 +1013,8 @@ mod test {
         HtpFlags::PATH_ENCODED_SEPARATOR
     )]
     fn test_path_decode_uri_inplace_decode(
-        #[case] input: &str,
-        #[case] expected_process: &str,
-        #[case] expected_preserve: &str,
-        #[case] expected_remove: &str,
-        #[case] flags: u64,
+        #[case] input: &str, #[case] expected_process: &str, #[case] expected_preserve: &str,
+        #[case] expected_remove: &str, #[case] flags: u64,
     ) {
         let mut cfg = Config::default();
         cfg.set_u_encoding_decode(true);
@@ -1138,9 +1120,7 @@ mod test {
         "/one/two/three/uXXXX"
     )]
     fn test_decode_uri_inplace(
-        #[case] input: &str,
-        #[case] expected_process: &str,
-        #[case] expected_preserve: &str,
+        #[case] input: &str, #[case] expected_process: &str, #[case] expected_preserve: &str,
         #[case] expected_remove: &str,
     ) {
         let mut cfg = Config::default();
