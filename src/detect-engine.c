@@ -110,6 +110,7 @@ static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
 
 // clang-format off
+// rule types documentation tag start: SignatureProperties
 const struct SignatureProperties signature_properties[SIG_TYPE_MAX] = {
     /* SIG_TYPE_NOT_SET */      { SIG_PROP_FLOW_ACTION_PACKET, },
     /* SIG_TYPE_IPONLY */       { SIG_PROP_FLOW_ACTION_FLOW, },
@@ -122,6 +123,7 @@ const struct SignatureProperties signature_properties[SIG_TYPE_MAX] = {
     /* SIG_TYPE_APPLAYER */     { SIG_PROP_FLOW_ACTION_FLOW, },
     /* SIG_TYPE_APP_TX */       { SIG_PROP_FLOW_ACTION_FLOW, },
 };
+// rule types documentation tag end: SignatureProperties
 // clang-format on
 
 /** \brief register inspect engine at start up time
