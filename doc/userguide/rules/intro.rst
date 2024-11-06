@@ -349,3 +349,226 @@ reassembled streams, TLS-, SSL-, SSH-, FTP- and dcerpc-buffers.
 
 Note that there are some exceptions, e.g. the ``http_raw_uri`` keyword.
 See :ref:`rules-http-uri-normalization` for more information.
+
+
+Rule Types and Categorization
+-----------------------------
+
+Once parsed, Suricata rules are categorized for performance and further
+processing (as different rule types will be handled by specific engine modules).
+The signature types are defined in `src/detect.h
+<https://github.com/OISF/suricata/blob/master/src/detect.h>`_:
+
+.. literalinclude:: ../../../src/detect.h
+    :caption: src/detect.h
+    :language: c
+    :start-after: // rule types documentation tag start: SignatureType
+    :end-before: // rule types documentation tag end: SignatureType
+
+The rule type will impact:
+
+  - To what does the signature action apply, in case of a match (`Action Scope`)
+  - When is the rule matched against traffic (`Inspected`)
+  - Against what the rule matches (`Matches`)
+
+This categorization is done taking into consideration the presence or absence of
+certain rule elements, as well as the type of keywords used. The categorization
+currently takes place in `src/detect-engine-build.c:void SignatureSetType()
+<https://github.com/OISF/suricata/blob/master/src/detect-engine-build.c#L1642-L1704>`_.
+
+The ``SignatureSetType()`` overall flow is described below:
+
+.. image:: intro/OverallAlgoHorizontal-v1-20241108.png
+   :width: 600
+   :alt: A flowchart representing the SignatureSetType function.
+
+The following table lists all Suricata signature types, and how they impact the
+aspects aforementioned.
+
+.. list-table:: Suricata Rule Types
+    :header-rows: 1
+
+    * - Type
+      - Action Scope
+      - Inspected
+      - Matches
+      - Keyword Examples (non-exhaustive)
+    * - Decoder Events Only
+      - Packet
+      - Per-packet basis
+      - Packets that are broken on an IP level
+      - 'decode-event'
+    * - Packet
+      - Packet
+      - Per-packet basis
+      - Packet-level info (e.g.: header info)
+      - 'itype', 'tcp.hdr', 'tcp.seq', 'ttl' etc.
+    * - IP Only
+      - Flow
+      - Once per direction
+      - On IP addresses on the flow
+      - Source/ Destination field of a rule
+    * - IP Only (contains a negated address)(*)
+      - Flow
+      - Once per direction
+      - On the flow, on IP address level (negated addresses)
+      - Source/ Destination field of a rule, containing negated address
+    * - Protocol Detection Only
+      - Flow
+      - Once per direction, when protocol detection is done
+      - On protocol detected for the flow
+      - 'app-layer-protocol'
+    * - Packet-Stream
+      - Flow, if stateful (**)
+      - Flow, if stateful, per-packet if not
+      - Against the reassembled stream. If stream unavailable, match per-packet
+        (packet payload and stream payload)
+      - 'content' with 'startswith' or 'depth'
+    * - Stream
+      - Flow, if stateful (**)
+      - Per stream chunk, if stateful, per-packet if not
+      - Against the reassembled stream. If stream unavailable, match per-packet
+      - 'tcp-stream' in protocol field; simple 'content'; 'byte_extract'
+    * - Application Layer Protocol
+      - Flow
+      - Per-packet basis
+      - On 'protocol' field
+      - `Protocol field <https://suri-rtd-test.readthedocs.io/en/doc-sigtypes-et-properties-v5/rules/intro.html#protocol>`_ of a rule
+    * - Application Layer Protocol Transactions
+      - Flow
+      - Per transaction update
+      - On buffer keywords
+      - Application layer protocol-related, e.g. 'http.host', 'rfb.secresult',
+        'dcerpc.stub_data', 'frame' keywords
+
+.. note::
+    (*) IP Only signatures with negated addresses are `like` IP-only signatures, but
+    currently handled differently due to limitations of the algorithm processing
+    IP Only rules.
+
+.. note:: Action Scope: `Flow, if stateful`
+
+    (**) Apply to the flow. If a segment isn't accepted into a stream for any
+    reason (such as packet anomalies, errors, memcap reached etc), the rule will
+    be applied on a packet level.
+
+Signature Properties
+~~~~~~~~~~~~~~~~~~~~
+
+The `Action Scope` mentioned above relates to the Signature Properties, as seen in
+`src/detect-engine.c <https://github.com/OISF/suricata/blob/master/src/detect-engine.c>`_:
+
+.. literalinclude:: ../../../src/detect-engine.c
+    :caption: src/detect-engine.c
+    :language: c
+    :start-after: // rule types documentation tag start: SignatureProperties
+    :end-before: // rule types documentation tag end: SignatureProperties
+
+Signature Examples per Type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Decoder Events Only
+^^^^^^^^^^^^^^^^^^^
+
+For more examples check https://github.com/OISF/suricata/blob/master/rules/decoder-events.rules.
+
+.. container:: example-rule
+
+    alert pkthdr any any -> any any (msg:"SURICATA IPv4 malformed option"; :example-rule-emphasis:`decode-event:ipv4.opt_malformed;` classtype:protocol-command-decode; sid:2200006; rev:2;)
+
+Packet
+^^^^^^
+
+.. container:: example-rule
+
+    alert udp any any -> any any (msg:"UDP with flow direction"; flow:to_server; sid:1001;)
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"ttl"; :example-rule-emphasis:`ttl:123;` sid:701;)
+
+IP Only
+^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp-stream any any -> any any (msg:"tcp-stream, no content"; sid:101;)
+
+
+.. container:: example-rule
+
+    alert tcp-pkt [192.168.0.0/16,10.0.0.0/8,172.16.0.0/12] any -> any any (msg:"tcp-pkt, no content"; sid:201;)
+
+IP Only (contains negated address)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12 any -> :example-rule-emphasis:`![192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]` any (msg:"tcp, has negated IP address"; sid:304;)
+
+.. container:: example-rule
+
+    alert tcp :example-rule-emphasis:`[10.0.0.0/8,!10.10.10.10]` any -> :example-rule-emphasis:`[10.0.0.0/8,!10.10.10.10]` any (msg:"tcp, has negated IP address"; sid:305;)
+
+Protocol Detection Only
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"tcp, pd negated"; :example-rule-emphasis:`app-layer-protocol:!http;` sid:401;)
+
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"tcp, pd positive"; :example-rule-emphasis:`app-layer-protocol:http;` sid:402;)
+
+
+Packet-Stream
+^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"tcp, anchored content"; :example-rule-emphasis:`content:"abc"; startswith;` sid:303;)
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"http, anchored content"; :example-rule-emphasis:`content:"abc"; startswith;` sid:603;)
+
+
+Stream
+^^^^^^
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`tcp-stream` any any -> any any (msg:"tcp-stream, simple content"; :example-rule-emphasis:`content:"abc";` sid:102;)
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`http` any any -> any any (msg:"http, simple content"; :example-rule-emphasis:`content:"abc";` sid:602;)
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"byte_extract with dce"; byte_extract:4,0,var,dce; byte_test:4,>,var,4,little; sid:901;)
+
+
+Application Layer Protocol
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`http` any any -> any any (msg:"http, no content"; sid:601;)
+
+Application Layer Protocol Transactions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"http, pos event"; :example-rule-emphasis:`app-layer-event:http.file_name_too_long;` sid:501;)
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Test"; flow:established,to_server; :example-rule-emphasis:`http.method; content:"GET"; http.uri; content:".exe";` endswith; :example-rule-emphasis:`http.host; content:!".google.com";` endswith; sid:1102;)
+
+.. container:: example-rule
+
+   alert udp any any -> any any (msg:"DNS UDP Frame"; flow:to_server; :example-rule-emphasis:`frame:dns.pdu;` content:"\|01 20 00 01\|"; offset:2; content:"suricata"; offset:13; sid:1402; rev:1;)
