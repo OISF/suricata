@@ -66,5 +66,6 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
         Flow *f);
 
 void DetectLuaPostSetup(Signature *s);
+void LuaDumpStack(lua_State *state, const char *prefix);
 
 #endif /* SURICATA_DETECT_LUA_H */
