@@ -2319,9 +2319,24 @@ fi
            [  --with-ndpi=<path>    path to nDPI source tree.],
            [NDPI_HOME="$withval"])
 
-    if ! test -z "${NDPI_HOME}" = "yes"; then
+    # Require --with-ndpi to be provided with an argument.
+    AS_IF([test "x$NDPI_HOME" = "xyes"], [
+        AC_MSG_ERROR([--with-ndpi requires a path])
+        exit 1
+    ])
+
+    AS_IF([test "x$enable_dpi" = "xyes"], [
+        if test "x$enable_shared" = "xno"; then
+            echo
+            echo "   ERROR! ndpi cannot be enabled with --disable-shared"
+            echo
+            exit 1
+        fi
+    ])
+
+    if test "x$enable_ndpi" = "xyes"; then
         AC_MSG_CHECKING(for nDPI source)
-        if test ! -z "$NDPI_HOME" ; then :
+        if test "x$NDPI_HOME" != "x"; then
             AC_MSG_RESULT(found in $NDPI_HOME)
             NDPI_LIB=$NDPI_HOME/src/lib/libndpi.a
             AC_MSG_CHECKING(for $NDPI_LIB)
