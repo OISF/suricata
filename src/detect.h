@@ -59,6 +59,7 @@ struct SCSigSignatureWrapper_;
 /* Forward declarations for structures from Rust. */
 typedef struct SCDetectRequiresStatus SCDetectRequiresStatus;
 
+// rule types documentation tag start: SignatureType
 enum SignatureType {
     SIG_TYPE_NOT_SET = 0,
     SIG_TYPE_IPONLY,      // rule is handled by IPONLY engine
@@ -76,6 +77,7 @@ enum SignatureType {
 
     SIG_TYPE_MAX,
 };
+// rule types documentation tag end: SignatureType
 
 enum SignaturePropertyFlowAction {
     SIG_PROP_FLOW_ACTION_PACKET,
