@@ -349,3 +349,189 @@ reassembled streams, TLS-, SSL-, SSH-, FTP- and dcerpc-buffers.
 
 Note that there are some exceptions, e.g. the ``http_raw_uri`` keyword.
 See :ref:`rules-http-uri-normalization` for more information.
+
+
+Rule's Types and Categorization
+-------------------------------
+
+Once parsed, Suricata rules are categorized for performance and further
+processing (as different rule types will be handled by specific modules).
+
+This categorization is done taking into consideration the type of keywords used.
+This will impact:
+
+  - Scope
+  - When is the rule matched against traffic
+  - Against what the rule matches
+
+The following table lists all Suricata signature types, and how they impact the
+aspects aforementioned.
+
+.. list-table:: Suricata Rule Types
+    :header-rows: 1
+
+    * - Type
+      - Scope
+      - Inspected
+      - Matches
+      - Keyword Examples (non-exhaustive)
+    * - Decode Events Only
+      - Packet
+      - Per-packet basis
+      - Packets that are broken on an IP level
+      - decode-event
+    * - Packet
+      - Packet
+      - Per-packet basis
+      - Packet-level info (e.g.: header info)
+      - ttl
+    * - IP Only
+      - Flow
+      - Once per direction
+      - On IP addresses on the flow
+      - ---
+    * - IP Only (negated address)(*)
+      - Flow
+      - Once per direction
+      - On the flow, on IP address level (negated addressed)
+      - ---
+    * - Protocol Detection Only
+      - Flow
+      - Once per direction, when protocol detection is done
+      - On protocol detected for the flow
+      - app-layer-protocol
+    * - Packet-Stream
+      - Flow, if stateful (**)
+      - Flow, if stateful, per-packet if not
+      - Against the reassembled stream. If stream unavailable, match per-packet
+        (packet payload and stream payload)
+      - 'content' with 'starts with' or 'depth'
+    * - Stream
+      - Flow, if stateful (**)
+      - Per stream chunk, if stateful, per-packet if not
+      - Against the reassembled stream. If stream unavailable, match per-packet
+      - 'tcp-stream' in protocol field; simple 'content'; 'byte_extract'
+    * - Application Layer Protocol
+      - Flow
+      - Once per flow
+      - On 'protocol' field
+      - protocol field of a rule
+    * - Application Layer Protocol Transactions
+      - Flow
+      - Per reassembled stream segment
+      - On buffer keywords
+      - Application layer protocol-related, e.g. `http.host`, `rfb.secresult`,
+        dcerpc_stub_data
+
+.. note::
+    (*) IP Only signatures with negated addresses are _like_ IP-only signatures, but
+    currently handled differently due to limitations of the algorithm processing
+    IP Only rules.
+
+.. note:: Scope: `Flow, if stateful`
+
+    (**) Apply to the stream, if the reassembled stream is available. If
+    `stream-depth` is reached, or the stream is unreachable some other way, the
+    rule will be applied on a packet level.
+
+Signature Examples per Type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Decode Events Only
+^^^^^^^^^^^^^^^^^^
+
+For more examples check https://github.com/OISF/suricata/blob/master/rules/decoder-events.rules.
+
+.. container:: example-rule
+
+    alert pkthdr any any -> any any (msg:"SURICATA IPv4 malformed option"; :example-rule-emphasis:`decode-event:ipv4.opt_malformed;` classtype:protocol-command-decode; sid:2200006; rev:2;)
+
+Packet
+^^^^^^
+
+.. container:: example-rule
+
+    alert udp any any -> any any (msg:"UDP with flow direction"; flow:to_server; sid:1001;)
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"ttl"; :example-rule-emphasis:`ttl:123;` sid:701;)
+
+IP Only
+^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp-stream any any -> any any (msg:"tcp-stream, no content"; sid:101;)
+
+
+.. container:: example-rule
+
+    alert tcp-pkt any any -> any any (msg:"tcp-pkt, no content"; sid:201;)
+
+IP Only (negated address)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp :example-rule-emphasis:`!192.168.0.1` any -> any any (msg:"tcp, negated IP address"; sid:304;)
+
+Protocol Detection Only
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"tcp, pd negated"; :example-rule-emphasis:`app-layer-protocol:!http;` sid:401;)
+
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (msg:"tcp, pd positive"; :example-rule-emphasis:`app-layer-protocol:http;` sid:402;)
+
+
+Packet-Stream
+^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"tcp, anchored content"; :example-rule-emphasis:`content:"abc"; startswith;` sid:303;)
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"http, anchored content"; :example-rule-emphasis:`content:"abc"; startswith;` sid:603;)
+
+
+Stream
+^^^^^^
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`tcp-stream` any any -> any any (msg:"tcp-stream, simple content"; :example-rule-emphasis:`content:"abc";` sid:102;)
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`http` any any -> any any (msg:"http, simple content"; :example-rule-emphasis:`content:"abc";` sid:602;)
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"byte_extract with dce"; byte_extract:4,0,var,dce; byte_test:4,>,var,4,little; sid:901;)
+
+
+Application Layer Protocol
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert :example-rule-emphasis:`http` any any -> any any (msg:"http, no content"; sid:601;)
+
+Application Layer Protocol Transactions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"http, pos event"; :example-rule-emphasis:`app-layer-event:http.file_name_too_long;` sid:501;)
+
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Test"; flow:established,to_server; :example-rule-emphasis:`http.method; content:"GET"; http.uri; content:".exe";` endswith; :example-rule-emphasis:`http.host; content:!".google.com";` endswith; sid:1102;)
