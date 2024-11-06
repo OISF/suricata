@@ -349,3 +349,74 @@ reassembled streams, TLS-, SSL-, SSH-, FTP- and dcerpc-buffers.
 
 Note that there are some exceptions, e.g. the ``http_raw_uri`` keyword.
 See :ref:`rules-http-uri-normalization` for more information.
+
+
+Rule's Types and Categorization
+-------------------------------
+
+Once parsed, Suricata rules are categorized for performance and further
+processing (as different rule types will be handled by specific modules).
+
+This categorization is done taking into consideration the type of keywords used.
+This will impact:
+
+  - scope
+  - how often/ when is the rule matched against traffic
+  - against what the rule matches
+
+The following table lists all Suricata signature types, and how they impact the
+aspects aforementioned.
+
+.. list-table:: Suricata Rule Types
+    :header-rows: 1
+
+    * - Type
+      - Scope
+      - Inspected
+      - Matches
+      - Keyword Examples
+    * - Decode Events Only
+      - Packet
+      - Per-packet basis
+      - Packets that are broken on an IP address level
+      - ---
+    * - Packet
+      - Packet
+      - Per-packet basis
+      - Packet-level info (e.g.: header info, ttl...)
+      - ---
+    * - IP Only
+      - Flow
+      - Once per direction
+      - On the flow, on IP address level
+      - ---
+    * - IP Only (negated address)
+      - Flow
+      - Once per direction
+      - On the flow, on IP address level (negated addressed)
+      - ---
+    * - Protocol Detection Only
+      - Flow
+      - Once per direction, when protocol detection is done
+      - app-layer-protocol keyword
+      - app-layer-protocol
+    * - Packet-Stream
+      - Flow, if stateful
+      - Match against the reassembled stream. If stream unavailable, match per-packet
+      - Flow, if stateful, per-packet if not
+      - 'content' with 'starts with' or 'depth'
+    * - Stream
+      - Flow, if stateful
+      - Flow, if stateful, per-packet basis if not
+      - Match on payload
+      - Match against the reassembled stream. If stream unavailable, match per-packet
+    * - Application Layer Protocol
+      - Flow
+      - Once per flow
+      - Match on protocol field
+      - protocol field of a rule
+    * - Application Layer Protocol Transactions
+      - Flow
+      - Per reassembled stream segment
+      - Matches on buffer keywords
+      - `http.host`, `rfb.secresult`, application-layer protocol-related keywords
