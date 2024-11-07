@@ -125,12 +125,16 @@ static void TransformUrlDecode(InspectionBuffer *buffer, void *options)
     if (input_len == 0) {
         return;
     }
-    uint8_t output[input_len]; // we can only shrink
+    // we can only shrink
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
 
     changed = BufferUrlDecode(input, input_len, output, &output_size);
 
     if (changed) {
-        InspectionBufferCopy(buffer, output, output_size);
+        InspectionBufferTruncate(buffer, output_size);
     }
 }
 

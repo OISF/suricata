@@ -53,7 +53,10 @@ static void DetectTransformHeaderLowercase(InspectionBuffer *buffer, void *optio
     if (input_len == 0) {
         return;
     }
-    uint8_t output[input_len];
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
 
     // state 0 is header name, 1 is header value
     int state = 0;
@@ -72,7 +75,7 @@ static void DetectTransformHeaderLowercase(InspectionBuffer *buffer, void *optio
             }
         }
     }
-    InspectionBufferCopy(buffer, output, input_len);
+    InspectionBufferTruncate(buffer, input_len);
 }
 
 void DetectTransformHeaderLowercaseRegister(void)

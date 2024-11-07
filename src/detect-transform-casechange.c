@@ -62,12 +62,15 @@ static void DetectTransformToLower(InspectionBuffer *buffer, void *options)
         return;
     }
 
-    uint8_t output[input_len];
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
     for (uint32_t i = 0; i < input_len; i++) {
         output[i] = u8_tolower(input[i]);
     }
 
-    InspectionBufferCopy(buffer, output, input_len);
+    InspectionBufferTruncate(buffer, input_len);
 }
 /**
  *  \internal
@@ -102,12 +105,15 @@ static void DetectTransformToUpper(InspectionBuffer *buffer, void *options)
         return;
     }
 
-    uint8_t output[input_len];
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
     for (uint32_t i = 0; i < input_len; i++) {
         output[i] = u8_toupper(input[i]);
     }
 
-    InspectionBufferCopy(buffer, output, input_len);
+    InspectionBufferTruncate(buffer, input_len);
 }
 
 /*

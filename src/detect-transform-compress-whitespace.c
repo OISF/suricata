@@ -111,7 +111,11 @@ static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
         return;
     }
 
-    uint8_t output[input_len]; // we can only shrink
+    // we can only shrink
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
     uint8_t *oi = output, *os = output;
 
     //PrintRawDataFp(stdout, input, input_len);
@@ -132,7 +136,7 @@ static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
     uint32_t output_size = oi - os;
     //PrintRawDataFp(stdout, output, output_size);
 
-    InspectionBufferCopy(buffer, os, output_size);
+    InspectionBufferTruncate(buffer, output_size);
 }
 
 #ifdef UNITTESTS

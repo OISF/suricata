@@ -133,12 +133,15 @@ static void DetectTransformXor(InspectionBuffer *buffer, void *options)
     if (input_len == 0) {
         return;
     }
-    uint8_t output[input_len];
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
 
     for (uint32_t i = 0; i < input_len; i++) {
         output[i] = input[i] ^ pxd->key[i % pxd->length];
     }
-    InspectionBufferCopy(buffer, output, input_len);
+    InspectionBufferTruncate(buffer, input_len);
 }
 
 #ifdef UNITTESTS

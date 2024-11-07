@@ -110,11 +110,15 @@ static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
     const size_t input_len = buffer->inspect_len;
 
     if (input_len) {
-        uint8_t output[input_len + 1]; // For the leading '.'
+        // For the leading '.'
+        uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len + 1);
+        if (output == NULL) {
+            return;
+        }
 
         output[0] = '.';
         memcpy(&output[1], buffer->inspect, input_len);
-        InspectionBufferCopy(buffer, output, input_len + 1);
+        InspectionBufferTruncate(buffer, input_len + 1);
     }
 }
 

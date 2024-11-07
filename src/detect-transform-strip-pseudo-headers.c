@@ -53,7 +53,10 @@ static void DetectTransformStripPseudoHeaders(InspectionBuffer *buffer, void *op
     if (input_len == 0) {
         return;
     }
-    uint8_t output[input_len];
+    uint8_t *output = (uint8_t *)InspectionBufferCheckAndExpand(buffer, input_len);
+    if (output == NULL) {
+        return;
+    }
 
     bool new_line = true;
     bool pseudo = false;
@@ -82,7 +85,7 @@ static void DetectTransformStripPseudoHeaders(InspectionBuffer *buffer, void *op
             j++;
         }
     }
-    InspectionBufferCopy(buffer, output, j);
+    InspectionBufferTruncate(buffer, j);
 }
 
 void DetectTransformStripPseudoHeadersRegister(void)
