@@ -29,6 +29,8 @@ pub enum RuleParseError<I> {
     InvalidTransformBase64(String),
     InvalidByteExtract(String),
 
+    InvalidGeneric(String),
+
     Nom(I, ErrorKind),
 }
 impl<I> ParseError<I> for RuleParseError<I> {
