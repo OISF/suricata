@@ -24,11 +24,12 @@ pub mod iprep;
 pub mod parser;
 pub mod requires;
 pub mod stream_size;
+pub mod tojson;
 pub mod transform_base64;
 pub mod transforms;
 pub mod uint;
 pub mod uri;
-pub mod tojson;
+pub mod vlan;
 
 use crate::core::AppProto;
 use std::os::raw::{c_int, c_void};
@@ -37,7 +38,9 @@ use std::os::raw::{c_int, c_void};
 /// derive StringEnum.
 pub trait EnumString<T> {
     /// Return the enum variant of the given numeric value.
-    fn from_u(v: T) -> Option<Self> where Self: Sized;
+    fn from_u(v: T) -> Option<Self>
+    where
+        Self: Sized;
 
     /// Convert the enum variant to the numeric value.
     fn into_u(self) -> T;
@@ -46,7 +49,9 @@ pub trait EnumString<T> {
     fn to_str(&self) -> &'static str;
 
     /// Get an enum variant from parsing a string.
-    fn from_str(s: &str) -> Option<Self> where Self: Sized;
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized;
 }
 
 #[repr(C)]
@@ -80,7 +85,7 @@ pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.
 pub(crate) const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
     pub fn DetectHelperGetData(
         de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
@@ -109,13 +114,8 @@ extern {
     ) -> *mut c_void;
     // in detect-engine-helper.h
     pub fn DetectHelperGetMultiData(
-        de: *mut c_void,
-        transforms: *const c_void,
-        flow: *const c_void,
-        flow_flags: u8,
-        tx: *const c_void,
-        list_id: c_int,
-        local_id: u32,
+        de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+        tx: *const c_void, list_id: c_int, local_id: u32,
         get_buf: unsafe extern "C" fn(*const c_void, u8, u32, *mut *const u8, *mut u32) -> bool,
     ) -> *mut c_void;
     pub fn DetectHelperMultiBufferMpmRegister(
@@ -194,6 +194,9 @@ mod test {
         assert_eq!(TestEnum::BestValueEver.to_str(), "best_value_ever");
         assert_eq!(TestEnum::from_str("zero"), Some(TestEnum::Zero));
         assert_eq!(TestEnum::from_str("nope"), None);
-        assert_eq!(TestEnum::from_str("best_value_ever"), Some(TestEnum::BestValueEver));
+        assert_eq!(
+            TestEnum::from_str("best_value_ever"),
+            Some(TestEnum::BestValueEver)
+        );
     }
 }
