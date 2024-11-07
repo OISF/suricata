@@ -249,6 +249,7 @@
 #include "detect-ike-nonce-payload-length.h"
 #include "detect-ike-nonce-payload.h"
 #include "detect-ike-key-exchange-payload.h"
+#include "detect-vlan-id.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -674,6 +675,8 @@ void SigTableSetup(void)
     DetectTransformFromBase64DecodeRegister();
 
     DetectFileHandlerRegister();
+
+    DetectVlanIdRegister();
 
     ScDetectSNMPRegister();
     ScDetectDHCPRegister();
