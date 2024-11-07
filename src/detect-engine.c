@@ -1653,11 +1653,13 @@ void InspectionBufferFree(InspectionBuffer *buffer)
 /**
  * \brief make sure that the buffer has at least 'min_size' bytes
  * Expand the buffer if necessary
+ *
+ * \retval pointer to inner buffer to use, or NULL if realloc failed
  */
-void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
+uint8_t *InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
 {
     if (likely(buffer->size >= min_size))
-        return;
+        return buffer->buf;
 
     uint32_t new_size = (buffer->size == 0) ? 4096 : buffer->size;
     while (new_size < min_size) {
@@ -1668,7 +1670,24 @@ void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
     if (ptr != NULL) {
         buffer->buf = ptr;
         buffer->size = new_size;
+    } else {
+        return NULL;
     }
+    return buffer->buf;
+}
+
+/**
+ * \brief set inspect length of inspect buffer
+ * The inspect buffer may have been overallocated (by strip_whitespace for example)
+ * so, this sets the final length
+ */
+void InspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len)
+{
+    DEBUG_VALIDATE_BUG_ON(buffer->buf == NULL);
+    DEBUG_VALIDATE_BUG_ON(buf_len > buffer->size);
+    buffer->inspect = buffer->buf;
+    buffer->inspect_len = buf_len;
+    buffer->initialized = true;
 }
 
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len)
