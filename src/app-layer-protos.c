@@ -32,6 +32,7 @@ typedef struct AppProtoStringTuple {
 
 const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_UNKNOWN, "unknown" },
+    { ALPROTO_FAILED, "failed" },
     { ALPROTO_HTTP1, "http1" },
     { ALPROTO_FTP, "ftp" },
     { ALPROTO_SMTP, "smtp" },
@@ -69,7 +70,6 @@ const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_BITTORRENT_DHT, "bittorrent-dht" },
     { ALPROTO_POP3, "pop3" },
     { ALPROTO_HTTP, "http" },
-    { ALPROTO_FAILED, "failed" },
 };
 
 const char *AppProtoToString(AppProto alproto)
