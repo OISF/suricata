@@ -67,7 +67,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (list == NULL) {
-        list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+        list = SCCalloc(g_alproto_max, sizeof(OutputTxLogger *));
         if (unlikely(list == NULL)) {
             SCLogError("Failed to allocate OutputTx list");
             return -1;
@@ -547,14 +547,14 @@ end:
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void **data)
 {
     OutputTxLoggerThreadData *td =
-            SCCalloc(1, sizeof(*td) + ALPROTO_MAX * sizeof(OutputLoggerThreadStore *));
+            SCCalloc(1, sizeof(*td) + g_alproto_max * sizeof(OutputLoggerThreadStore *));
     if (td == NULL)
         return TM_ECODE_FAILED;
 
     *data = (void *)td;
     SCLogDebug("OutputTxLogThreadInit happy (*data %p)", *data);
 
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         OutputTxLogger *logger = list[alproto];
         while (logger) {
             if (logger->ThreadInit) {
@@ -603,7 +603,7 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
     OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         OutputLoggerThreadStore *store = op_thread_data->store[alproto];
         OutputTxLogger *logger = list[alproto];
 
@@ -633,7 +633,7 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         for (OutputTxLogger *p = list[alproto]; p != NULL; p = p->next) {
             cnt++;
         }
@@ -655,7 +655,7 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 void OutputTxLoggerRegister (void)
 {
     BUG_ON(list);
-    list = SCCalloc(ALPROTO_MAX, sizeof(OutputTxLogger *));
+    list = SCCalloc(g_alproto_max, sizeof(OutputTxLogger *));
     if (unlikely(list == NULL)) {
         FatalError("Failed to allocate OutputTx list");
     }
@@ -669,7 +669,7 @@ void OutputTxShutdown(void)
     if (list == NULL) {
         return;
     }
-    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         OutputTxLogger *logger = list[alproto];
         while (logger) {
             OutputTxLogger *next_logger = logger->next;

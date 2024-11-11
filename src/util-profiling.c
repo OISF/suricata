@@ -158,11 +158,11 @@ SCProfilingInit(void)
             memset(&packet_profile_data6, 0, sizeof(packet_profile_data6));
             memset(&packet_profile_tmm_data4, 0, sizeof(packet_profile_tmm_data4));
             memset(&packet_profile_tmm_data6, 0, sizeof(packet_profile_tmm_data6));
-            packet_profile_app_data4 = SCCalloc(ALPROTO_MAX * 257, sizeof(SCProfilePacketData));
+            packet_profile_app_data4 = SCCalloc(g_alproto_max * 257, sizeof(SCProfilePacketData));
             if (packet_profile_app_data4 == NULL) {
                 FatalError("Failed to allocate packet_profile_app_data4");
             }
-            packet_profile_app_data6 = SCCalloc(ALPROTO_MAX * 257, sizeof(SCProfilePacketData));
+            packet_profile_app_data6 = SCCalloc(g_alproto_max * 257, sizeof(SCProfilePacketData));
             if (packet_profile_app_data6 == NULL) {
                 FatalError("Failed to allocate packet_profile_app_data6");
             }
@@ -503,7 +503,7 @@ void SCProfilingDumpPacketStats(void)
             "--------------------", "------", "-----", "----------", "------------", "------------", "-----------");
 
     total = 0;
-    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
+    for (AppProto a = 0; a < g_alproto_max; a++) {
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_data4[a * 257 + p];
             total += pd->tot;
@@ -512,7 +512,7 @@ void SCProfilingDumpPacketStats(void)
             total += pd->tot;
         }
     }
-    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
+    for (AppProto a = 0; a < g_alproto_max; a++) {
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_data4[a * 257 + p];
             if (pd->cnt == 0) {
@@ -531,7 +531,7 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    for (AppProto a = 0; a < ALPROTO_MAX; a++) {
+    for (AppProto a = 0; a < g_alproto_max; a++) {
         for (int p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_app_data6[a * 257 + p];
             if (pd->cnt == 0) {
@@ -820,7 +820,7 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     /* count ticks for app layer */
     uint64_t app_total = 0;
-    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < g_alproto_max; i++) {
         const PktProfilingAppData *pdt = &p->profile->app[i];
 
         if (p->proto == IPPROTO_TCP) {
@@ -951,7 +951,7 @@ static void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktPr
 static void SCProfilingUpdatePacketAppRecords(Packet *p)
 {
     int i;
-    for (i = 0; i < ALPROTO_MAX; i++) {
+    for (i = 0; i < g_alproto_max; i++) {
         PktProfilingAppData *pdt = &p->profile->app[i];
 
         if (pdt->ticks_spent > 0) {
@@ -1199,7 +1199,7 @@ PktProfiling *SCProfilePacketStart(void)
 {
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
     if (sample % rate == 0)
-        return SCCalloc(1, sizeof(PktProfiling) + ALPROTO_MAX * sizeof(PktProfilingAppData));
+        return SCCalloc(1, sizeof(PktProfiling) + g_alproto_max * sizeof(PktProfilingAppData));
     return NULL;
 }
 

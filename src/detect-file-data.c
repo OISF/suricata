@@ -97,11 +97,11 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
     if (de_ctx->filedata_config)
         return;
 
-    de_ctx->filedata_config = SCMalloc(ALPROTO_MAX * sizeof(DetectFileDataCfg));
+    de_ctx->filedata_config = SCMalloc(g_alproto_max * sizeof(DetectFileDataCfg));
     if (unlikely(de_ctx->filedata_config == NULL))
         return;
     /* initialize default */
-    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < g_alproto_max; i++) {
         de_ctx->filedata_config[i].content_limit = FILEDATA_CONTENT_LIMIT;
         de_ctx->filedata_config[i].content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
     }
