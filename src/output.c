@@ -835,7 +835,7 @@ void TmModuleLoggerRegister(void)
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto)
 {
-    if (alproto < ALPROTO_MAX) {
+    if (alproto < g_alproto_max) {
         return &simple_json_applayer_loggers[alproto];
     }
     return NULL;
@@ -857,7 +857,7 @@ static void RegisterSimpleJsonApplayerLogger(
  */
 void OutputRegisterRootLoggers(void)
 {
-    simple_json_applayer_loggers = SCCalloc(ALPROTO_MAX, sizeof(EveJsonSimpleAppLayerLogger));
+    simple_json_applayer_loggers = SCCalloc(g_alproto_max, sizeof(EveJsonSimpleAppLayerLogger));
     if (unlikely(simple_json_applayer_loggers == NULL)) {
         FatalError("Failed to allocate simple_json_applayer_loggers");
     }

@@ -96,7 +96,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
-    if (data[0] >= ALPROTO_MAX) {
+    if (data[0] >= g_alproto_max) {
         return 0;
     }
     //no UTHBuildFlow to have storage
