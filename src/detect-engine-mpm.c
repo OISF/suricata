@@ -1972,7 +1972,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     const int max_buffer_id = de_ctx->buffer_type_id + 1;
     const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
 
-    AppProto engines[max_buffer_id][ALPROTO_MAX];
+    AppProto engines[max_buffer_id][AlprotoMax];
     memset(engines, 0, sizeof(engines));
     int engines_idx[max_buffer_id];
     memset(engines_idx, 0, sizeof(engines_idx));
