@@ -757,8 +757,9 @@ void RunModeInitializeOutputs(void)
     char tls_log_enabled = 0;
     char tls_store_present = 0;
 
-    // ALPROTO_MAX is set to its final value
-    LoggerId logger_bits[ALPROTO_MAX] = { 0 };
+    // AlprotoMax is set to its final value
+    LoggerId logger_bits[AlprotoMax];
+    memset(logger_bits, 0, AlprotoMax * sizeof(LoggerId));
     TAILQ_FOREACH(output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
@@ -884,7 +885,7 @@ void RunModeInitializeOutputs(void)
 
     /* register the logger bits to the app-layer */
     AppProto a;
-    for (a = 0; a < ALPROTO_MAX; a++) {
+    for (a = 0; a < AlprotoMax; a++) {
         if (AppLayerParserSupportsFiles(IPPROTO_TCP, a)) {
             if (g_file_logger_enabled)
                 logger_bits[a] |= BIT_U32(LOGGER_FILE);
@@ -919,7 +920,6 @@ void RunModeInitializeOutputs(void)
             AppLayerParserRegisterLoggerBits(IPPROTO_TCP, a, logger_bits[a]);
         if (udp)
             AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
-
     }
     OutputSetupActiveLoggers();
 }

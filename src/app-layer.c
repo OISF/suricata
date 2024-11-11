@@ -1014,12 +1014,12 @@ void AppLayerListSupportedProtocols(void)
     SCEnter();
 
     AppProto alproto;
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     printf("=========Supported App Layer Protocols=========\n");
-    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (alproto = 0; alproto < AlprotoMax; alproto++) {
         if (alprotos[alproto] == 1)
             printf("%s\n", AppLayerGetProtoName(alproto));
     }
@@ -1028,11 +1028,54 @@ void AppLayerListSupportedProtocols(void)
 }
 
 /***** Setup/General Registration *****/
+static void AppLayerNamesSetup(void)
+{
+    AppProtoRegisterProtoString(ALPROTO_UNKNOWN, "unknown");
+    AppProtoRegisterProtoString(ALPROTO_FAILED, "failed");
+    AppProtoRegisterProtoString(ALPROTO_HTTP1, "http1");
+    AppProtoRegisterProtoString(ALPROTO_FTP, "ftp");
+    AppProtoRegisterProtoString(ALPROTO_SMTP, "smtp");
+    AppProtoRegisterProtoString(ALPROTO_TLS, "tls");
+    AppProtoRegisterProtoString(ALPROTO_SSH, "ssh");
+    AppProtoRegisterProtoString(ALPROTO_IMAP, "imap");
+    AppProtoRegisterProtoString(ALPROTO_JABBER, "jabber");
+    AppProtoRegisterProtoString(ALPROTO_SMB, "smb");
+    AppProtoRegisterProtoString(ALPROTO_DCERPC, "dcerpc");
+    AppProtoRegisterProtoString(ALPROTO_IRC, "irc");
+    AppProtoRegisterProtoString(ALPROTO_DNS, "dns");
+    AppProtoRegisterProtoString(ALPROTO_MODBUS, "modbus");
+    AppProtoRegisterProtoString(ALPROTO_ENIP, "enip");
+    AppProtoRegisterProtoString(ALPROTO_DNP3, "dnp3");
+    AppProtoRegisterProtoString(ALPROTO_NFS, "nfs");
+    AppProtoRegisterProtoString(ALPROTO_NTP, "ntp");
+    AppProtoRegisterProtoString(ALPROTO_FTPDATA, "ftp-data");
+    AppProtoRegisterProtoString(ALPROTO_TFTP, "tftp");
+    AppProtoRegisterProtoString(ALPROTO_IKE, "ike");
+    AppProtoRegisterProtoString(ALPROTO_KRB5, "krb5");
+    AppProtoRegisterProtoString(ALPROTO_QUIC, "quic");
+    AppProtoRegisterProtoString(ALPROTO_DHCP, "dhcp");
+    AppProtoRegisterProtoString(ALPROTO_SNMP, "snmp");
+    AppProtoRegisterProtoString(ALPROTO_SIP, "sip");
+    AppProtoRegisterProtoString(ALPROTO_RFB, "rfb");
+    AppProtoRegisterProtoString(ALPROTO_MQTT, "mqtt");
+    AppProtoRegisterProtoString(ALPROTO_PGSQL, "pgsql");
+    AppProtoRegisterProtoString(ALPROTO_TELNET, "telnet");
+    AppProtoRegisterProtoString(ALPROTO_WEBSOCKET, "websocket");
+    AppProtoRegisterProtoString(ALPROTO_LDAP, "ldap");
+    AppProtoRegisterProtoString(ALPROTO_DOH2, "doh2");
+    AppProtoRegisterProtoString(ALPROTO_TEMPLATE, "template");
+    AppProtoRegisterProtoString(ALPROTO_RDP, "rdp");
+    AppProtoRegisterProtoString(ALPROTO_HTTP2, "http2");
+    AppProtoRegisterProtoString(ALPROTO_BITTORRENT_DHT, "bittorrent-dht");
+    AppProtoRegisterProtoString(ALPROTO_POP3, "pop3");
+    AppProtoRegisterProtoString(ALPROTO_HTTP, "http");
+}
 
 int AppLayerSetup(void)
 {
     SCEnter();
 
+    AppLayerNamesSetup();
     AppLayerProtoDetectSetup();
     AppLayerParserSetup();
 
@@ -1151,16 +1194,16 @@ static void AppLayerSetupExceptionPolicyPerProtoCounters(
 void AppLayerSetupCounters(void)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
     const char *str = "app_layer.flow.";
     const char *estr = "app_layer.error.";
 
     applayer_counter_names =
-            SCCalloc(ALPROTO_MAX, sizeof(AppLayerCounterNames[FLOW_PROTO_APPLAYER_MAX]));
+            SCCalloc(AlprotoMax, sizeof(AppLayerCounterNames[FLOW_PROTO_APPLAYER_MAX]));
     if (unlikely(applayer_counter_names == NULL)) {
         FatalError("Unable to alloc applayer_counter_names.");
     }
-    applayer_counters = SCCalloc(ALPROTO_MAX, sizeof(AppLayerCounters[FLOW_PROTO_APPLAYER_MAX]));
+    applayer_counters = SCCalloc(AlprotoMax, sizeof(AppLayerCounters[FLOW_PROTO_APPLAYER_MAX]));
     if (unlikely(applayer_counters == NULL)) {
         FatalError("Unable to alloc applayer_counters.");
     }
@@ -1185,7 +1228,7 @@ void AppLayerSetupCounters(void)
         const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
         uint8_t ipprotos_all[256 / 8];
 
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
@@ -1260,7 +1303,7 @@ void AppLayerSetupCounters(void)
 void AppLayerRegisterThreadCounters(ThreadVars *tv)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     /* We don't log stats counters if exception policy is `ignore`/`not set` */
@@ -1278,7 +1321,7 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
 
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             if (alprotos[alproto] == 1) {
                 applayer_counters[alproto][ipproto_map].counter_id =
                         StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);

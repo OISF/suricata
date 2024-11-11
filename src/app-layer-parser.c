@@ -249,8 +249,8 @@ int AppLayerParserSetup(void)
 {
     SCEnter();
     // initial allocation that will later be grown using realloc,
-    // when new protocols register themselves and make ALPROTO_MAX grow
-    alp_ctx.ctxs = SCCalloc(ALPROTO_MAX, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]));
+    // when new protocols register themselves and make AlprotoMax grow
+    alp_ctx.ctxs = SCCalloc(AlprotoMax, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]));
     if (unlikely(alp_ctx.ctxs == NULL)) {
         FatalError("Unable to alloc alp_ctx.ctxs.");
     }
@@ -261,7 +261,7 @@ void AppLayerParserPostStreamSetup(void)
 {
     /* lets set a default value for stream_depth */
     for (int flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             if (!(alp_ctx.ctxs[alproto][flow_proto].internal_flags &
                         APP_LAYER_PARSER_INT_STREAM_DEPTH_SET)) {
                 alp_ctx.ctxs[alproto][flow_proto].stream_depth = stream_config.reassembly_depth;
@@ -290,14 +290,14 @@ AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void)
     if (tctx == NULL)
         goto end;
 
-    tctx->alproto_local_storage = SCCalloc(ALPROTO_MAX, sizeof(void *[FLOW_PROTO_MAX]));
+    tctx->alproto_local_storage = SCCalloc(AlprotoMax, sizeof(void *[FLOW_PROTO_MAX]));
     if (unlikely(tctx->alproto_local_storage == NULL)) {
         SCFree(tctx);
         tctx = NULL;
         goto end;
     }
     for (uint8_t flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
 
             tctx->alproto_local_storage[alproto][flow_proto] =
@@ -314,7 +314,7 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx)
     SCEnter();
 
     for (uint8_t flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
 
             AppLayerParserDestroyProtocolParserLocalStorage(
@@ -1688,7 +1688,7 @@ static void ValidateParser(AppProto alproto)
 static void ValidateParsers(void)
 {
     AppProto p = 0;
-    for ( ; p < ALPROTO_MAX; p++) {
+    for (; p < AlprotoMax; p++) {
         ValidateParser(p);
     }
 }
@@ -1788,7 +1788,7 @@ void AppLayerParserRegisterUnittests(void)
     AppLayerParserProtoCtx *ctx;
 
     for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (alproto = 0; alproto < AlprotoMax; alproto++) {
             ctx = &alp_ctx.ctxs[alproto][ip];
             if (ctx->RegisterUnittests == NULL)
                 continue;
