@@ -694,7 +694,7 @@ static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
 {
     SCEnter();
 
-    if (!(alproto > ALPROTO_UNKNOWN && alproto < ALPROTO_FAILED)) {
+    if (!AppProtoIsValid(alproto)) {
         FatalError("Unknown protocol detected - %u", alproto);
     }
 
