@@ -1736,8 +1736,7 @@ int DetectSignatureAddTransform(Signature *s, int transform, void *options)
 
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
-    if (alproto == ALPROTO_UNKNOWN ||
-        alproto >= ALPROTO_FAILED) {
+    if (!AppProtoIsValid(alproto)) {
         SCLogError("invalid alproto %u", alproto);
         return -1;
     }

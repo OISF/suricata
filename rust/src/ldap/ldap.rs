@@ -499,7 +499,7 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
         Ok((_, msg)) => {
             let ldap_msg = LdapMessage::from(msg);
             if ldap_msg.is_unknown() {
-                return unsafe { ALPROTO_FAILED };
+                return ALPROTO_FAILED;
             }
             if direction == Direction::ToServer && !ldap_msg.is_request() {
                 unsafe {
@@ -517,7 +517,7 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
             return ALPROTO_UNKNOWN;
         }
         Err(_e) => {
-            return unsafe { ALPROTO_FAILED };
+            return ALPROTO_FAILED;
         }
     }
 }
