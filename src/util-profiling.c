@@ -820,7 +820,7 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     /* count ticks for app layer */
     uint64_t app_total = 0;
-    for (AppProto i = 1; i < ALPROTO_FAILED; i++) {
+    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
         const PktProfilingAppData *pdt = &p->profile->app[i];
 
         if (p->proto == IPPROTO_TCP) {
