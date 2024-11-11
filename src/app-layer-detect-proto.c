@@ -67,8 +67,6 @@
 
 typedef struct AppLayerProtoDetectProbingParserElement_ {
     AppProto alproto;
-    /* \todo calculate at runtime and get rid of this var */
-    uint32_t alproto_mask;
     /* the min length of data that has to be supplied to invoke the parser */
     uint16_t min_depth;
     /* the max length of data after which this parser won't be invoked */
@@ -89,8 +87,6 @@ typedef struct AppLayerProtoDetectProbingParserPort_ {
     /* wether to use this probing parser port-based */
     // WebSocket has this set to false as it only works with protocol change
     bool use_ports;
-
-    uint32_t alproto_mask;
 
     /* the max depth for all the probing parsers registered for this port */
     uint16_t dp_max_depth;
@@ -480,11 +476,20 @@ static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t flags)
 }
 
 static inline AppProto PPGetProto(const AppLayerProtoDetectProbingParserElement *pe, Flow *f,
-        uint8_t flags, const uint8_t *buf, uint32_t buflen, uint32_t *alproto_masks, uint8_t *rdir)
+        uint8_t flags, const uint8_t *buf, uint32_t buflen, uint32_t *alproto_masks, uint8_t *rdir,
+        uint8_t *nb_tried)
 {
     while (pe != NULL) {
-        if ((buflen < pe->min_depth)  ||
-            (alproto_masks[0] & pe->alproto_mask)) {
+        // callers make alproto_masks and nb_tried are either both defined or both NULL
+        if (alproto_masks != NULL) {
+            DEBUG_VALIDATE_BUG_ON(*nb_tried >= 32);
+            if (buflen < pe->min_depth || (alproto_masks[0] & BIT_U32(*nb_tried))) {
+                // skip if already failed once
+                pe = pe->next;
+                *nb_tried = *nb_tried + 1;
+                continue;
+            }
+        } else if (buflen < pe->min_depth) {
             pe = pe->next;
             continue;
         }
@@ -498,9 +503,12 @@ static inline AppProto PPGetProto(const AppLayerProtoDetectProbingParserElement 
         if (AppProtoIsValid(alproto)) {
             SCReturnUInt(alproto);
         }
-        if (alproto == ALPROTO_FAILED ||
-            (pe->max_depth != 0 && buflen > pe->max_depth)) {
-            alproto_masks[0] |= pe->alproto_mask;
+        if (alproto_masks != NULL) {
+            if ((alproto == ALPROTO_FAILED || (pe->max_depth != 0 && buflen > pe->max_depth))) {
+                // This PE failed, mask it from now on
+                alproto_masks[0] |= BIT_U32(*nb_tried);
+            }
+            *nb_tried = *nb_tried + 1;
         }
         pe = pe->next;
     }
@@ -524,8 +532,20 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f, const uint8_t *buf, uint3
     const AppLayerProtoDetectProbingParserElement *pe1 = NULL;
     const AppLayerProtoDetectProbingParserElement *pe2 = NULL;
     AppProto alproto = ALPROTO_UNKNOWN;
+    // number of tried protocols :
+    // used against alproto_masks to see if al tried protocols failed
+    // Instead of keeping a bitmask for all protocols, we
+    // use only the protocols relevant to this flow, so as to
+    // have alproto_masks a u32 but we have more than 32 alprotos
+    // in Suricata, but we do not allow more than 32 probing parsers
+    // on one flow.
+    // alproto_masks is consistent throughout different calls here
+    // from different packets in the flow.
+    // We can have up to 4 calls to PPGetProto with a mask :
+    // destination port (probing parser), source port,
+    // and again with the reversed flow in case of midstream.
+    uint8_t nb_tried = 0;
     uint32_t *alproto_masks = NULL;
-    uint32_t mask = 0;
     uint8_t idir = (flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
     uint8_t dir = idir;
     uint16_t dp = f->protodetect_dp ? f->protodetect_dp : FLOW_GET_DP(f);
@@ -607,34 +627,30 @@ again_midstream:
 
     /* run the parser(s): always call with original direction */
     uint8_t rdir = 0;
-    alproto = PPGetProto(pe0, f, flags, buf, buflen, alproto_masks, &rdir);
+    // pe0 can change based on the flow state, do not use mask for it
+    alproto = PPGetProto(pe0, f, flags, buf, buflen, NULL, &rdir, NULL);
     if (AppProtoIsValid(alproto))
         goto end;
-    alproto = PPGetProto(pe1, f, flags, buf, buflen, alproto_masks, &rdir);
+    alproto = PPGetProto(pe1, f, flags, buf, buflen, alproto_masks, &rdir, &nb_tried);
     if (AppProtoIsValid(alproto))
         goto end;
-    alproto = PPGetProto(pe2, f, flags, buf, buflen, alproto_masks, &rdir);
+    alproto = PPGetProto(pe2, f, flags, buf, buflen, alproto_masks, &rdir, &nb_tried);
     if (AppProtoIsValid(alproto))
         goto end;
 
     /* get the mask we need for this direction */
     if (dir == idir) {
-        if (pp_port_dp && pp_port_sp)
-            mask = pp_port_dp->alproto_mask|pp_port_sp->alproto_mask;
-        else if (pp_port_dp)
-            mask = pp_port_dp->alproto_mask;
-        else if (pp_port_sp)
-            mask = pp_port_sp->alproto_mask;
-
-        if ((alproto_masks[0] & mask) == mask) {
+        // if we tried 3 protocols, we set probing parsing done if
+        // alproto_masks[0] = 7 = 0b111 = BIT_U32(3) - 1 = 1<<3 - 1
+        if (alproto_masks[0] == BIT_U32(nb_tried) - 1) {
             FLOW_SET_PP_DONE(f, dir);
             SCLogDebug("%s, mask is now %08x, needed %08x, so done",
-                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
-                    alproto_masks[0], mask);
+                    (dir == STREAM_TOSERVER) ? "toserver" : "toclient", alproto_masks[0],
+                    BIT_U32(nb_tried) - 1);
         } else {
             SCLogDebug("%s, mask is now %08x, need %08x",
-                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
-                    alproto_masks[0], mask);
+                    (dir == STREAM_TOSERVER) ? "toserver" : "toclient", alproto_masks[0],
+                    BIT_U32(nb_tried) - 1);
         }
     }
 
@@ -688,17 +704,6 @@ static void AppLayerProtoDetectPPGetIpprotos(AppProto alproto,
     }
 
     SCReturn;
-}
-
-static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
-{
-    SCEnter();
-
-    if (!AppProtoIsValid(alproto)) {
-        FatalError("Unknown protocol detected - %u", alproto);
-    }
-
-    SCReturnUInt(BIT_U32(alproto));
 }
 
 static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParserElementAlloc(void)
@@ -794,7 +799,6 @@ static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParser
     AppLayerProtoDetectProbingParserElement *pe = AppLayerProtoDetectProbingParserElementAlloc();
 
     pe->alproto = alproto;
-    pe->alproto_mask = AppLayerProtoDetectProbingParserGetMask(alproto);
     pe->min_depth = min_depth;
     pe->max_depth = max_depth;
     pe->next = NULL;
@@ -825,7 +829,6 @@ AppLayerProtoDetectProbingParserElementDuplicate(AppLayerProtoDetectProbingParse
     AppLayerProtoDetectProbingParserElement *new_pe = AppLayerProtoDetectProbingParserElementAlloc();
 
     new_pe->alproto = pe->alproto;
-    new_pe->alproto_mask = pe->alproto_mask;
     new_pe->min_depth = pe->min_depth;
     new_pe->max_depth = pe->max_depth;
     new_pe->ProbingParserTs = pe->ProbingParserTs;
@@ -859,15 +862,12 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
             if (pp_port->dp != NULL) {
                 printf("    Port: %"PRIu16 "\n", pp_port->port);
 
-                printf("        Destination port: (max-depth: %"PRIu16 ", "
-                        "mask - %"PRIu32")\n",
-                        pp_port->dp_max_depth,
-                        pp_port->alproto_mask);
+                printf("        Destination port: (max-depth: %" PRIu16 ")\n",
+                        pp_port->dp_max_depth);
                 pp_pe = pp_port->dp;
                 for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                     printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                    printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                     printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                     printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
 
@@ -879,15 +879,11 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                 continue;
             }
 
-            printf("        Source port: (max-depth: %"PRIu16 ", "
-                   "mask - %"PRIu32")\n",
-                   pp_port->sp_max_depth,
-                   pp_port->alproto_mask);
+            printf("        Source port: (max-depth: %" PRIu16 ")\n", pp_port->sp_max_depth);
             pp_pe = pp_port->sp;
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                 printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                 printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                 printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
 
@@ -1030,7 +1026,6 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
                 AppLayerProtoDetectProbingParserElementAppend(&curr_port->dp, dup_pe);
-                curr_port->alproto_mask |= dup_pe->alproto_mask;
             }
 
             zero_pe = zero_port->sp;
@@ -1047,7 +1042,6 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
                 AppLayerProtoDetectProbingParserElementAppend(&curr_port->sp, dup_pe);
-                curr_port->alproto_mask |= dup_pe->alproto_mask;
             }
         } /* if (zero_port != NULL) */
     } /* if (curr_port == NULL) */
@@ -1088,7 +1082,6 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
             curr_port->dp_max_depth < new_pe->max_depth) {
             curr_port->dp_max_depth = new_pe->max_depth;
         }
-        curr_port->alproto_mask |= new_pe->alproto_mask;
         head_pe = &curr_port->dp;
     } else {
         curr_pe->ProbingParserTs = ProbingParser2;
@@ -1101,7 +1094,6 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
             curr_port->sp_max_depth < new_pe->max_depth) {
             curr_port->sp_max_depth = new_pe->max_depth;
         }
-        curr_port->alproto_mask |= new_pe->alproto_mask;
         head_pe = &curr_port->sp;
     }
     AppLayerProtoDetectProbingParserElementAppend(head_pe, new_pe);
@@ -1119,9 +1111,8 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                     temp_port->dp_max_depth < curr_pe->max_depth) {
                     temp_port->dp_max_depth = curr_pe->max_depth;
                 }
-                AppLayerProtoDetectProbingParserElementAppend(&temp_port->dp,
-                                                              AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
-                temp_port->alproto_mask |= curr_pe->alproto_mask;
+                AppLayerProtoDetectProbingParserElementAppend(
+                        &temp_port->dp, AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
             } else {
                 if (temp_port->sp == NULL)
                     temp_port->sp_max_depth = curr_pe->max_depth;
@@ -1131,9 +1122,8 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                     temp_port->sp_max_depth < curr_pe->max_depth) {
                     temp_port->sp_max_depth = curr_pe->max_depth;
                 }
-                AppLayerProtoDetectProbingParserElementAppend(&temp_port->sp,
-                                                              AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
-                temp_port->alproto_mask |= curr_pe->alproto_mask;
+                AppLayerProtoDetectProbingParserElementAppend(
+                        &temp_port->sp, AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
             }
             temp_port = temp_port->next;
         } /* while */
@@ -2855,14 +2845,12 @@ typedef struct AppLayerProtoDetectPPTestDataElement_ {
     const char *alproto_name;
     AppProto alproto;
     uint16_t port;
-    uint32_t alproto_mask;
     uint32_t min_depth;
     uint32_t max_depth;
 } AppLayerProtoDetectPPTestDataElement;
 
 typedef struct AppLayerProtoDetectPPTestDataPort_ {
     uint16_t port;
-    uint32_t alproto_mask;
     uint16_t dp_max_depth;
     uint16_t sp_max_depth;
 
@@ -2897,10 +2885,6 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
         for (k = 0; k < ip_proto[i].no_of_port; k++, pp_port = pp_port->next) {
             if (pp_port->port != ip_proto[i].port[k].port)
                 goto end;
-            if (pp_port->alproto_mask != ip_proto[i].port[k].alproto_mask)
-                goto end;
-            if (pp_port->alproto_mask != ip_proto[i].port[k].alproto_mask)
-                goto end;
             if (pp_port->dp_max_depth != ip_proto[i].port[k].dp_max_depth)
                 goto end;
             if (pp_port->sp_max_depth != ip_proto[i].port[k].sp_max_depth)
@@ -2914,9 +2898,6 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
                  j++, pp_element = pp_element->next) {
 
                 if (pp_element->alproto != ip_proto[i].port[k].toserver_element[j].alproto) {
-                    goto end;
-                }
-                if (pp_element->alproto_mask != ip_proto[i].port[k].toserver_element[j].alproto_mask) {
                     goto end;
                 }
                 if (pp_element->min_depth != ip_proto[i].port[k].toserver_element[j].min_depth) {
@@ -2935,9 +2916,6 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
 #endif
             for (j = 0 ; j < ip_proto[i].port[k].tc_no_of_element; j++, pp_element = pp_element->next) {
                 if (pp_element->alproto != ip_proto[i].port[k].toclient_element[j].alproto) {
-                    goto end;
-                }
-                if (pp_element->alproto_mask != ip_proto[i].port[k].toclient_element[j].alproto_mask) {
                     goto end;
                 }
                 if (pp_element->min_depth != ip_proto[i].port[k].toclient_element[j].min_depth) {
@@ -3111,100 +3089,76 @@ static int AppLayerProtoDetectTest15(void)
                                   ProbingParserDummyForTesting, NULL);
 
     AppLayerProtoDetectPPTestDataElement element_ts_80[] = {
-        { "http", ALPROTO_HTTP1, 80, 1 << ALPROTO_HTTP1, 5, 8 },
-        { "smb", ALPROTO_SMB, 80, 1 << ALPROTO_SMB, 5, 6 },
-        { "ftp", ALPROTO_FTP, 80, 1 << ALPROTO_FTP, 7, 10 },
-        { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
-        { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-        { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
-        { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        { "http", ALPROTO_HTTP1, 80, 5, 8 },
+        { "smb", ALPROTO_SMB, 80, 5, 6 },
+        { "ftp", ALPROTO_FTP, 80, 7, 10 },
+        { "smtp", ALPROTO_SMTP, 0, 12, 0 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "irc", ALPROTO_IRC, 0, 12, 25 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 },
     };
-    AppLayerProtoDetectPPTestDataElement element_tc_80[] = { { "http", ALPROTO_HTTP1, 80,
-                                                                     1 << ALPROTO_HTTP1, 5, 8 },
-        { "smb", ALPROTO_SMB, 80, 1 << ALPROTO_SMB, 5, 6 },
-        { "ftp", ALPROTO_FTP, 80, 1 << ALPROTO_FTP, 7, 10 },
-        { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-        { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
-        { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-        { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 } };
+    AppLayerProtoDetectPPTestDataElement element_tc_80[] = { { "http", ALPROTO_HTTP1, 80, 5, 8 },
+        { "smb", ALPROTO_SMB, 80, 5, 6 }, { "ftp", ALPROTO_FTP, 80, 7, 10 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 }, { "irc", ALPROTO_IRC, 0, 12, 14 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 }, { "smtp", ALPROTO_SMTP, 0, 12, 17 } };
 
     AppLayerProtoDetectPPTestDataElement element_ts_81[] = {
-        { "dcerpc", ALPROTO_DCERPC, 81, 1 << ALPROTO_DCERPC, 9, 10 },
-          { "ftp", ALPROTO_FTP, 81, 1 << ALPROTO_FTP, 7, 15 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-        };
-    AppLayerProtoDetectPPTestDataElement element_tc_81[] = {
-        { "ftp", ALPROTO_FTP, 81, 1 << ALPROTO_FTP, 7, 15 },
-          { "dcerpc", ALPROTO_DCERPC, 81, 1 << ALPROTO_DCERPC, 9, 10 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
-        };
+        { "dcerpc", ALPROTO_DCERPC, 81, 9, 10 },
+        { "ftp", ALPROTO_FTP, 81, 7, 15 },
+        { "smtp", ALPROTO_SMTP, 0, 12, 0 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "irc", ALPROTO_IRC, 0, 12, 25 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+    };
+    AppLayerProtoDetectPPTestDataElement element_tc_81[] = { { "ftp", ALPROTO_FTP, 81, 7, 15 },
+        { "dcerpc", ALPROTO_DCERPC, 81, 9, 10 }, { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+        { "irc", ALPROTO_IRC, 0, 12, 14 }, { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "smtp", ALPROTO_SMTP, 0, 12, 17 } };
 
     AppLayerProtoDetectPPTestDataElement element_ts_85[] = {
-        { "dcerpc", ALPROTO_DCERPC, 85, 1 << ALPROTO_DCERPC, 9, 10 },
-          { "ftp", ALPROTO_FTP, 85, 1 << ALPROTO_FTP, 7, 15 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-        };
-    AppLayerProtoDetectPPTestDataElement element_tc_85[] = {
-        { "dcerpc", ALPROTO_DCERPC, 85, 1 << ALPROTO_DCERPC, 9, 10 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
-        };
+        { "dcerpc", ALPROTO_DCERPC, 85, 9, 10 },
+        { "ftp", ALPROTO_FTP, 85, 7, 15 },
+        { "smtp", ALPROTO_SMTP, 0, 12, 0 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "irc", ALPROTO_IRC, 0, 12, 25 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+    };
+    AppLayerProtoDetectPPTestDataElement element_tc_85[] = { { "dcerpc", ALPROTO_DCERPC, 85, 9,
+                                                                     10 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 }, { "irc", ALPROTO_IRC, 0, 12, 14 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 }, { "smtp", ALPROTO_SMTP, 0, 12, 17 } };
 
     AppLayerProtoDetectPPTestDataElement element_ts_90[] = {
-        { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-        };
-    AppLayerProtoDetectPPTestDataElement element_tc_90[] = {
-        { "ftp", ALPROTO_FTP, 90, 1 << ALPROTO_FTP, 7, 15 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
-        };
+        { "smtp", ALPROTO_SMTP, 0, 12, 0 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "irc", ALPROTO_IRC, 0, 12, 25 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+    };
+    AppLayerProtoDetectPPTestDataElement element_tc_90[] = { { "ftp", ALPROTO_FTP, 90, 7, 15 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 }, { "irc", ALPROTO_IRC, 0, 12, 14 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 }, { "smtp", ALPROTO_SMTP, 0, 12, 17 } };
 
     AppLayerProtoDetectPPTestDataElement element_ts_0[] = {
-        { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
-          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-        };
-    AppLayerProtoDetectPPTestDataElement element_tc_0[] = {
-        { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
-          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
-          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
-          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
-        };
-
+        { "smtp", ALPROTO_SMTP, 0, 12, 0 },
+        { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "irc", ALPROTO_IRC, 0, 12, 25 },
+        { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+    };
+    AppLayerProtoDetectPPTestDataElement element_tc_0[] = { { "jabber", ALPROTO_JABBER, 0, 12, 23 },
+        { "irc", ALPROTO_IRC, 0, 12, 14 }, { "tls", ALPROTO_TLS, 0, 12, 18 },
+        { "smtp", ALPROTO_SMTP, 0, 12, 17 } };
 
     AppLayerProtoDetectPPTestDataElement element_ts_85_udp[] = {
-        { "imap", ALPROTO_IMAP, 85, 1 << ALPROTO_IMAP, 12, 23 },
-        };
+        { "imap", ALPROTO_IMAP, 85, 12, 23 },
+    };
     AppLayerProtoDetectPPTestDataElement element_tc_85_udp[] = {
-        { "imap", ALPROTO_IMAP, 85, 1 << ALPROTO_IMAP, 12, 23 },
-        };
+        { "imap", ALPROTO_IMAP, 85, 12, 23 },
+    };
 
     AppLayerProtoDetectPPTestDataPort ports_tcp[] = {
         {
                 80,
-                ((1 << ALPROTO_HTTP1) | (1 << ALPROTO_SMB) | (1 << ALPROTO_FTP) |
-                        (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) |
-                        (1 << ALPROTO_JABBER)),
-                ((1 << ALPROTO_HTTP1) | (1 << ALPROTO_SMB) | (1 << ALPROTO_FTP) |
-                        (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) |
-                        (1 << ALPROTO_SMTP)),
+                23,
                 23,
                 element_ts_80,
                 element_tc_80,
@@ -3213,52 +3167,35 @@ static int AppLayerProtoDetectTest15(void)
         },
         {
                 81,
-                ((1 << ALPROTO_DCERPC) | (1 << ALPROTO_FTP) | (1 << ALPROTO_SMTP) |
-                        (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
-                ((1 << ALPROTO_FTP) | (1 << ALPROTO_DCERPC) | (1 << ALPROTO_JABBER) |
-                        (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+                23,
                 23,
                 element_ts_81,
                 element_tc_81,
                 sizeof(element_ts_81) / sizeof(AppLayerProtoDetectPPTestDataElement),
                 sizeof(element_tc_81) / sizeof(AppLayerProtoDetectPPTestDataElement),
         },
-        { 85,
-                ((1 << ALPROTO_DCERPC) | (1 << ALPROTO_FTP) | (1 << ALPROTO_SMTP) |
-                        (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
-                ((1 << ALPROTO_DCERPC) | (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) |
-                        (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-                23, element_ts_85, element_tc_85,
+        { 85, 23, 23, element_ts_85, element_tc_85,
                 sizeof(element_ts_85) / sizeof(AppLayerProtoDetectPPTestDataElement),
                 sizeof(element_tc_85) / sizeof(AppLayerProtoDetectPPTestDataElement) },
-        { 90,
-                ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) |
-                        (1 << ALPROTO_JABBER)),
-                ((1 << ALPROTO_FTP) | (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) |
-                        (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-                23, element_ts_90, element_tc_90,
+        { 90, 23, 23, element_ts_90, element_tc_90,
                 sizeof(element_ts_90) / sizeof(AppLayerProtoDetectPPTestDataElement),
                 sizeof(element_tc_90) / sizeof(AppLayerProtoDetectPPTestDataElement) },
-        { 0,
-                ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) |
-                        (1 << ALPROTO_JABBER)),
-                ((1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) |
-                        (1 << ALPROTO_SMTP)),
-                23, element_ts_0, element_tc_0,
+        { 0, 23, 23, element_ts_0, element_tc_0,
                 sizeof(element_ts_0) / sizeof(AppLayerProtoDetectPPTestDataElement),
                 sizeof(element_tc_0) / sizeof(AppLayerProtoDetectPPTestDataElement) }
     };
 
     AppLayerProtoDetectPPTestDataPort ports_udp[] = {
-        { 85,
-            (1 << ALPROTO_IMAP),
-            (1 << ALPROTO_IMAP),
-            23,
-            element_ts_85_udp, element_tc_85_udp,
-            sizeof(element_ts_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
-            sizeof(element_tc_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
-            },
-        };
+        {
+                85,
+                23,
+                23,
+                element_ts_85_udp,
+                element_tc_85_udp,
+                sizeof(element_ts_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
+                sizeof(element_tc_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
+        },
+    };
 
     AppLayerProtoDetectPPTestDataIPProto ip_proto[] = {
         { IPPROTO_TCP,
