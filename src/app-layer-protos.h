@@ -27,6 +27,11 @@
 
 enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
+    /* used by the probing parser when alproto detection fails
+     * permanently for that particular stream */
+    ALPROTO_FAILED = 1,
+
+    // Beginning of real/normal protocols
     ALPROTO_HTTP1,
     ALPROTO_FTP,
     ALPROTO_SMTP,
@@ -69,9 +74,6 @@ enum AppProtoEnum {
     // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)
     ALPROTO_HTTP,
 
-    /* used by the probing parser when alproto detection fails
-     * permanently for that particular stream */
-    ALPROTO_FAILED,
     /* keep last */
     ALPROTO_MAX,
 };
@@ -82,7 +84,7 @@ typedef uint16_t AppProto;
 
 static inline bool AppProtoIsValid(AppProto a)
 {
-    return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
+    return ((a > ALPROTO_FAILED && a < ALPROTO_MAX));
 }
 
 // whether a signature AppProto matches a flow (or signature) AppProto
