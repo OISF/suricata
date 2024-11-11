@@ -39,7 +39,7 @@
 #endif
 
 
-/* Both are required in order to ensure *everything* is inlined.  The kernel version that 
+/* Both are required in order to ensure *everything* is inlined.  The kernel version that
  * we're using doesn't support calling functions in XDP, so it must appear as a single function.
  * Kernel 4.16+ support function calls:
  * https://stackoverflow.com/questions/70529753/clang-bpf-attribute-always-inline-does-not-working
@@ -74,6 +74,57 @@ struct vlan_hdr {
     __u16	h_vlan_encapsulated_proto;
 };
 
+typedef struct IEEE8021ahHdr_ {
+    __u32 flags;
+    __u8 c_destination[6];
+    __u8 c_source[6];
+    __u16 type;              /**< next protocol */
+}  __attribute__((__packed__)) IEEE8021ahHdr;
+
+static INLINE int get_sport(void *trans_data, void *data_end, __u8 protocol)
+{
+    struct tcphdr *th;
+    struct udphdr *uh;
+
+    switch (protocol) {
+        case IPPROTO_TCP:
+            th = (struct tcphdr *)trans_data;
+            if ((void *)(th + 1) > data_end) {
+                return -1;
+            }
+            return th->source;
+        case IPPROTO_UDP:
+            uh = (struct udphdr *)trans_data;
+            if ((void *)(uh + 1) > data_end) {
+                return -1;
+            }
+            return uh->source;
+        default:
+            return 0;
+    }
+}
+
+static INLINE int get_dport(void *trans_data, void *data_end, __u8 protocol)
+{
+    struct tcphdr *th;
+    struct udphdr *uh;
+
+    switch (protocol) {
+        case IPPROTO_TCP:
+            th = (struct tcphdr *)trans_data;
+            if ((void *)(th + 1) > data_end)
+                return -1;
+            return th->dest;
+        case IPPROTO_UDP:
+            uh = (struct udphdr *)trans_data;
+            if ((void *)(uh + 1) > data_end)
+                return -1;
+            return uh->dest;
+        default:
+            return 0;
+    }
+}
+
 static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;
@@ -84,6 +135,26 @@ static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void
     if (is_east_west(iph->saddr) && is_east_west(iph->daddr)) {
         return XDP_DROP;
     }
+
+#ifdef DROP_PORT_443
+    void* layer4 = data + nh_off + (iph->ihl << 2);
+
+
+    int dport = get_dport(layer4, data_end, iph->protocol);
+    if (dport == -1) {
+        return XDP_PASS;
+    }
+
+    int sport = get_sport(layer4, data_end, iph->protocol);
+    if (sport == -1) {
+        return XDP_PASS;
+    }
+
+    if ((dport == 443) || (sport == 443)) {
+        return XDP_DROP;
+    }
+#endif
+
     return XDP_PASS;
 }
 
@@ -102,7 +173,7 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
 
     DPRINTF("Packet %d len\n", (int)(data_end - data));
 
-    nh_off = sizeof(*eth); 
+    nh_off = sizeof(*eth);
     if (data + nh_off > data_end) {
         return XDP_PASS;
     }
@@ -117,6 +188,16 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
         if (data + nh_off > data_end)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
+    }
+    if (h_proto == __constant_htons(0x88e7)) {
+        IEEE8021ahHdr *hdr;
+
+        hdr = data + nh_off;
+        nh_off += sizeof(IEEE8021ahHdr);
+        if (data + nh_off > data_end)
+            return XDP_PASS;
+
+        h_proto = hdr->type;
     }
     if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;
