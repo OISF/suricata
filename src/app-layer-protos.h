@@ -75,16 +75,17 @@ enum AppProtoEnum {
     ALPROTO_HTTP,
 
     /* keep last */
-    ALPROTO_MAX,
+    ALPROTO_MAX_STATIC,
 };
 // NOTE: if ALPROTO's get >= 256, update SignatureNonPrefilterStore
 
 /* not using the enum as that is a unsigned int, so 4 bytes */
 typedef uint16_t AppProto;
+extern AppProto AlprotoMax;
 
 static inline bool AppProtoIsValid(AppProto a)
 {
-    return ((a > ALPROTO_FAILED && a < ALPROTO_MAX));
+    return ((a > ALPROTO_FAILED && a < AlprotoMax));
 }
 
 // whether a signature AppProto matches a flow (or signature) AppProto
@@ -171,5 +172,7 @@ const char *AppProtoToString(AppProto alproto);
  * \retval alproto App layer protocol id, or ALPROTO_UNKNOWN.
  */
 AppProto StringToAppProto(const char *proto_name);
+
+void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name);
 
 #endif /* SURICATA_APP_LAYER_PROTOS_H */

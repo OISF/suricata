@@ -33,16 +33,16 @@
 struct FrameConfig {
     SC_ATOMIC_DECLARE(uint64_t, types);
 };
-/* This array should be allocated to contain ALPROTO_MAX protocols. */
+/* This array should be allocated to contain AlprotoMax protocols. */
 static struct FrameConfig *frame_config;
 
 void FrameConfigInit(void)
 {
-    frame_config = SCCalloc(ALPROTO_MAX, sizeof(struct FrameConfig));
+    frame_config = SCCalloc(AlprotoMax, sizeof(struct FrameConfig));
     if (unlikely(frame_config == NULL)) {
         FatalError("Unable to alloc frame_config.");
     }
-    for (AppProto p = 0; p < ALPROTO_MAX; p++) {
+    for (AppProto p = 0; p < AlprotoMax; p++) {
         SC_ATOMIC_INIT(frame_config[p].types);
     }
 }
@@ -55,7 +55,7 @@ void FrameConfigDeInit(void)
 void FrameConfigEnableAll(void)
 {
     const uint64_t bits = UINT64_MAX;
-    for (AppProto p = 0; p < ALPROTO_MAX; p++) {
+    for (AppProto p = 0; p < AlprotoMax; p++) {
         struct FrameConfig *fc = &frame_config[p];
         SC_ATOMIC_OR(fc->types, bits);
     }
