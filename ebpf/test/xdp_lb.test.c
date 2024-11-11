@@ -1,5 +1,5 @@
 /**
- * This file defines a fairly light unit testing framework and some tests, meant to allow 
+ * This file defines a fairly light unit testing framework and some tests, meant to allow
  * some degree of sanity checking to be done on an XDP program.
  */
 #include <stdio.h>
@@ -9,124 +9,15 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#define TEST(name) \
-  printf("Running test %s\n", #name); \
-  test_##name(&ctx);
-
-#define SWAP(x,y) \
-{\
-	int temp = y; \
-	y = x; \
-	x = temp; \
-}
-
-static int test_trace_hook(const char *fmt, int fmt_size, ...) {
-	va_list args;
-	va_start(args, fmt_size);
-
-	// With very few exceptions, the compiler will always push args using the native word size.
-	// So rather then implement a full-fledged printf, just extract a native word (an int) per 
-	// each arg, and pass it to printf... it doesn't matter if the variable is an int or not, we 
-	// just need to copy the data and pass it to the real printf, which will interpret it 
-	// as it wants...
-	int term;
-	char term_format[3] = "%d\0";
-
-	while (*fmt != '\0') {
-    	if (*fmt == '%') {
-      		fmt++;
-			switch(*fmt) {
-				case '%':
-					putchar('%');
-					break;
-				case 'c':
-				case 'd':
-				case 'x':
-					term = va_arg(args, int);
-					term_format[1] = *fmt;
-					printf(term_format, term);
-					break;
-				default:
-					assert(0);
-			}
-		} else {
-      		putchar(*fmt);
-    	}
-    	fmt++;
-  	}
-  	va_end(args);
-	
-	return 0;
-}
-
-/* This is a fairly gross side-effect of an optimization done in the xdp_md 
- * struct for Linux -- the struct uses 32-bit integers in order to hold 64-bit 
- * pointers (i.e., the struct is very specialized for the Linux kernel's limited 
- * address space, which can be 32-bit addressable).
- * Because we don't have that same environment, we must save off the upper 
- * half of our stack segment, and use the macros below to patch up the resultant 
- * pointers, whenever they're read from the xdp_md struct.
- */
-#define HIGH32(val64) ((uint64_t)(val64) & 0xffffffff00000000l)
-#define LOW32(val64) ((uint64_t)(val64) & 0xffffffffl)
-uint64_t g_TopOfStack;
-
-// Override these for our test environment...
-#define CTX_GET_DATA(ctx) (void*)(g_TopOfStack | (uint64_t)ctx->data)
-#define CTX_GET_DATA_END(ctx) (void*)(g_TopOfStack | (uint64_t)ctx->data_end)
-
-#define CTX_SET(ctx, packet) \
-	ctx->data = (uint32_t)packet; \
-	ctx->data_end = (uint32_t)packet + sizeof(packet);
-
+#include "test_framework.h"
 #define DEBUG 1
 #include "../xdp_lb.c"
 
-// bpf_xdp_adjust_head is defined as a function pointer by the bpf headers, which 
-// is patched at load time.
-// This is convenient for us, as we can patch it ourselves...
-int bpf_xdp_adjust_head_mock(void* privData, int offset) {
-	struct xdp_md *ctx = (struct xdp_md *)privData;
-
-	void * data = CTX_GET_DATA(ctx);
-	data += offset;
-
-	// this shouldn't change, but... if it did, our attempt to fake the 
-	// 32-bit addressable environment of the kernel would fail...
-	assert(HIGH32(data) == g_TopOfStack);
-
-	ctx->data = (uint32_t)data;
-
-	return 0;
-}
-
-// This value is arbitrary...
-uint32_t g_cpuCount = 10;
-
-void* bpf_map_lookup_elem_mock(void* map, void* key) {
-	if(map == &cpus_count) {
-		// This "map" is just a single value (index 0)
-		return (void*)&g_cpuCount;
-	} else if(map == &cpus_available) {
-		// This map is 'cpus_count' long, and maps logical CPU ID to physical CPU ID
-		// For simplicity, it's an identity map...
-		return (void*)key;
-	}
-	return 0;
-}
-
-int bpf_redirect_map_mock(void* map, int key, int flags) {
-	// I assume the kernel does something similar... but it really doesn't matter; we 
-	// just need a way to encode the unique CPU and the fact that it's a redirect (not a 
-	// PASS, ABORT, etc) in the same result...
-	return (key << 16) + XDP_REDIRECT;
-}
-
 void test_inner_packet_balance(struct xdp_md* ctx) {
 	// GRE packet from a capture, loaded into wireshark, and then "copy as escaped string"
-	char packet[] = 
+	char packet[] =
 		// Outer eth header
-		"\x00\x90\x0b\xa9\x49\x55\x00\x50\x56\x63\xf2\x58\x08\x00"         
+		"\x00\x90\x0b\xa9\x49\x55\x00\x50\x56\x63\xf2\x58\x08\x00"
 		// Outer IP header
 		// src 192.29.36.175
 		// dest 172.29.35.160
@@ -136,17 +27,17 @@ void test_inner_packet_balance(struct xdp_md* ctx) {
 		// ERSPAN
 		"\x10\x00\x00\x00\x00\x00\x00\x01"
 		// Inner eth header
-		"\x00\x50\x56\x94\x2d\x12\x00\x50\x56\x0b\x07\xf0\x08\x00" 
+		"\x00\x50\x56\x94\x2d\x12\x00\x50\x56\x0b\x07\xf0\x08\x00"
 		// Inner IP header
 		"\x45\x00\x00\x66\x89\xf3\x40\x00\x40\x06\xdd\xb0\x0a\x00\x01\x10\xa5\xe1\x21\xfd"
 		// TCP header
-		"\xc4\x46\x01\xbb\xb6\x93\xef\x9f\x47\x24\xb2\x97" 
-		"\x80\x18\x07\xfd\x74\xa5\x00\x00\x01\x01\x08\x0a\x65\xda\x08\x7e" 
+		"\xc4\x46\x01\xbb\xb6\x93\xef\x9f\x47\x24\xb2\x97"
+		"\x80\x18\x07\xfd\x74\xa5\x00\x00\x01\x01\x08\x0a\x65\xda\x08\x7e"
 		"\x4a\x02\xda\x1b"
 		// Layer 5...
-		"\x17\x03\x03\x00\x2d\x05\x74\xce\xee\x5f\xd7\xf9" 
-		"\x0e\x52\xad\xd4\xf6\x5d\x51\x44\x7b\x41\x76\x4e\x61\x0b\x31\xaa" 
-		"\x6b\x35\x01\x67\xae\x2c\x52\xf8\x42\x51\x25\xe4\x13\x95\x3a\x25" 
+		"\x17\x03\x03\x00\x2d\x05\x74\xce\xee\x5f\xd7\xf9"
+		"\x0e\x52\xad\xd4\xf6\x5d\x51\x44\x7b\x41\x76\x4e\x61\x0b\x31\xaa"
+		"\x6b\x35\x01\x67\xae\x2c\x52\xf8\x42\x51\x25\xe4\x13\x95\x3a\x25"
 		"\x68\x25\xfe\x47\x9a\x2d";
 
 	CTX_SET(ctx, packet);
@@ -177,7 +68,7 @@ void test_inner_packet_balance(struct xdp_md* ctx) {
 }
 
 void test_inner_packet_symmetry(struct xdp_md* ctx) {
-	char packet[] = 
+	char packet[] =
 		"\x00\x90\x0b\xa9\x49\x55\x00\x50\x56\x63\xf2\x58\x08\x00\x45\x00"
 		"\x00\x66\xd1\x3e\x00\x00\x40\x2f\x07\xab\xac\x1d\x24\xaf\xac\x1d"
 		"\x24\x96\x10\x00\x88\xbe\x39\x8b\xdf\x98\x17\xd0\x10\x00\x00\x00"
@@ -193,7 +84,7 @@ void test_inner_packet_symmetry(struct xdp_md* ctx) {
 	int result = xdp_loadfilter(ctx);
 	assert((result & 0xffff) == XDP_REDIRECT);
 
-	// Now modify the inner packet such that it's 5-tuple is a response 
+	// Now modify the inner packet such that it's 5-tuple is a response
 	// to the original packet...
 	assert(packet[64] == 0x45); // sanity; start of inner IP header
 	struct iphdr* ip = (struct iphdr*)&packet[64];
@@ -205,7 +96,7 @@ void test_inner_packet_symmetry(struct xdp_md* ctx) {
 	int result2 = xdp_loadfilter(ctx);
 	assert(result == result2);
 
-	// Now, the inverse... swap the ports back (thus making a new flow) 
+	// Now, the inverse... swap the ports back (thus making a new flow)
 	// and see that it balances to a different CPU
 	SWAP(tcp->source, tcp->dest);
 	int result3 = xdp_loadfilter(ctx);
@@ -213,7 +104,7 @@ void test_inner_packet_symmetry(struct xdp_md* ctx) {
 }
 
 void test_ipv6_symmetry(struct xdp_md* ctx) {
-	char packet[] = 
+	char packet[] =
 	"\x33\x33\x00\x01\x00\x02\x00\x22\xfb\x12\xda\xe8\x86\xdd\x60\x00"
 	"\x00\x00\x00\x61\x11\x01\xfe\x80\x00\x00\x00\x00\x00\x00\x35\xd0"
 	"\xb3\x9e\xc3\xf7\xe2\x0f\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -245,14 +136,14 @@ void test_ipv6_symmetry(struct xdp_md* ctx) {
 	// modify the 5-tuple to see that it balances to a different CPU
 	udp->dest = udp->dest ^ 0xffff;
 	udp->source = udp->source ^ 0xffff;
-	
+
 	int result3 = xdp_loadfilter(ctx);
 	assert((result3 & 0xffff) == XDP_REDIRECT);
 	assert(result3 != result);
 }
 
 void test_erpsan_type_i_packet(struct xdp_md* ctx) {
-	char packet[] = 
+	char packet[] =
 	// Ethernet, GRE, ERSPAN (no physical header), Ethernet IPv4, TCP
 	"\x00\x90\x0b\xbd\x4c\x9c\x00\x22\xbd\xf8\x19\xff\x08\x00\x45\x00"
 	"\x01\xda\x04\xd6\x00\x00\x3f\x2f\x68\xaa\x0a\xfd\xfb\x6f\x0a\xfd"
@@ -294,7 +185,7 @@ void test_erpsan_type_i_packet(struct xdp_md* ctx) {
 }
 
 void test_non_ip_packet(struct xdp_md* ctx) {
-	char packet[] = 
+	char packet[] =
 	// outer ether
 	"\x00\x90\x0b\xbd\x4c\x9c\x00\x22\xbd\xf8\x19\xff\x08\x00"
 	// outer IP
@@ -302,11 +193,11 @@ void test_non_ip_packet(struct xdp_md* ctx) {
 	// gre
 	"\x00\x00\x88\xbe"
 	// inner IP
-	"\xff\xff\xff\xff\xff\xff\x00\x50\x56\xad\x64\x4a\x81\x00" 
+	"\xff\xff\xff\xff\xff\xff\x00\x50\x56\xad\x64\x4a\x81\x00"
 	// vlan
-	"\x0a\xff\x08\x06" 
+	"\x0a\xff\x08\x06"
 	// arp
-	"\x00\x01\x08\x00\x06\x04\x00\x01\x00\x50\x56\xad\x64\x4a\xc0\xa8" 
+	"\x00\x01\x08\x00\x06\x04\x00\x01\x00\x50\x56\xad\x64\x4a\xc0\xa8"
 	"\xaa\x24\x00\x00\x00\x00\x00\x00\xc0\xa8\xaa\xec\x00\x00\x00\x00"
 	"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
@@ -317,11 +208,7 @@ void test_non_ip_packet(struct xdp_md* ctx) {
 }
 
 int main() {
-	// setup our mocks...
-	bpf_xdp_adjust_head = bpf_xdp_adjust_head_mock;
-	bpf_map_lookup_elem = bpf_map_lookup_elem_mock;
-	bpf_redirect_map = bpf_redirect_map_mock;
-	bpf_trace_printk = test_trace_hook;
+	setup_mocks();
 
 	// And our fake 32-bit addressable environment...
 	struct xdp_md ctx;
