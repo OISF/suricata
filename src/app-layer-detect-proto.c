@@ -292,7 +292,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
     }
 
     /* alproto bit field */
-    uint8_t pm_results_bf[(ALPROTO_MAX / 8) + 1];
+    uint8_t pm_results_bf[(g_alproto_max / 8) + 1];
     memset(pm_results_bf, 0, sizeof(pm_results_bf));
 
     /* loop through unique pattern id's. Can't use search_cnt here,
@@ -324,7 +324,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
 /** \internal
  *  \brief Run Pattern Sigs against buffer
  *  \param direction direction for the patterns
- *  \param pm_results[out] AppProto array of size ALPROTO_MAX */
+ *  \param pm_results[out] AppProto array of size g_alproto_max */
 static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f,
         const uint8_t *buf, uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
 {
@@ -804,7 +804,7 @@ static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParser
                    "register the probing parser.  min_depth >= max_depth");
         goto error;
     }
-    if (alproto <= ALPROTO_UNKNOWN || alproto >= ALPROTO_MAX) {
+    if (alproto <= ALPROTO_UNKNOWN || alproto >= g_alproto_max) {
         SCLogError("Invalid arguments sent to register "
                    "the probing parser.  Invalid alproto - %d",
                 alproto);
@@ -1411,7 +1411,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx, Flow *f
     AppProto pm_alproto = ALPROTO_UNKNOWN;
 
     if (!FLOW_IS_PM_DONE(f, flags)) {
-        AppProto pm_results[ALPROTO_MAX];
+        AppProto pm_results[g_alproto_max];
         uint16_t pm_matches = AppLayerProtoDetectPMGetProto(
                 tctx, f, buf, buflen, flags, pm_results, reverse_flow);
         if (pm_matches > 0) {
@@ -1725,12 +1725,12 @@ int AppLayerProtoDetectSetup(void)
         }
     }
 
-    alpd_ctx.alproto_names = SCCalloc(ALPROTO_MAX, sizeof(char *));
+    alpd_ctx.alproto_names = SCCalloc(g_alproto_max, sizeof(char *));
     if (unlikely(alpd_ctx.alproto_names == NULL)) {
         FatalError("Unable to alloc alproto_names.");
     }
     // to realloc when dynamic protos are added
-    alpd_ctx.expectation_proto = SCCalloc(ALPROTO_MAX, sizeof(uint8_t));
+    alpd_ctx.expectation_proto = SCCalloc(g_alproto_max, sizeof(uint8_t));
     if (unlikely(alpd_ctx.expectation_proto == NULL)) {
         FatalError("Unable to alloc expectation_proto.");
     }
@@ -2090,7 +2090,7 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 
     AppProto a;
     AppProto b = StringToAppProto(alproto_name);
-    for (a = 0; a < ALPROTO_MAX; a++) {
+    for (a = 0; a < g_alproto_max; a++) {
         if (alpd_ctx.alproto_names[a] != NULL && AppProtoEquals(b, a)) {
             // That means return HTTP_ANY if HTTP1 or HTTP2 is enabled
             SCReturnCT(b, "AppProto");
@@ -2121,11 +2121,11 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
 {
     SCEnter();
 
-    memset(alprotos, 0, ALPROTO_MAX * sizeof(AppProto));
+    memset(alprotos, 0, g_alproto_max * sizeof(AppProto));
 
     int alproto;
 
-    for (alproto = 0; alproto != ALPROTO_MAX; alproto++) {
+    for (alproto = 0; alproto != g_alproto_max; alproto++) {
         if (alpd_ctx.alproto_names[alproto] != NULL)
             alprotos[alproto] = 1;
     }
@@ -2229,7 +2229,7 @@ static int AppLayerProtoDetectTest03(void)
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2276,7 +2276,7 @@ static int AppLayerProtoDetectTest04(void)
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
     Flow f;
     memset(&f, 0x00, sizeof(f));
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
@@ -2314,7 +2314,7 @@ static int AppLayerProtoDetectTest05(void)
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n<HTML><BODY>Blahblah</BODY></HTML>";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2358,7 +2358,7 @@ static int AppLayerProtoDetectTest06(void)
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "220 Welcome to the OISF FTP server\r\n";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2404,7 +2404,7 @@ static int AppLayerProtoDetectTest07(void)
     Flow f;
     memset(&f, 0x00, sizeof(f));
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
 
     const char *buf = "HTTP";
@@ -2458,7 +2458,7 @@ static int AppLayerProtoDetectTest08(void)
         0x20, 0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32,
         0x00
     };
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2513,7 +2513,7 @@ static int AppLayerProtoDetectTest09(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x02, 0x02
     };
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2563,7 +2563,7 @@ static int AppLayerProtoDetectTest10(void)
         0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
         0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
     };
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2608,7 +2608,7 @@ static int AppLayerProtoDetectTest11(void)
 
     uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
     uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2733,7 +2733,7 @@ static int AppLayerProtoDetectTest13(void)
 
     uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
     uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
 
     Flow f;
     memset(&f, 0x00, sizeof(f));
@@ -2804,7 +2804,7 @@ static int AppLayerProtoDetectTest14(void)
 
     uint8_t l7data[] = "CONNECT www.ssllabs.com:443 HTTP/1.0\r\n";
     uint8_t l7data_resp[] = "HTTP/1.1 405 Method Not Allowed\r\n";
-    AppProto pm_results[ALPROTO_MAX];
+    AppProto pm_results[g_alproto_max];
     uint32_t cnt;
     Flow f;
     memset(&f, 0x00, sizeof(f));
