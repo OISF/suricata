@@ -1,3 +1,7 @@
+/**
+ * Includes a set of mocks to assist in testing XDP programs.
+ */
+
 // bpf_xdp_adjust_head is defined as a function pointer by the bpf headers, which
 // is patched at load time.
 // This is convenient for us, as we can patch it ourselves...

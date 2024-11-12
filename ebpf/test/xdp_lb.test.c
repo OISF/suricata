@@ -1,7 +1,3 @@
-/**
- * This file defines a fairly light unit testing framework and some tests, meant to allow
- * some degree of sanity checking to be done on an XDP program.
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -12,6 +8,7 @@
 #include "test_framework.h"
 #define DEBUG 1
 #include "../xdp_lb.c"
+#include "test_mocks.h"
 
 void test_inner_packet_balance(struct xdp_md* ctx) {
 	// GRE packet from a capture, loaded into wireshark, and then "copy as escaped string"
@@ -184,6 +181,27 @@ void test_erpsan_type_i_packet(struct xdp_md* ctx) {
 	assert((result & 0xffff) == XDP_REDIRECT);
 }
 
+void test_IEEE8021ah_packet(struct xdp_md* ctx) {
+	char packet[] =
+  // ether header, next header == 8100
+  "\002\020\000\377\377\360\000\027 \005\220\207\201\000"
+  // vlan header, next header == 0x88e7
+  "\017\323\210\347"
+  // Provider backbone bridge (802.1ah), next header == 0x8100
+  "\000\000-P\264\f%\340@\020\254\037k\263N\221\201\000"
+  // vlan header, header header == 0x0800
+  "\006@\b\000"
+  // IPV4 header
+  //  Src IP == 10.96.16.7 (internal)
+  //  Dst IP == 10.16.98.31 (internal)
+  "E\000\000(\251\017@\000\377\006L*\n`\020\a\n\020b\037an\n&mV\273\305\r\243\002ZP\020\002\002\202\217\000\000\000\000\000\000\000\000";
+  CTX_SET(ctx, packet);
+
+	int result = xdp_loadfilter(ctx);
+  // expect it parsed and balanced to a specific CPU
+	assert((result & 0xffff) == XDP_REDIRECT);
+}
+
 void test_non_ip_packet(struct xdp_md* ctx) {
 	char packet[] =
 	// outer ether
@@ -219,6 +237,7 @@ int main() {
 	TEST(ipv6_symmetry);
 	TEST(erpsan_type_i_packet);
 	TEST(non_ip_packet);
+	TEST(IEEE8021ah_packet);
 
 	return 0;
 }

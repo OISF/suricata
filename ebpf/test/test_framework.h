@@ -1,3 +1,8 @@
+/**
+ * This file defines a fairly light unit testing framework and some tests, meant to allow
+ * some degree of sanity checking to be done on an XDP program.
+ */
+
 #define TEST(name) \
   printf("Running test %s\n", #name); \
   test_##name(&ctx);
