@@ -226,7 +226,7 @@ void test_non_ip_packet(struct xdp_md* ctx) {
 }
 
 int main() {
-	setup_mocks()
+	setup_mocks();
 
 	// And our fake 32-bit addressable environment...
 	struct xdp_md ctx;
