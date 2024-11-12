@@ -31,10 +31,9 @@
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-
 #include <bpf/bpf_helpers.h>
-
 #include "hash_func01.h"
+#include "network_headers.h"
 
 #ifdef ENABLE_EAST_WEST_FILTER
 #include "east_west_filter.h"
@@ -52,7 +51,7 @@
 #define GRE_SEQ_SIZE    (4)
 #define GRE_ERSPAN_TYPE_II_HEADER_SIZE (8)
 
-/* Both are required in order to ensure *everything* is inlined.  The kernel version that 
+/* Both are required in order to ensure *everything* is inlined.  The kernel version that
  * we're using doesn't support calling functions in XDP, so it must appear as a single function.
  * Kernel 4.16+ support function calls:
  * https://stackoverflow.com/questions/70529753/clang-bpf-attribute-always-inline-does-not-working
@@ -87,11 +86,6 @@
 
 /* Increase CPUMAP_MAX_CPUS if ever you have more than 128 CPUs */
 #define CPUMAP_MAX_CPUS 128
-
-struct vlan_hdr {
-    __u16	h_vlan_TCI;
-    __u16	h_vlan_encapsulated_proto;
-};
 
 /* Special map type that can XDP_REDIRECT frames to another CPU */
 struct {
@@ -202,12 +196,12 @@ static int INLINE hash_ipv4(void *data, void *data_end)
      __u32 cpu_hash;
      __u64 cpu_hash_input = 0;
 
-    /* 
+    /*
      * Sort the client/server parts of the 5-tuple for a symmetric hash
      *
-     * NOTE: saddr and daddr are in network order (i.e., big endian), and we're running 
-     * an on Intel (little endian), which means the least significant bits contain the 
-     * network portion of the IP address, which we intentionally add the layer 4 port  
+     * NOTE: saddr and daddr are in network order (i.e., big endian), and we're running
+     * an on Intel (little endian), which means the least significant bits contain the
+     * network portion of the IP address, which we intentionally add the layer 4 port
      * on top of it.
      * This does two things:
      *   - it uses the full 5-tuple for hashing
@@ -253,8 +247,8 @@ static int INLINE hash_ipv6(void *data, void *data_end)
     }
 
     /**
-     * TODO: we will likely eventually need to support a set 
-     * of IPV6 header extension; the UDP or TCP header wont 
+     * TODO: we will likely eventually need to support a set
+     * of IPV6 header extension; the UDP or TCP header wont
      * *always* be the next header after the IP header...
      */
 
@@ -278,26 +272,26 @@ static int INLINE hash_ipv6(void *data, void *data_end)
     __u32 cpu_hash;
 
     /*
-     * IPV6 addresses are 128 bits, commonly expressed as a series of up to 
-     * 8 16-bit words; but very rarely are all 16-bit words defined.  Typically 
+     * IPV6 addresses are 128 bits, commonly expressed as a series of up to
+     * 8 16-bit words; but very rarely are all 16-bit words defined.  Typically
      * the middle words are unset/zero.
-     * 
-     * Additionally, like IPV4, the upper bits consist of more static network/routing 
-     * bits, while the lower bits identify individual interfaces/hosts, which 
+     *
+     * Additionally, like IPV4, the upper bits consist of more static network/routing
+     * bits, while the lower bits identify individual interfaces/hosts, which
      * tend to be more variable.
-     * 
-     * So, in order to create more entropy, we can merge source and dest 
-     * addresses in opposite orders -- colliding static bits with more dynamic bits 
-     * in both sides of the hash input.  However, to keep flow symmetry, we 
-     * must do this identically for each side of a flow, so we must have a way 
-     * to consistently choose which address is added in 0-1 order, and which is 
+     *
+     * So, in order to create more entropy, we can merge source and dest
+     * addresses in opposite orders -- colliding static bits with more dynamic bits
+     * in both sides of the hash input.  However, to keep flow symmetry, we
+     * must do this identically for each side of a flow, so we must have a way
+     * to consistently choose which address is added in 0-1 order, and which is
      * added in 1-0 order.
-     * 
-     * For IPV4 addresses, we simply sorted them, which can also work here, 
-     * although sorting 128 bits is a bit more involved and requires our own 
+     *
+     * For IPV4 addresses, we simply sorted them, which can also work here,
+     * although sorting 128 bits is a bit more involved and requires our own
      * function.
-     * 
-     * NOTE that we're sorting the address in network order; this doens't matter, 
+     *
+     * NOTE that we're sorting the address in network order; this doens't matter,
      * as long as it's consistent.
      */
     __u64 *source = (__u64 *)&ip6h->saddr;
@@ -336,7 +330,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     };
 
     nh_off += iph->ihl << 2;
-    /* need to save this off before we advance the packet beyond it, else the bpf verifier 
+    /* need to save this off before we advance the packet beyond it, else the bpf verifier
      * will catch this and refuse to load our program
      */
     int pkt_id = iph->id;
@@ -367,7 +361,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
 
     /* Update offset to skip ERSPAN header if we have one */
     if (proto == __constant_htons(ETH_P_ERSPAN)) {
-        // If sequence is set, then an ERSPAN header follows, otherwise the 
+        // If sequence is set, then an ERSPAN header follows, otherwise the
         // inner ether header follows...
         if(grhdr->flags & GRE_SEQ) {
             nh_off += GRE_ERSPAN_TYPE_II_HEADER_SIZE;
@@ -418,9 +412,9 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
         return hash_ipv6(data + nh_off, data_end);
     } else {
-        /* This packet isn't IPV4 or IPV6... it's likely still a legit ether type, but we intentionally 
-         * keep the packet handling light here, so even though we don't understand it, return it to the 
-         * network stack (we've already advanced past the GRE/ERSPAN headers to the encapsulated ethernet 
+        /* This packet isn't IPV4 or IPV6... it's likely still a legit ether type, but we intentionally
+         * keep the packet handling light here, so even though we don't understand it, return it to the
+         * network stack (we've already advanced past the GRE/ERSPAN headers to the encapsulated ethernet
          * frame, so chances are the linux stack, and suricata, know what to do with it)
          */
         DPRINTF("GRE unknown inner proto %d id %d\n", ntohs(proto), ntohs(pkt_id));
@@ -457,7 +451,7 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
 
     DPRINTF("Packet %d len\n", (int)(data_end - data));
 
-    nh_off = sizeof(*eth); 
+    nh_off = sizeof(*eth);
     if (data + nh_off > data_end) {
         return XDP_PASS;
     }
@@ -472,6 +466,16 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
         if (data + nh_off > data_end)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
+    }
+    if (h_proto == __constant_htons(0x88e7)) {
+        IEEE8021ahHdr *hdr;
+
+        hdr = data + nh_off;
+        nh_off += sizeof(IEEE8021ahHdr);
+        if (data + nh_off > data_end)
+            return XDP_PASS;
+
+        h_proto = hdr->type;
     }
     if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;

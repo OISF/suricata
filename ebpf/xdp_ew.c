@@ -33,6 +33,7 @@
 #include <linux/udp.h>
 #include <bpf/bpf_helpers.h>
 #include "east_west_filter.h"
+#include "network_headers.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -68,18 +69,6 @@
 #endif
 
 #define LINUX_VERSION_CODE 263682
-
-struct vlan_hdr {
-    __u16	h_vlan_TCI;
-    __u16	h_vlan_encapsulated_proto;
-};
-
-typedef struct IEEE8021ahHdr_ {
-    __u32 flags;
-    __u8 c_destination[6];
-    __u8 c_source[6];
-    __u16 type;              /**< next protocol */
-}  __attribute__((__packed__)) IEEE8021ahHdr;
 
 static INLINE int get_sport(void *trans_data, void *data_end, __u8 protocol)
 {
