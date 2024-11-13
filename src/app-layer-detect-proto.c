@@ -645,12 +645,12 @@ again_midstream:
         if (alproto_masks[0] == BIT_U32(nb_tried) - 1) {
             FLOW_SET_PP_DONE(f, dir);
             SCLogDebug("%s, mask is now %08x, needed %08x, so done",
-                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
-                    alproto_masks[0], mask);
+                    (dir == STREAM_TOSERVER) ? "toserver" : "toclient", alproto_masks[0],
+                    BIT_U32(nb_tried) - 1);
         } else {
             SCLogDebug("%s, mask is now %08x, need %08x",
-                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
-                    alproto_masks[0], mask);
+                    (dir == STREAM_TOSERVER) ? "toserver" : "toclient", alproto_masks[0],
+                    BIT_U32(nb_tried) - 1);
         }
     }
 
