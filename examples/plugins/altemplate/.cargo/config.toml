@@ -1,0 +1,3 @@
+[build]
+# custom flags to pass to all compiler invocations
+rustflags = ["-Clink-args=-Wl,-undefined,dynamic_lookup"]
