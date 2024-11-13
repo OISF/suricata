@@ -1,0 +1,17 @@
+%YAML 1.1
+---
+
+outputs:
+  - eve-log:
+      enabled: yes
+      types:
+        - altemplate
+        - alert
+        - flow
+
+app-layer:
+  protocols:
+    altemplate:
+      enabled: yes
+      detection-ports:
+        dp: 7000
