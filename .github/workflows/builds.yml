@@ -186,6 +186,15 @@ jobs:
           cat eve.json | jq -c 'select(.dns)'
           test $(cat eve.json | jq -c 'select(.dns)' | wc -l) = "1"
 
+      - name: Test app-layer plugin
+        working-directory: examples/plugins/zabbix
+        run: |
+          RUSTFLAGS=-Clink-args=-Wl,-undefined,dynamic_lookup cargo build
+          ../../../src/suricata -S zabbix.rules --set plugins.0=./target/debug/libsuricata_zabbix.so --runmode=single -l . -c ../../../suricata.yaml -r ndpi_zabbix.pcap
+          cat eve.json | jq -c 'select(.zabbix)'
+          test $(cat eve.json | jq -c 'select(.zabbix)' | wc -l) = "6"
+        # we get 4 alerts and 2 zabbix events
+
       - name: Test library build in tree
         working-directory: examples/lib/simple
         run: make clean all
