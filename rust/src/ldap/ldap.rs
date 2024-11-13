@@ -35,6 +35,8 @@ static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
 
 static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
 
+const STARTTLS_OID: &str = "1.3.6.1.4.1.1466.20037";
+
 #[derive(AppLayerFrameType)]
 pub enum LdapFrameType {
     Pdu,
@@ -92,6 +94,8 @@ pub struct LdapState {
     response_frame: Option<Frame>,
     request_gap: bool,
     response_gap: bool,
+    request_tls: bool,
+    has_starttls: bool,
 }
 
 impl State<LdapTransaction> for LdapState {
@@ -115,6 +119,8 @@ impl LdapState {
             response_frame: None,
             request_gap: false,
             response_gap: false,
+            request_tls: false,
+            has_starttls: false,
         }
     }
 
@@ -182,6 +188,13 @@ impl LdapState {
             return AppLayerResult::ok();
         }
 
+        if self.has_starttls {
+            unsafe {
+                AppLayerRequestProtocolTLSUpgrade(flow);
+            }
+            return AppLayerResult::ok();
+        }
+
         if self.request_gap {
             match ldap_parse_msg(input) {
                 Ok((_, msg)) => {
@@ -216,6 +229,12 @@ impl LdapState {
                     let mut tx = self.new_tx();
                     let tx_id = tx.id();
                     let request = LdapMessage::from(msg);
+                    // check if STARTTLS was requested
+                    if let ProtocolOp::ExtendedRequest(request) = &request.protocol_op {
+                        if request.request_name.0 == STARTTLS_OID {
+                            self.request_tls = true;
+                        }
+                    }
                     tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
@@ -275,6 +294,17 @@ impl LdapState {
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
                     let response = LdapMessage::from(msg);
+                    // check if STARTTLS was requested
+                    if self.request_tls {
+                        if let ProtocolOp::ExtendedResponse(response) = &response.protocol_op
+                        {
+                            if response.result.result_code == ResultCode(0) {
+                                SCLogDebug!("LDAP: STARTTLS detected");
+                                self.has_starttls = true;
+                            }
+                            self.request_tls = false;
+                        }
+                    }
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
