@@ -190,7 +190,7 @@ jobs:
         working-directory: examples/plugins/zabbix
         run: |
           RUSTFLAGS=-Clink-args=-Wl,-undefined,dynamic_lookup cargo build
-          ../../../src/suricata -S zabbix.rules --set plugins.0=./target/debug/libsuricata_zabbix.so --runmode=single -l . -c ../../../suricata.yaml -k none -r ndpi_zabbix.pcap
+          ../../../src/suricata -S zabbix.rules --set plugins.0=./target/debug/libsuricata_zabbix.so --set outputs.1.eve-log.types.1.zabbix.enabled=yes --runmode=single -l . -c ../../../suricata.yaml -k none -r ndpi_zabbix.pcap
           cat eve.json | jq -c 'select(.zabbix)'
           test $(cat eve.json | jq -c 'select(.zabbix)' | wc -l) = "6"
         # we get 4 alerts and 2 zabbix events
