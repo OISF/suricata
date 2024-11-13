@@ -1,0 +1,17 @@
+[package]
+name = "suricata-zabbix"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+nom7 = { version="7.0", package="nom" }
+libc = "~0.2.82"
+flate2 = "1.0.34"
+
+[features]
+default = ["suricata8"]
+suricata7 = []
+suricata8 = []
