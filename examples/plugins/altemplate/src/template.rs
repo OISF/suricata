@@ -15,23 +15,98 @@
  * 02110-1301, USA.
  */
 
+// same file as rust/src/applayertemplate/template.rs except
+// different paths for use statements
+// recoding of derive(AppLayerEvent)
+// recoding of state_get_tx_iterator
+// recoding of export_state_data_get
+// remove TEMPLATE_START_REMOVE
+// name is altemplate instead of template
+
 use super::parser;
-use crate::applayer::{self, *};
-use crate::conf::conf_get;
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::suricata::{
+    build_slice, cast_pointer, conf_get, AppLayerGetTxIterTuple, AppLayerParserConfParserEnabled,
+    AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag,
+    AppLayerProtoDetectConfProtoDetectionEnabled, AppLayerRegisterParser,
+    AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData, AppProto,
+    Flow, Level, RustParser, SCLogError, SCLogNotice, StreamSlice, ALPROTO_UNKNOWN,
+    APP_LAYER_EVENT_TYPE_TRANSACTION, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
+    APP_LAYER_PARSER_OPT_ACCEPT_GAPS, IPPROTO_TCP,
+};
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
 pub(super) static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
-#[derive(AppLayerEvent)]
 enum TemplateEvent {
     TooManyTransactions,
+}
+
+impl TemplateEvent {
+    fn from_id(id: i32) -> Option<TemplateEvent> {
+        match id {
+            0 => Some(TemplateEvent::TooManyTransactions),
+            _ => None,
+        }
+    }
+
+    fn to_cstring(&self) -> &str {
+        match *self {
+            TemplateEvent::TooManyTransactions => "too_many_transactions\0",
+        }
+    }
+
+    fn as_i32(&self) -> i32 {
+        match *self {
+            TemplateEvent::TooManyTransactions => 0,
+        }
+    }
+
+    fn from_string(s: &str) -> Option<TemplateEvent> {
+        match s {
+            "too_many_transactions" => Some(TemplateEvent::TooManyTransactions),
+            _ => None,
+        }
+    }
+
+    pub unsafe extern "C" fn get_event_info(
+        event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
+        event_type: *mut std::os::raw::c_int,
+    ) -> std::os::raw::c_int {
+        if event_name.is_null() {
+            return -1;
+        }
+
+        let event = match CStr::from_ptr(event_name)
+            .to_str()
+            .map(TemplateEvent::from_string)
+        {
+            Ok(Some(event)) => event.as_i32(),
+            _ => {
+                return -1;
+            }
+        };
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event as std::os::raw::c_int;
+        0
+    }
+
+    pub unsafe extern "C" fn get_event_info_by_id(
+        event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
+        event_type: *mut std::os::raw::c_int,
+    ) -> i8 {
+        if let Some(e) = TemplateEvent::from_id(event_id) {
+            *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+            return 0;
+        }
+        -1
+    }
 }
 
 pub struct TemplateTransaction {
@@ -59,12 +134,6 @@ impl TemplateTransaction {
     }
 }
 
-impl Transaction for TemplateTransaction {
-    fn id(&self) -> u64 {
-        self.tx_id
-    }
-}
-
 #[derive(Default)]
 pub struct TemplateState {
     state_data: AppLayerStateData,
@@ -72,16 +141,6 @@ pub struct TemplateState {
     transactions: VecDeque<TemplateTransaction>,
     request_gap: bool,
     response_gap: bool,
-}
-
-impl State<TemplateTransaction> for TemplateState {
-    fn get_transaction_count(&self) -> usize {
-        self.transactions.len()
-    }
-
-    fn get_transaction_by_index(&self, index: usize) -> Option<&TemplateTransaction> {
-        self.transactions.get(index)
-    }
 }
 
 impl TemplateState {
@@ -351,20 +410,50 @@ unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direc
     return 0;
 }
 
-export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
-export_state_data_get!(rs_template_get_state_data, TemplateState);
+#[no_mangle]
+pub unsafe extern "C" fn rs_template_get_tx_data(
+    tx: *mut std::os::raw::c_void,
+) -> *mut AppLayerTxData {
+    let tx = &mut *(tx as *mut TemplateTransaction);
+    &mut tx.tx_data
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_template_get_state_data(
+    state: *mut std::os::raw::c_void,
+) -> *mut AppLayerStateData {
+    let state = &mut *(state as *mut TemplateState);
+    &mut state.state_data
+}
+
+pub unsafe extern "C" fn template_get_tx_iterator(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, TemplateState);
+    let mut index = *istate as usize;
+    let len = state.transactions.len();
+    while index < len {
+        let tx = state.transactions.get(index).unwrap();
+        if tx.tx_id < min_tx_id + 1 {
+            index += 1;
+            continue;
+        }
+        *istate = index as u64;
+        return AppLayerGetTxIterTuple::with_values(
+            tx as *const _ as *mut _,
+            tx.tx_id - 1,
+            len - index > 1,
+        );
+    }
+    AppLayerGetTxIterTuple::not_found()
+}
 
 // Parser name as a C style string.
-const PARSER_NAME: &[u8] = b"template\0";
+const PARSER_NAME: &[u8] = b"altemplate\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_template_register_parser() {
-    /* TEMPLATE_START_REMOVE */
-    if crate::conf::conf_get_node("app-layer.protocols.template").is_none() {
-        return;
-    }
-    /* TEMPLATE_END_REMOVE */
-
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
@@ -389,9 +478,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(
-            applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>,
-        ),
+        get_tx_iterator: Some(template_get_tx_iterator),
         get_tx_data: rs_template_get_tx_data,
         get_state_data: rs_template_get_state_data,
         apply_tx_config: None,
