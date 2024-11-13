@@ -1088,7 +1088,7 @@ typedef struct RuleMatchCandidateTx {
 } RuleMatchCandidateTx;
 
 #define SIG_JSON_CONTENT_ARRAY_LEN 16
-#define SIG_JSON_CONTENT_ITEM_LEN  256
+#define SIG_JSON_CONTENT_ITEM_LEN  1024
 #define SIG_JSON_CONTENT_KEY_LEN   32
 
 /** structure to store the json content with info on sig that triggered it */
