@@ -180,6 +180,15 @@ jobs:
           cat eve.json | jq -c 'select(.dns)'
           test $(cat eve.json | jq -c 'select(.dns)' | wc -l) = "1"
 
+      - name: Test app-layer plugin
+        working-directory: examples/plugins/altemplate
+        run: |
+          cargo build
+          ../../../src/suricata -S altemplate.rules --set plugins.0=./target/debug/libsuricata_altemplate.so --runmode=single -l . -c altemplate.yaml -k none -r ../../../rust/src/applayertemplate/template.pcap
+          cat eve.json | jq -c 'select(.altemplate)'
+          test $(cat eve.json | jq -c 'select(.altemplate)' | wc -l) = "3"
+        # we get 2 alerts and 1 altemplate events
+
       - name: Test library build in tree
         working-directory: examples/lib/simple
         run: make clean all
