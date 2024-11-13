@@ -1,0 +1,3 @@
+alert zabbix any any -> any any (msg: "zabbix frame"; frame: zabbix.data; content: "proc"; startswith; sid:10;)
+alert zabbix any any -> any any (msg: "zabbix payload"; zabbix.data; content: "proc"; startswith; sid:11;)
+alert zabbix any any -> any any (msg: "zabbix flags"; zabbix.flags: &1=1; sid:12;)
