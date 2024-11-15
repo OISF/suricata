@@ -1,4 +1,4 @@
-suricata (6.0.18-awn1.26.999999) UNRELEASED; urgency=medium
+suricata (6.0.18-awn1.27.999999) UNRELEASED; urgency=medium
 
   [ vagrant@ubuntu-xenial ]
   * Upgrade suricata version. 
@@ -8,8 +8,10 @@ suricata (6.0.18-awn1.26.999999) UNRELEASED; urgency=medium
   * new version 6.0.18-awn1.26.999999
   * new version 6.0.18-awn1.26.999999
   * new version 6.0.18-awn1.26.999999
+  * new version 6.0.18-awn1.26.999999
+  * new version 6.0.18-awn1.27.999999
 
- -- rtkwlf <vagrant@ubuntu-xenial>  Mon, 11 Nov 2024 19:39:50 +0000
+ -- rtkwlf <vagrant@ubuntu-xenial>  Tue, 12 Nov 2024 21:38:31 +0000
 
 suricata (4.0.3-0awn02) precise; urgency=medium
 

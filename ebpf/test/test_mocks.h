@@ -1,3 +1,6 @@
+#ifndef __EBPF_TEST_MOCKS__
+#define __EBPF_TEST_MOCKS__
+
 /**
  * Includes a set of mocks to assist in testing XDP programs.
  */
@@ -49,3 +52,5 @@ void setup_mocks() {
   bpf_redirect_map = bpf_redirect_map_mock;
   bpf_trace_printk = test_trace_hook;
 }
+
+#endif
