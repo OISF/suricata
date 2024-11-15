@@ -948,6 +948,11 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_close(js);
                 break;
             }
+            case DETECT_FLOW_RATE: {
+                uint64_t val = (uint64_t)smd->ctx;
+                jb_set_uint(js, "flow_rate", val);
+                break;
+            }
         }
         jb_close(js);
 

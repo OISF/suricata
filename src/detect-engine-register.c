@@ -123,6 +123,7 @@
 #include "detect-rev.h"
 #include "detect-flow.h"
 #include "detect-flow-age.h"
+#include "detect-flow-rate.h"
 #include "detect-flow-pkts.h"
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
@@ -559,6 +560,7 @@ void SigTableSetup(void)
     DetectReplaceRegister();
     DetectFlowRegister();
     DetectFlowAgeRegister();
+    DetectFlowRateRegister();
     DetectFlowPktsToClientRegister();
     DetectFlowPktsToServerRegister();
     DetectFlowBytesToClientRegister();
