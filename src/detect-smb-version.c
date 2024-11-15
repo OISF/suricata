@@ -140,7 +140,7 @@ void DetectSmbVersionRegister(void)
     sigmatch_table[DETECT_SMB_VERSION].AppLayerTxMatch = DetectSmbVersionMatchRust;
     sigmatch_table[DETECT_SMB_VERSION].Free = DetectSmbVersionFree;
     sigmatch_table[DETECT_SMB_VERSION].desc = "smb keyword to match on SMB version";
-    sigmatch_table[DETECT_FLOW_AGE].url = "/rules/smb-keywords.html#smb-version";
+    sigmatch_table[DETECT_SMB_VERSION].url = "/rules/smb-keywords.html#smb-version";
 
     DetectAppLayerInspectEngineRegister(
             BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
