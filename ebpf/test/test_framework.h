@@ -1,3 +1,6 @@
+#ifndef __EBPF_TEST_FRAMEWORK__
+#define __EBPF_TEST_FRAMEWORK__
+
 /**
  * This file defines a fairly light unit testing framework and some tests, meant to allow
  * some degree of sanity checking to be done on an XDP program.
@@ -73,3 +76,5 @@ uint64_t g_TopOfStack;
 	ctx->data = (uint32_t)packet; \
 	ctx->data_end = (uint32_t)packet + sizeof(packet);
 
+
+#endif
