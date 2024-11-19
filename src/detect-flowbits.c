@@ -690,7 +690,6 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
     if (max_fb_id == 0)
         return fba;
 
-#define MAX_SIDS 8
     uint32_t array_size = max_fb_id + 1;
     struct FBAnalyze *array = SCCalloc(array_size, sizeof(struct FBAnalyze));
     if (array == NULL) {
@@ -709,9 +708,7 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
 
         int r = DetectFlowbitsAnalyzeSignature(s, &fba);
         if (r < 0) {
-            SCFree(fba.array);
-            array = fba.array = NULL;
-            array_size = fba.array_size = 0;
+            FBAnalyzerFree(&fba);
             return fba;
         }
     }
@@ -1217,9 +1214,11 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         return 0;
 
     SCLogDebug("sgh %p: setting up prefilter", sgh);
-    struct FBAnalyzer fb_analysis = DetectFlowbitsAnalyzeForGroup(de_ctx, sgh);
     struct PrefilterEngineFlowbits *isset_ctx = NULL;
     struct PrefilterEngineFlowbits *set_ctx = NULL;
+    struct FBAnalyzer fb_analysis = DetectFlowbitsAnalyzeForGroup(de_ctx, sgh);
+    if (fb_analysis.array == NULL)
+        goto error;
 
     for (uint32_t i = 0; i < sgh->init->sig_cnt; i++) {
         Signature *s = sgh->init->match_array[i];
