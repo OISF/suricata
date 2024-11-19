@@ -1514,6 +1514,14 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/ut.profraw"
       - run: llvm-profdata-14 merge -o ut.profdata /tmp/ut.profraw
+      - run: ./src/suricata --list-keywords -l /tmp
+        env:
+          LLVM_PROFILE_FILE: "/tmp/lk.profraw"
+      - run: llvm-profdata-14 merge -o ut.profdata /tmp/lk.profraw
+      - run: ./src/suricata --list-app-layer-protos -l /tmp
+        env:
+          LLVM_PROFILE_FILE: "/tmp/la.profraw"
+      - run: llvm-profdata-14 merge -o ut.profdata /tmp/la.profraw
       - run: llvm-cov-14 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - run: |
           cd rust
