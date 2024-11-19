@@ -946,13 +946,10 @@ static void PrefilterFlowbitMatch(DetectEngineThreadCtx *det_ctx, Packet *p, con
         } else {
             SCLogDebug("flowbit %u found in the tree: %u", lookup.id, b->id);
 
-            // TODO check/log which are in the tree here
-            // TODO rule id's wrong?
-
             PrefilterAddSids(&det_ctx->pmq, b->rule_id, b->rule_id_cnt);
 #ifdef DEBUG
             for (uint32_t x = 0; x < b->rule_id_cnt; x++) {
-                Signature *s = det_ctx->de_ctx->sig_array[b->rule_id[x]];
+                const Signature *s = det_ctx->de_ctx->sig_array[b->rule_id[x]];
                 SCLogDebug("flowbit %u -> sig %u", gv->idx, s->id);
             }
 #endif
