@@ -15,15 +15,19 @@ Commits
 #. If your code changes or adds new behavior, add the related documentation
    updates in their own commit, but make sure to add the same ticket number to
    both commit messages.
-#. Commit messages need to be properly formatted (check the example further
-     below in this section):
+#. Commit messages need to be properly formatted (check the example further below in this section).
       * Meaningful and short (50 chars max) subject line followed by an empty line
       * Naming convention: prefix message with sub-system (**"rule parsing: fixing foobar"**). If
         you're not sure what to use, look at past commits to the file(s) in your PR.
       * Description, wrapped at ~72 characters
 #. Commits should be individually compilable, starting with the oldest commit. Make sure that
-     each commit can be built if it and the preceding commits in the PR are used.
+   each commit can be built if it and the preceding commits in the PR are used.
 #. Commits should be authored with the format: "FirstName LastName <name@example.com>"
+
+We recommend that you use git commit message template with the following command:
+``git config commit.template /path/to/suricata/git-template/commit-template.txt``
+The template lists items that help describe the context and include requisite information in
+the commit message. We reserve the right to strictly enforce the template in the future:
 
 Information that needs to be part of a commit (if applicable):
 
