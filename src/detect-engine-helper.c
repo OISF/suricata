@@ -141,8 +141,8 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[DETECT_TBLSIZE_IDX].TransformValidate = (bool (*)(
             const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw))kw->Setup;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx *de, void *ptr))kw->Free;
     DETECT_TBLSIZE_IDX++;
     return DETECT_TBLSIZE_IDX - 1;
 }
