@@ -99,4 +99,7 @@ int PrefilterMultiGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
+void PostRuleMatchWorkQueueAppend(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value);
+
 #endif

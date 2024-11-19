@@ -42,6 +42,9 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-build.h"
+#include "detect-engine-prefilter.h"
+
+#include "tree.h"
 
 #include "util-var-name.h"
 #include "util-unittest.h"
@@ -189,34 +192,6 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
         return 0;
     }
     return FlowBitIsnotset(p->flow,fd->idx);
-}
-
-// TODO move to common file
-#define QUEUE_STEP 16
-
-static void PostRuleMatchWorkQueueAppend(
-        DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value)
-{
-    if (det_ctx->post_rule_work_queue.q == NULL) {
-        det_ctx->post_rule_work_queue.q =
-                SCCalloc(1, sizeof(PostRuleMatchWorkQueueItem) * QUEUE_STEP);
-        BUG_ON(det_ctx->post_rule_work_queue.q == NULL);
-        det_ctx->post_rule_work_queue.size = QUEUE_STEP;
-    } else if (det_ctx->post_rule_work_queue.len == det_ctx->post_rule_work_queue.size) {
-        void *ptr = SCRealloc(
-                det_ctx->post_rule_work_queue.q, (det_ctx->post_rule_work_queue.size + QUEUE_STEP) *
-                                                         sizeof(PostRuleMatchWorkQueueItem));
-        BUG_ON(ptr == NULL);
-        det_ctx->post_rule_work_queue.q = ptr;
-        det_ctx->post_rule_work_queue.size += QUEUE_STEP;
-    }
-    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].sm_type = type;
-    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].value = value;
-#ifdef DEBUG
-    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].id = s->num;
-#endif
-    det_ctx->post_rule_work_queue.len++;
-    SCLogDebug("det_ctx->post_rule_work_queue.len %u", det_ctx->post_rule_work_queue.len);
 }
 
 /*
@@ -875,9 +850,6 @@ static bool PrefilterFlowbitIsPrefilterable(const Signature *s)
     SCLogDebug("sid:%u: no flowbit prefilter", s->id);
     return false;
 }
-
-#include "detect-engine-prefilter.h"
-#include "tree.h"
 
 /** core flowbit data structure: map a flowbit id to the signatures that need inspecting after it is
  * found. Part of a rb-tree. */

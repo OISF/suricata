@@ -979,3 +979,31 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, M
     }
     return r;
 }
+
+// TODO move to common file
+#define QUEUE_STEP 16
+
+void PostRuleMatchWorkQueueAppend(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value)
+{
+    if (det_ctx->post_rule_work_queue.q == NULL) {
+        det_ctx->post_rule_work_queue.q =
+                SCCalloc(1, sizeof(PostRuleMatchWorkQueueItem) * QUEUE_STEP);
+        BUG_ON(det_ctx->post_rule_work_queue.q == NULL);
+        det_ctx->post_rule_work_queue.size = QUEUE_STEP;
+    } else if (det_ctx->post_rule_work_queue.len == det_ctx->post_rule_work_queue.size) {
+        void *ptr = SCRealloc(
+                det_ctx->post_rule_work_queue.q, (det_ctx->post_rule_work_queue.size + QUEUE_STEP) *
+                                                         sizeof(PostRuleMatchWorkQueueItem));
+        BUG_ON(ptr == NULL);
+        det_ctx->post_rule_work_queue.q = ptr;
+        det_ctx->post_rule_work_queue.size += QUEUE_STEP;
+    }
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].sm_type = type;
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].value = value;
+#ifdef DEBUG
+    det_ctx->post_rule_work_queue.q[det_ctx->post_rule_work_queue.len].id = s->num;
+#endif
+    det_ctx->post_rule_work_queue.len++;
+    SCLogDebug("det_ctx->post_rule_work_queue.len %u", det_ctx->post_rule_work_queue.len);
+}
