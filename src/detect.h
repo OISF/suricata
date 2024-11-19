@@ -1090,18 +1090,23 @@ typedef struct RuleMatchCandidateTx {
     const Signature *s;     /**< ptr to sig */
 } RuleMatchCandidateTx;
 
+/** Stores a single u32 for a rule match of the type `sm_type`. Used by
+ *  flowbits prefilter to register DETECT_FLOWBITS,<flowbit id> for post
+ *  match handling. */
 typedef struct PostRuleMatchWorkQueueItem {
-    int sm_type;
-    uint32_t value;
+    int sm_type;    /**< sigmatch type e.g. DETECT_FLOWBITS */
+    uint32_t value; /**< value to be interpreted by the sm_type
+                     *   implementation. E.g. flowbit id. */
 #ifdef DEBUG
     SigIntId id;
 #endif
 } PostRuleMatchWorkQueueItem;
 
+/** Array of PostRuleMatchWorkQueueItem's. */
 typedef struct PostRuleMatchWorkQueue {
-    PostRuleMatchWorkQueueItem *q;
-    uint32_t len;
-    uint32_t size;
+    PostRuleMatchWorkQueueItem *q; /**< array pointer */
+    uint32_t len;                  /**< number of array elements in use. */
+    uint32_t size;                 /**< allocation size in number of elements. */
 } PostRuleMatchWorkQueue;
 
 /**
