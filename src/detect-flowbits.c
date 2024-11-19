@@ -459,6 +459,8 @@ static void FBAnalyzerFree(struct FBAnalyzer *fba)
 {
     if (fba && fba->array) {
         FBAnalyzerArrayFree(fba->array, fba->array_size);
+        fba->array = NULL;
+        fba->array_size = 0;
     }
 }
 
@@ -1188,6 +1190,7 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     SCLogDebug("sgh %p: setting up prefilter", sgh);
     struct PrefilterEngineFlowbits *isset_ctx = NULL;
     struct PrefilterEngineFlowbits *set_ctx = NULL;
+
     struct FBAnalyzer fb_analysis = DetectFlowbitsAnalyzeForGroup(de_ctx, sgh);
     if (fb_analysis.array == NULL)
         goto error;
