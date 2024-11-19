@@ -1049,7 +1049,7 @@ dependencies = [
 [[package]]
 name = "suricata-lua-sys"
 version = "0.1.0-alpha.5"
-source = "git+https://github.com/jasonish/suricata-lua-sys?branch=copy-fix#df4a9c42168f060684a47ab4c0846bb335d7e160"
+source = "git+https://github.com/jasonish/suricata-lua-sys?branch=copy-fix#186720637e9ee2d34db250198d5363f68faf6a90"
 dependencies = [
  "fs_extra",
 ]
