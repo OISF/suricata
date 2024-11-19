@@ -481,6 +481,8 @@ static bool CheckExpand(const uint32_t sids_idx, uint32_t **sids, uint32_t *sids
 static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer *fba)
 {
     struct FBAnalyze *array = fba->array;
+    if (array == NULL)
+        return -1;
 
     /* see if the signature uses stateful matching TODO is there not a flag? */
     bool has_state = (s->init_data->buffer_index != 0);
