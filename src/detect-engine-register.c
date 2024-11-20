@@ -347,6 +347,28 @@ static void SigMultilinePrint(int i, const char *prefix)
     printf("\n");
 }
 
+/** \brief Check if a keyword exists. */
+bool SigTableHasKeyword(const char *keyword)
+{
+    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+        if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
+            continue;
+        }
+
+        const char *name = sigmatch_table[i].name;
+
+        if (name == NULL || strlen(name) == 0) {
+            continue;
+        }
+
+        if (strcmp(keyword, name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int SigTableList(const char *keyword)
 {
     size_t size = DETECT_TBLSIZE;
