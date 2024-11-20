@@ -108,8 +108,8 @@ gen/bindings.rs: gen/bindgen.h
 	rm -f $@
 	$(BINDGEN) \
 		-o $@ \
-		--allowlist-item 'AppProto.*' \
-		--allowlist-item 'SCAppLayer.*' \
+		--allowlist-type 'AppProto.*' \
+		--allowlist-type 'SCAppLayer.*' \
 		--rustified-enum SCAppLayerEventType \
 		--rustified-enum AppProtoEnum \
 		./gen/bindgen.h \
