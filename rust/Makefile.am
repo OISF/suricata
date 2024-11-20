@@ -40,18 +40,21 @@ CARGO_ENV =	@rustup_home@ \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
 		SURICATA_LUA_SYS_HEADER_DST="$(e_rustdir)/gen" \
 		TOP_BUILDDIR=$(abs_top_builddir) \
-		TOP_SRCDIR=$(abs_top_srcdir)
+		TOP_SRCDIR=$(abs_top_srcdir) \
+		RUST_GENDIR=$(e_rustdir)/gen
 else
 CARGO_ENV =	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen" \
 		TOP_BUILDDIR=$(abs_top_builddir) \
-		TOP_SRCDIR=$(abs_top_srcdir)
+		TOP_SRCDIR=$(abs_top_srcdir) \
+		RUST_GENDIR=$(abs_top_builddir)/rust/gen
 endif
 
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
+	$(MAKE) gen/bindings.rs
 	cd $(abs_top_srcdir)/rust && \
 		$(CARGO_ENV) \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
@@ -86,6 +89,32 @@ check:
 
 vendor:
 	$(CARGO_ENV) $(CARGO) vendor
+
+gen/bindgen.h: $(abs_top_srcdir)/src/app-layer-types.h \
+			$(abs_top_srcdir)/src/app-layer-protos.h
+	rm -f $@
+	mkdir -p gen
+if HAVE_CYGPATH
+	for header in $^; do \
+		echo "#include \"`cygpath -am $$header`\"" >> gen/bindgen.h; \
+	done
+else
+	for header in $^; do \
+		echo "#include \"$$header\"" >> gen/bindgen.h; \
+	done
+endif
+
+gen/bindings.rs: gen/bindgen.h
+	rm -f $@
+	$(BINDGEN) \
+		-o $@ \
+		--allowlist-type 'AppProto.*' \
+		--allowlist-type 'SCAppLayer.*' \
+		--rustified-enum SCAppLayerEventType \
+		--rustified-enum AppProtoEnum \
+		./gen/bindgen.h \
+		-- \
+		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
