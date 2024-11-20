@@ -32,6 +32,15 @@ mod mock {
     pub fn requires(feature: &str) -> bool {
         return feature.starts_with("true");
     }
+
+    /// Check for a keyword returning true if found.
+    ///
+    /// This a "mock" variant of `has_keyword` that will return true
+    /// for any keyword starting with string `true`, and false for
+    /// anything else.
+    pub fn has_keyword(keyword: &str) -> bool {
+        return keyword.starts_with("true");
+    }
 }
 
 #[cfg(not(test))]
@@ -41,12 +50,21 @@ mod real {
 
     extern "C" {
         fn RequiresFeature(feature: *const c_char) -> bool;
+        fn SigTableHasKeyword(keyword: *const c_char) -> bool;
     }
 
     /// Check for a feature returning true if found.
     pub fn requires(feature: &str) -> bool {
         if let Ok(feature) = CString::new(feature) {
             unsafe { RequiresFeature(feature.as_ptr()) }
+        } else {
+            false
+        }
+    }
+
+    pub fn has_keyword(keyword: &str) -> bool {
+        if let Ok(keyword) = CString::new(keyword) {
+            unsafe { SigTableHasKeyword(keyword.as_ptr()) }
         } else {
             false
         }
