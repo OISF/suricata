@@ -218,9 +218,10 @@ requires
 --------
 
 The ``requires`` keyword allows a rule to require specific Suricata
-features to be enabled, or the Suricata version to match an
-expression. Rules that do not meet the requirements will by ignored,
-and Suricata will not treat them as errors.
+features to be enabled, specific keywords to be available, or the
+Suricata version to match an expression. Rules that do not meet the
+requirements will be ignored, and Suricata will not treat them as
+errors.
 
 Requirements that follow the valid format of ``<keyword>
 <expression>`` but are not known to Suricata are allowed for future
@@ -235,7 +236,7 @@ still adhere to the basic known formats of Suricata rules.
 
 The format is::
 
-   requires: feature geoip, version >= 7.0.0
+   requires: feature geoip, version >= 7.0.0, keyword foobar
 
 To require multiple features, the feature sub-keyword must be
 specified multiple times::
@@ -250,7 +251,7 @@ and *or* expressions may expressed with ``|`` like::
 
    requires: version >= 7.0.4 < 8 | >= 8.0.3
 
-to express that a rules requires version 7.0.4 or greater, but less
+to express that a rule requires version 7.0.4 or greater, but less
 than 8, **OR** greater than or equal to 8.0.3. Which could be useful
 if a keyword wasn't added until 7.0.4 and the 8.0.3 patch releases, as
 it would not exist in 8.0.1.
