@@ -24,6 +24,8 @@
 #ifndef SURICATA_DETECT_ENGINE_REGISTER_H
 #define SURICATA_DETECT_ENGINE_REGISTER_H
 
+#include "suricata-common.h"
+
 enum DetectKeywordId {
     DETECT_SID,
     DETECT_PRIORITY,
@@ -341,5 +343,6 @@ void SigTableCleanup(void);
 void SigTableInit(void);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
+bool SigTableHasKeyword(const char *keyword);
 
 #endif /* SURICATA_DETECT_ENGINE_REGISTER_H */
