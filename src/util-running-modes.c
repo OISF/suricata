@@ -36,6 +36,7 @@ int ListKeywords(const char *keyword_info)
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();
+    SigTableInit();
     SigTableSetup(); /* load the rule keywords */
     return SigTableList(keyword_info);
 }
