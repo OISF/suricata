@@ -666,7 +666,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         memset(sgh->post_rule_match_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
-        uint32_t local_id = 0;
+        uint16_t local_id = 0;
         PrefilterEngine *e = sgh->post_rule_match_engines;
         for (el = sgh->init->post_rule_match_engines; el != NULL; el = el->next) {
             e->local_id = local_id++;
