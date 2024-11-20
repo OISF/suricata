@@ -34,6 +34,12 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 7.0.7
+------------------
+- Unknown requirements in the ``requires`` keyword will now be treated
+  as unmet requirements, causing the rule to not be loaded. See
+  :ref:`keyword_requires`.
+
 Upgrading 6.0 to 7.0
 --------------------
 
