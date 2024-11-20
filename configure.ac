@@ -2270,6 +2270,11 @@ fi
        fi
     fi
 
+    AC_PATH_PROG([BINDGEN], [bindgen], [no])
+    if test "x$BINDGEN" = "xno"; then
+       AC_MSG_ERROR([bindgen required])
+    fi
+
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version 2>&1 | cut -d' ' -f2-)
