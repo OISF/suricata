@@ -1945,9 +1945,8 @@ static int DetectByteExtractTest43(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "three", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_OFFSET_VAR |
-                      DETECT_CONTENT_OFFSET) ||
-        cd->offset != bed->local_id) {
+            cd->flags != (DETECT_CONTENT_OFFSET_VAR | DETECT_CONTENT_OFFSET | DETECT_CONTENT_MPM) ||
+            cd->offset != bed->local_id) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -2049,9 +2048,8 @@ static int DetectByteExtractTest44(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_OFFSET_VAR |
-                      DETECT_CONTENT_OFFSET) ||
-        cd->offset != bed1->local_id) {
+            cd->flags != (DETECT_CONTENT_OFFSET_VAR | DETECT_CONTENT_OFFSET | DETECT_CONTENT_MPM) ||
+            cd->offset != bed1->local_id) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -2158,10 +2156,8 @@ static int DetectByteExtractTest45(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "three", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_DEPTH_VAR |
-                      DETECT_CONTENT_DEPTH) ||
-        cd->depth != bed->local_id ||
-        cd->offset != 0) {
+            cd->flags != (DETECT_CONTENT_DEPTH_VAR | DETECT_CONTENT_DEPTH | DETECT_CONTENT_MPM) ||
+            cd->depth != bed->local_id || cd->offset != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -2263,9 +2259,8 @@ static int DetectByteExtractTest46(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_DEPTH_VAR |
-                      DETECT_CONTENT_DEPTH) ||
-        cd->depth != bed1->local_id) {
+            cd->flags != (DETECT_CONTENT_DEPTH_VAR | DETECT_CONTENT_DEPTH | DETECT_CONTENT_MPM) ||
+            cd->depth != bed1->local_id) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -2372,11 +2367,9 @@ static int DetectByteExtractTest47(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "three", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_DISTANCE_VAR |
-                      DETECT_CONTENT_DISTANCE) ||
-        cd->distance != bed->local_id ||
-        cd->offset != 0 ||
-        cd->depth != 0) {
+            cd->flags !=
+                    (DETECT_CONTENT_DISTANCE_VAR | DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM) ||
+            cd->distance != bed->local_id || cd->offset != 0 || cd->depth != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -2478,12 +2471,9 @@ static int DetectByteExtractTest48(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_DISTANCE_VAR |
-                      DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_DISTANCE_NEXT) ||
-        cd->distance != bed1->local_id ||
-        cd->depth != 0 ||
-        cd->offset != 0) {
+            cd->flags != (DETECT_CONTENT_DISTANCE_VAR | DETECT_CONTENT_DISTANCE |
+                                 DETECT_CONTENT_DISTANCE_NEXT | DETECT_CONTENT_MPM) ||
+            cd->distance != bed1->local_id || cd->depth != 0 || cd->offset != 0) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -2592,12 +2582,8 @@ static int DetectByteExtractTest49(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "three", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_WITHIN_VAR |
-                      DETECT_CONTENT_WITHIN) ||
-        cd->within != bed->local_id ||
-        cd->offset != 0 ||
-        cd->depth != 0 ||
-        cd->distance != 0) {
+            cd->flags != (DETECT_CONTENT_WITHIN_VAR | DETECT_CONTENT_WITHIN | DETECT_CONTENT_MPM) ||
+            cd->within != bed->local_id || cd->offset != 0 || cd->depth != 0 || cd->distance != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -2699,13 +2685,10 @@ static int DetectByteExtractTest50(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_WITHIN_VAR |
-                      DETECT_CONTENT_WITHIN|
-                      DETECT_CONTENT_WITHIN_NEXT) ||
-        cd->within != bed1->local_id ||
-        cd->depth != 0 ||
-        cd->offset != 0 ||
-        cd->distance != 0) {
+            cd->flags != (DETECT_CONTENT_WITHIN_VAR | DETECT_CONTENT_WITHIN |
+                                 DETECT_CONTENT_WITHIN_NEXT | DETECT_CONTENT_MPM) ||
+            cd->within != bed1->local_id || cd->depth != 0 || cd->offset != 0 ||
+            cd->distance != 0) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -2970,7 +2953,7 @@ static int DetectByteExtractTest53(void)
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF(sm->type != DETECT_CONTENT);
     DetectContentData *cd = (DetectContentData *)sm->ctx;
-    FAIL_IF(cd->flags != 0);
+    FAIL_IF(cd->flags != (DETECT_CONTENT_MPM | DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED));
 
     sm = sm->next;
     FAIL_IF_NULL(sm);
@@ -3092,11 +3075,8 @@ static int DetectByteExtractTest54(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 1) {
-        printf("four failed\n");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR);
+    FAIL_IF(bjd->offset != 1);
 
     if (sm->next != NULL)
         goto end;
@@ -3197,12 +3177,10 @@ static int DetectByteExtractTest55(void)
     }
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
-        cd->flags != (DETECT_CONTENT_DISTANCE_VAR |
-                      DETECT_CONTENT_WITHIN_VAR |
-                      DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_WITHIN) ||
-        cd->within != bed1->local_id ||
-        cd->distance != bed2->local_id) {
+            cd->flags !=
+                    (DETECT_CONTENT_DISTANCE_VAR | DETECT_CONTENT_WITHIN_VAR |
+                            DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_MPM) ||
+            cd->within != bed1->local_id || cd->distance != bed2->local_id) {
         printf("four failed: ");
         goto end;
     }
@@ -3829,8 +3807,8 @@ static int DetectByteExtractTest60(void)
         goto end;
     }
     cd = (DetectContentData *)sm->ctx;
-    if (cd->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        strncmp((char *)cd->content, "three", cd->content_len) != 0) {
+    if (cd->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_MPM) ||
+            strncmp((char *)cd->content, "three", cd->content_len) != 0) {
         printf("one failed\n");
         result = 0;
         goto end;
@@ -3950,8 +3928,8 @@ static int DetectByteExtractTest61(void)
         goto end;
     }
     cd = (DetectContentData *)sm->ctx;
-    if (cd->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        strncmp((char *)cd->content, "three", cd->content_len) != 0) {
+    if (cd->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_MPM) ||
+            strncmp((char *)cd->content, "three", cd->content_len) != 0) {
         printf("one failed\n");
         result = 0;
         goto end;
