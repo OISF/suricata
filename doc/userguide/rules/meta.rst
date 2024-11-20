@@ -212,6 +212,8 @@ If the value is src_ip then the source IP in the generated event (src_ip
 field in JSON) is the target of the attack. If target is set to dest_ip
 then the target is the destination IP in the generated event.
 
+.. _keyword_requires:
+
 requires
 --------
 
@@ -219,6 +221,11 @@ The ``requires`` keyword allows a rule to require specific Suricata
 features to be enabled, or the Suricata version to match an
 expression. Rules that do not meet the requirements will by ignored,
 and Suricata will not treat them as errors.
+
+Requirements that follow the valid format of ``<keyword>
+<expression>`` but are not known to Suricata are allowed for future
+compatiblity, however unknown requirement expressions will lead to the
+requirement not being met, skipping the rule.
 
 When parsing rules, the parser attempts to process the ``requires``
 keywords before others. This allows it to occur after keywords that
