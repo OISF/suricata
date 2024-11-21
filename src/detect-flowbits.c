@@ -1196,18 +1196,17 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
                 SCLogDebug(
                         "DETECT_SM_LIST_POSTMATCH: sid %u DETECT_FLOWBITS set %u", s->id, fb->idx);
-                // else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
-                //   SCLogDebug("DETECT_SM_LIST_POSTMATCH: sid %u DETECT_FLOWBITS toggle %u", s->id,
-                //           fb->idx);
+            } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+                SCLogDebug("DETECT_SM_LIST_POSTMATCH: sid %u DETECT_FLOWBITS toggle %u", s->id,
+                        fb->idx);
             } else {
                 SCLogDebug("unsupported flowbits setting");
                 continue;
             }
 
-            if (fb_analysis.array[fb->idx].toggle_sids_idx ||
-                    fb_analysis.array[fb->idx].isnotset_sids_idx ||
+            if (fb_analysis.array[fb->idx].isnotset_sids_idx ||
                     fb_analysis.array[fb->idx].unset_sids_idx) {
-                SCLogDebug("flowbit %u not supported: toggle or unset in use", fb->idx);
+                SCLogDebug("flowbit %u not supported: unset in use", fb->idx);
                 continue;
             }
 
@@ -1220,6 +1219,7 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             SCLogDebug("setting up sets/toggles for sid %u", s->id);
             if (AddBitSetToggle(de_ctx, &fb_analysis, set_ctx, fb, s) == 1) {
                 // flag the set/toggle to trigger the post-rule match logic
+                SCLogDebug("set up sets/toggles for sid %u", s->id);
                 fb->post_rule_match_prefilter = true;
             }
 
@@ -1237,8 +1237,7 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
 
         const DetectFlowbitsData *fb = (DetectFlowbitsData *)s->init_data->prefilter_sm->ctx;
-        if (fb_analysis.array[fb->idx].toggle_sids_idx ||
-                fb_analysis.array[fb->idx].isnotset_sids_idx ||
+        if (fb_analysis.array[fb->idx].isnotset_sids_idx ||
                 fb_analysis.array[fb->idx].unset_sids_idx) {
             SCLogDebug("flowbit %u not supported: toggle or unset in use", fb->idx);
             s->init_data->prefilter_sm = NULL;
