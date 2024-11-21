@@ -137,17 +137,14 @@ static inline bool RegionsIntersect(const StreamingBufferConfig *cfg,
     SCLogDebug("r %p: %" PRIu64 "/%" PRIu64 " - adjusted %" PRIu64 "/%" PRIu64, r, r->stream_offset,
             r->stream_offset + r->buf_size, reg_o, reg_re);
     /* check if data range intersects with region range */
-    if (offset >= reg_o && offset <= reg_re) {
-        SCLogDebug("r %p is in-scope", r);
-        return true;
+    /* [offset:re] and [reg_o:reg_re] do not intersect if and only if
+     * re < reg_o or if reg_re < offset (one segment is strictly before the other)
+     * trusting that offset<=re and reg_o<=reg_re
+     */
+    if (re < reg_o || reg_re < offset) {
+        return false;
     }
-    if (re >= reg_o && re <= reg_re) {
-        SCLogDebug("r %p is in-scope: %" PRIu64 " >= %" PRIu64 " && %" PRIu64 " <= %" PRIu64, r, re,
-                reg_o, re, reg_re);
-        return true;
-    }
-    SCLogDebug("r %p is out of scope: %" PRIu64 "/%" PRIu64, r, offset, re);
-    return false;
+    return true;
 }
 
 /** \internal
