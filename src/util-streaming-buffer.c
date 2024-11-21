@@ -938,9 +938,13 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     goto done;
                 } else {
                     /* using "main", expand to include "next" */
-                    if (GrowRegionToSize(sb, cfg, start, mem_size) != 0) {
-                        new_mem_size = new_data_size;
-                        goto just_main;
+                    if (mem_size > start->buf_size) {
+                        // Check that start->buf_size is actually not big enough
+                        // As mem_size computation and earlier checks do not make it clear.
+                        if (GrowRegionToSize(sb, cfg, start, mem_size) != 0) {
+                            new_mem_size = new_data_size;
+                            goto just_main;
+                        }
                     }
                     SCLogDebug("start->buf now size %u", mem_size);
 
