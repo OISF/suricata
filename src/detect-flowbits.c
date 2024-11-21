@@ -215,7 +215,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         case DETECT_FLOWBITS_CMD_SET: {
             int r = DetectFlowbitMatchSet(p, fd);
             /* only on a new "set" invoke the prefilter */
-            if (r == 1 && fd->prefilter) {
+            if (r == 1 && fd->post_rule_match_prefilter) {
                 SCLogDebug("flowbit set, appending to work queue");
                 PostRuleMatchWorkQueueAppend(det_ctx, s, DETECT_FLOWBITS, fd->idx);
             }
@@ -225,7 +225,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             return DetectFlowbitMatchUnset(p,fd);
         case DETECT_FLOWBITS_CMD_TOGGLE: {
             int r = DetectFlowbitMatchToggle(p, fd);
-            if (r == 1 && fd->prefilter) {
+            if (r == 1 && fd->post_rule_match_prefilter) {
                 SCLogDebug("flowbit set (by toggle), appending to work queue");
                 PostRuleMatchWorkQueueAppend(det_ctx, s, DETECT_FLOWBITS, fd->idx);
             }
@@ -972,86 +972,68 @@ static void PrefilterFlowbitPostRuleMatch(
 
 #define BLOCK_SIZE 8
 
-static int AddBitIsset(const DetectEngineCtx *de_ctx, struct PrefilterEngineFlowbits *ctx,
+static int AddBitAndSid(
+        struct PrefilterEngineFlowbits *ctx, const Signature *s, const uint32_t flowbit_id)
+{
+    PrefilterFlowbit x;
+    memset(&x, 0, sizeof(x));
+    x.id = flowbit_id;
+
+    PrefilterFlowbit *pfb = PFB_RB_FIND(&ctx->fb_tree, &x);
+    if (pfb == NULL) {
+        PrefilterFlowbit *add = SCCalloc(1, sizeof(*add));
+        if (add == NULL)
+            return -1;
+
+        add->id = flowbit_id;
+        add->rule_id = SCCalloc(1, BLOCK_SIZE * sizeof(uint32_t));
+        if (add->rule_id == NULL) {
+            SCFree(add);
+            return -1;
+        }
+        add->rule_id_size = BLOCK_SIZE;
+        add->rule_id_cnt = 1;
+        add->rule_id[0] = s->num;
+
+        PrefilterFlowbit *res = PFB_RB_INSERT(&ctx->fb_tree, add);
+        SCLogDebug("not found, so added (res %p)", res);
+        if (res != NULL) {
+            // duplicate, shouldn't be possible after the FIND above
+            BUG_ON(1);
+            return -1;
+        }
+    } else {
+        SCLogDebug("found! pfb %p id %u", pfb, pfb->id);
+
+        if (pfb->rule_id_cnt < pfb->rule_id_size) {
+            pfb->rule_id[pfb->rule_id_cnt++] = s->num;
+        } else {
+            uint32_t *ptr =
+                    SCRealloc(pfb->rule_id, (pfb->rule_id_size + BLOCK_SIZE) * sizeof(uint32_t));
+            if (ptr == NULL) {
+                // memory stays in the tree
+                return -1;
+            }
+            pfb->rule_id = ptr;
+            pfb->rule_id_size += BLOCK_SIZE;
+            pfb->rule_id[pfb->rule_id_cnt++] = s->num;
+        }
+    }
+    return 0;
+}
+
+static int AddBitsAndSid(const DetectEngineCtx *de_ctx, struct PrefilterEngineFlowbits *ctx,
         const DetectFlowbitsData *fb, const Signature *s)
 {
     if (fb->or_list_size == 0) {
-        PrefilterFlowbit x;
-        memset(&x, 0, sizeof(x));
-        x.id = fb->idx;
-
-        PrefilterFlowbit *pfb = PFB_RB_FIND(&ctx->fb_tree, &x);
-        if (pfb == NULL) {
-            PrefilterFlowbit *add = SCCalloc(1, sizeof(*add));
-            BUG_ON(add == NULL);
-
-            add->id = fb->idx;
-            add->rule_id = SCCalloc(1, BLOCK_SIZE * sizeof(uint32_t));
-            BUG_ON(add->rule_id == NULL);
-            add->rule_id_size = BLOCK_SIZE;
-            add->rule_id_cnt = 1;
-            add->rule_id[0] = s->num;
-
-            PrefilterFlowbit *res = PFB_RB_INSERT(&ctx->fb_tree, add);
-            SCLogDebug("not found, so added (res %p)", res);
-            if (res != NULL) {
-                // duplicate, shouldn't be possible after the FIND above
-                BUG_ON(1);
-                return -1;
-            }
-        } else {
-            SCLogDebug("found! pfb %p id %u", pfb, pfb->id);
-
-            if (pfb->rule_id_cnt < pfb->rule_id_size) {
-                pfb->rule_id[pfb->rule_id_cnt++] = s->num;
-            } else {
-                uint32_t *ptr = SCRealloc(
-                        pfb->rule_id, (pfb->rule_id_size + BLOCK_SIZE) * sizeof(uint32_t));
-                BUG_ON(ptr == NULL);
-                pfb->rule_id = ptr;
-                pfb->rule_id_size += BLOCK_SIZE;
-                pfb->rule_id[pfb->rule_id_cnt++] = s->num;
-            }
+        if (AddBitAndSid(ctx, s, fb->idx) < 0) {
+            return -1;
         }
     } else {
         for (uint8_t i = 0; i < fb->or_list_size; i++) {
-            PrefilterFlowbit x;
-            memset(&x, 0, sizeof(x));
-            x.id = fb->or_list[i];
             SCLogDebug("flowbit OR: bit %u", fb->or_list[i]);
-
-            PrefilterFlowbit *pfb = PFB_RB_FIND(&ctx->fb_tree, &x);
-            if (pfb == NULL) {
-                PrefilterFlowbit *add = SCCalloc(1, sizeof(*add));
-                BUG_ON(add == NULL);
-
-                add->id = x.id;
-                add->rule_id = SCCalloc(1, BLOCK_SIZE * sizeof(uint32_t));
-                BUG_ON(add->rule_id == NULL);
-                add->rule_id_size = BLOCK_SIZE;
-                add->rule_id_cnt = 1;
-                add->rule_id[0] = s->num;
-
-                PrefilterFlowbit *res = PFB_RB_INSERT(&ctx->fb_tree, add);
-                SCLogDebug("not found, so added (res %p)", res);
-                if (res != NULL) {
-                    // duplicate, shouldn't be possible after the FIND above
-                    BUG_ON(1);
-                    return -1;
-                }
-            } else {
-                SCLogDebug("found! pfb %p id %u", pfb, pfb->id);
-
-                if (pfb->rule_id_cnt < pfb->rule_id_size) {
-                    pfb->rule_id[pfb->rule_id_cnt++] = s->num;
-                } else {
-                    uint32_t *ptr = SCRealloc(
-                            pfb->rule_id, (pfb->rule_id_size + BLOCK_SIZE) * sizeof(uint32_t));
-                    BUG_ON(ptr == NULL);
-                    pfb->rule_id = ptr;
-                    pfb->rule_id_size += BLOCK_SIZE;
-                    pfb->rule_id[pfb->rule_id_cnt++] = s->num;
-                }
+            if (AddBitAndSid(ctx, s, fb->or_list[i]) < 0) {
+                return -1;
             }
         }
     }
@@ -1237,7 +1219,8 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
             SCLogDebug("setting up sets/toggles for sid %u", s->id);
             if (AddBitSetToggle(de_ctx, &fb_analysis, set_ctx, fb, s) == 1) {
-                fb->prefilter = true; // flag the set/toggle to trigger the post-rule match logic
+                // flag the set/toggle to trigger the post-rule match logic
+                fb->post_rule_match_prefilter = true;
             }
 
             // TODO don't add for sigs that don't have isset in this sgh. Reasoning:
@@ -1270,7 +1253,7 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             if (isset_ctx == NULL)
                 goto error;
         }
-        if (AddBitIsset(de_ctx, isset_ctx, fb, s) < 0) {
+        if (AddBitsAndSid(de_ctx, isset_ctx, fb, s) < 0) {
             goto error;
         }
     }

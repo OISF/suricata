@@ -36,7 +36,9 @@ typedef struct DetectFlowbitsData_ {
     uint32_t idx;
     uint8_t cmd;
     uint8_t or_list_size;
-    bool prefilter; /**< set/toggle command should trigger post-rule-match "prefilter" */
+    /** Flag to trigger post rule match prefilter following a 'set' match. */
+    bool post_rule_match_prefilter; /**< set/toggle command should trigger post-rule-match
+                                       "prefilter" */
     uint32_t *or_list;
 } DetectFlowbitsData;
 
