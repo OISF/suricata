@@ -859,8 +859,8 @@ static bool PrefilterFlowbitIsPrefilterable(const Signature *s)
  * found. Part of a rb-tree. */
 typedef struct PrefilterFlowbit {
     uint32_t id;           /**< flowbit id */
-    uint16_t rule_id_size; /**< size in elements of `rule_id` */
-    uint16_t rule_id_cnt;  /**< usage in elements of `rule_id` */
+    uint32_t rule_id_size; /**< size in elements of `rule_id` */
+    uint32_t rule_id_cnt;  /**< usage in elements of `rule_id` */
     uint32_t *rule_id;     /**< array of signature iid that are part of this prefilter */
     RB_ENTRY(PrefilterFlowbit) __attribute__((__packed__)) rb;
 } __attribute__((__packed__)) PrefilterFlowbit;
