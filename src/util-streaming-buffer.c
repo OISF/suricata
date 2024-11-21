@@ -717,6 +717,10 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
     /* try to grow in multiples of cfg->buf_size */
     const uint32_t grow = ToNextMultipleOf(size, cfg->buf_size);
     SCLogDebug("grow %u", grow);
+    if (grow <= region->buf_size) {
+        // do not try to shrink, and do not memset with diff having unsigned underflow
+        return SC_OK;
+    }
 
     void *ptr = REALLOC(cfg, region->buf, region->buf_size, grow);
     if (ptr == NULL) {
