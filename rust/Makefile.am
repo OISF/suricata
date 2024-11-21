@@ -125,7 +125,7 @@ else
 gen/rust-bindings.h:
 endif
 
-doc:
+doc: gen/bindings.rs
 	CARGO_HOME=$(CARGO_HOME) \
 		$(CARGO_ENV) \
 		SURICATA_LUA_SYS_HEADER_DST="" $(CARGO) doc \
