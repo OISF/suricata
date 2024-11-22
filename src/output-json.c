@@ -980,8 +980,22 @@ int OutputJsonBuilderBuffer(
 
     size_t jslen = jb_len(js);
     DEBUG_VALIDATE_BUG_ON(jb_len(js) > UINT32_MAX);
-    if (MEMBUFFER_OFFSET(*buffer) + jslen >= MEMBUFFER_SIZE(*buffer)) {
-        MemBufferExpand(buffer, (uint32_t)jslen);
+    size_t remaining = MEMBUFFER_SIZE(*buffer) - MEMBUFFER_OFFSET(*buffer);
+    if (jslen >= remaining) {
+        size_t expand_by = jslen + 1 - remaining;
+        if (MemBufferExpand(buffer, (uint32_t)expand_by) < 0) {
+            if (!ctx->too_large_warning) {
+                /* Log a warning once, and include enough of the log
+                 * message to hopefully identify the event_type. */
+                char partial[120];
+                size_t partial_len = MIN(sizeof(partial), jslen);
+                memcpy(partial, jb_ptr(js), partial_len - 1);
+                partial[partial_len - 1] = '\0';
+                SCLogWarning("Formatted JSON EVE record too large, will be dropped: %s", partial);
+                ctx->too_large_warning = true;
+            }
+            return 0;
+        }
     }
 
     MemBufferWriteRaw((*buffer), jb_ptr(js), (uint32_t)jslen);
