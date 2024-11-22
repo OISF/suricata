@@ -90,6 +90,7 @@ typedef struct OutputJsonThreadCtx_ {
     OutputJsonCtx *ctx;
     LogFileCtx *file_ctx;
     MemBuffer *buffer;
+    bool too_large_warning;
 } OutputJsonThreadCtx;
 
 json_t *SCJsonString(const char *val);
