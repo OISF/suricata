@@ -343,7 +343,7 @@ which when piped to ``base64 -d`` reveals its value::
 datarep
 ~~~~~~~
 
-The datarep format follows the dataset, expect that there are 1 more CSV
+The datarep format follows the dataset, except that there are 1 more CSV
 field:
 
 Syntax::
