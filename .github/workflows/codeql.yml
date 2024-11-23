@@ -39,13 +39,24 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
+    # Check if Python files are changed
+    - name: Check for Python file changes
+      id: python_check
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git diff --name-only origin/${{ github.base_ref }}...${{ github.head_ref }} | grep '\.py$' || echo "no-python-changes"
+      continue-on-error: true
+    
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3.27.0
       with:
         languages: ${{ matrix.language }}
         queries: security-extended
-
+      if: |
+        (matrix.language == 'cpp') || 
+        (matrix.language == 'python' && steps.python_check.outputs.result != 'no-python-changes')
+    
     - run: |
        sudo apt-get update
        sudo apt-get install libyaml-dev
