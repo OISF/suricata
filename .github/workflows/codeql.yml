@@ -8,8 +8,8 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ master ]
-    paths-ignore:
-      - "doc/**"
+    paths:
+      - "**/*.py"  # Trigger workflow only if Python files are changed
   schedule:
     - cron: '18 21 * * 1'
 
@@ -39,8 +39,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
+    # Check if Python files are changed
+    - name: Check for Python file changes
+      id: python_check
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git diff --name-only origin/${{ github.base_ref }}...${{ github.head_ref }} | grep '\.py$' || echo "no-python-changes"
+      continue-on-error: true
+    
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
+      if: ${{ steps.python_check.outputs.result != 'no-python-changes' }}
       uses: github/codeql-action/init@v3.27.0
       with:
         languages: ${{ matrix.language }}
@@ -62,4 +71,5 @@ jobs:
        ./configure --enable-warnings
        make
     - name: Perform CodeQL Analysis
+      if: ${{ steps.python_check.outputs.result != 'no-python-changes' }}
       uses: github/codeql-action/analyze@v3.27.0
