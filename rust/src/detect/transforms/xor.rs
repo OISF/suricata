@@ -143,10 +143,15 @@ mod tests {
 
     #[test]
     fn test_xor_transform() {
-        let buf = b"example.com";
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"example.com");
         let mut out = vec![0; buf.len()];
         let ctx = xor_parse_do("0a0DC8ff").unwrap();
-        xor_transform_do(buf, &mut out, &ctx);
+        xor_transform_do(&buf, &mut out, &ctx);
         assert_eq!(out, b"ou\xa9\x92za\xad\xd1ib\xa5");
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        xor_transform_do(still_buf, &mut buf, &ctx);
+        assert_eq!(&still_buf, b"ou\xa9\x92za\xad\xd1ib\xa5");
     }
 }
