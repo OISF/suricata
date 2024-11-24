@@ -35,13 +35,15 @@ unsafe extern "C" fn strip_whitespace_setup(
 
 fn strip_whitespace_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     let mut nb = 0;
-    // seems faster than writing one byte at a time via
-    // for (i, o) in input.iter().filter(|c| !matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' ')).zip(output)
-    for subslice in input.split(|c| matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' '))
+    for (i, o) in input
+        .iter()
+        .filter(|c| !matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' '))
+        .zip(output)
     {
-        output[nb..nb + subslice.len()].copy_from_slice(subslice);
-        nb += subslice.len();
+        *o = *i;
+        nb += 1;
     }
+    // do not use faster copy_from_slice because input and output may overlap (point to the same data)
     return nb as u32;
 }
 
@@ -124,13 +126,21 @@ mod tests {
         );
         assert_eq!(&out[..exp.len()], exp);
 
-        let buf = b"I  \t J";
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"I  \t J");
         let mut out = vec![0; buf.len()];
         let exp = b"IJ";
         assert_eq!(
-            strip_whitespace_transform_do(buf, &mut out),
+            strip_whitespace_transform_do(&buf, &mut out),
             exp.len() as u32
         );
         assert_eq!(&out[..exp.len()], exp);
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        assert_eq!(
+            strip_whitespace_transform_do(still_buf, &mut buf),
+            exp.len() as u32
+        );
+        assert_eq!(&still_buf[..exp.len()], b"IJ");
     }
 }
