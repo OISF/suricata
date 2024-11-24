@@ -103,11 +103,18 @@ unsafe extern "C" fn strip_pseudo_setup(
 
 fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     let mut nb = 0;
+    let mut inb = 0;
+    let same = std::ptr::eq(output.as_ptr(), input.as_ptr());
     for subslice in input.split_inclusive(|c| *c == b'\n') {
         if !subslice.is_empty() && subslice[0] != b':' {
-            output[nb..nb + subslice.len()].copy_from_slice(subslice);
+            if same {
+                output.copy_within(inb..inb + subslice.len(), nb);
+            } else {
+                output[nb..nb + subslice.len()].copy_from_slice(subslice);
+            }
             nb += subslice.len();
         }
+        inb += subslice.len();
     }
     return nb as u32;
 }
@@ -183,5 +190,16 @@ mod tests {
         let mut out = vec![0; buf.len()];
         let nb = strip_pseudo_transform_do(buf, &mut out);
         assert_eq!(&out[..nb as usize], b"header2:Value2");
+        let mut buf = Vec::new();
+        buf.extend_from_slice(
+            b"Header1: Value1\n:method:get\nheader2:Value2\n:scheme:https\nheader3:Value3\n",
+        );
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        let nb = strip_pseudo_transform_do(&still_buf, &mut buf);
+        assert_eq!(
+            &still_buf[..nb as usize],
+            b"Header1: Value1\nheader2:Value2\nheader3:Value3\n"
+        );
     }
 }

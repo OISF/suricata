@@ -135,9 +135,14 @@ mod tests {
 
     #[test]
     fn test_url_decode_transform() {
-        let buf = b"Suricata%20is+%27%61wesome%21%27%25%30%30%ZZ%4";
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"Suricata%20is+%27%61wesome%21%27%25%30%30%ZZ%4");
         let mut out = vec![0; buf.len()];
-        let nb = url_decode_transform_do(buf, &mut out);
+        let nb = url_decode_transform_do(&buf, &mut out);
         assert_eq!(&out[..nb as usize], b"Suricata is 'awesome!'%00%ZZ%4");
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        let nb = url_decode_transform_do(&still_buf, &mut buf);
+        assert_eq!(&still_buf[..nb as usize], b"Suricata is 'awesome!'%00%ZZ%4");
     }
 }

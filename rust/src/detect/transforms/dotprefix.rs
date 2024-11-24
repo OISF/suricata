@@ -34,24 +34,32 @@ unsafe extern "C" fn dot_prefix_setup(
 }
 
 fn dot_prefix_transform_do(input: &[u8], output: &mut [u8]) {
+    if std::ptr::eq(output.as_ptr(), input.as_ptr()) {
+        output.copy_within(0..input.len(), 1);
+    } else {
+        output[1..].copy_from_slice(input);
+    }
     output[0] = b'.';
-    output[1..].copy_from_slice(input);
 }
 
 #[no_mangle]
 unsafe extern "C" fn dot_prefix_transform(buffer: *mut c_void, _ctx: *mut c_void) {
-    let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
-    if input.is_null() || input_len == 0 {
+    if input_len == 0 {
         return;
     }
-    let input = build_slice!(input, input_len as usize);
-
     let output = InspectionBufferCheckAndExpand(buffer, input_len + 1);
     if output.is_null() {
         // allocation failure
         return;
     }
+    // get input after possible realloc
+    let input = InspectionBufferPtr(buffer);
+    if input.is_null() {
+        // allocation failure
+        return;
+    }
+    let input = build_slice!(input, input_len as usize);
     let output = std::slice::from_raw_parts_mut(output, (input_len + 1) as usize);
 
     dot_prefix_transform_do(input, output);
@@ -89,9 +97,15 @@ mod tests {
         let mut out = vec![0; b"example.com".len() + 1];
         dot_prefix_transform_do(buf, &mut out);
         assert_eq!(out, b".example.com");
-        let buf = b"hello.example.com";
+        let mut buf = Vec::with_capacity(b"hello.example.com".len() + 1);
+        buf.extend_from_slice(b"hello.example.com");
         let mut out = vec![0; b"hello.example.com".len() + 1];
-        dot_prefix_transform_do(buf, &mut out);
+        dot_prefix_transform_do(&buf, &mut out);
         assert_eq!(out, b".hello.example.com");
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        buf.push(b'.');
+        dot_prefix_transform_do(&still_buf, &mut buf);
+        assert_eq!(&buf, b".hello.example.com");
     }
 }

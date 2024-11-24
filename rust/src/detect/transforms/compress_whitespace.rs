@@ -35,21 +35,16 @@ unsafe extern "C" fn compress_whitespace_setup(
 
 fn compress_whitespace_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     let mut nb = 0;
-    // seems faster than writing one byte at a time via
-    // for (i, o) in input.iter().filter(|c| !matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' ')).zip(output)
-    for subslice in
-        input.split_inclusive(|c| matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' '))
-    {
-        // a subslice of length 1 not at the beginning is a space following another space
-        if nb == 0
-            || subslice.len() > 1
-            || !matches!(
-                subslice[0],
-                b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' '
-            )
-        {
-            output[nb..nb + subslice.len()].copy_from_slice(subslice);
-            nb += subslice.len();
+    let mut space = false;
+    for c in input {
+        if !matches!(*c, b'\t' | b'\n' | b'\x0B' | b'\x0C' | b'\r' | b' ') {
+            output[nb] = *c;
+            nb += 1;
+            space = false;
+        } else if !space {
+            output[nb] = *c;
+            nb += 1;
+            space = true;
         }
     }
     return nb as u32;
@@ -142,14 +137,22 @@ mod tests {
             exp.len() as u32
         );
         assert_eq!(&out[..exp.len()], exp);
-        let buf = b"I  \t J";
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"I  \t J");
         let mut out = vec![0; buf.len()];
         let exp = b"I J";
         assert_eq!(
-            compress_whitespace_transform_do(buf, &mut out),
+            compress_whitespace_transform_do(&buf, &mut out),
             exp.len() as u32
         );
         assert_eq!(&out[..exp.len()], exp);
+        // test in place
+        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
+        assert_eq!(
+            compress_whitespace_transform_do(&still_buf, &mut buf),
+            exp.len() as u32
+        );
+        assert_eq!(&still_buf[..exp.len()], b"I J");
     }
 
     #[test]
