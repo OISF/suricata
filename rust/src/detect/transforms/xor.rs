@@ -60,13 +60,17 @@ unsafe fn xor_parse(raw: *const std::os::raw::c_char) -> *mut c_void {
 
 #[no_mangle]
 unsafe extern "C" fn xor_setup(
-    _de: *mut c_void, s: *mut c_void, opt_str: *const std::os::raw::c_char,
+    de: *mut c_void, s: *mut c_void, opt_str: *const std::os::raw::c_char,
 ) -> c_int {
     let ctx = xor_parse(opt_str);
     if ctx.is_null() {
         return -1;
     }
-    return DetectSignatureAddTransform(s, G_TRANSFORM_XOR_ID, ctx);
+    let r = DetectSignatureAddTransform(s, G_TRANSFORM_XOR_ID, ctx);
+    if r != 0 {
+        xor_free(de, ctx);
+    }
+    return r;
 }
 
 fn xor_transform_do(input: &[u8], output: &mut [u8], ctx: &DetectTransformXorData) {
