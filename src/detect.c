@@ -782,7 +782,7 @@ static inline void DetectRulePacketRules(
         }
 
         /* skip pkt sigs for flow end packets */
-        if ((p->flags & PKT_PSEUDO_STREAM_END) != 0 && s->type == SIG_TYPE_PKT)
+        if ((p->flags & PKT_PSEUDO_STREAM_END) != 0 && (s->type == SIG_TYPE_PKT || s->type == SIG_TYPE_APPLAYER))
             goto next;
 
         /* don't run mask check for stateful rules.
