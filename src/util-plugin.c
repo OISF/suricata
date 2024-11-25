@@ -156,6 +156,9 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
+    if (plugin->version != SC_PLUGIN_API_VERSION) {
+        return 1;
+    }
     AppProto alproto = AlprotoMax;
     AppProtoRegisterProtoString(alproto, plugin->name);
     if (plugin->Register) {

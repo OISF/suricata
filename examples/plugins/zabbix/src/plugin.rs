@@ -8,6 +8,7 @@ use crate::util::SCLog;
 extern "C" fn zabbix_plugin_init() {
     SCLog!(suricata::Level::Notice, "Initializing zabbix plugin");
     let plugin = SCAppLayerPlugin {
+        version: 8,
         name: b"zabbix\0".as_ptr() as *const libc::c_char,
         logname: b"JsonZabbixLog\0".as_ptr() as *const libc::c_char,
         confname: b"eve-log.zabbix\0".as_ptr() as *const libc::c_char,

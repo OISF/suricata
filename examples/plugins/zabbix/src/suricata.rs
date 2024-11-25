@@ -235,6 +235,7 @@ pub enum Level {
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct SCAppLayerPlugin {
+    pub version: u64,
     pub name: *const libc::c_char,
     pub Register: unsafe extern "C" fn(),
     pub KeywordsRegister: unsafe extern "C" fn(),
