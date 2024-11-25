@@ -52,6 +52,10 @@ For features and bugs we need `tickets <https://redmine.openinfosecfoundation.
 org/projects/suricata/issues>`_. Tickets help us keep track of the work done,
 indicate when changes need backports etc.
 
+.. note:: The ticket should clearly reflect the intention as per the tracker.
+   For example, if the ticket is a "Bug", the title should only say what the
+   bug is.
+
 They are also important if you would like to see your new feature officially
 added to our tool: the ticket documents your ideas so  we can analyze how do they
 fit in our plans for Suricata, and, if the feature is accepted, we can properly
