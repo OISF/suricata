@@ -295,8 +295,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \
     BIT_U32(8) /**< priority is explicitly set by the priority keyword */
-#define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
-#define SIG_FLAG_INIT_JA                    BIT_U32(10) /**< signature has ja3/ja4 keyword */
+#define SIG_FLAG_INIT_FILEDATA BIT_U32(9) /**< signature has filedata keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
