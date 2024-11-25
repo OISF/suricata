@@ -52,7 +52,12 @@ typedef struct SCCapturePlugin_ {
 
 int SCPluginRegisterCapture(SCCapturePlugin *);
 
+// Every change in the API used by plugins should change this number
+#define SC_PLUGIN_API_VERSION 8
+
 typedef struct SCAppLayerPlugin_ {
+    // versioning to check suricata/plugin API compatibility
+    uint64_t version;
     char *name;
     void (*Register)(void);
     void (*KeywordsRegister)(void);
