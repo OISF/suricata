@@ -55,6 +55,9 @@ int Ja4IsDisabled(const char *type);
 static InspectionBuffer *Ja4DetectGetHash(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
+#ifdef UNITTESTS
+static void DetectJa4RegisterTests(void);
+#endif
 
 static int g_ja4_hash_buffer_id = 0;
 #endif
@@ -70,6 +73,9 @@ void DetectJa4HashRegister(void)
     sigmatch_table[DETECT_JA4_HASH].url = "/rules/ja4-keywords.html#ja4-hash";
 #ifdef HAVE_JA4
     sigmatch_table[DETECT_JA4_HASH].Setup = DetectJa4HashSetup;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_JA4_HASH].RegisterTests = DetectJa4RegisterTests;
+#endif
 #else  /* HAVE_JA4 */
     sigmatch_table[DETECT_JA4_HASH].Setup = DetectJA4SetupNoSupport;
 #endif /* HAVE_JA4 */
@@ -111,7 +117,8 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (DetectBufferSetActiveList(de_ctx, s, g_ja4_hash_buffer_id) < 0)
         return -1;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
+    AppProto alprotos[] = { ALPROTO_TLS, ALPROTO_QUIC, ALPROTO_UNKNOWN };
+    if (DetectSignatureSetMultiAppProto(s, alprotos) < 0) {
         SCLogError("rule contains conflicting protocols.");
         return -1;
     }
@@ -126,7 +133,6 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         }
         return -2;
     }
-    s->init_data->init_flags |= SIG_FLAG_INIT_JA;
 
     return 0;
 }
@@ -174,4 +180,68 @@ static InspectionBuffer *Ja4DetectGetHash(DetectEngineThreadCtx *det_ctx,
     }
     return buffer;
 }
+
+#ifdef UNITTESTS
+static int DetectJa4TestParse01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    // invalid tests
+    Signature *s =
+            SigInit(de_ctx, "alert ip any any -> any any (sid: 1; file.data; content: \"toto\"; "
+                            "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // cannot have file.data with ja4.hash (quic or tls)
+    FAIL_IF_NOT_NULL(s);
+    s = SigInit(de_ctx, "alert ip any any -> any any (sid: 1; "
+                        "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\"; file.data; "
+                        "content: \"toto\";)");
+    // cannot have file.data with ja4.hash (quic or tls)
+    FAIL_IF_NOT_NULL(s);
+    s = SigInit(de_ctx, "alert smb any any -> any any (sid: 1; "
+                        "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // cannot have alproto=smb with ja4.hash (quic or tls)
+    FAIL_IF_NOT_NULL(s);
+    s = SigInit(de_ctx, "alert ip any any -> any any (sid: 1; "
+                        "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\"; smb.share; "
+                        "content:\"toto\";)");
+    // cannot have a smb keyword with ja4.hash (quic or tls)
+    FAIL_IF_NOT_NULL(s);
+    s = SigInit(de_ctx, "alert ip any any -> any any (sid: 1; "
+                        "smb.share; content:\"toto\"; ja4.hash; content: "
+                        "\"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // cannot have a smb keyword with ja4.hash (quic or tls)
+    FAIL_IF_NOT_NULL(s);
+
+    // valid tests
+    s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (sid: 1; "
+            "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // just ja4.hash any proto
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert quic any any -> any any (sid: 2; "
+            "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // just ja4.hash only quic
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tls any any -> any any (sid: 3; "
+            "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\";)");
+    // just ja4.hash only tls
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (sid: 4; "
+            "ja4.hash; content: \"q13d0310h3_55b375c5d22e_cd85d2d88918\"; "
+            "quic.version; content:\"|00|\";)");
+    // ja4.hash and a quic keyword
+    FAIL_IF_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static void DetectJa4RegisterTests(void)
+{
+    UtRegisterTest("DetectJa4TestParse01", DetectJa4TestParse01);
+}
 #endif
+
+#endif // HAVE_JA4
