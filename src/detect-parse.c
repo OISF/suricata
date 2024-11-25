@@ -2285,11 +2285,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
     DetectLuaPostSetup(s);
 
-    if ((s->init_data->init_flags & SIG_FLAG_INIT_JA) && s->alproto != ALPROTO_UNKNOWN &&
-            s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
-        SCLogError("Cannot have ja3/ja4 with protocol %s.", AppProtoToString(s->alproto));
-        SCReturnInt(0);
-    }
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
         (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
         if (s->alproto != ALPROTO_UNKNOWN &&
@@ -2299,6 +2294,21 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                        "support file matching",
                     AppProtoToString(s->alproto));
             SCReturnInt(0);
+        } else if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+            bool found = false;
+            for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+                if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                    break;
+                }
+                if (AppLayerParserSupportsFiles(IPPROTO_TCP, s->init_data->alprotos[i])) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                SCLogError("No protocol support file matching");
+                SCReturnInt(0);
+            }
         }
         if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
             SCLogError("protocol HTTP2 doesn't support file name matching");
