@@ -70,6 +70,21 @@ Alerts are event records for rule matches. They can be amended with
 metadata, such as the application layer record (HTTP, DNS, etc) an
 alert was generated for, and elements of the rule.
 
+The alert is amended with application layer metadata for signatures
+using application layer keywords. It is also the case for protocols
+over UDP as each single packet is expected to contain a PDU.
+
+For other signatures, the option ``detect.force-applayer-findtx``
+can be used to force the detect engine to find a transaction.
+These signatures need to define an app-layer protocol.
+This transaction is not guaranteed to be the relevant one,
+depending on your use case and how you define relevant here.
+If there are multiple live transactions, none will get
+picked up.
+The alert event will have ``"tx_id_forced": true`` to recognize
+these alerts.
+
+
 Metadata::
 
         - alert:

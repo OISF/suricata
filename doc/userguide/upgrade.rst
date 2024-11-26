@@ -96,6 +96,10 @@ Logging changes
 ~~~~~~~~~~~~~~~
 - RFB security result is now consistently logged as ``security_result`` when it was
   sometimes logged with a dash instead of an underscore.
+- Application layer metadata is logged with alerts by default only for rules that
+  use application layer keywords. For other rules, the configuration parameter
+  ``detect.force-applayer-findtx`` can be used to force the detect engine to find a
+  transaction, which is not guaranteed to be the one you expect.
 
 Upgrading 6.0 to 7.0
 --------------------

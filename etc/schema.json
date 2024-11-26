@@ -115,6 +115,10 @@
         "tx_id": {
             "type": "integer"
         },
+        "tx_id_forced": {
+            "description": "the transaction for this alert event was forced, so the transaction may not be the one you expect",
+            "type": "boolean"
+        },
         "files": {
             "type": "array",
             "minItems": 1,
