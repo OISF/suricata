@@ -1677,6 +1677,11 @@ detect:
     toserver-groups: 25
   sgh-mpm-context: auto
   inspection-recursion-limit: 3000
+  # try to tie an app-layer transaction for rules without app-layer keywords
+  # if there is only one live transaction for the flow
+  # allows to log app-layer metadata in alert
+  # but the transaction may not be the relevant one.
+  # guess-applayer-tx: no
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
   #delayed-detect: yes

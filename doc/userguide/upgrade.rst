@@ -59,6 +59,10 @@ Upgrading to 7.0.8
             7.0 releases. It will not be provided in
             Suricata 8. Please fix any rules that depend on this
             behavior.
+- Application layer metadata is logged with alerts by default **only for rules that
+  use application layer keywords**. For other rules, the configuration parameter
+  ``detect.guess-applayer-tx`` can be used to force the detect engine to find a
+  transaction, which is not guaranteed to be the one you expect.
 
 Upgrading 6.0 to 7.0
 --------------------

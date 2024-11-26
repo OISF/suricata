@@ -378,6 +378,9 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
     if (pa->flags & PACKET_ALERT_FLAG_TX) {
         jb_set_uint(js, "tx_id", pa->tx_id);
     }
+    if (pa->flags & PACKET_ALERT_FLAG_TX_GUESSED) {
+        jb_set_bool(js, "tx_guessed", true);
+    }
 
     jb_open_object(js, "alert");
 
