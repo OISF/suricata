@@ -814,9 +814,11 @@ static inline void DetectRulePacketRules(
 
         uint64_t txid = PACKET_ALERT_NOTX;
         if ((alert_flags & PACKET_ALERT_FLAG_STREAM_MATCH) ||
-                (s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP)) {
+                (s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP) ||
+                (pflow && pflow->alstate && AppLayerParserGetTxCnt(pflow, pflow->alstate) == 1)) {
             // if there is a stream match (TCP), or
             // a UDP specific app-layer signature,
+            // or only one transaction
             // try to use the good tx for the packet direction
             if (pflow->alstate) {
                 uint8_t dir =
