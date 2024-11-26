@@ -115,6 +115,10 @@
         "tx_id": {
             "type": "integer"
         },
+        "tx_id_forced": {
+            "description": "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
+            "type": "boolean"
+        },
         "files": {
             "type": "array",
             "minItems": 1,
