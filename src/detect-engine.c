@@ -2940,6 +2940,12 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                          "and 255, will default to 4");
         }
     }
+    int guess_applayer = 0;
+    if ((ConfGetBool("detect.guess-applayer-tx", &guess_applayer)) == 1) {
+        if (guess_applayer == 1) {
+            de_ctx->guess_applayer = true;
+        }
+    }
 
     /* parse port grouping priority settings */
 

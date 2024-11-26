@@ -660,6 +660,7 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
     stream-tx-log-limit: 4
+    guess-applayer-tx: no
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -698,6 +699,12 @@ The stream-tx-log-limit defines the maximum number of times a
 transaction will get logged for a stream-only rule match.
 This is meant to avoid logging the same data an arbitrary number
 of times.
+
+The ``guess-applayer-tx`` option controls whether the engine will try to guess
+and tie a transaction to a given alert if the matching signature doesn't have
+app-layer keywords. If enabled, AND ONLY ONE LIVE TRANSACTION EXISTS, that
+transaction's data will be added to the alert metadata. Note that this may not
+be the expected data, from an analyst's perspective.
 
 *Example 4	Detection-engine grouping tree*
 

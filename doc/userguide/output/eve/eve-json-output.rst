@@ -70,6 +70,21 @@ Alerts are event records for rule matches. They can be amended with
 metadata, such as the application layer record (HTTP, DNS, etc) an
 alert was generated for, and elements of the rule.
 
+The alert is amended with application layer metadata for signatures
+using application layer keywords. It is also the case for protocols
+over UDP as each single packet is expected to contain a PDU.
+
+For other signatures, the option ``guess-applayer-tx``
+can be used to force the detect engine to tie a transaction
+to an alert.
+This transaction is not guaranteed to be the relevant one,
+depending on your use case and how you define relevant here.
+**WARNING: If there are multiple live transactions, none will get
+picked up.** This is to reduce the chances of logging unrelated data, and may
+lead to alerts being logged without metadata, in some cases.
+The alert event will have ``tx_guessed: true`` to recognize
+such alerts.
+
 Metadata::
 
         - alert:
