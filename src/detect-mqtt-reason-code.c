@@ -66,6 +66,8 @@ void DetectMQTTReasonCodeRegister (void)
 
     DetectAppLayerInspectEngineRegister2("mqtt.reason_code", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister2("mqtt.reason_code", ALPROTO_MQTT, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectGenericList, NULL);
 
     mqtt_reason_code_id = DetectBufferTypeGetByName("mqtt.reason_code");
 }

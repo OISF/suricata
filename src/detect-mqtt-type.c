@@ -58,6 +58,8 @@ void DetectMQTTTypeRegister (void)
 #endif
 
     DetectAppLayerInspectEngineRegister2(
+            "mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister2(
             "mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_type_id = DetectBufferTypeGetByName("mqtt.type");
