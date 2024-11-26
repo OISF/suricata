@@ -116,8 +116,8 @@ static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
             return;
         }
 
+        memmove(&output[1], buffer->inspect, input_len);
         output[0] = '.';
-        memcpy(&output[1], buffer->inspect, input_len);
         InspectionBufferTruncate(buffer, input_len + 1);
     }
 }
