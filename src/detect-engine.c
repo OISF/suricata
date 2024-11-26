@@ -2922,7 +2922,14 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     SCLogDebug("de_ctx->inspection_recursion_limit: %d",
                de_ctx->inspection_recursion_limit);
 
-    /* parse port grouping whitelisting settings */
+    int guess_applayer = 0;
+    if ((ConfGetBool("detect.guess-applayer-tx", &guess_applayer)) == 1) {
+        if (guess_applayer == 1) {
+            de_ctx->guess_applayer = true;
+        }
+    }
+
+    /* parse port grouping priority settings */
 
     const char *ports = NULL;
     (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
