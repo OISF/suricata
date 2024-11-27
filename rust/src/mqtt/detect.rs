@@ -365,7 +365,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result
                     return 1;
                 }
             }
-            _ => return 0,
+            _ => {},
         }
     }
     return 0;
