@@ -955,7 +955,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     return 0;
 }
 
-int OutputJsonBuilderBuffer(
+void OutputJsonBuilderBuffer(
         ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *js, OutputJsonThreadCtx *ctx)
 {
     LogFileCtx *file_ctx = ctx->file_ctx;
@@ -993,14 +993,11 @@ int OutputJsonBuilderBuffer(
                 SCLogWarning("Formatted JSON EVE record too large, will be dropped: %s", partial);
                 ctx->too_large_warning = true;
             }
-            return 0;
         }
     }
 
     MemBufferWriteRaw((*buffer), jb_ptr(js), (uint32_t)jslen);
     LogFileWrite(file_ctx, *buffer);
-
-    return 0;
 }
 
 static inline enum LogFileType FileTypeFromConf(const char *typestr)
