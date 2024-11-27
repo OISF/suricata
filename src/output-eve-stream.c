@@ -451,7 +451,15 @@ static bool EveStreamLogCondition(ThreadVars *tv, void *data, const Packet *p)
 
 void EveStreamLogRegister(void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = EveStreamLogger,
+        .FlushFunc = OutputJsonLogFlush,
+        .ConditionFunc = EveStreamLogCondition,
+        .ThreadInitFunc = EveStreamLogThreadInit,
+        .ThreadDeinitFunc = EveStreamLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketSubModule(LOGGER_JSON_STREAM, "eve-log", MODULE_NAME, "eve-log.stream",
-            EveStreamLogInitCtxSub, EveStreamLogger, EveStreamLogCondition, EveStreamLogThreadInit,
-            EveStreamLogThreadDeinit);
+            EveStreamLogInitCtxSub, &output_logger_functions);
 }
