@@ -53,6 +53,9 @@
 // cf https://github.com/mozilla/cbindgen/issues/709
 #![allow(unused_doc_comments)]
 
+// Allow for now, but need to be fixed.
+#![allow(static_mut_refs)]
+
 #[macro_use]
 extern crate bitflags;
 extern crate byteorder;
