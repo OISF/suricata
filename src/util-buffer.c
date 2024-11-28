@@ -65,6 +65,11 @@ int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
         return -1;
     }
 
+    /* Adjust expand_by to next multiple of 4k. */
+    if (expand_by % 4096 != 0) {
+        expand_by = expand_by - (expand_by % 4096) + 4096;
+    }
+
     size_t total_size = (*buffer)->size + sizeof(MemBuffer) + expand_by;
 
     MemBuffer *tbuffer = SCRealloc(*buffer, total_size);
