@@ -167,7 +167,7 @@ pub struct SshPacketKeyExchange<'a> {
 
 const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = [b';'];
 
-impl<'a> SshPacketKeyExchange<'a> {
+impl SshPacketKeyExchange<'_> {
     pub fn generate_hassh(
         &self, hassh_string: &mut Vec<u8>, hassh: &mut Vec<u8>, to_server: &bool,
     ) {
