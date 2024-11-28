@@ -480,7 +480,8 @@ impl SMBTransactionTreeConnect {
 
 #[derive(Debug)]
 pub struct SMBTransaction {
-    pub id: u64,    /// internal id
+    /// internal id
+    pub id: u64,
 
     /// version, command and status
     pub vercmd: SMBVerCmdStat,
