@@ -65,7 +65,7 @@ pub struct Smb2Record<'a> {
     pub data: &'a [u8],
 }
 
-impl<'a> Smb2Record<'a> {
+impl Smb2Record<'_> {
     pub fn is_request(&self) -> bool {
         self.direction == 0
     }
