@@ -100,7 +100,7 @@ void DetectFilestoreRegister(void)
 
 static void FilestoreTriggerFlowStorage(Flow *f, int toserver_dir, int toclient_dir)
 {
-    /* set in flow and AppLayerStateData */
+    /* set flags in Flow and AppLayerStateData */
     AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
     if (toclient_dir) {
         f->file_flags |= FLOWFILE_STORE_TC;
@@ -233,15 +233,12 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    if (p->flow == NULL) {
-#ifndef DEBUG
-        SCReturnInt(0);
-#else
-        BUG_ON(1);
-#endif
-    }
+    DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
 
     if (det_ctx->filestore_cnt == 0) {
+        /* here we have no file but the signature is fully matched and
+           filestore option indicate we need to extract for file for the session
+           so we trigger flow storage. */
         if (s->filestore_ctx && (s->filestore_ctx->scope == FILESTORE_SCOPE_SSN)) {
             int toserver_dir = 0;
             int toclient_dir = 0;
