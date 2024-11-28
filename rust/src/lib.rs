@@ -53,6 +53,13 @@
 // cf https://github.com/mozilla/cbindgen/issues/709
 #![allow(unused_doc_comments)]
 
+// Allow unknown lints, our MSRV doesn't know them all, for
+// example static_mut_refs.
+#![allow(unknown_lints)]
+
+// Allow for now, but need to be fixed.
+#![allow(static_mut_refs)]
+
 #[macro_use]
 extern crate bitflags;
 extern crate byteorder;
