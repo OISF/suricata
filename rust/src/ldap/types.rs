@@ -342,7 +342,7 @@ pub struct Control {
     pub control_value: Option<Vec<u8>>,
 }
 
-impl<'a> From<ldap_parser::ldap::LdapMessage<'a>> for LdapMessage {
+impl From<ldap_parser::ldap::LdapMessage<'_>> for LdapMessage {
     fn from(ldap_msg: ldap_parser::ldap::LdapMessage) -> Self {
         let message_id = MessageID(ldap_msg.message_id.0);
         let protocol_op = match ldap_msg.protocol_op {

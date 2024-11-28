@@ -50,7 +50,7 @@ pub struct X509(X509Certificate<'static>);
 
 pub struct SCGeneralName<'a>(&'a GeneralName<'a>);
 
-impl<'a> fmt::Display for SCGeneralName<'a> {
+impl fmt::Display for SCGeneralName<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             GeneralName::DNSName(s) => write!(f, "{}", s),
