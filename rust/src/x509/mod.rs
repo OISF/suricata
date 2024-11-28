@@ -23,6 +23,7 @@ use crate::common::rust_string_to_c;
 use nom7::Err;
 use std;
 use std::os::raw::c_char;
+use std::fmt;
 use x509_parser::prelude::*;
 mod time;
 mod log;
@@ -45,6 +46,19 @@ pub enum X509DecodeError {
 }
 
 pub struct X509(X509Certificate<'static>);
+
+pub struct SCGeneralName<'a>(&'a GeneralName<'a>);
+
+impl fmt::Display for SCGeneralName<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            GeneralName::DNSName(s) => write!(f, "{}", s),
+            GeneralName::URI(s) => write!(f, "{}", s),
+            GeneralName::IPAddress(s) => write!(f, "{:?}", s),
+            _ => write!(f, "{}", self.0)
+        }
+    }
+}
 
 /// Attempt to parse a X.509 from input, and return a pointer to the parsed object if successful.
 ///
