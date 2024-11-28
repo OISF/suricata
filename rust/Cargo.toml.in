@@ -33,7 +33,7 @@ crc = "~1.8.1"
 lzma-rs = { version = "~0.2.0", features = ["stream"] }
 memchr = "~2.4.1"
 num = "~0.2.1"
-num-derive = "~0.2.5"
+num-derive = "~0.4.2"
 num-traits = "~0.2.14"
 widestring = "~0.4.3"
 flate2 = "~1.0.19"
