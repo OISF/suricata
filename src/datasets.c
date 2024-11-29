@@ -636,14 +636,12 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         return NULL;
     }
 
-    SCMutexLock(&sets_lock);
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
             SCLogError("dataset %s already "
                        "exists and is of type %u",
                     set->name, set->type);
-            SCMutexUnlock(&sets_lock);
             return NULL;
         }
 
@@ -655,18 +653,15 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             if ((save == NULL && strlen(set->save) > 0) ||
                     (save != NULL && strcmp(set->save, save) != 0)) {
                 SCLogError("dataset %s save mismatch: %s != %s", set->name, set->save, save);
-                SCMutexUnlock(&sets_lock);
                 return NULL;
             }
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
                 SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
-                SCMutexUnlock(&sets_lock);
                 return NULL;
             }
         }
 
-        SCMutexUnlock(&sets_lock);
         return set;
     } else {
         if (type == DATASET_TYPE_NOTSET) {
@@ -759,7 +754,6 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     set->next = sets;
     sets = set;
 
-    SCMutexUnlock(&sets_lock);
     return set;
 out_err:
     if (set) {
@@ -768,7 +762,6 @@ out_err:
         }
         SCFree(set);
     }
-    SCMutexUnlock(&sets_lock);
     return NULL;
 }
 
