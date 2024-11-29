@@ -47,8 +47,6 @@
 #define DETECT_DATASET_CMD_ISNOTSET 2
 #define DETECT_DATASET_CMD_ISSET    3
 
-int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatasetFree (DetectEngineCtx *, void *);
 
