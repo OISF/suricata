@@ -559,10 +559,12 @@ void SigTableSetup(void)
     DetectReplaceRegister();
     DetectFlowRegister();
     DetectFlowAgeRegister();
-    DetectFlowPktsToClientRegister();
+    DetectFlowPktsRegister();
     DetectFlowPktsToServerRegister();
-    DetectFlowBytesToClientRegister();
+    DetectFlowPktsToClientRegister();
+    DetectFlowBytesRegister();
     DetectFlowBytesToServerRegister();
+    DetectFlowBytesToClientRegister();
     DetectRequiresRegister();
     DetectWindowRegister();
     DetectRpcRegister();
