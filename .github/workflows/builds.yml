@@ -120,6 +120,7 @@ jobs:
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
+                python3-sphinx-toolbox \
                 python3-yaml \
                 rust-toolset \
                 sudo \
@@ -276,6 +277,7 @@ jobs:
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
+                python3-sphinx-toolbox \
                 python3-yaml \
                 sudo \
                 which \
@@ -371,6 +373,7 @@ jobs:
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
+                python3-sphinx-toolbox \
                 python3-yaml \
                 rust-toolset \
                 sudo \
@@ -619,6 +622,7 @@ jobs:
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
+                python3-sphinx-toolbox \
                 python3-yaml \
                 rust-toolset \
                 sudo \
@@ -2686,6 +2690,7 @@ jobs:
               python3-yaml \
               sphinx-doc \
               sphinx-common \
+              sphinx-toolbox \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -2788,6 +2793,7 @@ jobs:
               rustc \
               sphinx-doc \
               sphinx-common \
+              sphinx-toolbox \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -2870,6 +2876,7 @@ jobs:
               python3-yaml \
               sphinx-doc \
               sphinx-common \
+              sphinx-toolbox \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -3311,6 +3318,7 @@ jobs:
                 pkgconfig \
                 python3-devel \
                 python3-sphinx \
+                python3-sphinx-toolbox \
                 python3-yaml \
                 rust-toolset \
                 sudo \
