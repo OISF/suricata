@@ -37,6 +37,7 @@ Suricata Rules
    nfs-keywords
    smtp-keywords
    websocket-keywords
+   mysql-keywords
    app-layer
    xbits
    noalert

@@ -685,6 +685,7 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+    ScDetectMysqlRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

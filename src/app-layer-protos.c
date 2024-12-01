@@ -69,6 +69,7 @@ const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_BITTORRENT_DHT, "bittorrent-dht" },
     { ALPROTO_POP3, "pop3" },
     { ALPROTO_HTTP, "http" },
+    { ALPROTO_MYSQL, "mysql" },
     { ALPROTO_FAILED, "failed" },
 };
 
