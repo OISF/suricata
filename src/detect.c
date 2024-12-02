@@ -827,12 +827,12 @@ static inline void DetectRulePacketRules(
                 AppLayerTxData *txd =
                         tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
                                : NULL;
-                if (txd && txd->stream_logged < de_ctx->stream_tx_log_limit) {
+                if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
                     alert_flags |= PACKET_ALERT_FLAG_TX;
                     if (pflow->proto != IPPROTO_UDP) {
                         alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
                     }
-                    txd->stream_logged++;
+                    txd->guessed_applayer_logged++;
                 }
             }
         }

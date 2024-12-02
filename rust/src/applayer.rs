@@ -120,8 +120,9 @@ pub struct AppLayerTxData {
     /// STREAM_TOCLIENT: file tx , files only in toclient dir
     /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
     pub file_tx: u8,
-    /// Number of times this tx data has already been logged for one stream match
-    pub stream_logged: u8,
+    /// Number of times this tx data has already been logged for signatures
+    /// not using application layer keywords
+    pub guessed_applayer_logged: u8,
 
     /// detection engine flags for use by detection engine
     detect_flags_ts: u64,
@@ -160,7 +161,7 @@ impl AppLayerTxData {
             files_stored: 0,
             file_flags: 0,
             file_tx: 0,
-            stream_logged: 0,
+            guessed_applayer_logged: 0,
             updated_tc: true,
             updated_ts: true,
             detect_flags_ts: 0,
@@ -185,7 +186,7 @@ impl AppLayerTxData {
             files_stored: 0,
             file_flags: 0,
             file_tx: 0,
-            stream_logged: 0,
+            guessed_applayer_logged: 0,
             updated_tc,
             updated_ts,
             detect_flags_ts,
