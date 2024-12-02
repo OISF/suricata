@@ -1362,8 +1362,8 @@ impl ConnectionParser {
             }
 
             if let Ok((_, line)) = take_till_lf(work) {
-                self.request_data_consume(input, line.len());
-                work = line;
+                work = &line[..line.len()-1];
+                self.request_data_consume(input, line.len() - 1);
             } else {
                 return self.handle_request_absent_lf(input);
             }
