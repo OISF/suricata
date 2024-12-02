@@ -1700,7 +1700,7 @@ detect:
     toserver-groups: 25
   sgh-mpm-context: auto
   inspection-recursion-limit: 3000
-  # maximum number of times a tx will get logged for a stream-only rule match
+  # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
   # Try to guess an app-layer transaction for rules without app-layer keywords,
   # ONLY IF there is just one live transaction for the flow.
