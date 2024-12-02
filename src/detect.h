@@ -886,11 +886,11 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
-    /* maximum number of times a tx will get logged for a stream-only rule match */
-    uint8_t stream_tx_log_limit;
+    /* maximum number of times a tx will get logged for rules not using app-layer keywords */
+    uint8_t force_applayer_log_limit;
 
     /* force app-layer tx finding for alerts with signatures not having app-layer keywords */
-    uint8_t force_applayer;
+    bool force_applayer;
 
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;
