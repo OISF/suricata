@@ -44,8 +44,7 @@ SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
 
-static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep);
+int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep);
 
 static inline void DatasetUnlockData(THashData *d)
 {
@@ -496,80 +495,21 @@ static int DatasetLoadString(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+
     const char *fopen_mode = "r";
     if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ProcessDatasets(set, set->name, set->load, fopen_mode);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        if (strlen(line) <= 1)
-            continue;
-
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0 && strlen(line) > 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)decoded, num_decoded) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            *r = '\0';
-
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
-                continue;
-            }
-
-            r++;
-            SCLogDebug("r '%s'", r);
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("die: bad rep");
-                continue;
-            }
-            SCLogDebug("rep %u", rep.value);
-
-            if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-            SCLogDebug("line with rep %s, %s", line, r);
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -1572,8 +1512,7 @@ int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
     return -1;
 }
 
-static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep)
 {
     if (set == NULL)
         return -1;
