@@ -370,6 +370,8 @@ pub trait BufWriter: Write {
     fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>>;
     /// Notify end of data.
     fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>>;
+    /// Attempt to finish this output stream, writing out final chunks of data.
+    fn try_finish(&mut self) -> std::io::Result<()>;
 }
 
 /// A BufWriter that doesn't consume any data.
@@ -394,6 +396,10 @@ impl BufWriter for NullBufWriter {
 
     fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
         Ok(self.0)
+    }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -601,6 +607,10 @@ impl BufWriter for GzipBufWriter {
     fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
         self.inner.finish()
     }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        self.inner.try_finish()
+    }
 }
 
 /// Simple wrapper around a deflate implementation
@@ -624,6 +634,10 @@ impl BufWriter for DeflateBufWriter {
     fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
         self.0.finish()
     }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        self.0.try_finish()
+    }
 }
 
 /// Simple wrapper around a zlib implementation
@@ -646,6 +660,10 @@ impl BufWriter for ZlibBufWriter {
 
     fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
         self.0.finish()
+    }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        self.0.try_finish()
     }
 }
 
@@ -677,6 +695,10 @@ impl BufWriter for LzmaBufWriter {
                 std::io::Error::new(std::io::ErrorKind::Other, e)
             }
         })
+    }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -804,6 +826,21 @@ impl InnerDecompressor {
             ))
         }
     }
+
+    fn try_finish(&mut self, writer: &mut Box<dyn BufWriter>) -> bool {
+        _ = writer.try_finish();
+        if let Some(cursor) = writer.get_mut() {
+            if cursor.position() > 0 {
+                if let Some(mut inner) = self.inner.take() {
+                    _ = inner.write_all(&cursor.get_ref()[0..cursor.position() as usize]);
+                    cursor.set_position(0);
+                    self.inner.replace(inner);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 
 impl Write for InnerDecompressor {
@@ -844,6 +881,12 @@ impl Write for InnerDecompressor {
                             self.write(data)
                         }
                         _ => {
+                            let written = self.try_finish(&mut writer);
+                            self.writer.replace(writer);
+                            if written {
+                                // error, but some data has been written, stop here
+                                return Err(e);
+                            }
                             // try to restart, any data in the temp buffer will be
                             // discarded
                             if self.restart().is_err() {
