@@ -84,6 +84,7 @@ include = [
     "FtpEvent",
     "SCSigTableElmt",
     "SCTransformTableElmt",
+    "DataRepType",
 ]
 
 # A list of items to not include in the generated bindings
@@ -94,6 +95,7 @@ exclude = [
     "CLuaState",
     "DetectEngineState",
     "Flow",
+    "Dataset",
     "StreamingBufferConfig",
     "HttpRangeContainerBlock",
     "FileContainer",

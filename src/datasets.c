@@ -496,6 +496,8 @@ static int DatasetLoadString(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    ProcessDatasets(set, set->load);
+#if 0
     const char *fopen_mode = "r";
     if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
         fopen_mode = "a+";
@@ -507,6 +509,7 @@ static int DatasetLoadString(Dataset *set)
         return -1;
     }
 
+    rs_read_datasets(set->load);
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -566,10 +569,11 @@ static int DatasetLoadString(Dataset *set)
             SCLogDebug("line with rep %s, %s", line, r);
         }
     }
-    THashConsolidateMemcap(set->hash);
-
     fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
+#endif
+    THashConsolidateMemcap(set->hash);
+
     return 0;
 }
 
