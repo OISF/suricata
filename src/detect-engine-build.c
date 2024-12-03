@@ -2070,6 +2070,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     if (de_ctx->decoder_event_sgh != NULL) {
         /* no need to set filestore count here as that would make a
          * signature not decode event only. */
+        SigGroupHeadBuildNonPrefilterArray(de_ctx, de_ctx->decoder_event_sgh);
     }
 
     int dump_grouping = 0;
