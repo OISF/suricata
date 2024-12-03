@@ -24,9 +24,7 @@
 #ifndef SURICATA_DATASETS_REPUTATION_H
 #define SURICATA_DATASETS_REPUTATION_H
 
-typedef struct DataRepType {
-    uint16_t value;
-} DataRepType;
+#include "rust-bindings.h"
 
 typedef struct DataRepResultType {
     bool found;
