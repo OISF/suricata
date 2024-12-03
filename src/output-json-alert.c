@@ -791,15 +791,37 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             continue;
         }
 
-        JsonBuilder *jb = jb_new_object();
-        if (unlikely(jb == NULL)) {
+        JsonBuilder *jb =
+                CreateEveHeader(p, LOG_DIR_PACKET, "alert", NULL, json_output_ctx->eve_ctx);
+        if (unlikely(jb == NULL))
             return TM_ECODE_OK;
-        }
-
-        /* just the timestamp, no tuple */
-        jb_set_string(jb, "timestamp", timebuf);
 
         AlertJsonHeader(p, pa, jb, json_output_ctx->flags, NULL, NULL);
+
+        if (PacketIsTunnel(p)) {
+            AlertJsonTunnel(p, jb);
+        }
+
+        /* payload */
+        if (json_output_ctx->flags &
+                (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
+            AlertAddPayload(json_output_ctx, jb, p);
+            jb_set_uint(jb, "stream", 0);
+        }
+
+        /* base64-encoded full packet */
+        if (json_output_ctx->flags & LOG_JSON_PACKET) {
+            EvePacket(p, jb, 0);
+        }
+
+        char *pcap_filename = PcapLogGetFilename();
+        if (pcap_filename != NULL) {
+            jb_set_string(jb, "capture_file", pcap_filename);
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_VERDICT) {
+            EveAddVerdict(jb, p);
+        }
 
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
         jb_free(jb);
