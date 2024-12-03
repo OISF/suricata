@@ -500,7 +500,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
  *  \param hash_max upper bound of the row slice
  *  \param counters Flow timeout counters to be passed
  *  \param rows number of rows for this worker unit
- *  \param pos position of the beginning of row slice in the hash table
+ *  \param pos absolute position of the beginning of row slice in the hash table
  *
  *  \retval number of successfully timed out flows
  */
@@ -514,7 +514,7 @@ static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td, SCTime_t t
     uint32_t rows_left = rows;
 
 again:
-    start = hash_min + (*pos);
+    start = (*pos);
     if (start >= hash_max) {
         start = hash_min;
     }
@@ -795,7 +795,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
     uint32_t emerg_over_cnt = 0;
     uint64_t next_run_ms = 0;
-    uint32_t pos = 0;
+    uint32_t pos = ftd->min;
     uint32_t rows_sec = 0;
     uint32_t rows_per_wu = 0;
     uint64_t sleep_per_wu = 0;
