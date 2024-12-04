@@ -34,7 +34,7 @@ pub struct NbssRecord<'a> {
     pub data: &'a[u8],
 }
 
-impl<'a> NbssRecord<'a> {
+impl NbssRecord<'_> {
     pub fn is_valid(&self) -> bool {
         let valid = match self.message_type {
             NBSS_MSGTYPE_SESSION_MESSAGE |
