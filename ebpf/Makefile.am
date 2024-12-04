@@ -12,6 +12,8 @@ BPF_TARGETS += bypass_filter.bpf
 BPF_TARGETS += xdp_filter.bpf
 BPF_TARGETS += xdp_lb.bpf
 BPF_TARGETS += xdp_lb_ew.bpf
+BPF_TARGETS += xdp_lb_ew_stream.bpf
+BPF_TARGETS += xdp_lb_stream.bpf
 BPF_TARGETS += xdp_ew.bpf
 BPF_TARGETS += vlan_filter.bpf
 

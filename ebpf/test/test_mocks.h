@@ -1,6 +1,8 @@
 #ifndef __EBPF_TEST_MOCKS__
 #define __EBPF_TEST_MOCKS__
 
+#include "../xdp_stream_filter_common.h" // for struct flowv4_keys
+
 /**
  * Includes a set of mocks to assist in testing XDP programs.
  */
@@ -26,7 +28,8 @@ int bpf_xdp_adjust_head_mock(void* privData, int offset) {
 // This value is arbitrary...
 uint32_t g_cpuCount = 10;
 
-void* bpf_map_lookup_elem_mock(void* map, void* key) {
+// This version of bpf_map_lookup_elem_mock is used by xdp_lb.test.c
+void* bpf_map_lookup_elem_lb_mock(void* map, void* key) {
 	if(map == &cpus_count) {
 		// This "map" is just a single value (index 0)
 		return (void*)&g_cpuCount;
@@ -36,6 +39,24 @@ void* bpf_map_lookup_elem_mock(void* map, void* key) {
 		return (void*)key;
 	}
 	return 0;
+}
+
+// Used by bpf_map_lookup_elem_stream_mock below to store the supplied keys
+// for later assertions, and to allow the test to set the return value.
+struct flowv4_keys g_stream_map_v4_lookup_keys;
+void* g_stream_map_lookup_value = NULL; // This is set by the test.
+
+// This version is used by xdp_stream.test.c
+void* bpf_map_lookup_elem_stream_mock_v4(void* map, void* key) {
+	// Make a copy of the key so the test can check it after the call finishes.
+	memcpy(&g_stream_map_v4_lookup_keys, key, sizeof(struct flowv4_keys));
+	return g_stream_map_lookup_value;
+}
+
+struct flowv6_keys g_stream_map_v6_lookup_keys;
+void* bpf_map_lookup_elem_stream_mock_v6(void* map, void* key) {
+	memcpy(&g_stream_map_v6_lookup_keys, key, sizeof(struct flowv6_keys));
+	return g_stream_map_lookup_value;
 }
 
 int bpf_redirect_map_mock(void* map, int key, int flags) {
@@ -48,7 +69,6 @@ int bpf_redirect_map_mock(void* map, int key, int flags) {
 void setup_mocks() {
   // setup our mocks...
   bpf_xdp_adjust_head = bpf_xdp_adjust_head_mock;
-  bpf_map_lookup_elem = bpf_map_lookup_elem_mock;
   bpf_redirect_map = bpf_redirect_map_mock;
   bpf_trace_printk = test_trace_hook;
 }
