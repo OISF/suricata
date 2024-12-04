@@ -37,8 +37,23 @@ dedicated new configuration.
 Upgrading to 7.0.8
 ------------------
 - Unknown requirements in the ``requires`` keyword will now be treated
-  as unmet requirements, causing the rule to not be loaded. See
-  :ref:`keyword_requires`.
+  as unsatisfied requirements, causing the rule to not be loaded. See
+  :ref:`keyword_requires`. To opt out of this change and to ignore
+  uknown requirements, effectively treating them as satified the
+  ``ignore-unknown-requirements`` configuration option can be used.
+
+  Command line example::
+
+    --set ignore-unknown-requirements=true
+
+  Or as a top-level configuration option in ``suricata.yaml``:
+
+  .. code-block:: yaml
+
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
+    ignore-unknown-requirements: true
 
 Upgrading 6.0 to 7.0
 --------------------
