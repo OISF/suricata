@@ -40,7 +40,7 @@ enum {
     FLOWINT_MODIFIER_GT,
     /** Checking if a var is set (keyword isset/notset)*/
     FLOWINT_MODIFIER_ISSET,
-    FLOWINT_MODIFIER_NOTSET,
+    FLOWINT_MODIFIER_ISNOTSET,
 
     FLOWINT_MODIFIER_UNKNOWN
 };
