@@ -20,6 +20,10 @@
 #include "detect-engine.h"
 #include "rust.h"
 
+/* Set to true if unknown requirements should be ingored. In Suricata
+ * 8, unknown requirements are treated as unsatisfied requirements. */
+static int g_ignore_unknown_requirements = 0;
+
 static int DetectRequiresSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     if (de_ctx->requirements == NULL) {
@@ -28,7 +32,8 @@ static int DetectRequiresSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     const char *errmsg = NULL;
-    int res = SCDetectCheckRequires(rawstr, PROG_VER, &errmsg, de_ctx->requirements);
+    int res = SCDetectCheckRequires(
+            rawstr, PROG_VER, &errmsg, de_ctx->requirements, g_ignore_unknown_requirements);
     if (res == -1) {
         // The requires expression is bad, log an error.
         SCLogError("%s: %s", errmsg, rawstr);
@@ -43,6 +48,8 @@ static int DetectRequiresSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 void DetectRequiresRegister(void)
 {
+    ConfGetBool("ignore-unknown-requirements", &g_ignore_unknown_requirements);
+
     sigmatch_table[DETECT_REQUIRES].name = "requires";
     sigmatch_table[DETECT_REQUIRES].desc = "require Suricata version or features";
     sigmatch_table[DETECT_REQUIRES].url = "/rules/meta-keywords.html#requires";

@@ -297,9 +297,9 @@ fn check_version(
 }
 
 fn check_requires(
-    requires: &Requires, suricata_version: &SuricataVersion,
+    requires: &Requires, suricata_version: &SuricataVersion, ignore_unknown: bool,
 ) -> Result<(), RequiresError> {
-    if !requires.unknown.is_empty() {
+    if !ignore_unknown && !requires.unknown.is_empty() {
         return Err(RequiresError::UnknownRequirement(
             requires.unknown.join(","),
         ));
@@ -453,7 +453,7 @@ pub unsafe extern "C" fn SCDetectRequiresStatusLog(
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectCheckRequires(
     requires: *const c_char, suricata_version_string: *const c_char, errstr: *mut *const c_char,
-    status: &mut SCDetectRequiresStatus,
+    status: &mut SCDetectRequiresStatus, ignore_unknown: c_int,
 ) -> c_int {
     // First parse the running Suricata version.
     let suricata_version = match parse_suricata_version(CStr::from_ptr(suricata_version_string)) {
@@ -476,7 +476,9 @@ pub unsafe extern "C" fn SCDetectCheckRequires(
         }
     };
 
-    match check_requires(&requires, &suricata_version) {
+    let ignore_unknown = ignore_unknown != 0;
+
+    match check_requires(&requires, &suricata_version, ignore_unknown) {
         Ok(()) => 0,
         Err(err) => {
             match &err {
@@ -497,6 +499,7 @@ pub unsafe extern "C" fn SCDetectCheckRequires(
                 RequiresError::VersionGt => {
                     status.gt_count += 1;
                 }
+                RequiresError::UnknownRequirement(_) => {}
                 _ => {}
             }
             *errstr = err.c_errmsg();
@@ -680,7 +683,7 @@ mod test {
         let suricata_version = SuricataVersion::new(7, 0, 4);
         let requires = parse_requires("version >= 8").unwrap();
         assert_eq!(
-            check_requires(&requires, &suricata_version),
+            check_requires(&requires, &suricata_version, false),
             Err(RequiresError::VersionLt(SuricataVersion {
                 major: 8,
                 minor: 0,
@@ -691,79 +694,79 @@ mod test {
         // Have 7.0.4, require 7.0.3.
         let suricata_version = SuricataVersion::new(7, 0, 4);
         let requires = parse_requires("version >= 7.0.3").unwrap();
-        assert_eq!(check_requires(&requires, &suricata_version), Ok(()));
+        assert_eq!(check_requires(&requires, &suricata_version, false), Ok(()));
 
         // Have 8.0.0, require >= 7.0.0 and < 8.0
         let suricata_version = SuricataVersion::new(8, 0, 0);
         let requires = parse_requires("version >= 7.0.0 < 8").unwrap();
         assert_eq!(
-            check_requires(&requires, &suricata_version),
+            check_requires(&requires, &suricata_version, false),
             Err(RequiresError::VersionGt)
         );
 
         // Have 8.0.0, require >= 7.0.0 and < 9.0
         let suricata_version = SuricataVersion::new(8, 0, 0);
         let requires = parse_requires("version >= 7.0.0 < 9").unwrap();
-        assert_eq!(check_requires(&requires, &suricata_version), Ok(()));
+        assert_eq!(check_requires(&requires, &suricata_version, false), Ok(()));
 
         // Require feature foobar.
         let suricata_version = SuricataVersion::new(8, 0, 0);
         let requires = parse_requires("feature foobar").unwrap();
         assert_eq!(
-            check_requires(&requires, &suricata_version),
+            check_requires(&requires, &suricata_version, false),
             Err(RequiresError::MissingFeature("foobar".to_string()))
         );
 
         // Require feature foobar, but this time we have the feature.
         let suricata_version = SuricataVersion::new(8, 0, 0);
         let requires = parse_requires("feature true_foobar").unwrap();
-        assert_eq!(check_requires(&requires, &suricata_version), Ok(()));
+        assert_eq!(check_requires(&requires, &suricata_version, false), Ok(()));
 
         let suricata_version = SuricataVersion::new(8, 0, 1);
         let requires = parse_requires("version >= 7.0.3 < 8").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_err());
+        assert!(check_requires(&requires, &suricata_version, false).is_err());
 
         let suricata_version = SuricataVersion::new(7, 0, 1);
         let requires = parse_requires("version >= 7.0.3 < 8").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_err());
+        assert!(check_requires(&requires, &suricata_version, false).is_err());
 
         let suricata_version = SuricataVersion::new(7, 0, 3);
         let requires = parse_requires("version >= 7.0.3 < 8").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_ok());
+        assert!(check_requires(&requires, &suricata_version, false).is_ok());
 
         let suricata_version = SuricataVersion::new(8, 0, 3);
         let requires = parse_requires("version >= 7.0.3 < 8 | >= 8.0.3").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_ok());
+        assert!(check_requires(&requires, &suricata_version, false).is_ok());
 
         let suricata_version = SuricataVersion::new(8, 0, 2);
         let requires = parse_requires("version >= 7.0.3 < 8 | >= 8.0.3").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_err());
+        assert!(check_requires(&requires, &suricata_version, false).is_err());
 
         let suricata_version = SuricataVersion::new(7, 0, 2);
         let requires = parse_requires("version >= 7.0.3 < 8 | >= 8.0.3").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_err());
+        assert!(check_requires(&requires, &suricata_version, false).is_err());
 
         let suricata_version = SuricataVersion::new(7, 0, 3);
         let requires = parse_requires("version >= 7.0.3 < 8 | >= 8.0.3").unwrap();
-        assert!(check_requires(&requires, &suricata_version).is_ok());
+        assert!(check_requires(&requires, &suricata_version, false).is_ok());
 
         // Example of something that requires a fix/feature that was
         // implemented in 7.0.5, 8.0.4, 9.0.3.
         let requires = parse_requires("version >= 7.0.5 < 8 | >= 8.0.4 < 9 | >= 9.0.3").unwrap();
-        assert!(check_requires(&requires, &SuricataVersion::new(6, 0, 0)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 4)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 5)).is_ok());
-        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 3)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 4)).is_ok());
-        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 2)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 3)).is_ok());
-        assert!(check_requires(&requires, &SuricataVersion::new(10, 0, 0)).is_ok());
+        assert!(check_requires(&requires, &SuricataVersion::new(6, 0, 0), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 4), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 5), false).is_ok());
+        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 3), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 4), false).is_ok());
+        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 2), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 3), false).is_ok());
+        assert!(check_requires(&requires, &SuricataVersion::new(10, 0, 0), false).is_ok());
 
         let requires = parse_requires("version >= 8 < 9").unwrap();
-        assert!(check_requires(&requires, &SuricataVersion::new(6, 0, 0)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 0)).is_err());
-        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0)).is_ok());
-        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 0)).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(6, 0, 0), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(7, 0, 0), false).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0), false).is_ok());
+        assert!(check_requires(&requires, &SuricataVersion::new(9, 0, 0), false).is_err());
 
         // Unknown keyword.
         let requires = parse_requires("feature true_lua, foo bar, version >= 7.0.3").unwrap();
@@ -786,7 +789,7 @@ mod test {
         // This should not pass the requires check as it contains an
         // unknown requires keyword.
         //check_requires(&requires, &SuricataVersion::new(8, 0, 0)).unwrap();
-        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0)).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0), false).is_err());
     }
 
     #[test]
@@ -830,6 +833,6 @@ mod test {
     #[test]
     fn test_requires_keyword() {
         let requires = parse_requires("keyword true_bar").unwrap();
-        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0)).is_err());
+        assert!(check_requires(&requires, &SuricataVersion::new(8, 0, 0), false).is_err());
     }
 }
