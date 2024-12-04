@@ -1,6 +1,13 @@
 #ifndef __EBPF_TEST_FRAMEWORK__
 #define __EBPF_TEST_FRAMEWORK__
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdarg.h>
+
 /**
  * This file defines a fairly light unit testing framework and some tests, meant to allow
  * some degree of sanity checking to be done on an XDP program.

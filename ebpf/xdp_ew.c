@@ -70,50 +70,6 @@
 
 #define LINUX_VERSION_CODE 263682
 
-static INLINE int get_sport(void *trans_data, void *data_end, __u8 protocol)
-{
-    struct tcphdr *th;
-    struct udphdr *uh;
-
-    switch (protocol) {
-        case IPPROTO_TCP:
-            th = (struct tcphdr *)trans_data;
-            if ((void *)(th + 1) > data_end) {
-                return -1;
-            }
-            return th->source;
-        case IPPROTO_UDP:
-            uh = (struct udphdr *)trans_data;
-            if ((void *)(uh + 1) > data_end) {
-                return -1;
-            }
-            return uh->source;
-        default:
-            return 0;
-    }
-}
-
-static INLINE int get_dport(void *trans_data, void *data_end, __u8 protocol)
-{
-    struct tcphdr *th;
-    struct udphdr *uh;
-
-    switch (protocol) {
-        case IPPROTO_TCP:
-            th = (struct tcphdr *)trans_data;
-            if ((void *)(th + 1) > data_end)
-                return -1;
-            return th->dest;
-        case IPPROTO_UDP:
-            uh = (struct udphdr *)trans_data;
-            if ((void *)(uh + 1) > data_end)
-                return -1;
-            return uh->dest;
-        default:
-            return 0;
-    }
-}
-
 static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;

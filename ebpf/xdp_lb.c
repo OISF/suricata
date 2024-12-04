@@ -34,12 +34,18 @@
 #include <bpf/bpf_helpers.h>
 #include "hash_func01.h"
 #include "network_headers.h"
+#include "xdp_common.h"
 
 #ifdef ENABLE_EAST_WEST_FILTER
 #include "east_west_filter.h"
 #endif
 
+#ifdef ENABLE_STREAM_FILTER
+#include "xdp_stream_filter_common.h"
+#endif
+
 #ifndef DEBUG
+/* #define DEBUG 1 */
 #define DEBUG 0
 #endif
 
@@ -50,36 +56,6 @@
 #define GRE_KEY_SIZE    (4)
 #define GRE_SEQ_SIZE    (4)
 #define GRE_ERSPAN_TYPE_II_HEADER_SIZE (8)
-
-/* Both are required in order to ensure *everything* is inlined.  The kernel version that
- * we're using doesn't support calling functions in XDP, so it must appear as a single function.
- * Kernel 4.16+ support function calls:
- * https://stackoverflow.com/questions/70529753/clang-bpf-attribute-always-inline-does-not-working
- */
-#define INLINE __always_inline __attribute__((always_inline))
-
-#define DPRINTF(fmt_str, args...) \
-    if (DEBUG) { \
-        char fmt[] = fmt_str; \
-        bpf_trace_printk(fmt, sizeof(fmt), args); \
-    }
-
-#define DPRINTF_ALWAYS(fmt_str, args...) \
-    { \
-        char fmt[] = fmt_str; \
-        bpf_trace_printk(fmt, sizeof(fmt), args); \
-    }
-
-/* The ifndef's around CTX_GET_*() allow the UT's to override them */
-#ifndef CTX_GET_DATA
-#define CTX_GET_DATA(ctx) (void*)(long)ctx->data
-#endif
-
-#ifndef CTX_GET_DATA_END
-#define CTX_GET_DATA_END(ctx) (void*)(long)ctx->data_end
-#endif
-
-#define LINUX_VERSION_CODE 263682
 
 /* Hashing initval */
 #define INITVAL 15485863
@@ -109,55 +85,7 @@ struct {
     __uint(max_entries, 1);
 } cpus_count SEC(".maps");
 
-static INLINE __u16 ntohs(__u16 val) {
-    return ((val & 0xff00) >> 8) + ((val & 0x00ff) << 8);
-}
-
-static INLINE int get_sport(void *trans_data, void *data_end, __u8 protocol)
-{
-    struct tcphdr *th;
-    struct udphdr *uh;
-
-    switch (protocol) {
-        case IPPROTO_TCP:
-            th = (struct tcphdr *)trans_data;
-            if ((void *)(th + 1) > data_end) {
-                return -1;
-            }
-            return th->source;
-        case IPPROTO_UDP:
-            uh = (struct udphdr *)trans_data;
-            if ((void *)(uh + 1) > data_end) {
-                return -1;
-            }
-            return uh->source;
-        default:
-            return 0;
-    }
-}
-
-static INLINE int get_dport(void *trans_data, void *data_end, __u8 protocol)
-{
-    struct tcphdr *th;
-    struct udphdr *uh;
-
-    switch (protocol) {
-        case IPPROTO_TCP:
-            th = (struct tcphdr *)trans_data;
-            if ((void *)(th + 1) > data_end)
-                return -1;
-            return th->dest;
-        case IPPROTO_UDP:
-            uh = (struct udphdr *)trans_data;
-            if ((void *)(uh + 1) > data_end)
-                return -1;
-            return uh->dest;
-        default:
-            return 0;
-    }
-}
-
-static int INLINE hash_ipv4(void *data, void *data_end)
+static int INLINE hash_ipv4(struct xdp_md *ctx, void *data, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     DPRINTF("hash_ipv4 %d\n", (int)(data_end - data));
 
@@ -192,6 +120,12 @@ static int INLINE hash_ipv4(void *data, void *data_end)
     DPRINTF("Flow proto  %d id %d\n", iph->protocol, iph->id);
     DPRINTF("     src %x:%d\n", iph->saddr, ntohs(sport));
     DPRINTF("     dst %x:%d\n", iph->daddr, ntohs(dport));
+
+#ifdef ENABLE_STREAM_FILTER
+    if (stream_filter_ipv4(ctx, iph, data, data_end, sport, dport, vlan0, vlan1) == XDP_DROP) {
+        return XDP_DROP;
+    }
+#endif
 
      __u32 cpu_hash;
      __u64 cpu_hash_input = 0;
@@ -239,7 +173,7 @@ static int INLINE sort128(__u64 *source, __u64 *dest)
     return (source[0] < dest[0]) | ((source[0] == dest[0]) & (source[1] < dest[1]));
 }
 
-static int INLINE hash_ipv6(void *data, void *data_end)
+static int INLINE hash_ipv6(struct xdp_md *ctx, void *data, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct ipv6hdr *ip6h = data;
     if ((void *)(ip6h + 1) > data_end) {
@@ -270,6 +204,12 @@ static int INLINE hash_ipv6(void *data, void *data_end)
 
     __u64 ip_hash_input;
     __u32 cpu_hash;
+
+#ifdef ENABLE_STREAM_FILTER
+    if (stream_filter_ipv6(ctx, ip6h, data, data_end, sport, dport, vlan0, vlan1) == XDP_DROP) {
+        return XDP_DROP;
+    }
+#endif
 
     /*
      * IPV6 addresses are 128 bits, commonly expressed as a series of up to
@@ -408,9 +348,9 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         return XDP_PASS;
     /* proto should now be IP style */
     if (proto == __constant_htons(ETH_P_IP)) {
-        return hash_ipv4(data + nh_off, data_end);
+        return hash_ipv4(ctx, data + nh_off, data_end, 0, 0);
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
-        return hash_ipv6(data + nh_off, data_end);
+        return hash_ipv6(ctx, data + nh_off, data_end, 0, 0);
     } else {
         /* This packet isn't IPV4 or IPV6... it's likely still a legit ether type, but we intentionally
          * keep the packet handling light here, so even though we don't understand it, return it to the
@@ -422,7 +362,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     }
 }
 
-static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     if ((void *)(iph + 1) > data_end) {
@@ -432,70 +372,18 @@ static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void
     if (iph->protocol == IPPROTO_GRE) {
         return filter_gre(ctx, data, nh_off, data_end);
     }
-    return hash_ipv4(data + nh_off, data_end);
+
+    return hash_ipv4(ctx, data + nh_off, data_end, vlan0, vlan1);
 }
 
-static int INLINE filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+static int INLINE filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct ipv6hdr *ip6h = data + nh_off;
-    return hash_ipv6((void *)ip6h, data_end);
+    return hash_ipv6(ctx, (void *)ip6h, data_end, vlan0, vlan1);
 }
 
-int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
-{
-    void *data_end = CTX_GET_DATA_END(ctx);
-    void *data = CTX_GET_DATA(ctx);
-    struct ethhdr *eth = data;
-    __u16 h_proto;
-    __u64 nh_off;
-
-    DPRINTF("Packet %d len\n", (int)(data_end - data));
-
-    nh_off = sizeof(*eth);
-    if (data + nh_off > data_end) {
-        return XDP_PASS;
-    }
-
-    h_proto = eth->h_proto;
-
-    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
-        struct vlan_hdr *vhdr;
-
-        vhdr = data + nh_off;
-        nh_off += sizeof(struct vlan_hdr);
-        if (data + nh_off > data_end)
-            return XDP_PASS;
-        h_proto = vhdr->h_vlan_encapsulated_proto;
-    }
-    if (h_proto == __constant_htons(0x88e7)) {
-        IEEE8021ahHdr *hdr;
-
-        hdr = data + nh_off;
-        nh_off += sizeof(IEEE8021ahHdr);
-        if (data + nh_off > data_end)
-            return XDP_PASS;
-
-        h_proto = hdr->type;
-    }
-    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
-        struct vlan_hdr *vhdr;
-
-        vhdr = data + nh_off;
-        nh_off += sizeof(struct vlan_hdr);
-        if (data + nh_off > data_end)
-            return XDP_PASS;
-        h_proto = vhdr->h_vlan_encapsulated_proto;
-    }
-
-    if (h_proto == __constant_htons(ETH_P_IP)) {
-        return filter_ipv4(ctx, data, nh_off, data_end);
-    }
-    else if (h_proto == __constant_htons(ETH_P_IPV6)) {
-        return filter_ipv6(ctx, data, nh_off, data_end);
-    }
-
-    return XDP_PASS;
-}
+/* xdp_loadfilter() implementation */
+#include "xdp_load_filter.h"
 
 char __license[] SEC("license") = "GPL";
 
