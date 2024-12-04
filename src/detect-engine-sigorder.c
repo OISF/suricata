@@ -200,7 +200,7 @@ static inline int SCSigGetFlowintType(Signature *sig)
                 fi->modifier == FLOWINT_MODIFIER_NE ||
                 fi->modifier == FLOWINT_MODIFIER_GE ||
                 fi->modifier == FLOWINT_MODIFIER_GT ||
-                fi->modifier == FLOWINT_MODIFIER_NOTSET ||
+                fi->modifier == FLOWINT_MODIFIER_ISNOTSET ||
                 fi->modifier == FLOWINT_MODIFIER_ISSET) {
                 read++;
             } else {
