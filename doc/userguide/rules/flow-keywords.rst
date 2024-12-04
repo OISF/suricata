@@ -135,7 +135,7 @@ Define a var (not required), or check that one is set or not set.
 ::
 
     flowint: name, < +,-,=,>,<,>=,<=,==, != >, value;
-    flowint: name, (isset|isnotset);
+    flowint: name, (isset|notset|isnotset);
 
 Compare or alter a var. Add, subtract, compare greater than or less
 than, greater than or equal to, and less than or equal to are
