@@ -501,12 +501,13 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
  *  \param counters Flow timeout counters to be passed
  *  \param rows number of rows for this worker unit
  *  \param pos absolute position of the beginning of row slice in the hash table
+ *  \param instance instance id of this FM
  *
  *  \retval number of successfully timed out flows
  */
 static uint32_t FlowTimeoutHashInChunks(FlowManagerTimeoutThread *td, SCTime_t ts,
         const uint32_t hash_min, const uint32_t hash_max, FlowTimeoutCounters *counters,
-        const uint32_t rows, uint32_t *pos)
+        const uint32_t rows, uint32_t *pos, const uint32_t instance)
 {
     uint32_t start = 0;
     uint32_t end = 0;
@@ -524,6 +525,9 @@ again:
     }
     *pos = (end == hash_max) ? hash_min : end;
     rows_left = rows_left - (end - start);
+
+    SCLogDebug("instance %u: %u:%u (hash_min %u, hash_max %u *pos %u)", instance, start, end,
+            hash_min, hash_max, *pos);
 
     cnt += FlowTimeoutHash(td, ts, start, end, counters);
     if (rows_left) {
@@ -859,8 +863,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                         rows_per_wu);
 
                 const uint32_t ppos = pos;
-                FlowTimeoutHashInChunks(
-                        &ftd->timeout, ts, ftd->min, ftd->max, &counters, rows_per_wu, &pos);
+                FlowTimeoutHashInChunks(&ftd->timeout, ts, ftd->min, ftd->max, &counters,
+                        rows_per_wu, &pos, ftd->instance);
                 if (ppos > pos) {
                     StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
                 }
