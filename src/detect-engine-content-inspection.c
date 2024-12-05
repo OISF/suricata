@@ -108,7 +108,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         struct DetectEngineContentInspectionCtx *ctx, const Signature *s, const SigMatchData *smd,
         Packet *p, Flow *f, const uint8_t *buffer, const uint32_t buffer_len,
         const uint32_t stream_start_offset, const uint8_t flags,
-        const enum DetectContentInspectionType inspection_mode)
+        const enum DetectContentInspectionType inspection_mode, uint32_t local_id)
 {
     SCEnter();
     KEYWORD_PROFILING_START;
@@ -359,9 +359,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                  * search for another occurrence of this content and see
                  * if the others match then until we run out of matches */
                 int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f,
-                        buffer, buffer_len, stream_start_offset, flags, inspection_mode);
-                if (r == 1) {
-                    SCReturnInt(1);
+                        buffer, buffer_len, stream_start_offset, flags, inspection_mode, local_id);
+                if (r == 1 || r == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF) {
+                    SCReturnInt(r);
                 } else if (r == -1) {
                     SCLogDebug("'next sm' said to discontinue this right now");
                     SCReturnInt(-1);
@@ -471,9 +471,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
              * search for another occurrence of this pcre and see
              * if the others match, until we run out of matches */
             r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
-                    buffer_len, stream_start_offset, flags, inspection_mode);
-            if (r == 1) {
-                SCReturnInt(1);
+                    buffer_len, stream_start_offset, flags, inspection_mode, local_id);
+            if (r == 1 || r == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF) {
+                SCReturnInt(r);
             } else if (r == -1) {
                 SCReturnInt(-1);
             }
@@ -632,9 +632,21 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         //PrintRawDataFp(stdout, buffer, buffer_len);
         const DetectDatasetData *sd = (const DetectDatasetData *) smd->ctx;
-        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); //TODO buffer offset?
-        if (r == 1) {
+        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); // TODO buffer offset?
+        if (r == DETECT_ENGINE_INSPECT_SIG_MATCH) {
             goto match;
+        }
+        if (r == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF) {
+            if (!smd->is_last) {
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
+                        buffer_len, stream_start_offset, flags, inspection_mode, local_id);
+                if (r != 0)
+                    SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF);
+                SCReturnInt(0);
+            }
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF);
         }
         goto no_match_discontinue;
 
@@ -682,7 +694,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s,
                             s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f,
                             det_ctx->base64_decoded, det_ctx->base64_decoded_len, 0,
-                            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
+                            local_id);
                     if (r == 1) {
                         /* Base64 is a terminal list. */
                         goto final_match;
@@ -718,7 +731,7 @@ match:
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
         int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
-                buffer_len, stream_start_offset, flags, inspection_mode);
+                buffer_len, stream_start_offset, flags, inspection_mode, local_id);
         SCReturnInt(r);
     }
 final_match:
@@ -740,11 +753,11 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
     det_ctx->buffer_offset = 0;
 
     int r = DetectEngineContentInspectionInternal(det_ctx, &ctx, s, smd, p, f, buffer, buffer_len,
-            stream_start_offset, flags, inspection_mode);
+            stream_start_offset, flags, inspection_mode, 0);
 #ifdef UNITTESTS
     ut_inspection_recursion_counter = ctx.recursion.count;
 #endif
-    if (r == 1)
+    if (r == 1 || r == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF)
         return true;
     else
         return false;
@@ -764,7 +777,7 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->buffer_offset = 0;
 
     int r = DetectEngineContentInspectionInternal(det_ctx, &ctx, s, smd, p, f, b->inspect,
-            b->inspect_len, b->inspect_offset, b->flags, inspection_mode);
+            b->inspect_len, b->inspect_offset, b->flags, inspection_mode, 0);
 #ifdef UNITTESTS
     ut_inspection_recursion_counter = ctx.recursion.count;
 #endif
@@ -790,6 +803,20 @@ bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
         smd++;
     }
     return absent_data;
+}
+
+int DetectEngineContentInspectionBufferMulti(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+        const InspectionBuffer *b, uint32_t local_id)
+{
+    struct DetectEngineContentInspectionCtx ctx = { .recursion.count = 0,
+        .recursion.limit = de_ctx->inspection_recursion_limit };
+
+    det_ctx->buffer_offset = 0;
+
+    return DetectEngineContentInspectionInternal(det_ctx, &ctx, s, smd, NULL, f, b->inspect,
+            b->inspect_len, b->inspect_offset, b->flags,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, local_id);
 }
 
 #ifdef UNITTESTS
