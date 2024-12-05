@@ -636,7 +636,7 @@ static void StreamTcpSegmentAddPacketData(
  */
 int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpStream *stream, TcpSegment *seg, Packet *p,
-        uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen)
+        uint8_t *pkt_data, uint16_t pkt_datalen)
 {
     SCEnter();
 

@@ -126,7 +126,7 @@ int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
     p->tcph->th_seq = htonl(seq);
 
-    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, TCP_GET_SEQ(p), p->payload, p->payload_len) < 0)
+    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, p->payload, p->payload_len) < 0)
         return -1;
 
     UTHFreePacket(p);
@@ -151,7 +151,7 @@ int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx
     }
     p->tcph->th_seq = htonl(seq);
 
-    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, TCP_GET_SEQ(p), p->payload, p->payload_len) < 0)
+    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, p->payload, p->payload_len) < 0)
         return -1;
     UTHFreePacket(p);
     return 0;
