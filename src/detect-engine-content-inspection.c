@@ -635,7 +635,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         //PrintRawDataFp(stdout, buffer, buffer_len);
         const DetectDatasetData *sd = (const DetectDatasetData *) smd->ctx;
-        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); // TODO buffer offset?
+        int r = DetectDatasetBufferMatch(
+                det_ctx, sd, buffer, buffer_len, local_id); // TODO buffer offset?
         if (r == DETECT_ENGINE_INSPECT_SIG_MATCH) {
             goto match;
         }
