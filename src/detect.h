@@ -545,6 +545,9 @@ typedef struct SignatureInitDataBuffer_ {
                            http.uri. */
     bool only_tc;       /**< true if we can only used toclient. */
     bool only_ts;       /**< true if we can only used toserver. */
+    /** delay use of this buffer beyond its normal progress
+     * to be just in time for postmatch */
+    bool delay_postmatch;
     /* sig match list */
     SigMatch *head;
     SigMatch *tail;

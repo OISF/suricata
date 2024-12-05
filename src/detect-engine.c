@@ -651,7 +651,8 @@ static void AppendPacketInspectEngine(DetectEngineCtx *de_ctx,
 
 static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         const DetectEngineAppInspectionEngine *t, Signature *s, SigMatchData *smd,
-        const int mpm_list, const int files_id, uint8_t *last_id, bool *head_is_mpm)
+        const int mpm_list, const int files_id, uint8_t *last_id, bool *head_is_mpm,
+        bool delay_postmatch)
 {
     if (t->alproto == ALPROTO_UNKNOWN) {
         /* special case, inspect engine applies to all protocols */
@@ -688,6 +689,9 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->smd = smd;
     new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
     new_engine->progress = t->progress;
+    if (delay_postmatch)
+        new_engine->progress = (int16_t)AppLayerParserGetStateProgressCompletionStatus(
+                t->alproto, t->dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
             new_engine->v2.GetData, new_engine->v2.transforms);
@@ -793,8 +797,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
                             continue;
                         }
                     }
-                    AppendAppInspectEngine(
-                            de_ctx, t, s, smd, mpm_list, files_id, &last_id, &head_is_mpm);
+                    AppendAppInspectEngine(de_ctx, t, s, smd, mpm_list, files_id, &last_id,
+                            &head_is_mpm, s->init_data->buffers[x].delay_postmatch);
                 }
             }
         }
