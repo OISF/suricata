@@ -2040,6 +2040,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         transforms = engine->v2.transforms;
     }
 
+    uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     do {
         InspectionBuffer *buffer = DetectGetMultiData(det_ctx, transforms, f, flags, txv,
                 engine->sm_list, local_id, engine->v2.GetMultiData);
@@ -2049,10 +2050,14 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
 
         // The GetData functions set buffer->flags to DETECT_CI_FLAGS_SINGLE
         // This is not meant for streaming buffers
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        int match = DetectEngineContentInspectionBufferMulti(
+                de_ctx, det_ctx, s, engine->smd, f, buffer, local_id);
+        switch (match) {
+            case DETECT_ENGINE_INSPECT_SIG_MATCH:
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            case DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF:
+                r = DETECT_ENGINE_INSPECT_SIG_MATCH;
+                break;
         }
         local_id++;
     } while (1);
@@ -2064,7 +2069,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
     }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    return r;
 }
 
 /**
