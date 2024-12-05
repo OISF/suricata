@@ -420,6 +420,9 @@ typedef struct Flow_
 
     bool elephant;
 
+    uint8_t flow_end_flags;
+    /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
+
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
     uint32_t tenant_id;
@@ -446,16 +449,6 @@ typedef struct Flow_
     #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
 #endif
 
-    /** protocol specific data pointer, e.g. for TcpSession */
-    void *protoctx;
-
-    /** mapping to Flow's protocol specific protocols for timeouts
-        and state and free functions. */
-    uint8_t protomap;
-
-    uint8_t flow_end_flags;
-    /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
-
     AppProto alproto; /**< \brief application level protocol */
     AppProto alproto_ts;
     AppProto alproto_tc;
@@ -467,14 +460,21 @@ typedef struct Flow_
      *  STARTTLS. */
     AppProto alproto_expect;
 
+    uint8_t min_ttl_toserver;
+    uint8_t max_ttl_toserver;
+
     /** detection engine ctx version used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
      *  stored sgh ptrs are reset. */
     uint32_t de_ctx_version;
 
-    /** ttl tracking */
-    uint8_t min_ttl_toserver;
-    uint8_t max_ttl_toserver;
+    /** protocol specific data pointer, e.g. for TcpSession */
+    void *protoctx;
+
+    /** mapping to Flow's protocol specific protocols for timeouts
+        and state and free functions. */
+    uint8_t protomap;
+
     uint8_t min_ttl_toclient;
     uint8_t max_ttl_toclient;
 
