@@ -196,21 +196,21 @@ impl ConnectionParser {
                     if !self.response_buf.is_empty() {
                         self.check_response_buffer_limit(line.len())?;
                     }
-                    if is_chunked_ctl_line(line) {
+                    let mut data2 = take(&mut self.response_buf);
+                    data2.add(line);
+                    if is_chunked_ctl_line(&data2) {
                         let resp = self.response_mut().unwrap();
                         resp.response_message_len =
-                            (resp.response_message_len).wrapping_add(line.len() as u64);
+                            (resp.response_message_len).wrapping_add(data2.len() as u64);
                         //Empty chunk len. Try to continue parsing.
                         data = remaining;
                         continue;
                     }
-                    let mut data = self.response_buf.clone();
-                    data.add(line);
                     let resp = self.response_mut().unwrap();
                     resp.response_message_len =
-                        (resp.response_message_len).wrapping_add(data.len() as u64);
+                        (resp.response_message_len).wrapping_add(data2.len() as u64);
 
-                    match parse_chunked_length(&data) {
+                    match parse_chunked_length(&data2) {
                         Ok((len, ext)) => {
                             self.response_chunked_length = len;
                             if ext {

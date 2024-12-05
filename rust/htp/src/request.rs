@@ -12,9 +12,9 @@ use crate::{
         Data, Header, HtpProtocol, HtpRequestProgress, HtpResponseProgress, HtpTransferCoding,
     },
     util::{
-        chomp, is_line_ignorable, is_space, is_valid_chunked_length_data, split_on_predicate,
-        take_is_space, take_not_is_space, take_till_lf, take_till_lf_null, take_until_null,
-        trimmed, FlagOperations, HtpFlags,
+        chomp, is_chunked_ctl_line, is_line_ignorable, is_space, is_valid_chunked_length_data,
+        split_on_predicate, take_is_space, take_not_is_space, take_till_lf, take_till_lf_null,
+        take_until_null, trimmed, FlagOperations, HtpFlags,
     },
     HtpStatus,
 };
@@ -383,25 +383,21 @@ impl ConnectionParser {
                 if !self.request_buf.is_empty() {
                     self.check_request_buffer_limit(line.len())?;
                 }
-                let req = self.request_mut();
-                if req.is_none() {
-                    return Err(HtpStatus::ERROR);
-                }
-                let req = req.unwrap();
 
-                if line.eq(b"\n") {
+                let mut data2 = take(&mut self.request_buf);
+                data2.add(line);
+                if is_chunked_ctl_line(&data2) {
+                    let req = self.request_mut().unwrap();
                     req.request_message_len =
-                        req.request_message_len.wrapping_add(line.len() as u64);
+                        req.request_message_len.wrapping_add(data2.len() as u64);
                     //Empty chunk len. Try to continue parsing.
                     data = remaining;
                     continue;
                 }
-                let mut data = self.request_buf.clone();
-                data.add(line);
                 let req = self.request_mut().unwrap();
-                req.request_message_len = req.request_message_len.wrapping_add(data.len() as u64);
+                req.request_message_len = req.request_message_len.wrapping_add(data2.len() as u64);
                 // Handle chunk length.
-                let (len, ext) = parse_chunked_length(&data)?;
+                let (len, ext) = parse_chunked_length(&data2)?;
                 self.request_chunked_length = len;
                 if ext {
                     htp_warn!(
@@ -1362,7 +1358,7 @@ impl ConnectionParser {
             }
 
             if let Ok((_, line)) = take_till_lf(work) {
-                work = &line[..line.len()-1];
+                work = &line[..line.len() - 1];
                 self.request_data_consume(input, line.len() - 1);
             } else {
                 return self.handle_request_absent_lf(input);
