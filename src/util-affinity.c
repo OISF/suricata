@@ -173,8 +173,7 @@ static const char *GetAffinitySetName(const char *val)
 static void SetupCpuSets(ThreadsAffinityType *taf, SCConfNode *affinity, const char *setname)
 {
     CPU_ZERO(&taf->cpu_set);
-
-    SCConfNode *cpu_node = SCConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+    SCConfNode *cpu_node = SCConfNodeLookupChild(affinity, "cpu");
     if (cpu_node != NULL) {
         BuildCpuset(setname, cpu_node, &taf->cpu_set);
     } else {
@@ -233,8 +232,7 @@ static int SetupAffinityPriority(
     CPU_ZERO(&taf->lowprio_cpu);
     CPU_ZERO(&taf->medprio_cpu);
     CPU_ZERO(&taf->hiprio_cpu);
-
-    SCConfNode *prio_node = SCConfNodeLookupChild(affinity->head.tqh_first, "prio");
+    SCConfNode *prio_node = SCConfNodeLookupChild(affinity, "prio");
     if (prio_node == NULL) {
         return 0;
     }
@@ -251,7 +249,7 @@ static int SetupAffinityPriority(
  */
 static int SetupAffinityMode(ThreadsAffinityType *taf, SCConfNode *affinity)
 {
-    SCConfNode *mode_node = SCConfNodeLookupChild(affinity->head.tqh_first, "mode");
+    SCConfNode *mode_node = SCConfNodeLookupChild(affinity, "mode");
     if (mode_node == NULL) {
         return 0;
     }
@@ -273,7 +271,7 @@ static int SetupAffinityMode(ThreadsAffinityType *taf, SCConfNode *affinity)
  */
 static int SetupAffinityThreads(ThreadsAffinityType *taf, SCConfNode *affinity)
 {
-    SCConfNode *threads_node = SCConfNodeLookupChild(affinity->head.tqh_first, "threads");
+    SCConfNode *threads_node = SCConfNodeLookupChild(affinity, "threads");
     if (threads_node == NULL) {
         return 0;
     }
