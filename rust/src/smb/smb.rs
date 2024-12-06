@@ -833,6 +833,8 @@ impl SMBState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.request_done || !tx_old.response_done {
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                     tx_old.request_done = true;
                     tx_old.response_done = true;
                     tx_old.set_event(SMBEvent::TooManyTransactions);
@@ -951,6 +953,8 @@ impl SMBState {
                 false
             };
             if found {
+                tx.tx_data.updated_tc = true;
+                tx.tx_data.updated_ts = true;
                 return Some(tx);
             }
         }
@@ -975,6 +979,8 @@ impl SMBState {
                 false
             };
             if found {
+                tx.tx_data.updated_tc = true;
+                tx.tx_data.updated_ts = true;
                 return Some(tx);
             }
         }
@@ -1013,6 +1019,8 @@ impl SMBState {
                 _ => { false },
             };
             if found {
+                tx.tx_data.updated_tc = true;
+                tx.tx_data.updated_ts = true;
                 return Some(tx);
             }
         }
@@ -1046,6 +1054,8 @@ impl SMBState {
                 _ => { false },
             };
             if hit {
+                tx.tx_data.updated_tc = true;
+                tx.tx_data.updated_ts = true;
                 return Some(tx);
             }
         }
