@@ -695,7 +695,7 @@ meaning it will repeat its actions over and over again. With the
 option inspection-recursion-limit you can limit this action.
 
 The stream-tx-log-limit defines the maximum number of times a
-transaction will get logged for a stream-only rule match.
+transaction will get logged for rules without app-layer keywords.
 This is meant to avoid logging the same data an arbitrary number
 of times.
 

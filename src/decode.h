@@ -257,6 +257,8 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
 /** alert is in a frame, frame_id set */
 #define PACKET_ALERT_FLAG_FRAME 0x20
+/** alert in a tx was forced */
+#define PACKET_ALERT_FLAG_TX_GUESSED 0x040
 
 extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
