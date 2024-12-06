@@ -1288,27 +1288,6 @@ static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 #endif
 }
 
-/**
- * \param port_id - queried port
- * \param socket_id - socket ID of the queried port
- * \return non-negative number on success, negative on failure (errno)
- */
-static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
-{
-    rte_errno = 0;
-    int retval = rte_eth_dev_socket_id(port_id);
-    *socket_id = retval;
-
-#if RTE_VERSION >= RTE_VERSION_NUM(22, 11, 0, 0) // DPDK API changed since 22.11
-    retval = -rte_errno;
-#else
-    if (retval == SOCKET_ID_ANY)
-        retval = 0; // DPDK couldn't determine socket ID of a port
-#endif
-
-    return retval;
-}
-
 static void PortConfSetInterruptMode(const DPDKIfaceConfig *iconf, struct rte_eth_conf *port_conf)
 {
     SCLogConfig("%s: interrupt mode is %s", iconf->iface,
@@ -1560,7 +1539,7 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
             SCReturnInt(-ENODEV);
         }
         int32_t out_port_socket_id;
-        int retval = DeviceSetSocketID(iconf->out_port_id, &out_port_socket_id);
+        int retval = DPDKDeviceSetSocketID(iconf->out_port_id, &out_port_socket_id);
         if (retval < 0) {
             SCLogError("%s: invalid socket id: %s", iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
@@ -1639,7 +1618,7 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(-ENODEV);
     }
 
-    int32_t retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
+    int32_t retval = DPDKDeviceSetSocketID(iconf->port_id, &iconf->socket_id);
     if (retval < 0) {
         SCLogError("%s: invalid socket id: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
