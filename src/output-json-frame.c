@@ -390,8 +390,6 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
             jb_free(jb);
             frame->flags |= FRAME_FLAG_LOGGED;
-        } else if (frame != NULL) {
-            SCLogDebug("frame %p id %" PRIi64, frame, frame->id);
         }
     }
     return TM_ECODE_OK;
