@@ -41,6 +41,7 @@
 #include "detect-bytetest.h"
 #include "detect-isdataat.h"
 #include "detect-flow.h"
+#include "detect-flow-rate.h"
 #include "detect-tcp-flags.h"
 #include "detect-tcp-ack.h"
 #include "detect-ipopts.h"
@@ -954,6 +955,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 jb_open_object(js, "flow_age");
                 SCDetectU32ToJson(js, cd);
+                jb_close(js);
+                break;
+            }
+            case DETECT_FLOW_RATE: {
+                const DetectFlowRate *fr = (const DetectFlowRate *)smd->ctx;
+                jb_open_object(js, "flow_rate");
+                SCDetectU64ToJson(js, fr->rate);
                 jb_close(js);
                 break;
             }
