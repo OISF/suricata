@@ -194,14 +194,11 @@ static inline int SCSigGetFlowintType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
             fi = (DetectFlowintData *)sm->ctx;
-            if (fi->modifier == FLOWINT_MODIFIER_LT ||
-                fi->modifier == FLOWINT_MODIFIER_LE ||
-                fi->modifier == FLOWINT_MODIFIER_EQ ||
-                fi->modifier == FLOWINT_MODIFIER_NE ||
-                fi->modifier == FLOWINT_MODIFIER_GE ||
-                fi->modifier == FLOWINT_MODIFIER_GT ||
-                fi->modifier == FLOWINT_MODIFIER_NOTSET ||
-                fi->modifier == FLOWINT_MODIFIER_ISSET) {
+            if (fi->modifier == FLOWINT_MODIFIER_LT || fi->modifier == FLOWINT_MODIFIER_LE ||
+                    fi->modifier == FLOWINT_MODIFIER_EQ || fi->modifier == FLOWINT_MODIFIER_NE ||
+                    fi->modifier == FLOWINT_MODIFIER_GE || fi->modifier == FLOWINT_MODIFIER_GT ||
+                    fi->modifier == FLOWINT_MODIFIER_ISNOTSET ||
+                    fi->modifier == FLOWINT_MODIFIER_ISSET) {
                 read++;
             } else {
 #ifdef DEBUG
