@@ -327,7 +327,7 @@ void AffinitySetupLoadFromConfig(void)
 
     ConfNode *affinity;
     TAILQ_FOREACH(affinity, &root->head, next) {
-        const char *setname = GetAffinitySetName(affinity->val);
+        const char *setname = GetAffinitySetName(affinity->name);
         if (setname == NULL) {
             continue;
         }
