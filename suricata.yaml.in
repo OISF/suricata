@@ -1879,11 +1879,11 @@ threading:
   # verdict-cpu-set is used for IPS verdict threads
   #
   cpu-affinity:
-    - management-cpu-set:
+    management-cpu-set:
       cpu: [ 0 ]  # include only these CPUs in affinity settings
-    - receive-cpu-set:
+    receive-cpu-set:
       cpu: [ 0 ]  # include only these CPUs in affinity settings
-    - worker-cpu-set:
+    worker-cpu-set:
       cpu: [ "all" ]
       mode: "exclusive"
       # Use explicitly 3 threads and don't compute number by using
@@ -1894,7 +1894,7 @@ threading:
         medium: [ "1-2" ]
         high: [ 3 ]
         default: "medium"
-    #- verdict-cpu-set:
+    #verdict-cpu-set:
     #  cpu: [ 0 ]
     #  prio:
     #    default: "high"
