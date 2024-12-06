@@ -59,6 +59,7 @@
 #include "detect-engine-state.h"
 #include "stream.h"
 
+#include "app-layer-frames.h"
 #include "app-layer-parser.h"
 #include "app-layer.h"
 
@@ -287,7 +288,6 @@ Packet *FlowPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn)
  */
 bool FlowNeedsReassembly(Flow *f)
 {
-
     if (f == NULL || f->protoctx == NULL) {
         return false;
     }
@@ -316,6 +316,15 @@ bool FlowNeedsReassembly(Flow *f)
         {
             client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
+    }
+
+    /* if any frame is present we assume it still needs work */
+    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    if (frames_container) {
+        if (frames_container->toserver.cnt)
+            client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+        if (frames_container->toclient.cnt)
+            server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
     }
 
     /* nothing to do */
