@@ -67,6 +67,49 @@ void DPDKFreeDevice(LiveDevice *ldev)
 #endif
 }
 
+/**
+ * \param port_id - queried port
+ * \param socket_id - socket ID of the queried port
+ * \return non-negative number on success, negative on failure (errno)
+ */
+int32_t DPDKDeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
+{
+#ifdef HAVE_DPDK
+    rte_errno = 0;
+    int retval = rte_eth_dev_socket_id(port_id);
+    *socket_id = retval;
+
+#if RTE_VERSION >= RTE_VERSION_NUM(22, 11, 0, 0) // DPDK API changed since 22.11
+    retval = -rte_errno;
+#else
+    if (retval == SOCKET_ID_ANY)
+        retval = 0; // DPDK couldn't determine socket ID of a port
+#endif
+
+    return retval;
+#endif /* HAVE_DPDK */
+    return -ENOTSUP;
+}
+
+/**
+ * \param iface_name - name of the queried interface
+ * \param socket_id - socket ID of the queried port
+ * \return non-negative number on success, negative on failure (errno)
+ */
+int32_t DPDKDeviceNameSetSocketID(char *iface_name, int32_t *socket_id)
+{
+#ifdef HAVE_DPDK
+    uint16_t port_id = 0;
+    int r = rte_eth_dev_get_port_by_name(iface_name, &port_id);
+    if (r < 0) {
+        SCLogError("%s: interface not found: %s", iface_name, rte_strerror(-r));
+        SCReturnInt(r);
+    }
+    return DPDKDeviceSetSocketID(port_id, socket_id);
+#endif /* HAVE_DPDK */
+    return -ENOTSUP;
+}
+
 #ifdef HAVE_DPDK
 /**
  * Retrieves name of the port from port id
