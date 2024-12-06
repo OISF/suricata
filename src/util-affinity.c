@@ -175,8 +175,7 @@ static const char *GetAffinitySetName(const char *val)
 static void SetupCpuSets(ThreadsAffinityType *taf, ConfNode *affinity, const char *setname)
 {
     CPU_ZERO(&taf->cpu_set);
-
-    ConfNode *cpu_node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+    ConfNode *cpu_node = ConfNodeLookupChild(affinity, "cpu");
     if (cpu_node != NULL) {
         BuildCpuset(setname, cpu_node, &taf->cpu_set);
     } else {
@@ -228,15 +227,13 @@ static void SetupAffinityPriority(ThreadsAffinityType *taf, ConfNode *affinity, 
     CPU_ZERO(&taf->lowprio_cpu);
     CPU_ZERO(&taf->medprio_cpu);
     CPU_ZERO(&taf->hiprio_cpu);
-
-    ConfNode *prio_node = ConfNodeLookupChild(affinity->head.tqh_first, "prio");
+    ConfNode *prio_node = ConfNodeLookupChild(affinity, "prio");
     if (prio_node == NULL)
         return;
 
     BuildPriorityCpuset(taf, prio_node, "low", &taf->lowprio_cpu, setname);
     BuildPriorityCpuset(taf, prio_node, "medium", &taf->medprio_cpu, setname);
     BuildPriorityCpuset(taf, prio_node, "high", &taf->hiprio_cpu, setname);
-
     SetupDefaultPriority(taf, prio_node, setname);
 }
 
@@ -245,7 +242,7 @@ static void SetupAffinityPriority(ThreadsAffinityType *taf, ConfNode *affinity, 
  */
 static void SetupAffinityMode(ThreadsAffinityType *taf, ConfNode *affinity)
 {
-    ConfNode *mode_node = ConfNodeLookupChild(affinity->head.tqh_first, "mode");
+    ConfNode *mode_node = ConfNodeLookupChild(affinity, "mode");
     if (mode_node == NULL)
         return;
 
@@ -263,7 +260,7 @@ static void SetupAffinityMode(ThreadsAffinityType *taf, ConfNode *affinity)
  */
 static void SetupAffinityThreads(ThreadsAffinityType *taf, ConfNode *affinity)
 {
-    ConfNode *threads_node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
+    ConfNode *threads_node = ConfNodeLookupChild(affinity, "threads");
     if (threads_node == NULL)
         return;
 
