@@ -72,7 +72,7 @@ Next, enter the following line in the terminal:
   git clone https://github.com/OISF/suricata.git
   cd suricata
 
-Libhtp and suricata-update are not bundled. Get them by doing:
+Suricata-update is not bundled. Get it by doing:
 
 .. code-block:: bash
 
