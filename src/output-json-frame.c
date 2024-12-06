@@ -408,9 +408,11 @@ static bool JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packe
 
     if ((p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) && p->flow->alparser != NULL) {
         if (p->proto == IPPROTO_TCP) {
-            if ((p->flow->flags & FLOW_TS_APP_UPDATED) && PKT_IS_TOSERVER(p)) {
+            if ((PKT_IS_PSEUDOPKT(p) || (p->flow->flags & FLOW_TS_APP_UPDATED)) &&
+                    PKT_IS_TOSERVER(p)) {
                 // fallthrough
-            } else if ((p->flow->flags & FLOW_TC_APP_UPDATED) && PKT_IS_TOCLIENT(p)) {
+            } else if ((PKT_IS_PSEUDOPKT(p) || (p->flow->flags & FLOW_TC_APP_UPDATED)) &&
+                       PKT_IS_TOCLIENT(p)) {
                 // fallthrough
             } else {
                 return false;
