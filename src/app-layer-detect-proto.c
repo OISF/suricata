@@ -158,8 +158,15 @@ typedef struct AppLayerProtoDetectCtx_ {
 
     /* Indicates the protocols that have registered themselves
      * for protocol detection.  This table is independent of the
-     * ipproto. */
-    const char *alproto_names[ALPROTO_MAX];
+     * ipproto. It should be allocated to contain ALPROTO_MAX
+     * protocols. */
+    const char **alproto_names;
+
+    /* Protocol expectations, like ftp-data on tcp.
+     * It should be allocated to contain ALPROTO_MAX
+     * app-layer protocols. For each protocol, an iptype
+     * is referenced (or 0 if there is no expectation). */
+    uint8_t *expectation_proto;
 } AppLayerProtoDetectCtx;
 
 typedef struct AppLayerProtoDetectAliases_ {
@@ -1718,6 +1725,15 @@ int AppLayerProtoDetectSetup(void)
         }
     }
 
+    alpd_ctx.alproto_names = SCCalloc(ALPROTO_MAX, sizeof(char *));
+    if (unlikely(alpd_ctx.alproto_names == NULL)) {
+        FatalError("Unable to alloc alproto_names.");
+    }
+    // to realloc when dynamic protos are added
+    alpd_ctx.expectation_proto = SCCalloc(ALPROTO_MAX, sizeof(uint8_t));
+    if (unlikely(alpd_ctx.expectation_proto == NULL)) {
+        FatalError("Unable to alloc expectation_proto.");
+    }
     AppLayerExpectationSetup();
 
     SCReturnInt(0);
@@ -1749,6 +1765,11 @@ int AppLayerProtoDetectDeSetup(void)
         }
     }
 
+    SCFree(alpd_ctx.alproto_names);
+    alpd_ctx.alproto_names = NULL;
+    SCFree(alpd_ctx.expectation_proto);
+    alpd_ctx.expectation_proto = NULL;
+
     SpmDestroyGlobalThreadCtx(alpd_ctx.spm_global_thread_ctx);
 
     AppLayerProtoDetectFreeAliases();
@@ -1762,6 +1783,7 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
+    // should have just been realloced when dynamic protos is added
     if (alpd_ctx.alproto_names[alproto] == NULL)
         alpd_ctx.alproto_names[alproto] = alproto_name;
 
@@ -2111,27 +2133,25 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
     SCReturn;
 }
 
-uint8_t expectation_proto[ALPROTO_MAX];
-
 static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
                                              uint8_t *ipprotos)
 {
-    if (expectation_proto[alproto] == IPPROTO_TCP) {
+    if (alpd_ctx.expectation_proto[alproto] == IPPROTO_TCP) {
         ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
     }
-    if (expectation_proto[alproto] == IPPROTO_UDP) {
+    if (alpd_ctx.expectation_proto[alproto] == IPPROTO_UDP) {
         ipprotos[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
     }
 }
 
 void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 {
-    if (expectation_proto[alproto]) {
-        if (proto != expectation_proto[alproto]) {
+    if (alpd_ctx.expectation_proto[alproto]) {
+        if (proto != alpd_ctx.expectation_proto[alproto]) {
             SCLogError("Expectation on 2 IP protocols are not supported");
         }
     }
-    expectation_proto[alproto] = proto;
+    alpd_ctx.expectation_proto[alproto] = proto;
 }
 
 /***** Unittests *****/
