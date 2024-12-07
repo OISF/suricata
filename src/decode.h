@@ -1156,7 +1156,11 @@ void DecodeUnregisterCounters(void);
     ENGINE_SET_EVENT(p, e); \
 } while(0)
 
-
+#define ENGINE_SET_UNKNOWN_EVENT(p, e)                                                             \
+    do {                                                                                           \
+        p->flags |= PKT_IS_UNKNOWN;                                                                \
+        ENGINE_SET_EVENT(p, e);                                                                    \
+    } while (0)
 
 #define ENGINE_ISSET_EVENT(p, e) ({ \
     int r = 0; \
@@ -1312,6 +1316,9 @@ void DecodeUnregisterCounters(void);
 /** We had no alert on flow before this packet */
 #define PKT_FIRST_ALERTS BIT_U32(29)
 #define PKT_FIRST_TAG    BIT_U32(30)
+
+/** Unknown/unsupported */
+#define PKT_IS_UNKNOWN BIT_U32(31)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
@@ -1499,7 +1506,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         default:
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
-            StatsIncr(tv, dtv->counter_ethertype_unknown);
+            ENGINE_SET_UNKNOWN_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE);
             return false;
     }
     return true;
