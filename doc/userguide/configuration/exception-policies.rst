@@ -7,7 +7,10 @@ Suricata has a set of configuration variables to indicate what should the engine
 do when certain exception conditions, such as hitting a memcap, are reached.
 
 They are called Exception Policies and are configurable via suricata.yaml. If
-enabled, the engine will call them when it reaches exception states.
+enabled, the engine will call them when it reaches exception states. Stats for
+any applied exception policies can be found in counters related to the specific
+configuration setting (:ref:`read more<eps_stats>`). Some configuration is
+available directly via the :ref:`stats settings<suricata_yaml_outputs>`.
 
 For developers or for researching purposes, there are also simulation options
 exposed in debug mode and passed via command-line. These exist to force or
@@ -62,33 +65,40 @@ Specific settings
 Exception policies are implemented for:
 
 .. list-table:: Exception Policy configuration variables
-   :widths: 20, 18, 62
+   :widths: 18, 18, 18, 44
    :header-rows: 1
 
    * - Config setting
      - Policy variable
+     - Affects
      - Expected behavior
    * - stream.memcap
      - memcap-policy
+     - Flow or packet
      - If a stream memcap limit is reached, apply the memcap policy to the packet and/or
        flow.
    * - stream.midstream
      - midstream-policy
+     - Flow
      - If a session is picked up midstream, apply the midstream policy to the flow.
    * - stream.reassembly.memcap
      - memcap-policy
+     - Flow or packet
      - If stream reassembly reaches memcap limit, apply memcap policy to the
        packet and/or flow.
    * - flow.memcap
      - memcap-policy
+     - Packet
      - Apply policy when the memcap limit for flows is reached and no flow could
        be freed up. **Policy can only be applied to the packet.**
    * - defrag.memcap
      - memcap-policy
+     - Packet
      - Apply policy when the memcap limit for defrag is reached and no tracker
        could be picked up. **Policy can only be applied to the packet.**
    * - app-layer
      - error-policy
+     - Flow or packet
      - Apply policy if a parser reaches an error state. Policy can be applied to packet and/or flow.
 
 To change any of these, go to the specific section in the suricata.yaml file
@@ -199,6 +209,43 @@ Notes:
 
    * Not valid means that Suricata will error out and won't start.
    * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender of the matching packet.
+
+.. _eps_stats:
+
+Available Stats
+---------------
+
+There are stats counters for each supported exception policy scenario:
+
+.. list-table:: **Exception Policy Stats Counters**
+   :widths: 50 50
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - Setting
+     - Counter
+   * - stream.memcap
+     - tcp.ssn_memcap_exception_policy
+   * - stream.reassembly.memcap
+     - tcp.reassembly_memcap_exception_policy
+   * - stream.midstream
+     - tcp.midstream_exception_policy
+   * - defrag.memcap
+     - defrag.memcap_exception_policy
+   * - flow.memcap
+     - flow.memcap_exception_policy
+   * - app-layer.error
+     - app_layer.error.exception_policy
+
+If a given exception policy does not apply for a setting, no related counter
+is logged.
+
+Stats for application layer errors are available in summarized form or per
+application layer protocol. As the latter is extremely verbose, by default
+Suricata logs only the summary. If any further investigation is needed, it
+is recommended to enable per-app-proto exception policy error counters
+temporarily (for :ref:`stats configuration<suricata_yaml_outputs>`).
+
 
 Command-line Options for Simulating Exceptions
 ----------------------------------------------

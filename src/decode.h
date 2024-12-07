@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,6 +32,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "util-exception-policy-types.h"
 #ifdef PROFILING
 #include "flow-worker.h"
 #include "app-layer-protos.h"
@@ -720,8 +721,10 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_fragments;
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_max_hit;
+    ExceptionPolicyCounters counter_defrag_memcap_eps;
 
     uint16_t counter_flow_memcap;
+    ExceptionPolicyCounters counter_flow_memcap_eps;
 
     uint16_t counter_tcp_active_sessions;
     uint16_t counter_flow_total;
