@@ -113,6 +113,8 @@ class SuricataSC:
                 "memcap-show",
                 "dataset-add",
                 "dataset-remove",
+                "datajson-add",
+                "datajson-remove",
                 "get-flow-stats-by-id",
                 "dataset-clear",
                 "dataset-lookup",
@@ -218,6 +220,11 @@ class SuricataSC:
         cmd_specs = argsd[cmd]
         required_args_count = len([d["required"] for d in cmd_specs if d["required"] and not "val" in d])
         arguments = dict()
+        # if all arguments are required in the command then we split at the count
+        # this way we can handle last argument containing space (datajson-add for example)
+        non_req_args_count = len([d for d in cmd_specs if not d["required"] or "val" in d])
+        if non_req_args_count == 0:
+            full_cmd = command.split(maxsplit=required_args_count)
         for c, spec in enumerate(cmd_specs, 1):
             spec_type = str if "type" not in spec else spec["type"]
             if spec["required"]:
