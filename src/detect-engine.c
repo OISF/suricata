@@ -181,7 +181,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     }
     SCLogDebug("name %s id %d", name, sm_list);
 
-    if ((alproto >= ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
+    if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
             (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
             (progress < 0 || progress >= SHRT_MAX) || (Callback == NULL)) {
         SCLogError("Invalid arguments");

@@ -106,6 +106,7 @@ FramesContainer *AppLayerFramesGetContainer(Flow *f);
 FramesContainer *AppLayerFramesSetupContainer(Flow *f);
 
 void FrameConfigInit(void);
+void FrameConfigDeInit(void);
 void FrameConfigEnableAll(void);
 void FrameConfigEnable(const AppProto p, const uint8_t type);
 

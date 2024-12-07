@@ -9,3 +9,7 @@ is useful if you want to send EVE output to custom destinations.
 
 A minimal capture plugin that can be used as a template, but also used
 for testing capture plugin loading and registration in CI.
+
+## zabbix
+
+An app-layer plugin for Zabbix protocol.

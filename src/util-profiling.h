@@ -203,12 +203,12 @@ PktProfiling *SCProfilePacketStart(void);
         (dp)->proto_detect_ticks_spent = 0;                         \
     }
 
-#define PACKET_PROFILING_APP_STORE(dp, p)                           \
-    if (profiling_packets_enabled && (p)->profile != NULL) {        \
-        if ((dp)->alproto < ALPROTO_MAX) {                          \
-            (p)->profile->app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;   \
-            (p)->profile->proto_detect += (dp)->proto_detect_ticks_spent;        \
-        }                                                           \
+#define PACKET_PROFILING_APP_STORE(dp, p)                                                          \
+    if (profiling_packets_enabled && (p)->profile != NULL) {                                       \
+        if ((dp)->alproto < AlprotoMax) {                                                          \
+            (p)->profile->app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;                     \
+            (p)->profile->proto_detect += (dp)->proto_detect_ticks_spent;                          \
+        }                                                                                          \
     }
 
 #define PACKET_PROFILING_DETECT_START(p, id)                        \

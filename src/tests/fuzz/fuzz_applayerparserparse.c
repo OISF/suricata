@@ -36,32 +36,15 @@ extern const char *configNoChecksum;
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
 SCInstance surifuzz;
 AppProto forceLayer = 0;
+char *target_suffix = NULL;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
-    char *target_suffix = strrchr((*argv)[0], '_');
-    if (target_suffix != NULL) {
-        AppProto applayer = StringToAppProto(target_suffix + 1);
-        if (applayer != ALPROTO_UNKNOWN) {
-            forceLayer = applayer;
-            printf("Forcing %s=%" PRIu16 "\n", AppProtoToString(forceLayer), forceLayer);
-            return 0;
-        }
-    }
+    target_suffix = strrchr((*argv)[0], '_');
     // else
-    const char *forceLayerStr = getenv("FUZZ_APPLAYER");
-    if (forceLayerStr) {
-        if (ByteExtractStringUint16(&forceLayer, 10, 0, forceLayerStr) < 0) {
-            forceLayer = 0;
-            printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
-        } else {
-            printf("Forcing %s\n", AppProtoToString(forceLayer));
-        }
-    }
-    // http is the output name, but we want to fuzz HTTP1
-    if (forceLayer == ALPROTO_HTTP) {
-        forceLayer = ALPROTO_HTTP1;
+    if (!target_suffix) {
+        target_suffix = getenv("FUZZ_APPLAYER");
     }
     return 0;
 }
@@ -96,13 +79,24 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+        if (target_suffix != NULL) {
+            AppProto applayer = StringToAppProto(target_suffix + 1);
+            if (applayer != ALPROTO_UNKNOWN) {
+                forceLayer = applayer;
+                printf("Forcing %s=%" PRIu16 "\n", AppProtoToString(forceLayer), forceLayer);
+            }
+        }
+        // http is the output name, but we want to fuzz HTTP1
+        if (forceLayer == ALPROTO_HTTP) {
+            forceLayer = ALPROTO_HTTP1;
+        }
     }
 
     if (size < HEADER_LEN) {
         return 0;
     }
 
-    if (data[0] >= ALPROTO_MAX) {
+    if (data[0] >= AlprotoMax) {
         return 0;
     }
     //no UTHBuildFlow to have storage
