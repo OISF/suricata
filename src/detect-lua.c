@@ -129,20 +129,19 @@ void DetectLuaRegister(void)
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
 
-#if 0
 /** \brief dump stack from lua state to screen */
-void LuaDumpStack(lua_State *state)
+void LuaDumpStack(lua_State *state, const char *prefix)
 {
     int size = lua_gettop(state);
-    int i;
+    printf("%s: size %d\n", prefix, size);
 
-    for (i = 1; i <= size; i++) {
+    for (int i = 1; i <= size; i++) {
         int type = lua_type(state, i);
-        printf("Stack size=%d, level=%d, type=%d, ", size, i, type);
+        printf("- %s: Stack size=%d, level=%d, type=%d, ", prefix, size, i, type);
 
         switch (type) {
             case LUA_TFUNCTION:
-                printf("function %s", lua_tostring(state, i) ? "true" : "false");
+                printf("function %s", lua_tostring(state, i));
                 break;
             case LUA_TBOOLEAN:
                 printf("bool %s", lua_toboolean(state, i) ? "true" : "false");
@@ -164,7 +163,6 @@ void LuaDumpStack(lua_State *state)
         printf("\n");
     }
 }
-#endif
 
 /**
  * \brief Common function to run the Lua match function and process
@@ -523,6 +521,18 @@ static void *DetectLuaThreadInit(void *data)
     if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't prime file: %s", lua_tostring(t->luastate, -1));
         goto error;
+    }
+
+    /* thread_init call */
+    lua_getglobal(t->luastate, "thread_init");
+    if (lua_isfunction(t->luastate, -1)) {
+        if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
+            SCLogError("couldn't run script 'thread_init' function: %s",
+                    lua_tostring(t->luastate, -1));
+            goto error;
+        }
+    } else {
+        lua_pop(t->luastate, 1);
     }
 
     return (void *)t;
