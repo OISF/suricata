@@ -485,7 +485,9 @@ impl DNSState {
         tx.tx_data.set_event(event as u8);
     }
 
-    fn parse_request(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,) -> bool {
+    fn parse_request(
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+    ) -> bool {
         match dns_parse_request(input) {
             Ok(mut tx) => {
                 self.tx_id += 1;
@@ -542,7 +544,9 @@ impl DNSState {
         self.parse_response(input, false, frame, flow)
     }
 
-    fn parse_response(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow) -> bool {
+    fn parse_response(
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+    ) -> bool {
         match dns_parse_response(input) {
             Ok(mut tx) => {
                 self.tx_id += 1;
@@ -719,20 +723,28 @@ impl DNSState {
 const DNS_HEADER_SIZE: usize = 12;
 
 fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
-    let min_msg_size = 2
-        * (header.additional_rr as usize
-            + header.answer_rr as usize
-            + header.authority_rr as usize
-            + header.questions as usize)
-        + DNS_HEADER_SIZE;
+    let nb_records = header.additional_rr as usize
+        + header.answer_rr as usize
+        + header.authority_rr as usize
+        + header.questions as usize;
 
+    let min_msg_size = 2 * nb_records;
     if min_msg_size > rlen {
         // Not enough data for records defined in the header, or
         // impossibly large.
         return (false, false, false);
     }
 
+    if nb_records == 0 && rlen > DNS_HEADER_SIZE {
+        // zero fields, data size should be just DNS_HEADER_SIZE
+        // happens when DNS server returns format error
+        return (false, false, false);
+    }
+
     let is_request = header.flags & 0x8000 == 0;
+    if is_request && header.questions == 0 {
+        return (false, false, false);
+    }
     return (true, is_request, false);
 }
 
