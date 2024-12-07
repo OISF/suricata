@@ -8,3 +8,5 @@ alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client;
 # Z flag (reserved) not 0
 alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns.z_flag_set; classtype:protocol-command-decode; sid:2240006; rev:2;)
 alert dns any any -> any any (msg:"SURICATA DNS Invalid opcode"; app-layer-event:dns.invalid_opcode; classtype:protocol-command-decode; sid:2240007; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS invalid additionals"; app-layer-event:dns.invalid_additionals; classtype:protocol-command-decode; sid:2240008; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS invalid authorities"; app-layer-event:dns.invalid_authorities; classtype:protocol-command-decode; sid:2240009; rev:1;)
