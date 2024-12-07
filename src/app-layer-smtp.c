@@ -1632,7 +1632,7 @@ static void SMTPSetMpmState(void)
                         i /* pattern id */, i /* rule id */ , 0 /* no flags */);
     }
 
-    mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
+    mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx, false);
 }
 
 static void SMTPFreeMpmState(void)
