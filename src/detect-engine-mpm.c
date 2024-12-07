@@ -2418,12 +2418,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 {
     uint32_t cnt = 0;
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
-        if (s->flags & SIG_FLAG_PREFILTER)
-            continue;
-
-        RetrieveFPForSig(de_ctx, s);
         if (s->init_data->mpm_sm != NULL) {
-            s->flags |= SIG_FLAG_PREFILTER;
             cnt++;
         }
     }
