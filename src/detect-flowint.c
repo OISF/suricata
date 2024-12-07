@@ -48,7 +48,10 @@
 #include "util-profiling.h"
 
 /*                         name             modifiers          value      */
-#define PARSE_REGEX "^\\s*([a-zA-Z][\\w\\d_./]+)\\s*,\\s*([+=-]{1}|==|!=|<|<=|>|>=|isset|notset)\\s*,?\\s*([a-zA-Z][\\w\\d]+|[\\d]{1,10})?\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([a-zA-Z][\\w\\d_./"                                                                     \
+    "]+)\\s*,\\s*([+=-]{1}|==|!=|<|<=|>|>=|isset|notset|isnotset)\\s*,?\\s*([a-zA-Z][\\w\\d]+|["   \
+    "\\d]{1,10})?\\s*$"
 /* Varnames must begin with a letter */
 
 static DetectParseRegex parse_regex;
@@ -140,7 +143,7 @@ int DetectFlowintMatch(DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    if (sfd->modifier == FLOWINT_MODIFIER_NOTSET) {
+    if (sfd->modifier == FLOWINT_MODIFIER_ISNOTSET) {
         SCLogDebug(" Not set %s? = %u", sfd->name,(fv) ? 0 : 1);
         if (fv == NULL)
             ret = 1;
@@ -280,8 +283,8 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         modifier = FLOWINT_MODIFIER_GT;
     if (strcmp("isset", modstr) == 0)
         modifier = FLOWINT_MODIFIER_ISSET;
-    if (strcmp("notset", modstr) == 0)
-        modifier = FLOWINT_MODIFIER_NOTSET;
+    if (strcmp("notset", modstr) == 0 || strcmp("isnotset", modstr) == 0)
+        modifier = FLOWINT_MODIFIER_ISNOTSET;
 
     if (modifier == FLOWINT_MODIFIER_UNKNOWN) {
         SCLogError("Unknown modifier");
@@ -293,7 +296,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         goto error;
 
     /* If we need another arg, check it out(isset doesn't need another arg) */
-    if (modifier != FLOWINT_MODIFIER_ISSET && modifier != FLOWINT_MODIFIER_NOTSET) {
+    if (modifier != FLOWINT_MODIFIER_ISSET && modifier != FLOWINT_MODIFIER_ISNOTSET) {
         if (ret < 4)
             goto error;
 
@@ -398,7 +401,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         case FLOWINT_MODIFIER_GE:
         case FLOWINT_MODIFIER_GT:
         case FLOWINT_MODIFIER_ISSET:
-        case FLOWINT_MODIFIER_NOTSET:
+        case FLOWINT_MODIFIER_ISNOTSET:
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
         default:
@@ -1001,9 +1004,8 @@ static int DetectFlowintTestParseIsset10(void)
     if (sfd) DetectFlowintFree(NULL, sfd);
     sfd = DetectFlowintParse(de_ctx, "myvar, notset");
     DetectFlowintPrintData(sfd);
-    if (sfd != NULL && !strcmp(sfd->name, "myvar")
-            && sfd->targettype == FLOWINT_TARGET_SELF
-            && sfd->modifier == FLOWINT_MODIFIER_NOTSET) {
+    if (sfd != NULL && !strcmp(sfd->name, "myvar") && sfd->targettype == FLOWINT_TARGET_SELF &&
+            sfd->modifier == FLOWINT_MODIFIER_ISNOTSET) {
 
         result &= 1;
     } else {
@@ -1192,7 +1194,9 @@ static int DetectFlowintTestPacket02Real(void)
     de_ctx->flags |= DE_QUIET;
 
     const char *sigs[5];
-    sigs[0] = "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; flowint: myvar, notset; flowint:maxvar,notset; flowint: myvar,=,1; flowint: maxvar,=,6; sid:101;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; "
+              "flowint:myvar,notset; flowint:maxvar,isnotset; flowint: myvar,=,1; flowint: "
+              "maxvar,=,6; sid:101;)";
     sigs[1] = "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: myvar,+,2; sid:102;)";
     sigs[2] = "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar, isset; flowint: myvar,==,3; flowint:cntpackets,notset; flowint: cntpackets, =, 0; sid:103;)";
     sigs[3] = "alert tcp any any -> any any (msg:\"and count the rest of the packets received without generating alerts!!!\"; flowint: cntpackets,isset; flowint: cntpackets, +, 1; noalert;sid:104;)";
