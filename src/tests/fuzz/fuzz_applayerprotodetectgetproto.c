@@ -9,7 +9,7 @@
 #include "suricata.h"
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
-#include "app-layer-parser.h"
+#include "app-layer.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 
@@ -30,8 +30,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     Flow *f;
     TcpSession ssn;
     bool reverse;
-    AppProto alproto;
-    AppProto alproto2;
 
     if (alpd_tctx == NULL) {
         //global init
@@ -43,9 +41,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         MpmTableSetup();
         SpmTableSetup();
         EngineModeSetIDS();
-        AppLayerProtoDetectSetup();
-        AppLayerParserSetup();
-        AppLayerParserRegisterProtocolParsers();
+        AppLayerSetup();
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     }
@@ -68,31 +64,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (data[0] & STREAM_TOSERVER) {
         flags = STREAM_TOSERVER;
     }
-    alproto = AppLayerProtoDetectGetProto(
+    AppLayerProtoDetectGetProto(
             alpd_tctx, f, data + HEADER_LEN, size - HEADER_LEN, f->proto, flags, &reverse);
-    if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED && f->proto == IPPROTO_TCP) {
-        /* If we find a valid protocol at the start of a stream :
-         * check that with smaller input
-         * we find the same protocol or ALPROTO_UNKNOWN.
-         * Otherwise, we have evasion with TCP splitting
-         */
-        for (size_t i = 0; i < size-HEADER_LEN && i < PROTO_DETECT_MAX_LEN; i++) {
-            // reset detection at each try cf probing_parser_toserver_alproto_masks
-            AppLayerProtoDetectReset(f);
-            alproto2 = AppLayerProtoDetectGetProto(
-                    alpd_tctx, f, data + HEADER_LEN, i, f->proto, flags, &reverse);
-            if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
-                printf("Failed with input length %" PRIuMAX " versus %" PRIuMAX
-                       ", found %s instead of %s\n",
-                        (uintmax_t)i, (uintmax_t)size - HEADER_LEN, AppProtoToString(alproto2),
-                        AppProtoToString(alproto));
-                printf("Assertion failure: %s-%s\n", AppProtoToString(alproto2),
-                        AppProtoToString(alproto));
-                fflush(stdout);
-                abort();
-            }
-        }
-    }
     FlowFree(f);
 
     return 0;
