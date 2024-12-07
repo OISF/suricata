@@ -94,9 +94,9 @@ typedef struct AppLayerParserProtoCtx_
     int complete_ts;
     int complete_tc;
     int (*StateGetEventInfoById)(
-            uint8_t event_id, const char **event_name, AppLayerEventType *event_type);
+            uint8_t event_id, const char **event_name, SCAppLayerEventType *event_type);
     int (*StateGetEventInfo)(
-            const char *event_name, uint8_t *event_id, AppLayerEventType *event_type);
+            const char *event_name, uint8_t *event_id, SCAppLayerEventType *event_type);
 
     AppLayerStateData *(*GetStateData)(void *state);
     AppLayerTxData *(*GetTxData)(void *tx);
@@ -530,9 +530,8 @@ void AppLayerParserRegisterStateProgressCompletionStatus(
     alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].complete_tc = tc;
 }
 
-void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
-        int (*StateGetEventInfoById)(
-                uint8_t event_id, const char **event_name, AppLayerEventType *event_type))
+void AppLayerParserRegisterGetEventInfoById(
+        uint8_t ipproto, AppProto alproto, SCAppLayerStateGetEventInfoByIdFn StateGetEventInfoById)
 {
     SCEnter();
 
@@ -554,7 +553,7 @@ void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
 
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
         int (*StateGetEventInfo)(
-                const char *event_name, uint8_t *event_id, AppLayerEventType *event_type))
+                const char *event_name, uint8_t *event_id, SCAppLayerEventType *event_type))
 {
     SCEnter();
 
@@ -1100,7 +1099,7 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
-        uint8_t *event_id, AppLayerEventType *event_type)
+        uint8_t *event_id, SCAppLayerEventType *event_type)
 {
     SCEnter();
     const int ipproto_map = FlowGetProtoMapping(ipproto);
@@ -1110,7 +1109,7 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
 }
 
 int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, uint8_t event_id,
-        const char **event_name, AppLayerEventType *event_type)
+        const char **event_name, SCAppLayerEventType *event_type)
 {
     SCEnter();
     const int ipproto_map = FlowGetProtoMapping(ipproto);

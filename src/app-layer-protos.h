@@ -25,6 +25,8 @@
 #ifndef SURICATA_APP_LAYER_PROTOS_H
 #define SURICATA_APP_LAYER_PROTOS_H
 
+#include "suricata-common.h"
+
 enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
     ALPROTO_HTTP1,

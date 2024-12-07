@@ -259,7 +259,7 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }
