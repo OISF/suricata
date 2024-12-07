@@ -764,10 +764,9 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
 #ifdef UNITTESTS
     }
 #endif
-    /* time out immediately */
-    old_f->timeout_at = 0;
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
+    old_f->flow_end_flags |= FLOW_END_FLAG_TCPREUSE;
 
     /* flow is unlocked by caller */
 
@@ -832,19 +831,52 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
     }
 }
 
-static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool emerg)
+static inline bool FlowIsTimedOut(
+        const FlowThreadId ftid, const Flow *f, const SCTime_t pktts, const bool emerg)
 {
-    if (unlikely(f->timeout_at < sec)) {
-        return true;
-    } else if (unlikely(emerg)) {
-        extern FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
-
-        int64_t timeout_at = f->timeout_at -
-            FlowGetFlowTimeoutDirect(flow_timeouts_delta, f->flow_state, f->protomap);
-        if ((int64_t)sec >= timeout_at)
-            return true;
+    SCTime_t timesout_at;
+    if (emerg) {
+        extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+        timesout_at = SCTIME_ADD_SECS(f->lastts,
+                FlowGetFlowTimeoutDirect(flow_timeouts_emerg, f->flow_state, f->protomap));
+    } else {
+        timesout_at = SCTIME_ADD_SECS(f->lastts, f->timeout_policy);
     }
-    return false;
+    /* if time is live, we just use the pktts */
+    if (TimeModeIsLive()) {
+        if (SCTIME_CMP_LT(pktts, timesout_at)) {
+            return false;
+        }
+    } else {
+        if (ftid == f->thread_id[0] || f->thread_id[0] == 0) {
+            /* do the timeout check */
+            if (SCTIME_CMP_LT(pktts, timesout_at)) {
+                return false;
+            }
+        } else {
+            SCTime_t checkts = TmThreadsGetThreadTime(f->thread_id[0]);
+            /* do the timeout check */
+            if (SCTIME_CMP_LT(checkts, timesout_at)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static inline uint16_t GetTvId(const ThreadVars *tv)
+{
+    uint16_t tv_id;
+#ifdef UNITTESTS
+    if (RunmodeIsUnittests()) {
+        tv_id = 0;
+    } else {
+        tv_id = (uint16_t)tv->id;
+    }
+#else
+    tv_id = (uint16_t)tv->id;
+#endif
+    return tv_id;
 }
 
 /** \brief Get Flow for packet
@@ -898,40 +930,45 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         return f;
     }
 
+    const uint16_t tv_id = GetTvId(tv);
     const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0;
     const uint32_t fb_nextts = !emerg ? SC_ATOMIC_GET(fb->next_ts) : 0;
+    const bool timeout_check = (fb_nextts <= (uint32_t)SCTIME_SECS(p->ts));
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
     Flow *prev_f = NULL; /* previous flow */
     f = fb->head;
     do {
         Flow *next_f = NULL;
-        const bool timedout = (fb_nextts < (uint32_t)SCTIME_SECS(p->ts) &&
-                               FlowIsTimedOut(f, (uint32_t)SCTIME_SECS(p->ts), emerg));
-        if (timedout) {
+        const bool our_flow = FlowCompare(f, p) != 0;
+        if (our_flow || timeout_check) {
             FLOWLOCK_WRLOCK(f);
-            next_f = f->next;
-            MoveToWorkQueue(tv, fls, fb, f, prev_f);
-            FLOWLOCK_UNLOCK(f);
-            goto flow_removed;
-        } else if (FlowCompare(f, p) != 0) {
-            FLOWLOCK_WRLOCK(f);
-            /* found a matching flow that is not timed out */
-            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
-                Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
-                if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
-                    prev_f = new_f;
-                MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
-                FLOWLOCK_UNLOCK(f); /* unlock old replaced flow */
+            const bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
+            if (timedout) {
+                next_f = f->next;
+                MoveToWorkQueue(tv, fls, fb, f, prev_f);
+                FLOWLOCK_UNLOCK(f);
+                goto flow_removed;
+            } else if (our_flow) {
+                /* found a matching flow that is not timed out */
+                if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
+                    Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
+                    if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
+                        prev_f = new_f;
+                    MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
+                    FLOWLOCK_UNLOCK(f);                      /* unlock old replaced flow */
 
-                if (new_f == NULL) {
-                    FBLOCK_UNLOCK(fb);
-                    return NULL;
+                    if (new_f == NULL) {
+                        FBLOCK_UNLOCK(fb);
+                        return NULL;
+                    }
+                    f = new_f;
                 }
-                f = new_f;
+                FlowReference(dest, f);
+                FBLOCK_UNLOCK(fb);
+                return f; /* return w/o releasing flow lock */
+            } else {
+                FLOWLOCK_UNLOCK(f);
             }
-            FlowReference(dest, f);
-            FBLOCK_UNLOCK(fb);
-            return f; /* return w/o releasing flow lock */
         }
         /* unless we removed 'f', prev_f needs to point to
          * current 'f' when adding a new flow below. */

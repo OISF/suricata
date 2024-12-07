@@ -554,11 +554,6 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
-    /* update time */
-    if (!(PKT_IS_PSEUDOPKT(p))) {
-        TimeSetByThread(tv->id, p->ts);
-    }
-
     /* handle Flow */
     if (p->flags & PKT_WANTS_FLOW) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
@@ -567,6 +562,10 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
+                /* update time */
+                if (!(PKT_IS_PSEUDOPKT(p))) {
+                    TimeSetByThread(tv->id, p->ts);
+                }
                 goto housekeeping;
             }
         }
@@ -579,6 +578,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     } else if (p->flags & PKT_HAS_FLOW) {
         FLOWLOCK_WRLOCK(p->flow);
         DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
+    }
+
+    /* update time */
+    if (!(PKT_IS_PSEUDOPKT(p))) {
+        TimeSetByThread(tv->id, p->ts);
     }
 
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
