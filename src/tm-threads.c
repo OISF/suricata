@@ -865,8 +865,19 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
+        bool use_iface_affinity =
+                RunmodeIsAutofp() &&
+                tv->cpu_affinity == RECEIVE_CPU_SET &&
+                FindAffinityByInterface(taf, tv->iface_name) != NULL;
+        use_iface_affinity |=
+                RunmodeIsWorkers() &&
+                tv->cpu_affinity == WORKER_CPU_SET &&
+                FindAffinityByInterface(taf, tv->iface_name) != NULL;
+
+        if (use_iface_affinity)
+            taf = FindAffinityByInterface(taf, tv->iface_name);
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
-            uint16_t cpu = AffinityGetNextCPU(taf);
+            uint16_t cpu = AffinityGetNextCPU(tv, taf);
             SetCPUAffinity(cpu);
             /* If CPU is in a set overwrite the default thread prio */
             if (CPU_ISSET(cpu, &taf->lowprio_cpu)) {

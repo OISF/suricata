@@ -26,6 +26,9 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "threads.h"
+#include "threadvars.h"
+
+#include <hwloc.h>
 
 #if defined OS_FREEBSD
 #include <sched.h>
@@ -62,10 +65,13 @@ enum {
     MAX_AFFINITY
 };
 
+#define MAX_NUMA_NODES 16
+
 typedef struct ThreadsAffinityType_ {
     const char *name;
     uint8_t mode_flag;
-    uint16_t lcpu; /* use by exclusive mode */
+    uint16_t lcpu[MAX_NUMA_NODES]; /* use by exclusive mode */
+    // uint16_t lcpu; /* use by exclusive mode */
     int prio;
     uint32_t nb_threads;
     SCMutex taf_mutex;
@@ -76,6 +82,10 @@ typedef struct ThreadsAffinityType_ {
     cpu_set_t medprio_cpu;
     cpu_set_t hiprio_cpu;
 #endif
+    struct ThreadsAffinityType_ **children;
+    uint32_t nb_children;
+    uint32_t nb_children_capacity;
+    struct ThreadsAffinityType_ *parent;
 } ThreadsAffinityType;
 
 /** store thread affinity mode for all type of threads */
@@ -85,8 +95,14 @@ extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 
 void AffinitySetupLoadFromConfig(void);
 ThreadsAffinityType * GetAffinityTypeFromName(const char *name);
+ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
+        const char *name, const char *interface_name);
+ThreadsAffinityType *GetAffinityTypeForNameAndIface(const char *name, const char *interface_name);
+ThreadsAffinityType *FindAffinityByInterface(
+        ThreadsAffinityType *parent, const char *interface_name);
 
-uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf);
+void TopologyDestroy(void);
+uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf);
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
 #ifdef HAVE_DPDK
 uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);

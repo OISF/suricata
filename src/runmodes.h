@@ -75,6 +75,8 @@ extern const char *thread_name_counter_stats;
 extern const char *thread_name_counter_wakeup;
 
 char *RunmodeGetActive(void);
+bool RunmodeIsWorkers(void);
+bool RunmodeIsAutofp(void);
 const char *RunModeGetMainMode(void);
 
 void RunModeListRunmodes(void);
