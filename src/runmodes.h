@@ -78,6 +78,8 @@ extern const char *thread_name_counter_wakeup;
 extern const char *thread_name_heartbeat;
 
 char *RunmodeGetActive(void);
+bool RunmodeIsWorkers(void);
+bool RunmodeIsAutofp(void);
 const char *RunModeGetMainMode(void);
 
 void RunModeListRunmodes(void);
