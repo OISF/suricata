@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -89,6 +89,110 @@
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_MAX_SYN_QUEUED        10
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_reassembly_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_midstream_enabled_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  false,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       false,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  false,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       false,
+    },
+};
+// clang-format on
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts stream_midstream_disabled_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  false,
+    /* EXCEPTION_POLICY_PASS_FLOW */    true,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    true,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
 
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
 void StreamTcpReturnStreamSegments (TcpStream *);
@@ -702,6 +806,31 @@ void StreamTcpFreeConfig(bool quiet)
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 }
 
+static bool IsReassemblyMemcapExceptionPolicyStatsValid(enum ExceptionPolicy exception_policy)
+{
+    if (EngineModeIsIPS()) {
+        return stream_reassembly_memcap_eps_stats.valid_settings_ips[exception_policy];
+    }
+    return stream_reassembly_memcap_eps_stats.valid_settings_ids[exception_policy];
+}
+
+static bool IsStreamTcpSessionMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
+{
+    if (EngineModeIsIPS()) {
+        return stream_memcap_eps_stats.valid_settings_ips[policy];
+    }
+    return stream_memcap_eps_stats.valid_settings_ids[policy];
+}
+
+static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    const uint16_t id = stt->counter_tcp_ssn_memcap_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 /** \internal
  *  \brief The function is used to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
@@ -741,6 +870,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
                       g_eps_stream_ssn_memcap == t_pcapcnt))) {
             SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 #endif
@@ -748,6 +878,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
         if (ssn == NULL) {
             SCLogDebug("ssn_pool is empty");
             ExceptionPolicyApply(p, stream_config.ssn_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+            StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
 
@@ -903,6 +1034,29 @@ static inline void StreamTcpCloseSsnWithReset(Packet *p, TcpSession *ssn)
             "TCP_CLOSED", ssn, StreamTcpStateAsString(ssn->state));
 }
 
+static bool IsMidstreamExceptionPolicyStatsValid(enum ExceptionPolicy policy)
+{
+    if (EngineModeIsIPS()) {
+        if (stream_config.midstream) {
+            return stream_midstream_enabled_eps_stats.valid_settings_ips[policy];
+        }
+        return stream_midstream_disabled_eps_stats.valid_settings_ips[policy];
+    }
+    if (stream_config.midstream) {
+        return stream_midstream_enabled_eps_stats.valid_settings_ids[policy];
+    }
+    return stream_midstream_disabled_eps_stats.valid_settings_ids[policy];
+}
+
+static void StreamTcpMidstreamExceptionPolicyStatsIncr(
+        ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
+{
+    const uint16_t id = stt->counter_tcp_midstream_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
 {
     if (p->payload_len == 0)
@@ -956,6 +1110,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_FIN) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream || p->payload_len == 0) {
             StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
@@ -1052,6 +1207,7 @@ static int StreamTcpPacketStateNone(
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream && !stream_config.async_oneside) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -1224,6 +1380,7 @@ static int StreamTcpPacketStateNone(
     } else if (p->tcph->th_flags & TH_ACK) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
         ExceptionPolicyApply(p, stream_config.midstream_policy, PKT_DROP_REASON_STREAM_MIDSTREAM);
+        StreamTcpMidstreamExceptionPolicyStatsIncr(tv, stt, stream_config.midstream_policy);
 
         if (!stream_config.midstream) {
             SCLogDebug("Midstream not enabled, so won't pick up a session");
@@ -5770,10 +5927,24 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
     stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
     stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
+    ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_ssn_memcap_eps, &stream_memcap_eps_stats,
+            stream_config.ssn_memcap_policy, "tcp.ssn_memcap_exception_policy.",
+            IsStreamTcpSessionMemcapExceptionPolicyStatsValid);
+
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    if (stream_config.midstream) {
+        ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_midstream_eps,
+                &stream_midstream_enabled_eps_stats, stream_config.midstream_policy,
+                "tcp.midstream_exception_policy.", IsMidstreamExceptionPolicyStatsValid);
+    } else {
+        ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_midstream_eps,
+                &stream_midstream_disabled_eps_stats, stream_config.midstream_policy,
+                "tcp.midstream_exception_policy.", IsMidstreamExceptionPolicyStatsValid);
+    }
+
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
 
@@ -5783,6 +5954,11 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+
+    ExceptionPolicySetStatsCounters(tv, &stt->ra_ctx->counter_tcp_reas_eps,
+            &stream_reassembly_memcap_eps_stats, stream_config.reassembly_memcap_policy,
+            "tcp.reassembly_exception_policy.", IsReassemblyMemcapExceptionPolicyStatsValid);
+
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
     stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);
