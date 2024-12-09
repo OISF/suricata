@@ -275,6 +275,24 @@ pub unsafe extern "C" fn SCJA4GetHash(j: &mut JA4, out: &mut [u8; 36]) {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCJA4GetCiphers(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.ciphersuites.len();
+    j.ciphersuites.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetExtensions(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.extensions.len();
+    j.extensions.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJA4GetSigAlgs(j: &mut JA4, out: *mut usize) -> *const u16 {
+    *out = j.signature_algorithms.len();
+    j.signature_algorithms.as_ptr()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCJA4Free(j: &mut JA4) {
     let ja4: Box<JA4> = Box::from_raw(j);
     std::mem::drop(ja4);
