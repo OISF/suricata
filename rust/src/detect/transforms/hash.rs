@@ -51,7 +51,7 @@ fn md5_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 #[no_mangle]
-unsafe extern "C" fn md5_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn md5_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -107,7 +107,7 @@ fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 #[no_mangle]
-unsafe extern "C" fn sha1_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn sha1_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -163,7 +163,7 @@ fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 #[no_mangle]
-unsafe extern "C" fn sha256_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn sha256_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
