@@ -49,11 +49,7 @@ static void iceDeviceSetRSSHashFunction(uint64_t *rss_hf)
 void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf)
 {
     iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
-#if RTE_VERSION < RTE_VERSION_NUM(23, 11, 0, 0)
-    rss_conf->rss_key_len = 40;
-#else
     rss_conf->rss_key_len = 52;
-#endif
 }
 
 #endif /* HAVE_DPDK */
