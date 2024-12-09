@@ -52,6 +52,39 @@ For features and bugs we need `tickets <https://redmine.openinfosecfoundation.
 org/projects/suricata/issues>`_. Tickets help us keep track of the work done,
 indicate when changes need backports etc.
 
+The ticket should clearly reflect the intention as per the tracker.
+For example, if the ticket is a "Bug", the title should only say what the
+bug is.
+
+**Examples**
+
+Bad ticket title examples:
+
+1. [Bug #00000] Suricata stops working; Why? There is no valuable information
+in the title and it's quite vague.
+
+2. [Bug #19999] applayer/dcerpc: exit on the function `SomeDceFn`; Why? Title
+talks about the solution not the problem.
+
+3. [Bug #44444] excess memory use in case function `StreamFn` is used on the
+stream parser leading to slow processing and incorrect output; Why? Title is
+too long.
+
+Good ticket title examples:
+
+1. [Bug #00000] stream: segfault in case of increasing gaps; Why? It shows
+subsystem affected and exactly what the bug is.
+
+2. [Bug #19999] dcerpc: memleak in case of invalid data; Why?
+It talks about the bug itself as the Tracker indicates.
+
+3. [Bug #44444] stream: excess memuse in `TcpTracking`; Why? Title is to the
+point and conveys what the issue is.
+
+.. note:: The ticket titles are used to auto generate ChangeLog with each
+    release. If the ticket titles are unclear, the ChangeLog does not properly
+    convey what issues were fixed with a release.
+
 They are also important if you would like to see your new feature officially
 added to our tool: the ticket documents your ideas so  we can analyze how do they
 fit in our plans for Suricata, and, if the feature is accepted, we can properly
