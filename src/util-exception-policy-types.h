@@ -33,7 +33,7 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_REJECT,
 };
 
-#define EXCEPTION_POLICY_MAX EXCEPTION_POLICY_REJECT + 1
+#define EXCEPTION_POLICY_MAX (EXCEPTION_POLICY_REJECT + 1)
 
 /* Max length = possible exception policy scenarios + counter names
  * + exception policy type. E.g.:

@@ -25,6 +25,11 @@
 
 #ifdef HAVE_PLUGINS
 
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "detect-engine-register.h"
+#include "output.h"
+
 #include <dlfcn.h>
 
 typedef struct PluginListNode_ {
@@ -147,5 +152,36 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
         }
     }
     return plugin;
+}
+
+int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
+{
+    if (plugin->version != SC_PLUGIN_API_VERSION) {
+        return 1;
+    }
+    AppProto alproto = AlprotoMax;
+    AppProtoRegisterProtoString(alproto, plugin->name);
+    if (plugin->Register) {
+        if (AppLayerParserPreRegister(plugin->Register) != 0) {
+            return 1;
+        }
+    }
+    if (plugin->KeywordsRegister) {
+        if (SigTablePreRegister(plugin->KeywordsRegister) != 0) {
+            return 1;
+        }
+    }
+    if (plugin->Logger) {
+        EveJsonLoggerRegistrationData reg_data = {
+            .confname = plugin->confname,
+            .logname = plugin->logname,
+            .alproto = alproto,
+            .LogTx = (EveJsonSimpleTxLogFunc)plugin->Logger,
+        };
+        if (OutputPreRegisterLogger(reg_data) != 0) {
+            return 1;
+        }
+    }
+    return 0;
 }
 #endif

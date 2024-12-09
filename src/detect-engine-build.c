@@ -625,10 +625,11 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     } mpm_stats[max_buffer_type_id];
     memset(mpm_stats, 0x00, sizeof(mpm_stats));
 
-    uint32_t alstats[ALPROTO_MAX] = {0};
+    uint32_t alstats[AlprotoMax];
+    memset(alstats, 0, AlprotoMax * sizeof(uint32_t));
     uint32_t mpm_sizes[max_buffer_type_id][256];
     memset(mpm_sizes, 0, sizeof(mpm_sizes));
-    uint32_t alproto_mpm_bufs[ALPROTO_MAX][max_buffer_type_id];
+    uint32_t alproto_mpm_bufs[AlprotoMax][max_buffer_type_id];
     memset(alproto_mpm_bufs, 0, sizeof(alproto_mpm_bufs));
 
     DEBUG_VALIDATE_BUG_ON(sgh->init == NULL);
@@ -790,7 +791,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     json_object_set_new(types, "any5", json_integer(any5_cnt));
     json_object_set_new(stats, "types", types);
 
-    for (AppProto i = 0; i < ALPROTO_MAX; i++) {
+    for (AppProto i = 0; i < AlprotoMax; i++) {
         if (alstats[i] > 0) {
             json_t *app = json_object();
             json_object_set_new(app, "total", json_integer(alstats[i]));

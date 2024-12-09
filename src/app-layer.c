@@ -96,9 +96,9 @@ typedef struct AppLayerCounters_ {
 } AppLayerCounters;
 
 /* counter names. Only used at init. */
-AppLayerCounterNames applayer_counter_names[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
+AppLayerCounterNames (*applayer_counter_names)[FLOW_PROTO_APPLAYER_MAX];
 /* counter id's. Used that runtime. */
-AppLayerCounters applayer_counters[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
+AppLayerCounters (*applayer_counters)[FLOW_PROTO_APPLAYER_MAX];
 /* Exception policy global counters ids */
 ExceptionPolicyCounters eps_error_summary;
 
@@ -145,7 +145,7 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
  */
 static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].counter_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -153,7 +153,7 @@ static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_tx_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].counter_tx_id;
     if (likely(tv && id > 0)) {
         StatsAddUI64(tv, id, step);
     }
@@ -161,7 +161,7 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
 
 void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].gap_error_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].gap_error_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -169,7 +169,7 @@ void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f)
 
 void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].alloc_error_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].alloc_error_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -177,7 +177,7 @@ void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f)
 
 void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].parser_error_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].parser_error_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -185,7 +185,7 @@ void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f)
 
 void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].internal_error_id;
+    const uint16_t id = applayer_counters[f->alproto][f->protomap].internal_error_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -198,7 +198,7 @@ static void AppLayerIncrErrorExcPolicyCounter(ThreadVars *tv, Flow *f, enum Exce
         return;
     }
 #endif
-    uint16_t id = applayer_counters[f->protomap][f->alproto].eps_error.eps_id[policy];
+    uint16_t id = applayer_counters[f->alproto][f->protomap].eps_error.eps_id[policy];
     /* for the summary values */
     uint16_t g_id = eps_error_summary.eps_id[policy];
 
@@ -1014,12 +1014,12 @@ void AppLayerListSupportedProtocols(void)
     SCEnter();
 
     AppProto alproto;
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     printf("=========Supported App Layer Protocols=========\n");
-    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+    for (alproto = 0; alproto < AlprotoMax; alproto++) {
         if (alprotos[alproto] == 1)
             printf("%s\n", AppLayerGetProtoName(alproto));
     }
@@ -1028,11 +1028,54 @@ void AppLayerListSupportedProtocols(void)
 }
 
 /***** Setup/General Registration *****/
+static void AppLayerNamesSetup(void)
+{
+    AppProtoRegisterProtoString(ALPROTO_UNKNOWN, "unknown");
+    AppProtoRegisterProtoString(ALPROTO_FAILED, "failed");
+    AppProtoRegisterProtoString(ALPROTO_HTTP1, "http1");
+    AppProtoRegisterProtoString(ALPROTO_FTP, "ftp");
+    AppProtoRegisterProtoString(ALPROTO_SMTP, "smtp");
+    AppProtoRegisterProtoString(ALPROTO_TLS, "tls");
+    AppProtoRegisterProtoString(ALPROTO_SSH, "ssh");
+    AppProtoRegisterProtoString(ALPROTO_IMAP, "imap");
+    AppProtoRegisterProtoString(ALPROTO_JABBER, "jabber");
+    AppProtoRegisterProtoString(ALPROTO_SMB, "smb");
+    AppProtoRegisterProtoString(ALPROTO_DCERPC, "dcerpc");
+    AppProtoRegisterProtoString(ALPROTO_IRC, "irc");
+    AppProtoRegisterProtoString(ALPROTO_DNS, "dns");
+    AppProtoRegisterProtoString(ALPROTO_MODBUS, "modbus");
+    AppProtoRegisterProtoString(ALPROTO_ENIP, "enip");
+    AppProtoRegisterProtoString(ALPROTO_DNP3, "dnp3");
+    AppProtoRegisterProtoString(ALPROTO_NFS, "nfs");
+    AppProtoRegisterProtoString(ALPROTO_NTP, "ntp");
+    AppProtoRegisterProtoString(ALPROTO_FTPDATA, "ftp-data");
+    AppProtoRegisterProtoString(ALPROTO_TFTP, "tftp");
+    AppProtoRegisterProtoString(ALPROTO_IKE, "ike");
+    AppProtoRegisterProtoString(ALPROTO_KRB5, "krb5");
+    AppProtoRegisterProtoString(ALPROTO_QUIC, "quic");
+    AppProtoRegisterProtoString(ALPROTO_DHCP, "dhcp");
+    AppProtoRegisterProtoString(ALPROTO_SNMP, "snmp");
+    AppProtoRegisterProtoString(ALPROTO_SIP, "sip");
+    AppProtoRegisterProtoString(ALPROTO_RFB, "rfb");
+    AppProtoRegisterProtoString(ALPROTO_MQTT, "mqtt");
+    AppProtoRegisterProtoString(ALPROTO_PGSQL, "pgsql");
+    AppProtoRegisterProtoString(ALPROTO_TELNET, "telnet");
+    AppProtoRegisterProtoString(ALPROTO_WEBSOCKET, "websocket");
+    AppProtoRegisterProtoString(ALPROTO_LDAP, "ldap");
+    AppProtoRegisterProtoString(ALPROTO_DOH2, "doh2");
+    AppProtoRegisterProtoString(ALPROTO_TEMPLATE, "template");
+    AppProtoRegisterProtoString(ALPROTO_RDP, "rdp");
+    AppProtoRegisterProtoString(ALPROTO_HTTP2, "http2");
+    AppProtoRegisterProtoString(ALPROTO_BITTORRENT_DHT, "bittorrent-dht");
+    AppProtoRegisterProtoString(ALPROTO_POP3, "pop3");
+    AppProtoRegisterProtoString(ALPROTO_HTTP, "http");
+}
 
 int AppLayerSetup(void)
 {
     SCEnter();
 
+    AppLayerNamesSetup();
     AppLayerProtoDetectSetup();
     AppLayerParserSetup();
 
@@ -1040,6 +1083,7 @@ int AppLayerSetup(void)
     AppLayerProtoDetectPrepareState();
 
     AppLayerSetupCounters();
+    FrameConfigInit();
 
     SCReturnInt(0);
 }
@@ -1052,6 +1096,7 @@ int AppLayerDeSetup(void)
     AppLayerParserDeSetup();
 
     AppLayerDeSetupCounters();
+    FrameConfigDeInit();
 
     SCReturnInt(0);
 }
@@ -1137,8 +1182,8 @@ static void AppLayerSetupExceptionPolicyPerProtoCounters(
             g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
         for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
             if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
-                snprintf(applayer_counter_names[ipproto_map][alproto].eps_name[i],
-                        sizeof(applayer_counter_names[ipproto_map][alproto].eps_name[i]),
+                snprintf(applayer_counter_names[alproto][ipproto_map].eps_name[i],
+                        sizeof(applayer_counter_names[alproto][ipproto_map].eps_name[i]),
                         "app_layer.error.%s%s.exception_policy.%s", alproto_str, ipproto_suffix,
                         ExceptionPolicyEnumToString(i, true));
             }
@@ -1149,10 +1194,19 @@ static void AppLayerSetupExceptionPolicyPerProtoCounters(
 void AppLayerSetupCounters(void)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
     const char *str = "app_layer.flow.";
     const char *estr = "app_layer.error.";
 
+    applayer_counter_names =
+            SCCalloc(AlprotoMax, sizeof(AppLayerCounterNames[FLOW_PROTO_APPLAYER_MAX]));
+    if (unlikely(applayer_counter_names == NULL)) {
+        FatalError("Unable to alloc applayer_counter_names.");
+    }
+    applayer_counters = SCCalloc(AlprotoMax, sizeof(AppLayerCounters[FLOW_PROTO_APPLAYER_MAX]));
+    if (unlikely(applayer_counters == NULL)) {
+        FatalError("Unable to alloc applayer_counters.");
+    }
     /* We don't log stats counters if exception policy is `ignore`/`not set` */
     if (g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
         /* Register global counters for app layer error exception policy summary */
@@ -1174,7 +1228,7 @@ void AppLayerSetupCounters(void)
         const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
         uint8_t ipprotos_all[256 / 8];
 
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
@@ -1183,62 +1237,62 @@ void AppLayerSetupCounters(void)
                 AppLayerProtoDetectSupportedIpprotos(alproto, ipprotos_all);
                 if ((ipprotos_all[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) &&
                         (ipprotos_all[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8)))) {
-                    snprintf(applayer_counter_names[ipproto_map][alproto].name,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].name),
-                            "%s%s%s", str, alproto_str, ipproto_suffix);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
-                            "%s%s%s", tx_str, alproto_str, ipproto_suffix);
+                    snprintf(applayer_counter_names[alproto][ipproto_map].name,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].name), "%s%s%s",
+                            str, alproto_str, ipproto_suffix);
+                    snprintf(applayer_counter_names[alproto][ipproto_map].tx_name,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].tx_name), "%s%s%s",
+                            tx_str, alproto_str, ipproto_suffix);
 
                     if (ipproto == IPPROTO_TCP) {
-                        snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
-                                sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                        snprintf(applayer_counter_names[alproto][ipproto_map].gap_error,
+                                sizeof(applayer_counter_names[alproto][ipproto_map].gap_error),
                                 "%s%s%s.gap", estr, alproto_str, ipproto_suffix);
                     }
-                    snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].alloc_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].alloc_error),
                             "%s%s%s.alloc", estr, alproto_str, ipproto_suffix);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].parser_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].parser_error),
                             "%s%s%s.parser", estr, alproto_str, ipproto_suffix);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].internal_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].internal_error),
                             "%s%s%s.internal", estr, alproto_str, ipproto_suffix);
 
                     AppLayerSetupExceptionPolicyPerProtoCounters(
                             ipproto_map, alproto, alproto_str, ipproto_suffix);
                 } else {
-                    snprintf(applayer_counter_names[ipproto_map][alproto].name,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].name),
-                            "%s%s", str, alproto_str);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
-                            "%s%s", tx_str, alproto_str);
+                    snprintf(applayer_counter_names[alproto][ipproto_map].name,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].name), "%s%s", str,
+                            alproto_str);
+                    snprintf(applayer_counter_names[alproto][ipproto_map].tx_name,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].tx_name), "%s%s",
+                            tx_str, alproto_str);
 
                     if (ipproto == IPPROTO_TCP) {
-                        snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
-                                sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                        snprintf(applayer_counter_names[alproto][ipproto_map].gap_error,
+                                sizeof(applayer_counter_names[alproto][ipproto_map].gap_error),
                                 "%s%s.gap", estr, alproto_str);
                     }
-                    snprintf(applayer_counter_names[ipproto_map][alproto].alloc_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].alloc_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].alloc_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].alloc_error),
                             "%s%s.alloc", estr, alproto_str);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].parser_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].parser_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].parser_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].parser_error),
                             "%s%s.parser", estr, alproto_str);
-                    snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].internal_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].internal_error),
                             "%s%s.internal", estr, alproto_str);
                     AppLayerSetupExceptionPolicyPerProtoCounters(
                             ipproto_map, alproto, alproto_str, "");
                 }
             } else if (alproto == ALPROTO_FAILED) {
-                snprintf(applayer_counter_names[ipproto_map][alproto].name,
-                        sizeof(applayer_counter_names[ipproto_map][alproto].name),
-                        "%s%s%s", str, "failed", ipproto_suffix);
+                snprintf(applayer_counter_names[alproto][ipproto_map].name,
+                        sizeof(applayer_counter_names[alproto][ipproto_map].name), "%s%s%s", str,
+                        "failed", ipproto_suffix);
                 if (ipproto == IPPROTO_TCP) {
-                    snprintf(applayer_counter_names[ipproto_map][alproto].gap_error,
-                            sizeof(applayer_counter_names[ipproto_map][alproto].gap_error),
+                    snprintf(applayer_counter_names[alproto][ipproto_map].gap_error,
+                            sizeof(applayer_counter_names[alproto][ipproto_map].gap_error),
                             "%sfailed%s.gap", estr, ipproto_suffix);
                 }
             }
@@ -1249,7 +1303,7 @@ void AppLayerSetupCounters(void)
 void AppLayerRegisterThreadCounters(ThreadVars *tv)
 {
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    AppProto alprotos[ALPROTO_MAX];
+    AppProto alprotos[AlprotoMax];
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     /* We don't log stats counters if exception policy is `ignore`/`not set` */
@@ -1267,43 +1321,43 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
 
-        for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (AppProto alproto = 0; alproto < AlprotoMax; alproto++) {
             if (alprotos[alproto] == 1) {
-                applayer_counters[ipproto_map][alproto].counter_id =
-                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
+                applayer_counters[alproto][ipproto_map].counter_id =
+                        StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);
 
-                applayer_counters[ipproto_map][alproto].counter_tx_id =
-                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
+                applayer_counters[alproto][ipproto_map].counter_tx_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].tx_name, tv);
 
                 if (ipproto == IPPROTO_TCP) {
-                    applayer_counters[ipproto_map][alproto].gap_error_id = StatsRegisterCounter(
-                            applayer_counter_names[ipproto_map][alproto].gap_error, tv);
+                    applayer_counters[alproto][ipproto_map].gap_error_id = StatsRegisterCounter(
+                            applayer_counter_names[alproto][ipproto_map].gap_error, tv);
                 }
-                applayer_counters[ipproto_map][alproto].alloc_error_id = StatsRegisterCounter(
-                        applayer_counter_names[ipproto_map][alproto].alloc_error, tv);
-                applayer_counters[ipproto_map][alproto].parser_error_id = StatsRegisterCounter(
-                        applayer_counter_names[ipproto_map][alproto].parser_error, tv);
-                applayer_counters[ipproto_map][alproto].internal_error_id = StatsRegisterCounter(
-                        applayer_counter_names[ipproto_map][alproto].internal_error, tv);
+                applayer_counters[alproto][ipproto_map].alloc_error_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].alloc_error, tv);
+                applayer_counters[alproto][ipproto_map].parser_error_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].parser_error, tv);
+                applayer_counters[alproto][ipproto_map].internal_error_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].internal_error, tv);
                 /* We don't log stats counters if exception policy is `ignore`/`not set` */
                 if (g_stats_eps_per_app_proto_errors &&
                         g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
                     for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1;
                             i < EXCEPTION_POLICY_MAX; i++) {
                         if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
-                            applayer_counters[ipproto_map][alproto]
+                            applayer_counters[alproto][ipproto_map]
                                     .eps_error.eps_id[i] = StatsRegisterCounter(
-                                    applayer_counter_names[ipproto_map][alproto].eps_name[i], tv);
+                                    applayer_counter_names[alproto][ipproto_map].eps_name[i], tv);
                         }
                     }
                 }
             } else if (alproto == ALPROTO_FAILED) {
-                applayer_counters[ipproto_map][alproto].counter_id =
-                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
+                applayer_counters[alproto][ipproto_map].counter_id =
+                        StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);
 
                 if (ipproto == IPPROTO_TCP) {
-                    applayer_counters[ipproto_map][alproto].gap_error_id = StatsRegisterCounter(
-                            applayer_counter_names[ipproto_map][alproto].gap_error, tv);
+                    applayer_counters[alproto][ipproto_map].gap_error_id = StatsRegisterCounter(
+                            applayer_counter_names[alproto][ipproto_map].gap_error, tv);
                 }
             }
         }
@@ -1312,8 +1366,8 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 
 void AppLayerDeSetupCounters(void)
 {
-    memset(applayer_counter_names, 0, sizeof(applayer_counter_names));
-    memset(applayer_counters, 0, sizeof(applayer_counters));
+    SCFree(applayer_counter_names);
+    SCFree(applayer_counters);
 }
 
 /***** Unittests *****/

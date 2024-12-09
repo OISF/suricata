@@ -281,7 +281,7 @@ pub extern "C" fn rs_modbus_probe(
     match MODBUS_PARSER.probe(slice, Direction::Unknown) {
         Status::Recognized => unsafe { ALPROTO_MODBUS },
         Status::Incomplete => ALPROTO_UNKNOWN,
-        Status::Unrecognized => unsafe { ALPROTO_FAILED },
+        Status::Unrecognized => ALPROTO_FAILED,
     }
 }
 

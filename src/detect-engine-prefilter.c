@@ -521,7 +521,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         /* per alproto to set is_last_for_progress per alproto because the inspect
          * loop skips over engines that are not the correct alproto */
-        for (AppProto a = 1; a < ALPROTO_FAILED; a++) {
+        for (AppProto a = ALPROTO_FAILED + 1; a < AlprotoMax; a++) {
             int last_tx_progress = 0;
             bool last_tx_progress_set = false;
             PrefilterEngine *prev_engine = NULL;
