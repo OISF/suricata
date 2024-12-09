@@ -369,7 +369,9 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             int64_t abs_offset = (int64_t)frame->offset + (int64_t)STREAM_BASE_OFFSET(stream);
             int64_t win = STREAM_APP_PROGRESS(stream) - abs_offset;
 
-            if (!eof && win < frame->len && win < 2500) {
+            /* skip frame if threshold not yet reached, esp if frame length is
+             * still unknown. */
+            if (!eof && ((frame->len == -1) || (win < frame->len)) && win < 2500) {
                 SCLogDebug("frame id %" PRIi64 " len %" PRIi64 ", win %" PRIi64
                            ", skipping logging",
                         frame->id, frame->len, win);
@@ -390,8 +392,6 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
             jb_free(jb);
             frame->flags |= FRAME_FLAG_LOGGED;
-        } else if (frame != NULL) {
-            SCLogDebug("frame %p id %" PRIi64, frame, frame->id);
         }
     }
     return TM_ECODE_OK;
@@ -410,9 +410,11 @@ static bool JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packe
 
     if ((p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) && p->flow->alparser != NULL) {
         if (p->proto == IPPROTO_TCP) {
-            if ((p->flow->flags & FLOW_TS_APP_UPDATED) && PKT_IS_TOSERVER(p)) {
+            if ((PKT_IS_PSEUDOPKT(p) || (p->flow->flags & FLOW_TS_APP_UPDATED)) &&
+                    PKT_IS_TOSERVER(p)) {
                 // fallthrough
-            } else if ((p->flow->flags & FLOW_TC_APP_UPDATED) && PKT_IS_TOCLIENT(p)) {
+            } else if ((PKT_IS_PSEUDOPKT(p) || (p->flow->flags & FLOW_TC_APP_UPDATED)) &&
+                       PKT_IS_TOCLIENT(p)) {
                 // fallthrough
             } else {
                 return false;
