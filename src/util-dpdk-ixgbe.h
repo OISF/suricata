@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,6 +28,7 @@
 
 #ifdef HAVE_DPDK
 
+int ixgbeDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
 void ixgbeDeviceSetRSSHashFunction(uint64_t *rss_conf);
 
 #endif /* HAVE_DPDK */
