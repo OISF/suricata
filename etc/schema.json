@@ -6602,6 +6602,10 @@
                 "tc_max_regions": {
                     "type": "integer"
                 },
+                "tc_urgent_oob_data": {
+                    "description": "Number of Out-of-Band bytes sent by server using TCP urgent packets",
+                    "type": "integer"
+                },
                 "tcp_flags": {
                     "type": "string"
                 },
@@ -6615,6 +6619,10 @@
                     "type": "boolean"
                 },
                 "ts_max_regions": {
+                    "type": "integer"
+                },
+                "ts_urgent_oob_data": {
+                    "description": "Number of Out-of-Band bytes sent by client using TCP urgent packets",
                     "type": "integer"
                 },
                 "urg": {
