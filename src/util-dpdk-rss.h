@@ -36,7 +36,7 @@ extern uint8_t RSS_HKEY[];
 
 struct rte_flow_action_rss DPDKInitRSSAction(struct rte_eth_rss_conf rss_conf, int nb_rx_queues,
         uint16_t *queues, enum rte_eth_hash_function func, bool set_key);
-int DeviceCreateRSSFlowGeneric(
+int DPDKCreateRSSFlowGeneric(
         int port_id, const char *port_name, struct rte_flow_action_rss rss_conf);
 int DPDKSetRSSFlowQueues(int port_id, const char *port_name, struct rte_flow_action_rss rss_conf);
 int DPDKCreateRSSFlow(int port_id, const char *port_name, struct rte_flow_action_rss rss_conf,
