@@ -1,5 +1,5 @@
 #include "test_framework.h"
-#define DEBUG 1
+//#define DEBUG 1
 #include "../xdp_lb_stream.c"
 #include "test_mocks.h"
 
@@ -209,6 +209,15 @@ void test_ipv6(struct xdp_md* ctx) {
   bpf_map_lookup_elem = bpf_map_lookup_elem_stream_mock_v4;
 }
 
+void test_debug_not_defined(struct xdp_md* ctx) {
+	// Ensure that the DEBUG macro is not defined in production
+#ifdef DEBUG
+	#if DEBUG != 0
+		assert(0);
+	#endif
+#endif
+}
+
 int main() {
   setup_mocks();
   bpf_map_lookup_elem = bpf_map_lookup_elem_stream_mock_v4;
@@ -222,6 +231,7 @@ int main() {
   TEST(IEEE8021ah_packet_vlan);
   TEST(no_match);
   TEST(ipv6);
+  TEST(debug_not_defined);
 
   return 0;
 }
