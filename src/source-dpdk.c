@@ -198,6 +198,8 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         i40eDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
     else if (strcmp(driver_name, "net_ixgbe") == 0)
         ixgbeDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
+    else if (strcmp(driver_name, "net_ice") == 0)
+        iceDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -217,8 +219,8 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
         }
 #endif /* RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0) */
     }
-
-    if (strcmp(driver_name, "net_ixgbe") == 0) {
+    
+    if (strcmp(driver_name, "net_ixgbe") == 0 || strcmp(driver_name, "net_ice") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
