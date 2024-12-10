@@ -196,7 +196,8 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         driver_name = BondingDeviceDriverGet(ptv->port_id);
     if (strcmp(driver_name, "net_i40e") == 0)
         i40eDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
-
+    else if (strcmp(driver_name, "net_ixgbe") == 0)
+        ixgbeDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -205,8 +206,11 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
         driver_name = BondingDeviceDriverGet(ptv->port_id);
     }
 
-    if (strcmp(driver_name, "net_i40e") == 0) {
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0)
+    if (
+#if RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0)
+            strcmp(driver_name, "net_i40e") == 0 ||
+#endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
+            strcmp(driver_name, "net_ixgbe") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
@@ -214,7 +218,6 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
             SCLogError("%s: unable to flush rte_flow rules: %s Flush error msg: %s",
                     ptv->livedev->dev, rte_strerror(-retval), flush_error.message);
         }
-#endif /* RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0) */
     }
 }
 
