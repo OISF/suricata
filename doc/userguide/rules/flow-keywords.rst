@@ -318,6 +318,34 @@ Signature example::
 
 In this example, we combine `flow.age` and `flowbits` to get an alert on the first packet after the flow's age is older than one hour.
 
+flow.rate
+---------
+
+The rate of the flow calculated by dividing number of bytes by the time in seconds.
+So, the unit of the flow rate is bytes/second. Note that it is possible to denote
+the rate with units like kb, mb, etc.
+Currently, it is implemented as a check against the total number of bytes seen by
+the flow in both the directions divided by the age of the flow.
+
+For example, if a flow has seen 5000000 bytes in 10 seconds, a rule for this flow
+will be matched against 500000 bytes/s.
+
+flow.rate uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
+
+Syntax::
+
+ flow.rate: [op]<number>
+
+The rate can be matched exactly, or compared using the _op_ setting::
+
+ flow.rate:10000    # exactly 10000 bytes per second
+ flow.rate:>20000   # greater than 20000 bytes per second
+ flow.rate:>=30mb   # greater than equal to 30mbps
+
+Signature example::
+
+ pass tcp any any -> any any (msg:"Flow rate higher than 50kbps"; flow.rate:>50kb; sid:1; rev:1;)
+
 flow.pkts_toclient
 ------------------
 
