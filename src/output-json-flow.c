@@ -318,6 +318,11 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 
             jb_set_uint(jb, "ts_max_regions", ssn->client.sb.max_regions);
             jb_set_uint(jb, "tc_max_regions", ssn->server.sb.max_regions);
+
+            if (ssn->urg_offset_ts)
+                jb_set_uint(jb, "ts_urgent_oob_data", ssn->urg_offset_ts);
+            if (ssn->urg_offset_tc)
+                jb_set_uint(jb, "tc_urgent_oob_data", ssn->urg_offset_tc);
         }
 
         /* Close tcp. */
