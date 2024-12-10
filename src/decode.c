@@ -663,6 +663,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_flow_get_used_eval_reject = StatsRegisterCounter("flow.get_used_eval_reject", tv);
     dtv->counter_flow_get_used_eval_busy = StatsRegisterCounter("flow.get_used_eval_busy", tv);
     dtv->counter_flow_get_used_failed = StatsRegisterCounter("flow.get_used_failed", tv);
+    dtv->counter_flow_elephant = StatsRegisterCounter("flow.elephant_flows", tv);
 
     dtv->counter_flow_spare_sync_avg = StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", tv);
     dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", tv);
