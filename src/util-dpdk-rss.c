@@ -84,6 +84,47 @@ struct rte_flow_action_rss DPDKInitRSSAction(struct rte_eth_rss_conf rss_conf, i
 }
 
 /**
+ * \brief Creates RTE_FLOW RSS rule used by NIC drivers
+ *        to redistribute packets to different queues based
+ *        on IP adresses.
+ *
+ * \param port_id The port identifier of the Ethernet device
+ * \param port_name The port name of the Ethernet device
+ * \param rss_conf RSS configuration
+ * \return int 0 on success, a negative errno value otherwise
+ */
+int DPDKCreateRSSFlowGeneric(
+        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf)
+{
+    struct rte_flow_attr attr = { 0 };
+    struct rte_flow_action action[] = { { 0 }, { 0 } };
+    struct rte_flow_error flow_error = { 0 };
+    struct rte_flow_item pattern[] = { { 0 }, { 0 } };
+
+    rss_conf.types = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_IPV6;
+
+    attr.ingress = 1;
+    action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
+    action[0].conf = &rss_conf;
+    action[1].type = RTE_FLOW_ACTION_TYPE_END;
+
+    pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
+
+    struct rte_flow *flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
+    if (flow == NULL) {
+        SCLogError("%s: rte_flow rule creation error: %s", port_name, flow_error.message);
+        int ret = rte_flow_validate(port_id, &attr, pattern, action, &flow_error);
+        SCLogError("%s: rte_flow rule validation error: %s, errmsg: %s", port_name,
+                rte_strerror(-ret), flow_error.message);
+        return ret;
+    } else {
+        SCLogDebug("%s: rte_flow rule created", port_name);
+    }
+
+    return 0;
+}
+
+/**
  * \brief Create RTE_FLOW RSS rule configured with pattern and rss_type
  *        but with no rx_queues configured. This is specific way of setting RTE_FLOW RSS rule
  *        for some drivers (mostly Intel NICs). This function's call must be preceded by
