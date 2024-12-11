@@ -258,7 +258,9 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     }
 
     const char *reason = NULL;
-    if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
+    if (f->flow_end_flags & FLOW_END_FLAG_TCPREUSE)
+        reason = "tcp_reuse";
+    else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
         reason = "forced";
     else if (f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN)
         reason = "shutdown";

@@ -244,6 +244,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_END_FLAG_TIMEOUT   0x02
 #define FLOW_END_FLAG_FORCED    0x04
 #define FLOW_END_FLAG_SHUTDOWN  0x08
+#define FLOW_END_FLAG_TCPREUSE  0x10
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -390,11 +391,6 @@ typedef struct Flow_
         uint8_t ffr;
     };
 
-    /** timestamp in seconds of the moment this flow will timeout
-     *  according to the timeout policy. Does *not* take emergency
-     *  mode into account. */
-    uint32_t timeout_at;
-
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id[2];
 
@@ -407,6 +403,8 @@ typedef struct Flow_
 
     /** timeout policy value in seconds to add to the lastts.tv_sec
      *  when a packet has been received. */
+    /** timeout in seconds by policy, add to lastts to get actual time this times out. Ignored in
+     * emergency mode. */
     uint32_t timeout_policy;
 
     /* time stamp of last update (last packet). Set/updated under the
