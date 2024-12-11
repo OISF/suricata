@@ -71,11 +71,11 @@ can be used to force the detect engine to tie a transaction
 to an alert.
 This transaction is not guaranteed to be the relevant one,
 depending on your use case and how you define relevant here.
-If there are multiple live transactions, none will get
-picked up.
-The alert event will have ``"tx_guessed": true`` to recognize
-these alerts.
-
+**WARNING: If there are multiple live transactions, none will get
+picked up.** This is to reduce the chances of logging unrelated data, and may
+lead to alerts being logged without metadata, in some cases.
+The alert event will have ``tx_guessed: true`` to recognize
+such alerts.
 
 Metadata::
 
