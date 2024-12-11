@@ -109,7 +109,8 @@ enum {
     SLL_PKT_TOO_SMALL, /**< sll packet smaller than minimum size */
 
     /* ETHERNET EVENTS */
-    ETHERNET_PKT_TOO_SMALL, /**< ethernet packet smaller than minimum size */
+    ETHERNET_PKT_TOO_SMALL,     /**< ethernet packet smaller than minimum size */
+    ETHERNET_UNKNOWN_ETHERTYPE, /**< ethertype unknown/unhandled*/
 
     /* PPP EVENTS */
     PPP_PKT_TOO_SMALL,     /**< ppp packet smaller than minimum size */
