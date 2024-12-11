@@ -725,6 +725,38 @@ static inline void DetectRunPrefilterPkt(
 #endif
 }
 
+/** \internal
+ *  \brief check if the tx whose is is given is the only one
+ *  live transaction for the flow in the given direction
+ *
+ *  \param f flow
+ *  \param txid transaction id
+ *  \param dir direction
+ *
+ *  \retval bool true if we are sure this tx is the only one live in said direction
+ */
+static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
+{
+    uint64_t tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
+    if (tx_cnt == txid + 1) {
+        // only live tx
+        return true;
+    }
+    if (tx_cnt == txid + 2) {
+        // 2 live txs, one after us
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, txid + 1);
+        if (tx) {
+            AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+            // test if the other tx is unidirectional in the other way
+            if (txd &&
+                    (AppLayerParserGetTxDetectFlags(txd, dir) & APP_LAYER_TX_SKIP_INSPECT_FLAG)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static inline void DetectRulePacketRules(
     ThreadVars * const tv,
     DetectEngineCtx * const de_ctx,
@@ -821,8 +853,7 @@ static inline void DetectRulePacketRules(
             uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
             txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
             if ((s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP) ||
-                    (de_ctx->guess_applayer &&
-                            AppLayerParserGetTxCnt(pflow, pflow->alstate) == txid + 1)) {
+                    (de_ctx->guess_applayer && IsOnlyTxInDirection(pflow, txid, dir))) {
                 // if there is a UDP specific app-layer signature,
                 // or only one live transaction
                 // try to use the good tx for the packet direction
