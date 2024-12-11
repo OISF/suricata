@@ -82,6 +82,8 @@ Major changes
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unmet requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`.
+- New transform ``luaxform`` that uses a Lua script for sticky buffer transformation.
+  More details in :ref:`lua-transform`.
 
 Removals
 ~~~~~~~~
