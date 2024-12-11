@@ -822,6 +822,7 @@ static inline void DetectRulePacketRules(
             uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
             txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
             if ((s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP) ||
+                    (alert_flags & PACKET_ALERT_FLAG_STREAM_MATCH) ||
                     (de_ctx->guess_applayer &&
                             AppLayerParserGetTxCnt(pflow, pflow->alstate) == txid + 1)) {
                 // if there is a UDP specific app-layer signature,
