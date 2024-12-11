@@ -1275,6 +1275,8 @@ for example RFC 6093, 3.4).
 
 Several options are provided to control how to deal with the urgent pointer.
 
+.. note:: TCP urgent handling is considered experimental at this time
+
 ::
 
     stream:
