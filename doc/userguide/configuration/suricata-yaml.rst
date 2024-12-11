@@ -632,6 +632,7 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
       toserver-groups: 25
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
+    guess-applayer-tx: no
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -665,6 +666,12 @@ bugs in Suricata cause big problems. Often Suricata has to deal with
 complicated issues. It could end up in an 'endless loop' due to a bug,
 meaning it will repeat its actions over and over again. With the
 option inspection-recursion-limit you can limit this action.
+
+The ``guess-applayer-tx`` option controls whether the engine will try to guess
+and tie a transaction to a given alert if the matching signature doesn't have
+app-layer keywords. If enabled, AND ONLY ONE LIVE TRANSACTION EXISTS, that
+transaction's data will be added to the alert metadata. Note that this may not
+be the expected data, from an analyst's perspective.
 
 *Example 4	Detection-engine grouping tree*
 
