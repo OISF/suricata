@@ -1523,7 +1523,7 @@ static int DetectContentParseTest19(void)
     FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL);
 
     DetectContentData *data = (DetectContentData *)sm->ctx;
-    FAIL_IF_NOT(data->flags == DETECT_CONTENT_DISTANCE);
+    FAIL_IF_NOT(data->flags == (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_MPM));
 
     s = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any "

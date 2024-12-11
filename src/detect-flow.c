@@ -445,14 +445,18 @@ void DetectFlowFree(DetectEngineCtx *de_ctx, void *ptr)
 static void
 PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
+    SCEnter();
+
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
     if (FlowMatch(p->flags, p->flowflags, ctx->v1.u16[0], ctx->v1.u16[1])) {
+        SCLogDebug("match: adding sids");
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
+    SCReturn;
 }
 
 static void
