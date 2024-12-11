@@ -195,9 +195,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
     if (stored) {
         // the file has just been stored on disk cf OUTPUT_FILEDATA_FLAG_CLOSE
         // but the flag is not set until the loggers have been called
-        EveFileInfo(js, ff, tx_id, ff->flags | FILE_STORED);
+        EveFileInfo(js, ff, tx_id, ff->flags | FILE_STORED, -1);
     } else {
-        EveFileInfo(js, ff, tx_id, ff->flags);
+        EveFileInfo(js, ff, tx_id, ff->flags, -1);
     }
     jb_close(js);
 
