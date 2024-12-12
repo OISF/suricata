@@ -733,7 +733,7 @@ LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *parent_ctx)
             entry->isopen = true;
             ret_ctx = entry->ctx;
         } else {
-            SCLogError(
+            SCLogDebug(
                     "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
             (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
         }
