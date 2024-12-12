@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,7 +30,7 @@
 
 #include "util-dpdk.h"
 
-int i40eDeviceSetRSS(int port_id, int nb_rx_queues);
+int i40eDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
 void i40eDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
 
 #endif /* HAVE_DPDK */
