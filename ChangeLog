@@ -1,3 +1,32 @@
+7.0.8 -- 2024-12-12
+
+Security #7412: tcp: generic detection bypass using TCP urgent support (7.0.x backport)(HIGH - CVE 2024-55629)
+Security #7405: dns: quadratic complexity in logging and invalid json as output (7.0.x backport)(HIGH - CVE 2024-55628)
+Security #7404: tcp: segfault on StreamingBufferSlideToOffsetWithRegions (7.0.x backport)(CRITICAL - CVE 2024-55627)
+Security #7367: bpf: oversized bpf file can lead to buffer overflow (7.0.x backport)(LOW - CVE 2024-55626)
+Security #7306: detect: write to read-only memory in transforms (7.0.x backport)(CRITICAL - CVE 2024-55605)
+Bug #7445: dpdk: RSS key length missmatch on ice (E810) card with DPDK version 22.11.6  (7.0.x backport)
+Bug #7434: requires: rules with unmet requirements are still loaded (7.0.x backport)
+Bug #7432: detect: decoder event rules fail to match on invalid packets (7.0.x backport)
+Bug #7407: detect: missing app-layer metadata in alerts (7.0.x backport)
+Bug #7368: flow: flow timeout pseudo packet triggers unexpected alert (7.0.x backport)
+Bug #7362: rules: unknown internal events not being detected as errors (7.0.x backport)
+Bug #7339: rust: different int types turn garbage on FFI boundary (7.0.x backport)
+Bug #7335: asan/profiling: global-buffer-overflow error (7.0.x backport)
+Bug #7327: http: FN with prefilter if the first of multi buffer did not match (7.0.x backport)
+Bug #7324: mqtt: wrong and missing direction for keywords (7.0.x backport)
+Bug #7310: http: incorrect file direction handling (7.0.x backport)
+Bug #7308: conf: memleak if yaml parser is initialized before checking if file exists (7.0.x backport)
+Bug #7307: detect: memleak in case of errors during initialization (7.0.x backport)
+Bug #7301: output: oversized records lead to invalid json (7.0.x backport)
+Bug #7295: detect: sip.stat_code keyword uses wrong buffer name
+Bug #7294: conf: nullptr dereference if mem alloc fails for a node in yaml parser (7.0.x backport)
+Optimization #7316: template: remove usage of template-rust (7.0.x backport)
+Optimization #7275: tcp/reassemble: GetBlock takes O(nlgn) in worst case (7.0.x backport)
+Feature #7439: eve/alert: enrich decoder event rules (7.0.x backport)
+Task #7427:  flowint: add isnotset support (7.0.x backport)
+Task #7288: schema: add missing tls fields certificate and chain (7.0.x backport)
+
 7.0.7 -- 2024-10-01
 
 Security #7289: http: missing hashtable random seed leads to potential DoS(CRITICAL - CVE 2024-47188)
