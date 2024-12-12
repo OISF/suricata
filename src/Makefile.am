@@ -483,6 +483,7 @@ noinst_HEADERS = \
 	util-dpdk-ice.h \
 	util-dpdk-ixgbe.h \
 	util-dpdk-bonding.h \
+	util-dpdk-rss.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
@@ -1037,6 +1038,7 @@ libsuricata_c_a_SOURCES = \
 	util-dpdk-ice.c \
 	util-dpdk-ixgbe.c \
 	util-dpdk-bonding.c \
+	util-dpdk-rss.c \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
