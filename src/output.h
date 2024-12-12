@@ -170,4 +170,13 @@ typedef struct EveJsonSimpleAppLayerLogger {
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
 
+typedef struct EveJsonLoggerRegistrationData {
+    const char *confname;
+    const char *logname;
+    AppProto alproto;
+    EveJsonSimpleTxLogFunc LogTx;
+} EveJsonLoggerRegistrationData;
+
+int OutputPreRegisterLogger(EveJsonLoggerRegistrationData reg_data);
+
 #endif /* ! SURICATA_OUTPUT_H */

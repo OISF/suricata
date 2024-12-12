@@ -109,7 +109,7 @@ impl From<Direction> for u8 {
 pub type AppProto = u16;
 
 pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
+pub const ALPROTO_FAILED : AppProto = 1;
 
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
@@ -252,7 +252,6 @@ pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
-        ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
 }
 
