@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -88,6 +88,8 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-affinity.h"
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
+#include "util-dpdk-ice.h"
+#include "util-dpdk-ixgbe.h"
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
@@ -190,14 +192,11 @@ static inline void DPDKFreeMbufArray(
 
 static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
-    if (strcmp(driver_name, "net_bonding") == 0) {
+    if (strcmp(driver_name, "net_bonding") == 0)
         driver_name = BondingDeviceDriverGet(ptv->port_id);
-    }
-
-    // The PMD Driver i40e has a special way to set the RSS, it can be set via rte_flow rules
-    // and only after the start of the port
     if (strcmp(driver_name, "net_i40e") == 0)
-        i40eDeviceSetRSS(ptv->port_id, ptv->threads);
+        i40eDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
+
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
