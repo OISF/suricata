@@ -597,6 +597,11 @@ typedef struct SignatureInitData_ {
 
     /* highest list/buffer id which holds a DETECT_CONTENT */
     uint32_t max_content_list_id;
+
+    /* inter-signature state dependency */
+    bool is_rule_state_dependant;
+    uint32_t rule_state_dependant_id;
+    uint32_t rule_state_variable_idx;
 } SignatureInitData;
 
 /** \brief Signature container */
