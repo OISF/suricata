@@ -376,7 +376,6 @@ static const char *UrgentPolicyToString(enum TcpStreamUrgentHandling pol)
     return NULL;
 }
 
-
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is true nothing will
@@ -543,7 +542,8 @@ void StreamTcpInitConfig(bool quiet)
         stream_config.urgent_policy = TCP_STREAM_URGENT_DEFAULT;
     }
     if (!quiet) {
-        SCLogConfig("stream.reassembly.urgent.policy\": %s", UrgentPolicyToString(stream_config.urgent_policy));
+        SCLogConfig("stream.reassembly.urgent.policy\": %s",
+                UrgentPolicyToString(stream_config.urgent_policy));
     }
     if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
         const char *temp_urgoobpol = NULL;
@@ -556,13 +556,15 @@ void StreamTcpInitConfig(bool quiet)
             } else if (strcmp(temp_urgoobpol, "gap") == 0) {
                 stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_GAP;
             } else {
-                FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'", temp_urgoobpol);
+                FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'",
+                        temp_urgoobpol);
             }
         } else {
             stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DEFAULT;
         }
         if (!quiet) {
-            SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s", UrgentPolicyToString(stream_config.urgent_oob_limit_policy));
+            SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s",
+                    UrgentPolicyToString(stream_config.urgent_oob_limit_policy));
         }
     }
 
