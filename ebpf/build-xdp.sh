@@ -2,7 +2,7 @@
 
 # A simple script to speed up build/test/debug iterations for XDP stuff.
 
-if [ "$#" -lt 1 ]; then
+if [ "$#" -ne 1 ]; then
   echo "USAGE: build-xdp.sh <name-of-source-file>"
   exit 1
 fi
@@ -26,10 +26,10 @@ set -e
 if [ -z ${RTK_SENSOR_HOSTNAME} ]; then
   echo "RTK_SENSOR_HOSTNAME is not set. Skipping scp."
   exit 0
-else
-  echo "Copying $1.bpf to $RTK_SENSOR_HOSTNAME..."
-  scp -F $RTK_BUILD_ROOT/etc/ssh_config ./$1.bpf $RTK_SENSOR_HOSTNAME:~/ebpf
 fi
+
+echo "Copying $1.bpf to $RTK_SENSOR_HOSTNAME..."
+scp -F $RTK_BUILD_ROOT/etc/ssh_config ./$1.bpf $RTK_SENSOR_HOSTNAME:~/ebpf
 
 echo "Restarting Suricata on $RTK_SENSOR_HOSTNAME..."
 ssh -F $RTK_BUILD_ROOT/etc/ssh_config vagrant@$RTK_SENSOR_HOSTNAME -t \
