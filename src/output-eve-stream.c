@@ -157,7 +157,7 @@ static OutputInitResult EveStreamLogInitCtxSub(ConfNode *conf, OutputCtx *parent
         ctx->trigger_flags |= SetFlag(conf, "state-update", STREAM_PKT_FLAG_STATE_UPDATE);
         ctx->trigger_flags |=
                 SetFlag(conf, "spurious-retransmission", STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION);
-        ctx->trigger_flags |= SetFlag(conf, "tcp-session-reuse", STREAM_PKT_FLAG_TCP_PORT_REUSE);
+        ctx->trigger_flags |= SetFlag(conf, "tcp-session-reuse", STREAM_PKT_FLAG_TCP_SESSION_REUSE);
 
         ctx->trigger_flags |= SetFlag(conf, "all", 0xFFFF);
         SCLogDebug("trigger_flags %04x", ctx->trigger_flags);
@@ -369,8 +369,8 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             jb_append_string(js, "dsack");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_ACK_UNSEEN_DATA)
             jb_append_string(js, "ack_unseen_data");
-        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_PORT_REUSE)
-            jb_append_string(js, "tcp_port_reuse");
+        if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_SESSION_REUSE)
+            jb_append_string(js, "tcp_session_reuse");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE)
             jb_append_string(js, "zero_window_probe");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK)
