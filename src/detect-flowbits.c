@@ -630,6 +630,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 
             if (to_state) {
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
+                s->init_data->rule_state_dependency = true;
                 SCLogDebug("made SID %u stateful because it depends on "
                         "stateful rules that set flowbit %s", s->id, varname);
             }
