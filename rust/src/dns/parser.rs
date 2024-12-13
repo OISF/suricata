@@ -1089,11 +1089,10 @@ mod tests {
     fn test_dns_parse_name_truncated() {
         // Generate a non-compressed hostname over our maximum of 1024.
         let mut buf: Vec<u8> = vec![];
-        for _ in 0..17 {
+
+        for i in 1..18 {
             buf.push(0b0011_1111);
-            for _ in 0..63 {
-                buf.push(b'a');
-            }
+            buf.resize(i * 64, b'a');
         }
 
         let mut flags = DNSNameFlags::default();
@@ -1120,21 +1119,7 @@ mod tests {
 
     #[test]
     fn test_dns_parse_name_truncated_max_segments_with_pointer() {
-        let mut buf: Vec<u8> = vec![];
-
-        // "a" at the beginning of the buffer.
-        buf.push(0b0000_0001);
-        buf.push(b'a');
-
-        // Followed by a pointer back to the beginning.
-        buf.push(0b1100_0000);
-        buf.push(0b0000_0000);
-
-        // The start of the name, which is pointer to the beginning of
-        // the buffer.
-        buf.push(0b1100_0000);
-        buf.push(0b000_0000);
-
+        let buf: Vec<u8> = vec![0b0000_0001, b'a', 0b1100_0000, 0b0000_0000, 0b1100_0000, 0b000_0000];
         let mut flags = DNSNameFlags::default();
         let (_rem, name) = dns_parse_name(&buf[4..], &buf, &mut flags).unwrap();
         assert_eq!(name.value.len(), 255);
@@ -1143,9 +1128,7 @@ mod tests {
 
     #[test]
     fn test_dns_parse_name_self_reference() {
-        let mut buf = vec![];
-        buf.push(0b1100_0000);
-        buf.push(0b0000_0000);
+        let buf = vec![0b1100_0000, 0b0000_0000];
         let mut flags = DNSNameFlags::default();
         assert!(dns_parse_name(&buf, &buf, &mut flags).is_err());
     }
