@@ -967,7 +967,7 @@ void RunModeInitializeThreadSettings(void)
         size_t size;
         if (pthread_attr_getstacksize(&attr, &size) == 0 && size < 512 * 1024) {
             threading_set_stack_size = 512 * 1024;
-            SCLogNotice("thread stack size of %" PRIuMAX " to too small: setting to 512k",
+            SCLogNotice("thread stack size of %" PRIuMAX " too small: setting to 512k",
                     (uintmax_t)size);
         }
     }
