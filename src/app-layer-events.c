@@ -23,6 +23,7 @@
  */
 
 #include "app-layer-events.h"
+#include "rust.h"
 #include "util-enum.h"
 
 int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id)
@@ -61,7 +62,7 @@ SCEnumCharMap app_layer_event_pkt_table[ ] = {
 };
 
 int AppLayerGetEventInfoById(
-        uint8_t event_id, const char **event_name, AppLayerEventType *event_type)
+        uint8_t event_id, const char **event_name, SCAppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, app_layer_event_pkt_table);
     if (*event_name == NULL) {
@@ -165,7 +166,7 @@ SCEnumCharMap det_ctx_event_table[] = {
 };
 
 int DetectEngineGetEventInfo(
-        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
+        const char *event_name, uint8_t *event_id, SCAppLayerEventType *event_type)
 {
     if (SCAppLayerGetEventIdByName(event_name, det_ctx_event_table, event_id) == 0) {
         *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
