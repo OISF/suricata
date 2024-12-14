@@ -85,33 +85,25 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     SCLogDebug("UDP sp: %u -> dp: %u - HLEN: %" PRIu32 " LEN: %" PRIu32 "", p->sp, p->dp,
             UDP_HEADER_LEN, p->payload_len);
 
+    /* prep flow dependency here, so tunnel decoding in strip mode can unset it */
+    FlowSetupPacket(p);
+
     if (DecodeTeredoEnabledForPort(p->sp, p->dp) &&
             likely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
-        /* Here we have a Teredo packet and don't need to handle app
-         * layer */
-        FlowSetupPacket(p);
         return TM_ECODE_OK;
     }
 
     /* Handle Geneve if configured */
     if (DecodeGeneveEnabledForPort(p->sp, p->dp) &&
             unlikely(DecodeGeneve(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
-        /* Here we have a Geneve packet and don't need to handle app
-         * layer */
-        FlowSetupPacket(p);
         return TM_ECODE_OK;
     }
 
     /* Handle VXLAN if configured */
     if (DecodeVXLANEnabledForPort(p->sp, p->dp) &&
             unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
-        /* Here we have a VXLAN packet and don't need to handle app
-         * layer */
-        FlowSetupPacket(p);
         return TM_ECODE_OK;
     }
-
-    FlowSetupPacket(p);
 
     return TM_ECODE_OK;
 }
