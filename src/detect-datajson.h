@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,32 +18,29 @@
 /**
  * \file
  *
- * \author Eric Leblond <el@stamus-networks.com>
+ *  \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef SURICATA_DATASETS_IPV6_H
-#define SURICATA_DATASETS_IPV6_H
+#ifndef __DETECT_DATAJSON_H__
+#define __DETECT_DATAJSON_H__
 
-#include "datasets-reputation.h"
+#include "datasets.h"
 
-typedef struct IPv6Type {
-    uint8_t ipv6[16];
-    DataRepType rep;
-} IPv6Type;
+#define DETECT_DATAJSON_CMD_ISSET    1
+#define DETECT_DATAJSON_CMD_ISNOTSET 2
 
-typedef struct IPv6TypeJson {
-    uint8_t ipv6[16];
+typedef struct DetectDatajsonData_ {
+    Dataset *set;
+    uint8_t cmd;
     DataJsonType json;
-} IPv6TypeJson;
+    char json_key[SIG_JSON_CONTENT_KEY_LEN];
+    void *id;
+} DetectDatajsonData;
 
-int IPv6Set(void *dst, void *src);
-bool IPv6Compare(void *a, void *b);
-uint32_t IPv6Hash(uint32_t hash_seed, void *s);
-void IPv6Free(void *s);
+int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatajsonData *sd,
+        const uint8_t *data, const uint32_t data_len);
 
-int IPv6JsonSet(void *dst, void *src);
-bool IPv6JsonCompare(void *a, void *b);
-uint32_t IPv6JsonHash(uint32_t hash_seed, void *s);
-void IPv6JsonFree(void *s);
+/* prototypes */
+void DetectDatajsonRegister(void);
 
-#endif /* __DATASETS_IPV4_H__ */
+#endif /* __DETECT_DATAJSON_H__ */

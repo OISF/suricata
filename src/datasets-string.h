@@ -32,11 +32,23 @@ typedef struct StringType {
     uint8_t *ptr;
 } StringType;
 
+typedef struct StringTypeJson {
+    uint32_t len;
+    DataJsonType json;
+    uint8_t *ptr;
+} StringTypeJson;
+
 int StringSet(void *dst, void *src);
 bool StringCompare(void *a, void *b);
 uint32_t StringHash(uint32_t hash_seed, void *s);
 uint32_t StringGetLength(void *s);
 void StringFree(void *s);
 int StringAsBase64(const void *s, char *out, size_t out_size);
+
+int StringJsonSet(void *dst, void *src);
+bool StringJsonCompare(void *a, void *b);
+uint32_t StringJsonHash(uint32_t hash_seed, void *s);
+void StringJsonFree(void *s);
+int StringJsonAsBase64(const void *s, char *out, size_t out_size);
 
 #endif /* SURICATA_DATASETS_STRING_H */

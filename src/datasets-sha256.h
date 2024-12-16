@@ -25,15 +25,26 @@
 #define SURICATA_DATASETS_SHA256_H
 
 #include "datasets-reputation.h"
+#include "datasets-json.h"
 
 typedef struct Sha256Type {
     uint8_t sha256[32];
     DataRepType rep;
 } Sha256Type;
 
+typedef struct Sha256TypeJson {
+    uint8_t sha256[32];
+    DataJsonType json;
+} Sha256TypeJson;
+
 int Sha256StrSet(void *dst, void *src);
 bool Sha256StrCompare(void *a, void *b);
 uint32_t Sha256StrHash(uint32_t hash_seed, void *s);
 void Sha256StrFree(void *s);
+
+int Sha256StrJsonSet(void *dst, void *src);
+bool Sha256StrJsonCompare(void *a, void *b);
+uint32_t Sha256StrJsonHash(uint32_t hash_seed, void *s);
+void Sha256StrJsonFree(void *s);
 
 #endif /* SURICATA_DATASETS_SHA256_H */
