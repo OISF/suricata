@@ -4495,6 +4495,11 @@
             },
             "additionalProperties": false
         },
+        "socks": {
+            "type": "object",
+            "optional": true,
+            "additionalProperties": true
+        },
         "ssh": {
             "type": "object",
             "optional": true,
@@ -4732,6 +4737,10 @@
                                     "description": "Errors encountered parsing SNMP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "socks": {
+                                    "description": "Errors encountered parsing SOCKS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "ssh": {
                                     "description": "Errors encountered parsing SSH protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4907,6 +4916,10 @@
                                     "description": "Number of flows for SNMP",
                                     "type": "integer"
                                 },
+                                "socks": {
+                                    "description": "Number of flows for SOCKS",
+                                    "type": "integer"
+                                },
                                 "ssh": {
                                     "description": "Number of flows for SSH protocol",
                                     "type": "integer"
@@ -5075,6 +5088,10 @@
                                 },
                                 "snmp": {
                                     "description": "Number of transactions for SNMP",
+                                    "type": "integer"
+                                },
+                                "socks": {
+                                    "description": "Number of transactions for SOCKS",
                                     "type": "integer"
                                 },
                                 "ssh": {

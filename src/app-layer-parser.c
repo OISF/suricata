@@ -1731,6 +1731,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     rs_websocket_register_parser();
     SCRegisterLdapTcpParser();
     SCRegisterLdapUdpParser();
+    SCRegisterSocksParser();
     rs_template_register_parser();
     SCRfbRegisterParser();
     SCMqttRegisterParser();
