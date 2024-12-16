@@ -901,20 +901,16 @@ void RegisterAllModules(void)
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
-    TmModuleDecodeNFQRegister();
     /* ipfw */
     TmModuleReceiveIPFWRegister();
     TmModuleVerdictIPFWRegister();
     TmModuleDecodeIPFWRegister();
     /* pcap live */
     TmModuleReceivePcapRegister();
-    TmModuleDecodePcapRegister();
     /* pcap file */
     TmModuleReceivePcapFileRegister();
-    TmModuleDecodePcapFileRegister();
     /* af-packet */
     TmModuleReceiveAFPRegister();
-    TmModuleDecodeAFPRegister();
     /* af-xdp */
     TmModuleReceiveAFXDPRegister();
     TmModuleDecodeAFXDPRegister();
@@ -949,7 +945,6 @@ void RegisterAllModules(void)
 
     /* Dpdk */
     TmModuleReceiveDPDKRegister();
-    TmModuleDecodeDPDKRegister();
 }
 
 TmEcode SCLoadYamlConfig(void)

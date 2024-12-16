@@ -754,8 +754,8 @@ int RunModeIdsAFPAutoFp(void)
         FatalError("Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP",
-            "DecodeAFP", thread_name_autofp, live_dev);
+    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP", NULL,
+            thread_name_autofp, live_dev);
     if (ret != 0) {
         FatalError("Unable to start runmode");
     }
@@ -789,11 +789,8 @@ int RunModeIdsAFPSingle(void)
         FatalError("Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
-                                    AFPConfigGeThreadsCount,
-                                    "ReceiveAFP",
-                                    "DecodeAFP", thread_name_single,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureSingle(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP", NULL,
+            thread_name_single, live_dev);
     if (ret != 0) {
         FatalError("Unable to start runmode");
     }
@@ -830,8 +827,8 @@ int RunModeIdsAFPWorkers(void)
         FatalError("Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP",
-            "DecodeAFP", thread_name_workers, live_dev);
+    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP", NULL,
+            thread_name_workers, live_dev);
     if (ret != 0) {
         FatalError("Unable to start runmode");
     }
