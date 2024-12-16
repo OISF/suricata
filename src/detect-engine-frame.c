@@ -67,8 +67,8 @@ static bool SetupStreamCallbackData(struct FrameStreamData *dst, const TcpSessio
 
 static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, const uint8_t *input,
         const uint32_t input_len, const uint64_t input_offset);
-static void BufferSetupUdp(InspectionBuffer *buffer, const Frame *frame, const Packet *p,
-        const DetectEngineTransforms *transforms);
+static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const Frame *frame, const Packet *p, const DetectEngineTransforms *transforms);
 
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
         const Frames *frames, const Frame *frame, const AppProto alproto)
@@ -159,7 +159,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
         if (frame->offset >= p->payload_len)
             return;
 
-        BufferSetupUdp(buffer, frame, p, ctx->transforms);
+        BufferSetupUdp(det_ctx, buffer, frame, p, ctx->transforms);
         const uint32_t data_len = buffer->inspect_len;
         const uint8_t *data = buffer->inspect;
 
@@ -251,8 +251,8 @@ bool DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, c
     return false;
 }
 
-static void BufferSetupUdp(InspectionBuffer *buffer, const Frame *frame, const Packet *p,
-        const DetectEngineTransforms *transforms)
+static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const Frame *frame, const Packet *p, const DetectEngineTransforms *transforms)
 {
     uint8_t ci_flags = DETECT_CI_FLAGS_START;
     uint32_t frame_len;
@@ -275,7 +275,7 @@ static void BufferSetupUdp(InspectionBuffer *buffer, const Frame *frame, const P
             AppLayerParserGetFrameNameById(p->flow->proto, p->flow->alproto, frame->type),
             frame->offset, frame->type, frame->len);
 
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->inspect_offset = 0;
     buffer->flags = ci_flags;
 }
@@ -301,7 +301,7 @@ static int DetectFrameInspectUdp(DetectEngineThreadCtx *det_ctx,
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 
     if (!buffer->initialized)
-        BufferSetupUdp(buffer, frame, p, transforms);
+        BufferSetupUdp(det_ctx, buffer, frame, p, transforms);
     DEBUG_VALIDATE_BUG_ON(!buffer->initialized);
     if (buffer->inspect == NULL)
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -387,7 +387,7 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
     }
     // PrintRawDataFp(stdout, data, data_len);
     SCLogDebug("fsd->transforms %p", fsd->transforms);
-    InspectionBufferSetupMulti(buffer, fsd->transforms, data, data_len);
+    InspectionBufferSetupMulti(fsd->det_ctx, buffer, fsd->transforms, data, data_len);
     SCLogDebug("inspect_offset %" PRIu64, fo_inspect_offset);
     buffer->inspect_offset = fo_inspect_offset;
     buffer->flags = ci_flags;
