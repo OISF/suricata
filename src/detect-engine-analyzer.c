@@ -1047,6 +1047,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             break;
     }
 
+    jb_set_bool(ctx.js, "rule_state_dependency", s->init_data->rule_state_dependency);
+
     jb_open_array(ctx.js, "flags");
     if (s->flags & SIG_FLAG_SRC_ANY) {
         jb_append_string(ctx.js, "src_any");

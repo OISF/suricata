@@ -1537,6 +1537,9 @@ Signature *SigAlloc (void)
      * overwritten, we can then assign the default value of 3 */
     sig->prio = -1;
 
+    /* rule interdepency is false, at start */
+    sig->init_data->rule_state_dependency = false;
+
     sig->init_data->list = DETECT_SM_LIST_NOTSET;
     return sig;
 }
