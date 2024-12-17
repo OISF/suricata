@@ -89,7 +89,6 @@ pub struct LdapState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<LdapTransaction>,
-    tx_index_completed: usize,
     request_frame: Option<Frame>,
     response_frame: Option<Frame>,
     request_gap: bool,
@@ -114,7 +113,6 @@ impl LdapState {
             state_data: AppLayerStateData::new(),
             tx_id: 0,
             transactions: VecDeque::new(),
-            tx_index_completed: 0,
             request_frame: None,
             response_frame: None,
             request_gap: false,
@@ -138,7 +136,6 @@ impl LdapState {
             }
         }
         if found {
-            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -147,14 +144,9 @@ impl LdapState {
         self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
-    pub fn new_tx(&mut self) -> LdapTransaction {
-        let mut tx = LdapTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
+    pub fn new_tx(&mut self) -> Option<LdapTransaction> {
         if self.transactions.len() > unsafe { LDAP_MAX_TX } {
-            let mut index = self.tx_index_completed;
-            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
-                index += 1;
+            for tx_old in &mut self.transactions {
                 if !tx_old.complete {
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
@@ -162,12 +154,14 @@ impl LdapState {
                     tx_old
                         .tx_data
                         .set_event(LdapEvent::TooManyTransactions as u8);
-                    break;
                 }
             }
-            self.tx_index_completed = index;
+            return None;
         }
-        return tx;
+        let mut tx = LdapTransaction::new();
+        self.tx_id += 1;
+        tx.tx_id = self.tx_id;
+        return Some(tx);
     }
 
     fn set_event(&mut self, e: LdapEvent) {
@@ -228,7 +222,11 @@ impl LdapState {
             }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
-                    let mut tx = self.new_tx();
+                    let tx = self.new_tx();
+                    if tx.is_none() {
+                        return AppLayerResult::err();
+                    }
+                    let mut tx = tx.unwrap();
                     let tx_id = tx.id();
                     let request = LdapMessage::from(msg);
                     // check if STARTTLS was requested
@@ -237,7 +235,7 @@ impl LdapState {
                             self.request_tls = true;
                         }
                     }
-                    tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
+                    tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
                     let consumed = start.len() - rem.len();
@@ -296,10 +294,15 @@ impl LdapState {
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
                     let response = LdapMessage::from(msg);
+                    println!(
+                        "lolr {} {}/{}",
+                        self.transactions.len(),
+                        rem.len(),
+                        input.len()
+                    );
                     // check if STARTTLS was requested
                     if self.request_tls {
-                        if let ProtocolOp::ExtendedResponse(response) = &response.protocol_op
-                        {
+                        if let ProtocolOp::ExtendedResponse(response) = &response.protocol_op {
                             if response.result.result_code == ResultCode(0) {
                                 SCLogDebug!("LDAP: STARTTLS detected");
                                 self.has_starttls = true;
@@ -308,7 +311,7 @@ impl LdapState {
                         }
                     }
                     if let Some(tx) = self.find_request(response.message_id) {
-                        tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
+                        tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
                         tx.tx_data.updated_tc = true;
                         tx.responses.push_back(response);
@@ -317,7 +320,11 @@ impl LdapState {
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
                         // this is an unsolicited notification, which means
                         // there is no request
-                        let mut tx = self.new_tx();
+                        let tx = self.new_tx();
+                        if tx.is_none() {
+                            return AppLayerResult::err();
+                        }
+                        let mut tx = tx.unwrap();
                         let tx_id = tx.id();
                         tx.complete = true;
                         tx.responses.push_back(response);
@@ -325,7 +332,11 @@ impl LdapState {
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else {
-                        let mut tx = self.new_tx();
+                        let tx = self.new_tx();
+                        if tx.is_none() {
+                            return AppLayerResult::err();
+                        }
+                        let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
@@ -367,9 +378,13 @@ impl LdapState {
 
         match ldap_parse_msg(input) {
             Ok((_, msg)) => {
-                let mut tx = self.new_tx();
+                let tx = self.new_tx();
+                if tx.is_none() {
+                    return AppLayerResult::err();
+                }
+                let mut tx = tx.unwrap();
                 let request = LdapMessage::from(msg);
-                tx.complete = tx_is_complete(&request.protocol_op, Direction::ToServer);
+                tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                 tx.request = Some(request);
                 self.transactions.push_back(tx);
             }
@@ -411,7 +426,7 @@ impl LdapState {
                 Ok((rem, msg)) => {
                     let response = LdapMessage::from(msg);
                     if let Some(tx) = self.find_request(response.message_id) {
-                        tx.complete = tx_is_complete(&response.protocol_op, Direction::ToClient);
+                        tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
                         let consumed = start.len() - rem.len();
@@ -419,7 +434,11 @@ impl LdapState {
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
                         // this is an unsolicited notification, which means
                         // there is no request
-                        let mut tx = self.new_tx();
+                        let tx = self.new_tx();
+                        if tx.is_none() {
+                            return AppLayerResult::err();
+                        }
+                        let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
@@ -427,7 +446,11 @@ impl LdapState {
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else {
-                        let mut tx = self.new_tx();
+                        let tx = self.new_tx();
+                        if tx.is_none() {
+                            return AppLayerResult::err();
+                        }
+                        let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
