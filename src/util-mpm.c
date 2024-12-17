@@ -108,7 +108,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(
     else
         pitem->next = nitem;
 
-    de_ctx->mpm_ctx_factory_container->no_of_items++;
     return nitem->id;
 }
 
