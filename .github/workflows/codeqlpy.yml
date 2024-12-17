@@ -3,13 +3,15 @@ name: "CodeQL"
 on:
   push:
     branches: [ master ]
-    paths-ignore:
-      - "doc/**"
+    paths:
+      - "python/**"
+      - "**/*.py"
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ master ]
-    paths-ignore:
-      - "doc/**"
+    paths:
+      - "python/**"
+      - "**/*.py"
   schedule:
     - cron: '18 21 * * 1'
 
@@ -33,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp' ]
+        language: [ 'python' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
     steps:
     - name: Checkout repository
