@@ -319,7 +319,6 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
-        pv->cur_dir_depth = 0;
 
         int should_recurse;
         pv->should_recurse = false;
