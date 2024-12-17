@@ -368,9 +368,19 @@ impl HTTP2Transaction {
         if unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             // we store DNS response, and process it when complete
             if let Some(doh) = &mut self.doh {
-                if doh.is_doh_data[dir.index()] && doh.data_buf[dir.index()].len() < 0xFFFF {
-                    // a DNS message is U16_MAX
-                    doh.data_buf[dir.index()].extend_from_slice(decompressed);
+                if doh.is_doh_data[dir.index()] {
+                    if doh.data_buf[dir.index()].len() + decompressed.len() <= 0xFFFF {
+                        // a DNS message is U16_MAX
+                        doh.data_buf[dir.index()].extend_from_slice(decompressed);
+                    } else {
+                        // stop processing further data
+                        doh.is_doh_data[dir.index()] = false;
+                        if dir == Direction::ToClient {
+                            self.set_event(HTTP2Event::DnsResponseTooLong);
+                        } else {
+                            self.set_event(HTTP2Event::DnsRequestTooLong);
+                        }
+                    }
                 }
             }
         }
@@ -506,6 +516,8 @@ pub enum HTTP2Event {
     AuthorityHostMismatch,
     UserinfoInUri,
     ReassemblyLimitReached,
+    DnsRequestTooLong,
+    DnsResponseTooLong,
 }
 
 pub struct HTTP2DynTable {
