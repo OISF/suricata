@@ -1139,7 +1139,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     uint8_t *base64_decoded;
     int base64_decoded_len;
-    int base64_decoded_len_max;
 
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
