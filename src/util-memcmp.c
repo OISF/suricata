@@ -35,102 +35,134 @@
 
 static int MemcmpTest01 (void)
 {
-    uint8_t a[] = "abcd";
-    uint8_t b[] = "abcd";
+    uint8_t a[] = "abcd            abcd";
+    uint8_t b[] = "abcd            abcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest02 (void)
 {
-    uint8_t a[] = "abcdabcdabcdabcd";
-    uint8_t b[] = "abcdabcdabcdabcd";
+    uint8_t a[] = "abcdabcdabcdabcd    ";
+    uint8_t b[] = "abcdabcdabcdabcd    ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest03 (void)
 {
-    uint8_t a[] = "abcdabcd";
-    uint8_t b[] = "abcdabcd";
+    uint8_t a[] = "abcdabcd         ";
+    uint8_t b[] = "abcdabcd         ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest04 (void)
 {
-    uint8_t a[] = "abcd";
-    uint8_t b[] = "abcD";
+    uint8_t a[] = "abcd             ";
+    uint8_t b[] = "abcD             ";
 
-    int r = SCMemcmp(a, b, sizeof(a)-1);
-    FAIL_IF(r != 1);
+    for (size_t x = 4; x < sizeof(a); x++) {
+        int r = SCMemcmp(a, b, x);
+        FAIL_IF(r != 1);
+    }
 
     PASS;
 }
 
 static int MemcmpTest05 (void)
 {
-    uint8_t a[] = "abcdabcdabcdabcd";
-    uint8_t b[] = "abcDabcdabcdabcd";
+    uint8_t a[] = "abcdabcdabcdabcd       ";
+    uint8_t b[] = "abcDabcdabcdabcd       ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    for (size_t x = 4; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    }
+
     PASS;
 }
 
 static int MemcmpTest06 (void)
 {
-    uint8_t a[] = "abcdabcd";
-    uint8_t b[] = "abcDabcd";
+    uint8_t a[] = "abcdabcd              ";
+    uint8_t b[] = "abcDabcd              ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    for (size_t x = 4; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    }
+
     PASS;
 }
 
 static int MemcmpTest07 (void)
 {
-    uint8_t a[] = "abcd";
-    uint8_t b[] = "abcde";
+    uint8_t a[] = "            abcd";
+    uint8_t b[] = "            abcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest08 (void)
 {
-    uint8_t a[] = "abcdabcdabcdabcd";
-    uint8_t b[] = "abcdabcdabcdabcde";
+    uint8_t a[] = "  zyxvabcdabcdabcdabcd";
+    uint8_t b[] = "  zyxvabcdabcdabcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest09 (void)
 {
-    uint8_t a[] = "abcdabcd";
-    uint8_t b[] = "abcdabcde";
+    uint8_t a[] = "         abcdabcd";
+    uint8_t b[] = "         abcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
 static int MemcmpTest10 (void)
 {
-    uint8_t a[] = "abcd";
-    uint8_t b[] = "Zbcde";
+    uint8_t a[] = "abcd                 ";
+    uint8_t b[] = "Zbcde                ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    }
+
     PASS;
 }
 
 static int MemcmpTest11 (void)
 {
-    uint8_t a[] = "abcdabcdabcdabcd";
-    uint8_t b[] = "Zbcdabcdabcdabcde";
+    uint8_t a[] = "abcdabcdabcdabcd     ";
+    uint8_t b[] = "Zbcdabcdabcdabcde    ";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    }
+
     PASS;
 }
 
@@ -145,10 +177,13 @@ static int MemcmpTest12 (void)
 
 static int MemcmpTest13 (void)
 {
-    uint8_t a[] = "abcdefgh";
-    uint8_t b[] = "AbCdEfGhIjK";
+    uint8_t a[] = "        abcdefgh";
+    uint8_t b[] = "        AbCdEfGhIjK";
 
-    FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a) - 1) != 0);
+    for (size_t x = 1; x < sizeof(a); x++) {
+        FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a) - 1) != 0);
+    }
+
     PASS;
 }
 
@@ -312,25 +347,142 @@ struct MemcmpTest18Tests {
     const char *b;
     int result;
 } memcmp_tests18_tests[] = {
-        { "abcdefgh", "!bcdefgh", 1, },
-        { "?bcdefgh", "!bcdefgh", 1, },
-        { "!bcdefgh", "abcdefgh", 1, },
-        { "!bcdefgh", "?bcdefgh", 1, },
-        { "zbcdefgh", "bbcdefgh", 1, },
+    {
+            "abcdefgh",
+            "!bcdefgh",
+            1,
+    },
+    {
+            "?bcdefgh",
+            "!bcdefgh",
+            1,
+    },
+    {
+            "!bcdefgh",
+            "abcdefgh",
+            1,
+    },
+    {
+            "!bcdefgh",
+            "?bcdefgh",
+            1,
+    },
+    {
+            "zbcdefgh",
+            "bbcdefgh",
+            1,
+    },
+    {
+            "abcdefgh       ",
+            "!bcdefgh       ",
+            1,
+    },
+    {
+            "?bcdefgh       ",
+            "!bcdefgh       ",
+            1,
+    },
+    {
+            "!bcdefgh       ",
+            "abcdefgh       ",
+            1,
+    },
+    {
+            "!bcdefgh       ",
+            "?bcdefgh       ",
+            1,
+    },
+    {
+            "zbcdefgh       ",
+            "bbcdefgh       ",
+            1,
+    },
 
-        { "abcdefgh12345678", "!bcdefgh12345678", 1, },
-        { "?bcdefgh12345678", "!bcdefgh12345678", 1, },
-        { "!bcdefgh12345678", "abcdefgh12345678", 1, },
-        { "!bcdefgh12345678", "?bcdefgh12345678", 1, },
-        { "bbcdefgh12345678", "zbcdefgh12345678", 1, },
+    {
+            "abcdefgh12345678",
+            "!bcdefgh12345678",
+            1,
+    },
+    {
+            "?bcdefgh12345678",
+            "!bcdefgh12345678",
+            1,
+    },
+    {
+            "!bcdefgh12345678",
+            "abcdefgh12345678",
+            1,
+    },
+    {
+            "!bcdefgh12345678",
+            "?bcdefgh12345678",
+            1,
+    },
+    {
+            "bbcdefgh12345678",
+            "zbcdefgh12345678",
+            1,
+    },
 
-        { "abcdefgh", "abcdefgh", 0, },
-        { "abcdefgh", "Abcdefgh", 0, },
-        { "abcdefgh12345678", "Abcdefgh12345678", 0, },
+    {
+            "abcdefgh",
+            "abcdefgh",
+            0,
+    },
+    {
+            "abcdefgh",
+            "Abcdefgh",
+            0,
+    },
+    {
+            "abcdefgh        ",
+            "abcdefgh        ",
+            0,
+    },
+    {
+            "abcdefgh        ",
+            "Abcdefgh        ",
+            0,
+    },
+    {
+            "abcdefgh12345678",
+            "Abcdefgh12345678",
+            0,
+    },
+    {
+            "abcdefgz12345678",
+            "AbcdefgZ12345678",
+            0,
+    },
+    {
+            "abcdefgz[@@45678aa",
+            "AbcdefgZ[@@45678AA",
+            0,
+    },
+    {
+            "abcdefgz12345678",
+            "abcdefgz12345678",
+            0,
+    },
+    {
+            "abcdefgz12345678",
+            "Xbcdefgz12345678",
+            1,
+    },
+    {
+            "abcdefgz12345678",
+            "abcdefgzX2345678",
+            1,
+    },
+    {
+            "abcdefgz12345678",
+            "abcdXfgz1234X678",
+            1,
+    },
 
-        { NULL, NULL, 0 },
+    { NULL, NULL, 0 },
 
-    };
+};
 
 static int MemcmpTest18 (void)
 {
