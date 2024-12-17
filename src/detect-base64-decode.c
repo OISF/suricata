@@ -28,7 +28,7 @@
 #define BASE64_DECODE_MAX 65535
 
 typedef struct DetectBase64Decode_ {
-    uint32_t bytes;
+    uint16_t bytes;
     uint32_t offset;
     uint8_t relative;
 } DetectBase64Decode;
@@ -110,8 +110,8 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     return det_ctx->base64_decoded_len > 0;
 }
 
-static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
-    uint32_t *offset, uint8_t *relative)
+static int DetectBase64DecodeParse(
+        const char *str, uint16_t *bytes, uint32_t *offset, uint8_t *relative)
 {
     const char *bytes_str = NULL;
     const char *offset_str = NULL;
@@ -131,7 +131,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
 
     if (pcre_rc >= 3) {
         if (pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&bytes_str, &pcre2_len) == 0) {
-            if (StringParseUint32(bytes, 10, 0, bytes_str) <= 0) {
+            if (StringParseUint16(bytes, 10, 0, bytes_str) <= 0) {
                 SCLogError("Bad value for bytes: \"%s\"", bytes_str);
                 goto error;
             }
@@ -185,7 +185,7 @@ error:
 static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
-    uint32_t bytes = 0;
+    uint16_t bytes = 0;
     uint32_t offset = 0;
     uint8_t relative = 0;
     DetectBase64Decode *data = NULL;
@@ -233,9 +233,6 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         data->bytes = BASE64_DECODE_MAX;
     }
     if (data->bytes > de_ctx->base64_decode_max_len) {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-        data->bytes = BASE64_DECODE_MAX;
-#endif
         de_ctx->base64_decode_max_len = data->bytes;
     }
 
@@ -267,7 +264,7 @@ static int g_http_header_buffer_id = 0;
 static int DetectBase64TestDecodeParse(void)
 {
     int retval = 0;
-    uint32_t bytes = 0;
+    uint16_t bytes = 0;
     uint32_t offset = 0;
     uint8_t relative = 0;
 

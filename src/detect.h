@@ -943,7 +943,7 @@ typedef struct DetectEngineCtx_ {
     struct SigGroupHead_ *decoder_event_sgh;
 
     /* Maximum size of the buffer for decoded base64 data. */
-    uint32_t base64_decode_max_len;
+    uint16_t base64_decode_max_len;
 
     /** Store rule file and line so that parsers can use them in errors. */
     int rule_line;
