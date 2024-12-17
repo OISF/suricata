@@ -17,6 +17,7 @@ Syntax::
     base64_decode:bytes <value>, offset <value>, relative;
 
 The ``bytes`` option specifies how many bytes Suricata should decode and make available for base64_data.
+This number is limited to 64KiB.
 The decoding will stop at the end of the buffer.
 
 The ``offset`` option specifies how many bytes Suricata should skip before decoding.
