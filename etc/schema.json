@@ -6503,9 +6503,6 @@
                         "pseudo": {
                             "type": "integer"
                         },
-                        "pseudo_failed": {
-                            "type": "integer"
-                        },
                         "reassembly_exception_policy": {
                             "description":
                                     "How many times reassembly memcap exception policy was applied, and which one",

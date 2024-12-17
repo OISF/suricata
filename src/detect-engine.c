@@ -3303,7 +3303,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         if (det_ctx->base64_decoded == NULL) {
             return TM_ECODE_FAILED;
         }
-        det_ctx->base64_decoded_len_max = de_ctx->base64_decode_max_len;
         det_ctx->base64_decoded_len = 0;
     }
 

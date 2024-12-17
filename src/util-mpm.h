@@ -124,7 +124,6 @@ typedef struct MpmCtxFactoryItem {
 
 typedef struct MpmCtxFactoryContainer_ {
     MpmCtxFactoryItem *items;
-    int32_t no_of_items;
     int32_t max_id;
 } MpmCtxFactoryContainer;
 
