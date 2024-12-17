@@ -603,7 +603,8 @@ static void PropagateLimits(Signature *s, SigMatch *sm_head)
                             VALIDATE(depth + cd->within + dist >= 0 &&
                                      depth + cd->within + dist <= UINT16_MAX);
                             depth = cd->depth = (uint16_t)(depth + cd->within + dist);
-                        } else {
+                        } else if ((cd->flags & DETECT_CONTENT_DISTANCE_VAR) == 0) {
+                            // we cannot know the depth yet if it comes from a var
                             SCLogDebug("offset %u + cd->within %u", offset, cd->within);
                             VALIDATE(depth + cd->within >= 0 && depth + cd->within <= UINT16_MAX);
                             depth = cd->depth = (uint16_t)(offset + cd->within);
