@@ -19,12 +19,13 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+use base64::{engine::general_purpose::STANDARD, Engine};
+use num_traits::Unsigned;
 use std::cmp::max;
 use std::collections::TryReserveError;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::str::Utf8Error;
-use base64::{Engine, engine::general_purpose::STANDARD};
 
 const INIT_SIZE: usize = 4096;
 
@@ -637,7 +638,11 @@ impl JsonBuilder {
     }
 
     /// Set a key and an unsigned integer type on an object.
-    pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, JsonError> {
+    pub fn set_uint<T>(&mut self, key: &str, val: T) -> Result<&mut Self, JsonError>
+    where
+        T: Unsigned + Into<u64>,
+    {
+        let val: u64 = val.into();
         match self.current_state() {
             State::ObjectNth => {
                 self.push(',')?;
@@ -1204,9 +1209,11 @@ mod test {
         assert_eq!(js.current_state(), State::ObjectNth);
         assert_eq!(js.buf, r#"{"one":"one","two":"two""#);
 
+        js.set_uint("three", 3u8)?;
+
         js.close()?;
         assert_eq!(js.current_state(), State::None);
-        assert_eq!(js.buf, r#"{"one":"one","two":"two"}"#);
+        assert_eq!(js.buf, r#"{"one":"one","two":"two","three":3}"#);
 
         Ok(())
     }

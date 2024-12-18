@@ -37,7 +37,7 @@ fn log_enip_header(h: &EnipHeader, js: &mut JsonBuilder) -> Result<(), JsonError
         js.set_string("status", &format!("unknown-{}", h.status))?;
     }
     if h.options != 0 {
-        js.set_uint("options", h.options.into())?;
+        js.set_uint("options", h.options)?;
     }
     Ok(())
 }
@@ -1707,7 +1707,7 @@ fn log_cip_path_segment(c: &EnipCipPathSegment) -> Result<JsonBuilder, JsonError
             js.set_string("segment_type", &format!("unknown-{}", c.segment_type))?;
         }
     }
-    js.set_uint("value", c.value.into())?;
+    js.set_uint("value", c.value)?;
     js.close()?;
     Ok(js)
 }
@@ -1819,8 +1819,8 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             }
             EnipPayload::RegisterSession(rs) => {
                 js.open_object("register_session")?;
-                js.set_uint("protocol_version", rs.protocol_version.into())?;
-                js.set_uint("options", rs.options.into())?;
+                js.set_uint("protocol_version", rs.protocol_version)?;
+                js.set_uint("options", rs.options)?;
                 js.close()?;
             }
             _ => {}
@@ -1833,8 +1833,8 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         match &response.payload {
             EnipPayload::RegisterSession(rs) => {
                 js.open_object("register_session")?;
-                js.set_uint("protocol_version", rs.protocol_version.into())?;
-                js.set_uint("options", rs.options.into())?;
+                js.set_uint("protocol_version", rs.protocol_version)?;
+                js.set_uint("options", rs.options)?;
                 js.close()?;
             }
             EnipPayload::Cip(cip) => {
@@ -1843,8 +1843,8 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             EnipPayload::ListServices(lsp) if !lsp.is_empty() => {
                 if let EnipItemPayload::Services(ls) = &lsp[0].payload {
                     js.open_object("list_services")?;
-                    js.set_uint("protocol_version", ls.protocol_version.into())?;
-                    js.set_uint("capabilities", ls.capabilities.into())?;
+                    js.set_uint("protocol_version", ls.protocol_version)?;
+                    js.set_uint("capabilities", ls.capabilities)?;
                     js.set_string("service_name", &String::from_utf8_lossy(&ls.service_name))?;
                     js.close()?;
                 }
@@ -1852,7 +1852,7 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             EnipPayload::ListIdentity(lip) if !lip.is_empty() => {
                 if let EnipItemPayload::Identity(li) = &lip[0].payload {
                     js.open_object("identity")?;
-                    js.set_uint("protocol_version", li.protocol_version.into())?;
+                    js.set_uint("protocol_version", li.protocol_version)?;
                     js.set_string(
                         "revision",
                         &format!("{}.{}", li.revision_major, li.revision_minor),
@@ -1873,11 +1873,11 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
                             js.set_string("device_type", &format!("unknown-{}", li.device_type))?;
                         }
                     }
-                    js.set_uint("product_code", li.product_code.into())?;
-                    js.set_uint("status", li.status.into())?;
-                    js.set_uint("serial", li.serial.into())?;
+                    js.set_uint("product_code", li.product_code)?;
+                    js.set_uint("status", li.status)?;
+                    js.set_uint("serial", li.serial)?;
                     js.set_string("product_name", &String::from_utf8_lossy(&li.product_name))?;
-                    js.set_uint("state", li.state.into())?;
+                    js.set_uint("state", li.state)?;
                     js.close()?;
                 }
             }

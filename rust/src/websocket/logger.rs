@@ -27,7 +27,7 @@ fn log_websocket(
     js.open_object("websocket")?;
     js.set_bool("fin", tx.pdu.fin)?;
     if let Some(xorkey) = tx.pdu.mask {
-        js.set_uint("mask", xorkey.into())?;
+        js.set_uint("mask", xorkey)?;
     }
     if let Some(opcode) = WebSocketOpcode::from_u(tx.pdu.opcode) {
         js.set_string("opcode", opcode.to_str())?;
