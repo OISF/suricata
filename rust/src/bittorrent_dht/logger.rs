@@ -92,7 +92,7 @@ fn log_bittorrent_dht(
                     js.start_object()?;
                     js.set_hex("id", &node.id)?;
                     js.set_string("ip", &print_ip_addr(&node.ip))?;
-                    js.set_uint("port", node.port.into())?;
+                    js.set_uint("port", node.port)?;
                     js.close()?;
                 }
                 js.close()?;
@@ -105,7 +105,7 @@ fn log_bittorrent_dht(
                     js.start_object()?;
                     js.set_hex("id", &node.id)?;
                     js.set_string("ip", &print_ip_addr(&node.ip))?;
-                    js.set_uint("port", node.port.into())?;
+                    js.set_uint("port", node.port)?;
                     js.close()?;
                 }
                 js.close()?;
@@ -116,7 +116,7 @@ fn log_bittorrent_dht(
             for value in values {
                 js.start_object()?;
                 js.set_string("ip", &print_ip_addr(&value.ip))?;
-                js.set_uint("port", value.port.into())?;
+                js.set_uint("port", value.port)?;
                 js.close()?;
             }
             js.close()?;

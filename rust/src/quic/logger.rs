@@ -135,7 +135,7 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             if let Some(s) = quic_tls_extension_name(etype) {
                 js.set_string("name", &s)?;
             }
-            js.set_uint("type", etype.into())?;
+            js.set_uint("type", etype)?;
 
             if !e.values.is_empty() {
                 js.open_array("values")?;
