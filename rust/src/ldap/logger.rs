@@ -28,7 +28,7 @@ fn log_ldap(tx: &LdapTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
     if let Some(req) = &tx.request {
         let protocol_op_str = req.protocol_op.to_string();
         js.open_object("request")?;
-        js.set_uint("message_id", req.message_id.0.into())?;
+        js.set_uint("message_id", req.message_id.0)?;
         js.set_string("operation", &protocol_op_str)?;
 
         match &req.protocol_op {
@@ -59,7 +59,7 @@ fn log_ldap(tx: &LdapTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             js.set_string("operation", &protocol_op_str)?;
 
             if tx.request.is_none() {
-                js.set_uint("message_id", response.message_id.0.into())?;
+                js.set_uint("message_id", response.message_id.0)?;
             }
 
             match &response.protocol_op {
@@ -88,10 +88,10 @@ fn log_ldap(tx: &LdapTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
 fn log_search_request(msg: &SearchRequest, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("search_request")?;
     js.set_string("base_object", &msg.base_object.0)?;
-    js.set_uint("scope", msg.scope.0.into())?;
-    js.set_uint("deref_alias", msg.deref_aliases.0.into())?;
-    js.set_uint("size_limit", msg.size_limit.into())?;
-    js.set_uint("time_limit", msg.time_limit.into())?;
+    js.set_uint("scope", msg.scope.0)?;
+    js.set_uint("deref_alias", msg.deref_aliases.0)?;
+    js.set_uint("size_limit", msg.size_limit)?;
+    js.set_uint("time_limit", msg.time_limit)?;
     js.set_bool("types_only", msg.types_only)?;
     if let Filter::Present(val) = &msg.filter {
         js.open_object("filter")?;
@@ -113,7 +113,7 @@ fn log_search_request(msg: &SearchRequest, js: &mut JsonBuilder) -> Result<(), J
 
 fn log_bind_request(msg: &BindRequest, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("bind_request")?;
-    js.set_uint("version", msg.version.into())?;
+    js.set_uint("version", msg.version)?;
     js.set_string("name", &msg.name.0)?;
     if let AuthenticationChoice::Sasl(sasl) = &msg.authentication {
         js.open_object("sasl")?;
