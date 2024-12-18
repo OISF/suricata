@@ -24,47 +24,49 @@ pub fn detect_uint_to_json<T: DetectIntType>(
 where
     u64: From<T>,
 {
+    let arg1: u64 = du.arg1.into();
+    let arg2: u64 = du.arg2.into();
     match du.mode {
         DetectUintMode::DetectUintModeEqual => {
-            js.set_uint("equal", du.arg1.into())?;
+            js.set_uint("equal", arg1)?;
         }
         DetectUintMode::DetectUintModeNe => {
-            js.set_uint("diff", du.arg1.into())?;
+            js.set_uint("diff", arg1)?;
         }
         DetectUintMode::DetectUintModeLt => {
-            js.set_uint("lt", du.arg1.into())?;
+            js.set_uint("lt", arg1)?;
         }
         DetectUintMode::DetectUintModeLte => {
-            js.set_uint("lte", du.arg1.into())?;
+            js.set_uint("lte", arg1)?;
         }
         DetectUintMode::DetectUintModeGt => {
-            js.set_uint("gt", du.arg1.into())?;
+            js.set_uint("gt", arg1)?;
         }
         DetectUintMode::DetectUintModeGte => {
-            js.set_uint("gte", du.arg1.into())?;
+            js.set_uint("gte", arg1)?;
         }
         DetectUintMode::DetectUintModeRange => {
             js.open_object("range")?;
-            js.set_uint("min", du.arg1.into())?;
-            js.set_uint("max", du.arg2.into())?;
+            js.set_uint("min", arg1)?;
+            js.set_uint("max", arg2)?;
             js.close()?;
         }
         DetectUintMode::DetectUintModeNegRg => {
             js.open_object("negated_range")?;
-            js.set_uint("min", du.arg1.into())?;
-            js.set_uint("max", du.arg2.into())?;
+            js.set_uint("min", arg1)?;
+            js.set_uint("max", arg2)?;
             js.close()?;
         }
         DetectUintMode::DetectUintModeBitmask => {
             js.open_object("bitmask")?;
-            js.set_uint("mask", du.arg1.into())?;
-            js.set_uint("value", du.arg2.into())?;
+            js.set_uint("mask", arg1)?;
+            js.set_uint("value", arg2)?;
             js.close()?;
         }
         DetectUintMode::DetectUintModeNegBitmask => {
             js.open_object("negated_bitmask")?;
-            js.set_uint("mask", du.arg1.into())?;
-            js.set_uint("value", du.arg2.into())?;
+            js.set_uint("mask", arg1)?;
+            js.set_uint("value", arg2)?;
             js.close()?;
         }
     }

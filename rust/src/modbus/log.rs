@@ -47,10 +47,10 @@ fn log(tx: &ModbusTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 }
 
 fn log_message(msg: &Message, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.set_uint("transaction_id", msg.transaction_id.into())?;
-    js.set_uint("protocol_id", msg.protocol_id.into())?;
-    js.set_uint("unit_id", msg.unit_id.into())?;
-    js.set_uint("function_raw", msg.function.raw.into())?;
+    js.set_uint("transaction_id", msg.transaction_id)?;
+    js.set_uint("protocol_id", msg.protocol_id)?;
+    js.set_uint("unit_id", msg.unit_id)?;
+    js.set_uint("function_raw", msg.function.raw)?;
     js.set_string("function_code", &msg.function.code.to_string())?;
     js.set_string("access_type", &msg.access_type.to_string())?;
     js.set_string("category", &msg.category.to_string())?;
@@ -59,20 +59,20 @@ fn log_message(msg: &Message, js: &mut JsonBuilder) -> Result<(), JsonError> {
     match &msg.data {
         Data::Exception(exc) => {
             js.open_object("exception")?;
-            js.set_uint("raw", exc.raw.into())?;
+            js.set_uint("raw", exc.raw)?;
             js.set_string("code", &exc.code.to_string())?;
             js.close()?;
         }
         Data::Diagnostic { func, data } => {
             js.open_object("diagnostic")?;
-            js.set_uint("raw", func.raw.into())?;
+            js.set_uint("raw", func.raw)?;
             js.set_string("code", &func.code.to_string())?;
             js.set_string_from_bytes("data", data)?;
             js.close()?;
         }
         Data::MEI { mei_type, data } => {
             js.open_object("mei")?;
-            js.set_uint("raw", mei_type.raw.into())?;
+            js.set_uint("raw", mei_type.raw)?;
             js.set_string("code", &mei_type.code.to_string())?;
             js.set_string_from_bytes("data", data)?;
             js.close()?;
@@ -107,8 +107,8 @@ fn log_message(msg: &Message, js: &mut JsonBuilder) -> Result<(), JsonError> {
 fn log_read(read: &Read, js: &mut JsonBuilder) -> Result<(), JsonError> {
     match read {
         Read::Request { address, quantity } => {
-            js.set_uint("address", (*address).into())?;
-            js.set_uint("quantity", (*quantity).into())?;
+            js.set_uint("address", *address)?;
+            js.set_uint("quantity", *quantity)?;
         }
         Read::Response(data) => {
             js.set_string_from_bytes("data", data)?;
@@ -125,8 +125,8 @@ fn log_write(write: &Write, js: &mut JsonBuilder) -> Result<(), JsonError> {
             quantity,
             data,
         } => {
-            js.set_uint("address", (*address).into())?;
-            js.set_uint("quantity", (*quantity).into())?;
+            js.set_uint("address", *address)?;
+            js.set_uint("quantity", *quantity)?;
             js.set_string_from_bytes("data", data)?;
         }
         Write::Mask {
@@ -134,13 +134,13 @@ fn log_write(write: &Write, js: &mut JsonBuilder) -> Result<(), JsonError> {
             and_mask,
             or_mask,
         } => {
-            js.set_uint("address", (*address).into())?;
-            js.set_uint("and_mask", (*and_mask).into())?;
-            js.set_uint("or_mask", (*or_mask).into())?;
+            js.set_uint("address", *address)?;
+            js.set_uint("and_mask", *and_mask)?;
+            js.set_uint("or_mask", *or_mask)?;
         }
         Write::Other { address, data } => {
-            js.set_uint("address", (*address).into())?;
-            js.set_uint("data", (*data).into())?;
+            js.set_uint("address", *address)?;
+            js.set_uint("data", *data)?;
         }
     }
 

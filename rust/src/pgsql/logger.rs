@@ -99,8 +99,8 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }
         PgsqlFEMessage::CancelRequest(CancelRequestMessage { pid, backend_key }) => {
             js.set_string("message", "cancel_request")?;
-            js.set_uint("process_id", (*pid).into())?;
-            js.set_uint("secret_key", (*backend_key).into())?;
+            js.set_uint("process_id", *pid)?;
+            js.set_uint("secret_key", *backend_key)?;
         }
         PgsqlFEMessage::Terminate(TerminationMessage {
             identifier: _,
@@ -214,8 +214,8 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             backend_pid,
             secret_key,
         }) => {
-            jb.set_uint("process_id", (*backend_pid).into())?;
-            jb.set_uint("secret_key", (*secret_key).into())?;
+            jb.set_uint("process_id", *backend_pid)?;
+            jb.set_uint("secret_key", *secret_key)?;
         }
         PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
             identifier: _,
@@ -230,7 +230,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             field_count,
             fields: _,
         }) => {
-            jb.set_uint("field_count", (*field_count).into())?;
+            jb.set_uint("field_count", *field_count)?;
         }
         PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
             identifier: _,
@@ -247,7 +247,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             channel_name,
             payload,
         }) => {
-            jb.set_uint("pid", (*pid).into())?;
+            jb.set_uint("pid", *pid)?;
             jb.set_string_from_bytes("channel_name", channel_name)?;
             jb.set_string_from_bytes("payload", payload)?;
         }
