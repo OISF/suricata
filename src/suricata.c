@@ -93,6 +93,7 @@
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
+#include "source-pcap-over-ip.h"
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
 #include "source-af-packet.h"
@@ -586,6 +587,7 @@ static void PrintUsage(const char *progname)
     printf("\t-i <dev or ip>                       : run in pcap live mode\n");
     printf("\t-F <bpf filter file>                 : bpf filter file\n");
     printf("\t-r <path>                            : run in pcap file/offline mode\n");
+    printf("\t-R <path>                            : run in pcap-over-ip mode\n");
 #ifdef NFQ
     printf("\t-q <qid[:qid]>                       : run in inline nfqueue mode (use colon to specify a range of queues)\n");
 #endif /* NFQ */
@@ -912,6 +914,9 @@ void RegisterAllModules(void)
     /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
+    /* pcap over ip */
+    TmModuleReceivePcapOverIPRegister();
+    TmModuleDecodePcapOverIPRegister();
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
@@ -1409,6 +1414,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
         {"include", required_argument, 0, 0},
 
+        {"pcap-over-ip", required_argument, 0, 'R'}, 
+
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1416,7 +1423,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:vk:";
+    char short_opts[] = "c:TDhi:l:q:d:r:R:us:S:U:VF:vk:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1966,6 +1973,27 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
 
             break;
+        case 'R': {
+            if (suri->run_mode != RUNMODE_UNKNOWN) {
+                SCLogError("Multiple run modes specified.");
+                PrintUsage(argv[0]);
+                return TM_ECODE_FAILED;
+            }
+
+            suri->run_mode = RUNMODE_PCAP_OVER_IP;
+            if (optarg == NULL) {
+                SCLogError("No argument supplied for -R option.");
+                return TM_ECODE_FAILED;
+            }
+
+            if (ConfSetFinal("pcap-over-ip.socket_addr", optarg) != 1) {
+                SCLogError("Failed to set pcap-over-ip socket.");
+                return TM_ECODE_FAILED;
+            }
+
+            SCLogInfo("PCAP-over-IP: %s", optarg);
+            break;
+        }
         case 's':
             if (suri->sig_file != NULL) {
                 SCLogError("can't have multiple -s options or mix -s and -S.");
