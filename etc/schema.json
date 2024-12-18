@@ -2113,6 +2113,9 @@
                                 "priority": {
                                     "type": "integer"
                                 },
+                                "has_multiple": {
+                                    "type": "string"
+                                },
                                 "settings": {
                                     "type": "array",
                                     "minItems": 1,
@@ -2136,6 +2139,9 @@
                             "type": "object",
                             "properties": {
                                 "error_code": {
+                                    "type": "string"
+                                },
+                                "has_multiple": {
                                     "type": "string"
                                 },
                                 "settings": {
