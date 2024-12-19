@@ -57,6 +57,34 @@ added to our tool: the ticket documents your ideas so  we can analyze how do the
 fit in our plans for Suricata, and, if the feature is accepted, we can properly
 track progress etc.
 
+The ticket should clearly reflect the intention as per the tracker.
+For example, if the ticket is a "Bug", the title should only say what the
+bug is.
+
+**Good ticket title examples**
+
+1. **Ticket:**
+[Bug #00000] stream: segfault in case of increasing gaps
+
+**Why is it good?**
+It shows subsystem affected and exactly what the bug is.
+
+2. **Ticket:**
+[Bug #19999] dcerpc: memleak in case of invalid data
+
+**Why is it good?**
+It talks about the bug itself as the Tracker indicates.
+
+3. **Ticket:**
+[Bug #44444] stream: excess memuse in `TcpTracking`
+
+**Why is it good?**
+Title is to the point and conveys what the issue is.
+
+.. note:: The ticket titles are used to auto generate ChangeLog with each
+    release. If the ticket titles are unclear, the ChangeLog does not properly
+    convey what issues were fixed with a release.
+
 .. note:: If you want to add new functionalities (e.g. a new application layer
     protocol), please ask us first whether we see that being merged into
     Suricata or not. This helps both sides understand how the new feature will
