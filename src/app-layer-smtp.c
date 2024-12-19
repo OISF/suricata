@@ -1699,7 +1699,7 @@ static AppProto SMTPServerProbingParser(
         return ALPROTO_UNKNOWN;
     }
     AppProto r = ALPROTO_UNKNOWN;
-    if (f->todstbytecnt > 4 && f->alproto_ts == ALPROTO_UNKNOWN) {
+    if (f->todstbytecnt > 4 && (f->alproto_ts == ALPROTO_UNKNOWN || f->alproto_ts == ALPROTO_TLS)) {
         // Only validates SMTP if client side is unknown
         // despite having received bytes.
         r = ALPROTO_SMTP;
