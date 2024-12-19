@@ -38,6 +38,7 @@ enum SocksEvent {
 #[derive(AppLayerFrameType)]
 pub enum SocksFrameType {
     Pdu,
+    ConnectDomain,
 }
 
 pub struct SocksTransactionAuthMethods {
@@ -276,6 +277,11 @@ impl SocksState {
                 match r {
                     Ok((rem, request)) => {
                         let mut tx = self.new_tx();
+                        if let Some(domain) = &request.domain {
+                            let start = &rinput[5..];
+                            let len = domain.len() as i64;
+                            _ = Frame::new(flow, stream_slice, start, len, SocksFrameType::ConnectDomain as u8, None);
+                        }
                         tx.connect = Some(SocksTransactionConnect {
                             domain: request.domain,
                             ipv4: request.ipv4,
