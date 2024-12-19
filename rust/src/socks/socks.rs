@@ -24,6 +24,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use std::{self, fmt};
+use crate::frames::*;
 
 static mut SOCKS_MAX_TX: usize = 256;
 
@@ -32,6 +33,11 @@ pub(super) static mut ALPROTO_SOCKS: AppProto = ALPROTO_UNKNOWN;
 #[derive(AppLayerEvent)]
 enum SocksEvent {
     TooManyTransactions,
+}
+
+#[derive(AppLayerFrameType)]
+pub enum SocksFrameType {
+    Pdu,
 }
 
 pub struct SocksTransactionAuthMethods {
@@ -119,6 +125,8 @@ pub struct SocksState {
     response_gap: bool,
     state: SocksConnectionState,
     connect_port: Option<u16>,
+    request_frame: Option<Frame>,
+
 }
 
 impl State<SocksTransaction> for SocksState {
@@ -171,8 +179,13 @@ impl SocksState {
     }
 
     fn parse_request_data<'a>(
-        &mut self, tinput: &'a [u8], rinput: &'a [u8],
+        &mut self, 
+        flow: *const Flow, stream_slice: &StreamSlice,
+        tinput: &'a [u8], rinput: &'a [u8],
     ) -> (AppLayerResult, &'a [u8]) {
+        if self.request_frame.is_none() {
+            self.request_frame = Frame::new(flow, stream_slice, rinput, -1_i64, SocksFrameType::Pdu as u8, None);
+        };
         match self.state {
             SocksConnectionState::New => {
                 let r = parser::parse_connect_request(rinput);
@@ -192,6 +205,11 @@ impl SocksState {
                         }
                         self.state = SocksConnectionState::AuthMethodSent;
                         SCLogDebug!("> state now {}", self.state);
+
+                        if let Some(frame) = &self.request_frame {
+                            frame.set_len(flow, (rinput.len() - rem.len()) as i64); 
+                            self.request_frame = None;
+                        }
                         return (AppLayerResult::ok(), rem);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -230,6 +248,10 @@ impl SocksState {
                         }
                         self.state = SocksConnectionState::AuthDataSent;
                         SCLogDebug!("> state now {}", self.state);
+                        if let Some(frame) = &self.request_frame {
+                            frame.set_len(flow, (rinput.len() - rem.len()) as i64); 
+                            self.request_frame = None;
+                        }
                         return (AppLayerResult::ok(), rem);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -270,6 +292,10 @@ impl SocksState {
                         }
                         self.state = SocksConnectionState::ConnectSent;
                         SCLogDebug!("> state now {}", self.state);
+                        if let Some(frame) = &self.request_frame {
+                            frame.set_len(flow, (rinput.len() - rem.len()) as i64); 
+                            self.request_frame = None;
+                        }
                         return (AppLayerResult::ok(), rem);
                     }
                     Err(nom::Err::Incomplete(_)) => {
@@ -424,7 +450,10 @@ impl SocksState {
         return (AppLayerResult::err(), &[]);
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self,
+        flow: *const Flow, stream_slice: &StreamSlice,
+        input: &[u8]) -> AppLayerResult
+    {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -447,7 +476,7 @@ impl SocksState {
 
         let mut record = input;
         while !record.is_empty() {
-            let (r, remaining) = self.parse_request_data(input, record);
+            let (r, remaining) = self.parse_request_data(flow, stream_slice, input, record);
             if r != AppLayerResult::ok() {
                 SCLogDebug!("issue");
                 return r;
@@ -553,7 +582,7 @@ unsafe extern "C" fn socks_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn socks_parse_request(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -572,7 +601,7 @@ unsafe extern "C" fn socks_parse_request(
         AppLayerResult::ok()
     } else {
         let buf = stream_slice.as_slice();
-        state.parse_request(buf)
+        state.parse_request(flow, &stream_slice, buf)
     }
 }
 
@@ -653,8 +682,9 @@ pub unsafe extern "C" fn SCRegisterSocksParser() {
         get_state_data: socks_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
+        get_frame_id_by_name: Some(SocksFrameType::ffi_id_from_name),
+        get_frame_name_by_id: Some(SocksFrameType::ffi_name_from_id),
+
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
