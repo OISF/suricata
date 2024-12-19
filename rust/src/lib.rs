@@ -123,6 +123,7 @@ pub mod pgsql;
 pub mod telnet;
 pub mod websocket;
 pub mod enip;
+pub mod socks;
 pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
