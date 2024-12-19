@@ -2374,7 +2374,7 @@ jobs:
           path: prep
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk --enable-hwloc
       - run: make -j ${{ env.CPUS }}
       - run: make check
       # IDS config
