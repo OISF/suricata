@@ -49,3 +49,4 @@ Suricata Rules
    differences-from-snort
    multi-buffer-matching
    tag
+   vlan-keywords
