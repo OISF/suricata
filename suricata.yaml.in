@@ -1705,10 +1705,10 @@ detect:
   inspection-recursion-limit: 3000
   # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
-  # try to tie an app-layer transaction for rules without app-layer keywords
-  # if there is only one live transaction for the flow
-  # allows to log app-layer metadata in alert
-  # but the transaction may not be the relevant one.
+  # Try to guess an app-layer transaction for rules without app-layer keywords,
+  # ONLY IF there is just one live transaction for the flow.
+  # This allows logging app-layer metadata in alert - the transaction may not
+  # be the relevant one for the alert.
   # guess-applayer-tx: no
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
