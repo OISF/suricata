@@ -182,6 +182,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     }
 
                     if (stream_start_offset != 0 && prev_buffer_offset == 0) {
+                        SCLogDebug("stream_start_offset: %" PRIi32 ", depth %" PRIu32,
+                                stream_start_offset, depth);
                         if (depth <= stream_start_offset) {
                             goto no_match;
                         } else if (depth >= (stream_start_offset + buffer_len)) {
@@ -189,6 +191,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                         } else {
                             depth = depth - stream_start_offset;
                         }
+                        SCLogDebug("depth is now %" PRIu32 ", stream_start_offset: %" PRIi32, depth,
+                                stream_start_offset);
                     }
                 }
 
@@ -202,7 +206,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                             depth = prev_buffer_offset + cd->depth;
                         }
 
-                        SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32, cd->depth, depth);
+                        SCLogDebug("cd->depth %" PRIu32 ", depth %" PRIu32
+                                   " , prev_offset %" PRIi32,
+                                cd->depth, depth, prev_buffer_offset);
+                        depth += offset;
                     }
                 }
 
@@ -246,8 +253,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             /* If the value came from a variable, make sure to adjust the depth so it's relative
              * to the offset value.
              */
-            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR|DETECT_CONTENT_OFFSET_VAR|DETECT_CONTENT_DEPTH_VAR)) {
-                 depth += offset;
+            if (cd->flags & (DETECT_CONTENT_OFFSET_VAR | DETECT_CONTENT_DEPTH_VAR)) {
+                depth += offset;
             }
 
             /* update offset with prev_offset if we're searching for
