@@ -174,12 +174,15 @@ again:
 
 /** \internal
  *  \brief check if a flow is timed out
+ *
  *  Takes lastts, adds the timeout policy to it, compared to current time `ts`.
  *  In case of emergency mode, timeout_policy is ignored and the emerg table
  *  is used.
  *
  *  \param f flow
- *  \param ts timestamp
+ *  \param ts timestamp - realtime or a minimum of active threads in offline mode
+ *  \param next_ts tracking the next timeout ts, so FM can skip the row until that time
+ *  \param emerg bool to indicate if emergency timeout settings should be used
  *
  *  \retval false not timed out
  *  \retval true timed out
@@ -195,6 +198,7 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
     } else {
         timesout_at = SCTIME_ADD_SECS(f->lastts, f->timeout_policy);
     }
+    /* update next_ts if needed */
     if (*next_ts == 0 || (uint32_t)SCTIME_SECS(timesout_at) < *next_ts)
         *next_ts = (uint32_t)SCTIME_SECS(timesout_at);
 
@@ -513,7 +517,7 @@ static uint32_t FlowTimeoutHash(FlowManagerTimeoutThread *td, SCTime_t ts, const
  *  \brief handle timeout for a slice of hash rows
  *         If we wrap around we call FlowTimeoutHash twice
  *  \param td FM timeout thread
- *  \param ts timeout in seconds
+ *  \param ts timeout timestamp
  *  \param hash_min lower bound of the row slice
  *  \param hash_max upper bound of the row slice
  *  \param counters Flow timeout counters to be passed
@@ -823,7 +827,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint64_t sleep_per_wu = 0;
     bool prev_emerg = false;
     uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
-    SCTime_t ts;
 
     /* don't start our activities until time is setup */
     while (!TimeModeIsReady()) {
@@ -846,8 +849,10 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     while (run) {
         bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 
-        /* Get the time */
-        ts = TimeGet();
+        /* Get the time: real time in live mode, or a min() of the
+         * "active" threads in offline mode. See TmThreadsGetMinimalTimestamp */
+        SCTime_t ts = TimeGet();
+
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)SCTIME_SECS(ts));
         uint64_t ts_ms = SCTIME_MSECS(ts);
         const bool emerge_p = (emerg && !prev_emerg);
