@@ -209,6 +209,24 @@ static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
     return 0;
 }
 
+static int ParseJsonFile(const char *file, json_t **array)
+{
+    json_t *json;
+    json_error_t error;
+    /* assume we have one single JSON element in FILE */
+    json = json_load_file(file, 0, &error);
+    if (json == NULL) {
+        FatalErrorOnInit("can't load JSON, error on line %d: %s", error.line, error.text);
+        return -1;
+    }
+    if (!json_is_array(json)) {
+        FatalErrorOnInit("not an array");
+        return -1;
+    }
+    *array = json;
+    return 0;
+}
+
 static int DatasetLoadIPv4(Dataset *set)
 {
     if (strlen(set->load) == 0)
@@ -283,7 +301,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadIPv4(Dataset *set)
+static int DatasetJsonLoadIPv4(Dataset *set, char *json_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -294,39 +312,80 @@ static int DatasetJsonLoadIPv4(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-        return -1;
-    }
-
     int add_ret;
     uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-            continue;
-            /* list with JSON data */
-        } else {
-            line[strlen(line) - 1] = '\0';
-            *r = '\0';
+    if (json_key == NULL) {
+        FILE *fp = fopen(set->load, fopen_mode);
+        if (fp == NULL) {
+            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+            return -1;
+        }
+
+        char line[1024];
+        while (fgets(line, (int)sizeof(line), fp) != NULL) {
+            char *r = strchr(line, ',');
+            if (r == NULL) {
+                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+                continue;
+                /* list with JSON data */
+            } else {
+                line[strlen(line) - 1] = '\0';
+                *r = '\0';
+
+                struct in_addr in;
+                if (inet_pton(AF_INET, line, &in) != 1) {
+                    FatalErrorOnInit(
+                            "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+                    continue;
+                }
+
+                r++;
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                add_ret = DatasetAddwJson(set, (const uint8_t *)&in.s_addr, 4, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+
+                cnt++;
+            }
+        }
+        fclose(fp);
+    } else {
+        json_t *json;
+
+        if (ParseJsonFile(set->load, &json) == -1)
+            return -1;
+
+        size_t index;
+        json_t *value;
+        json_array_foreach (json, index, value) {
+            json_t *key = json_object_get(value, json_key);
+
+            if (key == NULL) {
+                FatalErrorOnInit("Can't find expected key in object");
+                continue;
+            }
+
+            const char *ip_string = json_string_value(key);
 
             struct in_addr in;
-            if (inet_pton(AF_INET, line, &in) != 1) {
+            if (inet_pton(AF_INET, ip_string, &in) != 1) {
                 FatalErrorOnInit(
-                        "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+                        "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
                 continue;
             }
-
-            r++;
-
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(r, strlen(r), &json) < 0) {
-                FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            json.value = json_dumps(value, JSON_COMPACT);
+            json.len = strlen(json.value);
 
             add_ret = DatasetAddwJson(set, (const uint8_t *)&in.s_addr, 4, &json);
             if (add_ret < 0) {
@@ -335,13 +394,11 @@ static int DatasetJsonLoadIPv4(Dataset *set)
             } else if (add_ret == 0) {
                 SCFree(json.value);
             }
-
-            cnt++;
         }
+        json_decref(json);
     }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
@@ -452,7 +509,7 @@ static int DatasetLoadIPv6(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadIPv6(Dataset *set)
+static int DatasetJsonLoadIPv6(Dataset *set, char *json_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -463,39 +520,79 @@ static int DatasetJsonLoadIPv6(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-        return -1;
-    }
-
     int add_ret;
     uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-            /* list with JSON data */
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("IPv6 with JSON line: '%s'", line);
+    if (json_key == NULL) {
+        FILE *fp = fopen(set->load, fopen_mode);
+        if (fp == NULL) {
+            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+            return -1;
+        }
 
-            *r = '\0';
+        char line[1024];
+        while (fgets(line, (int)sizeof(line), fp) != NULL) {
+            char *r = strchr(line, ',');
+            if (r == NULL) {
+                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+                /* list with JSON data */
+            } else {
+                line[strlen(line) - 1] = '\0';
+                SCLogDebug("IPv6 with JSON line: '%s'", line);
+
+                *r = '\0';
+                struct in6_addr in6;
+                int ret = ParseIpv6String(set, line, &in6);
+                if (ret < 0) {
+                    FatalErrorOnInit("unable to parse IP address");
+                    continue;
+                }
+
+                r++;
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                add_ret = DatasetAddwJson(set, (const uint8_t *)&in6.s6_addr, 16, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
+            }
+        }
+
+        fclose(fp);
+    } else {
+        json_t *json;
+        if (ParseJsonFile(set->load, &json) == -1)
+            return -1;
+
+        size_t index;
+        json_t *value;
+        json_array_foreach (json, index, value) {
+            json_t *key = json_object_get(value, json_key);
+
+            if (key == NULL) {
+                FatalErrorOnInit("Can't find expected key in object");
+                continue;
+            }
+
+            const char *ip_string = json_string_value(key);
+
             struct in6_addr in6;
-            int ret = ParseIpv6String(set, line, &in6);
+            int ret = ParseIpv6String(set, ip_string, &in6);
             if (ret < 0) {
                 FatalErrorOnInit("unable to parse IP address");
                 continue;
             }
-
-            r++;
-
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(r, strlen(r), &json) < 0) {
-                FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            json.value = json_dumps(value, JSON_COMPACT);
+            json.len = strlen(json.value);
 
             add_ret = DatasetAddwJson(set, (const uint8_t *)&in6.s6_addr, 16, &json);
             if (add_ret < 0) {
@@ -504,12 +601,12 @@ static int DatasetJsonLoadIPv6(Dataset *set)
             } else if (add_ret == 0) {
                 SCFree(json.value);
             }
-            cnt++;
         }
+        json_decref(json);
     }
+
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
@@ -588,7 +685,7 @@ static int DatasetLoadMd5(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadMd5(Dataset *set)
+static int DatasetJsonLoadMd5(Dataset *set, char *json_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -599,56 +696,98 @@ static int DatasetJsonLoadMd5(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-        return -1;
-    }
-
     int add_ret;
     uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        /* straight black/white list */
-        if (strlen(line) == 33) {
-            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-            continue;
-            /* list with json data */
-        } else if (strlen(line) > 33 && line[32] == ',') {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("MD5 with JSON line: '%s'", line);
+    if (json_key == NULL) {
+        FILE *fp = fopen(set->load, fopen_mode);
+        if (fp == NULL) {
+            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+            return -1;
+        }
+
+        char line[1024];
+        while (fgets(line, (int)sizeof(line), fp) != NULL) {
+            /* straight black/white list */
+            if (strlen(line) == 33) {
+                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+                continue;
+                /* list with json data */
+            } else if (strlen(line) > 33 && line[32] == ',') {
+                line[strlen(line) - 1] = '\0';
+                SCLogDebug("MD5 with JSON line: '%s'", line);
+
+                uint8_t hash[16];
+                if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
+                    FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(line + 33, strlen(line) - 33, &json) < 0) {
+                    FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("json v:%s", json.value);
+                add_ret = DatasetAddwJson(set, hash, 16, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+
+                cnt++;
+
+            } else {
+                FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
+                continue;
+            }
+        }
+        fclose(fp);
+    } else {
+        json_t *json;
+        if (ParseJsonFile(set->load, &json) == -1)
+            return -1;
+
+        size_t index;
+        json_t *value;
+        json_array_foreach (json, index, value) {
+            json_t *key = json_object_get(value, json_key);
+
+            if (key == NULL) {
+                FatalErrorOnInit("Can't find expected key in object");
+                continue;
+            }
+
+            const char *hash_string = json_string_value(key);
+            if (strlen(hash_string) != 32) {
+                FatalErrorOnInit("Not correct length for a hash");
+                continue;
+            }
 
             uint8_t hash[16];
-            if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
+            if (HexToRaw((const uint8_t *)hash_string, 32, hash, sizeof(hash)) < 0) {
                 FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(line + 33, strlen(line) - 33, &json) < 0) {
-                FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            json.value = json_dumps(value, JSON_COMPACT);
+            json.len = strlen(json.value);
 
-            SCLogDebug("json v:%s", json.value);
-            add_ret = DatasetAddwJson(set, hash, 16, &json);
+            add_ret = DatasetAddwJson(set, (const uint8_t *)hash_string, 16, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
                 SCFree(json.value);
             }
-
-            cnt++;
-
-        } else {
-            FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
-            continue;
         }
+        json_decref(json);
     }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
@@ -723,7 +862,7 @@ static int DatasetLoadSha256(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadSha256(Dataset *set)
+static int DatasetJsonLoadSha256(Dataset *set, char *json_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -734,51 +873,94 @@ static int DatasetJsonLoadSha256(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-        return -1;
-    }
-
     int add_ret;
     uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        /* straight black/white list */
-        if (strlen(line) == 65) {
-            FatalErrorOnInit("datajson missing separator %s/%s", set->name, set->load);
-            continue;
-        } else if (strlen(line) > 65 && line[64] == ',') {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("SHA-256 with JSON line: '%s'", line);
+    if (json_key == NULL) {
+        FILE *fp = fopen(set->load, fopen_mode);
+        if (fp == NULL) {
+            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+            return -1;
+        }
+
+        char line[1024];
+        while (fgets(line, (int)sizeof(line), fp) != NULL) {
+            /* straight black/white list */
+            if (strlen(line) == 65) {
+                FatalErrorOnInit("datajson missing separator %s/%s", set->name, set->load);
+                continue;
+            } else if (strlen(line) > 65 && line[64] == ',') {
+                line[strlen(line) - 1] = '\0';
+                SCLogDebug("SHA-256 with JSON line: '%s'", line);
+
+                uint8_t hash[32];
+                if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
+                    FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(line + 65, strlen(line) - 65, &json) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("json %s", json.value);
+
+                add_ret = DatasetAddwJson(set, hash, 32, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
+            }
+        }
+        fclose(fp);
+    } else {
+        json_t *json;
+
+        if (ParseJsonFile(set->load, &json) == -1)
+            return -1;
+
+        size_t index;
+        json_t *value;
+        json_array_foreach (json, index, value) {
+            json_t *key = json_object_get(value, json_key);
+
+            if (key == NULL) {
+                FatalErrorOnInit("Can't find expected key in object");
+                continue;
+            }
+
+            const char *hash_string = json_string_value(key);
+            if (strlen(hash_string) != 64) {
+                FatalErrorOnInit("Not correct length for a hash");
+                continue;
+            }
 
             uint8_t hash[32];
-            if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
+            if (HexToRaw((const uint8_t *)hash_string, 64, hash, sizeof(hash)) < 0) {
                 FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
                 continue;
             }
 
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(line + 65, strlen(line) - 65, &json) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            json.value = json_dumps(value, JSON_COMPACT);
+            json.len = strlen(json.value);
 
-            SCLogDebug("json %s", json.value);
-
-            add_ret = DatasetAddwJson(set, hash, 32, &json);
+            add_ret = DatasetAddwJson(set, (const uint8_t *)hash_string, 32, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
                 SCFree(json.value);
             }
-            cnt++;
         }
+        json_decref(json);
     }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
@@ -867,7 +1049,7 @@ static int DatasetLoadString(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadString(Dataset *set)
+static int DatasetJsonLoadString(Dataset *set, char *json_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -878,64 +1060,97 @@ static int DatasetJsonLoadString(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-        return -1;
-    }
-
     int add_ret;
     uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        if (strlen(line) <= 1)
-            continue;
+    if (json_key == NULL) {
+        FILE *fp = fopen(set->load, fopen_mode);
+        if (fp == NULL) {
+            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+            return -1;
+        }
 
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            FatalErrorOnInit("missing separator in datajson set %s/%s", set->name, set->load);
-            continue;
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
+        char line[1024];
+        while (fgets(line, (int)sizeof(line), fp) != NULL) {
+            if (strlen(line) <= 1)
+                continue;
 
-            *r = '\0';
+            char *r = strchr(line, ',');
+            if (r == NULL) {
+                FatalErrorOnInit("missing separator in datajson set %s/%s", set->name, set->load);
+                continue;
+            } else {
+                line[strlen(line) - 1] = '\0';
+                SCLogDebug("line: '%s'", line);
 
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
+                *r = '\0';
+
+                uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
+                uint8_t decoded[decoded_size];
+                uint32_t num_decoded = Base64Decode(
+                        (const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+                if (num_decoded == 0) {
+                    FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                r++;
+                SCLogDebug("r '%s'", r);
+
+                // coverity[alloc_strlen : FALSE]
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("die: bad json");
+                    continue;
+                }
+                SCLogDebug("json %s", json.value);
+
+                add_ret = DatasetAddwJson(set, (const uint8_t *)decoded, num_decoded, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
+
+                SCLogDebug("line with json %s, %s", line, r);
+            }
+        }
+        fclose(fp);
+    } else {
+        json_t *json;
+
+        if (ParseJsonFile(set->load, &json) == -1)
+            return -1;
+
+        size_t index;
+        json_t *value;
+        json_array_foreach (json, index, value) {
+            json_t *key = json_object_get(value, json_key);
+
+            if (key == NULL) {
+                FatalErrorOnInit("Can't find expected key in object");
                 continue;
             }
 
-            r++;
-            SCLogDebug("r '%s'", r);
+            const char *val = json_string_value(key);
 
-            // coverity[alloc_strlen : FALSE]
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(r, strlen(r), &json) < 0) {
-                FatalErrorOnInit("die: bad json");
-                continue;
-            }
-            SCLogDebug("json %s", json.value);
+            json.value = json_dumps(value, JSON_COMPACT);
+            json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)decoded, num_decoded, &json);
+            add_ret = DatasetAddwJson(set, (const uint8_t *)val, strlen(val), &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
                 SCFree(json.value);
             }
-            cnt++;
-
-            SCLogDebug("line with json %s, %s", line, r);
         }
+        json_decref(json);
     }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
@@ -1140,7 +1355,7 @@ out_err:
 }
 
 Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize)
+        uint32_t hashsize, char *json_key_value)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -1204,7 +1419,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadMd5(set) < 0)
+            if (DatasetJsonLoadMd5(set, json_key_value) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
@@ -1214,7 +1429,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadString(set) < 0)
+            if (DatasetJsonLoadString(set, json_key_value) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_SHA256:
@@ -1224,7 +1439,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadSha256(set) < 0)
+            if (DatasetJsonLoadSha256(set, json_key_value) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
@@ -1234,7 +1449,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv4(set) < 0)
+            if (DatasetJsonLoadIPv4(set, json_key_value) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
@@ -1244,7 +1459,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv6(set) < 0)
+            if (DatasetJsonLoadIPv6(set, json_key_value) < 0)
                 goto out_err;
             break;
     }
@@ -1809,10 +2024,10 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
     return 0;
 }
 
-static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
-        const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+static DataRepResultType DatasetLookupMd5wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
 
     if (set == NULL)
         return rrep;
@@ -1820,7 +2035,7 @@ static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
     if (data_len != 16)
         return rrep;
 
-    Md5Type lookup = { .rep.value = 0};
+    Md5Type lookup = { .rep.value = 0 };
     memcpy(lookup.md5, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
