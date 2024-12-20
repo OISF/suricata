@@ -125,6 +125,7 @@ void PacketReinit(Packet *p)
     p->alerts.discarded = 0;
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
+    PacketAlertRecycle(p->alerts.alerts);
     p->pcap_cnt = 0;
     p->tunnel_rtv_cnt = 0;
     p->tunnel_tpr_cnt = 0;

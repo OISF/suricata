@@ -56,3 +56,36 @@ uint32_t IPv6Hash(uint32_t hash_seed, void *s)
 void IPv6Free(void *s)
 {
 }
+
+int IPv6JsonSet(void *dst, void *src)
+{
+    IPv6TypeJson *src_s = src;
+    IPv6TypeJson *dst_s = dst;
+    memcpy(dst_s->ipv6, src_s->ipv6, sizeof(dst_s->ipv6));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
+
+    return 0;
+}
+
+bool IPv6JsonCompare(void *a, void *b)
+{
+    const IPv6TypeJson *as = a;
+    const IPv6TypeJson *bs = b;
+
+    return (memcmp(as->ipv6, bs->ipv6, sizeof(as->ipv6)) == 0);
+}
+
+uint32_t IPv6JsonHash(uint32_t hash_seed, void *s)
+{
+    const IPv6TypeJson *str = s;
+    return hashword((uint32_t *)str->ipv6, 4, hash_seed);
+}
+
+void IPv6JsonFree(void *s)
+{
+    const IPv6TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}
