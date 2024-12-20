@@ -19,6 +19,7 @@
 #define SURICATA_DATASETS_H
 
 #include "util-thash.h"
+#include "rust.h"
 #include "datasets-reputation.h"
 
 int DatasetsInit(void);
