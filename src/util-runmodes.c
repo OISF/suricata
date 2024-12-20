@@ -175,6 +175,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                     FatalError("TmThreadsCreate failed");
                 }
                 tv_receive->printable_name = printable_threadname;
+                tv_receive->iface_name = dev ? strdup(dev) : NULL;
                 TmModule *tm_module = TmModuleGetByName(recv_mod_name);
                 if (tm_module == NULL) {
                     FatalError("TmModuleGetByName failed for %s", recv_mod_name);
@@ -283,6 +284,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             FatalError("TmThreadsCreate failed");
         }
         tv->printable_name = printable_threadname;
+        tv->iface_name = live_dev ? strdup(live_dev) : NULL;
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
