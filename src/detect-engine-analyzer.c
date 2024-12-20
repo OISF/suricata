@@ -1047,6 +1047,16 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             break;
     }
 
+    if (s->init_data->is_rule_state_dependant) {
+        jb_open_object(ctx.js, "rule_state_dependant");
+        jb_set_uint(ctx.js, "rule_depends_on_sid", s->init_data->rule_state_dependant_id);
+        jb_set_string(ctx.js, "rule_depends_on_flowbit",
+                VarNameStoreSetupLookup(s->init_data->rule_state_variable_idx, VAR_TYPE_FLOW_BIT));
+        jb_close(ctx.js);
+    } else {
+        jb_set_bool(ctx.js, "rule_state_dependant", s->init_data->is_rule_state_dependant);
+    }
+
     jb_open_array(ctx.js, "flags");
     if (s->flags & SIG_FLAG_SRC_ANY) {
         jb_append_string(ctx.js, "src_any");
