@@ -41,7 +41,6 @@
         (f)->dp = 0;                                                                               \
         (f)->proto = 0;                                                                            \
         (f)->livedev = NULL;                                                                       \
-        (f)->timeout_at = 0;                                                                       \
         (f)->timeout_policy = 0;                                                                   \
         (f)->vlan_idx = 0;                                                                         \
         (f)->next = NULL;                                                                          \
@@ -88,7 +87,6 @@
         (f)->vlan_idx = 0;                                                                         \
         (f)->ffr = 0;                                                                              \
         (f)->next = NULL;                                                                          \
-        (f)->timeout_at = 0;                                                                       \
         (f)->timeout_policy = 0;                                                                   \
         (f)->flow_state = 0;                                                                       \
         (f)->tenant_id = 0;                                                                        \
