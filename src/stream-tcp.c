@@ -6032,7 +6032,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
             IsStreamTcpSessionMemcapExceptionPolicyStatsValid);
 
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
-    stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
     if (stream_config.midstream) {
