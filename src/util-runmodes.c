@@ -80,7 +80,7 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
     return queues;
 }
 
-/**
+/** \param decode_mod_name Decode module or NULL if capture handles decode
  */
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
@@ -126,11 +126,13 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
-            tm_module = TmModuleGetByName(decode_mod_name);
-            if (tm_module == NULL) {
-                FatalError("TmModuleGetByName %s failed", decode_mod_name);
+            if (decode_mod_name) {
+                tm_module = TmModuleGetByName(decode_mod_name);
+                if (tm_module == NULL) {
+                    FatalError("TmModuleGetByName %s failed", decode_mod_name);
+                }
+                TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
             }
-            TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
             TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
@@ -181,12 +183,13 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                 }
                 TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
-                tm_module = TmModuleGetByName(decode_mod_name);
-                if (tm_module == NULL) {
-                    FatalError("TmModuleGetByName %s failed", decode_mod_name);
+                if (decode_mod_name) {
+                    tm_module = TmModuleGetByName(decode_mod_name);
+                    if (tm_module == NULL) {
+                        FatalError("TmModuleGetByName %s failed", decode_mod_name);
+                    }
+                    TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
                 }
-                TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
-
                 TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
                 if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
@@ -235,7 +238,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     return 0;
 }
 
-/**
+/** \param decode_mod_name Decode module or NULL if capture handles decode
  */
 static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
@@ -290,12 +293,13 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         }
         TmSlotSetFuncAppend(tv, tm_module, aconf);
 
-        tm_module = TmModuleGetByName(decode_mod_name);
-        if (tm_module == NULL) {
-            FatalError("TmModuleGetByName %s failed", decode_mod_name);
+        if (decode_mod_name) {
+            tm_module = TmModuleGetByName(decode_mod_name);
+            if (tm_module == NULL) {
+                FatalError("TmModuleGetByName %s failed", decode_mod_name);
+            }
+            TmSlotSetFuncAppend(tv, tm_module, NULL);
         }
-        TmSlotSetFuncAppend(tv, tm_module, NULL);
-
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
             FatalError("TmModuleGetByName for FlowWorker failed");
@@ -347,6 +351,7 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
     return 0;
 }
 
+/** \param decode_mod_name Decode Module or NULL if capture handles decode */
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
@@ -379,9 +384,7 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                                  1);
 }
 
-
-/**
- */
+/** \param decode_mod_name Decode Module or NULL if capture handles decode */
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                         const char *recv_mod_name,
                         const char *verdict_mod_name,
@@ -423,11 +426,13 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv_receive, tm_module, (void *) ConfigParser(i));
 
-        tm_module = TmModuleGetByName(decode_mod_name);
-        if (tm_module == NULL) {
-            FatalError("TmModuleGetByName %s failed", decode_mod_name);
+        if (decode_mod_name) {
+            tm_module = TmModuleGetByName(decode_mod_name);
+            if (tm_module == NULL) {
+                FatalError("TmModuleGetByName %s failed", decode_mod_name);
+            }
+            TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
         }
-        TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
         TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
@@ -503,8 +508,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     return 0;
 }
 
-/**
- */
+/** \param decode_mod_name Decode Module or NULL if capture handles decode */
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         const char *recv_mod_name,
         const char *verdict_mod_name,
@@ -538,11 +542,13 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
 
-        tm_module = TmModuleGetByName(decode_mod_name);
-        if (tm_module == NULL) {
-            FatalError("TmModuleGetByName %s failed", decode_mod_name);
+        if (decode_mod_name) {
+            tm_module = TmModuleGetByName(decode_mod_name);
+            if (tm_module == NULL) {
+                FatalError("TmModuleGetByName %s failed", decode_mod_name);
+            }
+            TmSlotSetFuncAppend(tv, tm_module, NULL);
         }
-        TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
