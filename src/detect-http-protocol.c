@@ -128,11 +128,12 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static bool DetectHttpProtocolValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpProtocolValidateCallback(
+        const Signature *s, const char **sigerror, uint32_t buf_id)
 {
 #ifdef HAVE_HTP_CONFIG_SET_ALLOW_SPACE_URI
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_buffer_id)
+        if (s->init_data->buffers[x].id != buf_id)
             continue;
         const SigMatch *sm = s->init_data->buffers[x].head;
         for (; sm != NULL; sm = sm->next) {
