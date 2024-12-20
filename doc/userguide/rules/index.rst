@@ -4,6 +4,7 @@ Suricata Rules
 .. toctree::
 
    intro
+   rule-types
    meta
    header-keywords
    payload-keywords

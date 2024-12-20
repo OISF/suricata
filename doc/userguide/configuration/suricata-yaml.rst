@@ -2629,6 +2629,8 @@ Engine analysis and profiling
 Suricata offers several ways of analyzing performance of rules and the
 engine itself.
 
+.. _config:engine-analysis:
+
 Engine-analysis
 ~~~~~~~~~~~~~~~
 
