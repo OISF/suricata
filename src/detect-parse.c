@@ -914,6 +914,9 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     s->init_data->negated = false;
 
+    const enum DetectKeywordId idx = SigTableGetIndex(st);
+    s->init_data->has_possible_prefilter |= de_ctx->sm_types_prefilter[idx];
+
     if (st->flags & SIGMATCH_INFO_DEPRECATED) {
 #define URL "https://suricata.io/our-story/deprecation-policy/"
         if (st->alternative == 0)
@@ -1021,7 +1024,6 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 
         /* handle 'silent' error case */
         if (setup_ret == -2) {
-            enum DetectKeywordId idx = SigTableGetIndex(st);
             if (de_ctx->sm_types_silent_error[idx] == false) {
                 de_ctx->sm_types_silent_error[idx] = true;
                 return -1;
@@ -1877,6 +1879,57 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
     return out;
 }
 
+extern int g_skip_prefilter;
+
+static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
+{
+    SCEnter();
+    if (s->init_data->prefilter_sm == NULL && s->init_data->mpm_sm == NULL) {
+        SCLogDebug("s %u: set up prefilter/mpm", s->id);
+
+        RetrieveFPForSig(de_ctx, s);
+        if (s->init_data->mpm_sm != NULL) {
+            s->flags |= SIG_FLAG_PREFILTER;
+        } else {
+            SCLogDebug("s %u: no mpm; prefilter? de_ctx->prefilter_setting %u "
+                       "s->init_data->has_possible_prefilter %s",
+                    s->id, de_ctx->prefilter_setting,
+                    BOOL2STR(s->init_data->has_possible_prefilter));
+
+            if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
+                    !(s->flags & SIG_FLAG_PREFILTER)) {
+                int prefilter_list = DETECT_TBLSIZE;
+                /* get the keyword supporting prefilter with the lowest type */
+                for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
+                    for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
+                        if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
+                            if (sigmatch_table[sm->type].SupportsPrefilter(s)) {
+                                prefilter_list = MIN(prefilter_list, sm->type);
+                            }
+                        }
+                    }
+                }
+
+                /* apply that keyword as prefilter */
+                if (prefilter_list != DETECT_TBLSIZE) {
+                    for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
+                        for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
+                            if (sm->type == prefilter_list) {
+                                s->init_data->prefilter_sm = sm;
+                                s->flags |= SIG_FLAG_PREFILTER;
+                                SCLogConfig("sid %u: prefilter is on \"%s\"", s->id,
+                                        sigmatch_table[sm->type].name);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    SCReturn;
+}
+
 /**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
@@ -2218,6 +2271,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     for (uint32_t x = 0; x < sig->init_data->buffer_index; x++) {
         DetectEngineBufferRunSetupCallback(de_ctx, sig->init_data->buffers[x].id, sig);
     }
+
+    SigSetupPrefilter(de_ctx, sig);
 
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(de_ctx, sig) == 0) {
