@@ -509,6 +509,7 @@ extern {
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
     pub fn AppLayerRequestProtocolTLSUpgrade(flow: *const Flow) -> bool;
+    pub fn AppLayerRequestProtocolChange(flow: *const Flow, dp: u16, expect_proto: AppProto) -> bool;
 }
 
 // Defined in app-layer-parser.h
