@@ -209,7 +209,34 @@ static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
     return 0;
 }
 
-static int ParseJsonFile(const char *file, json_t **array)
+static json_t *GetArrayObject(json_t *json, char *key)
+{
+    if (!json || !key || !json_is_object(json)) {
+        return NULL;
+    }
+
+    const char *current_key = key;
+    json_t *current = json;
+    while (current_key) {
+        const char *dot = strchr(current_key, '.');
+
+        size_t key_len = dot ? (size_t)(dot - current_key) : strlen(current_key);
+        char key_buffer[key_len + 1];
+        strlcat(key_buffer, current_key, key_len + 1);
+
+        if (json_is_object(current) == false) {
+            return NULL;
+        }
+        current = json_object_get(current, key_buffer);
+        if (current == NULL) {
+            return NULL;
+        }
+        current_key = dot ? dot + 1 : NULL;
+    }
+    return current;
+}
+
+static int ParseJsonFile(const char *file, json_t **array, char *key)
 {
     json_t *json;
     json_error_t error;
@@ -219,11 +246,23 @@ static int ParseJsonFile(const char *file, json_t **array)
         FatalErrorOnInit("can't load JSON, error on line %d: %s", error.line, error.text);
         return -1;
     }
-    if (!json_is_array(json)) {
+
+    if (key == NULL) {
+        *array = json;
+    } else {
+        *array = GetArrayObject(json, key);
+        if (*array == NULL) {
+            json_decref(json);
+            return -1;
+        }
+        json_incref(*array);
+        json_decref(json);
+    }
+    if (!json_is_array(*array)) {
         FatalErrorOnInit("not an array");
+        json_decref(*array);
         return -1;
     }
-    *array = json;
     return 0;
 }
 
@@ -301,7 +340,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadIPv4(Dataset *set, char *json_key)
+static int DatasetJsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -362,7 +401,7 @@ static int DatasetJsonLoadIPv4(Dataset *set, char *json_key)
     } else {
         json_t *json;
 
-        if (ParseJsonFile(set->load, &json) == -1)
+        if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
@@ -509,7 +548,7 @@ static int DatasetLoadIPv6(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadIPv6(Dataset *set, char *json_key)
+static int DatasetJsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -569,7 +608,7 @@ static int DatasetJsonLoadIPv6(Dataset *set, char *json_key)
         fclose(fp);
     } else {
         json_t *json;
-        if (ParseJsonFile(set->load, &json) == -1)
+        if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
@@ -685,7 +724,7 @@ static int DatasetLoadMd5(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadMd5(Dataset *set, char *json_key)
+static int DatasetJsonLoadMd5(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -747,7 +786,7 @@ static int DatasetJsonLoadMd5(Dataset *set, char *json_key)
         fclose(fp);
     } else {
         json_t *json;
-        if (ParseJsonFile(set->load, &json) == -1)
+        if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
@@ -862,7 +901,7 @@ static int DatasetLoadSha256(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadSha256(Dataset *set, char *json_key)
+static int DatasetJsonLoadSha256(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -920,7 +959,7 @@ static int DatasetJsonLoadSha256(Dataset *set, char *json_key)
     } else {
         json_t *json;
 
-        if (ParseJsonFile(set->load, &json) == -1)
+        if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
@@ -1049,7 +1088,7 @@ static int DatasetLoadString(Dataset *set)
     return 0;
 }
 
-static int DatasetJsonLoadString(Dataset *set, char *json_key)
+static int DatasetJsonLoadString(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -1120,7 +1159,7 @@ static int DatasetJsonLoadString(Dataset *set, char *json_key)
     } else {
         json_t *json;
 
-        if (ParseJsonFile(set->load, &json) == -1)
+        if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
@@ -1355,7 +1394,7 @@ out_err:
 }
 
 Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value)
+        uint32_t hashsize, char *json_key_value, char *json_array_key)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -1419,7 +1458,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadMd5(set, json_key_value) < 0)
+            if (DatasetJsonLoadMd5(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
@@ -1429,7 +1468,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadString(set, json_key_value) < 0)
+            if (DatasetJsonLoadString(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_SHA256:
@@ -1439,7 +1478,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadSha256(set, json_key_value) < 0)
+            if (DatasetJsonLoadSha256(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
@@ -1449,7 +1488,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv4(set, json_key_value) < 0)
+            if (DatasetJsonLoadIPv4(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
@@ -1459,7 +1498,7 @@ Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *lo
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv6(set, json_key_value) < 0)
+            if (DatasetJsonLoadIPv6(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
     }

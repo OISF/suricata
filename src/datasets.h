@@ -63,7 +63,7 @@ DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uin
         const DataRepType *rep);
 DataJsonResultType DatasetLookupwJson(Dataset *set, const uint8_t *data, const uint32_t data_len);
 Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value);
+        uint32_t hashsize, char *json_key_value, char *json_object_key);
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);

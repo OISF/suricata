@@ -96,7 +96,8 @@ int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatajs
 
 static int DetectDatajsonParse(const char *str, char *cmd, int cmd_len, char *name, int name_len,
         enum DatasetTypes *type, char *load, size_t load_size, uint64_t *memcap, uint32_t *hashsize,
-        char *json_key, size_t json_key_size, char *json_key_value, size_t json_key_value_size)
+        char *json_key, size_t json_key_size, char *json_key_value, size_t json_key_value_size,
+        char *json_array_value, size_t json_array_value_size)
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -182,6 +183,12 @@ static int DetectDatajsonParse(const char *str, char *cmd, int cmd_len, char *na
                     return -1;
                 }
                 strlcpy(json_key_value, val, json_key_value_size);
+            } else if (strcmp(key, "array_key") == 0) {
+                if (strlen(val) > json_array_value_size) {
+                    SCLogWarning("'key' value too long (limit is %zu)", json_array_value_size);
+                    return -1;
+                }
+                strlcpy(json_array_value, val, json_array_value_size);
             }
 
             if (strcmp(key, "memcap") == 0) {
@@ -297,6 +304,8 @@ int DetectDatajsonSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     size_t json_key_size = SIG_JSON_CONTENT_KEY_LEN;
     char json_key_value[SIG_JSON_CONTENT_KEY_LEN] = "";
     size_t json_key_value_size = SIG_JSON_CONTENT_KEY_LEN;
+    char json_key_object[SIG_JSON_CONTENT_KEY_LEN] = "";
+    size_t json_key_object_size = SIG_JSON_CONTENT_KEY_LEN;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
         SCLogError("datajson is only supported for sticky buffers");
@@ -311,7 +320,7 @@ int DetectDatajsonSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
     if (!DetectDatajsonParse(rawstr, cmd_str, sizeof(cmd_str), name, sizeof(name), &type, load,
                 sizeof(load), &memcap, &hashsize, json_key, json_key_size, json_key_value,
-                json_key_value_size)) {
+                json_key_value_size, json_key_object, json_key_object_size)) {
         return -1;
     }
 
@@ -338,7 +347,12 @@ int DetectDatajsonSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     char *json_key_ptr = NULL;
     if (strlen(json_key_value))
         json_key_ptr = json_key_value;
-    Dataset *set = DatasetJsonGet(name, type, load, memcap, hashsize, json_key_ptr);
+    char *json_object_ptr = NULL;
+    if (strlen(json_key_object))
+        json_object_ptr = json_key_object;
+
+    Dataset *set =
+            DatasetJsonGet(name, type, load, memcap, hashsize, json_key_ptr, json_object_ptr);
     if (set == NULL) {
         SCLogError("failed to set up datajson '%s'.", name);
         return -1;
