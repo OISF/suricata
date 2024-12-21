@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,7 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 #include "util-dpdk-bonding.h"
+#include "util-dpdk-rss.h"
 
 #ifdef HAVE_DPDK
 
@@ -166,91 +167,8 @@ static int32_t i40eDeviceSetRSSWithFilter(int port_id, const char *port_name)
 
 #else
 
-static int i40eDeviceSetRSSFlowQueues(
-        int port_id, const char *port_name, struct rte_eth_rss_conf rss_conf, int nb_rx_queues)
-{
-    struct rte_flow_action_rss rss_action_conf = { 0 };
-    struct rte_flow_attr attr = { 0 };
-    struct rte_flow_item pattern[] = { { 0 }, { 0 }, { 0 }, { 0 } };
-    struct rte_flow_action action[] = { { 0 }, { 0 } };
-    struct rte_flow *flow;
-    struct rte_flow_error flow_error = { 0 };
-    uint16_t queues[RTE_MAX_QUEUES_PER_PORT];
-
-    for (int i = 0; i < nb_rx_queues; ++i)
-        queues[i] = i;
-
-    rss_action_conf.func = RTE_ETH_HASH_FUNCTION_DEFAULT;
-    rss_action_conf.level = 0;
-    rss_action_conf.types = 0; // queues region can not be configured with types
-    rss_action_conf.key_len = 0;
-    rss_action_conf.key = NULL;
-
-    if (nb_rx_queues < 1) {
-        FatalError("The number of queues for RSS configuration must be "
-                   "configured with a positive number");
-    }
-
-    rss_action_conf.queue_num = nb_rx_queues;
-    rss_action_conf.queue = queues;
-
-    attr.ingress = 1;
-    pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
-    action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
-    action[0].conf = &rss_action_conf;
-    action[1].type = RTE_FLOW_ACTION_TYPE_END;
-
-    flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
-    if (flow == NULL) {
-        SCLogError("Error when creating rte_flow rule on %s: %s", port_name, flow_error.message);
-        int ret = rte_flow_validate(port_id, &attr, pattern, action, &flow_error);
-        SCLogError("Error on rte_flow validation for port %s: %s errmsg: %s", port_name,
-                rte_strerror(-ret), flow_error.message);
-        return ret;
-    } else {
-        SCLogInfo("RTE_FLOW queue region created for port %s", port_name);
-    }
-    return 0;
-}
-
-static int i40eDeviceCreateRSSFlow(int port_id, const char *port_name,
-        struct rte_eth_rss_conf rss_conf, uint64_t rss_type, struct rte_flow_item *pattern)
-{
-    struct rte_flow_action_rss rss_action_conf = { 0 };
-    struct rte_flow_attr attr = { 0 };
-    struct rte_flow_action action[] = { { 0 }, { 0 } };
-    struct rte_flow *flow;
-    struct rte_flow_error flow_error = { 0 };
-
-    rss_action_conf.func = RTE_ETH_HASH_FUNCTION_SYMMETRIC_TOEPLITZ;
-    rss_action_conf.level = 0;
-    rss_action_conf.types = rss_type;
-    rss_action_conf.key_len = rss_conf.rss_key_len;
-    rss_action_conf.key = rss_conf.rss_key;
-    rss_action_conf.queue_num = 0;
-    rss_action_conf.queue = NULL;
-
-    attr.ingress = 1;
-    action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
-    action[0].conf = &rss_action_conf;
-    action[1].type = RTE_FLOW_ACTION_TYPE_END;
-
-    flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
-    if (flow == NULL) {
-        SCLogError("Error when creating rte_flow rule on %s: %s", port_name, flow_error.message);
-        int ret = rte_flow_validate(port_id, &attr, pattern, action, &flow_error);
-        SCLogError("Error on rte_flow validation for port %s: %s errmsg: %s", port_name,
-                rte_strerror(-ret), flow_error.message);
-        return ret;
-    } else {
-        SCLogInfo("RTE_FLOW flow rule created for port %s", port_name);
-    }
-
-    return 0;
-}
-
 static int i40eDeviceSetRSSFlowIPv4(
-        int port_id, const char *port_name, struct rte_eth_rss_conf rss_conf)
+        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf)
 {
     int ret = 0;
     struct rte_flow_item pattern[] = { { 0 }, { 0 }, { 0 }, { 0 } };
@@ -258,44 +176,35 @@ static int i40eDeviceSetRSSFlowIPv4(
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_OTHER, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV4, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_UDP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_UDP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV4, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_TCP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_TCP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV4, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_SCTP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV4_SCTP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV4, pattern);
     memset(pattern, 0, sizeof(pattern));
-
-    pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
-    pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV4;
-    pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_FRAG_IPV4, pattern);
 
     return ret;
 }
 
 static int i40eDeviceSetRSSFlowIPv6(
-        int port_id, const char *port_name, struct rte_eth_rss_conf rss_conf)
+        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf)
 {
     int ret = 0;
     struct rte_flow_item pattern[] = { { 0 }, { 0 }, { 0 }, { 0 } };
@@ -303,62 +212,58 @@ static int i40eDeviceSetRSSFlowIPv6(
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_OTHER, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV6, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_UDP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_UDP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV6, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_TCP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_TCP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV6, pattern);
     memset(pattern, 0, sizeof(pattern));
 
     pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
     pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
     pattern[2].type = RTE_FLOW_ITEM_TYPE_SCTP;
     pattern[3].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(
-            port_id, port_name, rss_conf, RTE_ETH_RSS_NONFRAG_IPV6_SCTP, pattern);
+    ret |= DeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_IPV6, pattern);
     memset(pattern, 0, sizeof(pattern));
-
-    pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
-    pattern[1].type = RTE_FLOW_ITEM_TYPE_IPV6;
-    pattern[2].type = RTE_FLOW_ITEM_TYPE_END;
-    ret |= i40eDeviceCreateRSSFlow(port_id, port_name, rss_conf, RTE_ETH_RSS_FRAG_IPV6, pattern);
 
     return ret;
 }
 
 static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_rx_queues)
 {
-    int retval;
-    uint8_t rss_key[I40E_RSS_HKEY_LEN];
+    uint16_t queues[RTE_MAX_QUEUES_PER_PORT];
     struct rte_flow_error flush_error = { 0 };
     struct rte_eth_rss_conf rss_conf = {
-        .rss_key = rss_key,
+        .rss_key = RSS_HKEY,
         .rss_key_len = I40E_RSS_HKEY_LEN,
     };
 
-    retval = rte_eth_dev_rss_hash_conf_get(port_id, &rss_conf);
-    if (retval != 0) {
-        SCLogError("Unable to get RSS hash configuration of port %s", port_name);
-        return retval;
+    if (nb_rx_queues < 1) {
+        FatalError("The number of queues for RSS configuration must be "
+                   "configured with a positive number");
     }
 
-    retval = 0;
-    retval |= i40eDeviceSetRSSFlowQueues(port_id, port_name, rss_conf, nb_rx_queues);
-    retval |= i40eDeviceSetRSSFlowIPv4(port_id, port_name, rss_conf);
-    retval |= i40eDeviceSetRSSFlowIPv6(port_id, port_name, rss_conf);
+    struct rte_flow_action_rss rss_action_conf = DeviceInitRSSAction(
+            rss_conf, nb_rx_queues, queues, RTE_ETH_HASH_FUNCTION_DEFAULT, false);
+
+    int retval = DeviceSetRSSFlowQueues(port_id, port_name, rss_action_conf);
+
+    memset(&rss_action_conf, 0, sizeof(struct rte_flow_action_rss));
+    rss_action_conf =
+            DeviceInitRSSAction(rss_conf, 0, queues, RTE_ETH_HASH_FUNCTION_TOEPLITZ, true);
+
+    retval |= i40eDeviceSetRSSFlowIPv4(port_id, port_name, rss_action_conf);
+    retval |= i40eDeviceSetRSSFlowIPv6(port_id, port_name, rss_action_conf);
     if (retval != 0) {
         retval = rte_flow_flush(port_id, &flush_error);
         if (retval != 0) {
@@ -373,18 +278,9 @@ static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_
 
 #endif /* RTE_VERSION < RTE_VERSION_NUM(20,0,0,0) */
 
-int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
+int i40eDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name)
 {
-    int retval;
     (void)nb_rx_queues; // avoid unused variable warnings
-    char port_name[RTE_ETH_NAME_MAX_LEN];
-
-    retval = rte_eth_dev_get_name_by_port(port_id, port_name);
-    if (unlikely(retval != 0)) {
-        SCLogError("Failed to convert port id %d to the interface name: %s", port_id,
-                strerror(-retval));
-        return retval;
-    }
 
 #if RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0)
     i40eDeviceSetRSSWithFlows(port_id, port_name, nb_rx_queues);

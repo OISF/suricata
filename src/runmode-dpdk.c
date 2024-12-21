@@ -41,25 +41,17 @@
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-dpdk.h"
+#include "util-dpdk-bonding.h"
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
-#include "util-dpdk-bonding.h"
+#include "util-dpdk-rss.h"
 #include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
 #include "util-affinity.h"
 
 #ifdef HAVE_DPDK
-
-#define RSS_HKEY_LEN 40
-// General purpose RSS key for symmetric bidirectional flow distribution
-uint8_t rss_hkey[] = {
-    0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,
-    0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,
-    0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,                         // 40
-    0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, // 52
-};
 
 // Calculates the closest multiple of y from x
 #define ROUNDUP(x, y) ((((x) + ((y)-1)) / (y)) * (y))
@@ -883,7 +875,6 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
 
 static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const char *driver_name)
 {
-    // RSS is configured in a specific way for a driver i40e and DPDK version <= 19.xx
     if (strcmp(driver_name, "net_i40e") == 0)
         i40eDeviceSetRSSConf(rss_conf);
     if (strcmp(driver_name, "net_ice") == 0)
@@ -1157,7 +1148,7 @@ static void PortConfSetRSSConf(const DPDKIfaceConfig *iconf,
         if (iconf->nb_rx_queues > 1) {
             SCLogConfig("%s: RSS enabled for %d queues", iconf->iface, iconf->nb_rx_queues);
             port_conf->rx_adv_conf.rss_conf = (struct rte_eth_rss_conf){
-                .rss_key = rss_hkey,
+                .rss_key = RSS_HKEY,
                 .rss_key_len = RSS_HKEY_LEN,
                 .rss_hf = iconf->rss_hf,
             };
