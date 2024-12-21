@@ -156,7 +156,8 @@ Syntax::
     datajson:<cmd>,<name>,<options>;
 
     datajson:<isset|isnotset>,<name> \
-        [, type <string|md5|sha256|ipv4|ip>, load <file name>, memcap <size>, hashsize <size>, key <json_key>];
+        [, type <string|md5|sha256|ipv4|ip>, load <file name>, memcap <size>, hashsize <size>, key <json_key> \
+         , json_key <json_key>, array_key <json_path>];
 
 Example rules could look like::
 
@@ -165,6 +166,13 @@ Example rules could look like::
 In this example, the match will occur if the destination IP is in the set and the
 alert will have an ``alert.extra.bad_ones`` subobject that will contain the JSON
 data associated to the value.
+
+If ``json_key`` is present then the data file has to contains a valid JSON object containing an array
+where every elemeents have to contain a key equal to ``json_key``.
+If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
+a JSON array.
+
+See :ref:`Datajson format <datajson_data>` for more information.
 
 Rule Reloads
 ------------
@@ -350,6 +358,7 @@ Syntax::
 
     <data>,<value>
 
+.. _datajson_data:
 
 datajson
 ~~~~~~~~
@@ -366,6 +375,25 @@ e.g. for ua-seen with type string::
 
     TW96aWxsYS80LjAgKGNvbXBhdGlibGU7ICk=,{"agent": "Mozilla", "version": "4.0"}
 
+If ``json_key``` option is present then the file has to contain a valid JSON
+object containing an array where the key equal to ``json_key`` value is present.
+
+For example, if the file ``file.json`` is like the following example (typical of return of REST API call) ::
+
+    {
+        "time": "2024-12-21",
+        "response": {
+            "threats":
+                [
+                    {"host": "toto.com", "origin": "japan"},
+                    {"host": "grenouille.com", "origin": "french"}
+                ]
+        }
+    }
+
+then the match to check the list of threats using datajson can be defined as ::
+
+    http.host; datajson:isset,threats,load file.json, key threat, json_key host, array_key response.threats;
 
 .. _datasets_file_locations:
 
