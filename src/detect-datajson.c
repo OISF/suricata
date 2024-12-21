@@ -28,7 +28,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "datasets.h"
-#include "datasets-json.h"
+#include "datajson.h"
 #include "detect-datajson.h"
 
 #include "detect-parse.h"
@@ -65,7 +65,7 @@ int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatajs
     switch (sd->cmd) {
         case DETECT_DATAJSON_CMD_ISSET: {
             // PrintRawDataFp(stdout, data, data_len);
-            DataJsonResultType r = DatasetLookupwJson(sd->set, data, data_len);
+            DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
             SCLogDebug("r found: %d, len: %zu", r.found, r.json.len);
             if (!r.found)
                 return 0;
@@ -82,7 +82,7 @@ int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatajs
         }
         case DETECT_DATAJSON_CMD_ISNOTSET: {
             // PrintRawDataFp(stdout, data, data_len);
-            DataJsonResultType r = DatasetLookupwJson(sd->set, data, data_len);
+            DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
             SCLogDebug("r found: %d, len: %zu", r.found, r.json.len);
             if (r.found)
                 return 0;
@@ -351,8 +351,7 @@ int DetectDatajsonSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (strlen(json_key_object))
         json_object_ptr = json_key_object;
 
-    Dataset *set =
-            DatasetJsonGet(name, type, load, memcap, hashsize, json_key_ptr, json_object_ptr);
+    Dataset *set = DatajsonGet(name, type, load, memcap, hashsize, json_key_ptr, json_object_ptr);
     if (set == NULL) {
         SCLogError("failed to set up datajson '%s'.", name);
         return -1;

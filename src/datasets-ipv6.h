@@ -31,19 +31,9 @@ typedef struct IPv6Type {
     DataRepType rep;
 } IPv6Type;
 
-typedef struct IPv6TypeJson {
-    uint8_t ipv6[16];
-    DataJsonType json;
-} IPv6TypeJson;
-
 int IPv6Set(void *dst, void *src);
 bool IPv6Compare(void *a, void *b);
 uint32_t IPv6Hash(uint32_t hash_seed, void *s);
 void IPv6Free(void *s);
-
-int IPv6JsonSet(void *dst, void *src);
-bool IPv6JsonCompare(void *a, void *b);
-uint32_t IPv6JsonHash(uint32_t hash_seed, void *s);
-void IPv6JsonFree(void *s);
 
 #endif /* __DATASETS_IPV4_H__ */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,36 +23,39 @@
 
 #include "suricata-common.h"
 #include "conf.h"
-#include "datasets.h"
-#include "datasets-ipv4.h"
+#include "datajson.h"
+#include "datajson-sha256.h"
 #include "util-hash-lookup3.h"
 #include "util-thash.h"
-#include "util-print.h"
 
-int IPv4Set(void *dst, void *src)
+int Sha256StrJsonSet(void *dst, void *src)
 {
-    IPv4Type *src_s = src;
-    IPv4Type *dst_s = dst;
-    memcpy(dst_s->ipv4, src_s->ipv4, sizeof(dst_s->ipv4));
-    dst_s->rep = src_s->rep;
+    Sha256TypeJson *src_s = src;
+    Sha256TypeJson *dst_s = dst;
+    memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
     return 0;
 }
 
-bool IPv4Compare(void *a, void *b)
+bool Sha256StrJsonCompare(void *a, void *b)
 {
-    const IPv4Type *as = a;
-    const IPv4Type *bs = b;
+    Sha256TypeJson *as = a;
+    Sha256TypeJson *bs = b;
 
-    return (memcmp(as->ipv4, bs->ipv4, sizeof(as->ipv4)) == 0);
+    return (memcmp(as->sha256, bs->sha256, sizeof(as->sha256)) == 0);
 }
 
-uint32_t IPv4Hash(uint32_t hash_seed, void *s)
+uint32_t Sha256StrJsonHash(uint32_t hash_seed, void *s)
 {
-    const IPv4Type *str = s;
-    return hashword((uint32_t *)str->ipv4, 1, hash_seed);
+    Sha256TypeJson *str = s;
+    return hashword((uint32_t *)str->sha256, sizeof(str->sha256) / 4, hash_seed);
 }
 
-// data stays in hash
-void IPv4Free(void *s)
+void Sha256StrJsonFree(void *s)
 {
+    const Sha256TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
 }

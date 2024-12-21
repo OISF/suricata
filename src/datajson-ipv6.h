@@ -21,19 +21,17 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DATASETS_JSON_H__
-#define __DATASETS_JSON_H__
+#ifndef SURICATA_DATAJSON_IPV6_H
+#define SURICATA_DATAJSON_IPV6_H
 
-#include <suricata-common.h>
-
-typedef struct DataJsonType {
-    char *value;
-    size_t len;
-} DataJsonType;
-
-typedef struct DataJsonResultType {
-    bool found;
+typedef struct IPv6TypeJson {
+    uint8_t ipv6[16];
     DataJsonType json;
-} DataJsonResultType;
+} IPv6TypeJson;
 
-#endif /* __DATASETS_JSON_H__ */
+int IPv6JsonSet(void *dst, void *src);
+bool IPv6JsonCompare(void *a, void *b);
+uint32_t IPv6JsonHash(uint32_t hash_seed, void *s);
+void IPv6JsonFree(void *s);
+
+#endif

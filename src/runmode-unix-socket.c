@@ -55,6 +55,7 @@
 #include "conf-yaml-loader.h"
 
 #include "datasets.h"
+#include "datajson.h"
 #include "runmode-unix-socket.h"
 
 int unix_socket_mode_is_running = 0;

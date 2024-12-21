@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,29 +18,20 @@
 /**
  * \file
  *
- *  \author Eric Leblond <el@stamus-networks.com>
+ * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DETECT_DATAJSON_H__
-#define __DETECT_DATAJSON_H__
+#ifndef SURICATA_DATAJSON_SHA56_H
+#define SURICATA_DATAJSON_SHA56_H
 
-#include "datajson.h"
-
-#define DETECT_DATAJSON_CMD_ISSET    1
-#define DETECT_DATAJSON_CMD_ISNOTSET 2
-
-typedef struct DetectDatajsonData_ {
-    Dataset *set;
-    uint8_t cmd;
+typedef struct Sha256TypeJson {
+    uint8_t sha256[32];
     DataJsonType json;
-    char json_key[SIG_JSON_CONTENT_KEY_LEN];
-    void *id;
-} DetectDatajsonData;
+} Sha256TypeJson;
 
-int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatajsonData *sd,
-        const uint8_t *data, const uint32_t data_len);
+int Sha256StrJsonSet(void *dst, void *src);
+bool Sha256StrJsonCompare(void *a, void *b);
+uint32_t Sha256StrJsonHash(uint32_t hash_seed, void *s);
+void Sha256StrJsonFree(void *s);
 
-/* prototypes */
-void DetectDatajsonRegister(void);
-
-#endif /* __DETECT_DATAJSON_H__ */
+#endif
