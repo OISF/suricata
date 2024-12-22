@@ -166,6 +166,7 @@ void FlowVarFree(FlowVar *fv)
     if (fv->datatype == FLOWVAR_TYPE_STR) {
         if (fv->data.fv_str.value != NULL)
             SCFree(fv->data.fv_str.value);
+        SCFree(fv->key);
     }
     SCFree(fv);
 }
