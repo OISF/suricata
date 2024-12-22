@@ -329,6 +329,7 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
         fclose(fp);
     } else {
         json_t *json;
+        bool found = false;
 
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
@@ -336,12 +337,14 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
-            json_t *key = json_object_get(value, json_key);
-
+            json_t *key = GetSubObjectByKey(value, json_key);
             if (key == NULL) {
-                FatalErrorOnInit("Can't find expected key in object");
+                /* ignore error as it can be a working mode where some entries
+                are not in the same format */
                 continue;
             }
+
+            found = true;
 
             const char *val = json_string_value(key);
 
@@ -358,6 +361,12 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
             }
         }
         json_decref(json);
+
+        if (found == false) {
+            FatalErrorOnInit(
+                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+            return -1;
+        }
     }
     THashConsolidateMemcap(set->hash);
 
@@ -427,18 +436,22 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
         fclose(fp);
     } else {
         json_t *json;
+        bool found = false;
+
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
-            json_t *key = json_object_get(value, json_key);
-
+            json_t *key = GetSubObjectByKey(value, json_key);
             if (key == NULL) {
-                FatalErrorOnInit("Can't find expected key in object");
+                /* ignore error as it can be a working mode where some entries
+                are not in the same format */
                 continue;
             }
+
+            found = true;
 
             const char *hash_string = json_string_value(key);
             if (strlen(hash_string) != 32) {
@@ -465,6 +478,12 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
             }
         }
         json_decref(json);
+
+        if (found == false) {
+            FatalErrorOnInit(
+                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+            return -1;
+        }
     }
     THashConsolidateMemcap(set->hash);
 
@@ -529,6 +548,7 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
         fclose(fp);
     } else {
         json_t *json;
+        bool found = false;
 
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
@@ -536,12 +556,14 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
-            json_t *key = json_object_get(value, json_key);
-
+            json_t *key = GetSubObjectByKey(value, json_key);
             if (key == NULL) {
-                FatalErrorOnInit("Can't find expected key in object");
+                /* ignore error as it can be a working mode where some entries
+                are not in the same format */
                 continue;
             }
+
+            found = true;
 
             const char *hash_string = json_string_value(key);
             if (strlen(hash_string) != 64) {
@@ -568,6 +590,12 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
             }
         }
         json_decref(json);
+
+        if (found == false) {
+            FatalErrorOnInit(
+                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+            return -1;
+        }
     }
     THashConsolidateMemcap(set->hash);
 
@@ -635,6 +663,7 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
         fclose(fp);
     } else {
         json_t *json;
+        bool found = false;
 
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
@@ -642,15 +671,16 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
-            json_t *key = json_object_get(value, json_key);
-
+            json_t *key = GetSubObjectByKey(value, json_key);
             if (key == NULL) {
-                FatalErrorOnInit("Can't find expected key in object");
+                /* ignore error as it can be a working mode where some entries
+                are not in the same format */
                 continue;
             }
 
-            const char *ip_string = json_string_value(key);
+            found = true;
 
+            const char *ip_string = json_string_value(key);
             struct in_addr in;
             if (inet_pton(AF_INET, ip_string, &in) != 1) {
                 FatalErrorOnInit(
@@ -670,6 +700,12 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
             }
         }
         json_decref(json);
+
+        if (found == false) {
+            FatalErrorOnInit(
+                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+            return -1;
+        }
     }
     THashConsolidateMemcap(set->hash);
 
@@ -737,21 +773,24 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
         fclose(fp);
     } else {
         json_t *json;
+        bool found = false;
+
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
-            json_t *key = json_object_get(value, json_key);
-
+            json_t *key = GetSubObjectByKey(value, json_key);
             if (key == NULL) {
-                FatalErrorOnInit("Can't find expected key in object");
+                /* ignore error as it can be a working mode where some entries
+                are not in the same format */
                 continue;
             }
 
-            const char *ip_string = json_string_value(key);
+            found = true;
 
+            const char *ip_string = json_string_value(key);
             struct in6_addr in6;
             int ret = DatasetParseIpv6String(set, ip_string, &in6);
             if (ret < 0) {
@@ -771,6 +810,12 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
             }
         }
         json_decref(json);
+
+        if (found == false) {
+            FatalErrorOnInit(
+                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+            return -1;
+        }
     }
 
     THashConsolidateMemcap(set->hash);
