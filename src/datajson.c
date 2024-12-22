@@ -35,7 +35,7 @@
 #include "util-debug.h"
 #include "util-conf.h"
 
-static int DatasetAddwJson(
+static int DatajsonAdd(
         Dataset *set, const uint8_t *data, const uint32_t data_len, DataJsonType *json);
 
 static inline void DatajsonUnlockData(THashData *d)
@@ -145,7 +145,7 @@ static int ParseJsonFile(const char *file, json_t **array, char *key)
  *  \retval 0 data was not added to the hash as it is already there
  *  \retval -1 failed to add data to the hash
  */
-static int DatasetAddStringwJson(
+static int DatajsonAddString(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
 {
     if (set == NULL)
@@ -160,7 +160,7 @@ static int DatasetAddStringwJson(
     return -1;
 }
 
-static int DatasetAddMd5wJson(
+static int DatajsonAddMd5(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
 {
     if (set == NULL)
@@ -179,7 +179,7 @@ static int DatasetAddMd5wJson(
     return -1;
 }
 
-static int DatasetAddSha256wJson(
+static int DatajsonAddSha256(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
 {
     if (set == NULL)
@@ -198,7 +198,7 @@ static int DatasetAddSha256wJson(
     return -1;
 }
 
-static int DatasetAddIPv4wJson(
+static int DatajsonAddIPv4(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
 {
     if (set == NULL)
@@ -217,7 +217,7 @@ static int DatasetAddIPv4wJson(
     return -1;
 }
 
-static int DatasetAddIPv6wJson(
+static int DatajsonAddIPv6(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
 {
     if (set == NULL)
@@ -236,7 +236,7 @@ static int DatasetAddIPv6wJson(
     return -1;
 }
 
-static int DatasetAddwJson(
+static int DatajsonAdd(
         Dataset *set, const uint8_t *data, const uint32_t data_len, DataJsonType *json)
 {
     if (set == NULL)
@@ -244,22 +244,22 @@ static int DatasetAddwJson(
 
     switch (set->type) {
         case DATASET_TYPE_STRING:
-            return DatasetAddStringwJson(set, data, data_len, json);
+            return DatajsonAddString(set, data, data_len, json);
         case DATASET_TYPE_MD5:
-            return DatasetAddMd5wJson(set, data, data_len, json);
+            return DatajsonAddMd5(set, data, data_len, json);
         case DATASET_TYPE_SHA256:
-            return DatasetAddSha256wJson(set, data, data_len, json);
+            return DatajsonAddSha256(set, data, data_len, json);
         case DATASET_TYPE_IPV4:
-            return DatasetAddIPv4wJson(set, data, data_len, json);
+            return DatajsonAddIPv4(set, data, data_len, json);
         case DATASET_TYPE_IPV6:
-            return DatasetAddIPv6wJson(set, data, data_len, json);
+            return DatajsonAddIPv6(set, data, data_len, json);
         default:
             break;
     }
     return -1;
 }
 
-static int DatasetJsonLoadString(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -314,7 +314,7 @@ static int DatasetJsonLoadString(Dataset *set, char *json_key, char *array_key)
                 }
                 SCLogDebug("json %s", json.value);
 
-                add_ret = DatasetAddwJson(set, (const uint8_t *)decoded, num_decoded, &json);
+                add_ret = DatajsonAdd(set, (const uint8_t *)decoded, num_decoded, &json);
                 if (add_ret < 0) {
                     FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                     continue;
@@ -349,7 +349,7 @@ static int DatasetJsonLoadString(Dataset *set, char *json_key, char *array_key)
             json.value = json_dumps(value, JSON_COMPACT);
             json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)val, strlen(val), &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
@@ -365,7 +365,7 @@ static int DatasetJsonLoadString(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
-static int DatasetJsonLoadMd5(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -409,7 +409,7 @@ static int DatasetJsonLoadMd5(Dataset *set, char *json_key, char *array_key)
                 }
 
                 SCLogDebug("json v:%s", json.value);
-                add_ret = DatasetAddwJson(set, hash, 16, &json);
+                add_ret = DatajsonAdd(set, hash, 16, &json);
                 if (add_ret < 0) {
                     FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                     continue;
@@ -456,7 +456,7 @@ static int DatasetJsonLoadMd5(Dataset *set, char *json_key, char *array_key)
             json.value = json_dumps(value, JSON_COMPACT);
             json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)hash_string, 16, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 16, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
@@ -472,7 +472,7 @@ static int DatasetJsonLoadMd5(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
-static int DatasetJsonLoadSha256(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -516,7 +516,7 @@ static int DatasetJsonLoadSha256(Dataset *set, char *json_key, char *array_key)
 
                 SCLogDebug("json %s", json.value);
 
-                add_ret = DatasetAddwJson(set, hash, 32, &json);
+                add_ret = DatajsonAdd(set, hash, 32, &json);
                 if (add_ret < 0) {
                     FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                     continue;
@@ -559,7 +559,7 @@ static int DatasetJsonLoadSha256(Dataset *set, char *json_key, char *array_key)
             json.value = json_dumps(value, JSON_COMPACT);
             json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)hash_string, 32, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 32, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
@@ -575,7 +575,7 @@ static int DatasetJsonLoadSha256(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
-static int DatasetJsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -621,7 +621,7 @@ static int DatasetJsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
                     continue;
                 }
 
-                add_ret = DatasetAddwJson(set, (const uint8_t *)&in.s_addr, 4, &json);
+                add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, 4, &json);
                 if (add_ret < 0) {
                     FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                     continue;
@@ -661,7 +661,7 @@ static int DatasetJsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
             json.value = json_dumps(value, JSON_COMPACT);
             json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)&in.s_addr, 4, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, 4, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
@@ -677,7 +677,7 @@ static int DatasetJsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
-static int DatasetJsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -723,7 +723,7 @@ static int DatasetJsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
                     continue;
                 }
 
-                add_ret = DatasetAddwJson(set, (const uint8_t *)&in6.s6_addr, 16, &json);
+                add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, 16, &json);
                 if (add_ret < 0) {
                     FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                     continue;
@@ -762,7 +762,7 @@ static int DatasetJsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
             json.value = json_dumps(value, JSON_COMPACT);
             json.len = strlen(json.value);
 
-            add_ret = DatasetAddwJson(set, (const uint8_t *)&in6.s6_addr, 16, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, 16, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
@@ -844,7 +844,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadMd5(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadMd5(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
@@ -854,7 +854,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadString(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadString(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_SHA256:
@@ -864,7 +864,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadSha256(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadSha256(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
@@ -874,7 +874,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv4(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadIPv4(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
@@ -884,7 +884,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatasetJsonLoadIPv6(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadIPv6(set, json_key_value, json_array_key) < 0)
                 goto out_err;
             break;
     }
@@ -1146,8 +1146,8 @@ operror:
  */
 int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
 {
-    return DatajsonOpSerialized(set, value, json, DatasetAddStringwJson, DatasetAddMd5wJson,
-            DatasetAddSha256wJson, DatasetAddIPv4wJson, DatasetAddIPv6wJson);
+    return DatajsonOpSerialized(set, value, json, DatajsonAddString, DatajsonAddMd5,
+            DatajsonAddSha256, DatajsonAddIPv4, DatajsonAddIPv6);
 }
 
 /**
