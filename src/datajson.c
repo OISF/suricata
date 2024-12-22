@@ -1053,8 +1053,9 @@ typedef int (*DatajsonOpFunc)(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json);
 
 static int DatajsonOpSerialized(Dataset *set, const char *string, const char *json,
-        DatajsonOpFunc DatasetOpString, DatajsonOpFunc DatasetOpMd5, DatajsonOpFunc DatasetOpSha256,
-        DatajsonOpFunc DatasetOpIPv4, DatajsonOpFunc DatasetOpIPv6)
+        DatajsonOpFunc DatajsonOpString, DatajsonOpFunc DatajsonOpMd5,
+        DatajsonOpFunc DatajsonOpSha256, DatajsonOpFunc DatajsonOpIPv4,
+        DatajsonOpFunc DatajsonOpIPv6)
 {
     int ret;
 
@@ -1079,7 +1080,7 @@ static int DatajsonOpSerialized(Dataset *set, const char *string, const char *js
                     (const uint8_t *)string, strlen(string), Base64ModeStrict, decoded);
             if (num_decoded == 0)
                 goto operror;
-            ret = DatasetOpString(set, decoded, num_decoded, &jvalue);
+            ret = DatajsonOpString(set, decoded, num_decoded, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -1091,7 +1092,7 @@ static int DatajsonOpSerialized(Dataset *set, const char *string, const char *js
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
                 goto operror;
-            ret = DatasetOpMd5(set, hash, 16, &jvalue);
+            ret = DatajsonOpMd5(set, hash, 16, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -1103,7 +1104,7 @@ static int DatajsonOpSerialized(Dataset *set, const char *string, const char *js
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
                 goto operror;
-            ret = DatasetOpSha256(set, hash, 32, &jvalue);
+            ret = DatajsonOpSha256(set, hash, 32, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -1113,7 +1114,7 @@ static int DatajsonOpSerialized(Dataset *set, const char *string, const char *js
             struct in_addr in;
             if (inet_pton(AF_INET, string, &in) != 1)
                 goto operror;
-            ret = DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4, &jvalue);
+            ret = DatajsonOpIPv4(set, (uint8_t *)&in.s_addr, 4, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -1125,7 +1126,7 @@ static int DatajsonOpSerialized(Dataset *set, const char *string, const char *js
                 SCLogError("Dataset failed to import %s as IPv6", string);
                 goto operror;
             }
-            ret = DatasetOpIPv6(set, (uint8_t *)&in6.s6_addr, 16, &jvalue);
+            ret = DatajsonOpIPv6(set, (uint8_t *)&in6.s6_addr, 16, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
