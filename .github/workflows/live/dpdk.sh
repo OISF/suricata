@@ -21,6 +21,12 @@ if [ -f eve.json ]; then
     rm eve.json
 fi
 
+if [ -e ./rust/target/release/suricatasc ]; then
+    SURICATASC=./rust/target/release/suricatasc
+else
+    SURICATASC=./rust/target/debug/suricatasc
+fi
+
 RES=0
 
 # set first rule file
@@ -47,8 +53,7 @@ echo "SURIPID $SURIPID"
 cp .github/workflows/live/icmp2.rules suricata.rules
 
 # trigger the reload
-export PYTHONPATH=python/
-python3 python/bin/suricatasc -c "reload-rules" /var/run/suricata/suricata-command.socket
+${SURICATASC} -c "reload-rules" /var/run/suricata/suricata-command.socket
 
 sleep 15
 
@@ -59,7 +64,7 @@ if [ $STATSCHECK = false ]; then
     RES=1
 fi
 
-python3 python/bin/suricatasc -c "shutdown" /var/run/suricata/suricata-command.socket
+${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
 echo "done: $RES"
