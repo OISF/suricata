@@ -6108,6 +6108,10 @@
                                     "Number of times retrieval of flow from hash was attempted but was unsuccessful",
                             "type": "integer"
                         },
+                        "elephant_flows": {
+                            "description": "Total number of elephant flows seen",
+                            "type": "integer"
+                        },
                         "icmpv4": {
                             "description": "Number of ICMPv4 flows",
                             "type": "integer"
