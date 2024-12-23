@@ -82,6 +82,8 @@ Major changes
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unmet requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`.
+- MySQL parser and logger have been introduced.
+- The MySQL keywords ``mysql.command`` and ``mysql.command`` have been introduced.
 
 Removals
 ~~~~~~~~
