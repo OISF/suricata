@@ -1,0 +1,30 @@
+---
+Checks: "
+      bugprone-*,
+      cert-*,
+      clang-analyzer-*,
+      concurrency-*,
+      misc-*,
+      modernize-*,
+      performance-*,
+      portability-*,
+      readability-*,
+      -readability-identifier-length,
+      -readability-braces-around-statements,
+      -readability-avoid-const-params-in-decls,
+      -bugprone-easily-swappable-parameters,
+"
+WarningsAsErrors: "
+      bugprone-unsafe-functions,
+"
+HeaderFileExtensions:
+  - ''
+  - 'h'
+ImplementationFileExtensions:
+  - 'c'
+FormatStyle:     none
+CheckOptions:
+  bugprone-unsafe-functions.ReportDefaultFunctions: 'true'
+  bugprone-unsafe-functions.ReportMoreUnsafeFunctions: 'true'
+  bugprone-unsafe-functions.CustomFunctions: '^strtok$,strtok_r;^sprintf$,snprintf;^strcat$,strlcat;^strcpy$,strlcpy;^strncpy$,strlcat;^strncat$,strlcpy;^strndup$,,is OS specific;^strchrnul$;^rand$;^rand_r$;^index$;^rindex$;^bzero$,^memset$'
+  readability-function-cognitive-complexity.Threshold: 50
