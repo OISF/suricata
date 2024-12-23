@@ -300,6 +300,34 @@ pub enum ProtocolOp {
     Unknown,
 }
 
+impl ProtocolOp {
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            ProtocolOp::BindRequest(_) => 0,
+            ProtocolOp::BindResponse(_) => 1,
+            ProtocolOp::UnbindRequest => 2,
+            ProtocolOp::SearchRequest(_) => 3,
+            ProtocolOp::SearchResultEntry(_) => 4,
+            ProtocolOp::SearchResultDone(_) => 5,
+            ProtocolOp::SearchResultReference(_) => 19,
+            ProtocolOp::ModifyRequest(_) => 6,
+            ProtocolOp::ModifyResponse(_) => 7,
+            ProtocolOp::AddRequest(_) => 8,
+            ProtocolOp::AddResponse(_) => 9,
+            ProtocolOp::DelRequest(_) => 10,
+            ProtocolOp::DelResponse(_) => 11,
+            ProtocolOp::ModDnRequest(_) => 12,
+            ProtocolOp::ModDnResponse(_) => 13,
+            ProtocolOp::CompareRequest(_) => 14,
+            ProtocolOp::CompareResponse(_) => 15,
+            ProtocolOp::ExtendedRequest(_) => 23,
+            ProtocolOp::ExtendedResponse(_) => 24,
+            ProtocolOp::IntermediateResponse(_) => 25,
+            ProtocolOp::Unknown => 255,
+        }
+    }
+}
+
 impl Display for ProtocolOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

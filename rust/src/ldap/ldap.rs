@@ -33,7 +33,7 @@ static LDAP_MAX_TX_DEFAULT: usize = 256;
 
 static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
 
-static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
 
 const STARTTLS_OID: &str = "1.3.6.1.4.1.1466.20037";
 
