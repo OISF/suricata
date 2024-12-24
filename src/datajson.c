@@ -348,16 +348,16 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
 
             const char *val = json_string_value(key);
 
-            DataJsonType json = { .value = NULL, .len = 0 };
-            json.value = json_dumps(value, JSON_COMPACT);
-            json.len = strlen(json.value);
+            DataJsonType elt = { .value = NULL, .len = 0 };
+            elt.value = json_dumps(value, JSON_COMPACT);
+            elt.len = strlen(elt.value);
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &elt);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
-                SCFree(json.value);
+                SCFree(elt.value);
             }
         }
         json_decref(json);
@@ -465,16 +465,16 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
                 continue;
             }
 
-            DataJsonType json = { .value = NULL, .len = 0 };
-            json.value = json_dumps(value, JSON_COMPACT);
-            json.len = strlen(json.value);
+            DataJsonType elt = { .value = NULL, .len = 0 };
+            elt.value = json_dumps(value, JSON_COMPACT);
+            elt.len = strlen(elt.value);
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 16, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 16, &elt);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
-                SCFree(json.value);
+                SCFree(elt.value);
             }
         }
         json_decref(json);
@@ -577,16 +577,16 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
                 continue;
             }
 
-            DataJsonType json = { .value = NULL, .len = 0 };
-            json.value = json_dumps(value, JSON_COMPACT);
-            json.len = strlen(json.value);
+            DataJsonType elt = { .value = NULL, .len = 0 };
+            elt.value = json_dumps(value, JSON_COMPACT);
+            elt.len = strlen(elt.value);
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 32, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, 32, &elt);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
-                SCFree(json.value);
+                SCFree(elt.value);
             }
         }
         json_decref(json);
@@ -687,16 +687,16 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
                         "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
                 continue;
             }
-            DataJsonType json = { .value = NULL, .len = 0 };
-            json.value = json_dumps(value, JSON_COMPACT);
-            json.len = strlen(json.value);
+            DataJsonType elt = { .value = NULL, .len = 0 };
+            elt.value = json_dumps(value, JSON_COMPACT);
+            elt.len = strlen(elt.value);
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, 4, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, 4, &elt);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
-                SCFree(json.value);
+                SCFree(elt.value);
             }
         }
         json_decref(json);
@@ -797,16 +797,16 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
                 FatalErrorOnInit("unable to parse IP address");
                 continue;
             }
-            DataJsonType json = { .value = NULL, .len = 0 };
-            json.value = json_dumps(value, JSON_COMPACT);
-            json.len = strlen(json.value);
+            DataJsonType elt = { .value = NULL, .len = 0 };
+            elt.value = json_dumps(value, JSON_COMPACT);
+            elt.len = strlen(elt.value);
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, 16, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, 16, &elt);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             } else if (add_ret == 0) {
-                SCFree(json.value);
+                SCFree(elt.value);
             }
         }
         json_decref(json);
