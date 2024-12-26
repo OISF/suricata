@@ -258,6 +258,70 @@ static int DatajsonAdd(
     return -1;
 }
 
+static uint32_t DatajsonLoadStringFromCSV(Dataset *set, const char *fopen_mode)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        if (strlen(line) <= 1)
+            continue;
+
+        char *r = strchr(line, ',');
+        if (r == NULL) {
+            FatalErrorOnInit("missing separator in datajson set %s/%s", set->name, set->load);
+            continue;
+        }
+        line[strlen(line) - 1] = '\0';
+        SCLogDebug("line: '%s'", line);
+
+        *r = '\0';
+
+        uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
+        uint8_t decoded[decoded_size];
+        uint32_t num_decoded = Base64Decode(
+                (const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+        if (num_decoded == 0) {
+            FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
+            continue;
+        }
+
+        r++;
+        SCLogDebug("r '%s'", r);
+
+        // coverity[alloc_strlen : FALSE]
+        DataJsonType json = { .value = NULL, .len = 0 };
+        if (ParseJsonLine(r, strlen(r), &json) < 0) {
+            FatalErrorOnInit("die: bad json");
+            continue;
+        }
+        SCLogDebug("json %s", json.value);
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)decoded, num_decoded, &json);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(json.value);
+        }
+        cnt++;
+
+        SCLogDebug("line with json %s, %s", line, r);
+    }
+    int fp_ret = fclose(fp);
+    if (fp_ret != 0) {
+        SCLogError("Could not close file: errno %d", errno);
+    }
+    return cnt;
+}
+
 static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
@@ -269,72 +333,16 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
         fopen_mode = "a+";
     }
 
-    int add_ret;
     uint32_t cnt = 0;
     if (json_key == NULL) {
-        FILE *fp = fopen(set->load, fopen_mode);
-        if (fp == NULL) {
-            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-            return -1;
-        }
-
-        char line[DATAJSON_JSON_LENGTH];
-        while (fgets(line, (int)sizeof(line), fp) != NULL) {
-            if (strlen(line) <= 1)
-                continue;
-
-            char *r = strchr(line, ',');
-            if (r == NULL) {
-                FatalErrorOnInit("missing separator in datajson set %s/%s", set->name, set->load);
-                continue;
-            }
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            *r = '\0';
-
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded = Base64Decode(
-                    (const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
-                continue;
-            }
-
-            r++;
-            SCLogDebug("r '%s'", r);
-
-            // coverity[alloc_strlen : FALSE]
-            DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(r, strlen(r), &json) < 0) {
-                FatalErrorOnInit("die: bad json");
-                continue;
-            }
-            SCLogDebug("json %s", json.value);
-
-            add_ret = DatajsonAdd(set, (const uint8_t *)decoded, num_decoded, &json);
-            if (add_ret < 0) {
-                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            if (add_ret == 0) {
-                SCFree(json.value);
-            }
-            cnt++;
-
-            SCLogDebug("line with json %s, %s", line, r);
-        }
-        int fp_ret = fclose(fp);
-        if (fp_ret != 0) {
-            SCLogError("Could not close file: errno %d", errno);
-        }
+        cnt = DatajsonLoadStringFromCSV(set, fopen_mode);
     } else {
         json_t *json;
         bool found = false;
         if (ParseJsonFile(set->load, &json, array_key) == -1)
             return -1;
 
+        int add_ret;
         size_t index;
         json_t *value;
         json_array_foreach (json, index, value) {
@@ -376,6 +384,124 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
+static uint32_t DatajsonLoadMd5FromCSV(Dataset *set, const char *fopen_mode)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        /* straight black/white list */
+        if (strlen(line) == SC_MD5_HEX_LEN + 1) {
+            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+            continue;
+        }
+        if (strlen(line) > SC_MD5_HEX_LEN && line[SC_MD5_HEX_LEN] == ',') {
+            line[strlen(line) - 1] = '\0';
+            SCLogDebug("MD5 with JSON line: '%s'", line);
+
+            uint8_t hash[SC_MD5_LEN];
+            if (HexToRaw((const uint8_t *)line, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+                continue;
+            }
+
+            DataJsonType json = { .value = NULL, .len = 0 };
+            if (ParseJsonLine(line + SC_MD5_HEX_LEN + 1, strlen(line) - (SC_MD5_HEX_LEN + 1), &json) < 0) {
+                FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
+                continue;
+            }
+
+            SCLogDebug("json v:%s", json.value);
+            add_ret = DatajsonAdd(set, hash, SC_MD5_LEN, &json);
+            if (add_ret < 0) {
+                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                continue;
+            }
+            if (add_ret == 0) {
+                SCFree(json.value);
+            } else {
+                cnt++;
+            }
+        } else {
+            FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
+            continue;
+        }
+    }
+    int fp_ret = fclose(fp);
+    if (fp_ret != 0) {
+        SCLogError("Could not close file: errno %d", errno);
+    }
+
+    return cnt;
+}
+
+static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char* array_key, char* json_key)
+{
+    int add_ret;
+    uint32_t cnt = 0;
+    json_t *json;
+    bool found = false;
+
+    if (ParseJsonFile(set->load, &json, array_key) == -1)
+        return -1;
+
+    size_t index;
+    json_t *value;
+    json_array_foreach (json, index, value) {
+        json_t *key = GetSubObjectByKey(value, json_key);
+        if (key == NULL) {
+            /* ignore error as it can be a working mode where some entries
+               are not in the same format */
+            continue;
+        }
+
+        found = true;
+
+        const char *hash_string = json_string_value(key);
+        if (strlen(hash_string) != SC_MD5_HEX_LEN) {
+            FatalErrorOnInit("Not correct length for a hash");
+            continue;
+        }
+
+        uint8_t hash[SC_MD5_LEN];
+        if (HexToRaw((const uint8_t *)hash_string, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
+            FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+            continue;
+        }
+
+        DataJsonType elt = { .value = NULL, .len = 0 };
+        elt.value = json_dumps(value, JSON_COMPACT);
+        elt.len = strlen(elt.value);
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, SC_MD5_LEN, &elt);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(elt.value);
+        } else {
+            cnt++;
+        }
+    }
+    json_decref(json);
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return -1;
+    }
+
+    return cnt;
+}
+
 static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
@@ -387,116 +513,129 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
         fopen_mode = "a+";
     }
 
-    int add_ret;
     uint32_t cnt = 0;
     if (json_key == NULL) {
-        FILE *fp = fopen(set->load, fopen_mode);
-        if (fp == NULL) {
-            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-            return -1;
-        }
-
-        char line[DATAJSON_JSON_LENGTH];
-        while (fgets(line, (int)sizeof(line), fp) != NULL) {
-            /* straight black/white list */
-            if (strlen(line) == SC_MD5_HEX_LEN + 1) {
-                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-                continue;
-                /* list with json data */
-            }
-            if (strlen(line) > SC_MD5_HEX_LEN && line[SC_MD5_HEX_LEN] == ',') {
-                line[strlen(line) - 1] = '\0';
-                SCLogDebug("MD5 with JSON line: '%s'", line);
-
-                uint8_t hash[SC_MD5_LEN];
-                if (HexToRaw((const uint8_t *)line, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
-                    FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                    continue;
-                }
-
-                DataJsonType json = { .value = NULL, .len = 0 };
-                if (ParseJsonLine(line + SC_MD5_HEX_LEN + 1, strlen(line) - (SC_MD5_HEX_LEN + 1), &json) < 0) {
-                    FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
-                    continue;
-                }
-
-                SCLogDebug("json v:%s", json.value);
-                add_ret = DatajsonAdd(set, hash, SC_MD5_LEN, &json);
-                if (add_ret < 0) {
-                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                    continue;
-                }
-                if (add_ret == 0) {
-                    SCFree(json.value);
-                }
-
-                cnt++;
-
-            } else {
-                FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
-                continue;
-            }
-        }
-        int fp_ret = fclose(fp);
-        if (fp_ret != 0) {
-            SCLogError("Could not close file: errno %d", errno);
-        }
+        cnt = DatajsonLoadMd5FromCSV(set, fopen_mode);
     } else {
-        json_t *json;
-        bool found = false;
-
-        if (ParseJsonFile(set->load, &json, array_key) == -1)
-            return -1;
-
-        size_t index;
-        json_t *value;
-        json_array_foreach (json, index, value) {
-            json_t *key = GetSubObjectByKey(value, json_key);
-            if (key == NULL) {
-                /* ignore error as it can be a working mode where some entries
-                are not in the same format */
-                continue;
-            }
-
-            found = true;
-
-            const char *hash_string = json_string_value(key);
-            if (strlen(hash_string) != SC_MD5_HEX_LEN) {
-                FatalErrorOnInit("Not correct length for a hash");
-                continue;
-            }
-
-            uint8_t hash[SC_MD5_LEN];
-            if (HexToRaw((const uint8_t *)hash_string, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            DataJsonType elt = { .value = NULL, .len = 0 };
-            elt.value = json_dumps(value, JSON_COMPACT);
-            elt.len = strlen(elt.value);
-
-            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, SC_MD5_LEN, &elt);
-            if (add_ret < 0) {
-                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            if (add_ret == 0) {
-                SCFree(elt.value);
-            }
-        }
-        json_decref(json);
-
-        if (found == false) {
-            FatalErrorOnInit(
-                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-            return -1;
-        }
+        cnt = DatajsonLoadMd5FromJSON(set, array_key, json_key);
     }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
+}
+
+static uint32_t DatajsonLoadSha256fromCSV(Dataset *set, const char *fopen_mode)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        /* straight black/white list */
+        if (strlen(line) == SC_SHA256_HEX_LEN + 1) {
+            FatalErrorOnInit("datajson missing separator %s/%s", set->name, set->load);
+            continue;
+        }
+        if (strlen(line) > SC_SHA256_HEX_LEN + 1 && line[SC_SHA256_HEX_LEN] == ',') {
+            line[strlen(line) - 1] = '\0';
+            SCLogDebug("SHA-256 with JSON line: '%s'", line);
+
+            uint8_t hash[SC_SHA256_LEN];
+            if (HexToRaw((const uint8_t *)line, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
+                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+                continue;
+            }
+
+            DataJsonType json = { .value = NULL, .len = 0 };
+            if (ParseJsonLine(line + SC_SHA256_HEX_LEN + 1, strlen(line) - (SC_SHA256_HEX_LEN + 1), &json) < 0) {
+                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                continue;
+            }
+
+            SCLogDebug("json %s", json.value);
+
+            add_ret = DatajsonAdd(set, hash, SC_SHA256_LEN, &json);
+            if (add_ret < 0) {
+                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                continue;
+            }
+            if (add_ret == 0) {
+                SCFree(json.value);
+            } else {
+                cnt++;
+            }
+        }
+    }
+    int fp_ret = fclose(fp);
+    if (fp_ret != 0) {
+        SCLogError("Could not close file: errno %d", errno);
+    }
+    return cnt;
+}
+
+static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char* array_key, char* json_key)
+{
+    int add_ret;
+    uint32_t cnt = 0;
+    json_t *json;
+    bool found = false;
+
+    if (ParseJsonFile(set->load, &json, array_key) == -1)
+        return -1;
+
+    size_t index;
+    json_t *value;
+    json_array_foreach (json, index, value) {
+        json_t *key = GetSubObjectByKey(value, json_key);
+        if (key == NULL) {
+            /* ignore error as it can be a working mode where some entries
+               are not in the same format */
+            continue;
+        }
+
+        found = true;
+
+        const char *hash_string = json_string_value(key);
+        if (strlen(hash_string) != SC_SHA256_HEX_LEN) {
+            FatalErrorOnInit("Not correct length for a hash");
+            continue;
+        }
+
+        uint8_t hash[SC_SHA256_LEN];
+        if (HexToRaw((const uint8_t *)hash_string, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
+            FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+            continue;
+        }
+
+        DataJsonType elt = { .value = NULL, .len = 0 };
+        elt.value = json_dumps(value, JSON_COMPACT);
+        elt.len = strlen(elt.value);
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, SC_SHA256_LEN, &elt);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(elt.value);
+        } else {
+            cnt++;
+        }
+    }
+    json_decref(json);
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return -1;
+    }
+    return cnt;
 }
 
 static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
@@ -510,111 +649,127 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
         fopen_mode = "a+";
     }
 
-    int add_ret;
     uint32_t cnt = 0;
     if (json_key == NULL) {
-        FILE *fp = fopen(set->load, fopen_mode);
-        if (fp == NULL) {
-            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-            return -1;
-        }
-
-        char line[DATAJSON_JSON_LENGTH];
-        while (fgets(line, (int)sizeof(line), fp) != NULL) {
-            /* straight black/white list */
-            if (strlen(line) == SC_SHA256_HEX_LEN + 1) {
-                FatalErrorOnInit("datajson missing separator %s/%s", set->name, set->load);
-                continue;
-            }
-            if (strlen(line) > SC_SHA256_HEX_LEN + 1 && line[SC_SHA256_HEX_LEN] == ',') {
-                line[strlen(line) - 1] = '\0';
-                SCLogDebug("SHA-256 with JSON line: '%s'", line);
-
-                uint8_t hash[SC_SHA256_LEN];
-                if (HexToRaw((const uint8_t *)line, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
-                    FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                    continue;
-                }
-
-                DataJsonType json = { .value = NULL, .len = 0 };
-                if (ParseJsonLine(line + SC_SHA256_HEX_LEN + 1, strlen(line) - (SC_SHA256_HEX_LEN + 1), &json) < 0) {
-                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                    continue;
-                }
-
-                SCLogDebug("json %s", json.value);
-
-                add_ret = DatajsonAdd(set, hash, SC_SHA256_LEN, &json);
-                if (add_ret < 0) {
-                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                    continue;
-                }
-                if (add_ret == 0) {
-                    SCFree(json.value);
-                }
-                cnt++;
-            }
-        }
-        int fp_ret = fclose(fp);
-        if (fp_ret != 0) {
-            SCLogError("Could not close file: errno %d", errno);
-        }
+        cnt = DatajsonLoadSha256fromCSV(set, fopen_mode);
     } else {
-        json_t *json;
-        bool found = false;
-
-        if (ParseJsonFile(set->load, &json, array_key) == -1)
-            return -1;
-
-        size_t index;
-        json_t *value;
-        json_array_foreach (json, index, value) {
-            json_t *key = GetSubObjectByKey(value, json_key);
-            if (key == NULL) {
-                /* ignore error as it can be a working mode where some entries
-                are not in the same format */
-                continue;
-            }
-
-            found = true;
-
-            const char *hash_string = json_string_value(key);
-            if (strlen(hash_string) != SC_SHA256_HEX_LEN) {
-                FatalErrorOnInit("Not correct length for a hash");
-                continue;
-            }
-
-            uint8_t hash[SC_SHA256_LEN];
-            if (HexToRaw((const uint8_t *)hash_string, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            DataJsonType elt = { .value = NULL, .len = 0 };
-            elt.value = json_dumps(value, JSON_COMPACT);
-            elt.len = strlen(elt.value);
-
-            add_ret = DatajsonAdd(set, (const uint8_t *)hash_string, SC_SHA256_LEN, &elt);
-            if (add_ret < 0) {
-                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            if (add_ret == 0) {
-                SCFree(elt.value);
-            }
-        }
-        json_decref(json);
-
-        if (found == false) {
-            FatalErrorOnInit(
-                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-            return -1;
-        }
+        cnt = DatajsonLoadSHA256FromJSON(set, array_key, json_key);
     }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
+}
+
+static uint32_t DatajsonLoadIPv4fromCSV(Dataset *set, const char *fopen_mode)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        char *r = strchr(line, ',');
+        if (r == NULL) {
+            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+            continue;
+            /* list with JSON data */
+        }
+        line[strlen(line) - 1] = '\0';
+        *r = '\0';
+
+        struct in_addr in;
+        if (inet_pton(AF_INET, line, &in) != 1) {
+            FatalErrorOnInit(
+                    "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+            continue;
+        }
+
+        r++;
+
+        DataJsonType json = { .value = NULL, .len = 0 };
+        if (ParseJsonLine(r, strlen(r), &json) < 0) {
+            FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
+            continue;
+        }
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &json);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(json.value);
+        } else {
+            cnt++;
+        }
+    }
+    int fp_ret = fclose(fp);
+    if (fp_ret != 0) {
+        SCLogError("Could not close file: errno %d", errno);
+    }
+
+    return cnt;
+}
+
+static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char* array_key, char* json_key)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+    json_t *json;
+    bool found = false;
+
+    if (ParseJsonFile(set->load, &json, array_key) == -1)
+        return -1;
+
+    size_t index;
+    json_t *value;
+    json_array_foreach (json, index, value) {
+        json_t *key = GetSubObjectByKey(value, json_key);
+        if (key == NULL) {
+            /* ignore error as it can be a working mode where some entries
+               are not in the same format */
+            continue;
+        }
+
+        found = true;
+
+        const char *ip_string = json_string_value(key);
+        struct in_addr in;
+        if (inet_pton(AF_INET, ip_string, &in) != 1) {
+            FatalErrorOnInit(
+                    "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
+            continue;
+        }
+        DataJsonType elt = { .value = NULL, .len = 0 };
+        elt.value = json_dumps(value, JSON_COMPACT);
+        elt.len = strlen(elt.value);
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &elt);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(elt.value);
+        } else {
+            cnt++;
+        }
+    }
+    json_decref(json);
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return 0;
+    }
+
+    return cnt;
 }
 
 static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
@@ -628,30 +783,44 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
         fopen_mode = "a+";
     }
 
-    int add_ret;
     uint32_t cnt = 0;
     if (json_key == NULL) {
-        FILE *fp = fopen(set->load, fopen_mode);
-        if (fp == NULL) {
-            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-            return -1;
-        }
+        cnt = DatajsonLoadIPv4fromCSV(set, fopen_mode);
+    } else {
+        cnt = DatajsonLoadIPv4FromJSON(set, array_key, json_key);
+     }
+    THashConsolidateMemcap(set->hash);
 
-        char line[DATAJSON_JSON_LENGTH];
-        while (fgets(line, (int)sizeof(line), fp) != NULL) {
-            char *r = strchr(line, ',');
-            if (r == NULL) {
-                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-                continue;
-                /* list with JSON data */
-            }
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
+    return 0;
+}
+
+static uint32_t DatajsonLoadIPv6fromCSV(Dataset *set, const char *fopen_mode)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+
+    FILE *fp = fopen(set->load, fopen_mode);
+    if (fp == NULL) {
+        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+        return -1;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        char *r = strchr(line, ',');
+        if (r == NULL) {
+            FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
+            /* list with JSON data */
+        } else {
             line[strlen(line) - 1] = '\0';
-            *r = '\0';
+            SCLogDebug("IPv6 with JSON line: '%s'", line);
 
-            struct in_addr in;
-            if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit(
-                        "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+            *r = '\0';
+            struct in6_addr in6;
+            int ret = DatasetParseIpv6String(set, line, &in6);
+            if (ret < 0) {
+                FatalErrorOnInit("unable to parse IP address");
                 continue;
             }
 
@@ -663,72 +832,78 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
                 continue;
             }
 
-            add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &json);
+            add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &json);
             if (add_ret < 0) {
                 FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
                 continue;
             }
             if (add_ret == 0) {
                 SCFree(json.value);
+            } else {
+                cnt++;
             }
-
-            cnt++;
-        }
-        int fp_ret = fclose(fp);
-        if (fp_ret != 0) {
-            SCLogError("Could not close file: errno %d", errno);
-        }
-    } else {
-        json_t *json;
-        bool found = false;
-
-        if (ParseJsonFile(set->load, &json, array_key) == -1)
-            return -1;
-
-        size_t index;
-        json_t *value;
-        json_array_foreach (json, index, value) {
-            json_t *key = GetSubObjectByKey(value, json_key);
-            if (key == NULL) {
-                /* ignore error as it can be a working mode where some entries
-                are not in the same format */
-                continue;
-            }
-
-            found = true;
-
-            const char *ip_string = json_string_value(key);
-            struct in_addr in;
-            if (inet_pton(AF_INET, ip_string, &in) != 1) {
-                FatalErrorOnInit(
-                        "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
-                continue;
-            }
-            DataJsonType elt = { .value = NULL, .len = 0 };
-            elt.value = json_dumps(value, JSON_COMPACT);
-            elt.len = strlen(elt.value);
-
-            add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &elt);
-            if (add_ret < 0) {
-                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            if (add_ret == 0) {
-                SCFree(elt.value);
-            }
-        }
-        json_decref(json);
-
-        if (found == false) {
-            FatalErrorOnInit(
-                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-            return -1;
         }
     }
-    THashConsolidateMemcap(set->hash);
+    int fp_ret = fclose(fp);
+    if (fp_ret != 0) {
+        SCLogError("Could not close file: errno %d", errno);
+    }
 
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
-    return 0;
+    return cnt;
+}
+
+static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char* array_key, char* json_key)
+{
+    uint32_t cnt = 0;
+    int add_ret;
+    json_t *json;
+    bool found = false;
+
+    if (ParseJsonFile(set->load, &json, array_key) == -1)
+        return -1;
+
+    size_t index;
+    json_t *value;
+    json_array_foreach (json, index, value) {
+        json_t *key = GetSubObjectByKey(value, json_key);
+        if (key == NULL) {
+            /* ignore error as it can be a working mode where some entries
+               are not in the same format */
+            continue;
+        }
+
+        found = true;
+
+        const char *ip_string = json_string_value(key);
+        struct in6_addr in6;
+        int ret = DatasetParseIpv6String(set, ip_string, &in6);
+        if (ret < 0) {
+            FatalErrorOnInit("unable to parse IP address");
+            continue;
+        }
+        DataJsonType elt = { .value = NULL, .len = 0 };
+        elt.value = json_dumps(value, JSON_COMPACT);
+        elt.len = strlen(elt.value);
+
+        add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &elt);
+        if (add_ret < 0) {
+            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+            continue;
+        }
+        if (add_ret == 0) {
+            SCFree(elt.value);
+        } else {
+            cnt++;
+        }
+    }
+    json_decref(json);
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return 0;
+    }
+    return cnt;
 }
 
 static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
@@ -742,102 +917,11 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
         fopen_mode = "a+";
     }
 
-    int add_ret;
     uint32_t cnt = 0;
     if (json_key == NULL) {
-        FILE *fp = fopen(set->load, fopen_mode);
-        if (fp == NULL) {
-            SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
-            return -1;
-        }
-
-        char line[DATAJSON_JSON_LENGTH];
-        while (fgets(line, (int)sizeof(line), fp) != NULL) {
-            char *r = strchr(line, ',');
-            if (r == NULL) {
-                FatalErrorOnInit("datajson without separator %s/%s", set->name, set->load);
-                /* list with JSON data */
-            } else {
-                line[strlen(line) - 1] = '\0';
-                SCLogDebug("IPv6 with JSON line: '%s'", line);
-
-                *r = '\0';
-                struct in6_addr in6;
-                int ret = DatasetParseIpv6String(set, line, &in6);
-                if (ret < 0) {
-                    FatalErrorOnInit("unable to parse IP address");
-                    continue;
-                }
-
-                r++;
-
-                DataJsonType json = { .value = NULL, .len = 0 };
-                if (ParseJsonLine(r, strlen(r), &json) < 0) {
-                    FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
-                    continue;
-                }
-
-                add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &json);
-                if (add_ret < 0) {
-                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                    continue;
-                }
-                if (add_ret == 0) {
-                    SCFree(json.value);
-                }
-                cnt++;
-            }
-        }
-        int fp_ret = fclose(fp);
-        if (fp_ret != 0) {
-            SCLogError("Could not close file: errno %d", errno);
-        }
-    } else {
-        json_t *json;
-        bool found = false;
-
-        if (ParseJsonFile(set->load, &json, array_key) == -1)
-            return -1;
-
-        size_t index;
-        json_t *value;
-        json_array_foreach (json, index, value) {
-            json_t *key = GetSubObjectByKey(value, json_key);
-            if (key == NULL) {
-                /* ignore error as it can be a working mode where some entries
-                are not in the same format */
-                continue;
-            }
-
-            found = true;
-
-            const char *ip_string = json_string_value(key);
-            struct in6_addr in6;
-            int ret = DatasetParseIpv6String(set, ip_string, &in6);
-            if (ret < 0) {
-                FatalErrorOnInit("unable to parse IP address");
-                continue;
-            }
-            DataJsonType elt = { .value = NULL, .len = 0 };
-            elt.value = json_dumps(value, JSON_COMPACT);
-            elt.len = strlen(elt.value);
-
-            add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &elt);
-            if (add_ret < 0) {
-                FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            if (add_ret == 0) {
-                SCFree(elt.value);
-            }
-        }
-        json_decref(json);
-
-        if (found == false) {
-            FatalErrorOnInit(
-                    "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-            return -1;
-        }
+        cnt = DatajsonLoadIPv6fromCSV(set, fopen_mode);
+     } else {
+        cnt = DatajsonLoadIPv6FromJSON(set, array_key, json_key);
     }
 
     THashConsolidateMemcap(set->hash);
