@@ -27,6 +27,8 @@
 #include <suricata-common.h>
 #include "datasets.h"
 
+#define DATAJSON_JSON_LENGTH 1024
+
 typedef struct DataJsonType {
     char *value;
     size_t len;
@@ -40,11 +42,11 @@ typedef struct DataJsonResultType {
 /* Common functions */
 
 Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value, char *json_object_key);
+        uint32_t hashsize, char *json_key_value, char *json_array_key);
 
 DataJsonResultType DatajsonLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 
-int DatajsonAddSerialized(Dataset *set, const char *string, const char *json);
+int DatajsonAddSerialized(Dataset *set, const char *value, const char *json);
 int DatajsonRemoveSerialized(Dataset *set, const char *string);
 
 #endif /* SURICATA_DATAJSON_H*/
