@@ -227,6 +227,11 @@
         [], [
             #include <x86intrin.h> 
             ])
+    AC_CHECK_DECL([quick_exit],
+        AC_DEFINE([HAVE_QUICK_EXIT], [1], [Use quick_exit]),
+        [], [
+            #include <stdlib.h>
+            ])
 
     AC_CHECK_HEADERS([malloc.h])
     AC_CHECK_DECL([malloc_trim],
