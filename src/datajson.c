@@ -285,8 +285,8 @@ static uint32_t DatajsonLoadStringFromCSV(Dataset *set, const char *fopen_mode)
 
         uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
         uint8_t decoded[decoded_size];
-        uint32_t num_decoded = Base64Decode(
-                (const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+        uint32_t num_decoded =
+                Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
         if (num_decoded == 0) {
             FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
             continue;
@@ -413,7 +413,8 @@ static uint32_t DatajsonLoadMd5FromCSV(Dataset *set, const char *fopen_mode)
             }
 
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(line + SC_MD5_HEX_LEN + 1, strlen(line) - (SC_MD5_HEX_LEN + 1), &json) < 0) {
+            if (ParseJsonLine(line + SC_MD5_HEX_LEN + 1, strlen(line) - (SC_MD5_HEX_LEN + 1),
+                        &json) < 0) {
                 FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
                 continue;
             }
@@ -442,7 +443,7 @@ static uint32_t DatajsonLoadMd5FromCSV(Dataset *set, const char *fopen_mode)
     return cnt;
 }
 
-static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char* array_key, char* json_key)
+static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     int add_ret;
     uint32_t cnt = 0;
@@ -553,7 +554,8 @@ static uint32_t DatajsonLoadSha256fromCSV(Dataset *set, const char *fopen_mode)
             }
 
             DataJsonType json = { .value = NULL, .len = 0 };
-            if (ParseJsonLine(line + SC_SHA256_HEX_LEN + 1, strlen(line) - (SC_SHA256_HEX_LEN + 1), &json) < 0) {
+            if (ParseJsonLine(line + SC_SHA256_HEX_LEN + 1, strlen(line) - (SC_SHA256_HEX_LEN + 1),
+                        &json) < 0) {
                 FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
                 continue;
             }
@@ -579,7 +581,7 @@ static uint32_t DatajsonLoadSha256fromCSV(Dataset *set, const char *fopen_mode)
     return cnt;
 }
 
-static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char* array_key, char* json_key)
+static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     int add_ret;
     uint32_t cnt = 0;
@@ -685,8 +687,7 @@ static uint32_t DatajsonLoadIPv4fromCSV(Dataset *set, const char *fopen_mode)
 
         struct in_addr in;
         if (inet_pton(AF_INET, line, &in) != 1) {
-            FatalErrorOnInit(
-                    "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+            FatalErrorOnInit("datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
             continue;
         }
 
@@ -717,7 +718,7 @@ static uint32_t DatajsonLoadIPv4fromCSV(Dataset *set, const char *fopen_mode)
     return cnt;
 }
 
-static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char* array_key, char* json_key)
+static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     uint32_t cnt = 0;
     int add_ret;
@@ -788,7 +789,7 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
         cnt = DatajsonLoadIPv4fromCSV(set, fopen_mode);
     } else {
         cnt = DatajsonLoadIPv4FromJSON(set, array_key, json_key);
-     }
+    }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -852,7 +853,7 @@ static uint32_t DatajsonLoadIPv6fromCSV(Dataset *set, const char *fopen_mode)
     return cnt;
 }
 
-static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char* array_key, char* json_key)
+static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     uint32_t cnt = 0;
     int add_ret;
@@ -920,7 +921,7 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
     uint32_t cnt = 0;
     if (json_key == NULL) {
         cnt = DatajsonLoadIPv6fromCSV(set, fopen_mode);
-     } else {
+    } else {
         cnt = DatajsonLoadIPv6FromJSON(set, array_key, json_key);
     }
 
@@ -984,7 +985,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
     }
 
     static const char conf_format_str[] = "datasets.%s.hash";
-    char cnf_name[DATASET_NAME_MAX_LEN + (sizeof(conf_format_str)/sizeof(char))];
+    char cnf_name[DATASET_NAME_MAX_LEN + (sizeof(conf_format_str) / sizeof(char))];
     int p_ret = snprintf(cnf_name, sizeof(cnf_name), conf_format_str, name);
     if (p_ret == 0) {
         SCLogError("Can't build configuration variable for set: '%s'", name);
@@ -1312,8 +1313,8 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
  *  \retval 0 data not removed (busy)
  *  \retval -1 data not found
  */
-static int DatajsonRemoveString(
-        Dataset *set, const uint8_t *data, const uint32_t data_len,  __attribute__((unused)) const DataJsonType *json)
+static int DatajsonRemoveString(Dataset *set, const uint8_t *data, const uint32_t data_len,
+        __attribute__((unused)) const DataJsonType *json)
 {
     if (set == NULL)
         return -1;
@@ -1324,8 +1325,8 @@ static int DatajsonRemoveString(
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
-static int DatajsonRemoveIPv4(
-        Dataset *set, const uint8_t *data, const uint32_t data_len,  __attribute__((unused)) const DataJsonType *json)
+static int DatajsonRemoveIPv4(Dataset *set, const uint8_t *data, const uint32_t data_len,
+        __attribute__((unused)) const DataJsonType *json)
 {
     if (set == NULL)
         return -1;
@@ -1338,8 +1339,8 @@ static int DatajsonRemoveIPv4(
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
-static int DatajsonRemoveIPv6(
-        Dataset *set, const uint8_t *data, const uint32_t data_len,  __attribute__((unused)) const DataJsonType *json)
+static int DatajsonRemoveIPv6(Dataset *set, const uint8_t *data, const uint32_t data_len,
+        __attribute__((unused)) const DataJsonType *json)
 {
     if (set == NULL)
         return -1;
@@ -1352,8 +1353,8 @@ static int DatajsonRemoveIPv6(
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
-static int DatajsonRemoveMd5(
-        Dataset *set, const uint8_t *data, const uint32_t data_len,  __attribute__((unused)) const DataJsonType *json)
+static int DatajsonRemoveMd5(Dataset *set, const uint8_t *data, const uint32_t data_len,
+        __attribute__((unused)) const DataJsonType *json)
 {
     if (set == NULL)
         return -1;
@@ -1366,8 +1367,8 @@ static int DatajsonRemoveMd5(
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
-static int DatajsonRemoveSha256(
-        Dataset *set, const uint8_t *data, const uint32_t data_len,  __attribute__((unused)) const DataJsonType *json)
+static int DatajsonRemoveSha256(Dataset *set, const uint8_t *data, const uint32_t data_len,
+        __attribute__((unused)) const DataJsonType *json)
 {
     if (set == NULL)
         return -1;
