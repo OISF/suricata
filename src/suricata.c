@@ -396,6 +396,7 @@ void GlobalsDestroy(void)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
+    ParseTimeDeinit();
 
 #ifdef HAVE_DPDK
     DPDKCleanupEAL();
@@ -2876,6 +2877,7 @@ int InitGlobal(void)
 #endif
 
     ParseSizeInit();
+    ParseTimeInit();
     RunModeRegisterRunModes();
 
     /* Initialize the configuration module. */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,8 +29,38 @@
 #include "util-misc.h"
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2,3})?\\s*$"
+#define TIME_REGEX  "^\\s*(\\d+?)\\s*([a-z]{1,2})?\\s*$"
+
 static pcre2_code *parse_regex = NULL;
 static pcre2_match_data *parse_regex_match = NULL;
+
+static pcre2_code *time_regex = NULL;
+static pcre2_match_data *time_regex_match = NULL;
+
+void ParseTimeInit(void)
+{
+    int en;
+    PCRE2_SIZE eo;
+    int opts = 0;
+
+    time_regex =
+            pcre2_compile((PCRE2_SPTR8)TIME_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
+    if (time_regex == NULL) {
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError("pcre2 compile of \"%s\" failed at "
+                   "offset %d: %s",
+                TIME_REGEX, (int)eo, errbuffer);
+        exit(EXIT_FAILURE);
+    }
+    time_regex_match = pcre2_match_data_create_from_pattern(time_regex, NULL);
+}
+
+void ParseTimeDeinit(void)
+{
+    pcre2_code_free(time_regex);
+    pcre2_match_data_free(time_regex_match);
+}
 
 void ParseSizeInit(void)
 {
@@ -55,6 +85,85 @@ void ParseSizeDeinit(void)
 {
     pcre2_code_free(parse_regex);
     pcre2_match_data_free(parse_regex_match);
+}
+
+/* time string parsing API */
+int ParseTimeString(const char *time, SCTime_t *res)
+{
+    int pcre2_match_ret;
+    int r;
+    int retval = 0;
+    uint64_t val;
+    char str[128];
+    char str2[128];
+
+    *res = SCTIME_INITIALIZER;
+
+    if (time == NULL) {
+        SCLogError("invalid time argument: NULL. Valid input is <number><unit>. Unit can be "
+                   "us, ms, s, m, h");
+        retval = -2;
+        goto end;
+    }
+
+    pcre2_match_ret =
+            pcre2_match(time_regex, (PCRE2_SPTR8)time, strlen(time), 0, 0, time_regex_match, NULL);
+
+    if (!(pcre2_match_ret == 2 || pcre2_match_ret == 3)) {
+        SCLogError("invalid time argument: '%s'. Valid input is <number><unit>. Unit can be "
+                   "us, ms, s, m, h",
+                time);
+        retval = -2;
+        goto end;
+    }
+
+    size_t copylen = sizeof(str);
+    r = pcre2_substring_copy_bynumber(time_regex_match, 1, (PCRE2_UCHAR8 *)str, &copylen);
+    if (r < 0) {
+        SCLogError("pcre2_substring_copy_bynumber failed");
+        retval = -2;
+        goto end;
+    }
+
+    if (pcre2_match_ret == 3) {
+        copylen = sizeof(str2);
+        r = pcre2_substring_copy_bynumber(time_regex_match, 2, (PCRE2_UCHAR8 *)str2, &copylen);
+
+        if (r < 0) {
+            SCLogError("pcre2_substring_copy_bynumber failed");
+            retval = -2;
+            goto end;
+        }
+
+        char *endptr, *str_ptr = str;
+        errno = 0;
+        val = strtod(str_ptr, &endptr);
+
+        if (strcasecmp(str2, "us") == 0) {
+            res->secs = val / 1000000;
+            res->usecs = val - ((val / 1000000) * 1000000);
+        } else if (strcasecmp(str2, "ms") == 0) {
+            res->secs = val / 1000;
+            res->usecs = val - ((val / 1000) * 1000) * 1000;
+        } else if (strcasecmp(str2, "s") == 0) {
+            res->secs = val;
+            res->usecs = 0;
+        } else if (strcasecmp(str2, "m") == 0) {
+            res->secs = val * 60;
+            res->usecs = 0;
+        } else if (strcasecmp(str2, "h") == 0) {
+            res->secs = val * 60 * 60;
+            res->usecs = 0;
+        } else {
+            /* Bad unit. */
+            retval = -1;
+            goto end;
+        }
+    }
+
+    retval = 0;
+end:
+    return retval;
 }
 
 /* size string parsing API */
@@ -234,6 +343,142 @@ void ShortenString(const char *input,
 /*********************************Unittests********************************/
 
 #ifdef UNITTESTS
+
+static int UtilMiscParseTimeStringTest(void)
+{
+    const char *str;
+    SCTime_t result = { .secs = 0, .usecs = 0 };
+
+    /* no space */
+
+    str = "10s";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 && result.usecs != 0);
+
+    str = "10m";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 && result.usecs != 0);
+
+    str = "10h";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 * 60 && result.usecs != 0);
+
+    str = "10mb";
+    FAIL_IF(ParseTimeString(str, &result) == 0);
+
+    str = "10us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = "360ms";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 360000);
+
+    str = "3600ms";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 3 && result.usecs != 600000);
+
+    str = "3600us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 3600);
+
+    str = "3600000us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 3 && result.usecs != 6000000);
+
+    str = "36000000us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 36 && result.usecs != 1000000);
+
+    /* space start */
+
+    str = " 10us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = " 10ms";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10000);
+
+    str = " 10s";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 && result.usecs != 0);
+
+    str = " 10m";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 && result.usecs != 0);
+
+    str = " 10h";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 * 60 && result.usecs != 0);
+
+    /* space end */
+
+    str = "10 ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = "10us ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = "10ms ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10000);
+
+    str = "10s ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 && result.usecs != 0);
+
+    str = "10m ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 && result.usecs != 0);
+
+    str = "10h ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 * 60 && result.usecs != 0);
+
+    /* space start - space end */
+
+    str = " 10us ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = " 10ms ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10000);
+
+    str = " 10s ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 && result.usecs != 0);
+
+    str = " 10m ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 && result.usecs != 0);
+
+    str = " 10h ";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 * 60 * 60 && result.usecs != 0);
+
+    /* space between number and scale */
+
+    str = "10 s";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 10 && result.usecs != 0);
+
+    str = "10 us";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10);
+
+    str = "10 ms";
+    FAIL_IF(ParseTimeString(str, &result) != 0);
+    FAIL_IF(result.secs != 0 && result.usecs != 10000);
+
+    /* Should fail on unknown units. */
+    FAIL_IF(ParseTimeString("32ns", &result) == 0);
+
+    PASS;
+}
 
 static int UtilMiscParseSizeStringTest01(void)
 {
@@ -811,5 +1056,6 @@ void UtilMiscRegisterTests(void)
     UtRegisterTest("UtilMiscParseSizeStringTest01",
                    UtilMiscParseSizeStringTest01);
     UtRegisterTest("UtilMiscParseSizeStringTest02", UtilMiscParseSizeStringTest02);
+    UtRegisterTest("UtilMiscParseTimeStringTest", UtilMiscParseTimeStringTest);
 }
 #endif /* UNITTESTS */
