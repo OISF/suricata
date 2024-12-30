@@ -45,6 +45,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
 
+#include "flow-flood.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-time.h"
@@ -58,6 +59,8 @@
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
+extern uint32_t max_pending_packets;
+
 typedef struct FlowTimeoutCounters {
     uint32_t flows_aside_needs_work;
     uint32_t flows_aside_pkt_inject;
@@ -65,6 +68,7 @@ typedef struct FlowTimeoutCounters {
 
 typedef struct FlowWorkerThreadData_ {
     DecodeThreadVars *dtv;
+    FloodStorage *fst;
 
     union {
         StreamTcpThread *stream_thread;
@@ -175,6 +179,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
             }
         }
 
+        FloodStorageRemovedEstablished(tv, fw->fst, f);
         /* no one is referring to this flow, removed from hash
          * so we can unlock it and pass it to the flow recycler */
 
@@ -270,6 +275,35 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
+    int value;
+    if (SCConfGetBool("flood-protection.enabled", &value) == 1 && value == 1) {
+        size_t flood_size;
+        intmax_t val = 0;
+        if (SCConfGetInt("flood-protection.packets", &val) == 1) {
+            flood_size = val;
+        } else {
+            /* guestimating a proper value */
+            flood_size = max_pending_packets / 4;
+        }
+        /* flood protection will not work in inline mode */
+        if (StreamTcpInlineMode()) {
+            SCLogWarning("Inline mode so not enabling flood protection.");
+        } else {
+            /* TODO fix hard coded division, we need more a difference ? */
+            if (flood_size > max_pending_packets / 2) {
+                SCLogWarning("flood-protection.packets must be less than half max-pending-packets "
+                             "(resetting)");
+                flood_size = max_pending_packets / 2;
+            }
+            fw->fst = FloodStorageInit(tv, flood_size);
+            if (fw->fst == NULL) {
+                FlowWorkerThreadDeinit(tv, fw);
+                return TM_ECODE_FAILED;
+            }
+        }
+    } else {
+        fw->fst = NULL;
+    }
     /* setup TCP */
     if (StreamTcpThreadInit(tv, NULL, &fw->stream_thread_ptr) != TM_ECODE_OK) {
         FlowWorkerThreadDeinit(tv, fw);
@@ -335,12 +369,11 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
         FlowFree(f);
     }
 
+    FloodStorageDeinit(tv, fw->fst);
+
     SCFree(fw);
     return TM_ECODE_OK;
 }
-
-TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
-TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *pq);
 
 static inline void UpdateCounters(ThreadVars *tv,
         FlowWorkerThreadData *fw, const FlowTimeoutCounters *counters)
@@ -554,6 +587,49 @@ static void PacketAppUpdate2FlowFlags(Packet *p)
     }
 }
 
+static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data);
+
+/* Called by FlowWorker and initiate recursion on FlowWorker() */
+static TmEcode FloodCheck(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p)
+{
+    /* Flood is only for TCP and has to be skipped in inline mode */
+    if (PacketIsTCP(p) && !StreamTcpInlineMode()) {
+        if (p->flags & PKT_FROM_FLOOD) {
+            /* process it directly so we reset flag */
+            p->flags &= ~PKT_FROM_FLOOD;
+            /* Packet coming back from flood management so let's ask for flow
+               allocation if needed */
+            FlowHandlePacket(tv, &fw->fls, p, true);
+        } else {
+            if (FloodStorageIsEstablished(tv, fw->fst, p)) {
+                FlowHandlePacket(tv, &fw->fls, p, true);
+            } else {
+                /* if this packet is new so let's queue it in parallel structure
+                   before sending it to the full flow logic. Potentially we should just do
+                   that under stress on flow table. Should it be flow emergency ?
+                   It should be only in IDS mode */
+                /* TODO make it conditional to stress level ? */
+                Packet *op = FloodStorageNewCheck(tv, fw->fst, p);
+                if (op != NULL) {
+                    SCLogDebug("Calling flow worker on initial packet");
+                    /* FIXME: Don't like that direct call */
+                    FlowWorker(tv, op, fw);
+                    op->flags &= ~PKT_FROM_FLOOD;
+                    TmqhOutputPacketpool(tv, op);
+                } else {
+                    SCLogDebug("Ignoring packet for now (%p)", p);
+                    FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW);
+                    return TM_ECODE_DONE;
+                }
+                FlowHandlePacket(tv, &fw->fls, p, true);
+            }
+        }
+    } else {
+        FlowHandlePacket(tv, &fw->fls, p, true);
+    }
+    return TM_ECODE_OK;
+}
+
 static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
     FlowWorkerThreadData *fw = data;
@@ -584,8 +660,15 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     if (p->flags & PKT_WANTS_FLOW) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
-
-        FlowHandlePacket(tv, &fw->fls, p);
+        /* FIXME: make it conditional to stress level ? */
+        if (fw->fst) {
+            if (FloodCheck(tv, fw, p) == TM_ECODE_DONE) {
+                FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW);
+                goto housekeeping;
+            }
+        } else {
+            FlowHandlePacket(tv, &fw->fls, p, true);
+        }
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
@@ -593,6 +676,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
                 if (!(PKT_IS_PSEUDOPKT(p))) {
                     TimeSetByThread(tv->id, p->ts);
                 }
+                FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW);
                 goto housekeeping;
             }
         }

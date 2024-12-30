@@ -1614,6 +1614,13 @@ flow-timeouts:
     emergency-established: 100
     emergency-bypassed: 50
 
+# Flood protection on TCP. If enabled is true then a flood
+# protection system is put in place to take the load and
+# let the flow table untouched in case of SYN flood.
+flood-protection:
+  enabled: no
+  packets: 10000
+
 # Stream engine settings. Here the TCP stream tracking and reassembly
 # engine is configured.
 #

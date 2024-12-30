@@ -904,7 +904,8 @@ static inline uint16_t GetTvId(const ThreadVars *tv)
  *
  *  \retval f *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow **dest)
+Flow *FlowGetFlowFromHash(
+        ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow **dest, bool get_new)
 {
     Flow *f = NULL;
 
@@ -917,6 +918,10 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
 
     /* see if the bucket already has a flow */
     if (fb->head == NULL) {
+        if (get_new == false) {
+            FBLOCK_UNLOCK(fb);
+            return NULL;
+        }
         f = FlowGetNew(tv, fls, p);
         if (f == NULL) {
             FBLOCK_UNLOCK(fb);
@@ -985,6 +990,10 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
 
 flow_removed:
         if (next_f == NULL) {
+            if (get_new == false) {
+                FBLOCK_UNLOCK(fb);
+                return NULL;
+            }
             f = FlowGetNew(tv, fls, p);
             if (f == NULL) {
                 FBLOCK_UNLOCK(fb);

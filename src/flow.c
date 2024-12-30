@@ -96,6 +96,9 @@ FlowConfig flow_config;
 /** flow memuse counter (atomic), for enforcing memcap limit */
 SC_ATOMIC_DECLARE(uint64_t, flow_memuse);
 
+SC_ATOMIC_DECLARE(uint64_t, flow_new_cnt);
+SC_ATOMIC_DECLARE(uint64_t, flow_est_cnt);
+
 void FlowRegisterTests(void);
 void FlowInitFlowProto(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
@@ -135,6 +138,11 @@ uint64_t FlowGetMemuse(void)
 enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void)
 {
     return flow_config.memcap_policy;
+}
+
+uint32_t FlowGetHashSize(void)
+{
+    return flow_config.hash_size;
 }
 
 void FlowCleanupAppLayer(Flow *f)
@@ -532,16 +540,38 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
  *  \param dtv decode thread vars (for flow output api thread data)
  *  \param p packet to handle flow for
  */
-void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
+void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, bool get_new)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if necessary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow);
+    Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow, get_new);
     if (f != NULL) {
         /* set the flow in the packet */
         p->flags |= PKT_HAS_FLOW;
     }
+}
+
+static void FlowNewIncr(void)
+{
+    (void)SC_ATOMIC_ADD(flow_new_cnt, 1);
+}
+
+static uint64_t FlowNewGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(flow_new_cnt);
+    return tmpval;
+}
+
+static void FlowEstIncr(void)
+{
+    (void)SC_ATOMIC_ADD(flow_est_cnt, 1);
+}
+
+static uint64_t FlowEstGLobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(flow_est_cnt);
+    return tmpval;
 }
 
 /** \brief initialize the configuration
@@ -556,6 +586,11 @@ void FlowInitConfig(bool quiet)
     SC_ATOMIC_INIT(flow_prune_idx);
     SC_ATOMIC_INIT(flow_config.memcap);
     FlowQueueInit(&flow_recycle_q);
+
+    SC_ATOMIC_INIT(flow_new_cnt);
+    SC_ATOMIC_INIT(flow_est_cnt);
+    StatsRegisterGlobalCounter("flow.new_seen", FlowNewGlobalCounter);
+    StatsRegisterGlobalCounter("flow.established_seen", FlowEstGLobalCounter);
 
     /* set defaults */
     flow_config.hash_rand   = (uint32_t)RandomGet();
@@ -1168,12 +1203,21 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
         // Explicit cast from the enum type to the compact version
         f->flow_state = (FlowStateType)s;
 
+        if (s == FLOW_STATE_ESTABLISHED) {
+            FlowEstIncr();
+        } else if (s == FLOW_STATE_NEW) {
+            FlowNewIncr();
+        }
+
         /* update timeout policy and value */
         const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
         if (timeout_policy != f->timeout_policy) {
             f->timeout_policy = timeout_policy;
         }
+    } else if (s == FLOW_STATE_NEW) {
+        FlowNewIncr();
     }
+
 #ifdef UNITTESTS
     if (f->fb != NULL) {
 #endif

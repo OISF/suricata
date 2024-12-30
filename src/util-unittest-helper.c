@@ -889,7 +889,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             p->src.addr_data32[0] = i + 1;
             p->dst.addr_data32[0] = i;
         }
-        FlowHandlePacket(&tv, &fls, p);
+        FlowHandlePacket(&tv, &fls, p, true);
         if (p->flow != NULL) {
             FLOWLOCK_UNLOCK(p->flow);
         }

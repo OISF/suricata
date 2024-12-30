@@ -1277,8 +1277,9 @@ void DecodeUnregisterCounters(void);
 /** Exclude packet from pcap logging as it's part of a stream that has reassembly \
                    depth reached. */
 #define PKT_STREAM_NOPCAPLOG BIT_U32(12)
+#define PKT_FROM_FLOOD       BIT_U32(13)
 
-// vacancy 2x
+// vacancy 1x
 
 /** Packet checksum is not computed (TX packet for example) */
 #define PKT_IGNORE_CHECKSUM BIT_U32(15)
