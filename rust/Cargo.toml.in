@@ -48,8 +48,8 @@ kerberos-parser = { version = "~0.7.1", default-features = false }
 # Kerberos parsing still depends on der-parser 6.0.1.
 der-parser6 = { package = "der-parser", version = "~6.0.1", default-features = false }
 
-sawp-modbus = "~0.12.1"
-sawp = "~0.12.1"
+sawp-modbus = "~0.13.1"
+sawp = "~0.13.1"
 ntp-parser = "~0.6.0"
 ipsec-parser = "~0.7.0"
 snmp-parser = "~0.9.0"
