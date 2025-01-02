@@ -2070,10 +2070,6 @@ typedef struct Thread_ {
     int type;
     int in_use;         /**< bool to indicate this is in use */
 
-    SCTime_t pktts;         /**< current packet time of this thread
-                             *   (offline mode) */
-    SCTime_t sys_sec_stamp; /**< timestamp in real system
-                             *   time when the pktts was last updated. */
 } Thread;
 
 typedef struct Threads_ {
@@ -2185,30 +2181,21 @@ end:
     SCMutexUnlock(&thread_store_lock);
 }
 
-void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts)
+void TmThreadsSetThreadTimestamp(ThreadVars *thread_v, const SCTime_t ts)
 {
-    SCMutexLock(&thread_store_lock);
-    if (unlikely(id <= 0 || id > (int)thread_store.threads_size)) {
-        SCMutexUnlock(&thread_store_lock);
-        return;
-    }
-
-    int idx = id - 1;
-    Thread *t = &thread_store.threads[idx];
-    t->pktts = ts;
+    thread_v->pktts = ts;
     SCTime_t now = SCTimeGetTime();
 
 #ifdef DEBUG
-    if (t->sys_sec_stamp.secs != 0) {
-        SCTime_t tmpts = SCTIME_ADD_SECS(t->sys_sec_stamp, 3);
+    if (thread_v->sys_sec_stamp.secs != 0) {
+        SCTime_t tmpts = SCTIME_ADD_SECS(thread_v->sys_sec_stamp, 3);
         if (SCTIME_CMP_LT(tmpts, now)) {
             SCLogDebug("%s: thread slept for %u secs", t->name, (uint32_t)(now.secs - tmpts.secs));
         }
     }
 #endif
 
-    t->sys_sec_stamp = now;
-    SCMutexUnlock(&thread_store_lock);
+    thread_v->sys_sec_stamp = now;
 }
 
 bool TmThreadsTimeSubsysIsReady(void)
@@ -2222,7 +2209,7 @@ bool TmThreadsTimeSubsysIsReady(void)
             break;
         if (t->type != TVT_PPT)
             continue;
-        if (SCTIME_CMP_EQ(t->sys_sec_stamp, nullts)) {
+        if (SCTIME_CMP_EQ(t->tv->sys_sec_stamp, nullts)) {
             ready = false;
             break;
         }
@@ -2241,8 +2228,8 @@ void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
             break;
         if (t->type != TVT_PPT)
             continue;
-        t->pktts = ts;
-        t->sys_sec_stamp = now;
+        t->tv->pktts = ts;
+        t->tv->sys_sec_stamp = now;
     }
     SCMutexUnlock(&thread_store_lock);
 }
@@ -2263,18 +2250,18 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         /* only packet threads set timestamps based on packets */
         if (t->type != TVT_PPT)
             continue;
-        if (SCTIME_CMP_NEQ(t->pktts, nullts)) {
-            SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->sys_sec_stamp, 1);
+        if (SCTIME_CMP_NEQ(t->tv->pktts, nullts)) {
+            SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->tv->sys_sec_stamp, 1);
             /* ignore sleeping threads */
             if (SCTIME_CMP_LT(sys_sec_stamp, now))
                 continue;
 
             if (!set) {
-                SCTIME_TO_TIMEVAL(&local, t->pktts);
+                SCTIME_TO_TIMEVAL(&local, t->tv->pktts);
                 set = true;
             } else {
-                if (SCTIME_CMP_LT(t->pktts, SCTIME_FROM_TIMEVAL(&local))) {
-                    SCTIME_TO_TIMEVAL(&local, t->pktts);
+                if (SCTIME_CMP_LT(t->tv->pktts, SCTIME_FROM_TIMEVAL(&local))) {
+                    SCTIME_TO_TIMEVAL(&local, t->tv->pktts);
                 }
             }
         }
@@ -2323,4 +2310,12 @@ void TmThreadsInjectFlowById(Flow *f, const int id)
     } else if (tv->break_loop) {
         TmThreadsCaptureBreakLoop(tv);
     }
+}
+
+void TimeSetByThread(ThreadVars *thread_v, SCTime_t tv)
+{
+    if (TimeModeIsLive())
+        return;
+
+    TmThreadsSetThreadTimestamp(thread_v, tv);
 }

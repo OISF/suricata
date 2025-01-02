@@ -117,7 +117,6 @@ static inline SCTime_t SCTimeGetTime(void)
 void TimeInit(void);
 void TimeDeinit(void);
 
-void TimeSetByThread(const int thread_id, SCTime_t tv);
 SCTime_t TimeGet(void);
 
 /** \brief initialize a 'struct timespec' from a 'struct timeval'. */

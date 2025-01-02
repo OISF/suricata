@@ -63,6 +63,11 @@ typedef struct ThreadVars_ {
      *  void pointers in and out. */
     void *(*tm_func)(void *);
 
+    SCTime_t pktts;         /**< current packet time of this thread
+                             *   (offline mode) */
+    SCTime_t sys_sec_stamp; /**< timestamp in real system
+                             *   time when the pktts was last updated. */
+
     char name[16];
     char *printable_name;
     char *thread_group_name;
@@ -138,6 +143,8 @@ typedef struct ThreadVars_ {
 
     Storage storage[];
 } ThreadVars;
+
+void TimeSetByThread(ThreadVars *thread_v, SCTime_t tv);
 
 /** Thread setup flags: */
 #define THREAD_SET_AFFINITY     0x01 /** CPU/Core affinity */

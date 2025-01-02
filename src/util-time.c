@@ -113,14 +113,6 @@ bool TimeModeIsLive(void)
     return live_time_tracking;
 }
 
-void TimeSetByThread(const int thread_id, SCTime_t tv)
-{
-    if (live_time_tracking)
-        return;
-
-    TmThreadsSetThreadTimestamp(thread_id, tv);
-}
-
 #ifdef UNITTESTS
 void TimeSet(SCTime_t ts)
 {
