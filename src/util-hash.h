@@ -34,6 +34,9 @@ typedef struct HashTableBucket_ {
 /* hash table structure */
 typedef struct HashTable_ {
     HashTableBucket **array;
+    HashTableBucket *prealloc; /** Preallocated buckets */
+    HashTableBucket *list;     /** Preallocated bucket pointer */
+    int preallocated;
     uint32_t array_size;
 #ifdef UNITTESTS
     uint32_t count;
@@ -47,6 +50,7 @@ typedef struct HashTable_ {
 
 /* prototypes */
 HashTable* HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
+void HashTablePreAlloc(HashTable *ht);
 void HashTableFree(HashTable *);
 int HashTableAdd(HashTable *, void *, uint16_t);
 int HashTableRemove(HashTable *, void *, uint16_t);

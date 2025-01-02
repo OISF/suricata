@@ -50,6 +50,9 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
     if (unlikely(ht == NULL))
         goto error;
     ht->array_size = size;
+    ht->preallocated = 0;
+    ht->prealloc = NULL;
+    ht->list = NULL;
     ht->Hash = Hash;
     ht->Free = Free;
 
@@ -86,7 +89,15 @@ static HashTableBucket *HashTableBucketFree(HashTable *ht, HashTableBucket *htb)
     HashTableBucket *next_hashbucket = htb->next;
     if (ht->Free != NULL)
         ht->Free(htb->data);
-    SCFree(htb);
+    if (htb->next == NULL) {
+        if (ht->preallocated != 0) {
+            htb->next = ht->list;
+            ht->list = htb;
+        } else {
+            SCFree(htb);
+        }
+    }
+
     return next_hashbucket;
 }
 
@@ -114,7 +125,27 @@ void HashTableFree(HashTable *ht)
     if (ht->array != NULL)
         SCFree(ht->array);
 
+    if (ht->prealloc != NULL)
+        SCFree(ht->prealloc);
+
     SCFree(ht);
+}
+
+void HashTablePreAlloc(HashTable *ht)
+{
+    ht->preallocated = 1;
+
+    ht->prealloc = SCCalloc(ht->array_size, sizeof(HashTableBucket));
+    if (ht->prealloc == NULL) {
+        ht->preallocated = 0;
+        return;
+    }
+    ht->list = ht->prealloc;
+    HashTableBucket *hb = ht->prealloc;
+    for (uint32_t i = 0; i < ht->array_size - 1; i++) {
+        hb->next = hb + 1;
+        hb++;
+    }
 }
 
 int HashTableAdd(HashTable *ht, void *data, uint16_t datalen)
@@ -124,9 +155,22 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen)
 
     uint32_t hash = ht->Hash(ht, data, datalen);
 
-    HashTableBucket *hb = SCCalloc(1, sizeof(HashTableBucket));
-    if (unlikely(hb == NULL))
-        goto error;
+    HashTableBucket *hb = NULL;
+
+    if (ht->preallocated != 0) {
+        /* extract from list */
+        if (ht->list) {
+            hb = ht->list;
+            ht->list = hb->next;
+        } else {
+            SCLogError("attempt to insert element out of hash array");
+            goto error;
+        }
+    } else {
+        hb = SCCalloc(1, sizeof(HashTableBucket));
+        if (unlikely(hb == NULL))
+            goto error;
+    }
     hb->data = data;
     hb->size = datalen;
     hb->next = NULL;
@@ -166,6 +210,10 @@ error:
 int HashTableRemove(HashTable *ht, void *data, uint16_t datalen)
 {
     uint32_t hash = ht->Hash(ht, data, datalen);
+
+    if (ht->array[hash] == NULL) {
+        return -1;
+    }
 
     HashTableBucket **hashbucket = &(ht->array[hash]);
     while (*hashbucket != NULL) {
