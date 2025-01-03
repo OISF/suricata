@@ -336,10 +336,10 @@ The following snippet shows a possible :ref:`suricata-yaml-threading` configurat
     threading:
       set-cpu-affinity: yes
       cpu-affinity:
-        - management-cpu-set:
-            cpu: [ 0 ]
-        - worker-cpu-set:
-            cpu: [ 2,4,6,8,10,12,14,16 ]
+        management-cpu-set:
+          cpu: [ 0 ]
+        worker-cpu-set:
+          cpu: [ 2,4,6,8,10,12,14,16 ]
 
 Netmap IPS mode
 ~~~~~~~~~~~~~~~
