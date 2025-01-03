@@ -88,7 +88,7 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         return -1;
     }
     if (s->init_data->curbuf == NULL || s->init_data->list != (int)s->init_data->curbuf->id) {
-        SCLogError("unspected buffer for absent keyword");
+        SCLogError("no buffer for absent keyword");
         return -1;
     }
     const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, s->init_data->list);
