@@ -954,6 +954,7 @@ per available CPU/CPU core.
 
     threading:
       set-cpu-affinity: yes
+      autopin: no
       cpu-affinity:
         management-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
@@ -970,6 +971,13 @@ per available CPU/CPU core.
             medium: [ "1-2" ]
             high: [ 3 ]
             default: "medium"
+          interface-specific-cpu-set:
+            - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
+              cpu: [ 1,3,5,7,9 ]
+              mode: "exclusive"
+              prio:
+                high: [ "all" ]
+                default: "medium"
         verdict-cpu-set:
           cpu: [ 0 ]
           prio:
@@ -1006,6 +1014,80 @@ Runmode Workers::
 	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
 
 
+Interface-specific CPU affinity settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using the new configuration format introduced in Suricata 8.0 it is possible
+to set CPU affinity settings per interface. This can be useful
+when you have multiple interfaces and you want to dedicate specific CPU cores
+to specific interfaces. This can be useful, for example, when Suricata runs on
+multiple NUMA nodes and reads from interfaces on each NUMA node.
+
+Interface-specific affinity settings can be configured for the
+``worker-cpu-set`` and the ``receive-cpu-set`` (only used in autofp mode).
+This feature is available for capture modes which work with interfaces
+(af-packet, dpdk, etc.). The value of the interface key can be the kernel
+interface name (e.g. eth0 for af-packet), the PCI address of the interface
+(e.g. 0000:3b:00.0 for DPDK capture mode), or the name of the virtual device
+interface (e.g. net_bonding0 for DPDK capture mode).
+The interface names needs to be unique and be specified in the capture mode
+configuration.
+
+The interface-specific settings will override the global settings for the
+``worker-cpu-set`` and ``receive-cpu-set``. The CPUs do not need to be contained in
+the parent node settings. If the interface-specific settings are not defined,
+the global settings will be used.
+
+::
+
+  threading:
+    set-cpu-affinity: yes
+    cpu-affinity:
+      worker-cpu-set:
+        interface-specific-cpu-set:
+          - interface: "eth0" # 0000:3b:00.0 # net_bonding0
+            cpu: [ 1,3,5,7,9 ]
+            mode: "exclusive"
+            prio:
+              high: [ "all" ]
+              default: "medium"
+
+Automatic NUMA-aware CPU core pinning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When Suricata is running on a system with multiple NUMA nodes, it is possible
+to automatically use CPUs from the same NUMA node as the network capture
+interface.
+CPU cores on the same NUMA node as the network capture interface can have
+reduced memory access latency and can increase the performance of Suricata.
+This is enabled by setting the ``autopin`` option to ``yes`` in the threading
+section. This option is available for worker-cpu-set and receive-cpu-set.
+
+::
+
+  threading:
+    set-cpu-affinity: yes
+    autopin: yes
+    cpu-affinity:
+      worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive"
+        prio:
+          high: [ "all" ]
+
+Consider 2 interfaces defined in the capture mode configuration, one on each
+NUMA node. The ``autopin`` option is enabled to automatically use CPUs from the
+same NUMA node as the interface. The worker-cpu-set is set to use all CPUs.
+When interface on the first NUMA node is used, the worker threads will be
+pinned to CPUs on the first NUMA node. When interface on the second NUMA node
+is used, the worker threads will be pinned to CPUs on the second NUMA node.
+If the number of CPU cores on a given NUMA node is exhausted then the worker
+threads will be pinned to CPUs on the other NUMA node.
+
+The option ``threading.autopin`` can be combined with the interface-specific CPU
+affinity settings.
+To use the ``autopin`` option, the system must have the ``hwloc``
+dependency installed and pass ``--enable-hwloc`` to the configure script.
 
 IP Defrag
 ---------
