@@ -959,12 +959,14 @@ per available CPU/CPU core.
 
 ::
 
-    cpu-affinity:
-      - management-cpu-set:
+    threading:
+      set-cpu-affinity: yes
+      cpu-affinity:
+        management-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - receive-cpu-set:
+        receive-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - worker-cpu-set:
+        worker-cpu-set:
           cpu: [ "all" ]
           mode: "exclusive"
           # Use explicitly 3 threads and don't compute number by using
@@ -975,7 +977,7 @@ per available CPU/CPU core.
             medium: [ "1-2" ]
             high: [ 3 ]
             default: "medium"
-      - verdict-cpu-set:
+        verdict-cpu-set:
           cpu: [ 0 ]
           prio:
             default: "high"
@@ -2923,7 +2925,7 @@ The Teredo decoder can be disabled. It is enabled by default.
         ports: $TEREDO_PORTS # syntax: '[3544, 1234]'
 
 Using this default configuration, Teredo detection will run on UDP port
-3544. If the `ports` parameter is missing, or set to `any`, all ports will be
+1.    If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
 Recursion Level

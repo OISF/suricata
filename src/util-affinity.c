@@ -23,6 +23,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
 #include "conf.h"
@@ -316,6 +317,40 @@ static uint16_t GetNextAvailableCPU(ThreadsAffinityType *taf)
 
     return cpu;
 }
+
+/**
+ * \brief Check if CPU affinity configuration node follows format used in Suricata 7 and below
+ * \retval true if CPU affinity uses Suricata <=7.0, false if it uses the new format (Suricata
+ * >=8.0)
+ */
+static bool AffinityConfigIsDeprecated(void)
+{
+    static bool threading_affinity_deprecated = false;
+    if (thread_affinity_init_done == 0) {
+        // reset the flag
+        threading_affinity_deprecated = false;
+    } else {
+        return threading_affinity_deprecated;
+    }
+
+    SCConfNode *root = SCConfGetNode("threading.cpu-affinity");
+    if (root == NULL) {
+        return threading_affinity_deprecated;
+    }
+
+    SCConfNode *affinity;
+    TAILQ_FOREACH (affinity, &root->head, next) {
+        // If a child does not contain "-cpu-set", then the conf is deprecated
+        // Names in the deprecated format (list of *-cpu-sets) contain
+        // list item IDs - "0" : "management-cpu-set", "1" : "worker-cpu-set"
+        if (strstr(affinity->name, "-cpu-set") == NULL) {
+            threading_affinity_deprecated = true;
+            return threading_affinity_deprecated;
+        }
+    }
+
+    return threading_affinity_deprecated;
+}
 #endif /* OS_WIN32 and __OpenBSD__ */
 
 /**
@@ -326,6 +361,13 @@ void AffinitySetupLoadFromConfig(void)
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     if (thread_affinity_init_done == 0) {
         AffinitySetupInit();
+        if (AffinityConfigIsDeprecated()) {
+            SCLogWarning("CPU affinity configuration uses a deprecated structure and will not be "
+                         "supported in a future major release (Suricata 9.0) Redmine ticket #7721. "
+                         "Please update your %s to the new format. "
+                         "See notes in %s/upgrade.html#upgrading-7-0-to-8-0",
+                    "threading.cpu-affinity", GetDocURL());
+        }
         thread_affinity_init_done = 1;
     }
 
@@ -338,7 +380,8 @@ void AffinitySetupLoadFromConfig(void)
 
     SCConfNode *affinity;
     TAILQ_FOREACH(affinity, &root->head, next) {
-        const char *setname = GetAffinitySetName(affinity->name);
+        char *v = AffinityConfigIsDeprecated() ? affinity->val : affinity->name;
+        const char *setname = GetAffinitySetName(v);
         if (setname == NULL) {
             continue;
         }
@@ -351,16 +394,18 @@ void AffinitySetupLoadFromConfig(void)
 
         SCLogConfig("Found CPU affinity definition for \"%s\"", setname);
 
-        SetupCpuSets(taf, affinity, setname);
-        if (SetupAffinityPriority(taf, affinity, setname) < 0) {
+        SCConfNode *aff_query_node =
+                AffinityConfigIsDeprecated() ? affinity->head.tqh_first : affinity;
+        SetupCpuSets(taf, aff_query_node, setname);
+        if (SetupAffinityPriority(taf, aff_query_node, setname) < 0) {
             SCLogError("Failed to setup priority for CPU affinity type: %s", setname);
             continue;
         }
-        if (SetupAffinityMode(taf, affinity) < 0) {
+        if (SetupAffinityMode(taf, aff_query_node) < 0) {
             SCLogError("Failed to setup mode for CPU affinity type: %s", setname);
             continue;
         }
-        if (SetupAffinityThreads(taf, affinity) < 0) {
+        if (SetupAffinityThreads(taf, aff_query_node) < 0) {
             SCLogError("Failed to setup threads for CPU affinity type: %s", setname);
             continue;
         }
