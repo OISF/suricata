@@ -139,12 +139,12 @@ management and worker CPU set.
     threading:
       set-cpu-affinity: yes
       cpu-affinity:
-        - management-cpu-set:
-            cpu: [ 0 ]  # include only these CPUs in affinity settings
-        - receive-cpu-set:
-            cpu: [ 0 ]  # include only these CPUs in affinity settings
-        - worker-cpu-set:
-            cpu: [ 2,4,6,8 ]
+        management-cpu-set:
+          cpu: [ 0 ]  # include only these CPUs in affinity settings
+        receive-cpu-set:
+          cpu: [ 0 ]  # include only these CPUs in affinity settings
+        worker-cpu-set:
+          cpu: [ 2,4,6,8 ]
     ...
 
 Interrupt (power-saving) mode
