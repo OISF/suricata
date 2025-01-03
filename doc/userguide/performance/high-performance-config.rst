@@ -202,18 +202,18 @@ In the cpu affinity section of suricata.yaml config:
  # Suricata is multi-threaded. Here the threading can be influenced.
  threading:
   cpu-affinity:
-    - management-cpu-set:
-        cpu: [ "1-10" ]  # include only these CPUs in affinity settings
-    - receive-cpu-set:
-        cpu: [ "0-10" ]  # include only these CPUs in affinity settings
-    - worker-cpu-set:
-        cpu: [ "18-35", "54-71" ]
-        mode: "exclusive"
-        prio:
-          low: [ 0 ]
-          medium: [ "1" ]
-          high: [ "18-35","54-71" ]
-          default: "high"
+    management-cpu-set:
+      cpu: [ "1-10" ]  # include only these CPUs in affinity settings
+    receive-cpu-set:
+      cpu: [ "0-10" ]  # include only these CPUs in affinity settings
+    worker-cpu-set:
+      cpu: [ "18-35", "54-71" ]
+      mode: "exclusive"
+      prio:
+        low: [ 0 ]
+        medium: [ "1" ]
+        high: [ "18-35","54-71" ]
+        default: "high"
 
 In the af-packet section of suricata.yaml config :
 
@@ -324,16 +324,16 @@ In the cpu affinity section of suricata.yaml config :
  threading:
   set-cpu-affinity: yes
   cpu-affinity:
-    - management-cpu-set:
-        cpu: [ "120-127" ]  # include only these cpus in affinity settings
-    - receive-cpu-set:
-        cpu: [ 0 ]  # include only these cpus in affinity settings
-    - worker-cpu-set:
-        cpu: [ "8-55" ]
-        mode: "exclusive"
-        prio:
-          high: [ "8-55" ]
-          default: "high"
+    management-cpu-set:
+      cpu: [ "120-127" ]  # include only these cpus in affinity settings
+    receive-cpu-set:
+      cpu: [ 0 ]  # include only these cpus in affinity settings
+    worker-cpu-set:
+      cpu: [ "8-55" ]
+      mode: "exclusive"
+      prio:
+        high: [ "8-55" ]
+        default: "high"
 
 In the af-packet section of suricata.yaml config:
 
