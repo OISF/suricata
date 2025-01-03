@@ -157,7 +157,7 @@ int HashTableRemove(HashTable *ht, void *data, uint16_t datalen)
 
     HashTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
     do {
-        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {
+        if (ht->Compare(hashbucket->data, hashbucket->size, data, datalen) == 1) {
             if (prev_hashbucket == NULL) {
                 /* root bucket */
                 ht->array[hash] = hashbucket->next;
