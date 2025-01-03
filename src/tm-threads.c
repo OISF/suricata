@@ -874,8 +874,24 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
+        bool use_iface_affinity = RunmodeIsAutofp() && tv->cpu_affinity == RECEIVE_CPU_SET &&
+                                  FindAffinityByInterface(taf, tv->iface_name) != NULL;
+        use_iface_affinity |= RunmodeIsWorkers() && tv->cpu_affinity == WORKER_CPU_SET &&
+                              FindAffinityByInterface(taf, tv->iface_name) != NULL;
+
+        if (use_iface_affinity) {
+            taf = FindAffinityByInterface(taf, tv->iface_name);
+        }
+
+        if (UtilAffinityGetAffinedCPUNum(taf) == 0) {
+            if (!taf->nocpu_warned) {
+                SCLogWarning("No CPU affinity set for %s", AffinityGetYamlPath(taf));
+                taf->nocpu_warned = true;
+            }
+        }
+
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
-            uint16_t cpu = AffinityGetNextCPU(taf);
+            uint16_t cpu = AffinityGetNextCPU(tv, taf);
             SetCPUAffinity(cpu);
             /* If CPU is in a set overwrite the default thread prio */
             if (CPU_ISSET(cpu, &taf->lowprio_cpu)) {
@@ -1619,6 +1635,10 @@ static void TmThreadFree(ThreadVars *tv)
 
     if (tv->printable_name) {
         SCFree(tv->printable_name);
+    }
+
+    if (tv->iface_name) {
+        SCFree(tv->iface_name);
     }
 
     if (tv->stream_pq_local) {
