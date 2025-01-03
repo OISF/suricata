@@ -89,10 +89,10 @@ static int INLINE stream_filter_ipv4(struct xdp_md *ctx, struct iphdr *iph, void
          * there is a means for this code to determine if we're in internal_tap
          * mode, we'll assume 'mirroring'.
          */
-        DPRINTF("Assuming mirroring mode. Packet DROPPED. %d -> %d\n", ntohs(tuple.port16[0]), ntohs(tuple.port16[1]));
+        DPRINTF("Assuming mirroring mode. Packet DROPPED. %d -> %d\n", __constant_htons(tuple.port16[0]), __constant_htons(tuple.port16[1]));
         return XDP_DROP;
     } else {
-        DPRINTF("No entry in v4 table for %d -> %d\n", ntohs(tuple.port16[0]), ntohs(tuple.port16[1]));
+        DPRINTF("No entry in v4 table for %d -> %d\n", __constant_htons(tuple.port16[0]), __constant_htons(tuple.port16[1]));
         trace_ipv4(tuple.src);
         trace_ipv4(tuple.dst);
 
@@ -140,10 +140,10 @@ static int INLINE stream_filter_ipv6(struct xdp_md *ctx, struct ipv6hdr *ip6h, v
     if (value) {
         value->packets++;
         value->bytes += data_end - data;
-        DPRINTF("flow_table_v6 MATCH! Assuming mirroring mode. Packet DROPPED. %d -> %d\n", ntohs(tuple.port16[0]), ntohs(tuple.port16[1]));
+        DPRINTF("flow_table_v6 MATCH! Assuming mirroring mode. Packet DROPPED. %d -> %d\n", __constant_htons(tuple.port16[0]), __constant_htons(tuple.port16[1]));
         return XDP_DROP;
     } else {
-        DPRINTF("No entry in v6 table for %d -> %d\n", ntohs(tuple.port16[0]), ntohs(tuple.port16[1]));
+        DPRINTF("No entry in v6 table for %d -> %d\n", __constant_htons(tuple.port16[0]), __constant_htons(tuple.port16[1]));
     }
 
     DPRINTF("stream_filter_ipv6, vlan0: %x, vlan1: %x\n", vlan0, vlan1);

@@ -118,8 +118,8 @@ static int INLINE hash_ipv4(struct xdp_md *ctx, void *data, void *data_end, __u1
     }
 
     DPRINTF("Flow proto  %d id %d\n", iph->protocol, iph->id);
-    DPRINTF("     src %x:%d\n", iph->saddr, ntohs(sport));
-    DPRINTF("     dst %x:%d\n", iph->daddr, ntohs(dport));
+    DPRINTF("     src %x:%d\n", iph->saddr, __constant_htons(sport));
+    DPRINTF("     dst %x:%d\n", iph->daddr, __constant_htons(dport));
 
 #ifdef ENABLE_STREAM_FILTER
     if (stream_filter_ipv4(ctx, iph, data, data_end, sport, dport, vlan0, vlan1) == XDP_DROP) {
@@ -357,7 +357,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
          * network stack (we've already advanced past the GRE/ERSPAN headers to the encapsulated ethernet
          * frame, so chances are the linux stack, and suricata, know what to do with it)
          */
-        DPRINTF("GRE unknown inner proto %d id %d\n", ntohs(proto), ntohs(pkt_id));
+        DPRINTF("GRE unknown inner proto %d id %d\n", __constant_htons(proto), __constant_htons(pkt_id));
         return XDP_PASS;
     }
 }

@@ -50,7 +50,7 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
             return XDP_PASS;
 
         h_proto = hdr->type;
-        DPRINTF("802.1ah next header %x\n", ntohs(h_proto));
+        DPRINTF("802.1ah next header %x\n", __constant_htons(h_proto));
     }
     if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;

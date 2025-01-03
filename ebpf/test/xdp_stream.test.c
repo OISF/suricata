@@ -3,6 +3,7 @@
 #include "../xdp_lb_stream.c"
 #include "test_mocks.h"
 
+#define ntohs(x) __constant_htons(x)
 
 void test_ipv4_match(struct xdp_md* ctx) {
   char packet[] = 

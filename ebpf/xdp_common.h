@@ -65,10 +65,6 @@
 
 #define LINUX_VERSION_CODE 263682
 
-static INLINE __u16 ntohs(__u16 val) {
-    return ((val & 0xff00) >> 8) + ((val & 0x00ff) << 8);
-}
-
 #ifdef DEBUG
 static void INLINE trace_ipv4(__u32 ip) {
     DPRINTF("%d.%d.<next line>\n", (ip & 0x000000ff), (ip & 0x0000ff00) >> 8);
