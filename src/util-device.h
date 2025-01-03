@@ -52,6 +52,7 @@ void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family);
 void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family);
 void LiveDevAddBypassFail(LiveDevice *dev, uint64_t cnt, int family);
 void LiveDevAddBypassSuccess(LiveDevice *dev, uint64_t cnt, int family);
+int LiveGetDeviceCountWithoutAssignedThreading(void);
 int LiveGetDeviceCount(void);
 const char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(const char *dev);

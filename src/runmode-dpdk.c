@@ -387,12 +387,17 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    bool wtaf_periface = true;
+    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iconf->iface);
     if (wtaf == NULL) {
-        SCLogError("Specify worker-cpu-set list in the threading section");
-        SCReturnInt(-EINVAL);
+        wtaf_periface = false;
+        wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL); // mandatory
+        if (wtaf == NULL) {
+            SCLogError("Specify worker-cpu-set list in the threading section");
+            SCReturnInt(-EINVAL);
+        }
     }
-    ThreadsAffinityType *mtaf = GetAffinityTypeFromName("management-cpu-set");
+    ThreadsAffinityType *mtaf = GetAffinityTypeForNameAndIface("management-cpu-set", NULL);
     if (mtaf == NULL) {
         SCLogError("Specify management-cpu-set list in the threading section");
         SCReturnInt(-EINVAL);
@@ -425,7 +430,13 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        uint16_t live_dev_count = (uint16_t)LiveGetDeviceCount();
+        if (wtaf_periface) {
+            iconf->threads = (uint16_t)sched_cpus;
+            SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
+            SCReturnInt(0);
+        }
+
+        uint16_t live_dev_count = (uint16_t)LiveGetDeviceCountWithoutAssignedThreading();
         if (live_dev_count == 0) {
             SCLogError("No live devices found, cannot auto-assign threads");
             SCReturnInt(-EINVAL);
@@ -1019,23 +1030,46 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     SCReturnInt(0);
 }
 
-static int32_t ConfigValidateThreads(uint16_t iface_threads)
+static bool ConfigThreadsGenericIsValid(uint16_t iface_threads, ThreadsAffinityType *wtaf)
 {
     static uint32_t total_cpus = 0;
     total_cpus += iface_threads;
-    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
     if (wtaf == NULL) {
         SCLogError("Specify worker-cpu-set list in the threading section");
-        return -1;
+        return false;
     }
     if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
-        SCLogError("Interfaces requested more cores than configured in the threading section "
-                   "(requested %d configured %d",
+        SCLogError("Interfaces requested more cores than configured in the worker-cpu-set "
+                   "threading section (requested %d configured %d",
                 total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
+}
+
+static bool ConfigThreadsInterfaceIsValid(uint16_t iface_threads, ThreadsAffinityType *itaf)
+{
+    if (iface_threads > UtilAffinityGetAffinedCPUNum(itaf)) {
+        SCLogError("Interface requested more cores than configured in the interface-specific "
+                   "threading section (requested %d configured %d",
+                iface_threads, UtilAffinityGetAffinedCPUNum(itaf));
+        return false;
+    }
+
+    return true;
+}
+
+static bool ConfigIsThreadingValid(uint16_t iface_threads, const char *iface)
+{
+    ThreadsAffinityType *itaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iface);
+    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+    if (itaf && !ConfigThreadsInterfaceIsValid(iface_threads, itaf)) {
+        return false;
+    } else if (itaf == NULL && !ConfigThreadsGenericIsValid(iface_threads, wtaf)) {
+        return false;
+    }
+    return true;
 }
 
 static DPDKIfaceConfig *ConfigParse(const char *iface)
@@ -1048,7 +1082,7 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
 
     ConfigInit(&iconf);
     retval = ConfigLoad(iconf, iface);
-    if (retval < 0 || ConfigValidateThreads(iconf->threads) != 0) {
+    if (retval < 0 || !ConfigIsThreadingValid(iconf->threads, iface)) {
         iconf->DerefFunc(iconf);
         SCReturnPtr(NULL, "void *");
     }
