@@ -148,11 +148,14 @@ int HashTableRemove(HashTable *ht, void *data, uint16_t datalen)
     }
 
     if (ht->array[hash]->next == NULL) {
-        if (ht->Free != NULL)
-            ht->Free(ht->array[hash]->data);
-        SCFree(ht->array[hash]);
-        ht->array[hash] = NULL;
-        return 0;
+        if (ht->Compare(ht->array[hash]->data, ht->array[hash]->size, data, datalen) == 1) {
+            if (ht->Free != NULL)
+                ht->Free(ht->array[hash]->data);
+            SCFree(ht->array[hash]);
+            ht->array[hash] = NULL;
+            return 0;
+        }
+        return -1;
     }
 
     HashTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
