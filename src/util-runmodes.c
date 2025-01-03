@@ -175,6 +175,14 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                     FatalError("TmThreadsCreate failed");
                 }
                 tv_receive->printable_name = printable_threadname;
+                if (dev) {
+                    tv_receive->iface_name = SCStrdup(dev);
+                    if (tv_receive->iface_name == NULL) {
+                        FatalError("Failed to allocate memory for iface name");
+                    }
+                } else {
+                    tv_receive->iface_name = NULL;
+                }
                 TmModule *tm_module = TmModuleGetByName(recv_mod_name);
                 if (tm_module == NULL) {
                     FatalError("TmModuleGetByName failed for %s", recv_mod_name);
@@ -283,6 +291,14 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             FatalError("TmThreadsCreate failed");
         }
         tv->printable_name = printable_threadname;
+        if (live_dev) {
+            tv->iface_name = SCStrdup(live_dev);
+            if (tv->iface_name == NULL) {
+                FatalError("Failed to allocate memory for iface name");
+            }
+        } else {
+            tv->iface_name = NULL;
+        }
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
