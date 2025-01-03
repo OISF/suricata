@@ -938,11 +938,8 @@ per available CPU/CPU core.
           prio:
             default: "high"
 
-Relevant cpu-affinity settings for IDS/IPS modes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-IDS mode
-~~~~~~~~
+Relevant cpu-affinity settings for IDS mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Runmode AutoFp::
 
@@ -956,8 +953,8 @@ Rumode Workers::
 	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
 
 
-IPS mode
-~~~~~~~~
+Relevant cpu-affinity settings for IPS mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Runmode AutoFp::
 
