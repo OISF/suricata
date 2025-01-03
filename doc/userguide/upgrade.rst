@@ -169,6 +169,20 @@ Major changes
     +     worker-cpu-set:
     +       cpu: [0, 1]
 
+  - The `threading.cpu-affinity` configuration has been extended to support
+    interface-specific CPU affinity settings. This allows you to specify
+    CPU affinity settings for individual interfaces.
+    The new configuration format is described in :ref:`suricata-yaml-threading`.
+    The old configuration format does not support this extension and will be
+    removed in Suricata 9.0.
+  - The `threading.cpu-affinity` configuration now supports autopinning
+    worker or receive threads to the same NUMA node as the network capture
+    interface is located on.
+    This can be enabled by setting `threading.autopin` to `yes`.
+    See :ref:`suricata-yaml-threading` for more information.
+    This requires the hwloc dependency to be installed and `--enable-hwloc`
+    to be passed to configure script.
+
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
