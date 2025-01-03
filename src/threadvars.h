@@ -136,6 +136,9 @@ typedef struct ThreadVars_ {
     struct FlowQueue_ *flow_queue;
     bool break_loop;
 
+    /** Interface-specific thread affinity */
+    char *iface_name;
+
     Storage storage[];
 } ThreadVars;
 
