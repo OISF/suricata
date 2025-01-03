@@ -952,12 +952,14 @@ per available CPU/CPU core.
 
 ::
 
-    cpu-affinity:
-      - management-cpu-set:
+    threading:
+      set-cpu-affinity: yes
+      cpu-affinity:
+        management-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - receive-cpu-set:
+        receive-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - worker-cpu-set:
+        worker-cpu-set:
           cpu: [ "all" ]
           mode: "exclusive"
           # Use explicitly 3 threads and don't compute number by using
@@ -968,7 +970,7 @@ per available CPU/CPU core.
             medium: [ "1-2" ]
             high: [ 3 ]
             default: "medium"
-      - verdict-cpu-set:
+        verdict-cpu-set:
           cpu: [ 0 ]
           prio:
             default: "high"
@@ -2236,7 +2238,7 @@ missing, the corresponding value of the `default` interface is used.
 The worker threads must be assigned to specific cores. The configuration
 module `threading` must be used to set thread affinity.
 Worker threads can be pinned to cores in the array configured in
-`threading.cpu-affinity["worker-cpu-set"]`. Performance-oriented setups have
+`threading.cpu-affinity.worker-cpu-set`. Performance-oriented setups have
 everything (the NIC, memory, and CPU cores interacting with the NIC) based on
 one NUMA node.
 It is therefore required to know the layout of the server architecture to get the
