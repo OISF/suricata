@@ -582,10 +582,10 @@ jobs:
       - run: make clean
       - run: make -j ${{ env.CPUS }}
 
-  fedora-39-sv-codecov:
-    name: Fedora 39 (Suricata Verify codecov)
+  fedora-41-sv-codecov:
+    name: Fedora 41 (Suricata Verify codecov)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -646,7 +646,7 @@ jobs:
                 zlib-devel
       # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.83 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
       - uses: ./.github/actions/install-cbindgen
@@ -680,11 +680,11 @@ jobs:
           fail_ci_if_error: false
           flags: suricata-verify
 
-  # Fedora 39 build using Clang.
-  fedora-39-clang:
-    name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
+  # Fedora 41 build using Clang.
+  fedora-41-clang:
+    name: Fedora 41 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -789,10 +789,10 @@ jobs:
       - run: ldd src/suricata | grep libsystemd &> /dev/null
 
   # Fedora 39 build using GCC.
-  fedora-39-gcc:
-    name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
+  fedora-41-gcc:
+    name: Fedora 41 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:39
+    container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
