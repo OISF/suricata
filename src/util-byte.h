@@ -503,4 +503,6 @@ static inline int WARN_UNUSED ByteExtract(uint64_t *res, int e, uint16_t len, co
     return len;
 }
 
+int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs);
+
 #endif /* SURICATA_UTIL_BYTE_H */

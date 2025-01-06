@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,20 +18,22 @@
 /**
  * \file
  *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
- * \author Duarte Silva <duarte.silva@serializing.me>
+ * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef SURICATA_UTIL_IP_H
-#define SURICATA_UTIL_IP_H
+#ifndef SURICATA_DATAJSON_STRING_H
+#define SURICATA_DATAJSON_STRING_H
 
-#define SC_IPV4_LEN 4
-#define SC_IPV6_LEN 16
+typedef struct StringTypeJson {
+    uint32_t len;
+    DataJsonType json;
+    uint8_t *ptr;
+} StringTypeJson;
 
-bool IPv4AddressStringIsValid(const char *str);
-bool IPv6AddressStringIsValid(const char *str);
-struct in_addr *ValidateIPV4Address(const char *);
-struct in6_addr *ValidateIPV6Address(const char *);
-void MaskIPNetblock(uint8_t *, int, int);
+int StringJsonSet(void *dst, void *src);
+bool StringJsonCompare(void *a, void *b);
+uint32_t StringJsonHash(uint32_t hash_seed, void *s);
+void StringJsonFree(void *s);
+int StringJsonAsBase64(const void *s, char *out, size_t out_size);
 
-#endif /* SURICATA_UTIL_IP_H */
+#endif

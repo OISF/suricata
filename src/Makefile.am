@@ -47,6 +47,12 @@ noinst_HEADERS = \
 	conf.h \
 	conf-yaml-loader.h \
 	counters.h \
+	datajson.h \
+	datajson-ipv4.h \
+	datajson-ipv6.h \
+	datajson-md5.h \
+	datajson-sha256.h \
+	datajson-string.h \
 	datasets.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
@@ -102,6 +108,7 @@ noinst_HEADERS = \
 	detect-config.h \
 	detect-content.h \
 	detect-csum.h \
+	detect-datajson.h \
 	detect-datarep.h \
 	detect-dataset.h \
 	detect-dce-iface.h \
@@ -611,6 +618,12 @@ libsuricata_c_a_SOURCES = \
 	conf.c \
 	conf-yaml-loader.c \
 	counters.c \
+	datajson.c \
+	datajson-ipv4.c \
+	datajson-ipv6.c \
+	datajson-md5.c \
+	datajson-sha256.c \
+	datajson-string.c \
 	datasets.c \
 	datasets-ipv4.c \
 	datasets-ipv6.c \
@@ -667,6 +680,7 @@ libsuricata_c_a_SOURCES = \
 	detect-config.c \
 	detect-content.c \
 	detect-csum.c \
+	detect-datajson.c \
 	detect-datarep.c \
 	detect-dataset.c \
 	detect-dce-iface.c \
