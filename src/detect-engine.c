@@ -5124,6 +5124,47 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
     det_ctx->events++;
 }
 
+bool DetectMd5ValidateCallback(
+        const Signature *s, const char **sigerror, const DetectBufferType *map)
+{
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)map->id)
+            continue;
+        const SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                *sigerror = "md5-like keyword should not be used together with "
+                            "nocase, since the rule is automatically "
+                            "lowercased anyway which makes nocase redundant.";
+                SCLogWarning("rule %u: buffer %s: %s", s->id, map->name, *sigerror);
+            }
+
+            if (cd->content_len != SC_MD5_HEX_LEN) {
+                *sigerror = "Invalid length for md5-like keyword (should "
+                            "be 32 characters long). This rule will therefore "
+                            "never match.";
+                SCLogError("rule %u: buffer %s: %s", s->id, map->name, *sigerror);
+                return false;
+            }
+
+            for (size_t i = 0; i < cd->content_len; ++i) {
+                if (!isxdigit(cd->content[i])) {
+                    *sigerror =
+                            "Invalid md5-like string (should be string of hexadecimal characters)."
+                            "This rule will therefore never match.";
+                    SCLogWarning("rule %u: buffer %s: %s", s->id, map->name, *sigerror);
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 /*************************************Unittest*********************************/
 
 #ifdef UNITTESTS

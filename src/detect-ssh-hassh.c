@@ -117,47 +117,6 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 }
 
-static bool DetectSshHasshHashValidateCallback(
-        const Signature *s, const char **sigerror, const DetectBufferType *dbt)
-{
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)dbt->id)
-            continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            const DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                *sigerror = "ssh.hassh should not be used together with "
-                            "nocase, since the rule is automatically "
-                            "lowercased anyway which makes nocase redundant.";
-                SCLogWarning("rule %u: %s", s->id, *sigerror);
-            }
-
-            if (cd->content_len != 32) {
-                *sigerror = "Invalid length of the specified ssh.hassh (should "
-                            "be 32 characters long). This rule will therefore "
-                            "never match.";
-                SCLogWarning("rule %u: %s", s->id, *sigerror);
-                return false;
-            }
-            for (size_t i = 0; i < cd->content_len; ++i) {
-                if (!isxdigit(cd->content[i])) {
-                    *sigerror =
-                            "Invalid ssh.hassh string (should be string of hexadecimal characters)."
-                            "This rule will therefore never match.";
-                    SCLogWarning("rule %u: %s", s->id, *sigerror);
-                    return false;
-                }
-            }
-        }
-    }
-    return true;
-}
-
 static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
                                           Signature *s)
 {
@@ -206,6 +165,6 @@ void DetectSshHasshRegister(void)
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
     DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSshHasshHashSetupCallback);
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSshHasshHashValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectMd5ValidateCallback);
 }
 
