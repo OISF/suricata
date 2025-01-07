@@ -212,6 +212,9 @@ void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t 
 
 void DetectEngineStateResetTxs(Flow *f);
 
+bool DetectMd5ValidateCallback(
+        const Signature *s, const char **sigerror, const DetectBufferType *map);
+
 void DeStateRegisterTests(void);
 
 /* packet injection */

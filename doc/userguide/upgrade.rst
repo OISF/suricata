@@ -154,6 +154,11 @@ Deprecations
   Suricata 9.0. Note that this is the standalone ``syslog`` output and
   does affect the ``eve`` outputs ability to send to syslog.
 
+Keyword changes
+~~~~~~~~~~~~~~~
+- ``ja3.hash`` and ``ja3s.hash`` no longer accept contents with non hexadecimal
+  characters, as they will never match.
+
 Logging changes
 ~~~~~~~~~~~~~~~
 - RFB security result is now consistently logged as ``security_result`` when it was
