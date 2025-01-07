@@ -1137,9 +1137,6 @@ typedef struct DetectEngineThreadCtx_ {
     /* byte_* values */
     uint64_t *byte_values;
 
-    uint8_t *base64_decoded;
-    int base64_decoded_len;
-
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
@@ -1180,6 +1177,9 @@ typedef struct DetectEngineThreadCtx_ {
     uint64_t frame_inspect_progress; /**< used to set Frame::inspect_progress after all inspection
                                         on a frame is complete. */
     Packet *p;
+
+    uint8_t *base64_decoded;
+    int base64_decoded_len;
 
     uint16_t alert_queue_size;
     uint16_t alert_queue_capacity;
