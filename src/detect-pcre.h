@@ -37,8 +37,13 @@
 
 #define DETECT_PCRE_CAPTURE_MAX         8
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#define SC_MATCH_LIMIT_DEFAULT           350
+#define SC_MATCH_LIMIT_RECURSION_DEFAULT 150
+#else
 #define SC_MATCH_LIMIT_DEFAULT           3500
 #define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
+#endif
 
 typedef struct DetectPcreData_ {
     /* pcre options */
