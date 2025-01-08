@@ -19,5 +19,6 @@
 #define SURICATA_DETECT_VLAN_H
 
 void DetectVlanIdRegister(void);
+void DetectVlanLayersRegister(void);
 
 #endif /* SURICATA_DETECT_VLAN_H */
