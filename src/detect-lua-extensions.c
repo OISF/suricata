@@ -269,7 +269,7 @@ static int LuaSetFlowvarByKey(lua_State *luastate)
     }
     keylen = lua_tonumber(luastate, 2);
     if (keylen < 0 || keylen > 0xff) {
-        LUA_ERROR("key len out of range: max 256");
+        LUA_ERROR("key len out of range: max 255");
     }
 
     if (!lua_isstring(luastate, 3)) {
