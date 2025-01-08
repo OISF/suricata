@@ -334,6 +334,7 @@ enum DetectKeywordId {
     DETECT_AL_JA4_HASH,
 
     DETECT_VLAN_ID,
+    DETECT_VLAN_LAYERS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE_STATIC,
