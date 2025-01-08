@@ -83,3 +83,43 @@ It is also possible to use the vlan.id content as a fast_pattern by using the ``
 .. container:: example-rule
 
   alert ip any any -> any any (msg:"Vlan ID is equal to 200 at layer 1"; :example-rule-emphasis:`vlan.id:200,1; prefilter;` sid:1;)
+
+vlan.layers
+-----------
+
+Matches based on the number of layers.
+
+Syntax::
+
+ vlan.id: [op]number;
+
+It can be matched exactly, or compared using the ``op`` setting::
+
+ vlan.layer:3    # exactly 3 vlan layers
+ vlan.layer:<3   # less than 3 vlan layers
+ vlan.layer:>=2  # more or equal to 2 vlan layers
+
+vlan.layer uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+The minimum and maximum values that vlan.layers can be are ``0`` and ``3``.
+
+Examples
+^^^^^^^^
+
+Example of a signature that would alert if a packet has 0 VLAN layers:
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Packet has 0 vlan layers"; :example-rule-emphasis:`vlan.id:0;` sid:1;)
+
+Example of a signature that would alert if a packet has more than 1 VLAN layers:
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Packet more than 1 vlan layer"; :example-rule-emphasis:`vlan.id:>1;` sid:1;)
+
+It is also possible to use the vlan.layer content as a fast_pattern by using the ``prefilter`` keyword, as shown in the following example.
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Packet has 2 vlan layers"; :example-rule-emphasis:`vlan.id:2; prefilter;` sid:1;)

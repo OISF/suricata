@@ -140,3 +140,79 @@ void DetectVlanIdRegister(void)
     sigmatch_table[DETECT_VLAN_ID].SupportsPrefilter = PrefilterVlanIdIsPrefilterable;
     sigmatch_table[DETECT_VLAN_ID].SetupPrefilter = PrefilterSetupVlanId;
 }
+
+static int DetectVlanLayersMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    uint8_t nb = p->vlan_idx;
+
+    const DetectU8Data *du32 = (const DetectU8Data *)ctx;
+    return DetectU8Match(nb, du32);
+}
+
+static void DetectVlanLayersFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    rs_detect_u8_free(ptr);
+}
+
+static int DetectVlanLayersSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    DetectU8Data *du8 = DetectU8Parse(rawstr);
+
+    if (du8 == NULL) {
+        SCLogError("vlan layers invalid %s", rawstr);
+        return -1;
+    }
+
+    if (du8->arg1 > VLAN_MAX_LAYERS || du8->arg2 > VLAN_MAX_LAYERS) {
+        SCLogError("number of layers out of range %s", rawstr);
+        return -1;
+    }
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_VLAN_LAYERS, (SigMatchCtx *)du8, DETECT_SM_LIST_MATCH) == NULL) {
+        DetectVlanLayersFree(de_ctx, du8);
+        return -1;
+    }
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
+    return 0;
+}
+
+static void PrefilterPacketVlanLayersMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    DetectU8Data du8;
+    du8.mode = ctx->v1.u8[0];
+    du8.arg1 = ctx->v1.u8[1];
+    du8.arg2 = ctx->v1.u8[2];
+
+    if (DetectVlanLayersMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du8)) {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static int PrefilterSetupVlanLayers(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_VLAN_LAYERS, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketVlanLayersMatch);
+}
+
+static bool PrefilterVlanLayersIsPrefilterable(const Signature *s)
+{
+    return PrefilterIsPrefilterableById(s, DETECT_VLAN_LAYERS);
+}
+
+void DetectVlanLayersRegister(void)
+{
+    sigmatch_table[DETECT_VLAN_LAYERS].name = "vlan.layers";
+    sigmatch_table[DETECT_VLAN_LAYERS].desc = "match number of vlan layers";
+    sigmatch_table[DETECT_VLAN_LAYERS].url = "/rules/vlan-keywords.html#vlan-layers";
+    sigmatch_table[DETECT_VLAN_LAYERS].Match = DetectVlanLayersMatch;
+    sigmatch_table[DETECT_VLAN_LAYERS].Setup = DetectVlanLayersSetup;
+    sigmatch_table[DETECT_VLAN_LAYERS].Free = DetectVlanLayersFree;
+    sigmatch_table[DETECT_VLAN_LAYERS].SupportsPrefilter = PrefilterVlanLayersIsPrefilterable;
+    sigmatch_table[DETECT_VLAN_LAYERS].SetupPrefilter = PrefilterSetupVlanLayers;
+}

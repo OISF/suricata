@@ -701,6 +701,7 @@ void SigTableSetup(void)
     DetectFileHandlerRegister();
 
     DetectVlanIdRegister();
+    DetectVlanLayersRegister();
 
     ScDetectSNMPRegister();
     ScDetectDHCPRegister();
