@@ -20,10 +20,17 @@
 use std::{ffi::CString, path::Path};
 
 use crate::core::SC;
+use std::os::raw::c_char;
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn SCLogGetLogLevel() -> i32;
+}
+
+// Defined in util-debug.c
+/// cbindgen:ignore
+extern "C" {
+    pub fn SCFatalErrorOnInitStatic(arg: *const c_char);
 }
 
 #[derive(Debug)]
@@ -60,6 +67,12 @@ fn basename(filename: &str) -> &str {
         }
     }
     return filename;
+}
+
+pub fn fatalerror(message: &str) {
+    unsafe {
+        SCFatalErrorOnInitStatic(to_safe_cstring(message).as_ptr());
+    }
 }
 
 pub fn sclog(level: Level, file: &str, line: u32, function: &str, message: &str) {
@@ -203,12 +216,18 @@ macro_rules! SCLogDebug {
     ($($arg:tt)*) => {};
 }
 
+#[macro_export]
+macro_rules!SCFatalErrorOnInit {
+    ($($arg:tt)*) => {
+        $crate::debug::fatalerror(&format!($($arg)*));
+    }
+}
+
 #[cfg(not(feature = "debug-validate"))]
 #[macro_export]
 macro_rules! debug_validate_bug_on (
   ($item:expr) => {};
 );
-
 
 #[cfg(feature = "debug-validate")]
 #[macro_export]
