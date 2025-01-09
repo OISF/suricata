@@ -136,3 +136,9 @@ pub unsafe extern "C" fn rs_to_hex_sep(
     // overwrites last separator with final null char
     oslice[3 * islice.len() - 1] = 0;
 }
+
+// Defined in util-debug.c
+/// cbindgen:ignore
+extern {
+    pub fn CallbackFatalErrorOnInit(arg: *const c_char);
+}
