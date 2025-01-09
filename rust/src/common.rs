@@ -62,6 +62,16 @@ pub mod nom7 {
     }
 }
 
+#[macro_export]
+macro_rules!unwrap_or_return {
+    ($e:expr, $r:expr) => {
+        match $e {
+            Ok(x) => x,
+            Err(_) => return $r,
+        }
+    }
+}
+
 #[cfg(not(feature = "debug-validate"))]
 #[macro_export]
 macro_rules! debug_validate_bug_on (
