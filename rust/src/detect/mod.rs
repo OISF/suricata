@@ -30,6 +30,7 @@ pub mod uint;
 pub mod uri;
 pub mod tojson;
 pub mod vlan;
+pub mod datasets;
 
 use crate::core::AppProto;
 use std::os::raw::{c_int, c_void};
