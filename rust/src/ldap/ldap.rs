@@ -193,11 +193,7 @@ impl LdapState {
 
         if self.request_gap {
             match ldap_parse_msg(input) {
-                Ok((_, msg)) => {
-                    let ldap_msg = LdapMessage::from(msg);
-                    if ldap_msg.is_unknown() {
-                        return AppLayerResult::err();
-                    }
+                Ok((_, _msg)) => {
                     AppLayerResult::ok();
                 }
                 Err(_e) => {
@@ -264,11 +260,7 @@ impl LdapState {
 
         if self.response_gap {
             match ldap_parse_msg(input) {
-                Ok((_, msg)) => {
-                    let ldap_msg = LdapMessage::from(msg);
-                    if ldap_msg.is_unknown() {
-                        return AppLayerResult::err();
-                    }
+                Ok((_, _msg)) => {
                     AppLayerResult::ok();
                 }
                 Err(_e) => {
@@ -518,9 +510,6 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
     match ldap_parse_msg(input) {
         Ok((_, msg)) => {
             let ldap_msg = LdapMessage::from(msg);
-            if ldap_msg.is_unknown() {
-                return ALPROTO_FAILED;
-            }
             if direction == Direction::ToServer && !ldap_msg.is_request() {
                 unsafe {
                     *rdir = Direction::ToClient.into();
