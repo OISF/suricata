@@ -44,8 +44,7 @@ SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
 
-static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep);
+int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep);
 
 static inline void DatasetUnlockData(THashData *d)
 {
@@ -121,50 +120,6 @@ static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
     return 0;
 }
 
-static int ParseRepLine(const char *in, size_t ins, DataRepType *rep_out)
-{
-    SCLogDebug("in '%s'", in);
-    char raw[ins + 1];
-    memcpy(raw, in, ins);
-    raw[ins] = '\0';
-    char *line = raw;
-
-    char *ptrs[1] = {NULL};
-    int idx = 0;
-
-    size_t i = 0;
-    while (i < ins + 1) {
-        if (line[i] == ',' || line[i] == '\n' || line[i] == '\0') {
-            line[i] = '\0';
-            SCLogDebug("line '%s'", line);
-
-            ptrs[idx] = line;
-            idx++;
-
-            if (idx == 1)
-                break;
-        } else {
-            i++;
-        }
-    }
-
-    if (idx != 1) {
-        SCLogDebug("idx %d", idx);
-        return -1;
-    }
-
-    uint16_t v = 0;
-    int r = StringParseU16RangeCheck(&v, 10, strlen(ptrs[0]), ptrs[0], 0, USHRT_MAX);
-    if (r != (int)strlen(ptrs[0])) {
-        SCLogError("'%s' is not a valid reputation value (0-65535)", ptrs[0]);
-        return -1;
-    }
-    SCLogDebug("v %"PRIu16" raw %s", v, ptrs[0]);
-
-    rep_out->value = v;
-    return 0;
-}
-
 static int DatasetLoadIPv4(Dataset *set)
 {
     if (strlen(set->load) == 0)
@@ -176,66 +131,15 @@ static int DatasetLoadIPv4(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ParseDatasets(set, set->name, set->load, fopen_mode, DSIpv4);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            struct in_addr in;
-            if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)&in.s_addr, 4) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-            /* list with rep data */
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("IPv4 with REP line: '%s'", line);
-
-            *r = '\0';
-
-            struct in_addr in;
-            if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
-                continue;
-            }
-
-            r++;
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, (const uint8_t *)&in.s_addr, 4, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-
-            cnt++;
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -281,68 +185,15 @@ static int DatasetLoadIPv6(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ParseDatasets(set, set->name, set->load, fopen_mode, DSIpv6);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            struct in6_addr in6;
-            int ret = ParseIpv6String(set, line, &in6);
-            if (ret < 0) {
-                FatalErrorOnInit("unable to parse IP address");
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)&in6.s6_addr, 16) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-            /* list with rep data */
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("IPv6 with REP line: '%s'", line);
-
-            *r = '\0';
-
-            struct in6_addr in6;
-            int ret = ParseIpv6String(set, line, &in6);
-            if (ret < 0) {
-                FatalErrorOnInit("unable to parse IP address");
-                continue;
-            }
-
-            r++;
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, (const uint8_t *)&in6.s6_addr, 16, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-
-            cnt++;
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -357,66 +208,15 @@ static int DatasetLoadMd5(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ParseDatasets(set, set->name, set->load, fopen_mode, DSMd5);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        /* straight black/white list */
-        if (strlen(line) == 33) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            uint8_t hash[16];
-            if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)hash, 16) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-        /* list with rep data */
-        } else if (strlen(line) > 33 && line[32] == ',') {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("MD5 with REP line: '%s'", line);
-
-            uint8_t hash[16];
-            if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            DataRepType rep = { .value = 0};
-            if (ParseRepLine(line + 33, strlen(line) - 33, &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, hash, 16, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-
-            cnt++;
-        }
-        else {
-            FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
-            continue;
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -431,62 +231,15 @@ static int DatasetLoadSha256(Dataset *set)
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ParseDatasets(set, set->name, set->load, fopen_mode, DSSha256);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        /* straight black/white list */
-        if (strlen(line) == 65) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            uint8_t hash[32];
-            if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)hash, (uint32_t)32) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-            /* list with rep data */
-        } else if (strlen(line) > 65 && line[64] == ',') {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("SHA-256 with REP line: '%s'", line);
-
-            uint8_t hash[32];
-            if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0) {
-                FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(line + 65, strlen(line) - 65, &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep %u", rep.value);
-
-            if (DatasetAddwRep(set, hash, 32, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -496,80 +249,21 @@ static int DatasetLoadString(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+
     const char *fopen_mode = "r";
     if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
         fopen_mode = "a+";
     }
 
-    FILE *fp = fopen(set->load, fopen_mode);
-    if (fp == NULL) {
-        SCLogError("fopen '%s' failed: %s", set->load, strerror(errno));
+    int retval = ParseDatasets(set, set->name, set->load, fopen_mode, DSString);
+    if (retval == -2) {
+        FatalErrorOnInit("dataset %s could not be processed", set->name);
+    } else if (retval == -1) {
         return -1;
     }
 
-    uint32_t cnt = 0;
-    char line[1024];
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        if (strlen(line) <= 1)
-            continue;
-
-        char *r = strchr(line, ',');
-        if (r == NULL) {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            // coverity[alloc_strlen : FALSE]
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0 && strlen(line) > 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
-                continue;
-            }
-
-            if (DatasetAdd(set, (const uint8_t *)decoded, num_decoded) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-        } else {
-            line[strlen(line) - 1] = '\0';
-            SCLogDebug("line: '%s'", line);
-
-            *r = '\0';
-
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
-            uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
-            if (num_decoded == 0) {
-                FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
-                continue;
-            }
-
-            r++;
-            SCLogDebug("r '%s'", r);
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("die: bad rep");
-                continue;
-            }
-            SCLogDebug("rep %u", rep.value);
-
-            if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
-
-            SCLogDebug("line with rep %s, %s", line, r);
-        }
-    }
     THashConsolidateMemcap(set->hash);
 
-    fclose(fp);
-    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -1572,8 +1266,7 @@ int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
     return -1;
 }
 
-static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        DataRepType *rep)
+int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep)
 {
     if (set == NULL)
         return -1;
