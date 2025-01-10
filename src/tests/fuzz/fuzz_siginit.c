@@ -10,6 +10,7 @@
 #include "util-classification-config.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "app-layer.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -28,6 +29,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         SpmTableSetup();
         EngineModeSetIDS();
         SigTableInit();
+        AppLayerSetup();
         SigTableSetup();
     }
     if (cnt++ == 1024) {
