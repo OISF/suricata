@@ -510,24 +510,13 @@ static void SetFuncs(lua_State *luastate, const luaL_Reg *lib)
     }
 }
 
-static void CreateMeta(lua_State *luastate)
+void LuaLoadDatasetLib(lua_State *luastate)
 {
     luaL_newmetatable(luastate, "dataset::metatable");
-    lua_pushliteral(luastate, "__index");
-    lua_pushvalue(luastate, -2);
-    lua_rawset(luastate, -3);
-    SetFuncs(luastate, datasetlib);
-}
-
-static void LuaDatasetRegister(lua_State *luastate)
-{
-    CreateMeta(luastate);
-    lua_newtable(luastate);
-    SetFuncs(luastate, datasetlib);
     lua_pushvalue(luastate, -1);
-    lua_setglobal(luastate, "dataset");
-    lua_pop(luastate, 1);
-    lua_pop(luastate, 1);
+    lua_setfield(luastate, -2, "__index");
+    luaL_setfuncs(luastate, datasetlib, 0);
+    luaL_newlib(luastate, datasetlib);
 }
 
 static int LuaIncrFlowint(lua_State *luastate)
@@ -693,8 +682,6 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     lua_pushcfunction(lua_state, LuaGetByteVar);
     lua_setglobal(lua_state, "SCByteVarGet");
-
-    LuaDatasetRegister(lua_state);
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
