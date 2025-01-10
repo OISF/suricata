@@ -24,39 +24,16 @@
  */
 
 #include "suricata-common.h"
-#include "conf.h"
 
-#include "threads.h"
 #include "decode.h"
-#include "datasets.h"
-
 #include "detect.h"
-#include "detect-parse.h"
-#include "detect-flowvar.h"
-
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 
 #include "flow.h"
 #include "flow-var.h"
-#include "flow-util.h"
 
 #include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "app-layer.h"
-
-#include "stream-tcp.h"
 
 #include "detect-lua.h"
-
-#include "queue.h"
-#include "util-cpu.h"
 
 #include "app-layer-parser.h"
 
@@ -73,13 +50,6 @@
 #include "detect-lua-extensions.h"
 
 static const char luaext_key_ld[] = "suricata:luadata";
-
-/* hack to please scan-build. Even though LuaCallbackError *always*
- * returns 2, scan-build doesn't accept it and generates false
- * positives */
-#define LUA_ERROR(msg)                  \
-    LuaCallbackError(luastate, (msg));  \
-    return 2
 
 static int GetLuaData(lua_State *luastate, DetectLuaData **ret_ld)
 {
@@ -413,110 +383,6 @@ static int LuaSetFlowint(lua_State *luastate)
 
     SCLogDebug("stored flow:%p idx:%u value:%u", f, idx, number);
     return 0;
-}
-
-struct LuaDataset {
-    Dataset *set;
-};
-
-static int LuaDatasetGC(lua_State *luastate)
-{
-    SCLogDebug("gc:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    SCLogDebug("deref %s", s->set->name);
-    s->set = NULL;
-    SCLogDebug("gc:done");
-    return 0;
-}
-
-static int LuaDatasetGetRef(lua_State *luastate)
-{
-    SCLogDebug("get");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
-    }
-
-    const char *name = lua_tostring(luastate, 2);
-    if (name == NULL) {
-        LUA_ERROR("null string");
-    }
-
-    Dataset *dataset = DatasetFind(name, DATASET_TYPE_STRING);
-    if (dataset == NULL) {
-        LUA_ERROR("dataset not found");
-    }
-    s->set = dataset;
-    return 0;
-}
-
-static int LuaDatasetAdd(lua_State *luastate)
-{
-    SCLogDebug("add:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
-    }
-    if (!lua_isstring(luastate, 2)) {
-        LUA_ERROR("1st arg is not a string");
-    }
-    if (!lua_isnumber(luastate, 3)) {
-        LUA_ERROR("2nd arg is not a number");
-    }
-
-    const uint8_t *str = (const uint8_t *)lua_tostring(luastate, 2);
-    if (str == NULL) {
-        LUA_ERROR("1st arg is not null string");
-    }
-
-    uint32_t str_len = lua_tonumber(luastate, 3);
-
-    int r = DatasetAdd(s->set, (const uint8_t *)str, str_len);
-    /* return value through luastate, as a luanumber */
-    lua_pushnumber(luastate, (lua_Number)r);
-    SCLogDebug("add:end");
-    return 1;
-}
-
-static int LuaDatasetNew(lua_State *luastate)
-{
-    SCLogDebug("new:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_newuserdata(luastate, sizeof(*s));
-    if (s == NULL) {
-        LUA_ERROR("failed to get userdata");
-    }
-    luaL_getmetatable(luastate, "dataset::metatable");
-    lua_setmetatable(luastate, -2);
-    SCLogDebug("new:done");
-    return 1;
-}
-
-// clang-format off
-const luaL_Reg datasetlib[] = {
-    { "new", LuaDatasetNew },
-    { "get", LuaDatasetGetRef },
-    { "add", LuaDatasetAdd },
-    { "__gc", LuaDatasetGC },
-    { NULL, NULL }
-};
-// clang-format on
-
-static void SetFuncs(lua_State *luastate, const luaL_Reg *lib)
-{
-    for (; lib->name != NULL; lib++) {
-        lua_pushstring(luastate, lib->name);
-        lua_pushcfunction(luastate, lib->func);
-        lua_settable(luastate, -3);
-    }
-}
-
-void LuaLoadDatasetLib(lua_State *luastate)
-{
-    luaL_newmetatable(luastate, "dataset::metatable");
-    lua_pushvalue(luastate, -1);
-    lua_setfield(luastate, -2, "__index");
-    luaL_setfuncs(luastate, datasetlib, 0);
-    luaL_newlib(luastate, datasetlib);
 }
 
 static int LuaIncrFlowint(lua_State *luastate)

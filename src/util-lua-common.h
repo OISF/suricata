@@ -35,4 +35,11 @@ int LuaRegisterFunctions(lua_State *luastate);
 
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
 
+/* hack to please scan-build. Even though LuaCallbackError *always*
+ * returns 2, scan-build doesn't accept it and generates false
+ * positives */
+#define LUA_ERROR(msg)                                                                             \
+    LuaCallbackError(luastate, (msg));                                                             \
+    return 2
+
 #endif /* SURICATA_UTIL_LUA_COMMON_H */

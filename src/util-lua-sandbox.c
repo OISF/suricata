@@ -31,12 +31,7 @@
 #include "util-debug.h"
 #include "util-validate.h"
 #include "util-lua-sandbox.h"
-
-/* TODO: Need to get Lua dataset support out of detect-lua-extensions,
- * shouldn't need to pull in detect-engine, if via another include. */
-#include "detect-lua.h"
-#include "detect-engine.h"
-#include "detect-lua-extensions.h"
+#include "util-lua-dataset.h"
 
 #define SANDBOX_CTX "SANDBOX_CTX"
 

@@ -506,6 +506,7 @@ noinst_HEADERS = \
 	util-logopenfile.h \
 	util-log-redis.h \
 	util-lua-common.h \
+	util-lua-dataset.h \
 	util-lua-dnp3.h \
 	util-lua-dnp3-objects.h \
 	util-lua-dns.h \
@@ -1053,6 +1054,7 @@ libsuricata_c_a_SOURCES = \
 	util-log-redis.c \
 	util-lua.c \
 	util-lua-common.c \
+	util-lua-dataset.c \
 	util-lua-dnp3.c \
 	util-lua-dnp3-objects.c \
 	util-lua-dns.c \
