@@ -949,6 +949,32 @@ static int JsonGenericDirFlowLogger(ThreadVars *tv, void *thread_data, const Pac
     return JsonGenericLogger(tv, thread_data, p, f, state, tx, tx_id, LOG_DIR_FLOW);
 }
 
+#define ARRAY_CAP_STEP 16
+static EveJsonTxLoggerRegistrationData *preregistered_loggers = NULL;
+static size_t preregistered_loggers_nb = 0;
+static size_t preregistered_loggers_cap = 0;
+
+// Plugins can preregister logger with this function :
+// When an app-layer plugin is loaded, it wants to register its logger
+// But the plugin is loaded before loggers can register
+// The preregistration data will later be used by OutputRegisterLoggers
+int OutputPreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data)
+{
+    if (preregistered_loggers_nb == preregistered_loggers_cap) {
+        void *tmp = SCRealloc(
+                preregistered_loggers, sizeof(EveJsonTxLoggerRegistrationData) *
+                                               (preregistered_loggers_cap + ARRAY_CAP_STEP));
+        if (tmp == NULL) {
+            return 1;
+        }
+        preregistered_loggers_cap += ARRAY_CAP_STEP;
+        preregistered_loggers = tmp;
+    }
+    preregistered_loggers[preregistered_loggers_nb] = reg_data;
+    preregistered_loggers_nb++;
+    return 0;
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1105,4 +1131,15 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+
+    for (size_t i = 0; i < preregistered_loggers_nb; i++) {
+        OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
+                preregistered_loggers[i].confname, OutputJsonLogInitSub,
+                preregistered_loggers[i].alproto, JsonGenericDirFlowLogger, JsonLogThreadInit,
+                JsonLogThreadDeinit);
+        SCLogDebug(
+                "%s JSON logger registered.", AppProtoToString(preregistered_loggers[i].alproto));
+        RegisterSimpleJsonApplayerLogger(
+                preregistered_loggers[i].alproto, preregistered_loggers[i].LogTx, NULL);
+    }
 }
