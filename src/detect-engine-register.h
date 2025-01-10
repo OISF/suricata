@@ -345,6 +345,7 @@ int SigTableList(const char *keyword);
 void SigTableCleanup(void);
 void SigTableInit(void);
 void SigTableSetup(void);
+int SigTablePreRegister(void (*KeywordsRegister)(void));
 void SigTableRegisterTests(void);
 bool SigTableHasKeyword(const char *keyword);
 
