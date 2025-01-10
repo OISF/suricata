@@ -32,6 +32,12 @@
 #include "util-validate.h"
 #include "util-lua-sandbox.h"
 
+/* TODO: Need to get Lua dataset support out of detect-lua-extensions,
+ * shouldn't need to pull in detect-engine, if via another include. */
+#include "detect-lua.h"
+#include "detect-engine.h"
+#include "detect-lua-extensions.h"
+
 #define SANDBOX_CTX "SANDBOX_CTX"
 
 static void HookFunc(lua_State *L, lua_Debug *ar);
@@ -259,6 +265,18 @@ static const luaL_Reg AllowedLibs[] = {
     // clang-format on
 };
 
+static int SCLuaSbRequire(lua_State *L)
+{
+    const char *module_name = luaL_checkstring(L, 1);
+
+    if (strcmp(module_name, "suricata.dataset") == 0) {
+        LuaLoadDatasetLib(L);
+        return 1;
+    }
+
+    return luaL_error(L, "Module not found: %s", module_name);
+}
+
 /**
  * Load allowed Lua libraries into the state.
  *
@@ -293,6 +311,10 @@ void SCLuaSbLoadLibs(lua_State *L)
         }
         lua_pop(L, 1);
     }
+
+    /* Setup our custom require. */
+    lua_pushcfunction(L, SCLuaSbRequire);
+    lua_setglobal(L, "require");
 }
 
 /**
