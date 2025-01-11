@@ -735,6 +735,8 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx)
                     "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
             (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
         }
+    } else {
+        ret_ctx = entry->ctx;
     }
     SCMutexUnlock(&parent_ctx->threads->mutex);
 
