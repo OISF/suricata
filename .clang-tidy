@@ -17,6 +17,7 @@ Checks: "
 "
 WarningsAsErrors: "
       bugprone-unsafe-functions,
+      clang-analyzer-unix.Malloc,
 "
 HeaderFileExtensions:
   - ''
