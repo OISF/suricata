@@ -589,5 +589,5 @@ static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, con
 }
 
 #ifdef UNITTESTS
-#include "tests/detect-http2.c"
+#include "tests/detect-http2.c" // NOLINT(bugprone-suspicious-include)
 #endif
