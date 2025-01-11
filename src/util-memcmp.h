@@ -29,6 +29,7 @@
 #ifndef SURICATA_UTIL_MEMCMP_H
 #define SURICATA_UTIL_MEMCMP_H
 
+// NOLINTNEXTLINE(misc-header-include-cycle)
 #include "suricata-common.h"
 #include "util-optimize.h"
 
