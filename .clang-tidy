@@ -13,6 +13,7 @@ Checks: "
       -readability-braces-around-statements,
       -readability-avoid-const-params-in-decls,
       -bugprone-easily-swappable-parameters,
+      -misc-include-cleaner,
 "
 WarningsAsErrors: "
       bugprone-unsafe-functions,
