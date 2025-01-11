@@ -21,17 +21,11 @@ use std;
 use crate::filecontainer::*;
 use crate::debug_validate_fail;
 
+pub use crate::sys::{AppProto, AppProtoEnum};
+
 /// Opaque C types.
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[allow(non_camel_case_types)]
-pub enum AppLayerEventType {
-    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
-    APP_LAYER_EVENT_TYPE_PACKET = 2,
-}
 
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
@@ -105,11 +99,8 @@ impl From<Direction> for u8 {
     }
 }
 
-// Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = u16;
-
-pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
+pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as u16;
+pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as u16;
 
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
@@ -252,7 +243,6 @@ pub fn init_ffi(context: &'static SuricataContext)
 {
     unsafe {
         SC = Some(context);
-        ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
 }
 

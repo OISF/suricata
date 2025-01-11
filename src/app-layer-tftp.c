@@ -63,7 +63,7 @@ static void TFTPStateTxFree(void *state, uint64_t tx_id)
 }
 
 static int TFTPStateGetEventInfo(
-        const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
+        const char *event_name, uint8_t *event_id, SCAppLayerEventType *event_type)
 {
     return -1;
 }

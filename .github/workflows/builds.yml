@@ -93,8 +93,10 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen-cli \
                 cargo-vendor \
                 cbindgen \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -250,7 +252,9 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cbindgen \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -344,6 +348,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo-vendor \
                 cbindgen \
                 diffutils \
@@ -491,12 +496,14 @@ jobs:
 
       - name: Install system packages
         run: |
-          yum -y install dnf-plugins-core
+          yum -y install dnf-plugins-core epel-release
           yum config-manager --set-enabled powertools
           yum -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo-vendor \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -593,7 +600,9 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo-vendor \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -684,6 +693,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cbindgen \
                 ccache \
                 clang \
@@ -781,6 +791,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 ccache \
@@ -880,9 +891,11 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 ccache \
+                clang-devel \
                 diffutils \
                 file-devel \
                 gcc \
@@ -977,6 +990,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 ccache \
@@ -1071,9 +1085,11 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 ccache \
+                clang-devel \
                 diffutils \
                 file-devel \
                 gcc \
@@ -1155,6 +1171,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 ccache \
@@ -1253,6 +1270,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
                 cargo \
                 cbindgen \
                 clang \
@@ -1375,6 +1393,7 @@ jobs:
           apt -y install \
                 autoconf \
                 automake \
+                bindgen \
                 build-essential \
                 cargo \
                 cbindgen \
@@ -1448,6 +1467,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -1585,6 +1605,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -1690,6 +1711,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -1827,6 +1849,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -1914,6 +1937,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -2017,6 +2041,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -2151,6 +2176,7 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags \
                 dpdk-dev
+      - run: cargo install --root /usr --force --debug bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -2269,6 +2295,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -2353,6 +2380,7 @@ jobs:
                 afl \
                 afl-clang \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -2418,6 +2446,7 @@ jobs:
             sudo apt update
             sudo apt -y install \
                   libpcre2-dev \
+                  bindgen \
                   build-essential \
                   autoconf \
                   automake \
@@ -2557,6 +2586,7 @@ jobs:
           apt update
           apt -y install \
                 libpcre2-dev \
+                bindgen \
                 build-essential \
                 autoconf \
                 automake \
@@ -2564,6 +2594,7 @@ jobs:
                 git \
                 jq \
                 libtool \
+                libclang-dev \
                 libpcap-dev \
                 libnet1-dev \
                 libyaml-0-2 \
@@ -2655,6 +2686,7 @@ jobs:
           apt -y install \
               autoconf \
               automake \
+              bindgen \
               build-essential \
               cmake \
               curl \
@@ -2662,6 +2694,7 @@ jobs:
               git \
               jq \
               make \
+              libclang-dev \
               libpcre3 \
               libpcre3-dbg \
               libpcre3-dev \
@@ -2758,6 +2791,7 @@ jobs:
           apt -y install \
               autoconf \
               automake \
+              bindgen \
               build-essential \
               cargo \
               cmake \
@@ -2765,6 +2799,7 @@ jobs:
               git \
               jq \
               make \
+              libclang-dev \
               libpcre3 \
               libpcre3-dbg \
               libpcre3-dev \
@@ -2839,6 +2874,7 @@ jobs:
           apt -y install \
               autoconf \
               automake \
+              bindgen \
               build-essential \
               cmake \
               curl \
@@ -2846,6 +2882,7 @@ jobs:
               git \
               jq \
               make \
+              libclang-dev \
               libpcre3 \
               libpcre3-dbg \
               libpcre3-dev \
@@ -2929,6 +2966,7 @@ jobs:
                 curl \
                 git \
                 jq \
+                libclang-dev \
                 libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
@@ -2956,6 +2994,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install bindgen
+        run: cargo install bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -3002,6 +3042,7 @@ jobs:
                 curl \
                 git \
                 jq \
+                libclang-dev \
                 libpcre2-dev \
                 libpcap-dev   \
                 libnet1-dev \
@@ -3027,6 +3068,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install bindgen
+        run: cargo install bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -3127,11 +3170,13 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+      - name: bindgen
+        run: cargo install --root /usr --force --debug bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -3183,11 +3228,13 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+      - name: bindgen
+        run: cargo install --root /usr --force --debug bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -3227,11 +3274,13 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-clang automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+      - name: bindgen
+        run: cargo install --root /usr --force --debug bindgen-cli
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -3287,6 +3336,8 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                bindgen \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
