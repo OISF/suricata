@@ -26,20 +26,12 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-content.h"
-
 #include "detect-engine.h"
 #include "detect-engine-buffer.h"
 #include "detect-engine-uint.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-engine-helper.h"
-
 #include "detect-http2.h"
 #include "util-byte.h"
-#include "rust.h"
-#include "util-profiling.h"
 
 #ifdef UNITTESTS
 void DetectHTTP2frameTypeRegisterTests (void);
