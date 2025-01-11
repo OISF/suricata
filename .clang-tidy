@@ -23,7 +23,7 @@ HeaderFileExtensions:
   - 'h'
 ImplementationFileExtensions:
   - 'c'
-FormatStyle:     none
+FormatStyle: 'file'
 CheckOptions:
   bugprone-unsafe-functions.ReportDefaultFunctions: 'true'
   bugprone-unsafe-functions.ReportMoreUnsafeFunctions: 'true'
