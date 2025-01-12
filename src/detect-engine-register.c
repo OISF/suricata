@@ -210,6 +210,7 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
+#include "detect-entropy.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -571,6 +572,7 @@ void SigTableSetup(void)
     DetectBytetestRegister();
     DetectBytejumpRegister();
     DetectBytemathRegister();
+    DetectEntropyRegister();
     DetectSameipRegister();
     DetectGeoipRegister();
     DetectL3ProtoRegister();
