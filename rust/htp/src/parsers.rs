@@ -11,7 +11,7 @@ use crate::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag, tag_no_case, take_until, take_while},
+    bytes::complete::{is_not, tag, tag_no_case, take_till, take_until, take_while},
     combinator::{map, not, opt, peek},
     error::ErrorKind,
     multi::many0,
@@ -255,7 +255,9 @@ pub fn path() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 pub fn query() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         // Skip the starting '?'
-        map(tuple((tag("?"), is_not("#"))), |(_, query)| query)(input)
+        map(tuple((tag("?"), take_till(|c| c == b'#'))), |(_, query)| {
+            query
+        })(input)
     }
 }
 
@@ -601,6 +603,7 @@ mod test {
     #[rstest]
     #[case("?a=b&c=d#frag", "a=b&c=d", "#frag")]
     #[case("?a=b&c=d", "a=b&c=d", "")]
+    #[case("?", "", "")]
     fn test_query(#[case] input: &str, #[case] q: &str, #[case] remaining: &str) {
         assert_eq!(
             query()(input.as_bytes()).unwrap(),
