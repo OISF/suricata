@@ -882,7 +882,7 @@ impl Write for InnerDecompressor {
                         }
                         _ => {
                             let written = self.try_finish(&mut writer);
-                            if written {
+                            if written && self.restarts == 0 {
                                 // error, but some data has been written, stop here
                                 return Err(e);
                             }
