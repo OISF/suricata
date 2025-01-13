@@ -1351,6 +1351,7 @@ impl ConnectionParser {
             return self.state_request_complete(input);
         }
         let mut work = input.as_slice();
+        let mut has_lf = false;
         if self.request_status != HtpStreamState::CLOSED {
             let request_next_byte = input.as_slice().first();
             if request_next_byte.is_none() {
@@ -1359,6 +1360,7 @@ impl ConnectionParser {
 
             if let Ok((_, line)) = take_till_lf(work) {
                 work = &line[..line.len() - 1];
+                has_lf = true;
                 self.request_data_consume(input, line.len() - 1);
             } else {
                 return self.handle_request_absent_lf(input);
@@ -1395,6 +1397,11 @@ impl ConnectionParser {
                     );
                 } else {
                     self.request_body_data_left = Some(1);
+                }
+                if has_lf {
+                    //Adds linefeed to the buffer if there was one
+                    self.request_data_consume(input, 1);
+                    data.add(b"\n");
                 }
                 // Interpret remaining bytes as body data
                 let rc = self.request_body_data(Some(&data));
