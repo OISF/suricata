@@ -116,7 +116,8 @@
             "type": "integer"
         },
         "tx_guessed": {
-            "description": "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
+            "description":
+                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
             "type": "boolean"
         },
         "files": {
@@ -1192,7 +1193,8 @@
                                 "type": "integer"
                             },
                             "rrname_truncated": {
-                                "description": "Set to true if the rrname was too long and truncated by Suricata",
+                                "description":
+                                        "Set to true if the rrname was too long and truncated by Suricata",
                                 "type": "boolean"
                             }
                         },
@@ -4499,6 +4501,11 @@
             },
             "additionalProperties": false
         },
+        "socks": {
+            "type": "object",
+            "optional": true,
+            "additionalProperties": true
+        },
         "ssh": {
             "type": "object",
             "optional": true,
@@ -4736,6 +4743,10 @@
                                     "description": "Errors encountered parsing SNMP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "socks": {
+                                    "description": "Errors encountered parsing SOCKS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "ssh": {
                                     "description": "Errors encountered parsing SSH protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4911,6 +4922,10 @@
                                     "description": "Number of flows for SNMP",
                                     "type": "integer"
                                 },
+                                "socks": {
+                                    "description": "Number of flows for SOCKS",
+                                    "type": "integer"
+                                },
                                 "ssh": {
                                     "description": "Number of flows for SSH protocol",
                                     "type": "integer"
@@ -5079,6 +5094,10 @@
                                 },
                                 "snmp": {
                                     "description": "Number of transactions for SNMP",
+                                    "type": "integer"
+                                },
+                                "socks": {
+                                    "description": "Number of transactions for SOCKS",
                                     "type": "integer"
                                 },
                                 "ssh": {
@@ -6606,7 +6625,8 @@
                     "type": "integer"
                 },
                 "tc_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by server using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by server using TCP urgent packets",
                     "type": "integer"
                 },
                 "tcp_flags": {
@@ -6625,7 +6645,8 @@
                     "type": "integer"
                 },
                 "ts_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by client using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by client using TCP urgent packets",
                     "type": "integer"
                 },
                 "urg": {
@@ -6894,7 +6915,8 @@
                     "type": "integer"
                 },
                 "mname_truncated": {
-                    "description": "Set to true if the mname was too long and truncated by Suricata",
+                    "description":
+                            "Set to true if the mname was too long and truncated by Suricata",
                     "type": "boolean"
                 }
             },
@@ -6922,11 +6944,13 @@
                         "$ref": "#/$defs/dns.soa"
                     },
                     "rdata_truncated": {
-                        "description": "Set to true if the rdata was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rdata was too long and truncated by Suricata",
                         "type": "boolean"
                     },
                     "rrname_truncated": {
-                        "description": "Set to true if the rrname was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rrname was too long and truncated by Suricata",
                         "type": "boolean"
                     }
                 },
