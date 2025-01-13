@@ -15,9 +15,6 @@
 
 #define HEADER_LEN 6
 
-//rule of thumb constant, so as not to timeout target
-#define PROTO_DETECT_MAX_LEN 1024
-
 extern const char *configNoChecksum;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
