@@ -68,12 +68,14 @@ extern int unittests_fatal;
 /**
  * \brief Fail a test if expression evaluates to true.
  */
-#define FAIL_IF(expr) do {                             \
-        if (unittests_fatal) {                         \
-            BUG_ON(expr);                              \
-        } else if (expr) {                             \
-            return 0;                                  \
-        }                                              \
+#define FAIL_IF(expr)                                                                              \
+    do {                                                                                           \
+        printf("failed %s:%d\n", __FILE__, __LINE__);                                              \
+        if (unittests_fatal) {                                                                     \
+            BUG_ON(expr);                                                                          \
+        } else if (expr) {                                                                         \
+            return 0;                                                                              \
+        }                                                                                          \
     } while (0)
 
 /**
