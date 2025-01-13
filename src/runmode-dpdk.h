@@ -46,4 +46,8 @@ int RunModeIdsDpdkWorkers(void);
 void RunModeDpdkRegister(void);
 const char *RunModeDpdkGetDefaultMode(void);
 
+#ifdef UNITTESTS
+void RunmodeDpdkRegisterTests(void);
+#endif /* UNITTESTS */
+
 #endif /* SURICATA_RUNMODE_DPDK_H */
