@@ -9,7 +9,7 @@ use nom::{
     bytes::streaming::{tag as streaming_tag, take_till as streaming_take_till},
     character::complete::{char, digit1},
     character::is_space as nom_is_space,
-    combinator::{map, not, opt, peek},
+    combinator::{map, opt},
     sequence::tuple,
     Err::Incomplete,
     IResult, Needed,
@@ -158,8 +158,6 @@ pub enum Eol {
     CR,
     /// "\r\n"
     CRLF,
-    /// "\n\r"
-    LFCR,
 }
 
 /// Determines if character in a seperator.
@@ -491,18 +489,8 @@ pub fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
         streaming_take_till(|c| c == b'\n' || c == b'\r'),
         alt((
             streaming_tag("\r\n"),
-            map(
-                alt((
-                    tuple((streaming_tag("\r"), not(streaming_tag("\n")))),
-                    tuple((streaming_tag("\n\r"), not(streaming_tag("\n")))),
-                    tuple((streaming_tag("\n"), not(streaming_tag("\r")))),
-                )),
-                |(eol, _)| eol,
-            ),
-            map(
-                tuple((streaming_tag("\n"), peek(streaming_tag("\r\n")))),
-                |(eol, _)| eol,
-            ),
+            streaming_tag("\r"),
+            streaming_tag("\n"),
         )),
     ))(data)?;
     match eol {
@@ -511,10 +499,6 @@ pub fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
         b"\r\n" => Ok((
             &data[line.len() + 2..],
             (&data[0..line.len() + 2], Eol::CRLF),
-        )),
-        b"\n\r" => Ok((
-            &data[line.len() + 2..],
-            (&data[0..line.len() + 2], Eol::LFCR),
         )),
         _ => Err(Incomplete(Needed::new(1))),
     }
@@ -617,10 +601,8 @@ mod tests {
     #[rstest]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: Incomplete(Size(1))")]
     #[case("", "", "", Eol::CR)]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: Incomplete(Size(1))")]
-    #[case("abcdefg\n", "", "", Eol::CR)]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: Incomplete(Size(1))")]
-    #[case("abcdefg\n\r", "", "", Eol::CR)]
+    #[case("abcdefg\n", "", "abcdefg\n", Eol::LF)]
+    #[case("abcdefg\n\r", "\r", "abcdefg\n", Eol::LF)]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: Incomplete(Size(1))")]
     #[case("abcdefg\r", "", "", Eol::CR)]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: Incomplete(Size(1))")]
@@ -630,8 +612,6 @@ mod tests {
     #[case("abcdefg\rhijk", "hijk", "abcdefg\r", Eol::CR)]
     #[case("abcdefg\r\nhijk", "hijk", "abcdefg\r\n", Eol::CRLF)]
     #[case("abcdefg\r\n", "", "abcdefg\r\n", Eol::CRLF)]
-    #[case("abcdefg\n\rhijk", "hijk", "abcdefg\n\r", Eol::LFCR)]
-    #[case("abcdefg\n\r\r\nhijk", "\r\nhijk", "abcdefg\n\r", Eol::LFCR)]
     fn test_take_till_eol(
         #[case] input: &str, #[case] remaining: &str, #[case] parsed: &str, #[case] eol: Eol,
     ) {
