@@ -2514,7 +2514,7 @@ void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *
     for (; app != NULL; app = app->next) {
         DEBUG_VALIDATE_BUG_ON(app->smd == NULL);
         SigMatchData *smd = app->smd;
-        do {
+        while (smd) {
             switch (smd->type) {
                 case DETECT_CONTENT: {
                     const DetectContentData *cd = (const DetectContentData *)smd->ctx;
@@ -2542,7 +2542,7 @@ void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *
             if (smd->is_last)
                 break;
             smd++;
-        } while (1);
+        }
     }
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for (; pkt != NULL; pkt = pkt->next) {
