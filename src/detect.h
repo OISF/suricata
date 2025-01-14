@@ -546,9 +546,32 @@ typedef struct SignatureInitDataBuffer_ {
     SigMatch *tail;
 } SignatureInitDataBuffer;
 
+enum SignatureHookType {
+    SIGNATURE_HOOK_TYPE_NOT_SET,
+    // SIGNATURE_HOOK_TYPE_PKT,
+    SIGNATURE_HOOK_TYPE_APP,
+};
+
+// dns:request_complete should add DetectBufferTypeGetByName("dns:request_complete");
+// TODO to json
+typedef struct SignatureHook_ {
+    enum SignatureHookType type;
+    int sm_list; /**< list id for the hook's generic list. e.g. for dns:request_complete:generic */
+    union {
+        struct {
+            AppProto alproto;
+            /** progress value of the app-layer hook specified in the rule. Sets the app_proto
+             *  specific progress value. */
+            int app_progress;
+        } app;
+    } t;
+} SignatureHook;
+
 #define SIG_ALPROTO_MAX 4
 
 typedef struct SignatureInitData_ {
+    SignatureHook hook;
+
     /** Number of sigmatches. Used for assigning SigMatch::idx */
     uint16_t sm_cnt;
 

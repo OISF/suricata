@@ -122,5 +122,6 @@ int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UC
         PCRE2_SIZE *bufflen);
 
 int DetectSetupDirection(Signature *s, const char *str);
+void DetectRegisterAppLayerHookLists(void);
 
 #endif /* SURICATA_DETECT_PARSE_H */
