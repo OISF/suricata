@@ -1113,6 +1113,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             if (unlikely(engine->stream && can->stream_stored)) {
                 match = can->stream_result;
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
+            } else if (engine->v2.Callback == NULL) {
+                /* TODO is this the cleanest way to support a non-app sig on a app hook? */
+
+                /* we don't have to store a "hook" match, also don't want to keep any state to make
+                 * sure the hook gets invoked again until tx progress progresses. */
+                if (tx->tx_progress <= engine->progress)
+                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+
+                /* if progress > engine progress, track state to avoid additional matches */
+                match = DETECT_ENGINE_INSPECT_SIG_MATCH;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
