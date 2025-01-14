@@ -506,6 +506,8 @@ void SigTableInit(void)
 
 void SigTableSetup(void)
 {
+    DetectRegisterAppLayerHookLists();
+
     DetectSidRegister();
     DetectPriorityRegister();
     DetectPrefilterRegister();
