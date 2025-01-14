@@ -482,6 +482,7 @@ noinst_HEADERS = \
 	util-dpdk-i40e.h \
 	util-dpdk-ice.h \
 	util-dpdk-ixgbe.h \
+	util-dpdk-mlx5.h \
 	util-dpdk-bonding.h \
 	util-dpdk-rss.h \
 	util-ebpf.h \
@@ -1037,6 +1038,7 @@ libsuricata_c_a_SOURCES = \
 	util-dpdk-i40e.c \
 	util-dpdk-ice.c \
 	util-dpdk-ixgbe.c \
+	util-dpdk-mlx5.c \
 	util-dpdk-bonding.c \
 	util-dpdk-rss.c \
 	util-ebpf.c \
