@@ -84,6 +84,7 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
                              uint8_t *compressed_data, uint32_t compressed_data_len,
                              uint8_t *decompressed_data, uint32_t decompressed_data_len)
 {
+    printf("lolz %d\n", __LINE__);
     int ret = 1;
     z_stream infstream;
     memset(&infstream, 0, sizeof(infstream));
@@ -97,12 +98,14 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
     infstream.next_out = (Bytef *)decompressed_data;
 
     int result = inflateInit(&infstream);
+    printf("lolz %d %d\n", result, __LINE__);
     if (result != Z_OK) {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_Z_UNKNOWN_ERROR);
         return 0;
     }
 
     result = inflate(&infstream, Z_NO_FLUSH);
+    printf("lolz %d %d\n", result, __LINE__);
     switch(result) {
         case Z_STREAM_END:
             break;
