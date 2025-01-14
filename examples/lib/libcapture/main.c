@@ -20,7 +20,7 @@
 #include "conf.h"
 #include "pcap.h"
 #include "runmode-lib.h"
-#include "source-lib.h"
+#include "tm-threads.h"
 #include "threadvars.h"
 #include "action-globals.h"
 #include "packet.h"
