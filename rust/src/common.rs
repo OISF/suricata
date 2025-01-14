@@ -62,6 +62,16 @@ pub mod nom7 {
     }
 }
 
+#[macro_export]
+macro_rules!unwrap_or_return {
+    ($e:expr, $r:expr) => {
+        match $e {
+            Ok(x) => x,
+            Err(_) => return $r,
+        }
+    }
+}
+
 #[cfg(not(feature = "debug-validate"))]
 #[macro_export]
 macro_rules! debug_validate_bug_on (
@@ -168,4 +178,10 @@ pub unsafe extern "C" fn rs_to_hex_sep(
     }
     // overwrites last separator with final null char
     oslice[3 * islice.len() - 1] = 0;
+}
+
+// Defined in util-debug.c
+/// cbindgen:ignore
+extern {
+    pub fn CallbackFatalErrorOnInit(arg: *const c_char);
 }

@@ -1614,6 +1614,11 @@ void SCLogDeInitLogModule(void)
 #endif /* OS_WIN32 */
 }
 
+void CallbackFatalErrorOnInit(const char *arg)
+{
+    FatalErrorOnInit("%s", arg);
+}
+
 //------------------------------------Unit_Tests--------------------------------
 
 /* The logging engine should be tested to the maximum extent possible, since
