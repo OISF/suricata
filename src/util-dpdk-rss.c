@@ -108,7 +108,8 @@ int DPDKCreateRSSFlowGeneric(
     action[0].conf = &rss_conf;
     action[1].type = RTE_FLOW_ACTION_TYPE_END;
 
-    pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
+    pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
+    pattern[1].type = RTE_FLOW_ITEM_TYPE_END;
 
     struct rte_flow *flow = rte_flow_create(port_id, &attr, pattern, action, &flow_error);
     if (flow == NULL) {
