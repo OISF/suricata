@@ -1933,7 +1933,8 @@
                     "type": "string"
                 },
                 "exception_policy": {
-                    "description": "The exception policy(ies) triggered by the flow. Not logged if none was triggered",
+                    "description":
+                            "The exception policy(ies) triggered by the flow. Not logged if none was triggered",
                     "type": "array",
                     "properties": {
                         "target": {
@@ -7119,6 +7120,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        "ndpi": {
+            "description": "nDPI plugin, contents provided by 3rd party library",
+            "type": "object"
         }
     },
     "$defs": {
