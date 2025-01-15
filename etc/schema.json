@@ -6873,6 +6873,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        "ndpi": {
+            "description": "nDPI plugin, contents provided by 3rd party library",
+            "type": "object"
         }
     },
     "$defs": {
