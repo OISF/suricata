@@ -730,7 +730,6 @@ void SigTableSetup(void)
     DetectVlanIdRegister();
     DetectVlanLayersRegister();
 
-    ScDetectSNMPRegister();
     SCDetectDHCPRegister();
     ScDetectWebsocketRegister();
     ScDetectEnipRegister();
