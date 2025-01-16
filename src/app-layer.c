@@ -1055,7 +1055,6 @@ static void AppLayerNamesSetup(void)
     AppProtoRegisterProtoString(ALPROTO_KRB5, "krb5");
     AppProtoRegisterProtoString(ALPROTO_QUIC, "quic");
     AppProtoRegisterProtoString(ALPROTO_DHCP, "dhcp");
-    AppProtoRegisterProtoString(ALPROTO_SNMP, "snmp");
     AppProtoRegisterProtoString(ALPROTO_SIP, "sip");
     AppProtoRegisterProtoString(ALPROTO_RFB, "rfb");
     AppProtoRegisterProtoString(ALPROTO_MQTT, "mqtt");
