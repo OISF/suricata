@@ -54,6 +54,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "detect-http-header.h"
 #include "detect-http-header-common.h"
 
@@ -82,12 +83,12 @@ static uint8_t *GetBufferForTX(
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
-                HTP_REQUEST_HEADERS)
+                HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
         headers = tx->request_headers;
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
-                HTP_RESPONSE_HEADERS)
+                HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
         headers = tx->response_headers;
     }
@@ -304,9 +305,8 @@ static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx, SigGro
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader,
-            mpm_reg->app_v2.alproto, HTP_REQUEST_HEADERS,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader, mpm_reg->app_v2.alproto,
+            HTP_REQUEST_PROGRESS_HEADERS, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
         return r;
@@ -320,9 +320,8 @@ static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx, SigGro
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer,
-            mpm_reg->app_v2.alproto, HTP_REQUEST_TRAILER,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer, mpm_reg->app_v2.alproto,
+            HTP_REQUEST_PROGRESS_TRAILER, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -342,9 +341,8 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGr
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader,
-            mpm_reg->app_v2.alproto, HTP_RESPONSE_HEADERS,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader, mpm_reg->app_v2.alproto,
+            HTP_RESPONSE_PROGRESS_HEADERS, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
         return r;
@@ -358,9 +356,8 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGr
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer,
-            mpm_reg->app_v2.alproto, HTP_RESPONSE_TRAILER,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer, mpm_reg->app_v2.alproto,
+            HTP_RESPONSE_PROGRESS_TRAILER, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -430,13 +427,13 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpHeaderRequestRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
+            HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
@@ -637,7 +634,7 @@ void DetectHttpRequestHeaderRegister(void)
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_HEADERS, GetHttp1HeaderData, 2, HTP_REQUEST_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_request_header", "HTTP header name and value");
     g_http_request_header_buffer_id = DetectBufferTypeGetByName("http_request_header");
@@ -670,7 +667,7 @@ void DetectHttpResponseHeaderRegister(void)
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_HEADERS, GetHttp1HeaderData, 2, HTP_RESPONSE_HEADERS);
+            HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_RESPONSE_PROGRESS_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_response_header", "HTTP header name and value");
     g_http_response_header_buffer_id = DetectBufferTypeGetByName("http_response_header");

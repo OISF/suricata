@@ -53,6 +53,7 @@
 #include "app-layer.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "detect-http-uri.h"
 #include "stream-tcp.h"
 
@@ -108,10 +109,10 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
@@ -146,10 +147,10 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_raw_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetRawData);
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetRawData);
 
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRawData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+            GetRawData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     // no difference between raw and decoded uri for HTTP2
     DetectAppLayerInspectEngineRegister("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,

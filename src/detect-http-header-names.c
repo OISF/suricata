@@ -60,6 +60,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
@@ -89,12 +90,12 @@ static uint8_t *GetBufferForTX(
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
-                HTP_REQUEST_HEADERS)
+                HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
         headers = tx->request_headers;
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
-                HTP_RESPONSE_HEADERS)
+                HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
         headers = tx->response_headers;
     }
@@ -220,14 +221,14 @@ void DetectHttpHeaderNamesRegister(void)
 
     /* http1 */
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetBuffer1ForTX, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
+            GetBuffer1ForTX, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetBuffer1ForTX, ALPROTO_HTTP1, HTP_RESPONSE_HEADERS);
+            GetBuffer1ForTX, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
+            HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
 
     /* http2 */
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

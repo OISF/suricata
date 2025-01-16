@@ -60,6 +60,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
@@ -165,13 +166,13 @@ void DetectHttpProtocolRegister(void)
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_RESPONSE_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
