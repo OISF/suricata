@@ -26,6 +26,7 @@
 
 #include "decode.h"
 #include "tm-modules.h"
+#include "rust.h"
 
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
@@ -169,14 +170,6 @@ typedef struct EveJsonSimpleAppLayerLogger {
 } EveJsonSimpleAppLayerLogger;
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
-
-typedef struct EveJsonTxLoggerRegistrationData {
-    const char *confname;
-    const char *logname;
-    AppProto alproto;
-    uint8_t dir;
-    EveJsonSimpleTxLogFunc LogTx;
-} EveJsonTxLoggerRegistrationData;
 
 int OutputPreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data);
 
