@@ -20,7 +20,7 @@
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::tftp::tftp::TFTPTransaction;
 
-fn tftp_log_request(tx: &mut TFTPTransaction,
+fn tftp_log_request(tx: &TFTPTransaction,
                     jb: &mut JsonBuilder)
                     -> Result<(), JsonError>
 {
@@ -37,7 +37,7 @@ fn tftp_log_request(tx: &mut TFTPTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction,
+pub extern "C" fn rs_tftp_log_json_request(tx: &TFTPTransaction,
                                            jb: &mut JsonBuilder)
                                            -> bool
 {

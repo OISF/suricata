@@ -20,7 +20,7 @@
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::krb::krb5::{KRB5Transaction,test_weak_encryption};
 
-fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<(), JsonError>
+fn krb5_log_response(jsb: &mut JsonBuilder, tx: &KRB5Transaction) -> Result<(), JsonError>
 {
     jsb.open_object("krb5")?;
     match tx.error_code {
@@ -70,7 +70,7 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_log_json_response(tx: &mut KRB5Transaction, jsb: &mut JsonBuilder) -> bool
+pub extern "C" fn rs_krb5_log_json_response(tx: &KRB5Transaction, jsb: &mut JsonBuilder) -> bool
 {
     krb5_log_response(jsb, tx).is_ok()
 }
