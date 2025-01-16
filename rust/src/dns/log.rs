@@ -820,7 +820,7 @@ pub extern "C" fn SCDnsLogJsonQuery(
 /// "dns" object.
 ///
 /// This logger implements V3 style DNS logging.
-fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(), JsonError> {
     jb.open_object("dns")?;
     jb.set_int("version", 3)?;
 
@@ -921,7 +921,7 @@ fn log_json(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result
 
 /// FFI wrapper around the common V3 style DNS logger.
 #[no_mangle]
-pub extern "C" fn SCDnsLogJson(tx: &mut DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> bool {
+pub extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> bool {
     log_json(tx, flags, jb).is_ok()
 }
 
