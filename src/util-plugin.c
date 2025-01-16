@@ -163,8 +163,7 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
-    AppProto alproto = g_alproto_max;
-    AppProtoRegisterProtoString(alproto, plugin->name);
+    AppProto alproto = AppProtoNewProtoFromString(plugin->name);
     if (plugin->Register) {
         if (AppLayerParserPreRegister(plugin->Register) != 0) {
             return 1;

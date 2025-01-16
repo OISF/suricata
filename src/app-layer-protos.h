@@ -175,6 +175,8 @@ const char *AppProtoToString(AppProto alproto);
  */
 AppProto StringToAppProto(const char *proto_name);
 
+AppProto AppProtoNewProtoFromString(const char *proto_name);
+
 void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name);
 
 #endif /* SURICATA_APP_LAYER_PROTOS_H */

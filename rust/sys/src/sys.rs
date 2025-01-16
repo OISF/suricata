@@ -51,6 +51,9 @@ extern "C" {
     pub fn AppProtoToString(alproto: AppProto) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn AppProtoNewProtoFromString(proto_name: *const ::std::os::raw::c_char) -> AppProto;
+}
+extern "C" {
     pub fn AppProtoRegisterProtoString(
         alproto: AppProto, proto_name: *const ::std::os::raw::c_char,
     );
