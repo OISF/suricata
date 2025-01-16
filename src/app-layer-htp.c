@@ -453,12 +453,10 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
          * free it here. htp_tx_destroy however, will refuse to do this.
          * As htp_tx_destroy_incomplete isn't available in the public API,
          * we hack around it here. */
-        if (unlikely(!(
-            tx->request_progress == HTP_REQUEST_COMPLETE &&
-            tx->response_progress == HTP_RESPONSE_COMPLETE)))
-        {
-            tx->request_progress = HTP_REQUEST_COMPLETE;
-            tx->response_progress = HTP_RESPONSE_COMPLETE;
+        if (unlikely(!(tx->request_progress == HTP_REQUEST_PROGRESS_COMPLETE &&
+                       tx->response_progress == HTP_RESPONSE_PROGRESS_COMPLETE))) {
+            tx->request_progress = HTP_REQUEST_PROGRESS_COMPLETE;
+            tx->response_progress = HTP_RESPONSE_PROGRESS_COMPLETE;
         }
         // replaces tx in the s->conn->transactions list by NULL
         htp_tx_destroy(tx);
@@ -1196,7 +1194,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     // libhtp will not call us back too late
     // should libhtp send a callback eof for 0 chunked ?
     DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
-                                  STREAM_TOSERVER) >= HTP_REQUEST_COMPLETE);
+                                  STREAM_TOSERVER) >= HTP_REQUEST_PROGRESS_COMPLETE);
 
     const uint8_t *cur_buf = chunks_buffer;
     uint32_t cur_buf_len = chunks_buffer_len;
@@ -1933,8 +1931,8 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
                 HTPSetEvent(
                         hstate, htud, STREAM_TOCLIENT, HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
             }
-            tx->request_progress = HTP_REQUEST_COMPLETE;
-            tx->response_progress = HTP_RESPONSE_COMPLETE;
+            tx->request_progress = HTP_REQUEST_PROGRESS_COMPLETE;
+            tx->response_progress = HTP_RESPONSE_PROGRESS_COMPLETE;
         }
     }
 
@@ -2852,7 +2850,7 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTx);
 
         AppLayerParserRegisterStateProgressCompletionStatus(
-                ALPROTO_HTTP1, HTP_REQUEST_COMPLETE, HTP_RESPONSE_COMPLETE);
+                ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_COMPLETE, HTP_RESPONSE_PROGRESS_COMPLETE);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfo);
         AppLayerParserRegisterGetEventInfoById(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfoById);

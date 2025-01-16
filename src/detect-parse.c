@@ -61,6 +61,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 
 #include "util-classification-config.h"
 #include "util-unittest.h"
@@ -96,8 +97,8 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
     { .alproto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_HTTP1,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTP_RESPONSE_BODY,
-            .to_server_progress = HTP_REQUEST_BODY },
+            .to_client_progress = HTP_RESPONSE_PROGRESS_BODY,
+            .to_server_progress = HTP_REQUEST_PROGRESS_BODY },
     { .alproto = ALPROTO_HTTP2,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
             .to_client_progress = HTTP2StateDataServer,
