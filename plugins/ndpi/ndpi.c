@@ -440,6 +440,11 @@ static void DetectnDPIRiskFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb, void *data)
 {
+    /* Adding ndpi info to EVE requires a flow. */
+    if (f == NULL) {
+        return;
+    }
+
     struct NdpiThreadContext *threadctx = ThreadGetStorageById(tv, thread_storage_id);
     struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
     ndpi_serializer serializer;
@@ -447,9 +452,6 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *j
     u_int32_t buffer_len;
 
     SCLogDebug("EveCallback: tv=%p, p=%p, f=%p", tv, p, f);
-
-    if (f == NULL)
-        return;
 
     ndpi_init_serializer(&serializer, ndpi_serialization_format_inner_json);
 
