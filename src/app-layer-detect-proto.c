@@ -614,7 +614,7 @@ again_midstream:
         else if (pp_port_sp)
             mask = pp_port_sp->alproto_mask;
 
-        if (alproto_masks[0] == mask) {
+        if ((alproto_masks[0] & mask) == mask) {
             FLOW_SET_PP_DONE(f, dir);
             SCLogDebug("%s, mask is now %08x, needed %08x, so done",
                     (dir == STREAM_TOSERVER) ? "toserver":"toclient",
