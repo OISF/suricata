@@ -741,7 +741,6 @@ void SigTableSetup(void)
     DetectEmailRegister();
 
     SCDetectSMTPRegister();
-    SCDetectSNMPRegister();
     SCDetectDHCPRegister();
     SCDetectWebsocketRegister();
     SCDetectEnipRegister();
