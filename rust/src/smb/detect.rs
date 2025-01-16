@@ -26,7 +26,7 @@ use std::ptr;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_share(
-    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_share(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(
-    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
@@ -62,7 +62,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_stub_data(
-    tx: &mut SMBTransaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SMBTransaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         let vref = if direction == Direction::ToServer as u8 {
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_match_dce_opnum(
-    tx: &mut SMBTransaction, dce_data: &mut DCEOpnumData,
+    tx: &SMBTransaction, dce_data: &mut DCEOpnumData,
 ) -> u8 {
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
@@ -110,7 +110,7 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(
  * - only match on approved ifaces (so ack_result == 0) */
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_dce_iface(
-    state: &mut SMBState, tx: &mut SMBTransaction, dce_data: &mut DCEIfaceData,
+    state: &mut SMBState, tx: &SMBTransaction, dce_data: &mut DCEIfaceData,
 ) -> u8 {
     let if_uuid = dce_data.if_uuid.as_slice();
     let is_dcerpc_request = match tx.type_data {
@@ -152,7 +152,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(
-    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
-    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
@@ -185,9 +185,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_version_match(
-    tx: &mut SMBTransaction, version_data: &mut u8,
-) -> u8 {
+pub unsafe extern "C" fn rs_smb_version_match(tx: &SMBTransaction, version_data: &mut u8) -> u8 {
     let version = tx.vercmd.get_version();
     SCLogDebug!("smb_version: version returned: {}", version);
     if version == *version_data {

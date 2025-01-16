@@ -101,7 +101,7 @@ unsafe extern "C" fn rfb_sec_type_setup(
     return 0;
 }
 
-fn rfb_sec_type_match_aux(tx: &mut RFBTransaction, ctx: &DetectUintData<u32>) -> c_int {
+fn rfb_sec_type_match_aux(tx: &RFBTransaction, ctx: &DetectUintData<u32>) -> c_int {
     if let Some(r) = tx.chosen_security_type {
         if detect_match_uint(ctx, r) {
             return 1;
