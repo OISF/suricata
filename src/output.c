@@ -906,8 +906,6 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, (EveJsonSimpleTxLogFunc)rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, (EveJsonSimpleTxLogFunc)rs_rfb_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(
@@ -1111,12 +1109,7 @@ void OutputRegisterLoggers(void)
     SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
-    /* SNMP JSON logger. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSNMPLog", "eve-log.snmp",
-            OutputJsonLogInitSub, ALPROTO_SNMP, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
 
-    SCLogDebug("SNMP JSON logger registered.");
     /* SIP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
             OutputJsonLogInitSub, ALPROTO_SIP, JsonGenericDirPacketLogger, JsonLogThreadInit,
