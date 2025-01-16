@@ -122,10 +122,10 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            TlsCertsGetData, 2, 1);
-    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER, TLS_STATE_CERT_READY,
-            TlsCertsGetData, 2, 1);
+    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2, 1);
+    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CLIENT_CERT_DONE, TlsCertsGetData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
@@ -253,7 +253,7 @@ void DetectTlsCertChainLenRegister(void)
     sigmatch_table[KEYWORD_ID].Free = DetectTLSCertChainLenFree;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
+            TLS_STATE_SERVER_CERT_DONE, DetectEngineInspectGenericList, NULL);
 
     g_tls_cert_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
