@@ -23,7 +23,7 @@ use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 
-fn log_subject_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonError> {
+fn log_subject_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, b"subject") {
             let hash = format!("{:x}", Md5::new().chain(&h.value).finalize());
@@ -36,12 +36,12 @@ fn log_subject_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), 
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogSubjectMd5(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP,
 ) -> bool {
     return log_subject_md5(js, ctx).is_ok();
 }
 
-fn log_body_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonError> {
+fn log_body_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Completed {
         let hash = format!("{:x}", ctx.md5_result);
         js.set_string("body_md5", &hash)?;
@@ -50,14 +50,12 @@ fn log_body_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), Jso
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpLogBodyMd5(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
-) -> bool {
+pub unsafe extern "C" fn SCMimeSmtpLogBodyMd5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> bool {
     return log_body_md5(js, ctx).is_ok();
 }
 
 fn log_field_array(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, c: &str, e: &str,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, c: &str, e: &str,
 ) -> Result<(), JsonError> {
     let mark = js.get_mark();
     let mut found = false;
@@ -81,7 +79,7 @@ fn log_field_array(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldArray(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
     let e: &CStr = CStr::from_ptr(email); //unsafe
@@ -101,7 +99,7 @@ enum FieldCommaState {
 }
 
 fn log_field_comma(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, c: &str, e: &str,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, c: &str, e: &str,
 ) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, e.as_bytes()) {
@@ -158,7 +156,7 @@ fn log_field_comma(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldComma(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
     let e: &CStr = CStr::from_ptr(email); //unsafe
@@ -172,7 +170,7 @@ pub unsafe extern "C" fn SCMimeSmtpLogFieldComma(
 }
 
 fn log_field_string(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, c: &str, e: &str,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, c: &str, e: &str,
 ) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, e.as_bytes()) {
@@ -185,7 +183,7 @@ fn log_field_string(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldString(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
     let e: &CStr = CStr::from_ptr(email); //unsafe
@@ -199,7 +197,7 @@ pub unsafe extern "C" fn SCMimeSmtpLogFieldString(
 }
 
 fn log_data_header(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, hname: &str,
+    js: &mut JsonBuilder, ctx: &MimeStateSMTP, hname: &str,
 ) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, hname.as_bytes()) {
@@ -210,7 +208,7 @@ fn log_data_header(
     return Ok(());
 }
 
-fn log_data(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonError> {
+fn log_data(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     log_data_header(js, ctx, "from")?;
     log_field_comma(js, ctx, "to", "to")?;
     log_field_comma(js, ctx, "cc", "cc")?;
@@ -236,6 +234,6 @@ fn log_data(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonErr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpLogData(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> bool {
+pub unsafe extern "C" fn SCMimeSmtpLogData(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> bool {
     return log_data(js, ctx).is_ok();
 }
