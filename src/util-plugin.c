@@ -159,8 +159,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
     if (plugin->version != SC_PLUGIN_API_VERSION) {
         return 1;
     }
-    AppProto alproto = g_alproto_max;
-    AppProtoRegisterProtoString(alproto, plugin->name);
+    AppProto alproto = AppProtoNewProtoFromString(plugin->name);
     if (plugin->Register) {
         if (AppLayerParserPreRegister(plugin->Register) != 0) {
             return 1;
