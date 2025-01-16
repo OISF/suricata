@@ -123,6 +123,7 @@ pub struct SCAppLayerPlugin_ {
     pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     pub logname: *const ::std::os::raw::c_char,
     pub confname: *const ::std::os::raw::c_char,
+    pub dir: u8,
     pub Logger: ::std::option::Option<
         unsafe extern "C" fn(
             tx: *const ::std::os::raw::c_void,
