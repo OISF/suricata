@@ -176,7 +176,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
             .logname = plugin->logname,
             .alproto = alproto,
             .dir = plugin->dir,
-            .LogTx = (EveJsonSimpleTxLogFunc)plugin->Logger,
+            .LogTx = plugin->Logger,
         };
         if (OutputPreRegisterLogger(reg_data) != 0) {
             return 1;

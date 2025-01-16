@@ -1148,7 +1148,7 @@ void OutputRegisterLoggers(void)
                 JsonLogThreadInit, JsonLogThreadDeinit);
         SCLogDebug(
                 "%s JSON logger registered.", AppProtoToString(preregistered_loggers[i].alproto));
-        RegisterSimpleJsonApplayerLogger(
-                preregistered_loggers[i].alproto, preregistered_loggers[i].LogTx, NULL);
+        RegisterSimpleJsonApplayerLogger(preregistered_loggers[i].alproto,
+                (EveJsonSimpleTxLogFunc)preregistered_loggers[i].LogTx, NULL);
     }
 }
