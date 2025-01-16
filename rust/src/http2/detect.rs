@@ -27,7 +27,7 @@ use std::rc::Rc;
 use base64::{Engine, engine::general_purpose::STANDARD};
 
 fn http2_tx_has_frametype(
-    tx: &mut HTTP2Transaction, direction: Direction, value: u8,
+    tx: &HTTP2Transaction, direction: Direction, value: u8,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn rs_http2_parse_frametype(
 }
 
 fn http2_tx_has_errorcode(
-    tx: &mut HTTP2Transaction, direction: Direction, code: u32,
+    tx: &HTTP2Transaction, direction: Direction, code: u32,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn rs_http2_parse_errorcode(
 }
 
 fn http2_tx_get_next_priority(
-    tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
+    tx: &HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
     let mut pos = 0_u32;
     if direction == Direction::ToServer {
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_next_priority(
 }
 
 fn http2_tx_get_next_window(
-    tx: &mut HTTP2Transaction, direction: Direction, nb: u32,
+    tx: &HTTP2Transaction, direction: Direction, nb: u32,
 ) -> std::os::raw::c_int {
     let mut pos = 0_u32;
     if direction == Direction::ToServer {
@@ -263,7 +263,7 @@ fn http2_detect_settings_match(
 }
 
 fn http2_detect_settingsctx_match(
-    ctx: &mut parser::DetectHTTP2settingsSigCtx, tx: &mut HTTP2Transaction, direction: Direction,
+    ctx: &parser::DetectHTTP2settingsSigCtx, tx: &HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
@@ -324,7 +324,7 @@ fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderB
 }
 
 fn http2_detect_sizeupdatectx_match(
-    ctx: &mut DetectUintData<u64>, tx: &mut HTTP2Transaction, direction: Direction,
+    ctx: &DetectUintData<u64>, tx: &HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 // and rs_http2_detect_sizeupdatectx_match explicitly casting
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
-    tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let mut pos = 0_u32;
     match direction.into() {
@@ -498,6 +498,7 @@ fn http2_frames_get_header_value<'a>(
     }
 }
 
+// we mutate the tx to cache req_line
 fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
     if !tx.req_line.is_empty() {
         return;

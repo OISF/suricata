@@ -192,7 +192,7 @@ fn enip_cip_match_service(d: &CipData, ctx: &DetectCipServiceData) -> std::os::r
 }
 
 fn enip_tx_has_cip_service(
-    tx: &mut EnipTransaction, direction: Direction, ctx: &DetectCipServiceData,
+    tx: &EnipTransaction, direction: Direction, ctx: &DetectCipServiceData,
 ) -> std::os::raw::c_int {
     let pduo = if direction == Direction::ToServer {
         &tx.request
@@ -227,9 +227,7 @@ fn enip_cip_match_status(d: &CipData, ctx: &DetectUintData<u8>) -> std::os::raw:
     return 0;
 }
 
-fn enip_tx_has_cip_status(
-    tx: &mut EnipTransaction, ctx: &DetectUintData<u8>,
-) -> std::os::raw::c_int {
+fn enip_tx_has_cip_status(tx: &EnipTransaction, ctx: &DetectUintData<u8>) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.response {
         if let EnipPayload::Cip(c) = &pdu.payload {
             for item in c.items.iter() {
@@ -262,7 +260,7 @@ fn enip_cip_match_extendedstatus(d: &CipData, ctx: &DetectUintData<u16>) -> std:
 }
 
 fn enip_tx_has_cip_extendedstatus(
-    tx: &mut EnipTransaction, ctx: &DetectUintData<u16>,
+    tx: &EnipTransaction, ctx: &DetectUintData<u16>,
 ) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.response {
         if let EnipPayload::Cip(c) = &pdu.payload {
@@ -276,7 +274,7 @@ fn enip_tx_has_cip_extendedstatus(
     return 0;
 }
 
-fn enip_get_status(tx: &mut EnipTransaction, direction: Direction) -> Option<u32> {
+fn enip_get_status(tx: &EnipTransaction, direction: Direction) -> Option<u32> {
     if direction == Direction::ToServer {
         if let Some(req) = &tx.request {
             return Some(req.header.status);
@@ -308,7 +306,7 @@ fn enip_cip_match_segment(
 }
 
 fn enip_tx_has_cip_segment(
-    tx: &mut EnipTransaction, ctx: &DetectUintData<u32>, segment_type: u8,
+    tx: &EnipTransaction, ctx: &DetectUintData<u32>, segment_type: u8,
 ) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.request {
         if let EnipPayload::Cip(c) = &pdu.payload {
@@ -358,7 +356,7 @@ fn enip_cip_match_attribute(d: &CipData, ctx: &DetectUintData<u32>) -> std::os::
 }
 
 fn enip_tx_has_cip_attribute(
-    tx: &mut EnipTransaction, ctx: &DetectUintData<u32>,
+    tx: &EnipTransaction, ctx: &DetectUintData<u32>,
 ) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.request {
         if let EnipPayload::Cip(c) = &pdu.payload {
@@ -372,7 +370,7 @@ fn enip_tx_has_cip_attribute(
     return 0;
 }
 
-fn tx_get_protocol_version(tx: &mut EnipTransaction, direction: Direction) -> Option<u16> {
+fn tx_get_protocol_version(tx: &EnipTransaction, direction: Direction) -> Option<u16> {
     if direction == Direction::ToServer {
         if let Some(req) = &tx.request {
             if let EnipPayload::RegisterSession(rs) = &req.payload {
@@ -511,7 +509,7 @@ unsafe extern "C" fn capabilities_setup(
     return 0;
 }
 
-fn tx_get_capabilities(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_capabilities(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListServices(lsp) = &response.payload {
             if !lsp.is_empty() {
@@ -647,7 +645,7 @@ unsafe extern "C" fn vendor_id_setup(
     return 0;
 }
 
-fn tx_get_vendor_id(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_vendor_id(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -730,7 +728,7 @@ unsafe extern "C" fn state_setup(
     return 0;
 }
 
-fn tx_get_state(tx: &mut EnipTransaction) -> Option<u8> {
+fn tx_get_state(tx: &EnipTransaction) -> Option<u8> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -778,7 +776,7 @@ unsafe extern "C" fn serial_setup(
     return 0;
 }
 
-fn tx_get_serial(tx: &mut EnipTransaction) -> Option<u32> {
+fn tx_get_serial(tx: &EnipTransaction) -> Option<u32> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -828,7 +826,7 @@ unsafe extern "C" fn revision_setup(
     return 0;
 }
 
-fn tx_get_revision(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_revision(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -927,7 +925,7 @@ unsafe extern "C" fn product_code_setup(
     return 0;
 }
 
-fn tx_get_product_code(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_product_code(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -983,7 +981,7 @@ unsafe extern "C" fn identity_status_setup(
     return 0;
 }
 
-fn tx_get_identity_status(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_identity_status(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -1039,7 +1037,7 @@ unsafe extern "C" fn device_type_setup(
     return 0;
 }
 
-fn tx_get_device_type(tx: &mut EnipTransaction) -> Option<u16> {
+fn tx_get_device_type(tx: &EnipTransaction) -> Option<u16> {
     if let Some(ref response) = tx.response {
         if let EnipPayload::ListIdentity(lip) = &response.payload {
             if !lip.is_empty() {
@@ -1088,7 +1086,7 @@ unsafe extern "C" fn command_setup(
     return 0;
 }
 
-fn tx_get_command(tx: &mut EnipTransaction, direction: u8) -> Option<u16> {
+fn tx_get_command(tx: &EnipTransaction, direction: u8) -> Option<u16> {
     let direction: Direction = direction.into();
     if direction == Direction::ToServer {
         if let Some(req) = &tx.request {
