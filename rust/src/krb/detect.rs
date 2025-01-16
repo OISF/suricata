@@ -31,14 +31,14 @@ use nom7::IResult;
 use std::ffi::CStr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx: &mut KRB5Transaction, ptr: *mut u32) {
+pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx: &KRB5Transaction, ptr: *mut u32) {
     *ptr = tx.msg_type.0;
 }
 
 /// Get error code, if present in transaction
 /// Return 0 if error code was filled, else 1
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &mut KRB5Transaction, ptr: *mut i32) -> u32 {
+pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &KRB5Transaction, ptr: *mut i32) -> u32 {
     match tx.error_code {
         Some(ref e) => {
             *ptr = e.0;
@@ -50,7 +50,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &mut KRB5Transaction, ptr: *
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_cname(
-    tx: &mut KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref s) = tx.cname {
         if (i as usize) < s.name_string.len() {
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_cname(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_sname(
-    tx: &mut KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref s) = tx.sname {
         if (i as usize) < s.name_string.len() {
@@ -102,7 +102,6 @@ impl DetectKrb5TicketEncryptionList {
         }
     }
 }
-
 
 // Suppress large enum variant lint as the LIST is very large compared
 // to the boolean variant.
@@ -227,7 +226,7 @@ pub unsafe extern "C" fn rs_krb5_detect_encryption_parse(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_detect_encryption_match(
-    tx: &mut KRB5Transaction, ctx: &DetectKrb5TicketEncryptionData,
+    tx: &KRB5Transaction, ctx: &DetectKrb5TicketEncryptionData,
 ) -> std::os::raw::c_int {
     if let Some(x) = tx.ticket_etype {
         match ctx {

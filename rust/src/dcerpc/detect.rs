@@ -60,7 +60,7 @@ pub struct DCEOpnumData {
 }
 
 fn match_backuuid(
-    tx: &mut DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
+    tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> u8 {
     let mut ret = 0;
     if let Some(ref bindack) = state.bindack {
@@ -204,7 +204,7 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_iface_match(
-    tx: &mut DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
+    tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> u8 {
     let first_req_seen = tx.get_first_req_seen();
     if first_req_seen == 0 {
@@ -212,7 +212,7 @@ pub extern "C" fn rs_dcerpc_iface_match(
     }
 
     match state.get_hdr_type() {
-        Some(DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE) => {},
+        Some(DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE) => {}
         _ => {
             return 0;
         }
@@ -248,7 +248,7 @@ pub unsafe extern "C" fn rs_dcerpc_iface_free(ptr: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_opnum_match(
-    tx: &mut DCERPCTransaction, opnum_data: &mut DCEOpnumData,
+    tx: &DCERPCTransaction, opnum_data: &mut DCEOpnumData,
 ) -> u8 {
     let first_req_seen = tx.get_first_req_seen();
     if first_req_seen == 0 {

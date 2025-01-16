@@ -41,7 +41,7 @@ static mut G_SIP_CONTENT_LENGTH_HDR_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let m = &r.method;
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_method(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_uri(
-    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let p = &r.path;
