@@ -74,11 +74,21 @@ enum {
     TLS_DECODER_EVENT_INVALID_SSL_RECORD,
 };
 
-enum {
-    TLS_STATE_IN_PROGRESS = 0,
-    TLS_STATE_CERT_READY = 1,
-    TLS_HANDSHAKE_DONE = 2,
-    TLS_STATE_FINISHED = 3
+enum TlsStateClient {
+    TLS_STATE_CLIENT_IN_PROGRESS = 0,
+    TLS_STATE_CLIENT_HELLO_DONE,
+    TLS_STATE_CLIENT_CERT_DONE,
+    TLS_STATE_CLIENT_HANDSHAKE_DONE,
+    TLS_STATE_CLIENT_FINISHED,
+};
+
+enum TlsStateServer {
+    TLS_STATE_SERVER_IN_PROGRESS = 0,
+    TLS_STATE_SERVER_HELLO,
+    TLS_STATE_SERVER_CERT_DONE,
+    TLS_STATE_SERVER_HELLO_DONE,
+    TLS_STATE_SERVER_HANDSHAKE_DONE,
+    TLS_STATE_SERVER_FINISHED,
 };
 
 /* Flag to indicate that server will now on send encrypted msgs */
@@ -102,16 +112,10 @@ enum {
 #define SSL_AL_FLAG_STATE_SERVER_KEYX           BIT_U32(12)
 #define SSL_AL_FLAG_STATE_UNKNOWN               BIT_U32(13)
 
-/* flag to indicate that session is finished */
-#define SSL_AL_FLAG_STATE_FINISHED              BIT_U32(14)
-
 /* flags specific to HeartBeat state */
 #define SSL_AL_FLAG_HB_INFLIGHT                 BIT_U32(15)
 #define SSL_AL_FLAG_HB_CLIENT_INIT              BIT_U32(16)
 #define SSL_AL_FLAG_HB_SERVER_INIT              BIT_U32(17)
-
-/* flag to indicate that handshake is done */
-#define SSL_AL_FLAG_HANDSHAKE_DONE              BIT_U32(18)
 
 /* Session resumed without a full handshake */
 #define SSL_AL_FLAG_SESSION_RESUMED             BIT_U32(20)
@@ -311,6 +315,9 @@ typedef struct SSLState_ {
     uint32_t current_flags;
 
     SSLStateConnp *curr_connp;
+
+    enum TlsStateClient client_state;
+    enum TlsStateServer server_state;
 
     SSLStateConnp client_connp;
     SSLStateConnp server_connp;
