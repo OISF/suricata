@@ -117,6 +117,7 @@ pub struct SCAppLayerPlugin_ {
     pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     pub logname: *mut ::std::os::raw::c_char,
     pub confname: *mut ::std::os::raw::c_char,
+    pub dir: u8,
     pub Logger: ::std::option::Option<
         unsafe extern "C" fn(
             tx: *mut ::std::os::raw::c_void,
