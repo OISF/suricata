@@ -994,6 +994,15 @@ int OutputPreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data)
     return 0;
 }
 
+static TxLogger JsonLoggerFromDir(uint8_t dir)
+{
+    if (dir == LOG_DIR_PACKET) {
+        return JsonGenericDirPacketLogger;
+    }
+    BUG_ON(dir != LOG_DIR_FLOW);
+    return JsonGenericDirFlowLogger;
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1154,8 +1163,8 @@ void OutputRegisterLoggers(void)
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
                 preregistered_loggers[i].confname, OutputJsonLogInitSub,
-                preregistered_loggers[i].alproto, JsonGenericDirFlowLogger, JsonLogThreadInit,
-                JsonLogThreadDeinit);
+                preregistered_loggers[i].alproto, JsonLoggerFromDir(preregistered_loggers[i].dir),
+                JsonLogThreadInit, JsonLogThreadDeinit);
         SCLogDebug(
                 "%s JSON logger registered.", AppProtoToString(preregistered_loggers[i].alproto));
         RegisterSimpleJsonApplayerLogger(
