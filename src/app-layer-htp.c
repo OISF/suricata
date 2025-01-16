@@ -784,7 +784,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
-    if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
+    if (tx->request_auth_type == HTP_AUTH_TYPE_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;

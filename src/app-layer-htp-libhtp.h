@@ -70,6 +70,8 @@
 #define HTP_FLAGS_HOSTU_INVALID       HTP_HOSTU_INVALID
 #define HTP_FLAGS_HOSTH_INVALID       HTP_HOSTH_INVALID
 
+#define HTP_AUTH_TYPE_UNRECOGNIZED HTP_AUTH_UNRECOGNIZED
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
