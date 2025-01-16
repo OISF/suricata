@@ -472,12 +472,49 @@ pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
+// Also defined in output-json.h
+/// cbindgen:ignore
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[allow(non_camel_case_types)]
+pub enum OutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW = 1,
+}
+
+// Also defined in output.h
+// canot use JsonBuilder as it is not #[repr(C)]
+pub type EveJsonSimpleTxLogFunc = unsafe extern "C" fn(*const c_void, *mut c_void) -> bool;
+
+// Also defined in output.h
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct EveJsonTxLoggerRegistrationData {
+    pub confname: *const c_char,
+    pub logname: *const c_char,
+    pub alproto: AppProto,
+    pub dir: u8,
+    pub LogTx: EveJsonSimpleTxLogFunc,
+}
+
+// Defined in output.h
+/// cbindgen:ignore
+extern {
+    pub fn OutputPreRegisterLogger(reg_data: EveJsonTxLoggerRegistrationData) -> c_int;
+}
+
+// Defined in detect-engine-register.h
+/// cbindgen:ignore
+extern {
+    pub fn SigTablePreRegister(cb: unsafe extern "C" fn ());
+}
 
 // Defined in app-layer-register.h
 /// cbindgen:ignore
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
     pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
+    pub fn AppProtoNewProtoFromString(name: *const c_char) -> AppProto;
 }
 
 #[allow(non_snake_case)]
