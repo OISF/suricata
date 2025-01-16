@@ -120,7 +120,7 @@ pub struct SCAppLayerPlugin_ {
     pub dir: u8,
     pub Logger: ::std::option::Option<
         unsafe extern "C" fn(
-            tx: *mut ::std::os::raw::c_void,
+            tx: *const ::std::os::raw::c_void,
             jb: *mut ::std::os::raw::c_void,
         ) -> bool,
     >,
