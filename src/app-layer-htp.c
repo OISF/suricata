@@ -564,23 +564,34 @@ struct {
     const char *msg;
     uint8_t de;
 } htp_errors[] = {
-    { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
-    { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
-    { "Response field invalid: missing colon", HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON},
-    { "Request chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN},
-    { "Response chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN},
-/*  { "Invalid T-E value in request", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag HTP_REQUEST_INVALID_T_E
-    { "Invalid T-E value in response", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
-/*  { "Invalid C-L field in request", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag HTP_REQUEST_INVALID_C_L */
-    { "Invalid C-L field in response", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
-    { "Already seen 100-Continue", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN},
-    { "Unable to match response to request", HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
-    { "Invalid server port information in request", HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
-/*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer returns this error */
-    { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
-    { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
-    { "C-T multipart/byteranges in responses not supported", HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
-    { "Compression bomb:", HTTP_DECODER_EVENT_COMPRESSION_BOMB},
+    { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED },
+    { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON },
+    { "Response field invalid: missing colon", HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON },
+    { "Request chunk encoding: Invalid chunk length",
+            HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN },
+    { "Response chunk encoding: Invalid chunk length",
+            HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN },
+    /*  { "Invalid T-E value in request",
+       HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag
+       HTP_FLAGS_REQUEST_INVALID_T_E { "Invalid T-E value in response",
+       HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
+    /*  { "Invalid C-L field in request",
+       HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag
+       HTP_FLAGS_REQUEST_INVALID_C_L */
+    { "Invalid C-L field in response",
+            HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+    { "Already seen 100-Continue", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN },
+    { "Unable to match response to request",
+            HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
+    { "Invalid server port information in request",
+            HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST },
+    /*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer
+       returns this error */
+    { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG },
+    { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG },
+    { "C-T multipart/byteranges in responses not supported",
+            HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES },
+    { "Compression bomb:", HTTP_DECODER_EVENT_COMPRESSION_BOMB },
 };
 
 struct {
@@ -593,8 +604,9 @@ struct {
     { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
     { "Response header name is not a token", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
     /*  { "Host information in request headers required by HTTP/1.1",
-       HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_HOST_MISSING { "Host information
-       ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag HTP_HOST_AMBIGUOUS */
+       HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_FLAGS_HOST_MISSING { "Host
+       information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag
+       HTP_FLAGS_HOST_AMBIGUOUS */
     { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING },
     { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING },
     /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number
@@ -746,30 +758,29 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
 #endif
-    if (tx->flags & (   HTP_REQUEST_INVALID_T_E|HTP_REQUEST_INVALID_C_L|
-                        HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
-                        HTP_HOSTH_INVALID))
-    {
+    if (tx->flags & (HTP_FLAGS_REQUEST_INVALID_T_E | HTP_FLAGS_REQUEST_INVALID_C_L |
+                            HTP_FLAGS_HOST_MISSING | HTP_FLAGS_HOST_AMBIGUOUS |
+                            HTP_FLAGS_HOSTU_INVALID | HTP_FLAGS_HOSTH_INVALID)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
 
-        if (tx->flags & HTP_REQUEST_INVALID_T_E)
+        if (tx->flags & HTP_FLAGS_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
-        if (tx->flags & HTP_REQUEST_INVALID_C_L)
+        if (tx->flags & HTP_FLAGS_REQUEST_INVALID_C_L)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
-        if (tx->flags & HTP_HOST_MISSING)
+        if (tx->flags & HTP_FLAGS_HOST_MISSING)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_MISSING_HOST_HEADER);
-        if (tx->flags & HTP_HOST_AMBIGUOUS)
+        if (tx->flags & HTP_FLAGS_HOST_AMBIGUOUS)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
-        if (tx->flags & HTP_HOSTU_INVALID)
+        if (tx->flags & HTP_FLAGS_HOSTU_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_URI_HOST_INVALID);
-        if (tx->flags & HTP_HOSTH_INVALID)
+        if (tx->flags & HTP_FLAGS_HOSTH_INVALID)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
