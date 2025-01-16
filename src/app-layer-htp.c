@@ -902,7 +902,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
     if (input_len > 0) {
         const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
         switch (r) {
-            case HTP_STREAM_ERROR:
+            case HTP_STREAM_STATE_ERROR:
                 ret = -1;
                 break;
             default:
@@ -970,10 +970,10 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
-            case HTP_STREAM_ERROR:
+            case HTP_STREAM_STATE_ERROR:
                 ret = -1;
                 break;
-            case HTP_STREAM_TUNNEL:
+            case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && tx->response_status_number == 101) {
                     htp_header_t *h =
@@ -988,7 +988,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                     consumed = (uint32_t)htp_connp_res_data_consumed(hstate->connp);
                     if (bstr_cmp_c(h->value, "h2c") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
-                            // if HTTP2 is disabled, keep the HTP_STREAM_TUNNEL mode
+                            // if HTTP2 is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;
                         }
                         hstate->slice = NULL;
@@ -1004,7 +1004,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                         SCReturnStruct(APP_LAYER_OK);
                     } else if (bstr_cmp_c_nocase(h->value, "WebSocket") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_WEBSOCKET) == NULL) {
-                            // if WS is disabled, keep the HTP_STREAM_TUNNEL mode
+                            // if WS is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;
                         }
                         hstate->slice = NULL;
