@@ -57,6 +57,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "stream-tcp.h"
 #include "detect-http-request-line.h"
 
@@ -110,10 +111,10 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_request_line", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("http_request_line", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectAppLayerInspectEngineRegister("http_request_line", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);

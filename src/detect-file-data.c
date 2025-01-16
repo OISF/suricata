@@ -40,6 +40,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "app-layer-smtp.h"
 
 #include "flow.h"
@@ -260,7 +261,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         ips = htp_state->cfg->http_body_inline;
 
         const bool body_done = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
-                                       flow_flags) > HTP_RESPONSE_BODY;
+                                       flow_flags) > HTP_RESPONSE_PROGRESS_BODY;
 
         SCLogDebug("response.body_limit %u file_size %" PRIu64
                    ", cur_file->inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
