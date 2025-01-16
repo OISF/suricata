@@ -37,7 +37,7 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     }
 }
 
-fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<(), JsonError>
+fn snmp_log_response(jsb: &mut JsonBuilder, tx: &SNMPTransaction) -> Result<(), JsonError>
 {
     jsb.open_object("snmp")?;
     jsb.set_uint("version", tx.version as u64)?;
@@ -77,7 +77,9 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder) -> bool
+pub unsafe extern "C" fn rs_snmp_log_json_response(tx: *const std::os::raw::c_void, jsb: *mut std::os::raw::c_void) -> bool
 {
+    let tx = cast_pointer!(tx, SNMPTransaction);
+    let jsb = cast_pointer!(jsb, JsonBuilder);
     snmp_log_response(jsb, tx).is_ok()
 }
