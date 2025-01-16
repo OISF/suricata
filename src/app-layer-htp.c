@@ -1419,17 +1419,17 @@ end:
 /**
  * \brief Function callback to append chunks for Requests
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HTP_OK if all goes well
+ * \retval int HTP_STATUS_OK if all goes well
  */
 static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     if (d->len == 0)
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
@@ -1439,7 +1439,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
@@ -1447,7 +1447,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
     }
     tx_ud->tx_data.updated_ts = true;
     SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
@@ -1551,27 +1551,27 @@ end:
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, 0);
         }
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
  * \brief Function callback to append chunks for Responses
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HTP_OK if all goes well
+ * \retval int HTP_STATUS_OK if all goes well
  */
 static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     if (d->len == 0)
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
 
     HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
@@ -1579,7 +1579,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        SCReturnInt(HTP_OK);
+        SCReturnInt(HTP_STATUS_OK);
     }
     tx_ud->tx_data.updated_tc = true;
     SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
@@ -1641,7 +1641,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
             StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, 0);
         }
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
@@ -1691,7 +1691,7 @@ static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
         htud->tx_data.updated_ts = true;
         htud->request_has_trailers = 1;
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
@@ -1701,7 +1701,7 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
         htud->tx_data.updated_tc = true;
         htud->response_has_trailers = 1;
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 /**\internal
@@ -1712,7 +1712,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
 {
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
@@ -1737,14 +1737,14 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
+            SCReturnInt(HTP_STATUS_OK);
         }
         tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // each http tx may xfer files
         htp_tx_set_user_data(tx, tx_ud);
     } else {
         tx_ud->tx_data.updated_ts = true;
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**\internal
@@ -1755,7 +1755,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 {
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
@@ -1778,7 +1778,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
+            SCReturnInt(HTP_STATUS_OK);
         }
         tx_ud->tx_data.file_tx =
                 STREAM_TOCLIENT; // each http tx may xfer files. Toserver already missed.
@@ -1786,7 +1786,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     } else {
         tx_ud->tx_data.updated_tc = true;
     }
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
@@ -1800,12 +1800,12 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
     SCEnter();
 
     if (tx == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     const uint64_t abs_right_edge =
@@ -1852,7 +1852,7 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 /**
@@ -1867,7 +1867,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
 
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HTP_ERROR);
+        SCReturnInt(HTP_STATUS_ERROR);
     }
 
     /* we have one whole transaction now */
@@ -1926,7 +1926,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
     }
 
     hstate->last_response_data_stamp = abs_right_edge;
-    SCReturnInt(HTP_OK);
+    SCReturnInt(HTP_STATUS_OK);
 }
 
 static int HTPCallbackRequestLine(htp_tx_t *tx)
@@ -1938,12 +1938,12 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
 
     request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
     if (request_uri_normalized == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     tx_ud = htp_tx_get_user_data(tx);
     if (unlikely(tx_ud == NULL)) {
         bstr_free(request_uri_normalized);
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     if (unlikely(tx_ud->request_uri_normalized != NULL))
         bstr_free(tx_ud->request_uri_normalized);
@@ -1952,36 +1952,36 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (tx->flags) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 {
     if (part == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     uint64_t flags = 0;
     size_t prevlen = bstr_len(part);
     htp_status_t res = htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, part, &flags);
     // shorter string means that uri was encoded
-    if (res == HTP_OK && prevlen > bstr_len(part)) {
+    if (res == HTP_STATUS_OK && prevlen > bstr_len(part)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
-            return HTP_OK;
+            return HTP_STATUS_OK;
         HtpState *s = htp_connp_get_user_data(tx->connp);
         if (s == NULL)
-            return HTP_OK;
+            return HTP_STATUS_OK;
         HTPSetEvent(s, htud, STREAM_TOSERVER,
                 HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
     }
 
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
 {
     if (tx->parsed_uri == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->query);
 }
@@ -1989,7 +1989,7 @@ static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
 static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 {
     if (tx->parsed_uri == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->path);
 }
@@ -1998,17 +1998,17 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
     if (tx_data->len == 0 || tx_data->tx == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     ptmp = HTPRealloc(tx_ud->request_headers_raw,
                      tx_ud->request_headers_raw_len,
                      tx_ud->request_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     tx_ud->request_headers_raw = ptmp;
     tx_ud->tx_data.updated_ts = true;
@@ -2021,25 +2021,25 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
         HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
         HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
     }
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
     if (tx_data->len == 0 || tx_data->tx == NULL)
-        return HTP_OK;
+        return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     tx_ud->tx_data.updated_tc = true;
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        return HTP_OK;
+        return HTP_STATUS_OK;
     }
     tx_ud->response_headers_raw = ptmp;
 
@@ -2047,7 +2047,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
            tx_data->data, tx_data->len);
     tx_ud->response_headers_raw_len += tx_data->len;
 
-    return HTP_OK;
+    return HTP_STATUS_OK;
 }
 
 /*
@@ -2225,7 +2225,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             if (personality >= 0) {
                 SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
                            personality);
-                if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
+                if (htp_config_set_server_personality(cfg_prec->cfg, personality) ==
+                        HTP_STATUS_ERROR) {
                     SCLogWarning("LIBHTP Failed adding "
                                  "personality \"%s\", ignoring",
                             p->val);
