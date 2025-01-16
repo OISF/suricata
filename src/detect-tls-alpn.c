@@ -70,10 +70,10 @@ void DetectTlsAlpnRegister(void)
     sigmatch_table[DETECT_TLS_ALPN].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_TLS_ALPN].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMultiRegister("tls.alpn", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, TlsAlpnGetData, 2,
-            TLS_STATE_IN_PROGRESS);
-    DetectAppLayerMultiRegister(
-            "tls.alpn", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0, TlsAlpnGetData, 2, TLS_STATE_CERT_READY);
+    DetectAppLayerMultiRegister("tls.alpn", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CLIENT_HELLO_DONE, TlsAlpnGetData, 2, TLS_STATE_CLIENT_HELLO_DONE);
+    DetectAppLayerMultiRegister("tls.alpn", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_SERVER_HELLO,
+            TlsAlpnGetData, 2, TLS_STATE_SERVER_HELLO);
 
     DetectBufferTypeSetDescriptionByName("tls.alpn", "TLS APLN");
 
