@@ -157,12 +157,14 @@ typedef struct AppLayerProtoDetectCtx_ {
      * ipproto. It should be allocated to contain ALPROTO_MAX
      * protocols. */
     const char **alproto_names;
+    size_t alproto_names_len;
 
     /* Protocol expectations, like ftp-data on tcp.
      * It should be allocated to contain ALPROTO_MAX
      * app-layer protocols. For each protocol, an iptype
      * is referenced (or 0 if there is no expectation). */
     uint8_t *expectation_proto;
+    size_t expectation_proto_len;
 } AppLayerProtoDetectCtx;
 
 typedef struct AppLayerProtoDetectAliases_ {
@@ -1704,11 +1706,13 @@ int AppLayerProtoDetectSetup(void)
     if (unlikely(alpd_ctx.alproto_names == NULL)) {
         FatalError("Unable to alloc alproto_names.");
     }
+    alpd_ctx.alproto_names_len = g_alproto_max;
     // to realloc when dynamic protos are added
     alpd_ctx.expectation_proto = SCCalloc(g_alproto_max, sizeof(uint8_t));
     if (unlikely(alpd_ctx.expectation_proto == NULL)) {
         FatalError("Unable to alloc expectation_proto.");
     }
+    alpd_ctx.expectation_proto_len = g_alproto_max;
     AppLayerExpectationSetup();
 
     SCReturnInt(0);
@@ -1742,8 +1746,10 @@ int AppLayerProtoDetectDeSetup(void)
 
     SCFree(alpd_ctx.alproto_names);
     alpd_ctx.alproto_names = NULL;
+    alpd_ctx.alproto_names_len = 0;
     SCFree(alpd_ctx.expectation_proto);
     alpd_ctx.expectation_proto = NULL;
+    alpd_ctx.expectation_proto_len = 0;
 
     SpmDestroyGlobalThreadCtx(alpd_ctx.spm_global_thread_ctx);
 
@@ -1758,7 +1764,16 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    // should have just been realloced when dynamic protos is added
+    if (alpd_ctx.alproto_names_len <= alproto && alproto < g_alproto_max) {
+        void *tmp = SCRealloc(alpd_ctx.alproto_names, sizeof(char *) * g_alproto_max);
+        if (unlikely(tmp == NULL)) {
+            FatalError("Unable to realloc alproto_names.");
+        }
+        alpd_ctx.alproto_names = tmp;
+        memset(&alpd_ctx.alproto_names[alpd_ctx.alproto_names_len], 0,
+                sizeof(char *) * (g_alproto_max - alpd_ctx.alproto_names_len));
+        alpd_ctx.alproto_names_len = g_alproto_max;
+    }
     if (alpd_ctx.alproto_names[alproto] == NULL)
         alpd_ctx.alproto_names[alproto] = alproto_name;
 
@@ -2111,6 +2126,9 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
 static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
                                              uint8_t *ipprotos)
 {
+    if (alproto >= alpd_ctx.expectation_proto_len) {
+        return;
+    }
     if (alpd_ctx.expectation_proto[alproto] == IPPROTO_TCP) {
         ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
     }
