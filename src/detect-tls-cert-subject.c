@@ -80,16 +80,16 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_TLS_CERT_SUBJECT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_subject", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_CLIENT_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_subject", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
+            GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT_DONE);
 
     DetectAppLayerInspectEngineRegister("tls.cert_subject", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_SERVER_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_subject", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
+            GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
 
     DetectBufferTypeSupportsMultiInstance("tls.cert_subject");
 
