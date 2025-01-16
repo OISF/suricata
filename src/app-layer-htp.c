@@ -242,8 +242,9 @@ static inline uint64_t HtpGetActiveResponseTxID(HtpState *s)
  */
 static const char *HTPLookupPersonalityString(int p)
 {
-#define CASE_HTP_PERSONALITY_STRING(p) \
-    case HTP_SERVER_ ## p: return #p
+#define CASE_HTP_PERSONALITY_STRING(p)                                                             \
+    case HTP_SERVER_PERSONALITY_##p:                                                               \
+        return #p
 
     switch (p) {
         CASE_HTP_PERSONALITY_STRING(MINIMAL);
@@ -271,8 +272,9 @@ static const char *HTPLookupPersonalityString(int p)
  */
 static int HTPLookupPersonality(const char *str)
 {
-#define IF_HTP_PERSONALITY_NUM(p) \
-    if (strcasecmp(#p, str) == 0) return HTP_SERVER_ ## p
+#define IF_HTP_PERSONALITY_NUM(p)                                                                  \
+    if (strcasecmp(#p, str) == 0)                                                                  \
+    return HTP_SERVER_PERSONALITY_##p
 
     IF_HTP_PERSONALITY_NUM(MINIMAL);
     IF_HTP_PERSONALITY_NUM(GENERIC);
@@ -296,7 +298,7 @@ static int HTPLookupPersonality(const char *str)
                      "longer supported by libhtp, failing back to "
                      "Apache2 personality.",
                 str);
-        return HTP_SERVER_APACHE_2;
+        return HTP_SERVER_PERSONALITY_APACHE_2;
     }
 
     return -1;
