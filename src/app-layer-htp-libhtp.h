@@ -81,6 +81,10 @@
 #define HTP_STREAM_STATE_ERROR  HTP_STREAM_ERROR
 #define HTP_STREAM_STATE_TUNNEL HTP_STREAM_TUNNEL
 
+#define HTP_PROTOCOL_V1_1 HTP_PROTOCOL_1_1
+#define HTP_PROTOCOL_V1_0 HTP_PROTOCOL_1_0
+#define HTP_PROTOCOL_V0_9 HTP_PROTOCOL_0_9
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
