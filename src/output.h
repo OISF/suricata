@@ -185,6 +185,7 @@ typedef struct EveJsonTxLoggerRegistrationData {
     const char *confname;
     const char *logname;
     AppProto alproto;
+    uint8_t dir;
     EveJsonSimpleTxLogFunc LogTx;
 } EveJsonTxLoggerRegistrationData;
 
