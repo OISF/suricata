@@ -48,6 +48,10 @@
 
 #include "suricata-common.h"
 
+// Temporary alias definitions before switching to libhtp rust
+#define HTP_STATUS_OK    HTP_OK
+#define HTP_STATUS_ERROR HTP_ERROR
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
