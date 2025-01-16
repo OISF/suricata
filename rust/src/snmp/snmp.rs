@@ -22,6 +22,8 @@ use crate::flow::Flow;
 use crate::snmp::snmp_parser::*;
 use crate::core::{self, *};
 use crate::applayer::{self, *};
+use super::log::SCSnmpLogJsonResponse;
+use super::detect::SCDetectSNMPRegister;
 use std;
 use std::ffi::CString;
 
@@ -30,7 +32,10 @@ use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
 use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
+    SCOutputJsonLogDirection, SCOutputEvePreRegisterLogger,
+};
 
 #[derive(AppLayerEvent)]
 pub enum SNMPEvent {
@@ -404,20 +409,28 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         get_frame_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
+    ALPROTO_SNMP = AppProtoNewProtoFromString(PARSER_NAME.as_ptr() as *const std::os::raw::c_char);
+    let reg_data = EveJsonTxLoggerRegistrationData {
+        confname: b"eve-log.snmp\0".as_ptr() as *const std::os::raw::c_char,
+        logname: b"JsonSNMPLog\0".as_ptr() as *const std::os::raw::c_char,
+        alproto: ALPROTO_SNMP,
+        dir: SCOutputJsonLogDirection::LOG_DIR_PACKET as u8,
+        LogTx: Some(SCSnmpLogJsonResponse),
+    };
+    SCOutputEvePreRegisterLogger(reg_data);
+    SigTablePreRegister(SCDetectSNMPRegister);
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         // port 161
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        // store the allocated ID for the probe function
-        ALPROTO_SNMP = alproto;
+        _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();
         let _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
     } else {
