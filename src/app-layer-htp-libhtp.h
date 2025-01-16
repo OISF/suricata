@@ -72,6 +72,12 @@
 
 #define HTP_AUTH_TYPE_UNRECOGNIZED HTP_AUTH_UNRECOGNIZED
 
+#define HTP_METHOD_UNKNOWN HTP_M_UNKNOWN
+#define HTP_METHOD_GET     HTP_M_GET
+#define HTP_METHOD_POST    HTP_M_POST
+#define HTP_METHOD_PUT     HTP_M_PUT
+#define HTP_METHOD_CONNECT HTP_M_CONNECT
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
