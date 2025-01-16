@@ -500,6 +500,6 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 void LogTlsLogRegister(void)
 {
     OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log", LogTlsLogInitCtx,
-            ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, LogTlsLogThreadInit,
-            LogTlsLogThreadDeinit);
+            ALPROTO_TLS, LogTlsLogger, TLS_STATE_CLIENT_HANDSHAKE_DONE,
+            TLS_STATE_SERVER_HANDSHAKE_DONE, LogTlsLogThreadInit, LogTlsLogThreadDeinit);
 }
