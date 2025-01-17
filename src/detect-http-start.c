@@ -92,14 +92,14 @@ static uint8_t *GetBufferForTX(
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
-        line = tx->request_line;
-        headers = tx->request_headers;
+        line = htp_tx_request_line(tx);
+        headers = htp_tx_request_headers(tx);
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
-        headers = tx->response_headers;
-        line = tx->response_line;
+        headers = htp_tx_response_headers(tx);
+        line = htp_tx_response_line(tx);
     }
     if (line == NULL || headers == NULL)
         return NULL;

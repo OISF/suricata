@@ -322,11 +322,11 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (!buffer->initialized) {
         htp_tx_t *tx = (htp_tx_t *)txv;
-        if (unlikely(tx->request_uri == NULL)) {
+        if (unlikely(htp_tx_request_uri(tx) == NULL)) {
             return NULL;
         }
-        const uint32_t data_len = bstr_len(tx->request_uri);
-        const uint8_t *data = bstr_ptr(tx->request_uri);
+        const uint32_t data_len = bstr_len(htp_tx_request_uri(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_request_uri(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

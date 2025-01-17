@@ -96,6 +96,31 @@
 #define HTP_RESPONSE_PROGRESS_TRAILER  HTP_RESPONSE_TRAILER
 #define HTP_RESPONSE_PROGRESS_COMPLETE HTP_RESPONSE_COMPLETE
 
+// Functions introduced to handle opaque htp_tx_t
+#define htp_tx_flags(tx)                    tx->flags
+#define htp_tx_is_protocol_0_9(tx)          tx->is_protocol_0_9
+#define htp_tx_request_auth_type(tx)        tx->request_auth_type
+#define htp_tx_request_hostname(tx)         tx->request_hostname
+#define htp_tx_request_line(tx)             tx->request_line
+#define htp_tx_request_message_len(tx)      tx->request_message_len
+#define htp_tx_request_method(tx)           tx->request_method
+#define htp_tx_request_method_number(tx)    tx->request_method_number
+#define htp_tx_request_port_number(tx)      tx->request_port_number
+#define htp_tx_request_progress(tx)         tx->request_progress
+#define htp_tx_request_protocol(tx)         tx->request_protocol
+#define htp_tx_request_protocol_number(tx)  tx->request_protocol_number
+#define htp_tx_request_uri(tx)              tx->request_uri
+#define htp_tx_request_headers(tx)          tx->request_headers
+#define htp_tx_response_headers(tx)         tx->response_headers
+#define htp_tx_response_protocol(tx)        tx->response_protocol
+#define htp_tx_response_line(tx)            tx->response_line
+#define htp_tx_response_message(tx)         tx->response_message
+#define htp_tx_response_message_len(tx)     tx->response_message_len
+#define htp_tx_response_status(tx)          tx->response_status
+#define htp_tx_response_status_number(tx)   tx->response_status_number
+#define htp_tx_response_progress(tx)        tx->response_progress
+#define htp_tx_response_protocol_number(tx) tx->response_protocol_number
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */

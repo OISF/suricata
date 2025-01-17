@@ -85,12 +85,12 @@ static uint8_t *GetBufferForTX(
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
-        headers = tx->request_headers;
+        headers = htp_tx_request_headers(tx);
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     }
     if (headers == NULL)
         return NULL;
@@ -555,9 +555,9 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     htp_tx_t *tx = (htp_tx_t *)txv;
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
-        headers = tx->request_headers;
+        headers = htp_tx_request_headers(tx);
     } else {
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     }
     size_t no_of_headers = htp_table_size(headers);
     if (local_id == 0) {

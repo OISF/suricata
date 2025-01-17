@@ -41,6 +41,7 @@
 #include "output.h"
 #include "log-httplog.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -182,58 +183,55 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
                 break;
             case LOG_HTTP_CF_REQUEST_METHOD:
             /* METHOD */
-                if (tx->request_method != NULL) {
-                    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_method),
-                                bstr_len(tx->request_method));
-                } else {
-                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
-                }
+            if (htp_tx_request_method(tx) != NULL) {
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)bstr_ptr(htp_tx_request_method(tx)),
+                        bstr_len(htp_tx_request_method(tx)));
+            } else {
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            }
                 break;
             case LOG_HTTP_CF_REQUEST_URI:
             /* URI */
-                if (tx->request_uri != NULL) {
-                    datalen = node->maxlen;
-                    if (datalen == 0 || datalen > bstr_len(tx->request_uri)) {
-                        datalen = bstr_len(tx->request_uri);
-                    }
-                    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_uri),
-                                datalen);
-                } else {
-                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            if (htp_tx_request_uri(tx) != NULL) {
+                datalen = node->maxlen;
+                if (datalen == 0 || datalen > bstr_len(htp_tx_request_uri(tx))) {
+                    datalen = bstr_len(htp_tx_request_uri(tx));
                 }
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)bstr_ptr(htp_tx_request_uri(tx)), datalen);
+            } else {
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            }
                 break;
             case LOG_HTTP_CF_REQUEST_HOST:
             /* HOSTNAME */
-                if (tx->request_hostname != NULL)
-                {
-                    datalen = node->maxlen;
-                    if (datalen == 0 || datalen > bstr_len(tx->request_hostname)) {
-                        datalen = bstr_len(tx->request_hostname);
-                    }
-                    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_hostname),
-                                datalen);
-                } else {
-                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            if (htp_tx_request_hostname(tx) != NULL) {
+                datalen = node->maxlen;
+                if (datalen == 0 || datalen > bstr_len(htp_tx_request_hostname(tx))) {
+                    datalen = bstr_len(htp_tx_request_hostname(tx));
                 }
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)bstr_ptr(htp_tx_request_hostname(tx)), datalen);
+            } else {
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            }
                 break;
             case LOG_HTTP_CF_REQUEST_PROTOCOL:
             /* PROTOCOL */
-                if (tx->request_protocol != NULL) {
-                    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                    aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_protocol),
-                                    bstr_len(tx->request_protocol));
-                } else {
-                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
-                }
+            if (htp_tx_request_protocol(tx) != NULL) {
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)bstr_ptr(htp_tx_request_protocol(tx)),
+                        bstr_len(htp_tx_request_protocol(tx)));
+            } else {
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            }
                 break;
             case LOG_HTTP_CF_REQUEST_HEADER:
             /* REQUEST HEADER */
-                if (tx->request_headers != NULL) {
-                    h_request_hdr = htp_table_get_c(tx->request_headers, node->data);
-                }
+            if (htp_tx_request_headers(tx) != NULL) {
+                h_request_hdr = htp_table_get_c(htp_tx_request_headers(tx), node->data);
+            }
                 if (h_request_hdr != NULL) {
                     datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(h_request_hdr->value)) {
@@ -248,14 +246,13 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
                 break;
             case LOG_HTTP_CF_REQUEST_COOKIE:
             /* REQUEST COOKIE */
-                if (tx->request_headers != NULL) {
-                    h_request_hdr = htp_table_get_c(tx->request_headers, "Cookie");
-                    if (h_request_hdr != NULL) {
-                        cvalue_len = GetCookieValue((uint8_t *)bstr_ptr(h_request_hdr->value),
-                                (uint32_t)bstr_len(h_request_hdr->value), (char *)node->data,
-                                &cvalue);
-                    }
+            if (htp_tx_request_headers(tx) != NULL) {
+                h_request_hdr = htp_table_get_c(htp_tx_request_headers(tx), "Cookie");
+                if (h_request_hdr != NULL) {
+                    cvalue_len = GetCookieValue((uint8_t *)bstr_ptr(h_request_hdr->value),
+                            (uint32_t)bstr_len(h_request_hdr->value), (char *)node->data, &cvalue);
                 }
+            }
                 if (cvalue_len > 0 && cvalue != NULL) {
                     datalen = node->maxlen;
                     if (datalen == 0 || datalen > cvalue_len) {
@@ -269,24 +266,24 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
                 break;
             case LOG_HTTP_CF_REQUEST_LEN:
             /* REQUEST LEN */
-                MemBufferWriteString(aft->buffer, "%"PRIuMAX"", (uintmax_t)tx->request_message_len);
-                break;
+            MemBufferWriteString(
+                    aft->buffer, "%" PRIuMAX "", (uintmax_t)htp_tx_request_message_len(tx));
+            break;
             case LOG_HTTP_CF_RESPONSE_STATUS:
             /* RESPONSE STATUS */
-                if (tx->response_status != NULL) {
-                    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                    aft->buffer->size, (uint8_t *)bstr_ptr(tx->response_status),
-                                    bstr_len(tx->response_status));
-                } else {
-                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
-                }
+            if (htp_tx_response_status(tx) != NULL) {
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)bstr_ptr(htp_tx_response_status(tx)),
+                        bstr_len(htp_tx_response_status(tx)));
+            } else {
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+            }
                 break;
             case LOG_HTTP_CF_RESPONSE_HEADER:
             /* RESPONSE HEADER */
-                if (tx->response_headers != NULL) {
-                    h_response_hdr = htp_table_get_c(tx->response_headers,
-                                    node->data);
-                }
+            if (htp_tx_response_headers(tx) != NULL) {
+                h_response_hdr = htp_table_get_c(htp_tx_response_headers(tx), node->data);
+            }
                 if (h_response_hdr != NULL) {
                     datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(h_response_hdr->value)) {
@@ -301,8 +298,9 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
                 break;
             case LOG_HTTP_CF_RESPONSE_LEN:
             /* RESPONSE LEN */
-                MemBufferWriteString(aft->buffer, "%"PRIuMAX"", (uintmax_t)tx->response_message_len);
-                break;
+            MemBufferWriteString(
+                    aft->buffer, "%" PRIuMAX "", (uintmax_t)htp_tx_response_message_len(tx));
+            break;
             default:
             /* NO MATCH */
                 MemBufferWriteString(aft->buffer, LOG_CF_NONE);
@@ -319,8 +317,8 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 
     /* referer */
     htp_header_t *h_referer = NULL;
-    if (tx->request_headers != NULL) {
-        h_referer = htp_table_get_c(tx->request_headers, "referer");
+    if (htp_tx_request_headers(tx) != NULL) {
+        h_referer = htp_table_get_c(htp_tx_request_headers(tx), "referer");
     }
     if (h_referer != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
@@ -333,31 +331,32 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* method */
-    if (tx->request_method != NULL) {
+    if (htp_tx_request_method(tx) != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->request_method),
-                       bstr_len(tx->request_method));
+                (uint8_t *)bstr_ptr(htp_tx_request_method(tx)),
+                bstr_len(htp_tx_request_method(tx)));
     }
     LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* protocol */
-    if (tx->request_protocol != NULL) {
+    if (htp_tx_request_protocol(tx) != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->request_protocol),
-                       bstr_len(tx->request_protocol));
+                (uint8_t *)bstr_ptr(htp_tx_request_protocol(tx)),
+                bstr_len(htp_tx_request_protocol(tx)));
     } else {
         MemBufferWriteString(aft->buffer, "<no protocol>");
     }
     LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
     /* response status */
-    if (tx->response_status != NULL) {
+    if (htp_tx_response_status(tx) != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->response_status),
-                       bstr_len(tx->response_status));
+                (uint8_t *)bstr_ptr(htp_tx_response_status(tx)),
+                bstr_len(htp_tx_response_status(tx)));
         /* Redirect? */
-        if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
-            htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+        if ((htp_tx_response_status_number(tx) > 300) &&
+                ((htp_tx_response_status_number(tx)) < 303)) {
+            htp_header_t *h_location = htp_table_get_c(htp_tx_response_headers(tx), "location");
             if (h_location != NULL) {
                 MemBufferWriteString(aft->buffer, " => ");
 
@@ -372,7 +371,8 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 
     /* length */
     LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
-    MemBufferWriteString(aft->buffer, "%"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
+    MemBufferWriteString(
+            aft->buffer, "%" PRIuMAX " bytes", (uintmax_t)htp_tx_response_message_len(tx));
 }
 
 static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, Flow *f, HtpState *htp_state, htp_tx_t *tx, uint64_t tx_id, int ipproto)
@@ -432,27 +432,26 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         MemBufferWriteString(aft->buffer, "%s ", timebuf);
 
         /* hostname */
-        if (tx->request_hostname != NULL) {
+        if (htp_tx_request_hostname(tx) != NULL) {
             PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                    (uint8_t *)bstr_ptr(tx->request_hostname),
-                    bstr_len(tx->request_hostname));
+                    (uint8_t *)bstr_ptr(htp_tx_request_hostname(tx)),
+                    bstr_len(htp_tx_request_hostname(tx)));
         } else {
             MemBufferWriteString(aft->buffer, "<hostname unknown>");
         }
         LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
         /* uri */
-        if (tx->request_uri != NULL) {
+        if (htp_tx_request_uri(tx) != NULL) {
             PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                    (uint8_t *)bstr_ptr(tx->request_uri),
-                    bstr_len(tx->request_uri));
+                    (uint8_t *)bstr_ptr(htp_tx_request_uri(tx)), bstr_len(htp_tx_request_uri(tx)));
         }
         LOG_CF_WRITE_STAR_SEPARATOR(aft->buffer);
 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
-        if (tx->request_headers != NULL) {
-            h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
+        if (htp_tx_request_headers(tx) != NULL) {
+            h_user_agent = htp_table_get_c(htp_tx_request_headers(tx), "user-agent");
         }
         if (h_user_agent != NULL) {
             PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,

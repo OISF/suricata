@@ -39,6 +39,7 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer.h"
@@ -197,9 +198,9 @@ struct {
 static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
 {
     /* hostname */
-    if (tx->request_hostname != NULL) {
-        jb_set_string_from_bytes(js, "hostname", bstr_ptr(tx->request_hostname),
-                (uint32_t)bstr_len(tx->request_hostname));
+    if (htp_tx_request_hostname(tx) != NULL) {
+        jb_set_string_from_bytes(js, "hostname", bstr_ptr(htp_tx_request_hostname(tx)),
+                (uint32_t)bstr_len(htp_tx_request_hostname(tx)));
     }
 
     /* port */
@@ -208,26 +209,27 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
      * There is no connection (from the suricata point of view) between this
      * port and the TCP destination port of the flow.
      */
-    if (tx->request_port_number >= 0) {
-        jb_set_uint(js, "http_port", tx->request_port_number);
+    if (htp_tx_request_port_number(tx) >= 0) {
+        jb_set_uint(js, "http_port", htp_tx_request_port_number(tx));
     }
 
     /* uri */
-    if (tx->request_uri != NULL) {
-        jb_set_string_from_bytes(
-                js, "url", bstr_ptr(tx->request_uri), (uint32_t)bstr_len(tx->request_uri));
+    if (htp_tx_request_uri(tx) != NULL) {
+        jb_set_string_from_bytes(js, "url", bstr_ptr(htp_tx_request_uri(tx)),
+                (uint32_t)bstr_len(htp_tx_request_uri(tx)));
     }
 
-    if (tx->request_headers != NULL) {
+    if (htp_tx_request_headers(tx) != NULL) {
         /* user agent */
-        htp_header_t *h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
+        htp_header_t *h_user_agent = htp_table_get_c(htp_tx_request_headers(tx), "user-agent");
         if (h_user_agent != NULL) {
             jb_set_string_from_bytes(js, "http_user_agent", bstr_ptr(h_user_agent->value),
                     (uint32_t)bstr_len(h_user_agent->value));
         }
 
         /* x-forwarded-for */
-        htp_header_t *h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
+        htp_header_t *h_x_forwarded_for =
+                htp_table_get_c(htp_tx_request_headers(tx), "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
             jb_set_string_from_bytes(js, "xff", bstr_ptr(h_x_forwarded_for->value),
                     (uint32_t)bstr_len(h_x_forwarded_for->value));
@@ -235,8 +237,8 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
     }
 
     /* content-type */
-    if (tx->response_headers != NULL) {
-        htp_header_t *h_content_type = htp_table_get_c(tx->response_headers, "content-type");
+    if (htp_tx_response_headers(tx) != NULL) {
+        htp_header_t *h_content_type = htp_table_get_c(htp_tx_response_headers(tx), "content-type");
         if (h_content_type != NULL) {
             const size_t size = bstr_len(h_content_type->value) * 2 + 1;
             char string[size];
@@ -246,7 +248,8 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
                 *p = '\0';
             jb_set_string(js, "http_content_type", string);
         }
-        htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+        htp_header_t *h_content_range =
+                htp_table_get_c(htp_tx_response_headers(tx), "content-range");
         if (h_content_range != NULL) {
             jb_open_object(js, "content_range");
             jb_set_string_from_bytes(js, "raw", bstr_ptr(h_content_range->value),
@@ -269,8 +272,8 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
 {
     /* referer */
     htp_header_t *h_referer = NULL;
-    if (tx->request_headers != NULL) {
-        h_referer = htp_table_get_c(tx->request_headers, "referer");
+    if (htp_tx_request_headers(tx) != NULL) {
+        h_referer = htp_table_get_c(htp_tx_request_headers(tx), "referer");
     }
     if (h_referer != NULL) {
         jb_set_string_from_bytes(
@@ -278,43 +281,43 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
     }
 
     /* method */
-    if (tx->request_method != NULL) {
-        jb_set_string_from_bytes(js, "http_method", bstr_ptr(tx->request_method),
-                (uint32_t)bstr_len(tx->request_method));
+    if (htp_tx_request_method(tx) != NULL) {
+        jb_set_string_from_bytes(js, "http_method", bstr_ptr(htp_tx_request_method(tx)),
+                (uint32_t)bstr_len(htp_tx_request_method(tx)));
     }
 
     /* protocol */
-    if (tx->request_protocol != NULL) {
-        jb_set_string_from_bytes(js, "protocol", bstr_ptr(tx->request_protocol),
-                (uint32_t)bstr_len(tx->request_protocol));
+    if (htp_tx_request_protocol(tx) != NULL) {
+        jb_set_string_from_bytes(js, "protocol", bstr_ptr(htp_tx_request_protocol(tx)),
+                (uint32_t)bstr_len(htp_tx_request_protocol(tx)));
     }
 
     /* response status: from libhtp:
      * "Response status code, available only if we were able to parse it, HTP_STATUS_INVALID
      *  otherwise. HTP_STATUS_UNKNOWN until parsing is attempted" .*/
-    const int resp = tx->response_status_number;
+    const int resp = htp_tx_response_status_number(tx);
     if (resp > 0) {
         jb_set_uint(js, "status", (uint32_t)resp);
-    } else if (tx->response_status != NULL) {
-        jb_set_string_from_bytes(js, "status_string", bstr_ptr(tx->response_status),
-                (uint32_t)bstr_len(tx->response_status));
+    } else if (htp_tx_response_status(tx) != NULL) {
+        jb_set_string_from_bytes(js, "status_string", bstr_ptr(htp_tx_response_status(tx)),
+                (uint32_t)bstr_len(htp_tx_response_status(tx)));
     }
 
-    htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+    htp_header_t *h_location = htp_table_get_c(htp_tx_response_headers(tx), "location");
     if (h_location != NULL) {
         jb_set_string_from_bytes(
                 js, "redirect", bstr_ptr(h_location->value), (uint32_t)bstr_len(h_location->value));
     }
 
     /* length */
-    jb_set_uint(js, "length", tx->response_message_len);
+    jb_set_uint(js, "length", htp_tx_response_message_len(tx));
 }
 
 static void EveHttpLogJSONHeaders(
         JsonBuilder *js, uint32_t direction, htp_tx_t *tx, LogHttpFileCtx *http_ctx)
 {
-    htp_table_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
-        tx->request_headers : tx->response_headers;
+    htp_table_t *headers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_headers(tx)
+                                                            : htp_tx_response_headers(tx);
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
     size_t n = htp_table_size(headers);
