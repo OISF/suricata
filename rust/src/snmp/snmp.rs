@@ -402,6 +402,8 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         flags              : 0,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
