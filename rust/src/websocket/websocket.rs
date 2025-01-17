@@ -370,6 +370,8 @@ pub unsafe extern "C" fn rs_websocket_register_parser() {
         flags: 0, // do not accept gaps as there is no good way to resync
         get_frame_id_by_name: Some(WebSocketFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(WebSocketFrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
