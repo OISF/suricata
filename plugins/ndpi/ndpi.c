@@ -466,8 +466,7 @@ static void NdpInitRiskKeyword(void)
      * support all the fields required to register the nDPI keywords,
      * so we'll just register with an empty keyword specifier to get
      * the ID, then fill in the ID. */
-    SCSigTableElmt keyword = {};
-    ndpi_protocol_keyword_id = DetectHelperKeywordRegister(&keyword);
+    ndpi_protocol_keyword_id = SCDetectHelperNewKeywordId();
     SCLogDebug("Registered new ndpi-protocol keyword with ID %" PRIu32, ndpi_protocol_keyword_id);
 
     sigmatch_table[ndpi_protocol_keyword_id].name = "ndpi-protocol";
@@ -479,7 +478,7 @@ static void NdpInitRiskKeyword(void)
     sigmatch_table[ndpi_protocol_keyword_id].flags =
             (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
 
-    ndpi_risk_keyword_id = DetectHelperKeywordRegister(&keyword);
+    ndpi_risk_keyword_id = SCDetectHelperNewKeywordId();
     SCLogDebug("Registered new ndpi-risk keyword with ID %" PRIu32, ndpi_risk_keyword_id);
 
     sigmatch_table[ndpi_risk_keyword_id].name = "ndpi-risk";
