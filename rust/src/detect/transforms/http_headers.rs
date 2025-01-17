@@ -86,11 +86,9 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
         Free: None,
         TransformValidate: None,
     };
-    unsafe {
-        G_TRANSFORM_HEADER_LOWER_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_HEADER_LOWER_ID < 0 {
-            SCLogWarning!("Failed registering transform tolower");
-        }
+    G_TRANSFORM_HEADER_LOWER_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_HEADER_LOWER_ID < 0 {
+        SCLogWarning!("Failed registering transform tolower");
     }
 }
 
@@ -152,11 +150,9 @@ pub unsafe extern "C" fn DetectTransformStripPseudoHeadersRegister() {
         Free: None,
         TransformValidate: None,
     };
-    unsafe {
-        G_TRANSFORM_STRIP_PSEUDO_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_STRIP_PSEUDO_ID < 0 {
-            SCLogWarning!("Failed registering transform toupper");
-        }
+    G_TRANSFORM_STRIP_PSEUDO_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_STRIP_PSEUDO_ID < 0 {
+        SCLogWarning!("Failed registering transform toupper");
     }
 }
 
