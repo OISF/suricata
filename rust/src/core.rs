@@ -176,7 +176,6 @@ pub struct SuricataFileContext {
 /// cbindgen:ignore
 extern {
     pub fn SCGetContext() -> &'static mut SuricataContext;
-    pub fn SCLogGetLogLevel() -> i32;
 }
 
 pub static mut SC: Option<&'static SuricataContext> = None;

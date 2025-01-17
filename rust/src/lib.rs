@@ -80,12 +80,11 @@ extern crate ldap_parser;
 extern crate suricata_derive;
 
 #[macro_use]
-pub mod log;
-
-#[macro_use]
 pub mod core;
 
 #[macro_use]
+pub(crate) mod debug;
+
 pub mod common;
 pub mod conf;
 pub mod jsonbuilder;
