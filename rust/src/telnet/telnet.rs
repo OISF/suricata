@@ -541,6 +541,8 @@ pub unsafe extern "C" fn rs_telnet_register_parser() {
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(TelnetFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(TelnetFrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
 
     };
 
