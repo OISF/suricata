@@ -1388,7 +1388,6 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
 #[cfg(test)]
 mod tests {
     use crate::applayer::AppLayerResult;
-    use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
     use crate::direction::Direction;
     use std::cmp;

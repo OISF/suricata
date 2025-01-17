@@ -1414,7 +1414,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 
     //SCOutputPrint(sc_did->startup_message);
 
-    rs_log_set_level(sc_log_global_log_level);
+    SCSetRustLogLevel(sc_log_global_log_level);
 }
 
 void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
