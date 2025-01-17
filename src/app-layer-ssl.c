@@ -1664,6 +1664,7 @@ static int SupportedHandshakeType(const uint8_t type)
 }
 
 /**
+ *  \param input_len length of bytes after record header. Can be 0 (e.g. for server hello done).
  *  \retval parsed number of consumed bytes
  *  \retval < 0 error
  */
@@ -1673,9 +1674,6 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
     const uint8_t *initial_input = input;
     int rc;
 
-    if (input_len == 0) {
-        return 0;
-    }
     DEBUG_VALIDATE_BUG_ON(RecordAlreadyProcessed(ssl_state->curr_connp));
 
     switch (ssl_state->curr_connp->handshake_type) {
