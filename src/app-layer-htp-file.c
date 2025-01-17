@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "app-layer-htp-file.h"
+#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-events.h"
 #include "util-validate.h"
@@ -181,9 +182,9 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     // Then, we will try to handle reassembly of different ranges of the same file
     uint8_t *keyurl;
     uint32_t keylen;
-    if (tx->request_hostname != NULL) {
-        uint32_t hlen = (uint32_t)bstr_len(tx->request_hostname);
-        if (bstr_len(tx->request_hostname) > UINT16_MAX) {
+    if (htp_tx_request_hostname(tx) != NULL) {
+        uint32_t hlen = (uint32_t)bstr_len(htp_tx_request_hostname(tx));
+        if (bstr_len(htp_tx_request_hostname(tx)) > UINT16_MAX) {
             hlen = UINT16_MAX;
         }
         keylen = hlen + filename_len;
@@ -191,7 +192,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         if (keyurl == NULL) {
             SCReturnInt(-1);
         }
-        memcpy(keyurl, bstr_ptr(tx->request_hostname), hlen);
+        memcpy(keyurl, bstr_ptr(htp_tx_request_hostname(tx)), hlen);
         memcpy(keyurl + hlen, filename, filename_len);
     } else {
         // do not reassemble file without host info
@@ -402,9 +403,9 @@ static int HTPFileParserTest01(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -476,8 +477,8 @@ static int HTPFileParserTest02(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
     FAIL_IF_NULL(tx_ud->files_ts.tail);
@@ -568,9 +569,9 @@ static int HTPFileParserTest03(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
@@ -664,9 +665,9 @@ static int HTPFileParserTest04(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
@@ -730,9 +731,9 @@ static int HTPFileParserTest05(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
@@ -805,9 +806,9 @@ static int HTPFileParserTest06(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
@@ -870,8 +871,8 @@ static int HTPFileParserTest07(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);
@@ -1192,9 +1193,9 @@ static int HTPFileParserTest11(void)
 
     htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, http_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NULL(tx->request_method);
+    FAIL_IF_NULL(htp_tx_request_method(tx));
 
-    FAIL_IF(memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0);
+    FAIL_IF(memcmp(bstr_util_strdup_to_c(htp_tx_request_method(tx)), "POST", 4) != 0);
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     FAIL_IF_NULL(tx_ud);

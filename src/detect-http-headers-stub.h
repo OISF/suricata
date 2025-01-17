@@ -54,11 +54,10 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->request_headers == NULL)
+        if (htp_tx_request_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), HEADER_NAME);
         if (h == NULL || h->value == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
@@ -110,11 +109,10 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->response_headers == NULL)
+        if (htp_tx_response_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), HEADER_NAME);
         if (h == NULL || h->value == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
