@@ -22,7 +22,6 @@ pub fn init() {
         let context = super::core::SCGetContext();
         super::core::init_ffi(context);
 
-        let level = super::core::SCLogGetLogLevel();
-        super::log::log_set_level(level);
+        super::debug::SCSetRustLogLevel(super::debug::SCLogGetLogLevel());
     }
 }
