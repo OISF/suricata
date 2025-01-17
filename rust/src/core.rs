@@ -20,6 +20,7 @@
 use std;
 use crate::filecontainer::*;
 use crate::debug_validate_fail;
+use crate::flow::Flow;
 
 /// Opaque C types.
 pub enum DetectEngineState {}
@@ -130,9 +131,6 @@ macro_rules!BIT_U32 {
 macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }
-
-// Flow flags
-pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 // Defined in app-layer-protos.h
 /// cbindgen:ignore
@@ -299,43 +297,6 @@ pub fn sc_app_layer_decoder_events_free_events(
         if let Some(c) = SC {
             (c.AppLayerDecoderEventsFreeEvents)(events);
         }
-    }
-}
-
-/// Opaque flow type (defined in C)
-pub enum Flow {}
-
-// Extern functions operating on Flow.
-/// cbindgen:ignore
-extern {
-    pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
-    pub fn FlowGetFlags(flow: &Flow) -> u32;
-    pub fn FlowGetSourcePort(flow: &Flow) -> u16;
-    pub fn FlowGetDestinationPort(flow: &Flow) -> u16;
-}
-
-/// Rust implementation of Flow.
-impl Flow {
-
-    /// Return the time of the last flow update as a `Duration`
-    /// since the epoch.
-    pub fn get_last_time(&mut self) -> std::time::Duration {
-        unsafe {
-            let mut secs: u64 = 0;
-            let mut usecs: u64 = 0;
-            FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
-            std::time::Duration::new(secs, usecs as u32 * 1000)
-        }
-    }
-
-    /// Return the flow flags.
-    pub fn get_flags(&self) -> u32 {
-        unsafe { FlowGetFlags(self) }
-    }
-
-    /// Return flow ports
-    pub fn get_ports(&self) -> (u16, u16) {
-        unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
     }
 }
 

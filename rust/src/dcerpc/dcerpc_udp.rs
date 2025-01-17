@@ -21,6 +21,7 @@ use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use crate::flow::Flow;
 use nom7::Err;
 use std;
 use std::ffi::CString;
@@ -233,7 +234,7 @@ impl DCERPCUDPState {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -310,7 +311,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u8, input: *const u8,
+pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> core::AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");

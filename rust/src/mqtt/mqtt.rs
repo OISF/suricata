@@ -23,6 +23,7 @@ use crate::applayer::*;
 use crate::applayer::{self, LoggerFlags};
 use crate::conf::{conf_get, get_memval};
 use crate::core::*;
+use crate::flow::Flow;
 use crate::frames::*;
 use nom7::Err;
 use std;

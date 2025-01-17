@@ -15,7 +15,8 @@
 * 02110-1301, USA.
 */
 use crate::applayer::{self, *};
-use crate::core::{self, AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::flow::Flow;
 
 use std::ffi::CString;
 
@@ -280,7 +281,7 @@ impl ModbusState {
 /// Probe input to see if it looks like Modbus.
 #[no_mangle]
 pub extern "C" fn rs_modbus_probe(
-    _flow: *const core::Flow, _direction: u8, input: *const u8, len: u32, _rdir: *mut u8,
+    _flow: *const Flow, _direction: u8, input: *const u8, len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() {
         return ALPROTO_UNKNOWN;
@@ -313,7 +314,7 @@ pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_voi
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -332,7 +333,7 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
-    _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {

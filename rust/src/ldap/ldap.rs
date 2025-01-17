@@ -19,7 +19,8 @@
 
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{Flow, *};
+use crate::core::*;
+use crate::flow::Flow;
 use crate::frames::*;
 use nom7 as nom;
 use std;

@@ -16,8 +16,9 @@
  */
 
 use std;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, AppProto, IPPROTO_TCP};
 use crate::applayer::{self, *};
+use crate::flow::Flow;
 use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;

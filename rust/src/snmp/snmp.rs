@@ -17,6 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::flow::Flow;
 use crate::snmp::snmp_parser::*;
 use crate::core::{self, *};
 use crate::applayer::{self, *};
@@ -265,7 +266,7 @@ pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -276,7 +277,7 @@ pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
