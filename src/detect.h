@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -602,6 +602,14 @@ typedef struct SignatureInitData_ {
 
     /* highest list/buffer id which holds a DETECT_CONTENT */
     uint32_t max_content_list_id;
+
+    /* inter-signature state dependency */
+    bool is_rule_state_dependant;
+    uint32_t *rule_state_dependant_sids_array;
+    uint32_t rule_state_dependant_sids_size;
+    uint32_t rule_state_dependant_sids_idx;
+    uint32_t *rule_state_flowbits_ids_array;
+    uint32_t rule_state_flowbits_ids_size;
 } SignatureInitData;
 
 /** \brief Signature container */
