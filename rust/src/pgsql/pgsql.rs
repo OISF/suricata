@@ -22,7 +22,8 @@
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
-use crate::core::{AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
+use crate::core::{AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
+use crate::flow::Flow;
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;

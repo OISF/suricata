@@ -18,6 +18,7 @@
 use super::parser;
 use crate::applayer::*;
 use crate::core::*;
+use crate::flow::Flow;
 use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};

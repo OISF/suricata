@@ -19,7 +19,8 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
+use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
+use crate::flow::Flow;
 use std::ffi::CString;
 use std::os::raw::c_char;
 

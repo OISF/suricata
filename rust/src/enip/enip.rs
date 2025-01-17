@@ -20,10 +20,11 @@ use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::{
-    AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
+    AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
     STREAM_TOCLIENT, STREAM_TOSERVER,
 };
 use crate::detect::EnumString;
+use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7 as nom;
 use std;

@@ -16,9 +16,9 @@
  */
 
 use crate::applayer::{self, *};
-use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, AppProto, IPPROTO_UDP};
 use crate::dhcp::parser::*;
+use crate::flow::Flow;
 use std;
 use std::ffi::CString;
 
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx_count(state: *mut std::os::raw::c_
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_dhcp_parse(_flow: *const Flow,
                                 state: *mut std::os::raw::c_void,
                                 _pstate: *mut std::os::raw::c_void,
                                 stream_slice: StreamSlice,

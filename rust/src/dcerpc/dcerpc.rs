@@ -18,6 +18,7 @@
 use crate::applayer::{self, *};
 use crate::core::{self, *};
 use crate::dcerpc::parser;
+use crate::flow::Flow;
 use nom7::error::{Error, ErrorKind};
 use nom7::number::Endianness;
 use nom7::{Err, IResult, Needed};
@@ -322,7 +323,7 @@ pub struct DCERPCState {
     pub tc_gap: bool,
     pub ts_ssn_gap: bool,
     pub tc_ssn_gap: bool,
-    pub flow: Option<*const core::Flow>,
+    pub flow: Option<*const Flow>,
     state_data: AppLayerStateData,
 }
 
@@ -1129,7 +1130,7 @@ pub extern "C" fn rs_parse_dcerpc_response_gap(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_request(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1154,7 +1155,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_parse_response(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1269,7 +1270,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const core::Flow, direction: u8, input: *const u8,
+pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing packet for DCERPC");

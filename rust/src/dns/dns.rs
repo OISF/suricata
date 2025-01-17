@@ -23,6 +23,7 @@ use std::ffi::CString;
 use crate::applayer::*;
 use crate::core::{self, *};
 use crate::dns::parser;
+use crate::flow::Flow;
 use crate::frames::Frame;
 
 use nom7::number::streaming::be_u16;
@@ -549,7 +550,7 @@ impl DNSState {
     }
 
     fn parse_request(
-        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const Flow,
     ) -> bool {
         match dns_parse_request(input) {
             Ok(mut tx) => {
@@ -581,7 +582,7 @@ impl DNSState {
         }
     }
 
-    fn parse_request_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_request_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,
@@ -594,7 +595,7 @@ impl DNSState {
         self.parse_request(input, false, frame, flow)
     }
 
-    fn parse_response_udp(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_response_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,
@@ -608,7 +609,7 @@ impl DNSState {
     }
 
     fn parse_response(
-        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,
+        &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const Flow,
     ) -> bool {
         match dns_parse_response(input) {
             Ok(mut tx) => {
@@ -644,7 +645,7 @@ impl DNSState {
     ///
     /// Returns the number of messages parsed.
     fn parse_request_tcp(
-        &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
@@ -708,7 +709,7 @@ impl DNSState {
     ///
     /// Returns the number of messages parsed.
     fn parse_response_tcp(
-        &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
@@ -879,7 +880,7 @@ unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64)
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn parse_request(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -888,7 +889,7 @@ unsafe extern "C" fn parse_request(
 }
 
 unsafe extern "C" fn parse_response(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -898,7 +899,7 @@ unsafe extern "C" fn parse_response(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn parse_request_tcp(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -911,7 +912,7 @@ unsafe extern "C" fn parse_request_tcp(
 }
 
 unsafe extern "C" fn parse_response_tcp(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -1028,7 +1029,7 @@ pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
 }
 
 unsafe extern "C" fn probe_udp(
-    _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
+    _flow: *const Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 {
         return core::ALPROTO_UNKNOWN;
@@ -1048,7 +1049,7 @@ unsafe extern "C" fn probe_udp(
 }
 
 unsafe extern "C" fn c_probe_tcp(
-    _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
+    _flow: *const Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
         return core::ALPROTO_UNKNOWN;
