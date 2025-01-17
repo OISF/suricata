@@ -208,6 +208,9 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
     }
+    if (p->flags & PKT_IS_UNKNOWN) {
+        StatsIncr(tv, dtv->counter_ethertype_unknown);
+    }
 }
 
 void PacketUpdateEngineEventCounters(ThreadVars *tv,
