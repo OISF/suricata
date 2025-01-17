@@ -84,11 +84,9 @@ pub unsafe extern "C" fn DetectTransformToLowerRegister() {
         Free: None,
         TransformValidate: Some(tolower_validate),
     };
-    unsafe {
-        G_TRANSFORM_TOLOWER_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_TOLOWER_ID < 0 {
-            SCLogWarning!("Failed registering transform tolower");
-        }
+    G_TRANSFORM_TOLOWER_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_TOLOWER_ID < 0 {
+        SCLogWarning!("Failed registering transform tolower");
     }
 }
 
@@ -149,11 +147,9 @@ pub unsafe extern "C" fn DetectTransformToUpperRegister() {
         Free: None,
         TransformValidate: Some(toupper_validate),
     };
-    unsafe {
-        G_TRANSFORM_TOUPPER_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_TOUPPER_ID < 0 {
-            SCLogWarning!("Failed registering transform toupper");
-        }
+    G_TRANSFORM_TOUPPER_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_TOUPPER_ID < 0 {
+        SCLogWarning!("Failed registering transform toupper");
     }
 }
 

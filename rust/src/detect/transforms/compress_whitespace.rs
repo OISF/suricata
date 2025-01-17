@@ -107,11 +107,9 @@ pub unsafe extern "C" fn DetectTransformCompressWhitespaceRegister() {
         Free: None,
         TransformValidate: Some(compress_whitespace_validate),
     };
-    unsafe {
-        G_TRANSFORM_COMPRESS_WHITESPACE_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_COMPRESS_WHITESPACE_ID < 0 {
-            SCLogWarning!("Failed registering transform compress_whitespace");
-        }
+    G_TRANSFORM_COMPRESS_WHITESPACE_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_COMPRESS_WHITESPACE_ID < 0 {
+        SCLogWarning!("Failed registering transform compress_whitespace");
     }
 }
 

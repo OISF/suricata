@@ -121,11 +121,9 @@ pub unsafe extern "C" fn DetectTransformUrlDecodeRegister() {
         Free: None,
         TransformValidate: None,
     };
-    unsafe {
-        G_TRANSFORM_URL_DECODE_ID = DetectHelperTransformRegister(&kw);
-        if G_TRANSFORM_URL_DECODE_ID < 0 {
-            SCLogWarning!("Failed registering transform dot_prefix");
-        }
+    G_TRANSFORM_URL_DECODE_ID = DetectHelperTransformRegister(&kw);
+    if G_TRANSFORM_URL_DECODE_ID < 0 {
+        SCLogWarning!("Failed registering transform dot_prefix");
     }
 }
 
