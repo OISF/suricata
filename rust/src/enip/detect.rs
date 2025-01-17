@@ -40,7 +40,7 @@ use crate::detect::{
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 
-use crate::core::Direction;
+use crate::direction::Direction;
 
 use std::ffi::CStr;
 

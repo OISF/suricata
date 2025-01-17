@@ -22,6 +22,7 @@ use super::parser;
 use crate::applayer;
 use crate::applayer::*;
 use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use nom7::Err;
@@ -888,7 +889,7 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
             b"RFB \0".as_ptr() as *const c_char,
             b"RFB ".len() as u16,
             0,
-            crate::core::Direction::ToServer.into(),
+            Direction::ToServer.into(),
         ) < 0
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOSERVER");
@@ -899,7 +900,7 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
             b"RFB \0".as_ptr() as *const c_char,
             b"RFB ".len() as u16,
             0,
-            crate::core::Direction::ToClient.into(),
+            Direction::ToClient.into(),
         ) < 0
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");

@@ -16,7 +16,7 @@
  */
 
 use super::dns::DNSTransaction;
-use crate::core::Direction;
+use crate::direction::Direction;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
 
 /// Perform the DNS opcode match.

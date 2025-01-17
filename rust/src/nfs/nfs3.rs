@@ -17,8 +17,7 @@
 
 // written by Victor Julien
 
-use crate::core::*;
-
+use crate::direction::Direction;
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;

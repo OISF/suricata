@@ -18,7 +18,8 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType,AppProto,Direction};
+use crate::core::{self,DetectEngineState,AppLayerEventType,AppProto};
+use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use std::os::raw::{c_void,c_char,c_int};

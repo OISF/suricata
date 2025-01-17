@@ -20,6 +20,7 @@
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use crate::sip::parser::*;
@@ -90,7 +91,7 @@ impl SIPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self, direction: crate::core::Direction) -> SIPTransaction {
+    fn new_tx(&mut self, direction: Direction) -> SIPTransaction {
         self.tx_id += 1;
         SIPTransaction::new(self.tx_id, direction)
     }
@@ -128,7 +129,7 @@ impl SIPState {
 
         match sip_parse_request(input) {
             Ok((_, request)) => {
-                let mut tx = self.new_tx(crate::core::Direction::ToServer);
+                let mut tx = self.new_tx(Direction::ToServer);
                 sip_frames_ts(flow, &stream_slice, &request, tx.id);
                 tx.request = Some(request);
                 if let Ok((_, req_line)) = sip_take_line(input) {
@@ -172,7 +173,7 @@ impl SIPState {
             }
             match sip_parse_request(start) {
                 Ok((rem, request)) => {
-                    let mut tx = self.new_tx(crate::core::Direction::ToServer);
+                    let mut tx = self.new_tx(Direction::ToServer);
                     let tx_id = tx.id;
                     sip_frames_ts(flow, &stream_slice, &request, tx_id);
                     tx.request = Some(request);
@@ -224,7 +225,7 @@ impl SIPState {
 
         match sip_parse_response(input) {
             Ok((_, response)) => {
-                let mut tx = self.new_tx(crate::core::Direction::ToClient);
+                let mut tx = self.new_tx(Direction::ToClient);
                 sip_frames_tc(flow, &stream_slice, &response, tx.id);
                 tx.response = Some(response);
                 if let Ok((_, resp_line)) = sip_take_line(input) {
@@ -267,7 +268,7 @@ impl SIPState {
             }
             match sip_parse_response(start) {
                 Ok((rem, response)) => {
-                    let mut tx = self.new_tx(crate::core::Direction::ToClient);
+                    let mut tx = self.new_tx(Direction::ToClient);
                     let tx_id = tx.id;
                     sip_frames_tc(flow, &stream_slice, &response, tx_id);
                     tx.response = Some(response);
@@ -307,7 +308,7 @@ impl SIPState {
 }
 
 impl SIPTransaction {
-    pub fn new(id: u64, direction: crate::core::Direction) -> SIPTransaction {
+    pub fn new(id: u64, direction: Direction) -> SIPTransaction {
         SIPTransaction {
             id,
             request: None,
@@ -515,7 +516,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
                 method.as_ptr() as *const std::os::raw::c_char,
                 depth,
                 0,
-                core::Direction::ToServer as u8,
+                Direction::ToServer as u8,
             );
         }
         r |= AppLayerProtoDetectPMRegisterPatternCS(
@@ -524,7 +525,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
             b"SIP/2.0\0".as_ptr() as *const std::os::raw::c_char,
             8,
             0,
-            core::Direction::ToClient as u8,
+            Direction::ToClient as u8,
         );
         if proto == core::IPPROTO_UDP {
             r |= AppLayerProtoDetectPMRegisterPatternCS(
@@ -533,7 +534,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
                 "UPDATE\0".as_ptr() as *const std::os::raw::c_char,
                 "UPDATE".len() as u16,
                 0,
-                core::Direction::ToServer as u8,
+                Direction::ToServer as u8,
             );
         }
     }

@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 
-use crate::core::Direction;
+use crate::direction::Direction;
 use brotli;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;

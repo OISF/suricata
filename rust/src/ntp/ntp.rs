@@ -20,8 +20,9 @@
 extern crate ntp_parser;
 use self::ntp_parser::*;
 use crate::core;
-use crate::core::{AppProto,ALPROTO_UNKNOWN,ALPROTO_FAILED,Direction};
+use crate::core::{AppProto,ALPROTO_UNKNOWN,ALPROTO_FAILED};
 use crate::applayer::{self, *};
+use crate::direction::Direction;
 use crate::flow::Flow;
 use std;
 use std::ffi::CString;

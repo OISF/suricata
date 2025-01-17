@@ -26,6 +26,8 @@ use nom7::{Err, Needed};
 
 use crate::applayer;
 use crate::applayer::*;
+use crate::direction::Direction;
+use crate::direction::DIR_BOTH;
 use crate::flow::Flow;
 use crate::frames::*;
 use crate::core::*;
