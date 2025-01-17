@@ -679,6 +679,8 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(LdapFrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -736,6 +738,8 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
         flags: 0,
         get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(LdapFrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
