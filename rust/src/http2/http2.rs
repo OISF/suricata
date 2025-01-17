@@ -1571,6 +1571,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         flags: 0,
         get_frame_id_by_name: Some(Http2FrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(Http2FrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();

@@ -552,6 +552,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
+        get_state_id_by_name: None,
+        get_state_name_by_id: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
