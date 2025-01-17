@@ -20,6 +20,7 @@
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::flow::Flow;
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
@@ -113,7 +114,7 @@ impl SIPState {
     }
 
     // app-layer-frame-documentation tag start: parse_request
-    fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -149,7 +150,7 @@ impl SIPState {
     }
 
     fn parse_request_tcp(
-        &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
@@ -209,7 +210,7 @@ impl SIPState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -244,7 +245,7 @@ impl SIPState {
     }
 
     fn parse_response_tcp(
-        &mut self, flow: *const core::Flow, stream_slice: StreamSlice,
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
@@ -319,7 +320,7 @@ impl SIPTransaction {
 }
 
 // app-layer-frame-documentation tag start: function to add frames
-fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Request, tx_id: u64) {
+fn sip_frames_ts(flow: *const Flow, stream_slice: &StreamSlice, r: &Request, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
@@ -355,7 +356,7 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
 }
 // app-layer-frame-documentation tag end: function to add frames
 
-fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response, tx_id: u64) {
+fn sip_frames_tc(flow: *const Flow, stream_slice: &StreamSlice, r: &Response, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
@@ -439,7 +440,7 @@ pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -448,7 +449,7 @@ pub unsafe extern "C" fn rs_sip_parse_request(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request_tcp(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -465,7 +466,7 @@ pub unsafe extern "C" fn rs_sip_parse_request_tcp(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_response(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -474,7 +475,7 @@ pub unsafe extern "C" fn rs_sip_parse_response(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_response_tcp(
-    flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {

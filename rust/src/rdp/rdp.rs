@@ -20,7 +20,8 @@
 //! RDP application layer
 
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::flow::Flow;
 use crate::rdp::parser::*;
 use nom7::Err;
 use std;

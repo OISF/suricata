@@ -28,7 +28,8 @@ use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,R
 use asn1_rs::FromDer;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction, IPPROTO_TCP, IPPROTO_UDP};
+use crate::core::{AppProto,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction, IPPROTO_TCP, IPPROTO_UDP};
+use crate::flow::Flow;
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -428,7 +429,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -443,7 +444,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -458,7 +459,7 @@ pub unsafe extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -516,7 +517,7 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,

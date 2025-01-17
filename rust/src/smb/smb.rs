@@ -39,6 +39,7 @@ use std::num::NonZeroUsize;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
+use crate::flow::{Flow, FLOW_DIR_REVERSED};
 use crate::frames::*;
 use crate::conf::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
