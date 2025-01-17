@@ -188,6 +188,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->ip_proto, alproto, p->GetFrameIdByName, p->GetFrameNameById);
     }
 
+    if (p->GetStateIdByName && p->GetStateNameById) {
+        AppLayerParserRegisterGetStateFuncs(
+                p->ip_proto, alproto, p->GetStateIdByName, p->GetStateNameById);
+    }
+
     return 0;
 }
 
