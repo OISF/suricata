@@ -15,12 +15,13 @@
  * 02110-1301, USA.
  */
 
+use crate::core;
 use crate::applayer::{self, *};
-use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
     rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
+use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::Err;
 use std;

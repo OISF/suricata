@@ -21,8 +21,8 @@ use super::{
     frames::{Frame, QuicTlsExtension, StreamTag},
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
-use crate::{applayer::{self, *}, flow::Flow};
-use crate::core::{AppProto, Direction, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::{applayer::{self, *}, direction::Direction, flow::Flow};
+use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;

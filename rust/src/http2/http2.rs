@@ -23,6 +23,7 @@ use super::range;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::*;
+use crate::direction::Direction;
 use crate::filecontainer::*;
 use crate::filetracker::*;
 use crate::flow::Flow;

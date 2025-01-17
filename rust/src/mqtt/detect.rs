@@ -1426,7 +1426,7 @@ pub unsafe extern "C" fn ScDetectMqttRegister() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::core::Direction;
+    use crate::direction::Direction;
     use crate::detect::uint::DetectUintMode;
     use crate::mqtt::mqtt::MQTTTransaction;
     use crate::mqtt::mqtt_message::*;

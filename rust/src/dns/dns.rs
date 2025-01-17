@@ -22,6 +22,8 @@ use std::ffi::CString;
 
 use crate::applayer::*;
 use crate::core::{self, *};
+use crate::direction::Direction;
+use crate::direction::DIR_BOTH;
 use crate::dns::parser;
 use crate::flow::Flow;
 use crate::frames::Frame;

@@ -19,7 +19,7 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 /* TEMPLATE_START_REMOVE */
 use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
-use crate::core::Direction;
+use crate::direction::Direction;
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
