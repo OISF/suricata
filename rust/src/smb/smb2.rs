@@ -17,8 +17,7 @@
 
 use nom7::Err;
 
-use crate::core::*;
-
+use crate::direction::Direction;
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
 use crate::smb::smb2_session::*;

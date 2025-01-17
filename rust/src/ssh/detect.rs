@@ -16,7 +16,7 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::core::Direction;
+use crate::direction::Direction;
 use std::ptr;
 
 #[no_mangle]

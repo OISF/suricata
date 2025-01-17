@@ -18,6 +18,7 @@
 use crate::applayer::{self, *};
 use crate::core::{self, *};
 use crate::dcerpc::parser;
+use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::error::{Error, ErrorKind};
 use nom7::number::Endianness;
@@ -1389,6 +1390,7 @@ mod tests {
     use crate::applayer::AppLayerResult;
     use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
+    use crate::direction::Direction;
     use std::cmp;
 
     #[test]

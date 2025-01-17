@@ -28,7 +28,8 @@ use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,R
 use asn1_rs::FromDer;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction, IPPROTO_TCP, IPPROTO_UDP};
+use crate::core::{AppProto,ALPROTO_FAILED,ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::direction::Direction;
 use crate::flow::Flow;
 
 #[derive(AppLayerEvent)]
