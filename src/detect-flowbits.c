@@ -624,11 +624,11 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             SCLogDebug("SET flowbit %s/%u: SID %u", varname, i,
                     de_ctx->sig_array[array[i].set_sids[x]]->id);
         }
-        for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
-            Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
-            SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
+        if (to_state) {
+            for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
+                Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
+                SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
 
-            if (to_state) {
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
                 SCLogDebug("made SID %u stateful because it depends on "
                         "stateful rules that set flowbit %s", s->id, varname);
