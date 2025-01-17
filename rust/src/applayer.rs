@@ -429,6 +429,9 @@ pub struct RustParser {
 
     pub get_frame_id_by_name: Option<GetFrameIdByName>,
     pub get_frame_name_by_id: Option<GetFrameNameById>,
+
+    pub get_state_id_by_name: Option<GetStateIdByName>,
+    pub get_state_name_by_id: Option<GetStateNameById>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -481,6 +484,8 @@ pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStat
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
+pub type GetStateIdByName = unsafe extern "C" fn(*const c_char, u8) -> c_int;
+pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
