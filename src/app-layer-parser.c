@@ -107,6 +107,9 @@ typedef struct AppLayerParserProtoCtx_
     AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
     AppLayerParserGetFrameNameByIdFn GetFrameNameById;
 
+    AppLayerParserGetStateIdByNameFn GetStateIdByName;
+    AppLayerParserGetStateNameByIdFn GetStateNameById;
+
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -565,6 +568,16 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetEventInfoById =
             StateGetEventInfoById;
 
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc)
+{
+    SCEnter();
+    alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateIdByName = GetIdByNameFunc;
+    alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateNameById = GetNameByIdFunc;
     SCReturn;
 }
 
@@ -1589,6 +1602,35 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
         }
     }
     SCReturn;
+}
+
+/**
+ *  \param id progress value id to get the name for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+int AppLayerParserGetStateIdByName(
+        uint8_t ipproto, AppProto alproto, const char *name, const uint8_t direction)
+{
+    if (alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateIdByName != NULL) {
+        return alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateIdByName(
+                name, direction);
+    } else {
+        return -1;
+    }
+}
+
+/**
+ *  \param id progress value id to get the name for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+const char *AppLayerParserGetStateNameById(
+        uint8_t ipproto, AppProto alproto, const int id, const uint8_t direction)
+{
+    if (alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateNameById != NULL) {
+        return alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].GetStateNameById(id, direction);
+    } else {
+        return NULL;
+    }
 }
 
 int AppLayerParserGetFrameIdByName(uint8_t ipproto, AppProto alproto, const char *name)
