@@ -43,6 +43,58 @@
 #include "util-enum.h"
 #include "util-validate.h"
 
+static SCEnumCharMap tls_state_client_table[] = {
+    {
+            "client_in_progress",
+            TLS_STATE_CLIENT_IN_PROGRESS,
+    },
+    {
+            "client_hello_done",
+            TLS_STATE_CLIENT_HELLO_DONE,
+    },
+    {
+            "client_cert_done",
+            TLS_STATE_CLIENT_CERT_DONE,
+    },
+    {
+            "client_handshake_done",
+            TLS_STATE_CLIENT_HANDSHAKE_DONE,
+    },
+    {
+            "client_finished",
+            TLS_STATE_CLIENT_FINISHED,
+    },
+    { NULL, -1 },
+};
+
+static SCEnumCharMap tls_state_server_table[] = {
+    {
+            "server_in_progress",
+            TLS_STATE_SERVER_IN_PROGRESS,
+    },
+    {
+            "server_hello",
+            TLS_STATE_SERVER_HELLO,
+    },
+    {
+            "server_cert_done",
+            TLS_STATE_SERVER_CERT_DONE,
+    },
+    {
+            "server_hello_done",
+            TLS_STATE_SERVER_HELLO_DONE,
+    },
+    {
+            "server_handshake_done",
+            TLS_STATE_SERVER_HANDSHAKE_DONE,
+    },
+    {
+            "server_finished",
+            TLS_STATE_SERVER_FINISHED,
+    },
+    { NULL, -1 },
+};
+
 SCEnumCharMap tls_frame_table[] = {
     {
             "pdu",
@@ -3032,6 +3084,26 @@ static AppProto SSLProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_FAILED;
 }
 
+static int SSLStateGetStateIdByName(const char *name, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? tls_state_client_table : tls_state_server_table;
+
+    int id = SCMapEnumNameToValue(name, map);
+    if (id < 0) {
+        return -1;
+    }
+    return id;
+}
+
+static const char *SSLStateGetStateNameById(const int id, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? tls_state_client_table : tls_state_server_table;
+    const char *name = SCMapEnumValueToName(id, map);
+    return name;
+}
+
 static int SSLStateGetFrameIdByName(const char *frame_name)
 {
     int id = SCMapEnumNameToValue(frame_name, tls_frame_table);
@@ -3318,7 +3390,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOCLIENT,
                                      SSLParseServerRecord);
-
+        AppLayerParserRegisterGetStateFuncs(
+                IPPROTO_TCP, ALPROTO_TLS, SSLStateGetStateIdByName, SSLStateGetStateNameById);
         AppLayerParserRegisterGetFrameFuncs(
                 IPPROTO_TCP, ALPROTO_TLS, SSLStateGetFrameIdByName, SSLStateGetFrameNameById);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfo);
