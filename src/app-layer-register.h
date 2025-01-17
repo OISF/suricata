@@ -74,6 +74,8 @@ typedef struct AppLayerParser {
     AppLayerParserGetFrameIdByNameFn GetFrameIdByName;
     AppLayerParserGetFrameNameByIdFn GetFrameNameById;
 
+    AppLayerParserGetStateIdByNameFn GetStateIdByName;
+    AppLayerParserGetStateNameByIdFn GetStateNameById;
 } AppLayerParser;
 
 /**
