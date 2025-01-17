@@ -94,7 +94,7 @@ int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppPr
     return DetectBufferTypeGetByName(name);
 }
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
+int SCDetectHelperNewKeywordId(void)
 {
     if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
         void *tmp = SCRealloc(
@@ -103,48 +103,55 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
             return -1;
         }
         sigmatch_table = tmp;
+        memset(&sigmatch_table[DETECT_TBLSIZE], 0, DETECT_TBLSIZE_STEP * sizeof(SigTableElmt));
         DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
     }
 
-    sigmatch_table[DETECT_TBLSIZE_IDX].name = kw->name;
-    sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
-    sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
-    sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
-    sigmatch_table[DETECT_TBLSIZE_IDX].AppLayerTxMatch =
-            (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
-                    void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
     DETECT_TBLSIZE_IDX++;
     return DETECT_TBLSIZE_IDX - 1;
 }
 
-int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
+int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
 {
-    if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
-        void *tmp = SCRealloc(
-                sigmatch_table, (DETECT_TBLSIZE + DETECT_TBLSIZE_STEP) * sizeof(SigTableElmt));
-        if (unlikely(tmp == NULL)) {
-            return -1;
-        }
-        sigmatch_table = tmp;
-        DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
+    int keyword_id = SCDetectHelperNewKeywordId();
+    if (keyword_id < 0) {
+        return -1;
     }
 
-    sigmatch_table[DETECT_TBLSIZE_IDX].name = kw->name;
-    sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
-    sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
-    sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Transform =
-            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
-    sigmatch_table[DETECT_TBLSIZE_IDX].TransformValidate = (bool (*)(
-            const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
+    sigmatch_table[keyword_id].name = kw->name;
+    sigmatch_table[keyword_id].desc = kw->desc;
+    sigmatch_table[keyword_id].url = kw->url;
+    sigmatch_table[keyword_id].flags = kw->flags;
+    sigmatch_table[keyword_id].AppLayerTxMatch =
+            (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
+                    void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
+    sigmatch_table[keyword_id].Setup =
             (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
-    DETECT_TBLSIZE_IDX++;
-    return DETECT_TBLSIZE_IDX - 1;
+    sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+
+    return keyword_id;
+}
+
+int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
+{
+    int transform_id = SCDetectHelperNewKeywordId();
+    if (transform_id < 0) {
+        return -1;
+    }
+
+    sigmatch_table[transform_id].name = kw->name;
+    sigmatch_table[transform_id].desc = kw->desc;
+    sigmatch_table[transform_id].url = kw->url;
+    sigmatch_table[transform_id].flags = kw->flags;
+    sigmatch_table[transform_id].Transform =
+            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
+    sigmatch_table[transform_id].TransformValidate = (bool (*)(
+            const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
+    sigmatch_table[transform_id].Setup =
+            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
+    sigmatch_table[transform_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+
+    return transform_id;
 }
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,

@@ -28,6 +28,8 @@
 #include "detect.h"
 #include "rust.h"
 
+int SCDetectHelperNewKeywordId(void);
+
 int DetectHelperKeywordRegister(const SCSigTableElmt *kw);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 
