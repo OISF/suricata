@@ -19,6 +19,7 @@
 #define SURICATA_PACKET_H
 
 #include "decode.h"
+#include "util-device.h"
 
 void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r);
 bool PacketCheckAction(const Packet *p, const uint8_t a);
@@ -35,5 +36,32 @@ void PacketReleaseRefs(Packet *p);
 void PacketReinit(Packet *p);
 void PacketRecycle(Packet *p);
 void PacketDestructor(Packet *p);
+
+/** \brief Set a packet release function.
+ *
+ * Set a custom release function for packet. This is required if extra
+ * non-standard packet was done that needs to be cleaned up when
+ * Suricata is done with a packet.
+ *
+ * Its also where IPS actions may be done.
+ */
+void SCPacketSetReleasePacket(Packet *p, void (*ReleasePacket)(Packet *p));
+
+/** \brief Set a packets live device. */
+void SCPacketSetLiveDevice(Packet *p, LiveDevice *device);
+
+/** \brief Set a packets data link type. */
+void SCPacketSetDatalink(Packet *p, int datalink);
+
+/** \brief Set the timestamp for a packet.
+ *
+ * \param ts A timestamp in SCTime_t format. See SCTIME_FROM_TIMEVAL
+ *     for conversion from struct timeval.
+ */
+void SCPacketSetTime(Packet *p, SCTime_t ts);
+
+/** \brief Set packet source.
+ */
+void SCPacketSetSource(Packet *p, enum PktSrcEnum source);
 
 #endif

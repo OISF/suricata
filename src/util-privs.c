@@ -72,6 +72,8 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
                     CAP_SYS_NICE,
                     -1);
             break;
+        default:
+            break;
     }
 
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
