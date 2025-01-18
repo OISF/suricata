@@ -394,6 +394,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
+    bool flow_incremented = false;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     if (flags & STREAM_TOSERVER) {
@@ -474,6 +475,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         /* account flow if we have both sides */
         if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+            flow_incremented = true;
             AppLayerIncFlowCounter(tv, f);
         }
 
@@ -572,6 +574,8 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     // can happen in detection-only
                     AppLayerIncFlowCounter(tv, f);
                 }
+            } else if (!flow_incremented) {
+                AppLayerIncFlowCounter(tv, f);
             }
         }
         if (r < 0) {
