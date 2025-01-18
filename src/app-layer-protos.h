@@ -56,7 +56,6 @@ enum AppProtoEnum {
     ALPROTO_KRB5,
     ALPROTO_QUIC,
     ALPROTO_DHCP,
-    ALPROTO_SNMP,
     ALPROTO_SIP,
     ALPROTO_RFB,
     ALPROTO_MQTT,
@@ -78,6 +77,7 @@ enum AppProtoEnum {
     /* keep last */
     ALPROTO_MAX_STATIC,
     // After this ALPROTO_MAX_STATIC can come dynamic alproto ids
+    // For example, ALPROTO_SNMP is now dynamic
 };
 // NOTE: if ALPROTO's get >= 256, update SignatureNonPrefilterStore
 
@@ -174,6 +174,8 @@ const char *AppProtoToString(AppProto alproto);
  * \retval alproto App layer protocol id, or ALPROTO_UNKNOWN.
  */
 AppProto StringToAppProto(const char *proto_name);
+
+AppProto AppProtoNewProtoFromString(const char *proto_name);
 
 void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name);
 
