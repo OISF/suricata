@@ -56,8 +56,7 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         if (!GetBuf(txv, flow_flags, &b, &b_len))
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
     return buffer;
 }
@@ -137,8 +136,8 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[DETECT_TBLSIZE_IDX].desc = kw->desc;
     sigmatch_table[DETECT_TBLSIZE_IDX].url = kw->url;
     sigmatch_table[DETECT_TBLSIZE_IDX].flags = kw->flags;
-    sigmatch_table[DETECT_TBLSIZE_IDX].Transform =
-            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
+    sigmatch_table[DETECT_TBLSIZE_IDX].Transform = (void (*)(struct DetectEngineThreadCtx_ *det_ctx,
+            InspectionBuffer *buffer, void *options))kw->Transform;
     sigmatch_table[DETECT_TBLSIZE_IDX].TransformValidate = (bool (*)(
             const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
     sigmatch_table[DETECT_TBLSIZE_IDX].Setup =
@@ -167,7 +166,7 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
