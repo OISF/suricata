@@ -69,3 +69,4 @@ test.sh
 /libsuricata-config
 !/libsuricata-config.in
 !/.readthedocs.yaml
+compile_commands.json

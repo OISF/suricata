@@ -1849,21 +1849,21 @@ static int SockFanoutSeteBPF(AFPThreadVars *ptv)
     return 0;
 }
 
-static int SetEbpfFilter(AFPThreadVars *ptv)
+static TmEcode SetEbpfFilter(AFPThreadVars *ptv)
 {
     int pfd = ptv->ebpf_filter_fd;
     if (pfd == -1) {
         SCLogError("Filter file descriptor is invalid");
-        return -1;
+        return TM_ECODE_FAILED;
     }
 
     if (setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_BPF, &pfd, sizeof(pfd))) {
         SCLogError("Error setting ebpf: %s", strerror(errno));
-        return -1;
+        return TM_ECODE_FAILED;
     }
     SCLogInfo("Activated eBPF filter on socket");
 
-    return 0;
+    return TM_ECODE_OK;
 }
 #endif
 

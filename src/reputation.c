@@ -297,7 +297,8 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
-    uint8_t c, v;
+    uint8_t c;
+    uint8_t v;
     if (StringParseU8RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS - 1) < 0)
         return -1;
 
@@ -307,18 +308,17 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     if (strchr(ptrs[0], '/') != NULL) {
         SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
         return 1;
-    } else {
-        if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
-            ip->family = AF_INET;
-        } else if (inet_pton(AF_INET6, ptrs[0], &ip->address) == 1) {
-            ip->family = AF_INET6;
-        } else {
-            return -1;
-        }
-
-        *cat = c;
-        *value = v;
     }
+    if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
+        ip->family = AF_INET;
+    } else if (inet_pton(AF_INET6, ptrs[0], &ip->address) == 1) {
+        ip->family = AF_INET6;
+    } else {
+        return -1;
+    }
+
+    *cat = c;
+    *value = v;
 
     return 0;
 }
@@ -448,7 +448,8 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
         memset(&a, 0x00, sizeof(a));
         a.family = AF_INET;
 
-        uint8_t cat = 0, value = 0;
+        uint8_t cat = 0;
+        uint8_t value = 0;
         int r = SRepSplitLine(cidr_ctx, line, &a, &cat, &value);
         if (r < 0) {
             SCLogError("bad line \"%s\"", line);
@@ -467,45 +468,42 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
             if (h == NULL) {
                 SCLogError("failed to get a host, increase host.memcap");
                 break;
-            } else {
-                //SCLogInfo("host %p", h);
+            } // SCLogInfo("host %p", h);
 
-                if (h->iprep == NULL) {
-                    h->iprep = SCCalloc(1, sizeof(SReputation));
-                    if (h->iprep != NULL) {
-                        HostIncrUsecnt(h);
-                    }
-                }
+            if (h->iprep == NULL) {
+                h->iprep = SCCalloc(1, sizeof(SReputation));
                 if (h->iprep != NULL) {
-                    SReputation *rep = h->iprep;
+                    HostIncrUsecnt(h);
+                }
+            }
+            if (h->iprep != NULL) {
+                SReputation *rep = h->iprep;
 
-                    /* if version is outdated, it's an older entry that we'll
-                     * now replace. */
-                    if (rep->version != SRepGetVersion()) {
-                        memset(rep, 0x00, sizeof(SReputation));
-                    }
-
-                    rep->version = SRepGetVersion();
-                    rep->rep[cat] = value;
-
-                    SCLogDebug("host %p iprep %p setting cat %u to value %u",
-                        h, h->iprep, cat, value);
-#ifdef DEBUG
-                    if (SCLogDebugEnabled()) {
-                        int i;
-                        for (i = 0; i < SREP_MAX_CATS; i++) {
-                            if (rep->rep[i] == 0)
-                                continue;
-
-                            SCLogDebug("--> host %p iprep %p cat %d to value %u",
-                                    h, h->iprep, i, rep->rep[i]);
-                        }
-                    }
-#endif
+                /* if version is outdated, it's an older entry that we'll
+                 * now replace. */
+                if (rep->version != SRepGetVersion()) {
+                    memset(rep, 0x00, sizeof(SReputation));
                 }
 
-                HostRelease(h);
+                rep->version = SRepGetVersion();
+                rep->rep[cat] = value;
+
+                SCLogDebug("host %p iprep %p setting cat %u to value %u", h, h->iprep, cat, value);
+#ifdef DEBUG
+                if (SCLogDebugEnabled()) {
+                    int i;
+                    for (i = 0; i < SREP_MAX_CATS; i++) {
+                        if (rep->rep[i] == 0)
+                            continue;
+
+                        SCLogDebug("--> host %p iprep %p cat %d to value %u", h, h->iprep, i,
+                                rep->rep[i]);
+                    }
+                }
+#endif
             }
+
+            HostRelease(h);
         }
     }
 

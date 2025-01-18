@@ -499,10 +499,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
 
 #endif /* DEBUG */
 
+#if !HAVE_QUICK_EXIT
+#define quick_exit exit
+#endif
+
 #define FatalError(...)                                                                            \
     do {                                                                                           \
         SCLogError(__VA_ARGS__);                                                                   \
-        exit(EXIT_FAILURE);                                                                        \
+        quick_exit(EXIT_FAILURE);                                                                  \
     } while (0)
 
 /** \brief Fatal error IF we're starting up, and configured to consider
@@ -515,7 +519,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
         (void)ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);                        \
         if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT)) {                 \
             SCLogError(__VA_ARGS__);                                                               \
-            exit(EXIT_FAILURE);                                                                    \
+            quick_exit(EXIT_FAILURE);                                                              \
         }                                                                                          \
         SCLogWarning(__VA_ARGS__);                                                                 \
     } while (0)
