@@ -296,6 +296,11 @@ static void TransformLuaxform(
         return;
     }
 
+    if (det_ctx->p) {
+        LuaStateSetPacket(tlua->luastate, det_ctx->p);
+        LuaStateSetFlow(tlua->luastate, det_ctx->p->flow);
+    }
+
     lua_getglobal(tlua->luastate, "transform");
 
     const uint8_t *input = buffer->inspect;
