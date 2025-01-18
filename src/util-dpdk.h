@@ -121,6 +121,8 @@ void DPDKCleanupEAL(void);
 
 void DPDKCloseDevice(LiveDevice *ldev);
 void DPDKFreeDevice(LiveDevice *ldev);
+int32_t DPDKDeviceSetSocketID(uint16_t port_id, int32_t *socket_id);
+int32_t DPDKDeviceNameSetSocketID(char *iface_name, int32_t *socket_id);
 
 #ifdef HAVE_DPDK
 const char *DPDKGetPortNameByPortID(uint16_t pid);

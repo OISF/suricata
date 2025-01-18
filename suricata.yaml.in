@@ -1777,6 +1777,7 @@ spm-algo: auto
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
   set-cpu-affinity: no
+  autopin: no
   # Tune cpu affinity of threads. Each family of threads can be bound
   # to specific CPUs.
   #
@@ -1789,25 +1790,39 @@ threading:
   # verdict-cpu-set is used for IPS verdict threads
   #
   cpu-affinity:
-    - management-cpu-set:
-        cpu: [ 0 ]  # include only these CPUs in affinity settings
-    - receive-cpu-set:
-        cpu: [ 0 ]  # include only these CPUs in affinity settings
-    - worker-cpu-set:
-        cpu: [ "all" ]
-        mode: "exclusive"
-        # Use explicitly 3 threads and don't compute number by using
-        # detect-thread-ratio variable:
-        # threads: 3
-        prio:
-          low: [ 0 ]
-          medium: [ "1-2" ]
-          high: [ 3 ]
-          default: "medium"
-    #- verdict-cpu-set:
-    #    cpu: [ 0 ]
-    #    prio:
-    #      default: "high"
+    management-cpu-set:
+      cpu: [ 0 ]  # include only these CPUs in affinity settings
+    receive-cpu-set:
+      cpu: [ 0 ]  # include only these CPUs in affinity settings
+      # interface-specific-cpu-set:
+      #   - interface: "enp4s0f0"
+      #     cpu: [ 1,3,5,7,9 ]
+      #     mode: "exclusive"
+      #     prio:
+      #       high: [ "all" ]
+      #       default: "medium"
+    worker-cpu-set:
+      cpu: [ "all" ]
+      mode: "exclusive"
+      # Use explicitly 3 threads and don't compute number by using
+      # detect-thread-ratio variable:
+      # threads: 3
+      prio:
+        low: [ 0 ]
+        medium: [ "1-2" ]
+        high: [ 3 ]
+        default: "medium"
+      interface-specific-cpu-set:
+        - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
+          cpu: [ 1,3,5,7,9 ]
+          mode: "exclusive"
+          prio:
+            high: [ "all" ]
+            default: "medium"
+    #verdict-cpu-set:
+    #  cpu: [ 0 ]
+    #  prio:
+    #    default: "high"
   #
   # By default Suricata creates one "detect" thread per available CPU/CPU core.
   # This setting allows controlling this behaviour. A ratio setting of 2 will
