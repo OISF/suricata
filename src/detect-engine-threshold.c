@@ -524,8 +524,8 @@ static void FlowThresholdEntryListFree(FlowThresholdEntryList *list)
 /** struct for storing per flow thresholds. This will be stored in the Flow::flowvar list, so it
  * needs to follow the GenericVar header format. */
 typedef struct FlowVarThreshold_ {
-    uint8_t type;
-    uint8_t pad[7];
+    uint16_t type;
+    uint8_t pad[6];
     struct GenericVar_ *next;
     FlowThresholdEntryList *thresholds;
 } FlowVarThreshold;

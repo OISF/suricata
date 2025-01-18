@@ -51,7 +51,7 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
  *  \note flow is not locked by this function, caller is
  *        responsible
  */
-FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen)
+FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, FlowVarKeyLenType keylen)
 {
     if (f == NULL)
         return NULL;
@@ -91,7 +91,8 @@ FlowVar *FlowVarGet(Flow *f, uint32_t idx)
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddKeyValue(Flow *f, uint8_t *key, uint16_t keysize, uint8_t *value, uint16_t size)
+void FlowVarAddKeyValue(
+        Flow *f, uint8_t *key, FlowVarKeyLenType keylen, uint8_t *value, uint16_t size)
 {
     FlowVar *fv = SCCalloc(1, sizeof(FlowVar));
     if (unlikely(fv == NULL))
@@ -103,7 +104,7 @@ void FlowVarAddKeyValue(Flow *f, uint8_t *key, uint16_t keysize, uint8_t *value,
     fv->data.fv_str.value = value;
     fv->data.fv_str.value_len = size;
     fv->key = key;
-    fv->keylen = keysize;
+    fv->keylen = keylen;
     fv->next = NULL;
 
     GenericVarAppend(&f->flowvar, (GenericVar *)fv);

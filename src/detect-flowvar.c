@@ -200,9 +200,8 @@ error:
 }
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx,
-        uint8_t *key, uint16_t key_len,
-        uint8_t *buffer, uint16_t len, int type)
+int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx, uint8_t *key, uint16_t key_len,
+        uint8_t *buffer, uint16_t len, uint16_t type)
 {
     DetectVarList *fs = SCCalloc(1, sizeof(*fs));
     if (unlikely(fs == NULL))
@@ -220,9 +219,8 @@ int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx,
 }
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx,
-        uint32_t idx,
-        uint8_t *buffer, uint16_t len, int type)
+int DetectVarStoreMatch(
+        DetectEngineThreadCtx *det_ctx, uint32_t idx, uint8_t *buffer, uint16_t len, uint16_t type)
 {
     DetectVarList *fs = det_ctx->varlist;
 

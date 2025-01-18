@@ -129,7 +129,7 @@ static int GetFlowVarByKey(lua_State *luastate, Flow *f, FlowVar **ret_fv)
         LUA_ERROR("key len out of range: max 256");
     }
 
-    FlowVar *fv = FlowVarGetByKey(f, (const uint8_t *)keystr, (uint16_t)keylen);
+    FlowVar *fv = FlowVarGetByKey(f, (const uint8_t *)keystr, (uint8_t)keylen);
     if (fv == NULL) {
         LUA_ERROR("no flow var");
     }
@@ -269,7 +269,7 @@ static int LuaSetFlowvarByKey(lua_State *luastate)
     }
     keylen = lua_tonumber(luastate, 2);
     if (keylen < 0 || keylen > 0xff) {
-        LUA_ERROR("key len out of range: max 256");
+        LUA_ERROR("key len out of range: max 255");
     }
 
     if (!lua_isstring(luastate, 3)) {
@@ -302,7 +302,7 @@ static int LuaSetFlowvarByKey(lua_State *luastate)
     }
     memcpy(keybuf, keystr, keylen);
     keybuf[keylen] = '\0';
-    FlowVarAddKeyValue(f, keybuf, (uint16_t)keylen, buffer, (uint16_t)len);
+    FlowVarAddKeyValue(f, keybuf, (uint8_t)keylen, buffer, (uint16_t)len);
 
     return 0;
 }
