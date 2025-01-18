@@ -77,16 +77,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].cap_flags = SC_CAP_NET_ADMIN;
 }
 
-void TmModuleDecodeNFQRegister (void)
-{
-    tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
-    tmm_modules[TMM_DECODENFQ].ThreadInit = NoNFQSupportExit;
-    tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODENFQ].cap_flags = 0;
-    tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
-}
-
 static TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     FatalError("Error creating thread %s: you do not "
@@ -114,6 +104,7 @@ typedef struct NFQThreadVars_
 {
     uint16_t nfq_index;
     ThreadVars *tv;
+    DecodeThreadVars *dtv;
     TmSlot *slot;
 
     LiveDevice *livedev;
@@ -121,6 +112,7 @@ typedef struct NFQThreadVars_
     char *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
 } NFQThreadVars;
+
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
@@ -138,9 +130,7 @@ static TmEcode VerdictNFQ(ThreadVars *, Packet *, void *);
 static TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-static TmEcode DecodeNFQ(ThreadVars *, Packet *, void *);
-static TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
-static TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
+static TmEcode DecodeNFQ(ThreadVars *, Packet *, DecodeThreadVars *);
 
 static TmEcode NFQSetVerdict(Packet *p, const uint32_t mark_value, const bool mark_modified);
 static void NFQReleasePacket(Packet *p);
@@ -187,15 +177,6 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = VerdictNFQThreadDeinit;
-}
-
-void TmModuleDecodeNFQRegister (void)
-{
-    tmm_modules[TMM_DECODENFQ].name = "DecodeNFQ";
-    tmm_modules[TMM_DECODENFQ].ThreadInit = DecodeNFQThreadInit;
-    tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
-    tmm_modules[TMM_DECODENFQ].ThreadDeinit = DecodeNFQThreadDeinit;
-    tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
 
 /** \brief          To initialize the NFQ global configuration data
@@ -584,6 +565,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 #endif /* COUNTERS */
     (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
 
+    DecodeNFQ(tv, p, ntv->dtv);
     if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
         return -1;
     }
@@ -736,6 +718,12 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
     /* store the ThreadVars pointer in our NFQ thread context
      * as we will need it in our callback function */
     ntv->tv = tv;
+    ntv->dtv = DecodeThreadVarsAlloc(tv);
+    if (ntv->dtv == NULL) {
+        SCMutexUnlock(&nfq_init_lock);
+        FatalError("nfq thread failed to initialize");
+    }
+    DecodeRegisterPerfCounters(ntv->dtv, ntv->tv);
 
     int r = NFQInitThread(ntv, (max_pending_packets * NFQ_BURST_FACTOR));
     if (r != TM_ECODE_OK) {
@@ -791,6 +779,8 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
     ntv->datalen = 0;
 
     NFQDestroyQueue(nq);
+    if (ntv->dtv)
+        DecodeThreadVarsFree(ntv->tv, ntv->dtv);
 
     return TM_ECODE_OK;
 }
@@ -1240,12 +1230,10 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 /**
  * \brief Decode a packet coming from NFQ
  */
-TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data)
+TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, DecodeThreadVars *dtv)
 {
-
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     BUG_ON(PKT_IS_PSEUDOPKT(p));
 
@@ -1270,28 +1258,6 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data)
     PacketDecodeFinalize(tv, dtv, p);
 
     return TM_ECODE_OK;
-}
-
-/**
- * \brief Initialize the NFQ Decode threadvars
- */
-TmEcode DecodeNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
-{
-    DecodeThreadVars *dtv = DecodeThreadVarsAlloc(tv);
-    if (dtv == NULL)
-        SCReturnInt(TM_ECODE_FAILED);
-
-    DecodeRegisterPerfCounters(dtv, tv);
-
-    *data = (void *)dtv;
-    return TM_ECODE_OK;
-}
-
-TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
-{
-    if (data != NULL)
-        DecodeThreadVarsFree(tv, data);
-    SCReturnInt(TM_ECODE_OK);
 }
 
 /**

@@ -140,7 +140,7 @@ void TmModuleDecodePfringRegister(int slot)
     tmm_modules[slot].Func = DecodePfring;
     tmm_modules[slot].ThreadExitPrintStats = NULL;
     tmm_modules[slot].ThreadDeinit = DecodePfringThreadDeinit;
-    tmm_modules[slot].flags = TM_FLAG_DECODE_TM;
+    tmm_modules[slot].flags = 0;
 }
 
 static inline void PfringDumpCounters(PfringThreadVars *ptv)
