@@ -56,6 +56,11 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
     ht->Hash = Hash;
     ht->Free = Free;
 
+    if ((size & (size - 1)) == 0) { /* is power of 2 */
+        ht->array_mask = size - 1;
+    } else {
+        ht->array_mask = 0;
+    }
     if (Compare != NULL)
         ht->Compare = Compare;
     else

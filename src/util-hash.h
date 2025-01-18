@@ -38,6 +38,7 @@ typedef struct HashTable_ {
     HashTableBucket *list;     /** Preallocated bucket pointer */
     int preallocated;
     uint32_t array_size;
+    uint32_t array_mask;
 #ifdef UNITTESTS
     uint32_t count;
 #endif
