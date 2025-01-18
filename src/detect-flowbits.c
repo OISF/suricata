@@ -630,6 +630,11 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 
             if (to_state) {
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
+                s->init_data->is_rule_state_dependant = true;
+                // fetch the signature id that sets the flowbit making the isset rule stateful
+                s->init_data->rule_state_dependant_id =
+                        de_ctx->sig_array[array[i].set_sids[array[i].set_sids_idx - 1]]->id;
+                s->init_data->rule_state_variable_idx = i;
                 SCLogDebug("made SID %u stateful because it depends on "
                         "stateful rules that set flowbit %s", s->id, varname);
             }
