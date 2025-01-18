@@ -1470,6 +1470,14 @@ flow:
   #managers: 1 # default to one flow manager
   #recyclers: 1 # default to one flow recycler thread
 
+# Mark a flow as an elephant flow if the rate of influx of bytes is equal to
+# or exceeds the given number. The rate is calculated by dividing the total
+# number of bytes a flow has seen in both the directions combined divided by
+# the time a flow has been alive.
+#elephant-flow-rate:
+#  bytes: 10KiB
+#  interval: 10ms  # allowed units: us, ms, s, m, h
+
 # This option controls the use of VLAN ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)
 # setups where both sides of a flow are not tagged with the same VLAN
