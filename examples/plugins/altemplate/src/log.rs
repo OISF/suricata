@@ -15,12 +15,17 @@
  * 02110-1301, USA.
  */
 
-use super::template::TemplateTransaction;
-use crate::jsonbuilder::{JsonBuilder, JsonError};
+// same file as rust/src/applayertemplate/logger.rs except
+// different paths for use statements
+// open_object using altemplate instead of just template
+
+use crate::suricata::{cast_pointer, JsonBuilder, JsonError};
+use crate::template::TemplateTransaction;
+
 use std;
 
 fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("template")?;
+    js.open_object("altemplate")?;
     if let Some(ref request) = tx.request {
         js.set_string("request", request)?;
     }
