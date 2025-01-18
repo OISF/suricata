@@ -31,12 +31,13 @@ use std::str;
 
 pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: Base64Mode = Base64Mode::Base64ModeRFC4648;
 
-const DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT: usize = 3;
+const DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT: usize = 4;
 pub const DETECT_TRANSFORM_BASE64_FLAG_MODE: u8 = 0x01;
 pub const DETECT_TRANSFORM_BASE64_FLAG_NBYTES: u8 = 0x02;
 pub const DETECT_TRANSFORM_BASE64_FLAG_OFFSET: u8 = 0x04;
 pub const DETECT_TRANSFORM_BASE64_FLAG_OFFSET_VAR: u8 = 0x08;
 pub const DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR: u8 = 0x10;
+pub const DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR: u8 = 0x20;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -132,6 +133,14 @@ fn parse_transform_base64(
                     return Err(make_error(format!("invalid mode value: {}", val)));
                 }
                 transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_MODE;
+            }
+
+            "set_error" => {
+                if 0 != (transform_base64.flags & DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR) {
+                    return Err(make_error("set_error already set".to_string()));
+                }
+
+                transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR;
             }
 
             "offset" => {
@@ -300,6 +309,9 @@ mod tests {
         assert!(
             parse_transform_base64("bytes 4, offset 70000, mode strict, mode rfc2045").is_err()
         );
+        assert!(
+            parse_transform_base64("set_error, set_error").is_err()
+        );
     }
 
     #[test]
@@ -398,6 +410,19 @@ mod tests {
                 | DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR
                 | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
                 | DETECT_TRANSFORM_BASE64_FLAG_MODE,
+        );
+        valid_test(
+            "bytes var, offset 3933, mode rfc4648, set_error",
+            0,
+            "var",
+            3933,
+            "",
+            Base64Mode::Base64ModeRFC4648,
+            DETECT_TRANSFORM_BASE64_FLAG_NBYTES
+                | DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR
+                | DETECT_TRANSFORM_BASE64_FLAG_OFFSET
+                | DETECT_TRANSFORM_BASE64_FLAG_MODE
+                | DETECT_TRANSFORM_BASE64_FLAG_SET_ERROR,
         );
     }
 }
