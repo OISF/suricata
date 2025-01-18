@@ -82,6 +82,8 @@ Major changes
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unmet requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`.
+- New rule keyword ``entropy`` for alerting based on entropy values. See
+  :ref:`keyword_entropy`.
 
 Removals
 ~~~~~~~~

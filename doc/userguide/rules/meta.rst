@@ -225,7 +225,7 @@ errors.
 
 Requirements that follow the valid format of ``<keyword>
 <expression>`` but are not known to Suricata are allowed for future
-compatiblity, however unknown requirement expressions will lead to the
+compatibility, however unknown requirement expressions will lead to the
 requirement not being met, skipping the rule.
 
 When parsing rules, the parser attempts to process the ``requires``
