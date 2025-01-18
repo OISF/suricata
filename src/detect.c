@@ -1487,6 +1487,10 @@ static void DetectRunTx(ThreadVars *tv,
         }
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
 
+        det_ctx->tx_id = tx.tx_id;
+        det_ctx->tx_id_set = true;
+        det_ctx->p = p;
+
         bool do_sort = false; // do we need to sort the tx candidate list?
         uint32_t array_idx = 0;
         uint32_t total_rules = det_ctx->match_array_cnt;
@@ -1579,9 +1583,6 @@ static void DetectRunTx(ThreadVars *tv,
         if (array_idx >= de_ctx->profile_match_logging_threshold)
             RulesDumpTxMatchArray(det_ctx, scratch->sgh, p, tx.tx_id, array_idx, x);
 #endif
-        det_ctx->tx_id = tx.tx_id;
-        det_ctx->tx_id_set = true;
-        det_ctx->p = p;
 
 #ifdef DEBUG
         for (uint32_t i = 0; i < array_idx; i++) {
