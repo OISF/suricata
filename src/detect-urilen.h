@@ -24,7 +24,7 @@
 #ifndef _DETECT_URILEN_H
 #define	_DETECT_URILEN_H
 
-bool DetectUrilenValidateContent(const Signature *s, int list, const char **);
+bool DetectUrilenValidateContent(const Signature *s, const char **, const DetectBufferType *dbt);
 void DetectUrilenApplyToContent(Signature *s, int list);
 void DetectUrilenRegister(void);
 

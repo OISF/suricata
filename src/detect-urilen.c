@@ -214,10 +214,11 @@ void DetectUrilenApplyToContent(Signature *s, int list)
     }
 }
 
-bool DetectUrilenValidateContent(const Signature *s, int list, const char **sigerror)
+bool DetectUrilenValidateContent(
+        const Signature *s, const char **sigerror, const DetectBufferType *dbt)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)list)
+        if (s->init_data->buffers[x].id != (uint32_t)dbt->id)
             continue;
         for (const SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
