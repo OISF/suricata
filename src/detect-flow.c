@@ -422,6 +422,13 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     if (parse_flags & DETECT_FLOW_FLAG_NOSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
     }
+
+    if (parse_flags & DETECT_FLOW_FLAG_ONLYSTREAM) {
+        s->flags |= (SIG_FLAG_REQUIRE_STREAM | SIG_FLAG_REQUIRE_STREAM_ONLY);
+    }
+    if (parse_flags & DETECT_FLOW_FLAG_NOSTREAM) {
+        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    }
     return 0;
 
 error:

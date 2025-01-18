@@ -2345,23 +2345,23 @@ uint16_t TmThreadsGetWorkerThreadMax(void)
  */
 void TmThreadsInjectFlowById(Flow *f, const int id)
 {
-    BUG_ON(id <= 0 || id > (int)thread_store.threads_size);
+    if (id > 0 && id <= (int)thread_store.threads_size) {
+        int idx = id - 1;
+        Thread *t = &thread_store.threads[idx];
+        ThreadVars *tv = t->tv;
+        if (tv != NULL && tv->flow_queue != NULL) {
+            FlowEnqueue(tv->flow_queue, f);
 
-    int idx = id - 1;
-
-    Thread *t = &thread_store.threads[idx];
-    ThreadVars *tv = t->tv;
-
-    BUG_ON(tv == NULL || tv->flow_queue == NULL);
-
-    FlowEnqueue(tv->flow_queue, f);
-
-    /* wake up listening thread(s) if necessary */
-    if (tv->inq != NULL) {
-        SCMutexLock(&tv->inq->pq->mutex_q);
-        SCCondSignal(&tv->inq->pq->cond_q);
-        SCMutexUnlock(&tv->inq->pq->mutex_q);
-    } else if (tv->break_loop) {
-        TmThreadsCaptureBreakLoop(tv);
+            /* wake up listening thread(s) if necessary */
+            if (tv->inq != NULL) {
+                SCMutexLock(&tv->inq->pq->mutex_q);
+                SCCondSignal(&tv->inq->pq->cond_q);
+                SCMutexUnlock(&tv->inq->pq->mutex_q);
+            } else if (tv->break_loop) {
+                TmThreadsCaptureBreakLoop(tv);
+            }
+            return;
+        }
     }
+    BUG_ON(1);
 }

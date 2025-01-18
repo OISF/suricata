@@ -1955,6 +1955,10 @@ static int DetectEngineInspectRulePayloadMatches(
                 SCLogDebug("SIG_FLAG_REQUIRE_STREAM_ONLY, so no match");
                 return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
+            if (s->flags & SIG_FLAG_REQUIRE_STREAM_ONLY) {
+                SCLogDebug("SIG_FLAG_REQUIRE_STREAM_ONLY, so no match");
+                return false;
+            }
             if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, p) != 1) {
                 return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
