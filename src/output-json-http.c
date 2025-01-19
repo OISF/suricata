@@ -333,7 +333,7 @@ static void EveHttpLogJSONHeaders(
                     if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
                             ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
                                     (http_fields[f].flags & LOG_HTTP_EXTENDED))) {
-                        if (bstr_cmp_c_nocase(h->name, http_fields[f].htp_field) == 0) {
+                        if (bstr_cmp_c_nocase(htp_header_name(h), http_fields[f].htp_field) == 0) {
                             tolog = true;
                             break;
                         }
@@ -346,14 +346,16 @@ static void EveHttpLogJSONHeaders(
         }
         array_empty = false;
         jb_start_object(js);
-        size_t size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ?
-            bstr_len(h->name) : MAX_SIZE_HEADER_NAME - 1;
-        memcpy(name, bstr_ptr(h->name), size_name);
+        size_t size_name = htp_header_name_len(h) < MAX_SIZE_HEADER_NAME - 1
+                                   ? htp_header_name_len(h)
+                                   : MAX_SIZE_HEADER_NAME - 1;
+        memcpy(name, htp_header_name_ptr(h), size_name);
         name[size_name] = '\0';
         jb_set_string(js, "name", name);
-        size_t size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1 ?
-            bstr_len(h->value) : MAX_SIZE_HEADER_VALUE - 1;
-        memcpy(value, bstr_ptr(h->value), size_value);
+        size_t size_value = htp_header_value_len(h) < MAX_SIZE_HEADER_VALUE - 1
+                                    ? htp_header_value_len(h)
+                                    : MAX_SIZE_HEADER_VALUE - 1;
+        memcpy(value, htp_header_value_ptr(h), size_value);
         value[size_value] = '\0';
         jb_set_string(js, "value", value);
         jb_close(js);
