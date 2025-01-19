@@ -59,7 +59,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
@@ -86,8 +85,8 @@ static uint8_t *GetBufferForTX(
         return NULL;
     }
 
-    bstr *line = NULL;
-    htp_table_t *headers;
+    const bstr *line = NULL;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_REQUEST_PROGRESS_HEADERS)
@@ -116,11 +115,11 @@ static uint8_t *GetBufferForTX(
     buf->buffer[buf->len++] = '\n';
 
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(headers);
+    size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
-        size_t size1 = bstr_size(h->name);
-        size_t size2 = bstr_size(h->value);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
+        size_t size1 = htp_header_name_len(h);
+        size_t size2 = htp_header_value_len(h);
         size_t size = size1 + size2 + 4;
         if (i + 1 == no_of_headers)
             size += 2;
@@ -130,12 +129,12 @@ static uint8_t *GetBufferForTX(
             }
         }
 
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->name), bstr_size(h->name));
-        buf->len += bstr_size(h->name);
+        memcpy(buf->buffer + buf->len, htp_header_name_ptr(h), htp_header_name_len(h));
+        buf->len += htp_header_name_len(h);
         buf->buffer[buf->len++] = ':';
         buf->buffer[buf->len++] = ' ';
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->value), bstr_size(h->value));
-        buf->len += bstr_size(h->value);
+        memcpy(buf->buffer + buf->len, htp_header_value_ptr(h), htp_header_value_len(h));
+        buf->len += htp_header_value_len(h);
         buf->buffer[buf->len++] = '\r';
         buf->buffer[buf->len++] = '\n';
         if (i + 1 == no_of_headers) {

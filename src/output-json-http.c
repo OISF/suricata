@@ -39,7 +39,6 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer.h"
@@ -221,41 +220,40 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
 
     if (htp_tx_request_headers(tx) != NULL) {
         /* user agent */
-        htp_header_t *h_user_agent = htp_table_get_c(htp_tx_request_headers(tx), "user-agent");
+        const htp_header_t *h_user_agent = htp_tx_request_header(tx, "user-agent");
         if (h_user_agent != NULL) {
-            jb_set_string_from_bytes(js, "http_user_agent", bstr_ptr(h_user_agent->value),
-                    (uint32_t)bstr_len(h_user_agent->value));
+            jb_set_string_from_bytes(js, "http_user_agent", htp_header_value_ptr(h_user_agent),
+                    (uint32_t)htp_header_value_len(h_user_agent));
         }
 
         /* x-forwarded-for */
-        htp_header_t *h_x_forwarded_for =
-                htp_table_get_c(htp_tx_request_headers(tx), "x-forwarded-for");
+        const htp_header_t *h_x_forwarded_for = htp_tx_request_header(tx, "x-forwarded-for");
         if (h_x_forwarded_for != NULL) {
-            jb_set_string_from_bytes(js, "xff", bstr_ptr(h_x_forwarded_for->value),
-                    (uint32_t)bstr_len(h_x_forwarded_for->value));
+            jb_set_string_from_bytes(js, "xff", htp_header_value_ptr(h_x_forwarded_for),
+                    (uint32_t)htp_header_value_len(h_x_forwarded_for));
         }
     }
 
     /* content-type */
     if (htp_tx_response_headers(tx) != NULL) {
-        htp_header_t *h_content_type = htp_table_get_c(htp_tx_response_headers(tx), "content-type");
+        const htp_header_t *h_content_type = htp_tx_response_header(tx, "content-type");
         if (h_content_type != NULL) {
-            const size_t size = bstr_len(h_content_type->value) * 2 + 1;
+            const size_t size = htp_header_value_len(h_content_type) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_content_type->value), bstr_len(h_content_type->value), string, size);
+            BytesToStringBuffer(htp_header_value_ptr(h_content_type),
+                    htp_header_value_len(h_content_type), string, size);
             char *p = strchr(string, ';');
             if (p != NULL)
                 *p = '\0';
             jb_set_string(js, "http_content_type", string);
         }
-        htp_header_t *h_content_range =
-                htp_table_get_c(htp_tx_response_headers(tx), "content-range");
+        const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
         if (h_content_range != NULL) {
             jb_open_object(js, "content_range");
-            jb_set_string_from_bytes(js, "raw", bstr_ptr(h_content_range->value),
-                    (uint32_t)bstr_len(h_content_range->value));
+            jb_set_string_from_bytes(js, "raw", htp_header_value_ptr(h_content_range),
+                    (uint32_t)htp_header_value_len(h_content_range));
             HTTPContentRange crparsed;
-            if (HTPParseContentRange(h_content_range->value, &crparsed) == 0) {
+            if (HTPParseContentRange(htp_header_value(h_content_range), &crparsed) == 0) {
                 if (crparsed.start >= 0)
                     jb_set_uint(js, "start", crparsed.start);
                 if (crparsed.end >= 0)
@@ -271,13 +269,13 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
 static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
 {
     /* referer */
-    htp_header_t *h_referer = NULL;
+    const htp_header_t *h_referer = NULL;
     if (htp_tx_request_headers(tx) != NULL) {
-        h_referer = htp_table_get_c(htp_tx_request_headers(tx), "referer");
+        h_referer = htp_tx_request_header(tx, "referer");
     }
     if (h_referer != NULL) {
-        jb_set_string_from_bytes(
-                js, "http_refer", bstr_ptr(h_referer->value), (uint32_t)bstr_len(h_referer->value));
+        jb_set_string_from_bytes(js, "http_refer", htp_header_value_ptr(h_referer),
+                (uint32_t)htp_header_value_len(h_referer));
     }
 
     /* method */
@@ -292,9 +290,7 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
                 (uint32_t)bstr_len(htp_tx_request_protocol(tx)));
     }
 
-    /* response status: from libhtp:
-     * "Response status code, available only if we were able to parse it, HTP_STATUS_INVALID
-     *  otherwise. HTP_STATUS_UNKNOWN until parsing is attempted" .*/
+    /* response status */
     const int resp = htp_tx_response_status_number(tx);
     if (resp > 0) {
         jb_set_uint(js, "status", (uint32_t)resp);
@@ -303,10 +299,10 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
                 (uint32_t)bstr_len(htp_tx_response_status(tx)));
     }
 
-    htp_header_t *h_location = htp_table_get_c(htp_tx_response_headers(tx), "location");
+    const htp_header_t *h_location = htp_tx_response_header(tx, "location");
     if (h_location != NULL) {
-        jb_set_string_from_bytes(
-                js, "redirect", bstr_ptr(h_location->value), (uint32_t)bstr_len(h_location->value));
+        jb_set_string_from_bytes(js, "redirect", htp_header_value_ptr(h_location),
+                (uint32_t)htp_header_value_len(h_location));
     }
 
     /* length */
@@ -316,17 +312,17 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
 static void EveHttpLogJSONHeaders(
         JsonBuilder *js, uint32_t direction, htp_tx_t *tx, LogHttpFileCtx *http_ctx)
 {
-    htp_table_t *headers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_headers(tx)
-                                                            : htp_tx_response_headers(tx);
+    const htp_headers_t *headers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_headers(tx)
+                                                                    : htp_tx_response_headers(tx);
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
-    size_t n = htp_table_size(headers);
+    size_t n = htp_headers_size(headers);
     JsonBuilderMark mark = { 0, 0, 0 };
     jb_get_mark(js, &mark);
     bool array_empty = true;
     jb_open_array(js, direction & LOG_HTTP_REQ_HEADERS ? "request_headers" : "response_headers");
     for (size_t i = 0; i < n; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
         if ((http_ctx->flags & direction) == 0 && http_ctx->fields != 0) {
             bool tolog = false;
             for (HttpField f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
@@ -336,7 +332,7 @@ static void EveHttpLogJSONHeaders(
                     if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
                             ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
                                     (http_fields[f].flags & LOG_HTTP_EXTENDED))) {
-                        if (bstr_cmp_c_nocase(h->name, http_fields[f].htp_field) == 0) {
+                        if (bstr_cmp_c_nocase(htp_header_name(h), http_fields[f].htp_field) == 0) {
                             tolog = true;
                             break;
                         }
@@ -349,14 +345,16 @@ static void EveHttpLogJSONHeaders(
         }
         array_empty = false;
         jb_start_object(js);
-        size_t size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ?
-            bstr_len(h->name) : MAX_SIZE_HEADER_NAME - 1;
-        memcpy(name, bstr_ptr(h->name), size_name);
+        size_t size_name = htp_header_name_len(h) < MAX_SIZE_HEADER_NAME - 1
+                                   ? htp_header_name_len(h)
+                                   : MAX_SIZE_HEADER_NAME - 1;
+        memcpy(name, htp_header_name_ptr(h), size_name);
         name[size_name] = '\0';
         jb_set_string(js, "name", name);
-        size_t size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1 ?
-            bstr_len(h->value) : MAX_SIZE_HEADER_VALUE - 1;
-        memcpy(value, bstr_ptr(h->value), size_value);
+        size_t size_value = htp_header_value_len(h) < MAX_SIZE_HEADER_VALUE - 1
+                                    ? htp_header_value_len(h)
+                                    : MAX_SIZE_HEADER_VALUE - 1;
+        memcpy(value, htp_header_value_ptr(h), size_value);
         value[size_value] = '\0';
         jb_set_string(js, "value", value);
         jb_close(js);

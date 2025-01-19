@@ -96,4 +96,5 @@ alert http any any -> any any (msg:"SURICATA HTTP request missing protocol"; flo
 alert http any any -> any any (msg:"SURICATA HTTP request too many headers"; flow:established,to_server; app-layer-event:http.request_too_many_headers; classtype:protocol-command-decode; sid:2221056; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP response too many headers"; flow:established,to_client; app-layer-event:http.response_too_many_headers; classtype:protocol-command-decode; sid:2221057; rev:1;)
 
-# next sid 2221058
+#alert http any any -> any any (msg:"SURICATA HTTP response chunk extension"; flow:established; app-layer-event:http.response_chunk_extension; classtype:protocol-command-decode; sid:2221058; rev:1;)
+# next sid 2221059

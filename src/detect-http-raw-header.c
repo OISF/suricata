@@ -51,7 +51,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "detect-http-raw-header.h"
 
 static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
