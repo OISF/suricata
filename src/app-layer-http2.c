@@ -33,7 +33,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-http2.h"
 #include "rust.h"
 

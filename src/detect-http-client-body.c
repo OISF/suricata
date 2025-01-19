@@ -58,7 +58,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "detect-http-client-body.h"
 #include "stream-tcp.h"
 #include "util-profiling.h"
