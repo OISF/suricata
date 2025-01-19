@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "app-layer-htp-file.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-events.h"
 #include "util-validate.h"

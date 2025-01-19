@@ -39,7 +39,6 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer.h"
