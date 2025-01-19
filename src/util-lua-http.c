@@ -161,11 +161,10 @@ static int HttpGetHeader(lua_State *luastate, int dir)
         return LuaCallbackError(luastate, "tx has no headers");
 
     htp_header_t *h = (htp_header_t *)htp_table_get_c(headers, name);
-    if (h == NULL || bstr_len(h->value) == 0)
+    if (h == NULL || htp_header_value_len(h) == 0)
         return LuaCallbackError(luastate, "header not found");
 
-    return LuaPushStringBuffer(luastate,
-            bstr_ptr(h->value), bstr_len(h->value));
+    return LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
 }
 
 static int HttpGetRequestHeader(lua_State *luastate)
@@ -236,8 +235,8 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     size_t no_of_headers = htp_table_size(table);
     for (; i < no_of_headers; i++) {
         h = htp_table_get_index(table, i, NULL);
-        LuaPushStringBuffer(luastate, bstr_ptr(h->name), bstr_len(h->name));
-        LuaPushStringBuffer(luastate, bstr_ptr(h->value), bstr_len(h->value));
+        LuaPushStringBuffer(luastate, htp_header_name_ptr(h), htp_header_name_len(h));
+        LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
         lua_settable(luastate, -3);
     }
     return 1;

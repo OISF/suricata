@@ -58,14 +58,14 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, HEADER_NAME);
-        if (h == NULL || h->value == NULL) {
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -113,14 +113,14 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, HEADER_NAME);
-        if (h == NULL || h->value == NULL) {
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

@@ -124,6 +124,14 @@
 #define htp_tx_request_header(tx, header)  htp_table_get_c(tx->request_headers, header)
 #define htp_tx_response_header(tx, header) htp_table_get_c(tx->response_headers, header)
 
+// Functions introduced to handle opaque htp_header_t
+#define htp_header_name_len(h)  bstr_len(h->name)
+#define htp_header_name_ptr(h)  bstr_ptr(h->name)
+#define htp_header_name(h)      h->name
+#define htp_header_value_len(h) bstr_len(h->value)
+#define htp_header_value_ptr(h) bstr_ptr(h->value)
+#define htp_header_value(h)     h->value
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
