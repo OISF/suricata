@@ -116,7 +116,6 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_DNS_RRNAME                BIT_U32(15)
 #define FLAG_DATATYPE_DNS_REQUEST               BIT_U32(16)
 #define FLAG_DATATYPE_DNS_RESPONSE              BIT_U32(17)
-#define FLAG_DATATYPE_TLS                       BIT_U32(18)
 #define FLAG_DATATYPE_SSH                       BIT_U32(19)
 #define FLAG_DATATYPE_SMTP                      BIT_U32(20)
 #define FLAG_DATATYPE_DNP3                      BIT_U32(21)
@@ -852,8 +851,6 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
         } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
 
             ld->alproto = ALPROTO_TLS;
-
-            ld->flags |= FLAG_DATATYPE_TLS;
 
         } else if (strncmp(k, "ssh", 3) == 0 && strcmp(v, "true") == 0) {
 
