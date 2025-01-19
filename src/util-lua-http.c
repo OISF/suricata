@@ -138,7 +138,7 @@ static int HttpGetResponseLine(lua_State *luastate)
         return LuaCallbackError(luastate, "no response_line");
 
     return LuaPushStringBuffer(
-            luastate, bstr_ptr(htp_tx_response_line(tx)), bstr_len(tx->response_line));
+            luastate, bstr_ptr(htp_tx_response_line(tx)), bstr_len(htp_tx_response_line(tx)));
 }
 
 static int HttpGetHeader(lua_State *luastate, int dir)
