@@ -1,4 +1,4 @@
-/* Copyright (C) 2021-2024 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,21 +18,18 @@
 /**
  * \file
  *
- * \author Lukas Sismis <lukas.sismis@gmail.com>
+ * \author Adam Kiripolsky <adam.kiripolsky@cesnet.cz>
  */
 
-#ifndef UTIL_DPDK_ICE_H
-#define UTIL_DPDK_ICE_H
+#ifndef UTIL_DPDK_MLX5_H
+#define UTIL_DPDK_MLX5_H
 
 #include "suricata-common.h"
 
 #ifdef HAVE_DPDK
 
-#include "util-dpdk.h"
-
-int iceDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
-void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
+int mlx5DeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
 
 #endif /* HAVE_DPDK */
 
-#endif /* UTIL_DPDK_ICE_H */
+#endif /* UTIL_DPDK_MLX5_H */
