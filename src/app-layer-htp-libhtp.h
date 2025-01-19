@@ -121,6 +121,9 @@
 #define htp_tx_response_progress(tx)        tx->response_progress
 #define htp_tx_response_protocol_number(tx) tx->response_protocol_number
 
+#define htp_tx_request_header(tx, header)  htp_table_get_c(tx->request_headers, header)
+#define htp_tx_response_header(tx, header) htp_table_get_c(tx->response_headers, header)
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */

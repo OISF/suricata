@@ -229,7 +229,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
             case LOG_HTTP_CF_REQUEST_HEADER:
             /* REQUEST HEADER */
             if (htp_tx_request_headers(tx) != NULL) {
-                h_request_hdr = htp_table_get_c(htp_tx_request_headers(tx), node->data);
+                h_request_hdr = htp_tx_request_header(tx, node->data);
             }
                 if (h_request_hdr != NULL) {
                     datalen = node->maxlen;
@@ -246,7 +246,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
             case LOG_HTTP_CF_REQUEST_COOKIE:
             /* REQUEST COOKIE */
             if (htp_tx_request_headers(tx) != NULL) {
-                h_request_hdr = htp_table_get_c(htp_tx_request_headers(tx), "Cookie");
+                h_request_hdr = htp_tx_request_header(tx, "Cookie");
                 if (h_request_hdr != NULL) {
                     cvalue_len = GetCookieValue((uint8_t *)bstr_ptr(h_request_hdr->value),
                             (uint32_t)bstr_len(h_request_hdr->value), (char *)node->data, &cvalue);
@@ -281,7 +281,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
             case LOG_HTTP_CF_RESPONSE_HEADER:
             /* RESPONSE HEADER */
             if (htp_tx_response_headers(tx) != NULL) {
-                h_response_hdr = htp_table_get_c(htp_tx_response_headers(tx), node->data);
+                h_response_hdr = htp_tx_response_header(tx, node->data);
             }
                 if (h_response_hdr != NULL) {
                     datalen = node->maxlen;
@@ -317,7 +317,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     /* referer */
     htp_header_t *h_referer = NULL;
     if (htp_tx_request_headers(tx) != NULL) {
-        h_referer = htp_table_get_c(htp_tx_request_headers(tx), "referer");
+        h_referer = htp_tx_request_header(tx, "referer");
     }
     if (h_referer != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
@@ -355,7 +355,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
         /* Redirect? */
         if ((htp_tx_response_status_number(tx) > 300) &&
                 ((htp_tx_response_status_number(tx)) < 303)) {
-            htp_header_t *h_location = htp_table_get_c(htp_tx_response_headers(tx), "location");
+            htp_header_t *h_location = htp_tx_response_header(tx, "location");
             if (h_location != NULL) {
                 MemBufferWriteString(aft->buffer, " => ");
 
@@ -450,7 +450,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
         if (htp_tx_request_headers(tx) != NULL) {
-            h_user_agent = htp_table_get_c(htp_tx_request_headers(tx), "user-agent");
+            h_user_agent = htp_tx_request_header(tx, "user-agent");
         }
         if (h_user_agent != NULL) {
             PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
