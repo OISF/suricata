@@ -165,13 +165,13 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "User-Agent");
-        if (h == NULL || h->value == NULL) {
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP UA header not present in this request");
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

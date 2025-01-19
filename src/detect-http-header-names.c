@@ -106,7 +106,7 @@ static uint8_t *GetBufferForTX(
     size_t no_of_headers = htp_table_size(headers);
     for (; i < no_of_headers; i++) {
         htp_header_t *h = htp_table_get_index(headers, i, NULL);
-        size_t size = bstr_size(h->name) + 2; // for \r\n
+        size_t size = htp_header_name_len(h) + 2; // for \r\n
         if (i == 0)
             size += 2;
         if (i + 1 == no_of_headers)
@@ -126,8 +126,8 @@ static uint8_t *GetBufferForTX(
             buf->buffer[buf->len++] = '\n';
         }
 
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->name), bstr_size(h->name));
-        buf->len += bstr_size(h->name);
+        memcpy(buf->buffer + buf->len, htp_header_name_ptr(h), htp_header_name_len(h));
+        buf->len += htp_header_name_len(h);
         buf->buffer[buf->len++] = '\r';
         buf->buffer[buf->len++] = '\n';
 
