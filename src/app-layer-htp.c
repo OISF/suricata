@@ -974,8 +974,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
             case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
-                    htp_header_t *h =
-                            (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), "Upgrade");
+                    htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Upgrade");
                     if (h == NULL) {
                         break;
                     }
@@ -984,7 +983,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                         dp = (uint16_t)htp_tx_request_port_number(tx);
                     }
                     consumed = (uint32_t)htp_connp_res_data_consumed(hstate->connp);
-                    if (bstr_cmp_c(h->value, "h2c") == 0) {
+                    if (bstr_cmp_c(htp_header_value(h), "h2c") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
                             // if HTTP2 is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;
@@ -1000,7 +999,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                             SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
                         }
                         SCReturnStruct(APP_LAYER_OK);
-                    } else if (bstr_cmp_c_nocase(h->value, "WebSocket") == 0) {
+                    } else if (bstr_cmp_c_nocase(htp_header_value(h), "WebSocket") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_WEBSOCKET) == NULL) {
                             // if WS is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;
@@ -1141,9 +1140,10 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
  */
 static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), "Content-Type");
-    if (h != NULL && bstr_len(h->value) > 0) {
-        htud->mime_state = SCMimeStateInit(bstr_ptr(h->value), (uint32_t)bstr_len(h->value));
+    htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Content-Type");
+    if (h != NULL && htp_header_value_len(h) > 0) {
+        htud->mime_state =
+                SCMimeStateInit(htp_header_value_ptr(h), (uint32_t)htp_header_value_len(h));
         if (htud->mime_state) {
             htud->tsflags |= HTP_BOUNDARY_SET;
             SCReturnInt(1);
@@ -1362,12 +1362,12 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h =
-                (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), "Content-Disposition");
-        if (h != NULL && bstr_len(h->value) > 0) {
+        htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Content-Disposition");
+        if (h != NULL && htp_header_value_len(h) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, &filename_len);
+                    (uint8_t *)htp_header_value_ptr(h), htp_header_value_len(h), &filename,
+                    &filename_len);
         }
 
         /* fall back to name from the uri */
@@ -1381,8 +1381,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             // set range if present
-            htp_header_t *h_content_range =
-                    htp_table_get_c(htp_tx_response_headers(tx), "content-range");
+            htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
@@ -2946,7 +2945,7 @@ static int HTPParserTest01(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -2990,7 +2989,7 @@ static int HTPParserTest01b(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -3045,7 +3044,7 @@ static int HTPParserTest01c(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -3101,7 +3100,7 @@ static int HTPParserTest01a(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -3642,11 +3641,11 @@ static int HTPParserTest10(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    char *name = bstr_util_strdup_to_c(h->name);
+    char *name = bstr_util_strdup_to_c(htp_header_name(h));
     FAIL_IF_NULL(name);
-    FAIL_IF(strcmp(name, "Host") != 0);
+    FAIL_IF(strcmp(htp_header_name(h), "Host") != 0);
 
-    char *value = bstr_util_strdup_to_c(h->value);
+    char *value = bstr_util_strdup_to_c(htp_header_value(h));
     FAIL_IF_NULL(value);
     FAIL_IF(strcmp(value, "www.google.com") != 0);
 
@@ -3820,11 +3819,11 @@ static int HTPParserTest13(void)
     htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
     FAIL_IF_NULL(h);
 
-    char *name = bstr_util_strdup_to_c(h->name);
+    char *name = bstr_util_strdup_to_c(htp_header_name(h));
     FAIL_IF_NULL(name);
     FAIL_IF(strcmp(name, "Host") != 0);
 
-    char *value = bstr_util_strdup_to_c(h->value);
+    char *value = bstr_util_strdup_to_c(htp_header_value(h));
     FAIL_IF_NULL(value);
     FAIL_IF(strcmp(value, "www.google.com\rName: Value") != 0);
 

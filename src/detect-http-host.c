@@ -55,7 +55,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "stream-tcp.h"
 #include "detect-http-host.h"
 
@@ -350,12 +349,12 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
-            htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), "Host");
-            if (h == NULL || h->value == NULL)
+            htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Host");
+            if (h == NULL || htp_header_value(h) == NULL)
                 return NULL;
 
-            data = (const uint8_t *)bstr_ptr(h->value);
-            data_len = bstr_len(h->value);
+            data = (const uint8_t *)htp_header_value_ptr(h);
+            data_len = htp_header_value_len(h);
         } else {
             data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
             data_len = bstr_len(tx->parsed_uri->hostname);

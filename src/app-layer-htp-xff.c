@@ -27,7 +27,6 @@
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-xff.h"
 
 #ifndef HAVE_MEMRCHR
@@ -142,7 +141,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
 
     htp_header_t *h_xff = NULL;
     if (htp_tx_request_headers(tx) != NULL) {
-        h_xff = htp_table_get_c(htp_tx_request_headers(tx), xff_cfg->header);
+        h_xff = htp_tx_request_header(tx, xff_cfg->header);
     }
 
     if (h_xff != NULL && bstr_len(h_xff->value) >= XFF_CHAIN_MINLEN &&

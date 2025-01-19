@@ -55,7 +55,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "detect-http-method.h"
 #include "stream-tcp.h"
 
