@@ -974,8 +974,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
             case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
-                    htp_header_t *h =
-                            (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), "Upgrade");
+                    htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Upgrade");
                     if (h == NULL) {
                         break;
                     }
@@ -1141,7 +1140,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
  */
 static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), "Content-Type");
+    htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
         htud->mime_state = SCMimeStateInit(bstr_ptr(h->value), (uint32_t)bstr_len(h->value));
         if (htud->mime_state) {
@@ -1362,8 +1361,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h =
-                (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), "Content-Disposition");
+        htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Content-Disposition");
         if (h != NULL && bstr_len(h->value) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
@@ -1381,8 +1379,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             // set range if present
-            htp_header_t *h_content_range =
-                    htp_table_get_c(htp_tx_response_headers(tx), "content-range");
+            htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;

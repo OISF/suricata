@@ -349,7 +349,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
-            htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), "Host");
+            htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Host");
             if (h == NULL || h->value == NULL)
                 return NULL;
 
