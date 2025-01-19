@@ -30,7 +30,6 @@
 typedef struct DetectLuaThreadData {
     lua_State *luastate;
     uint32_t flags;
-    int alproto;
 } DetectLuaThreadData;
 
 #define DETECT_LUA_MAX_FLOWVARS 15
@@ -42,7 +41,6 @@ typedef struct DetectLuaData {
     int negated;
     char *filename;
     uint32_t flags;
-    AppProto alproto;
     char *buffername; /* buffer name in case of a single buffer */
     uint32_t flowint[DETECT_LUA_MAX_FLOWINTS];
     uint16_t flowints;
