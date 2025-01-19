@@ -211,6 +211,7 @@
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
+#include "detect-ftp-command.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -707,6 +708,7 @@ void SigTableSetup(void)
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
+    DetectFtpCommandRegister();
 
     DetectBypassRegister();
     DetectConfigRegister();
