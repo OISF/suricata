@@ -898,20 +898,18 @@ error:
  */
 static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectLuaData *lua = NULL;
-
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
     int enabled = 0;
     (void)ConfGetBool("security.lua.allow-rules", &enabled);
     if (!enabled) {
         SCLogError("Lua rules disabled by security configuration: security.lua.allow-rules");
-        goto error;
+        return -1;
     }
 
-    lua = DetectLuaParse(de_ctx, str);
+    DetectLuaData *lua = DetectLuaParse(de_ctx, str);
     if (lua == NULL)
-        goto error;
+        return -1;
 
     /* Load lua sandbox configurations */
     intmax_t lua_alloc_limit = DEFAULT_LUA_ALLOC_LIMIT;
