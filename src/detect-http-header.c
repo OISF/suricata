@@ -380,7 +380,7 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGr
 static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_HEADER, g_http_header_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_HEADER_CM, g_http_header_buffer_id, ALPROTO_HTTP1);
 }
 
 /**
@@ -407,16 +407,18 @@ static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 void DetectHttpHeaderRegister(void)
 {
     /* http_header content modifier */
-    sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].desc = "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
+    sigmatch_table[DETECT_HTTP_HEADER_CM].name = "http_header";
+    sigmatch_table[DETECT_HTTP_HEADER_CM].desc =
+            "content modifier to match only on the HTTP header-buffer";
+    sigmatch_table[DETECT_HTTP_HEADER_CM].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_HEADER_CM].Setup = DetectHttpHeaderSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
+    sigmatch_table[DETECT_HTTP_HEADER_CM].RegisterTests = DetectHttpHeaderRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_HEADER].alternative = DETECT_HTTP_HEADER;
+    sigmatch_table[DETECT_HTTP_HEADER_CM].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_HEADER_CM].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_HEADER_CM].alternative = DETECT_HTTP_HEADER;
 
     /* http.header sticky buffer */
     sigmatch_table[DETECT_HTTP_HEADER].name = "http.header";

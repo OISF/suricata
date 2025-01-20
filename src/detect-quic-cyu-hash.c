@@ -125,13 +125,13 @@ static bool DetectQuicHashValidateCallback(const Signature *s, const char **sige
 void DetectQuicCyuHashRegister(void)
 {
     /* quic.cyu.hash sticky buffer */
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].desc = "sticky buffer to match on the QUIC CYU hash";
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].Setup = DetectQuicCyuHashSetup;
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].desc = "sticky buffer to match on the QUIC CYU hash";
+    sigmatch_table[DETECT_QUIC_CYU_HASH].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].Setup = DetectQuicCyuHashSetup;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].flags |= SIGMATCH_NOOPT;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_CYU_HASH].RegisterTests = DetectQuicCyuHashRegisterTests;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].RegisterTests = DetectQuicCyuHashRegisterTests;
 #endif
 
     DetectAppLayerMultiRegister(

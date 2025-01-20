@@ -90,15 +90,16 @@ static int g_http_uri_buffer_id = 0;
 void DetectHttpUriRegister (void)
 {
     /* http_uri content modifier */
-    sigmatch_table[DETECT_AL_HTTP_URI].name = "http_uri";
-    sigmatch_table[DETECT_AL_HTTP_URI].desc = "content modifier to match specifically and only on the HTTP uri-buffer";
-    sigmatch_table[DETECT_AL_HTTP_URI].url = "/rules/http-keywords.html#http-uri-and-http-uri-raw";
-    sigmatch_table[DETECT_AL_HTTP_URI].Setup = DetectHttpUriSetup;
+    sigmatch_table[DETECT_HTTP_URI_CM].name = "http_uri";
+    sigmatch_table[DETECT_HTTP_URI_CM].desc =
+            "content modifier to match specifically and only on the HTTP uri-buffer";
+    sigmatch_table[DETECT_HTTP_URI_CM].url = "/rules/http-keywords.html#http-uri-and-http-uri-raw";
+    sigmatch_table[DETECT_HTTP_URI_CM].Setup = DetectHttpUriSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_URI].RegisterTests = DetectHttpUriRegisterTests;
+    sigmatch_table[DETECT_HTTP_URI_CM].RegisterTests = DetectHttpUriRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_URI].alternative = DETECT_HTTP_URI;
+    sigmatch_table[DETECT_HTTP_URI_CM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_URI_CM].alternative = DETECT_HTTP_URI;
 
     /* http.uri sticky buffer */
     sigmatch_table[DETECT_HTTP_URI].name = "http.uri";
@@ -132,12 +133,12 @@ void DetectHttpUriRegister (void)
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 
     /* http_raw_uri content modifier */
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].name = "http_raw_uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = "/rules/http-keywords.html#http_uri-and-http_raw-uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].alternative = DETECT_HTTP_URI_RAW;
+    sigmatch_table[DETECT_HTTP_RAW_URI].name = "http_raw_uri";
+    sigmatch_table[DETECT_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";
+    sigmatch_table[DETECT_HTTP_RAW_URI].url = "/rules/http-keywords.html#http_uri-and-http_raw-uri";
+    sigmatch_table[DETECT_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
+    sigmatch_table[DETECT_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_RAW_URI].alternative = DETECT_HTTP_URI_RAW;
 
     /* http.uri.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_URI_RAW].name = "http.uri.raw";
@@ -185,7 +186,7 @@ void DetectHttpUriRegister (void)
 int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, str, DETECT_AL_HTTP_URI, g_http_uri_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, str, DETECT_HTTP_URI_CM, g_http_uri_buffer_id, ALPROTO_HTTP1);
 }
 
 static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror)
@@ -280,7 +281,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_RAW_URI, g_http_raw_uri_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_RAW_URI, g_http_raw_uri_buffer_id, ALPROTO_HTTP1);
 }
 
 static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **sigerror)

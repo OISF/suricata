@@ -81,12 +81,12 @@ static InspectionBuffer *GetKrb5CNameData(DetectEngineThreadCtx *det_ctx,
 
 void DetectKrb5CNameRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_CNAME].name = "krb5.cname";
-    sigmatch_table[DETECT_AL_KRB5_CNAME].alias = "krb5_cname";
-    sigmatch_table[DETECT_AL_KRB5_CNAME].url = "/rules/kerberos-keywords.html#krb5-cname";
-    sigmatch_table[DETECT_AL_KRB5_CNAME].Setup = DetectKrb5CNameSetup;
-    sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
-    sigmatch_table[DETECT_AL_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
+    sigmatch_table[DETECT_KRB5_CNAME].name = "krb5.cname";
+    sigmatch_table[DETECT_KRB5_CNAME].alias = "krb5_cname";
+    sigmatch_table[DETECT_KRB5_CNAME].url = "/rules/kerberos-keywords.html#krb5-cname";
+    sigmatch_table[DETECT_KRB5_CNAME].Setup = DetectKrb5CNameSetup;
+    sigmatch_table[DETECT_KRB5_CNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
 
     DetectAppLayerMultiRegister(
             "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, GetKrb5CNameData, 2, 1);

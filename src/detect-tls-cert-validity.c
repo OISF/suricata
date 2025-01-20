@@ -79,46 +79,46 @@ static int g_tls_validity_buffer_id = 0;
  */
 void DetectTlsValidityRegister (void)
 {
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].name = "tls_cert_notbefore";
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].desc = "match TLS certificate notBefore field";
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].url = "/rules/tls-keywords.html#tls-cert-notbefore";
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].AppLayerTxMatch = DetectTlsValidityMatch;
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Setup = DetectTlsNotBeforeSetup;
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Free = DetectTlsValidityFree;
+    sigmatch_table[DETECT_TLS_NOTBEFORE].name = "tls_cert_notbefore";
+    sigmatch_table[DETECT_TLS_NOTBEFORE].desc = "match TLS certificate notBefore field";
+    sigmatch_table[DETECT_TLS_NOTBEFORE].url = "/rules/tls-keywords.html#tls-cert-notbefore";
+    sigmatch_table[DETECT_TLS_NOTBEFORE].AppLayerTxMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_TLS_NOTBEFORE].Setup = DetectTlsNotBeforeSetup;
+    sigmatch_table[DETECT_TLS_NOTBEFORE].Free = DetectTlsValidityFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].RegisterTests = TlsNotBeforeRegisterTests;
+    sigmatch_table[DETECT_TLS_NOTBEFORE].RegisterTests = TlsNotBeforeRegisterTests;
 #endif
 
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].name = "tls_cert_notafter";
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].desc = "match TLS certificate notAfter field";
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].url = "/rules/tls-keywords.html#tls-cert-notafter";
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].AppLayerTxMatch = DetectTlsValidityMatch;
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].Setup = DetectTlsNotAfterSetup;
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].Free = DetectTlsValidityFree;
+    sigmatch_table[DETECT_TLS_NOTAFTER].name = "tls_cert_notafter";
+    sigmatch_table[DETECT_TLS_NOTAFTER].desc = "match TLS certificate notAfter field";
+    sigmatch_table[DETECT_TLS_NOTAFTER].url = "/rules/tls-keywords.html#tls-cert-notafter";
+    sigmatch_table[DETECT_TLS_NOTAFTER].AppLayerTxMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_TLS_NOTAFTER].Setup = DetectTlsNotAfterSetup;
+    sigmatch_table[DETECT_TLS_NOTAFTER].Free = DetectTlsValidityFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].RegisterTests = TlsNotAfterRegisterTests;
+    sigmatch_table[DETECT_TLS_NOTAFTER].RegisterTests = TlsNotAfterRegisterTests;
 #endif
 
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].name = "tls_cert_expired";
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].desc = "match expired TLS certificates";
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].url = "/rules/tls-keywords.html#tls-cert-expired";
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].AppLayerTxMatch = DetectTlsValidityMatch;
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].Setup = DetectTlsExpiredSetup;
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].Free = DetectTlsValidityFree;
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].flags = SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_EXPIRED].name = "tls_cert_expired";
+    sigmatch_table[DETECT_TLS_EXPIRED].desc = "match expired TLS certificates";
+    sigmatch_table[DETECT_TLS_EXPIRED].url = "/rules/tls-keywords.html#tls-cert-expired";
+    sigmatch_table[DETECT_TLS_EXPIRED].AppLayerTxMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_TLS_EXPIRED].Setup = DetectTlsExpiredSetup;
+    sigmatch_table[DETECT_TLS_EXPIRED].Free = DetectTlsValidityFree;
+    sigmatch_table[DETECT_TLS_EXPIRED].flags = SIGMATCH_NOOPT;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].RegisterTests = TlsExpiredRegisterTests;
+    sigmatch_table[DETECT_TLS_EXPIRED].RegisterTests = TlsExpiredRegisterTests;
 #endif
 
-    sigmatch_table[DETECT_AL_TLS_VALID].name = "tls_cert_valid";
-    sigmatch_table[DETECT_AL_TLS_VALID].desc = "match valid TLS certificates";
-    sigmatch_table[DETECT_AL_TLS_VALID].url = "/rules/tls-keywords.html#tls-cert-valid";
-    sigmatch_table[DETECT_AL_TLS_VALID].AppLayerTxMatch = DetectTlsValidityMatch;
-    sigmatch_table[DETECT_AL_TLS_VALID].Setup = DetectTlsValidSetup;
-    sigmatch_table[DETECT_AL_TLS_VALID].Free = DetectTlsValidityFree;
-    sigmatch_table[DETECT_AL_TLS_VALID].flags = SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_VALID].name = "tls_cert_valid";
+    sigmatch_table[DETECT_TLS_VALID].desc = "match valid TLS certificates";
+    sigmatch_table[DETECT_TLS_VALID].url = "/rules/tls-keywords.html#tls-cert-valid";
+    sigmatch_table[DETECT_TLS_VALID].AppLayerTxMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_TLS_VALID].Setup = DetectTlsValidSetup;
+    sigmatch_table[DETECT_TLS_VALID].Free = DetectTlsValidityFree;
+    sigmatch_table[DETECT_TLS_VALID].flags = SIGMATCH_NOOPT;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_VALID].RegisterTests = TlsValidRegisterTests;
+    sigmatch_table[DETECT_TLS_VALID].RegisterTests = TlsValidRegisterTests;
 #endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -434,7 +434,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     dd->epoch = 0;
     dd->epoch2 = 0;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_EXPIRED, (SigMatchCtx *)dd,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_EXPIRED, (SigMatchCtx *)dd,
                 g_tls_validity_buffer_id) == NULL) {
         goto error;
     }
@@ -479,8 +479,8 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     dd->epoch = 0;
     dd->epoch2 = 0;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_VALID, (SigMatchCtx *)dd,
-                g_tls_validity_buffer_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_TLS_VALID, (SigMatchCtx *)dd, g_tls_validity_buffer_id) == NULL) {
         goto error;
     }
     return 0;
@@ -568,7 +568,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_NOTAFTER, (SigMatchCtx *)dd,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_NOTAFTER, (SigMatchCtx *)dd,
                 g_tls_validity_buffer_id) == NULL) {
         goto error;
     }

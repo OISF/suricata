@@ -36,7 +36,7 @@
 #define BUFFER_NAME "http_referer"
 #define BUFFER_DESC "http referer header"
 #define HEADER_NAME "Referer"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_REFERER
+#define KEYWORD_ID          DETECT_HTTP_HEADER_REFERER
 #define KEYWORD_TOSERVER 1
 
 #include "detect-http-headers-stub.h"

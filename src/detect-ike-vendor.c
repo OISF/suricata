@@ -69,12 +69,12 @@ static InspectionBuffer *IkeVendorGetData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectIkeVendorRegister(void)
 {
-    sigmatch_table[DETECT_AL_IKE_VENDOR].name = "ike.vendor";
-    sigmatch_table[DETECT_AL_IKE_VENDOR].desc = "match IKE Vendor";
-    sigmatch_table[DETECT_AL_IKE_VENDOR].url = "/rules/ike-keywords.html#ike-vendor";
-    sigmatch_table[DETECT_AL_IKE_VENDOR].Setup = DetectIkeVendorSetup;
-    sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_IKE_VENDOR].name = "ike.vendor";
+    sigmatch_table[DETECT_IKE_VENDOR].desc = "match IKE Vendor";
+    sigmatch_table[DETECT_IKE_VENDOR].url = "/rules/ike-keywords.html#ike-vendor";
+    sigmatch_table[DETECT_IKE_VENDOR].Setup = DetectIkeVendorSetup;
+    sigmatch_table[DETECT_IKE_VENDOR].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister(
             "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, IkeVendorGetData, 1, 1);

@@ -92,13 +92,12 @@ static InspectionBuffer *GetKeyExchangeData(DetectEngineThreadCtx *det_ctx,
 void DetectIkeKeyExchangeRegister(void)
 {
     // register key_exchange
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].name = KEYWORD_NAME_KEY_EXCHANGE;
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].url =
-            "/rules/" KEYWORD_DOC_KEY_EXCHANGE sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].desc =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE].name = KEYWORD_NAME_KEY_EXCHANGE;
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE].url =
+            "/rules/" KEYWORD_DOC_KEY_EXCHANGE sigmatch_table[DETECT_IKE_KEY_EXCHANGE].desc =
                     "sticky buffer to match on the IKE key_exchange_payload";
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].Setup = DetectKeyExchangeSetup;
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].flags |=
-            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE].Setup = DetectKeyExchangeSetup;
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetKeyExchangeData);

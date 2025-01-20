@@ -72,12 +72,12 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
 void DetectDnsAnswerNameRegister(void)
 {
     static const char *keyword = "dns.answer.name";
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].name = keyword;
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].desc = "DNS answer name sticky buffer";
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].url = "/rules/dns-keywords.html#dns-answer-name";
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].Setup = DetectSetup;
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNS_ANSWER_NAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].name = keyword;
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].desc = "DNS answer name sticky buffer";
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].url = "/rules/dns-keywords.html#dns-answer-name";
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].Setup = DetectSetup;
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_DNS_ANSWER_NAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     /* Register in the TO_SERVER direction, even though this is not
        normal, it could be provided as part of a request. */

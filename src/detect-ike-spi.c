@@ -130,13 +130,12 @@ static InspectionBuffer *GetResponderData(DetectEngineThreadCtx *det_ctx,
 void DetectIkeSpiRegister(void)
 {
     // register initiator
-    sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].name = KEYWORD_NAME_INITIATOR;
-    sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].url =
-            "/rules/" KEYWORD_DOC_INITIATOR sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].desc =
+    sigmatch_table[DETECT_IKE_SPI_INITIATOR].name = KEYWORD_NAME_INITIATOR;
+    sigmatch_table[DETECT_IKE_SPI_INITIATOR].url =
+            "/rules/" KEYWORD_DOC_INITIATOR sigmatch_table[DETECT_IKE_SPI_INITIATOR].desc =
                     "sticky buffer to match on the IKE spi initiator";
-    sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].Setup = DetectSpiInitiatorSetup;
-    sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].flags |=
-            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_IKE_SPI_INITIATOR].Setup = DetectSpiInitiatorSetup;
+    sigmatch_table[DETECT_IKE_SPI_INITIATOR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME_INITIATOR, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetInitiatorData);
@@ -150,13 +149,12 @@ void DetectIkeSpiRegister(void)
     SCLogDebug("registering " BUFFER_NAME_INITIATOR " rule option");
 
     // register responder
-    sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].name = KEYWORD_NAME_RESPONDER;
-    sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].url =
-            "/rules/" KEYWORD_DOC_RESPONDER sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].desc =
+    sigmatch_table[DETECT_IKE_SPI_RESPONDER].name = KEYWORD_NAME_RESPONDER;
+    sigmatch_table[DETECT_IKE_SPI_RESPONDER].url =
+            "/rules/" KEYWORD_DOC_RESPONDER sigmatch_table[DETECT_IKE_SPI_RESPONDER].desc =
                     "sticky buffer to match on the IKE spi responder";
-    sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].Setup = DetectSpiResponderSetup;
-    sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].flags |=
-            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_IKE_SPI_RESPONDER].Setup = DetectSpiResponderSetup;
+    sigmatch_table[DETECT_IKE_SPI_RESPONDER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME_RESPONDER, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetResponderData);

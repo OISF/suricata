@@ -38,7 +38,7 @@
 #define BUFFER_NAME "http.location"
 #define BUFFER_DESC "http location header"
 #define HEADER_NAME "Location"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_LOCATION
+#define KEYWORD_ID       DETECT_HTTP_HEADER_LOCATION
 #define KEYWORD_TOCLIENT 1
 
 #include "detect-http-headers-stub.h"

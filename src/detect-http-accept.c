@@ -36,7 +36,7 @@
 #define BUFFER_NAME "http_accept"
 #define BUFFER_DESC "http accept header"
 #define HEADER_NAME "Accept"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_ACCEPT
+#define KEYWORD_ID          DETECT_HTTP_HEADER_ACCEPT
 #define KEYWORD_TOSERVER 1
 
 #include "detect-http-headers-stub.h"

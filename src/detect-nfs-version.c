@@ -61,13 +61,13 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *, Flow *,
  */
 void DetectNfsVersionRegister (void)
 {
-    sigmatch_table[DETECT_AL_NFS_VERSION].name = "nfs.version";
-    sigmatch_table[DETECT_AL_NFS_VERSION].alias = "nfs_version";
-    sigmatch_table[DETECT_AL_NFS_VERSION].desc = "match NFS version";
-    sigmatch_table[DETECT_AL_NFS_VERSION].url = "/rules/nfs-keywords.html#version";
-    sigmatch_table[DETECT_AL_NFS_VERSION].AppLayerTxMatch = DetectNfsVersionMatch;
-    sigmatch_table[DETECT_AL_NFS_VERSION].Setup = DetectNfsVersionSetup;
-    sigmatch_table[DETECT_AL_NFS_VERSION].Free = DetectNfsVersionFree;
+    sigmatch_table[DETECT_NFS_VERSION].name = "nfs.version";
+    sigmatch_table[DETECT_NFS_VERSION].alias = "nfs_version";
+    sigmatch_table[DETECT_NFS_VERSION].desc = "match NFS version";
+    sigmatch_table[DETECT_NFS_VERSION].url = "/rules/nfs-keywords.html#version";
+    sigmatch_table[DETECT_NFS_VERSION].AppLayerTxMatch = DetectNfsVersionMatch;
+    sigmatch_table[DETECT_NFS_VERSION].Setup = DetectNfsVersionSetup;
+    sigmatch_table[DETECT_NFS_VERSION].Free = DetectNfsVersionFree;
     // unit tests were the same as DetectNfsProcedureRegisterTests
     DetectAppLayerInspectEngineRegister(
             "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
@@ -154,7 +154,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
      * and put it in the Signature. */
 
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_NFS_VERSION, (SigMatchCtx *)dd,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_NFS_VERSION, (SigMatchCtx *)dd,
                 g_nfs_request_buffer_id) == NULL) {
         goto error;
     }

@@ -65,15 +65,14 @@ void IKEChosenSaRegisterTests(void);
  */
 void DetectIkeChosenSaRegister(void)
 {
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].name = "ike.chosen_sa_attribute";
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].desc = "match IKE chosen SA Attribute";
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].url =
-            "/rules/ike-keywords.html#ike-chosen_sa_attribute";
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].AppLayerTxMatch = DetectIkeChosenSaMatch;
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].Setup = DetectIkeChosenSaSetup;
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].Free = DetectIkeChosenSaFree;
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].name = "ike.chosen_sa_attribute";
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].desc = "match IKE chosen SA Attribute";
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].url = "/rules/ike-keywords.html#ike-chosen_sa_attribute";
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].AppLayerTxMatch = DetectIkeChosenSaMatch;
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].Setup = DetectIkeChosenSaSetup;
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].Free = DetectIkeChosenSaFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_IKE_CHOSEN_SA].RegisterTests = IKEChosenSaRegisterTests;
+    sigmatch_table[DETECT_IKE_CHOSEN_SA].RegisterTests = IKEChosenSaRegisterTests;
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
@@ -212,7 +211,7 @@ static int DetectIkeChosenSaSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_CHOSEN_SA, (SigMatchCtx *)dd,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_CHOSEN_SA, (SigMatchCtx *)dd,
                 g_ike_chosen_sa_buffer_id) == NULL) {
         goto error;
     }

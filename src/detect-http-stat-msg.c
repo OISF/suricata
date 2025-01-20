@@ -92,15 +92,17 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 void DetectHttpStatMsgRegister (void)
 {
     /* http_stat_msg content modifier */
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].name = "http_stat_msg";
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on HTTP stat-msg-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = "/rules/http-keywords.html#http-stat-msg";
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetup;
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].name = "http_stat_msg";
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].desc =
+            "content modifier to match on HTTP stat-msg-buffer";
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].url = "/rules/http-keywords.html#http-stat-msg";
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].Setup = DetectHttpStatMsgSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].RegisterTests = DetectHttpStatMsgRegisterTests;
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].RegisterTests = DetectHttpStatMsgRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].alternative = DETECT_HTTP_STAT_MSG;
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_STAT_MSG_CM].alternative = DETECT_HTTP_STAT_MSG;
 
     /* http.stat_msg sticky buffer */
     sigmatch_table[DETECT_HTTP_STAT_MSG].name = "http.stat_msg";
@@ -140,7 +142,7 @@ void DetectHttpStatMsgRegister (void)
 static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_STAT_MSG, g_http_stat_msg_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_STAT_MSG_CM, g_http_stat_msg_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

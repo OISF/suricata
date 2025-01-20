@@ -92,12 +92,12 @@ static InspectionBuffer *GetNonceData(DetectEngineThreadCtx *det_ctx,
 void DetectIkeNonceRegister(void)
 {
     // register nonce
-    sigmatch_table[DETECT_AL_IKE_NONCE].name = KEYWORD_NAME_NONCE;
-    sigmatch_table[DETECT_AL_IKE_NONCE].url =
-            "/rules/" KEYWORD_DOC_NONCE sigmatch_table[DETECT_AL_IKE_NONCE].desc =
+    sigmatch_table[DETECT_IKE_NONCE].name = KEYWORD_NAME_NONCE;
+    sigmatch_table[DETECT_IKE_NONCE].url =
+            "/rules/" KEYWORD_DOC_NONCE sigmatch_table[DETECT_IKE_NONCE].desc =
                     "sticky buffer to match on the IKE nonce_payload";
-    sigmatch_table[DETECT_AL_IKE_NONCE].Setup = DetectNonceSetup;
-    sigmatch_table[DETECT_AL_IKE_NONCE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_IKE_NONCE].Setup = DetectNonceSetup;
+    sigmatch_table[DETECT_IKE_NONCE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetNonceData);

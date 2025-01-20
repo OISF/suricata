@@ -158,12 +158,12 @@ static bool DetectHttpProtocolValidateCallback(const Signature *s, const char **
  */
 void DetectHttpProtocolRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].alias = KEYWORD_NAME_LEGACY;
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_PROTOCOL].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_HTTP_PROTOCOL].alias = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_HTTP_PROTOCOL].desc = BUFFER_NAME " sticky buffer";
+    sigmatch_table[DETECT_HTTP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
+    sigmatch_table[DETECT_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);

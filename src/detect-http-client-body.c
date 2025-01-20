@@ -85,16 +85,17 @@ static int PrefilterMpmHttpRequestBodyRegister(DetectEngineCtx *de_ctx, SigGroup
 void DetectHttpClientBodyRegister(void)
 {
     /* http_client_body content modifier */
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].name = "http_client_body";
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].desc = "content modifier to match only on HTTP request-body";
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].url = "/rules/http-keywords.html#http-client-body";
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Setup = DetectHttpClientBodySetup;
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].name = "http_client_body";
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].desc =
+            "content modifier to match only on HTTP request-body";
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].url = "/rules/http-keywords.html#http-client-body";
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].Setup = DetectHttpClientBodySetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].alternative = DETECT_HTTP_REQUEST_BODY;
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].alternative = DETECT_HTTP_REQUEST_BODY;
 
     /* http.request_body sticky buffer */
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].name = "http.request_body";
@@ -149,8 +150,8 @@ static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
  */
 int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg, DETECT_AL_HTTP_CLIENT_BODY,
-            g_http_client_body_buffer_id, ALPROTO_HTTP1);
+    return DetectEngineContentModifierBufferSetup(
+            de_ctx, s, arg, DETECT_HTTP_CLIENT_BODY, g_http_client_body_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

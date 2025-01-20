@@ -57,15 +57,15 @@ static int g_krb5_err_code_list_id = 0;
  */
 void DetectKrb5ErrCodeRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].name = "krb5_err_code";
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].desc = "match Kerberos 5 error code";
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].url = "/rules/kerberos-keywords.html#krb5-err-code";
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Match = NULL;
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].AppLayerTxMatch = DetectKrb5ErrCodeMatch;
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Setup = DetectKrb5ErrCodeSetup;
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Free = DetectKrb5ErrCodeFree;
+    sigmatch_table[DETECT_KRB5_ERRCODE].name = "krb5_err_code";
+    sigmatch_table[DETECT_KRB5_ERRCODE].desc = "match Kerberos 5 error code";
+    sigmatch_table[DETECT_KRB5_ERRCODE].url = "/rules/kerberos-keywords.html#krb5-err-code";
+    sigmatch_table[DETECT_KRB5_ERRCODE].Match = NULL;
+    sigmatch_table[DETECT_KRB5_ERRCODE].AppLayerTxMatch = DetectKrb5ErrCodeMatch;
+    sigmatch_table[DETECT_KRB5_ERRCODE].Setup = DetectKrb5ErrCodeSetup;
+    sigmatch_table[DETECT_KRB5_ERRCODE].Free = DetectKrb5ErrCodeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
+    sigmatch_table[DETECT_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
@@ -183,7 +183,7 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
                 g_krb5_err_code_list_id) == NULL) {
         goto error;
     }

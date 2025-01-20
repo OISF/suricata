@@ -72,14 +72,14 @@ static int g_tls_generic_list_id = 0;
  */
 void DetectSslStateRegister(void)
 {
-    sigmatch_table[DETECT_AL_SSL_STATE].name = "ssl_state";
-    sigmatch_table[DETECT_AL_SSL_STATE].desc = "match the state of the SSL connection";
-    sigmatch_table[DETECT_AL_SSL_STATE].url = "/rules/tls-keywords.html#ssl-state";
-    sigmatch_table[DETECT_AL_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
-    sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
-    sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
+    sigmatch_table[DETECT_SSL_STATE].name = "ssl_state";
+    sigmatch_table[DETECT_SSL_STATE].desc = "match the state of the SSL connection";
+    sigmatch_table[DETECT_SSL_STATE].url = "/rules/tls-keywords.html#ssl-state";
+    sigmatch_table[DETECT_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
+    sigmatch_table[DETECT_SSL_STATE].Setup = DetectSslStateSetup;
+    sigmatch_table[DETECT_SSL_STATE].Free = DetectSslStateFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
+    sigmatch_table[DETECT_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 #endif
     DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1);
     DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2);
@@ -311,8 +311,8 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (ssd == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SSL_STATE, (SigMatchCtx *)ssd,
-                g_tls_generic_list_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_SSL_STATE, (SigMatchCtx *)ssd, g_tls_generic_list_id) == NULL) {
         goto error;
     }
     return 0;

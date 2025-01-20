@@ -99,15 +99,16 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpResponseLineRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].name = "http.response_line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].alias = "http_response_line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].desc = "content modifier to match only on the HTTP response line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = "/rules/http-keywords.html#http-response-line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].name = "http.response_line";
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].alias = "http_response_line";
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].desc =
+            "content modifier to match only on the HTTP response line";
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].url = "/rules/http-keywords.html#http-response-line";
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_response_line", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);

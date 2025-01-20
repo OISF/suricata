@@ -112,15 +112,15 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectTlsCertsRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERTS].name = "tls.certs";
-    sigmatch_table[DETECT_AL_TLS_CERTS].desc = "sticky buffer to match the TLS certificate buffer";
-    sigmatch_table[DETECT_AL_TLS_CERTS].url = "/rules/tls-keywords.html#tls-certs";
-    sigmatch_table[DETECT_AL_TLS_CERTS].Setup = DetectTlsCertsSetup;
+    sigmatch_table[DETECT_TLS_CERTS].name = "tls.certs";
+    sigmatch_table[DETECT_TLS_CERTS].desc = "sticky buffer to match the TLS certificate buffer";
+    sigmatch_table[DETECT_TLS_CERTS].url = "/rules/tls-keywords.html#tls-certs";
+    sigmatch_table[DETECT_TLS_CERTS].Setup = DetectTlsCertsSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERTS].RegisterTests = DetectTlsCertsRegisterTests;
+    sigmatch_table[DETECT_TLS_CERTS].RegisterTests = DetectTlsCertsRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERTS].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             TlsCertsGetData, 2, 1);
@@ -158,7 +158,7 @@ static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 static int g_tls_cert_buffer_id = 0;
 #define BUFFER_NAME  "tls_validity"
-#define KEYWORD_ID   DETECT_AL_TLS_CHAIN_LEN
+#define KEYWORD_ID   DETECT_TLS_CHAIN_LEN
 #define KEYWORD_NAME "tls.cert_chain_len"
 #define KEYWORD_DESC "match TLS certificate chain length"
 #define KEYWORD_URL  "/rules/tls-keywords.html#tls-cert-chain-len"

@@ -221,8 +221,8 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
     dnp3->function_code = function_code;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_DNP3FUNC, (SigMatchCtx *)dnp3,
-                g_dnp3_match_buffer_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_DNP3FUNC, (SigMatchCtx *)dnp3, g_dnp3_match_buffer_id) == NULL) {
         goto error;
     }
 
@@ -299,8 +299,8 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     detect->ind_flags = flags;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_DNP3IND, (SigMatchCtx *)detect,
-                g_dnp3_match_buffer_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_DNP3IND, (SigMatchCtx *)detect, g_dnp3_match_buffer_id) == NULL) {
         goto error;
     }
 
@@ -366,8 +366,8 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     detect->obj_group = group;
     detect->obj_variation = variation;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_DNP3OBJ, (SigMatchCtx *)detect,
-                g_dnp3_match_buffer_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_DNP3OBJ, (SigMatchCtx *)detect, g_dnp3_match_buffer_id) == NULL) {
         goto fail;
     }
 
@@ -453,17 +453,17 @@ static void DetectDNP3FuncRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].desc          = "match on the application function code found in DNP3 request and responses";
-    sigmatch_table[DETECT_AL_DNP3FUNC].url           = "/rules/dnp3-keywords.html#dnp3-func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
-    sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
-    sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_DNP3FUNC].name = "dnp3_func";
+    sigmatch_table[DETECT_DNP3FUNC].alias = "dnp3.func";
+    sigmatch_table[DETECT_DNP3FUNC].desc =
+            "match on the application function code found in DNP3 request and responses";
+    sigmatch_table[DETECT_DNP3FUNC].url = "/rules/dnp3-keywords.html#dnp3-func";
+    sigmatch_table[DETECT_DNP3FUNC].Match = NULL;
+    sigmatch_table[DETECT_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
+    sigmatch_table[DETECT_DNP3FUNC].Setup = DetectDNP3FuncSetup;
+    sigmatch_table[DETECT_DNP3FUNC].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3FUNC].RegisterTests =
-        DetectDNP3FuncRegisterTests;
+    sigmatch_table[DETECT_DNP3FUNC].RegisterTests = DetectDNP3FuncRegisterTests;
 #endif
     SCReturn;
 }
@@ -472,17 +472,17 @@ static void DetectDNP3IndRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
-    sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
-    sigmatch_table[DETECT_AL_DNP3IND].desc          = "match on the DNP3 internal indicator flags in the response application header";
-    sigmatch_table[DETECT_AL_DNP3IND].url           = "/rules/dnp3-keywords.html#dnp3-ind";
-    sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
-    sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
-    sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_DNP3IND].name = "dnp3_ind";
+    sigmatch_table[DETECT_DNP3IND].alias = "dnp3.ind";
+    sigmatch_table[DETECT_DNP3IND].desc =
+            "match on the DNP3 internal indicator flags in the response application header";
+    sigmatch_table[DETECT_DNP3IND].url = "/rules/dnp3-keywords.html#dnp3-ind";
+    sigmatch_table[DETECT_DNP3IND].Match = NULL;
+    sigmatch_table[DETECT_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
+    sigmatch_table[DETECT_DNP3IND].Setup = DetectDNP3IndSetup;
+    sigmatch_table[DETECT_DNP3IND].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3IND].RegisterTests =
-        DetectDNP3IndRegisterTests;
+    sigmatch_table[DETECT_DNP3IND].RegisterTests = DetectDNP3IndRegisterTests;
 #endif
     SCReturn;
 }
@@ -491,17 +491,16 @@ static void DetectDNP3ObjRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].desc          = "match on the DNP3 application data objects";
-    sigmatch_table[DETECT_AL_DNP3OBJ].url           = "/rules/dnp3-keywords.html#dnp3-obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
-    sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
-    sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_DNP3OBJ].name = "dnp3_obj";
+    sigmatch_table[DETECT_DNP3OBJ].alias = "dnp3.obj";
+    sigmatch_table[DETECT_DNP3OBJ].desc = "match on the DNP3 application data objects";
+    sigmatch_table[DETECT_DNP3OBJ].url = "/rules/dnp3-keywords.html#dnp3-obj";
+    sigmatch_table[DETECT_DNP3OBJ].Match = NULL;
+    sigmatch_table[DETECT_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
+    sigmatch_table[DETECT_DNP3OBJ].Setup = DetectDNP3ObjSetup;
+    sigmatch_table[DETECT_DNP3OBJ].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3OBJ].RegisterTests =
-        DetectDNP3ObjRegisterTests;
+    sigmatch_table[DETECT_DNP3OBJ].RegisterTests = DetectDNP3ObjRegisterTests;
 #endif
     SCReturn;
 }
@@ -522,12 +521,13 @@ static void DetectDNP3DataRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3.data";
-    sigmatch_table[DETECT_AL_DNP3DATA].alias         = "dnp3_data";
-    sigmatch_table[DETECT_AL_DNP3DATA].desc          = "make the following content options to match on the re-assembled application buffer";
-    sigmatch_table[DETECT_AL_DNP3DATA].url           = "/rules/dnp3-keywords.html#dnp3-data";
-    sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
-    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_DNP3DATA].name = "dnp3.data";
+    sigmatch_table[DETECT_DNP3DATA].alias = "dnp3_data";
+    sigmatch_table[DETECT_DNP3DATA].desc =
+            "make the following content options to match on the re-assembled application buffer";
+    sigmatch_table[DETECT_DNP3DATA].url = "/rules/dnp3-keywords.html#dnp3-data";
+    sigmatch_table[DETECT_DNP3DATA].Setup = DetectDNP3DataSetup;
+    sigmatch_table[DETECT_DNP3DATA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("dnp3_data", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetDNP3Data);

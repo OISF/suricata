@@ -95,12 +95,12 @@ static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 void DetectSshSoftwareRegister(void)
 {
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].alias = KEYWORD_NAME_LEGACY;
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].Setup = DetectSshSoftwareSetup;
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_SSH_SOFTWARE].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_SSH_SOFTWARE].alias = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_SSH_SOFTWARE].desc = BUFFER_NAME " sticky buffer";
+    sigmatch_table[DETECT_SSH_SOFTWARE].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SSH_SOFTWARE].Setup = DetectSshSoftwareSetup;
+    sigmatch_table[DETECT_SSH_SOFTWARE].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSshData, ALPROTO_SSH, SshStateBannerDone),

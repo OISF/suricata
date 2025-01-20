@@ -38,7 +38,7 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
  */
 void DetectSshSoftwareVersionRegister(void)
 {
-    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].name = "ssh.softwareversion";
-    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].desc = "obsolete keyword, use now ssh.software";
-    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
+    sigmatch_table[DETECT_SSH_SOFTWAREVERSION].name = "ssh.softwareversion";
+    sigmatch_table[DETECT_SSH_SOFTWAREVERSION].desc = "obsolete keyword, use now ssh.software";
+    sigmatch_table[DETECT_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
 }

@@ -299,7 +299,7 @@ static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
 
     int pd = 0;
     for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+        if (sm->type == DETECT_APP_LAYER_PROTOCOL) {
             pd = 1;
         } else {
             /* flowbits are supported for dp only sigs, as long
@@ -524,7 +524,7 @@ static int SignatureCreateMask(Signature *s)
                 // fallthrough
             case DETECT_STREAM_EVENT:
                 // fallthrough
-            case DETECT_AL_APP_LAYER_EVENT:
+            case DETECT_APP_LAYER_EVENT:
                 // fallthrough
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;

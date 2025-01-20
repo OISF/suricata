@@ -70,13 +70,13 @@ static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectQuicVersionRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_VERSION].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_VERSION].desc = "match Quic version";
-    sigmatch_table[DETECT_AL_QUIC_VERSION].url = "/rules/quic-keywords.html#quic-version";
-    sigmatch_table[DETECT_AL_QUIC_VERSION].Setup = DetectQuicVersionSetup;
-    sigmatch_table[DETECT_AL_QUIC_VERSION].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_QUIC_VERSION].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_QUIC_VERSION].desc = "match Quic version";
+    sigmatch_table[DETECT_QUIC_VERSION].url = "/rules/quic-keywords.html#quic-version";
+    sigmatch_table[DETECT_QUIC_VERSION].Setup = DetectQuicVersionSetup;
+    sigmatch_table[DETECT_QUIC_VERSION].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_VERSION].RegisterTests = DetectQuicVersionRegisterTests;
+    sigmatch_table[DETECT_QUIC_VERSION].RegisterTests = DetectQuicVersionRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

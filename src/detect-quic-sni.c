@@ -70,13 +70,13 @@ static InspectionBuffer *GetSniData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectQuicSniRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_SNI].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_SNI].desc = "match Quic sni";
-    sigmatch_table[DETECT_AL_QUIC_SNI].url = "/rules/quic-keywords.html#quic-sni";
-    sigmatch_table[DETECT_AL_QUIC_SNI].Setup = DetectQuicSniSetup;
-    sigmatch_table[DETECT_AL_QUIC_SNI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_QUIC_SNI].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_QUIC_SNI].desc = "match Quic sni";
+    sigmatch_table[DETECT_QUIC_SNI].url = "/rules/quic-keywords.html#quic-sni";
+    sigmatch_table[DETECT_QUIC_SNI].Setup = DetectQuicSniSetup;
+    sigmatch_table[DETECT_QUIC_SNI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_SNI].RegisterTests = DetectQuicSniRegisterTests;
+    sigmatch_table[DETECT_QUIC_SNI].RegisterTests = DetectQuicSniRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

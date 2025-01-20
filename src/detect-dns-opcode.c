@@ -42,8 +42,8 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         return -1;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_DNS_OPCODE, (SigMatchCtx *)detect,
-                dns_opcode_list_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_DNS_OPCODE, (SigMatchCtx *)detect, dns_opcode_list_id) == NULL) {
         goto error;
     }
 
@@ -72,13 +72,12 @@ static int DetectDnsOpcodeMatch(DetectEngineThreadCtx *det_ctx,
 
 void DetectDnsOpcodeRegister(void)
 {
-    sigmatch_table[DETECT_AL_DNS_OPCODE].name  = "dns.opcode";
-    sigmatch_table[DETECT_AL_DNS_OPCODE].desc  = "Match the DNS header opcode flag.";
-    sigmatch_table[DETECT_AL_DNS_OPCODE].Setup = DetectDnsOpcodeSetup;
-    sigmatch_table[DETECT_AL_DNS_OPCODE].Free  = DetectDnsOpcodeFree;
-    sigmatch_table[DETECT_AL_DNS_OPCODE].Match = NULL;
-    sigmatch_table[DETECT_AL_DNS_OPCODE].AppLayerTxMatch =
-        DetectDnsOpcodeMatch;
+    sigmatch_table[DETECT_DNS_OPCODE].name = "dns.opcode";
+    sigmatch_table[DETECT_DNS_OPCODE].desc = "Match the DNS header opcode flag.";
+    sigmatch_table[DETECT_DNS_OPCODE].Setup = DetectDnsOpcodeSetup;
+    sigmatch_table[DETECT_DNS_OPCODE].Free = DetectDnsOpcodeFree;
+    sigmatch_table[DETECT_DNS_OPCODE].Match = NULL;
+    sigmatch_table[DETECT_DNS_OPCODE].AppLayerTxMatch = DetectDnsOpcodeMatch;
 
     DetectAppLayerInspectEngineRegister(
             "dns.opcode", ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);

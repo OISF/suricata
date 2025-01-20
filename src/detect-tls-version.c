@@ -72,14 +72,14 @@ static int g_tls_generic_list_id = 0;
  */
 void DetectTlsVersionRegister (void)
 {
-    sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
-    sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
-    sigmatch_table[DETECT_AL_TLS_VERSION].url = "/rules/tls-keywords.html#tls-version";
-    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
-    sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
-    sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
+    sigmatch_table[DETECT_TLS_VERSION].name = "tls.version";
+    sigmatch_table[DETECT_TLS_VERSION].desc = "match on TLS/SSL version";
+    sigmatch_table[DETECT_TLS_VERSION].url = "/rules/tls-keywords.html#tls-version";
+    sigmatch_table[DETECT_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
+    sigmatch_table[DETECT_TLS_VERSION].Setup = DetectTlsVersionSetup;
+    sigmatch_table[DETECT_TLS_VERSION].Free = DetectTlsVersionFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
+    sigmatch_table[DETECT_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 #endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -243,8 +243,8 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_VERSION, (SigMatchCtx *)tls,
-                g_tls_generic_list_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, g_tls_generic_list_id) == NULL) {
         goto error;
     }
 

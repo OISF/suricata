@@ -127,11 +127,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 void DetectSipMethodRegister(void)
 {
     /* sip.method sticky buffer */
-    sigmatch_table[DETECT_AL_SIP_METHOD].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SIP_METHOD].desc = "sticky buffer to match on the SIP method buffer";
-    sigmatch_table[DETECT_AL_SIP_METHOD].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SIP_METHOD].Setup = DetectSipMethodSetup;
-    sigmatch_table[DETECT_AL_SIP_METHOD].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_SIP_METHOD].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_SIP_METHOD].desc = "sticky buffer to match on the SIP method buffer";
+    sigmatch_table[DETECT_SIP_METHOD].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SIP_METHOD].Setup = DetectSipMethodSetup;
+    sigmatch_table[DETECT_SIP_METHOD].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);

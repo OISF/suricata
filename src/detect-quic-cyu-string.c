@@ -81,14 +81,13 @@ static InspectionBuffer *QuicStringGetData(DetectEngineThreadCtx *det_ctx,
 void DetectQuicCyuStringRegister(void)
 {
     /* quic.cyu.string sticky buffer */
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].desc =
-            "sticky buffer to match on the QUIC CYU string";
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].Setup = DetectQuicCyuStringSetup;
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].desc = "sticky buffer to match on the QUIC CYU string";
+    sigmatch_table[DETECT_QUIC_CYU_STRING].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].Setup = DetectQuicCyuStringSetup;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].flags |= SIGMATCH_NOOPT;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_CYU_STRING].RegisterTests = DetectQuicCyuStringRegisterTests;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].RegisterTests = DetectQuicCyuStringRegisterTests;
 #endif
 
     DetectAppLayerMultiRegister(

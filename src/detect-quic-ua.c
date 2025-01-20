@@ -70,13 +70,13 @@ static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectQuicUaRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_UA].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_UA].desc = "match Quic ua";
-    sigmatch_table[DETECT_AL_QUIC_UA].url = "/rules/quic-keywords.html#quic-ua";
-    sigmatch_table[DETECT_AL_QUIC_UA].Setup = DetectQuicUaSetup;
-    sigmatch_table[DETECT_AL_QUIC_UA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_QUIC_UA].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_QUIC_UA].desc = "match Quic ua";
+    sigmatch_table[DETECT_QUIC_UA].url = "/rules/quic-keywords.html#quic-ua";
+    sigmatch_table[DETECT_QUIC_UA].Setup = DetectQuicUaSetup;
+    sigmatch_table[DETECT_QUIC_UA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_UA].RegisterTests = DetectQuicUaRegisterTests;
+    sigmatch_table[DETECT_QUIC_UA].RegisterTests = DetectQuicUaRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

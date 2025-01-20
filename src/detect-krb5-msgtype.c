@@ -57,15 +57,15 @@ static int g_krb5_msg_type_list_id = 0;
  */
 void DetectKrb5MsgTypeRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].name = "krb5_msg_type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].desc = "match Kerberos 5 message type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].url = "/rules/kerberos-keywords.html#krb5-msg-type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Match = NULL;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].AppLayerTxMatch = DetectKrb5MsgTypeMatch;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Setup = DetectKrb5MsgTypeSetup;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Free = DetectKrb5MsgTypeFree;
+    sigmatch_table[DETECT_KRB5_MSGTYPE].name = "krb5_msg_type";
+    sigmatch_table[DETECT_KRB5_MSGTYPE].desc = "match Kerberos 5 message type";
+    sigmatch_table[DETECT_KRB5_MSGTYPE].url = "/rules/kerberos-keywords.html#krb5-msg-type";
+    sigmatch_table[DETECT_KRB5_MSGTYPE].Match = NULL;
+    sigmatch_table[DETECT_KRB5_MSGTYPE].AppLayerTxMatch = DetectKrb5MsgTypeMatch;
+    sigmatch_table[DETECT_KRB5_MSGTYPE].Setup = DetectKrb5MsgTypeSetup;
+    sigmatch_table[DETECT_KRB5_MSGTYPE].Free = DetectKrb5MsgTypeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
+    sigmatch_table[DETECT_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("krb5_msg_type", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
@@ -180,7 +180,7 @@ static int DetectKrb5MsgTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_MSGTYPE, (SigMatchCtx *)krb5d,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_MSGTYPE, (SigMatchCtx *)krb5d,
                 g_krb5_msg_type_list_id) == NULL) {
         goto error;
     }

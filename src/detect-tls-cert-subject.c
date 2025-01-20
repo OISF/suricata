@@ -67,17 +67,17 @@ static int g_tls_cert_subject_buffer_id = 0;
  */
 void DetectTlsSubjectRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].name = "tls.cert_subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].alias = "tls_cert_subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].desc =
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].name = "tls.cert_subject";
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].alias = "tls_cert_subject";
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].desc =
             "sticky buffer to match specifically and only on the TLS cert subject buffer";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].url = "/rules/tls-keywords.html#tls-cert-subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Setup = DetectTlsSubjectSetup;
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].url = "/rules/tls-keywords.html#tls-cert-subject";
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].Setup = DetectTlsSubjectSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERT_SUBJECT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_subject", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);

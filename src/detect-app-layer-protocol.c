@@ -215,7 +215,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
 
     SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ; tsm != NULL; tsm = tsm->next) {
-        if (tsm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+        if (tsm->type == DETECT_APP_LAYER_PROTOCOL) {
             const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;
 
             if (HasConflicts(data, them)) {
@@ -227,7 +227,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_APP_LAYER_PROTOCOL, (SigMatchCtx *)data,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_PROTOCOL, (SigMatchCtx *)data,
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -331,8 +331,8 @@ PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_AL_APP_LAYER_PROTOCOL,
-            SIG_MASK_REQUIRE_FLOW, PrefilterPacketAppProtoSet, PrefilterPacketAppProtoCompare,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_APP_LAYER_PROTOCOL, SIG_MASK_REQUIRE_FLOW,
+            PrefilterPacketAppProtoSet, PrefilterPacketAppProtoCompare,
             PrefilterPacketAppProtoMatch);
 }
 
@@ -347,26 +347,20 @@ static bool PrefilterAppProtoIsPrefilterable(const Signature *s)
 
 void DetectAppLayerProtocolRegister(void)
 {
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].desc = "match on the detected app-layer protocol";
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].url = "/rules/app-layer.html#app-layer-protocol";
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Match =
-        DetectAppLayerProtocolPacketMatch;
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Setup =
-        DetectAppLayerProtocolSetup;
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Free =
-        DetectAppLayerProtocolFree;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].desc = "match on the detected app-layer protocol";
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].url = "/rules/app-layer.html#app-layer-protocol";
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].Match = DetectAppLayerProtocolPacketMatch;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].Setup = DetectAppLayerProtocolSetup;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].Free = DetectAppLayerProtocolFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].RegisterTests =
-        DetectAppLayerProtocolRegisterTests;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].RegisterTests = DetectAppLayerProtocolRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].flags =
-        (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].flags =
+            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
 
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SetupPrefilter =
-        PrefilterSetupAppProto;
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SupportsPrefilter =
-            PrefilterAppProtoIsPrefilterable;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].SetupPrefilter = PrefilterSetupAppProto;
+    sigmatch_table[DETECT_APP_LAYER_PROTOCOL].SupportsPrefilter = PrefilterAppProtoIsPrefilterable;
 }
 
 /**********************************Unittests***********************************/

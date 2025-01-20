@@ -71,17 +71,17 @@ static int g_tls_cert_serial_buffer_id = 0;
  */
 void DetectTlsSerialRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].name = "tls.cert_serial";
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].alias = "tls_cert_serial";
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].desc =
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].name = "tls.cert_serial";
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].alias = "tls_cert_serial";
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].desc =
             "sticky buffer to match the TLS cert serial buffer";
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].url = "/rules/tls-keywords.html#tls-cert-serial";
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].Setup = DetectTlsSerialSetup;
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].url = "/rules/tls-keywords.html#tls-cert-serial";
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].Setup = DetectTlsSerialSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].RegisterTests = DetectTlsSerialRegisterTests;
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].RegisterTests = DetectTlsSerialRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
