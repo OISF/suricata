@@ -79,10 +79,7 @@ pub unsafe extern "C" fn SCSshTxGetSoftware(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSshTxGetHassh(
-    tx: *mut std::os::raw::c_void,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction.into() {
@@ -111,10 +108,7 @@ pub unsafe extern "C" fn SCSshTxGetHassh(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSshTxGetHasshString(
-    tx: *mut std::os::raw::c_void,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction.into() {
