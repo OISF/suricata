@@ -501,6 +501,9 @@ void SigTableInit(void)
 
 void SigTableSetup(void)
 {
+    (void)DetectBufferTypeRegister("hook");
+    DetectRegisterAppLayerHookLists();
+
     DetectSidRegister();
     DetectPriorityRegister();
     DetectPrefilterRegister();

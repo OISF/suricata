@@ -2418,12 +2418,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 {
     uint32_t cnt = 0;
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
-        if (s->flags & SIG_FLAG_PREFILTER)
-            continue;
-
-        RetrieveFPForSig(de_ctx, s);
         if (s->init_data->mpm_sm != NULL) {
-            s->flags |= SIG_FLAG_PREFILTER;
             cnt++;
         }
     }
@@ -2519,7 +2514,7 @@ void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *
     for (; app != NULL; app = app->next) {
         DEBUG_VALIDATE_BUG_ON(app->smd == NULL);
         SigMatchData *smd = app->smd;
-        do {
+        while (smd) {
             switch (smd->type) {
                 case DETECT_CONTENT: {
                     const DetectContentData *cd = (const DetectContentData *)smd->ctx;
@@ -2547,7 +2542,7 @@ void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *
             if (smd->is_last)
                 break;
             smd++;
-        } while (1);
+        }
     }
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for (; pkt != NULL; pkt = pkt->next) {

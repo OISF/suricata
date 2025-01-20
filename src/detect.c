@@ -1219,6 +1219,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             if (unlikely(engine->stream && can->stream_stored)) {
                 match = can->stream_result;
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
+            } else if (engine->v2.Callback == NULL) {
+                /* TODO is this the cleanest way to support a non-app sig on a app hook? */
+                match = DETECT_ENGINE_INSPECT_SIG_MATCH;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
