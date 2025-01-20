@@ -5958,11 +5958,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
                 StatsIncr(tv, stt->counter_tcp_invalid_checksum);
                 return TM_ECODE_OK;
             }
-        } else {
-            p->flags |= PKT_IGNORE_CHECKSUM;
         }
-    } else {
-        p->flags |= PKT_IGNORE_CHECKSUM; //TODO check that this is set at creation
     }
     AppLayerProfilingReset(stt->ra_ctx->app_tctx);
 
