@@ -245,8 +245,7 @@ pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut AppLayerTxData, state
 #[macro_export]
 macro_rules!export_tx_data_get {
     ($name:ident, $type:ty) => {
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
+        unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
             -> *mut $crate::applayer::AppLayerTxData
         {
             let tx = &mut *(tx as *mut $type);
@@ -272,8 +271,7 @@ impl AppLayerStateData {
 #[macro_export]
 macro_rules!export_state_data_get {
     ($name:ident, $type:ty) => {
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
+        unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
             -> *mut $crate::applayer::AppLayerStateData
         {
             let state = &mut *(state as *mut $type);

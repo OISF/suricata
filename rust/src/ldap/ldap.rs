@@ -640,8 +640,8 @@ unsafe extern "C" fn ldap_tx_get_alstate_progress(tx: *mut c_void, _direction: u
     return 0;
 }
 
-export_tx_data_get!(SCLdapGetTxData, LdapTransaction);
-export_state_data_get!(SCLdapGetStateData, LdapState);
+export_tx_data_get!(ldap_get_tx_data, LdapTransaction);
+export_state_data_get!(ldap_get_state_data, LdapState);
 
 const PARSER_NAME: &[u8] = b"ldap\0";
 
@@ -672,8 +672,8 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<LdapState, LdapTransaction>),
-        get_tx_data: SCLdapGetTxData,
-        get_state_data: SCLdapGetStateData,
+        get_tx_data: ldap_get_tx_data,
+        get_state_data: ldap_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),
@@ -729,8 +729,8 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<LdapState, LdapTransaction>),
-        get_tx_data: SCLdapGetTxData,
-        get_state_data: SCLdapGetStateData,
+        get_tx_data: ldap_get_tx_data,
+        get_state_data: ldap_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(LdapFrameType::ffi_id_from_name),

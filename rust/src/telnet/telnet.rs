@@ -501,8 +501,8 @@ pub unsafe extern "C" fn rs_telnet_tx_get_alstate_progress(
     return 0;
 }
 
-export_tx_data_get!(rs_telnet_get_tx_data, TelnetTransaction);
-export_state_data_get!(rs_telnet_get_state_data, TelnetState);
+export_tx_data_get!(telnet_get_tx_data, TelnetTransaction);
+export_state_data_get!(telnet_get_state_data, TelnetState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"telnet\0";
@@ -534,8 +534,8 @@ pub unsafe extern "C" fn rs_telnet_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<TelnetState, TelnetTransaction>),
-        get_tx_data: rs_telnet_get_tx_data,
-        get_state_data: rs_telnet_get_state_data,
+        get_tx_data: telnet_get_tx_data,
+        get_state_data: telnet_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(TelnetFrameType::ffi_id_from_name),
