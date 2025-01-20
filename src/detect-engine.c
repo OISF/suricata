@@ -1023,7 +1023,7 @@ static void DetectBufferTypeFree(void)
 #endif
 static int DetectBufferTypeAdd(const char *string)
 {
-    BUG_ON(string == NULL || strlen(string) >= 32);
+    BUG_ON(string == NULL || strlen(string) >= 64);
 
     DetectBufferType *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
