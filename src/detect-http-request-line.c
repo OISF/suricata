@@ -99,16 +99,17 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpRequestLineRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].name = "http.request_line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].alias = "http_request_line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].desc = "sticky buffer to match on the HTTP request line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].url = "/rules/http-keywords.html#http-request-line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Setup = DetectHttpRequestLineSetup;
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].name = "http.request_line";
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].alias = "http_request_line";
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].desc =
+            "sticky buffer to match on the HTTP request line";
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].url = "/rules/http-keywords.html#http-request-line";
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].Match = NULL;
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].Setup = DetectHttpRequestLineSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_request_line", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);

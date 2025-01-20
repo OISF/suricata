@@ -64,17 +64,17 @@ static int g_ja4_hash_buffer_id = 0;
  */
 void DetectJa4HashRegister(void)
 {
-    sigmatch_table[DETECT_AL_JA4_HASH].name = "ja4.hash";
-    sigmatch_table[DETECT_AL_JA4_HASH].alias = "ja4_hash";
-    sigmatch_table[DETECT_AL_JA4_HASH].desc = "sticky buffer to match the JA4 hash buffer";
-    sigmatch_table[DETECT_AL_JA4_HASH].url = "/rules/ja4-keywords.html#ja4-hash";
+    sigmatch_table[DETECT_JA4_HASH].name = "ja4.hash";
+    sigmatch_table[DETECT_JA4_HASH].alias = "ja4_hash";
+    sigmatch_table[DETECT_JA4_HASH].desc = "sticky buffer to match the JA4 hash buffer";
+    sigmatch_table[DETECT_JA4_HASH].url = "/rules/ja4-keywords.html#ja4-hash";
 #ifdef HAVE_JA4
-    sigmatch_table[DETECT_AL_JA4_HASH].Setup = DetectJa4HashSetup;
+    sigmatch_table[DETECT_JA4_HASH].Setup = DetectJa4HashSetup;
 #else  /* HAVE_JA4 */
-    sigmatch_table[DETECT_AL_JA4_HASH].Setup = DetectJA4SetupNoSupport;
+    sigmatch_table[DETECT_JA4_HASH].Setup = DetectJA4SetupNoSupport;
 #endif /* HAVE_JA4 */
-    sigmatch_table[DETECT_AL_JA4_HASH].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_JA4_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_JA4_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_JA4_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
 #ifdef HAVE_JA4
     DetectAppLayerInspectEngineRegister("ja4.hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
@@ -121,7 +121,7 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     /* check if JA4 enabling had an effect */
     if (!RunmodeIsUnittests() && !SSLJA4IsEnabled()) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_JA4_HASH)) {
+        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_JA4_HASH)) {
             SCLogError("JA4 support is not enabled");
         }
         return -2;

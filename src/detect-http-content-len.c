@@ -36,7 +36,7 @@
 #define BUFFER_NAME "http_content_len"
 #define BUFFER_DESC "http content length header"
 #define HEADER_NAME "Content-Length"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONTENT_LEN
+#define KEYWORD_ID          DETECT_HTTP_HEADER_CONTENT_LEN
 #define KEYWORD_TOSERVER 1
 #define KEYWORD_TOCLIENT 1
 

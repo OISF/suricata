@@ -71,17 +71,18 @@ static int g_tls_cert_fingerprint_buffer_id = 0;
  */
 void DetectTlsFingerprintRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].name = "tls.cert_fingerprint";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].alias = "tls_cert_fingerprint";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].desc =
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].name = "tls.cert_fingerprint";
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].alias = "tls_cert_fingerprint";
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].desc =
             "sticky buffer to match the TLS cert fingerprint buffer";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].url = "/rules/tls-keywords.html#tls-cert-fingerprint";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].url =
+            "/rules/tls-keywords.html#tls-cert-fingerprint";
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].RegisterTests = DetectTlsFingerprintRegisterTests;
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].RegisterTests = DetectTlsFingerprintRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_fingerprint", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);

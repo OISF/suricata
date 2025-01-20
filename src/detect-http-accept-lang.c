@@ -36,7 +36,7 @@
 #define BUFFER_NAME "http_accept_lang"
 #define BUFFER_DESC "http accept language header"
 #define HEADER_NAME "Accept-Language"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_ACCEPT_LANG
+#define KEYWORD_ID          DETECT_HTTP_HEADER_ACCEPT_LANG
 #define KEYWORD_TOSERVER 1
 
 #include "detect-http-headers-stub.h"

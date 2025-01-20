@@ -88,16 +88,17 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
 void DetectHttpCookieRegister(void)
 {
     /* http_cookie content modifier */
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].desc = "content modifier to match only on the HTTP cookie-buffer";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].url = "/rules/http-keywords.html#http-cookie";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].name = "http_cookie";
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].desc =
+            "content modifier to match only on the HTTP cookie-buffer";
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].url = "/rules/http-keywords.html#http-cookie";
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].Setup = DetectHttpCookieSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].RegisterTests = DetectHttpCookieRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].alternative = DETECT_HTTP_COOKIE;
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_COOKIE_CM].alternative = DETECT_HTTP_COOKIE;
 
     /* http.cookie sticky buffer */
     sigmatch_table[DETECT_HTTP_COOKIE].name = "http.cookie";
@@ -147,7 +148,7 @@ void DetectHttpCookieRegister(void)
 static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, str, DETECT_AL_HTTP_COOKIE, g_http_cookie_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, str, DETECT_HTTP_COOKIE_CM, g_http_cookie_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

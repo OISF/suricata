@@ -60,14 +60,14 @@ static int g_http_raw_uri_buffer_id = 0;
 
 void DetectUrilenRegister(void)
 {
-    sigmatch_table[DETECT_AL_URILEN].name = "urilen";
-    sigmatch_table[DETECT_AL_URILEN].desc = "match on the length of the HTTP uri";
-    sigmatch_table[DETECT_AL_URILEN].url = "/rules/http-keywords.html#urilen";
-    sigmatch_table[DETECT_AL_URILEN].Match = NULL;
-    sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
-    sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
+    sigmatch_table[DETECT_URILEN].name = "urilen";
+    sigmatch_table[DETECT_URILEN].desc = "match on the length of the HTTP uri";
+    sigmatch_table[DETECT_URILEN].url = "/rules/http-keywords.html#urilen";
+    sigmatch_table[DETECT_URILEN].Match = NULL;
+    sigmatch_table[DETECT_URILEN].Setup = DetectUrilenSetup;
+    sigmatch_table[DETECT_URILEN].Free = DetectUrilenFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
+    sigmatch_table[DETECT_URILEN].RegisterTests = DetectUrilenRegisterTests;
 #endif
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
@@ -111,12 +111,12 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto error;
 
     if (urilend->raw_buffer) {
-        if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_URILEN, (SigMatchCtx *)urilend,
+        if (SigMatchAppendSMToList(de_ctx, s, DETECT_URILEN, (SigMatchCtx *)urilend,
                     g_http_raw_uri_buffer_id) == NULL) {
             goto error;
         }
     } else {
-        if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_URILEN, (SigMatchCtx *)urilend,
+        if (SigMatchAppendSMToList(de_ctx, s, DETECT_URILEN, (SigMatchCtx *)urilend,
                     g_http_uri_buffer_id) == NULL) {
             goto error;
         }
@@ -156,7 +156,7 @@ void DetectUrilenApplyToContent(Signature *s, int list)
         bool found = false;
 
         for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_AL_URILEN)
+            if (sm->type != DETECT_URILEN)
                 continue;
 
             DetectUrilenData *dd = (DetectUrilenData *)sm->ctx;

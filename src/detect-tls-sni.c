@@ -64,14 +64,14 @@ static int g_tls_sni_buffer_id = 0;
  */
 void DetectTlsSniRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_SNI].name = "tls.sni";
-    sigmatch_table[DETECT_AL_TLS_SNI].alias = "tls_sni";
-    sigmatch_table[DETECT_AL_TLS_SNI].desc =
+    sigmatch_table[DETECT_TLS_SNI].name = "tls.sni";
+    sigmatch_table[DETECT_TLS_SNI].alias = "tls_sni";
+    sigmatch_table[DETECT_TLS_SNI].desc =
             "sticky buffer to match specifically and only on the TLS SNI buffer";
-    sigmatch_table[DETECT_AL_TLS_SNI].url = "/rules/tls-keywords.html#tls-sni";
-    sigmatch_table[DETECT_AL_TLS_SNI].Setup = DetectTlsSniSetup;
-    sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_SNI].url = "/rules/tls-keywords.html#tls-sni";
+    sigmatch_table[DETECT_TLS_SNI].Setup = DetectTlsSniSetup;
+    sigmatch_table[DETECT_TLS_SNI].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_SNI].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);

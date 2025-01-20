@@ -78,17 +78,16 @@ static int g_tls_ja3s_str_buffer_id = 0;
  */
 void DetectTlsJa3SStringRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].name = "ja3s.string";
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].desc =
-            "sticky buffer to match the JA3S string buffer";
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].url = "/rules/ja3-keywords.html#ja3s-string";
+    sigmatch_table[DETECT_TLS_JA3S_STRING].name = "ja3s.string";
+    sigmatch_table[DETECT_TLS_JA3S_STRING].desc = "sticky buffer to match the JA3S string buffer";
+    sigmatch_table[DETECT_TLS_JA3S_STRING].url = "/rules/ja3-keywords.html#ja3s-string";
 #ifdef HAVE_JA3
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].Setup = DetectTlsJa3SStringSetup;
+    sigmatch_table[DETECT_TLS_JA3S_STRING].Setup = DetectTlsJa3SStringSetup;
 #else  /* HAVE_JA3 */
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].Setup = DetectJA3SetupNoSupport;
+    sigmatch_table[DETECT_TLS_JA3S_STRING].Setup = DetectJA3SetupNoSupport;
 #endif /* HAVE_JA3 */
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_JA3S_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_JA3S_STRING].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_JA3S_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
 #ifdef HAVE_JA3
     DetectAppLayerInspectEngineRegister("ja3s.string", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
@@ -135,7 +134,7 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
 
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3S_STRING)) {
+        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_TLS_JA3S_STRING)) {
             SCLogError("ja3(s) support is not enabled");
         }
         return -2;

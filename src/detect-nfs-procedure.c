@@ -63,15 +63,15 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *, Flow *,
  */
 void DetectNfsProcedureRegister (void)
 {
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].name = "nfs_procedure";
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].desc = "match NFS procedure";
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].url = "/rules/nfs-keywords.html#procedure";
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].Match = NULL;
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].Free = DetectNfsProcedureFree;
+    sigmatch_table[DETECT_NFS_PROCEDURE].name = "nfs_procedure";
+    sigmatch_table[DETECT_NFS_PROCEDURE].desc = "match NFS procedure";
+    sigmatch_table[DETECT_NFS_PROCEDURE].url = "/rules/nfs-keywords.html#procedure";
+    sigmatch_table[DETECT_NFS_PROCEDURE].Match = NULL;
+    sigmatch_table[DETECT_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
+    sigmatch_table[DETECT_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;
+    sigmatch_table[DETECT_NFS_PROCEDURE].Free = DetectNfsProcedureFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
+    sigmatch_table[DETECT_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister(
@@ -169,7 +169,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
      * and put it in the Signature. */
 
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_NFS_PROCEDURE, (SigMatchCtx *)dd,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_NFS_PROCEDURE, (SigMatchCtx *)dd,
                 g_nfs_request_buffer_id) == NULL) {
         DetectNfsProcedureFree(de_ctx, dd);
         return -1;

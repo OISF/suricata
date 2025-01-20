@@ -38,7 +38,7 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
  */
 void DetectSshVersionRegister(void)
 {
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].desc = "obsolete keyword, use now ssh.proto";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
+    sigmatch_table[DETECT_SSH_PROTOVERSION].name = "ssh.protoversion";
+    sigmatch_table[DETECT_SSH_PROTOVERSION].desc = "obsolete keyword, use now ssh.proto";
+    sigmatch_table[DETECT_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
 }

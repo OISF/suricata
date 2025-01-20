@@ -63,14 +63,13 @@ static int g_tls_subjectaltname_buffer_id = 0;
  */
 void DetectTlsSubjectAltNameRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].name = "tls.subjectaltname";
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].desc =
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].name = "tls.subjectaltname";
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].desc =
             "sticky buffer to match the TLS Subject Alternative Name buffer";
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].url =
-            "/rules/tls-keywords.html#tls-subjectaltname";
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].Setup = DetectTlsSubjectAltNameSetup;
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].url = "/rules/tls-keywords.html#tls-subjectaltname";
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].Setup = DetectTlsSubjectAltNameSetup;
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("tls.subjectaltname", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             TlsSubjectAltNameGetData, 2, TLS_STATE_CERT_READY);

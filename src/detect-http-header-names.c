@@ -211,13 +211,13 @@ static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, con
  */
 void DetectHttpHeaderNamesRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].alias = KEYWORD_NAME_LEGACY;
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].Setup = DetectHttpHeaderNamesSetup;
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].alias = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].desc = BUFFER_NAME " sticky buffer";
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].Setup = DetectHttpHeaderNamesSetup;
 
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* http1 */
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
