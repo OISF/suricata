@@ -623,8 +623,7 @@ fn pgsql_tx_get_res_state(tx: *mut std::os::raw::c_void) -> PgsqlTxProgress {
 // C exports.
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlProbingParserTS(
+unsafe extern "C" fn probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
@@ -649,8 +648,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTS(
 }
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlProbingParserTC(
+unsafe extern "C" fn probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
@@ -678,8 +676,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTC(
     return ALPROTO_UNKNOWN;
 }
 
-#[no_mangle]
-pub extern "C" fn SCPgsqlStateNew(
+extern "C" fn state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = PgsqlState::new();
@@ -687,23 +684,17 @@ pub extern "C" fn SCPgsqlStateNew(
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn SCPgsqlStateFree(state: *mut std::os::raw::c_void) {
+extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut PgsqlState) });
 }
 
-#[no_mangle]
-pub extern "C" fn SCPgsqlStateTxFree(state: *mut std::os::raw::c_void, tx_id: u64) {
-    let state_safe: &mut PgsqlState;
-    unsafe {
-        state_safe = cast_pointer!(state, PgsqlState);
-    }
+unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+    let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
     state_safe.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlParseRequest(
+unsafe extern "C" fn parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -726,8 +717,7 @@ pub unsafe extern "C" fn SCPgsqlParseRequest(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlParseResponse(
+unsafe extern "C" fn parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -749,8 +739,7 @@ pub unsafe extern "C" fn SCPgsqlParseResponse(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlStateGetTx(
+unsafe extern "C" fn state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
@@ -764,17 +753,12 @@ pub unsafe extern "C" fn SCPgsqlStateGetTx(
     }
 }
 
-#[no_mangle]
-pub extern "C" fn SCPgsqlStateGetTxCount(state: *mut std::os::raw::c_void) -> u64 {
-    let state_safe: &mut PgsqlState;
-    unsafe {
-        state_safe = cast_pointer!(state, PgsqlState);
-    }
+unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+    let state_safe: &mut PgsqlState  = cast_pointer!(state, PgsqlState);
     return state_safe.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCPgsqlTxGetALStateProgress(
+unsafe extern "C" fn tx_get_al_state_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer as u8 {
@@ -799,20 +783,20 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(SCPgsqlProbingParserTS),
-        probe_tc: Some(SCPgsqlProbingParserTC),
+        probe_ts: Some(probing_parser_ts),
+        probe_tc: Some(probing_parser_tc),
         min_depth: 0,
         max_depth: 16,
-        state_new: SCPgsqlStateNew,
-        state_free: SCPgsqlStateFree,
-        tx_free: SCPgsqlStateTxFree,
-        parse_ts: SCPgsqlParseRequest,
-        parse_tc: SCPgsqlParseResponse,
-        get_tx_count: SCPgsqlStateGetTxCount,
-        get_tx: SCPgsqlStateGetTx,
+        state_new,
+        state_free,
+        tx_free: state_tx_free,
+        parse_ts: parse_request,
+        parse_tc: parse_response,
+        get_tx_count: state_get_tx_count,
+        get_tx: state_get_tx,
         tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
         tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
-        tx_get_progress: SCPgsqlTxGetALStateProgress,
+        tx_get_progress: tx_get_al_state_progress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
