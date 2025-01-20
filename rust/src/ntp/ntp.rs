@@ -160,8 +160,7 @@ impl NTPTransaction {
 }
 
 /// Returns *mut NTPState
-#[no_mangle]
-pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NTPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -169,14 +168,12 @@ pub extern "C" fn rs_ntp_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 
 /// Params:
 /// - state: *mut NTPState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_ntp_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn ntp_state_free(state: *mut std::os::raw::c_void) {
     let mut ntp_state = unsafe{ Box::from_raw(state as *mut NTPState) };
     ntp_state.free();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const Flow,
+unsafe extern "C" fn ntp_parse_request(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -189,8 +186,7 @@ pub unsafe extern "C" fn rs_ntp_parse_request(_flow: *const Flow,
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const Flow,
+unsafe extern "C" fn ntp_parse_response(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -203,8 +199,7 @@ pub unsafe extern "C" fn rs_ntp_parse_response(_flow: *const Flow,
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn ntp_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -215,24 +210,21 @@ pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
+unsafe extern "C" fn ntp_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,NTPState);
     state.tx_id
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ntp_state_tx_free(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn ntp_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,NTPState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
+extern "C" fn ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
 {
@@ -241,8 +233,7 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 
 static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
 
-#[no_mangle]
-pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
+extern "C" fn ntp_probing_parser(_flow: *const Flow,
         _direction: u8,
         input:*const u8, input_len: u32,
         _rdir: *mut u8) -> AppProto
@@ -282,16 +273,16 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         probe_tc           : Some(ntp_probing_parser),
         min_depth          : 0,
         max_depth          : 16,
-        state_new          : rs_ntp_state_new,
-        state_free         : rs_ntp_state_free,
-        tx_free            : rs_ntp_state_tx_free,
-        parse_ts           : rs_ntp_parse_request,
-        parse_tc           : rs_ntp_parse_response,
-        get_tx_count       : rs_ntp_state_get_tx_count,
-        get_tx             : rs_ntp_state_get_tx,
+        state_new          : ntp_state_new,
+        state_free         : ntp_state_free,
+        tx_free            : ntp_state_tx_free,
+        parse_ts           : ntp_parse_request,
+        parse_tc           : ntp_parse_response,
+        get_tx_count       : ntp_state_get_tx_count,
+        get_tx             : ntp_state_get_tx,
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_ntp_tx_get_alstate_progress,
+        tx_get_progress    : ntp_tx_get_alstate_progress,
         get_eventinfo      : Some(NTPEvent::get_event_info),
         get_eventinfo_byid : Some(NTPEvent::get_event_info_by_id),
         localstorage_new   : None,
