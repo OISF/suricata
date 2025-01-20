@@ -575,8 +575,8 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const Flow,
     AppLayerResult::ok()
 }
 
-export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
-export_state_data_get!(rs_krb5_get_state_data, KRB5State);
+export_tx_data_get!(krb5_get_tx_data, KRB5Transaction);
+export_state_data_get!(krb5_get_state_data, KRB5State);
 
 const PARSER_NAME : &[u8] = b"krb5\0";
 
@@ -607,8 +607,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         localstorage_free  : None,
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<KRB5State, KRB5Transaction>),
-        get_tx_data        : rs_krb5_get_tx_data,
-        get_state_data     : rs_krb5_get_state_data,
+        get_tx_data        : krb5_get_tx_data,
+        get_state_data     : krb5_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
         get_frame_id_by_name: None,

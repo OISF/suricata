@@ -546,8 +546,8 @@ fn register_pattern_probe(proto: u8) -> i8 {
     }
 }
 
-export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
-export_state_data_get!(rs_sip_get_state_data, SIPState);
+export_tx_data_get!(sip_get_tx_data, SIPTransaction);
+export_state_data_get!(sip_get_state_data, SIPState);
 
 const PARSER_NAME: &[u8] = b"sip\0";
 
@@ -577,8 +577,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SIPState, SIPTransaction>),
-        get_tx_data: rs_sip_get_tx_data,
-        get_state_data: rs_sip_get_state_data,
+        get_tx_data: sip_get_tx_data,
+        get_state_data: sip_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(SIPFrameType::ffi_id_from_name),

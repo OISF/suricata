@@ -761,8 +761,8 @@ pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mqtt\0";
 
-export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
-export_state_data_get!(rs_mqtt_get_state_data, MQTTState);
+export_tx_data_get!(mqtt_get_tx_data, MQTTTransaction);
+export_state_data_get!(mqtt_get_state_data, MQTTState);
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMqttRegisterParser() {
@@ -791,8 +791,8 @@ pub unsafe extern "C" fn SCMqttRegisterParser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<MQTTState, MQTTTransaction>),
-        get_tx_data: rs_mqtt_get_tx_data,
-        get_state_data: rs_mqtt_get_state_data,
+        get_tx_data: mqtt_get_tx_data,
+        get_state_data: mqtt_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(MQTTFrameType::ffi_id_from_name),

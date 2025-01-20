@@ -67,7 +67,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *software = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ssh_tx_get_software(txv, &software, &b_len, flow_flags) != 1)
+        if (SCSshTxGetSoftware(txv, &software, &b_len, flow_flags) != 1)
             return NULL;
         if (software == NULL || b_len == 0) {
             SCLogDebug("SSH software version not set");

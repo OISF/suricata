@@ -67,7 +67,7 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *protocol = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, flow_flags) != 1)
+        if (SCSshTxGetProtocol(txv, &protocol, &b_len, flow_flags) != 1)
             return NULL;
         if (protocol == NULL || b_len == 0) {
             SCLogDebug("SSH protocol not set");

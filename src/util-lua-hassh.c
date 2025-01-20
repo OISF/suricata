@@ -64,8 +64,8 @@ static int GetHasshServerString(lua_State *luastate, const Flow *f)
     const uint8_t *hassh_server_string = NULL;
     uint32_t b_len = 0;
 
-    void *tx = rs_ssh_state_get_tx(state, 0);
-    if (rs_ssh_tx_get_hassh_string(tx, &hassh_server_string, &b_len, STREAM_TOCLIENT) != 1)
+    void *tx = SCSshStateGetTx(state, 0);
+    if (SCSshTxGetHasshString(tx, &hassh_server_string, &b_len, STREAM_TOCLIENT) != 1)
         return LuaCallbackError(luastate, "error: no server hassh string");
     if (hassh_server_string == NULL || b_len == 0) {
         return LuaCallbackError(luastate, "error: no server hassh string");
@@ -99,8 +99,8 @@ static int GetHasshServer(lua_State *luastate, const Flow *f)
     const uint8_t *hassh_server = NULL;
     uint32_t b_len = 0;
 
-    void *tx = rs_ssh_state_get_tx(state, 0);
-    if (rs_ssh_tx_get_hassh(tx, &hassh_server, &b_len, STREAM_TOCLIENT) != 1)
+    void *tx = SCSshStateGetTx(state, 0);
+    if (SCSshTxGetHassh(tx, &hassh_server, &b_len, STREAM_TOCLIENT) != 1)
         return LuaCallbackError(luastate, "error: no server hassh");
     if (hassh_server == NULL || b_len == 0) {
         return LuaCallbackError(luastate, "error: no server hassh");
@@ -134,8 +134,8 @@ static int GetHasshString(lua_State *luastate, const Flow *f)
     const uint8_t *hassh_string = NULL;
     uint32_t b_len = 0;
 
-    void *tx = rs_ssh_state_get_tx(state, 0);
-    if (rs_ssh_tx_get_hassh_string(tx, &hassh_string, &b_len, STREAM_TOSERVER) != 1)
+    void *tx = SCSshStateGetTx(state, 0);
+    if (SCSshTxGetHasshString(tx, &hassh_string, &b_len, STREAM_TOSERVER) != 1)
         return LuaCallbackError(luastate, "error: no client hassh_string");
     if (hassh_string == NULL || b_len == 0) {
         return LuaCallbackError(luastate, "error: no client hassh_string");
@@ -169,8 +169,8 @@ static int GetHassh(lua_State *luastate, const Flow *f)
     const uint8_t *hassh = NULL;
     uint32_t b_len = 0;
 
-    void *tx = rs_ssh_state_get_tx(state, 0);
-    if (rs_ssh_tx_get_hassh(tx, &hassh, &b_len, STREAM_TOSERVER) != 1)
+    void *tx = SCSshStateGetTx(state, 0);
+    if (SCSshTxGetHassh(tx, &hassh, &b_len, STREAM_TOSERVER) != 1)
         return LuaCallbackError(luastate, "error: no client hassh");
     if (hassh == NULL || b_len == 0) {
         return LuaCallbackError(luastate, "error: no client hassh");

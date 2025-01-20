@@ -349,8 +349,8 @@ unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direc
     return 0;
 }
 
-export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
-export_state_data_get!(rs_template_get_state_data, TemplateState);
+export_tx_data_get!(template_get_tx_data, TemplateTransaction);
+export_state_data_get!(template_get_state_data, TemplateState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"template\0";
@@ -390,8 +390,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_tx_iterator: Some(
             applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>,
         ),
-        get_tx_data: rs_template_get_tx_data,
-        get_state_data: rs_template_get_state_data,
+        get_tx_data: template_get_tx_data,
+        get_state_data: template_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: None,

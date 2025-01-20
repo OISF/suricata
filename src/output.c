@@ -866,7 +866,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_SMTP special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_TLS, JsonTlsLogJSONExtended, NULL);
     // no cast here but done in rust for SSHTransaction
-    RegisterSimpleJsonApplayerLogger(ALPROTO_SSH, rs_ssh_log_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SSH, SCSshLogJson, NULL);
     // ALPROTO_SMB special: uses state
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, AlertJsonDns, NULL);

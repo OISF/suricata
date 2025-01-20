@@ -26,7 +26,6 @@ use std::ptr;
 
 static mut G_TRANSFORM_DOT_PREFIX_ID: c_int = 0;
 
-#[no_mangle]
 unsafe extern "C" fn dot_prefix_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -42,7 +41,6 @@ fn dot_prefix_transform_do(input: &[u8], output: &mut [u8]) {
     output[0] = b'.';
 }
 
-#[no_mangle]
 unsafe extern "C" fn dot_prefix_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input_len = InspectionBufferLength(buffer);
     if input_len == 0 {

@@ -58,7 +58,6 @@ unsafe fn xor_parse(raw: *const std::os::raw::c_char) -> *mut c_void {
     return std::ptr::null_mut();
 }
 
-#[no_mangle]
 unsafe extern "C" fn xor_setup(
     de: *mut c_void, s: *mut c_void, opt_str: *const std::os::raw::c_char,
 ) -> c_int {
@@ -81,7 +80,6 @@ fn xor_transform_do(input: &[u8], output: &mut [u8], ctx: &DetectTransformXorDat
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn xor_transform(buffer: *mut c_void, ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
