@@ -533,8 +533,7 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
     }
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapProbingParser(
+unsafe extern "C" fn ldap_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len > 1 && !input.is_null() {
@@ -544,26 +543,22 @@ unsafe extern "C" fn SCLdapProbingParser(
     return ALPROTO_UNKNOWN;
 }
 
-#[no_mangle]
-extern "C" fn SCLdapStateNew(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
+extern "C" fn ldap_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = LdapState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapStateFree(state: *mut c_void) {
+unsafe extern "C" fn ldap_state_free(state: *mut c_void) {
     std::mem::drop(Box::from_raw(state as *mut LdapState));
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapStateTxFree(state: *mut c_void, tx_id: u64) {
+unsafe extern "C" fn ldap_state_tx_free(state: *mut c_void, tx_id: u64) {
     let state = cast_pointer!(state, LdapState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapParseRequest(
+unsafe extern "C" fn ldap_parse_request(
     flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -584,8 +579,7 @@ unsafe extern "C" fn SCLdapParseRequest(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapParseResponse(
+unsafe extern "C" fn ldap_parse_response(
     flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -605,8 +599,7 @@ unsafe extern "C" fn SCLdapParseResponse(
     AppLayerResult::ok()
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapParseRequestUDP(
+unsafe extern "C" fn ldap_parse_request_udp(
     flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -614,8 +607,7 @@ unsafe extern "C" fn SCLdapParseRequestUDP(
     state.parse_request_udp(flow, stream_slice)
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapParseResponseUDP(
+unsafe extern "C" fn ldap_parse_response_udp(
     flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -623,8 +615,7 @@ unsafe extern "C" fn SCLdapParseResponseUDP(
     state.parse_response_udp(flow, stream_slice)
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapStateGetTx(state: *mut c_void, tx_id: u64) -> *mut c_void {
+unsafe extern "C" fn ldap_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, LdapState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -636,14 +627,12 @@ unsafe extern "C" fn SCLdapStateGetTx(state: *mut c_void, tx_id: u64) -> *mut c_
     }
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapStateGetTxCount(state: *mut c_void) -> u64 {
+unsafe extern "C" fn ldap_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, LdapState);
     return state.tx_id;
 }
 
-#[no_mangle]
-unsafe extern "C" fn SCLdapTxGetAlstateProgress(tx: *mut c_void, _direction: u8) -> c_int {
+unsafe extern "C" fn ldap_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
     if tx.complete {
         return 1;
@@ -663,20 +652,20 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(SCLdapProbingParser),
-        probe_tc: Some(SCLdapProbingParser),
+        probe_ts: Some(ldap_probing_parser),
+        probe_tc: Some(ldap_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: SCLdapStateNew,
-        state_free: SCLdapStateFree,
-        tx_free: SCLdapStateTxFree,
-        parse_ts: SCLdapParseRequest,
-        parse_tc: SCLdapParseResponse,
-        get_tx_count: SCLdapStateGetTxCount,
-        get_tx: SCLdapStateGetTx,
+        state_new: ldap_state_new,
+        state_free: ldap_state_free,
+        tx_free: ldap_state_tx_free,
+        parse_ts: ldap_parse_request,
+        parse_tc: ldap_parse_response,
+        get_tx_count: ldap_state_get_tx_count,
+        get_tx: ldap_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: SCLdapTxGetAlstateProgress,
+        tx_get_progress: ldap_tx_get_alstate_progress,
         get_eventinfo: Some(LdapEvent::get_event_info),
         get_eventinfo_byid: Some(LdapEvent::get_event_info_by_id),
         localstorage_new: None,
@@ -720,20 +709,20 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_UDP,
-        probe_ts: Some(SCLdapProbingParser),
-        probe_tc: Some(SCLdapProbingParser),
+        probe_ts: Some(ldap_probing_parser),
+        probe_tc: Some(ldap_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: SCLdapStateNew,
-        state_free: SCLdapStateFree,
-        tx_free: SCLdapStateTxFree,
-        parse_ts: SCLdapParseRequestUDP,
-        parse_tc: SCLdapParseResponseUDP,
-        get_tx_count: SCLdapStateGetTxCount,
-        get_tx: SCLdapStateGetTx,
+        state_new: ldap_state_new,
+        state_free: ldap_state_free,
+        tx_free: ldap_state_tx_free,
+        parse_ts: ldap_parse_request_udp,
+        parse_tc: ldap_parse_response_udp,
+        get_tx_count: ldap_state_get_tx_count,
+        get_tx: ldap_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: SCLdapTxGetAlstateProgress,
+        tx_get_progress: ldap_tx_get_alstate_progress,
         get_eventinfo: Some(LdapEvent::get_event_info),
         get_eventinfo_byid: Some(LdapEvent::get_event_info_by_id),
         localstorage_new: None,
