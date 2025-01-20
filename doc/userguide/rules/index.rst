@@ -50,3 +50,4 @@ Suricata Rules
    multi-buffer-matching
    tag
    vlan-keywords
+   ldap-keywords
