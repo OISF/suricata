@@ -27,7 +27,6 @@ use std::ptr;
 static mut G_TRANSFORM_TOLOWER_ID: c_int = 0;
 static mut G_TRANSFORM_TOUPPER_ID: c_int = 0;
 
-#[no_mangle]
 unsafe extern "C" fn tolower_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -40,7 +39,6 @@ fn tolower_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn tolower_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
@@ -61,7 +59,6 @@ unsafe extern "C" fn tolower_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     InspectionBufferTruncate(buffer, input_len);
 }
 
-#[no_mangle]
 unsafe extern "C" fn tolower_validate(content: *const u8, len: u16, _ctx: *mut c_void) -> bool {
     let input = build_slice!(content, len as usize);
     for &c in input {
@@ -90,7 +87,6 @@ pub unsafe extern "C" fn DetectTransformToLowerRegister() {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn toupper_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -103,7 +99,6 @@ fn toupper_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn toupper_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
@@ -124,7 +119,6 @@ unsafe extern "C" fn toupper_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     InspectionBufferTruncate(buffer, input_len);
 }
 
-#[no_mangle]
 unsafe extern "C" fn toupper_validate(content: *const u8, len: u16, _ctx: *mut c_void) -> bool {
     let input = build_slice!(content, len as usize);
     for &c in input {

@@ -35,7 +35,6 @@ static mut G_TRANSFORM_SHA256_ID: c_int = 0;
 
 const SC_MD5_LEN: usize = 16;
 
-#[no_mangle]
 unsafe extern "C" fn md5_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -50,7 +49,6 @@ fn md5_transform_do(input: &[u8], output: &mut [u8]) {
     Md5::new().chain(input).finalize_into(output.into());
 }
 
-#[no_mangle]
 unsafe extern "C" fn md5_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
@@ -89,7 +87,6 @@ pub unsafe extern "C" fn DetectTransformMd5Register() {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn sha1_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -104,7 +101,6 @@ fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
     Sha1::new().chain(input).finalize_into(output.into());
 }
 
-#[no_mangle]
 unsafe extern "C" fn sha1_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
@@ -143,7 +139,6 @@ pub unsafe extern "C" fn DetectTransformSha1Register() {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn sha256_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -158,7 +153,6 @@ fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
     Sha256::new().chain(input).finalize_into(output.into());
 }
 
-#[no_mangle]
 unsafe extern "C" fn sha256_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);

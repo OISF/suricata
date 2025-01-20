@@ -26,7 +26,6 @@ use std::ptr;
 
 static mut G_TRANSFORM_URL_DECODE_ID: c_int = 0;
 
-#[no_mangle]
 unsafe extern "C" fn url_decode_setup(
     _de: *mut c_void, s: *mut c_void, _opt: *const std::os::raw::c_char,
 ) -> c_int {
@@ -87,7 +86,6 @@ fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-#[no_mangle]
 unsafe extern "C" fn url_decode_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
