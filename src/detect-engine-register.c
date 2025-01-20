@@ -738,6 +738,7 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+    ScDetectLdapRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
