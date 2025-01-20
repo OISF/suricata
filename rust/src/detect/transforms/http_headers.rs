@@ -27,7 +27,6 @@ use std::ptr;
 static mut G_TRANSFORM_HEADER_LOWER_ID: c_int = 0;
 static mut G_TRANSFORM_STRIP_PSEUDO_ID: c_int = 0;
 
-#[no_mangle]
 unsafe extern "C" fn header_lowersetup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -53,7 +52,6 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn header_lowertransform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
@@ -92,7 +90,6 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
     }
 }
 
-#[no_mangle]
 unsafe extern "C" fn strip_pseudo_setup(
     _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -117,7 +114,6 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-#[no_mangle]
 unsafe extern "C" fn strip_pseudo_transform(buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
