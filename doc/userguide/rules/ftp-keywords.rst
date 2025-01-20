@@ -45,3 +45,35 @@ Signature Example:
   classtype:bad-unknown; sid:1; rev:1;)
 
 For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
+
+ftp.command
+-----------
+
+This keyword matches on the command name from a FTP client request. ``ftp.command``
+is a sticky buffer and can be used as a fast pattern.
+
+Syntax
+~~~~~~
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.command; content:PASS;1;` sid: 1;)
+
+Examples of commands are:
+
+* USER
+* PASS
+* PORT
+* EPRT
+* PASV
+* RETR
+
+Examples
+~~~~~~~~
+
+::
+
+  ftp.command; content:"PASS";
+
