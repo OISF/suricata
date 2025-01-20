@@ -460,7 +460,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
 } DetectEngineAppInspectionEngine;
 
 typedef struct DetectBufferType_ {
-    char name[32];
+    char name[64];
     char description[128];
     int id;
     int parent_id;
