@@ -1747,7 +1747,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterTFTPParsers();
     RegisterIKEParsers();
     rs_register_krb5_parser();
-    rs_dhcp_register_parser();
+    SCRegisterDhcpParser();
     rs_register_snmp_parser();
     rs_sip_register_parser();
     rs_quic_register_parser();

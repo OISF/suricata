@@ -195,7 +195,7 @@ pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     }
 }
 
-pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
+pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
     match parse_header(input) {
         Ok((rem, header)) => {
             let mut options = Vec::new();
@@ -242,7 +242,7 @@ mod tests {
         let pcap = include_bytes!("discover.pcap");
         let payload = &pcap[24 + 16 + 42..];
 
-        let (_rem, message) = dhcp_parse(payload).unwrap();
+        let (_rem, message) = parse_dhcp(payload).unwrap();
         let header = message.header;
         assert_eq!(header.opcode, BOOTP_REQUEST);
         assert_eq!(header.htype, 1);
