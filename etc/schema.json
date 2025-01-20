@@ -1982,6 +1982,9 @@
                 },
                 "wrong_thread": {
                     "type": "boolean"
+                },
+                "tx_cnt": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
