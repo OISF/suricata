@@ -129,3 +129,37 @@ This is an example of a signature that would alert if a search_result_entry resp
 .. container:: example-rule
 
   alert tcp any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,-1;` sid:1;)
+
+ldap.responses.count
+--------------------
+
+Matches based on the number of responses.
+
+Syntax::
+
+ ldap.responses.count: [op]number;
+
+It can be matched exactly, or compared using the ``op`` setting::
+
+ ldap.responses.count:3    # exactly 3 responses
+ ldap.responses.count:<3   # less than 3 responses
+ ldap.responses.count:>=2  # more or equal to 2 responses
+
+ldap.responses.count uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
+This keyword maps to the eve field ``len(ldap.responses[])``
+
+Examples
+^^^^^^^^
+
+Example of a signature that would alert if a packet has 0 LDAP responses:
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Packet has 0 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:0;` sid:1;)
+
+Example of a signature that would alert if a packet has more than 2 LDAP responses:
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Packet has more than 2 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:>2;` sid:1;)
