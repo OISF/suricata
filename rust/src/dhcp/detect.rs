@@ -29,7 +29,7 @@ use crate::detect::{
 };
 use std::os::raw::{c_int, c_void};
 
-fn rs_dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
+fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
     for option in &tx.message.options {
         if option.code == code {
             if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
@@ -78,7 +78,7 @@ unsafe extern "C" fn dhcp_detect_leasetime_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
-    if let Some(val) = rs_dhcp_tx_get_time(tx, DHCP_OPT_ADDRESS_TIME) {
+    if let Some(val) = dhcp_tx_get_time(tx, DHCP_OPT_ADDRESS_TIME) {
         return rs_detect_u64_match(val, ctx);
     }
     return 0;
@@ -121,7 +121,7 @@ unsafe extern "C" fn dhcp_detect_rebindingtime_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
-    if let Some(val) = rs_dhcp_tx_get_time(tx, DHCP_OPT_REBINDING_TIME) {
+    if let Some(val) = dhcp_tx_get_time(tx, DHCP_OPT_REBINDING_TIME) {
         return rs_detect_u64_match(val, ctx);
     }
     return 0;
@@ -158,14 +158,14 @@ unsafe extern "C" fn dhcp_detect_renewaltime_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
-    if let Some(val) = rs_dhcp_tx_get_time(tx, DHCP_OPT_RENEWAL_TIME) {
+    if let Some(val) = dhcp_tx_get_time(tx, DHCP_OPT_RENEWAL_TIME) {
         return rs_detect_u64_match(val, ctx);
     }
     return 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectDHCPRegister() {
+pub unsafe extern "C" fn SCDetectDHCPRegister() {
     let kw = SCSigTableElmt {
         name: b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP leasetime\0".as_ptr() as *const libc::c_char,
