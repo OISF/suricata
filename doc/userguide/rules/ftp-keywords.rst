@@ -1,47 +1,38 @@
-FTP/FTP-DATA Keywords
-=====================
+FTP Keywords
+============
 
-.. role:: example-rule-options
+The FTP keywords are implemented as sticky buffers and can be used to match on fields in FTP requests.
 
-ftpdata_command
----------------
+============================== ==================
+Keyword                        Direction
+============================== ==================
+ftp.command                    Request
+============================== ==================
 
-Filter ftp-data channel based on command used on the FTP command channel.
-Currently supported commands are RETR (get on a file) and STOR (put on a
-file).
+ftp.command
+-----------
 
-Syntax::
+This keyword matches on the command name from a FTP client request.
 
-  ftpdata_command:(retr|stor)
+Syntax
+~~~~~~
 
-Signature Example:
+::
 
-.. container:: example-rule
+  ftp.command; content:<command>;
 
-  alert ftp-data any any -> any any (msg:"FTP store password"; \
-  filestore; filename:"password"; \
-  :example-rule-options:`ftpdata_command:stor;` sid:3; rev:1;)
+Examples of commands are:
 
-ftpbounce
----------
+* PORT
+* EPRT
+* PASV
+* USER
+* PASS
 
-Detect FTP bounce attacks.
+Examples
+~~~~~~~~
 
-Syntax::
+::
 
-  ftpbounce
+  ftp.command; content:"PASS";
 
-file.name
----------
-
-The ``file.name`` keyword can be used at the FTP application level.
-
-Signature Example:
-
-.. container:: example-rule
-
-  alert ftp-data any any -> any any (msg:"FTP file.name usage"; \
-  :example-rule-options:`file.name; content:"file.txt";` \
-  classtype:bad-unknown; sid:1; rev:1;)
-
-For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
