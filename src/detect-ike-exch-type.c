@@ -49,13 +49,13 @@ static int DetectIkeExchTypeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void
  */
 void DetectIkeExchTypeRegister(void)
 {
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].name = "ike.exchtype";
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].desc = "match IKE exchange type";
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].url = "/rules/ike-keywords.html#ike-exchtype";
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Match = NULL;
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].AppLayerTxMatch = DetectIkeExchTypeMatch;
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Setup = DetectIkeExchTypeSetup;
-    sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Free = DetectIkeExchTypeFree;
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].name = "ike.exchtype";
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].desc = "match IKE exchange type";
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].url = "/rules/ike-keywords.html#ike-exchtype";
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].Match = NULL;
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].AppLayerTxMatch = DetectIkeExchTypeMatch;
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].Setup = DetectIkeExchTypeSetup;
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].Free = DetectIkeExchTypeFree;
 
     DetectAppLayerInspectEngineRegister("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectGenericList, NULL);
@@ -116,7 +116,7 @@ static int DetectIkeExchTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_EXCH_TYPE, (SigMatchCtx *)ike_exch_type,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_EXCH_TYPE, (SigMatchCtx *)ike_exch_type,
                 g_ike_exch_type_buffer_id) == NULL) {
         goto error;
     }

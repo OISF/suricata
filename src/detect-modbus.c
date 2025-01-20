@@ -96,7 +96,7 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
     /* Okay so far so good, lets get this into a SigMatch and put it in the Signature. */
     if (SigMatchAppendSMToList(
-                de_ctx, s, DETECT_AL_MODBUS, (SigMatchCtx *)modbus, g_modbus_buffer_id) == NULL) {
+                de_ctx, s, DETECT_MODBUS, (SigMatchCtx *)modbus, g_modbus_buffer_id) == NULL) {
         goto error;
     }
 
@@ -119,13 +119,13 @@ static int DetectModbusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
  */
 void DetectModbusRegister(void)
 {
-    sigmatch_table[DETECT_AL_MODBUS].name = "modbus";
-    sigmatch_table[DETECT_AL_MODBUS].desc = "match on various properties of Modbus requests";
-    sigmatch_table[DETECT_AL_MODBUS].url = "/rules/modbus-keyword.html#modbus-keyword";
-    sigmatch_table[DETECT_AL_MODBUS].Match = NULL;
-    sigmatch_table[DETECT_AL_MODBUS].Setup = DetectModbusSetup;
-    sigmatch_table[DETECT_AL_MODBUS].Free = DetectModbusFree;
-    sigmatch_table[DETECT_AL_MODBUS].AppLayerTxMatch = DetectModbusMatch;
+    sigmatch_table[DETECT_MODBUS].name = "modbus";
+    sigmatch_table[DETECT_MODBUS].desc = "match on various properties of Modbus requests";
+    sigmatch_table[DETECT_MODBUS].url = "/rules/modbus-keyword.html#modbus-keyword";
+    sigmatch_table[DETECT_MODBUS].Match = NULL;
+    sigmatch_table[DETECT_MODBUS].Setup = DetectModbusSetup;
+    sigmatch_table[DETECT_MODBUS].Free = DetectModbusFree;
+    sigmatch_table[DETECT_MODBUS].AppLayerTxMatch = DetectModbusMatch;
 
     DetectAppLayerInspectEngineRegister(
             "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);

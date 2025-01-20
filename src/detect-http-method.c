@@ -80,16 +80,17 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 void DetectHttpMethodRegister(void)
 {
     /* http_method content modifier */
-    sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
-    sigmatch_table[DETECT_AL_HTTP_METHOD].desc = "content modifier to match only on the HTTP method-buffer";
-    sigmatch_table[DETECT_AL_HTTP_METHOD].url = "/rules/http-keywords.html#http-method";
-    sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
+    sigmatch_table[DETECT_HTTP_METHOD_CM].name = "http_method";
+    sigmatch_table[DETECT_HTTP_METHOD_CM].desc =
+            "content modifier to match only on the HTTP method-buffer";
+    sigmatch_table[DETECT_HTTP_METHOD_CM].url = "/rules/http-keywords.html#http-method";
+    sigmatch_table[DETECT_HTTP_METHOD_CM].Match = NULL;
+    sigmatch_table[DETECT_HTTP_METHOD_CM].Setup = DetectHttpMethodSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
+    sigmatch_table[DETECT_HTTP_METHOD_CM].RegisterTests = DetectHttpMethodRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].alternative = DETECT_HTTP_METHOD;
+    sigmatch_table[DETECT_HTTP_METHOD_CM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_METHOD_CM].alternative = DETECT_HTTP_METHOD;
 
     /* http.method sticky buffer */
     sigmatch_table[DETECT_HTTP_METHOD].name = "http.method";
@@ -135,7 +136,7 @@ void DetectHttpMethodRegister(void)
 static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, str, DETECT_AL_HTTP_METHOD, g_http_method_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, str, DETECT_HTTP_METHOD_CM, g_http_method_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

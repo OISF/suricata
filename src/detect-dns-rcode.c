@@ -42,7 +42,7 @@ static int DetectDnsRcodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (SigMatchAppendSMToList(
-                de_ctx, s, DETECT_AL_DNS_RCODE, (SigMatchCtx *)detect, dns_rcode_list_id) == NULL) {
+                de_ctx, s, DETECT_DNS_RCODE, (SigMatchCtx *)detect, dns_rcode_list_id) == NULL) {
         DetectDnsRcodeFree(de_ctx, detect);
         SCReturnInt(-1);
     }
@@ -67,13 +67,13 @@ static int DetectDnsRcodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t 
 
 void DetectDnsRcodeRegister(void)
 {
-    sigmatch_table[DETECT_AL_DNS_RCODE].name = "dns.rcode";
-    sigmatch_table[DETECT_AL_DNS_RCODE].desc = "Match the DNS header rcode flag.";
-    sigmatch_table[DETECT_AL_DNS_RCODE].url = "/rules/dns-keywords.html#dns-rcode";
-    sigmatch_table[DETECT_AL_DNS_RCODE].Setup = DetectDnsRcodeSetup;
-    sigmatch_table[DETECT_AL_DNS_RCODE].Free = DetectDnsRcodeFree;
-    sigmatch_table[DETECT_AL_DNS_RCODE].Match = NULL;
-    sigmatch_table[DETECT_AL_DNS_RCODE].AppLayerTxMatch = DetectDnsRcodeMatch;
+    sigmatch_table[DETECT_DNS_RCODE].name = "dns.rcode";
+    sigmatch_table[DETECT_DNS_RCODE].desc = "Match the DNS header rcode flag.";
+    sigmatch_table[DETECT_DNS_RCODE].url = "/rules/dns-keywords.html#dns-rcode";
+    sigmatch_table[DETECT_DNS_RCODE].Setup = DetectDnsRcodeSetup;
+    sigmatch_table[DETECT_DNS_RCODE].Free = DetectDnsRcodeFree;
+    sigmatch_table[DETECT_DNS_RCODE].Match = NULL;
+    sigmatch_table[DETECT_DNS_RCODE].AppLayerTxMatch = DetectDnsRcodeMatch;
 
     DetectAppLayerInspectEngineRegister(
             "dns.rcode", ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);

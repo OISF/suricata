@@ -79,15 +79,18 @@ static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx, Si
 void DetectHttpRawHeaderRegister(void)
 {
     /* http_raw_header content modifier */
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].desc = "content modifier to match the raw HTTP header buffer";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetup;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].name = "http_raw_header";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].desc =
+            "content modifier to match the raw HTTP header buffer";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].Setup = DetectHttpRawHeaderSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].RegisterTests = DetectHttpRawHeaderRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alternative = DETECT_HTTP_RAW_HEADER;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].alternative = DETECT_HTTP_RAW_HEADER;
 
     /* http.header.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_RAW_HEADER].name = "http.header.raw";
@@ -143,7 +146,7 @@ void DetectHttpRawHeaderRegister(void)
 int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_RAW_HEADER, g_http_raw_header_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_RAW_HEADER_CM, g_http_raw_header_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

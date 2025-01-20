@@ -67,17 +67,17 @@ static int g_tls_cert_issuer_buffer_id = 0;
  */
 void DetectTlsIssuerRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls.cert_issuer";
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].alias = "tls_cert_issuer";
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc =
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].name = "tls.cert_issuer";
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].alias = "tls_cert_issuer";
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].desc =
             "sticky buffer to match specifically and only on the TLS cert issuer buffer";
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = "/rules/tls-keywords.html#tls-cert-issuer";
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].url = "/rules/tls-keywords.html#tls-cert-issuer";
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERT_ISSUER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_issuer", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);

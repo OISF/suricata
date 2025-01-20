@@ -82,15 +82,17 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 void DetectHttpStatCodeRegister (void)
 {
     /* http_stat_code content modifier */
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = "/rules/http-keywords.html#http-stat-code";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].name = "http_stat_code";
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].desc =
+            "content modifier to match only on HTTP stat-code-buffer";
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].url = "/rules/http-keywords.html#http-stat-code";
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].Setup = DetectHttpStatCodeSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].RegisterTests = DetectHttpStatCodeRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].alternative = DETECT_HTTP_STAT_CODE;
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_STAT_CODE_CM].alternative = DETECT_HTTP_STAT_CODE;
 
     /* http.stat_code content modifier */
     sigmatch_table[DETECT_HTTP_STAT_CODE].name = "http.stat_code";
@@ -131,7 +133,7 @@ void DetectHttpStatCodeRegister (void)
 static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_STAT_CODE, g_http_stat_code_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_STAT_CODE_CM, g_http_stat_code_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

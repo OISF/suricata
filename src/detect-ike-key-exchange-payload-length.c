@@ -48,17 +48,16 @@ static int DetectIkeKeyExchangePayloadLengthMatch(DetectEngineThreadCtx *, Flow 
  */
 void DetectIkeKeyExchangePayloadLengthRegister(void)
 {
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].name =
-            "ike.key_exchange_payload_length";
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].desc =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].name = "ike.key_exchange_payload_length";
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].desc =
             "match IKE key exchange payload length";
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].url =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].url =
             "/rules/ike-keywords.html#ike-key-exchange-payload-length";
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].AppLayerTxMatch =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].AppLayerTxMatch =
             DetectIkeKeyExchangePayloadLengthMatch;
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].Setup =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].Setup =
             DetectIkeKeyExchangePayloadLengthSetup;
-    sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].Free =
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].Free =
             DetectIkeKeyExchangePayloadLengthFree;
 
     DetectAppLayerInspectEngineRegister("ike.key_exchange_payload_length", ALPROTO_IKE,
@@ -122,7 +121,7 @@ static int DetectIkeKeyExchangePayloadLengthSetup(
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH,
                 (SigMatchCtx *)key_exchange_payload_length,
                 g_ike_key_exch_payload_length_buffer_id) == NULL) {
         goto error;

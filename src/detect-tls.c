@@ -100,39 +100,41 @@ static int g_tls_cert_fingerprint_list_id = 0;
  */
 void DetectTlsRegister (void)
 {
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].url = "/rules/tls-keywords.html#tls-subject";
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerTxMatch = DetectTlsSubjectMatch;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].alternative = DETECT_AL_TLS_CERT_SUBJECT;
+    sigmatch_table[DETECT_TLS_SUBJECT].name = "tls.subject";
+    sigmatch_table[DETECT_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
+    sigmatch_table[DETECT_TLS_SUBJECT].url = "/rules/tls-keywords.html#tls-subject";
+    sigmatch_table[DETECT_TLS_SUBJECT].AppLayerTxMatch = DetectTlsSubjectMatch;
+    sigmatch_table[DETECT_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
+    sigmatch_table[DETECT_TLS_SUBJECT].Free = DetectTlsSubjectFree;
+    sigmatch_table[DETECT_TLS_SUBJECT].flags = SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_TLS_SUBJECT].alternative = DETECT_TLS_CERT_SUBJECT;
 
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = "/rules/tls-keywords.html#tls-issuerdn";
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerTxMatch = DetectTlsIssuerDNMatch;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].alternative = DETECT_AL_TLS_CERT_ISSUER;
+    sigmatch_table[DETECT_TLS_ISSUERDN].name = "tls.issuerdn";
+    sigmatch_table[DETECT_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
+    sigmatch_table[DETECT_TLS_ISSUERDN].url = "/rules/tls-keywords.html#tls-issuerdn";
+    sigmatch_table[DETECT_TLS_ISSUERDN].AppLayerTxMatch = DetectTlsIssuerDNMatch;
+    sigmatch_table[DETECT_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
+    sigmatch_table[DETECT_TLS_ISSUERDN].Free = DetectTlsIssuerDNFree;
+    sigmatch_table[DETECT_TLS_ISSUERDN].flags =
+            SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_TLS_ISSUERDN].alternative = DETECT_TLS_CERT_ISSUER;
 
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = "/rules/tls-keywords.html#tls-fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].alternative = DETECT_AL_TLS_CERT_FINGERPRINT;
+    sigmatch_table[DETECT_TLS_FINGERPRINT].name = "tls.fingerprint";
+    sigmatch_table[DETECT_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
+    sigmatch_table[DETECT_TLS_FINGERPRINT].url = "/rules/tls-keywords.html#tls-fingerprint";
+    sigmatch_table[DETECT_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
+    sigmatch_table[DETECT_TLS_FINGERPRINT].Free = DetectTlsFingerprintFree;
+    sigmatch_table[DETECT_TLS_FINGERPRINT].flags =
+            SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_TLS_FINGERPRINT].alternative = DETECT_TLS_CERT_FINGERPRINT;
 
-    sigmatch_table[DETECT_AL_TLS_STORE].name = "tls_store";
-    sigmatch_table[DETECT_AL_TLS_STORE].alias = "tls.store";
-    sigmatch_table[DETECT_AL_TLS_STORE].desc = "store TLS/SSL certificate on disk";
-    sigmatch_table[DETECT_AL_TLS_STORE].url = "/rules/tls-keywords.html#tls-store";
-    sigmatch_table[DETECT_AL_TLS_STORE].Match = DetectTlsStorePostMatch;
-    sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
-    sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_STORE].name = "tls_store";
+    sigmatch_table[DETECT_TLS_STORE].alias = "tls.store";
+    sigmatch_table[DETECT_TLS_STORE].desc = "store TLS/SSL certificate on disk";
+    sigmatch_table[DETECT_TLS_STORE].url = "/rules/tls-keywords.html#tls-store";
+    sigmatch_table[DETECT_TLS_STORE].Match = DetectTlsStorePostMatch;
+    sigmatch_table[DETECT_TLS_STORE].Setup = DetectTlsStoreSetup;
+    sigmatch_table[DETECT_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &subject_parse_regex);
     DetectSetupParseRegexes(PARSE_REGEX, &issuerdn_parse_regex);
@@ -310,7 +312,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
      * and put it in the Signature. */
 
     if (SigMatchAppendSMToList(
-                de_ctx, s, DETECT_AL_TLS_SUBJECT, (SigMatchCtx *)tls, g_tls_cert_list_id) == NULL) {
+                de_ctx, s, DETECT_TLS_SUBJECT, (SigMatchCtx *)tls, g_tls_cert_list_id) == NULL) {
         goto error;
     }
     return 0;
@@ -499,8 +501,8 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_ISSUERDN, (SigMatchCtx *)tls,
-                g_tls_cert_list_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_TLS_ISSUERDN, (SigMatchCtx *)tls, g_tls_cert_list_id) == NULL) {
         goto error;
     }
     return 0;
@@ -551,7 +553,7 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
     }
 
-    if (DetectEngineContentModifierBufferSetup(de_ctx, s, NULL, DETECT_AL_TLS_CERT_FINGERPRINT,
+    if (DetectEngineContentModifierBufferSetup(de_ctx, s, NULL, DETECT_TLS_CERT_FINGERPRINT,
                 g_tls_cert_fingerprint_list_id, ALPROTO_TLS) < 0)
         return -1;
 
@@ -588,7 +590,7 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     s->flags |= SIG_FLAG_TLSSTORE;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_STORE, NULL, DETECT_SM_LIST_POSTMATCH) ==
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_STORE, NULL, DETECT_SM_LIST_POSTMATCH) ==
             NULL) {
         return -1;
     }

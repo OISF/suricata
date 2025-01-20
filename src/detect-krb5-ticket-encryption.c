@@ -52,7 +52,7 @@ static int DetectKrb5TicketEncryptionSetup(
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_TICKET_ENCRYPTION, (SigMatchCtx *)krb5d,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_TICKET_ENCRYPTION, (SigMatchCtx *)krb5d,
                 g_krb5_ticket_encryption_list_id) == NULL) {
         goto error;
     }
@@ -67,15 +67,14 @@ error:
 
 void DetectKrb5TicketEncryptionRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].name = "krb5.ticket_encryption";
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].desc = "match Kerberos 5 ticket encryption";
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].url =
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].name = "krb5.ticket_encryption";
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].desc = "match Kerberos 5 ticket encryption";
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].url =
             "/rules/kerberos-keywords.html#krb5-ticket-encryption";
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].Match = NULL;
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].AppLayerTxMatch =
-            DetectKrb5TicketEncryptionMatch;
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].Setup = DetectKrb5TicketEncryptionSetup;
-    sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].Free = DetectKrb5TicketEncryptionFree;
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].Match = NULL;
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].AppLayerTxMatch = DetectKrb5TicketEncryptionMatch;
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].Setup = DetectKrb5TicketEncryptionSetup;
+    sigmatch_table[DETECT_KRB5_TICKET_ENCRYPTION].Free = DetectKrb5TicketEncryptionFree;
 
     // Tickets are only from server to client
     DetectAppLayerInspectEngineRegister("krb5_ticket_encryption", ALPROTO_KRB5, SIG_FLAG_TOCLIENT,

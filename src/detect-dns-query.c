@@ -96,16 +96,16 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectDnsQueryRegister (void)
 {
-    sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns.query";
-    sigmatch_table[DETECT_AL_DNS_QUERY].alias = "dns_query";
-    sigmatch_table[DETECT_AL_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
-    sigmatch_table[DETECT_AL_DNS_QUERY].url = "/rules/dns-keywords.html#dns-query";
-    sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
+    sigmatch_table[DETECT_DNS_QUERY].name = "dns.query";
+    sigmatch_table[DETECT_DNS_QUERY].alias = "dns_query";
+    sigmatch_table[DETECT_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
+    sigmatch_table[DETECT_DNS_QUERY].url = "/rules/dns-keywords.html#dns-query";
+    sigmatch_table[DETECT_DNS_QUERY].Setup = DetectDnsQuerySetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
+    sigmatch_table[DETECT_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_DNS_QUERY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister(
             "dns_query", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DnsQueryGetData, 2, 1);

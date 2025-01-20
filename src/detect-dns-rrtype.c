@@ -41,8 +41,8 @@ static int DetectDnsRrtypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
         SCReturnInt(-1);
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_DNS_RRTYPE, (SigMatchCtx *)detect,
-                dns_rrtype_list_id) == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_DNS_RRTYPE, (SigMatchCtx *)detect, dns_rrtype_list_id) == NULL) {
         DetectDnsRrtypeFree(de_ctx, detect);
         SCReturnInt(-1);
     }
@@ -67,13 +67,13 @@ static int DetectDnsRrtypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t
 
 void DetectDnsRrtypeRegister(void)
 {
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].name = "dns.rrtype";
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].desc = "Match the DNS rrtype in message body.";
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].url = "/rules/dns-keywords.html#dns-rrtype";
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].Setup = DetectDnsRrtypeSetup;
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].Free = DetectDnsRrtypeFree;
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].Match = NULL;
-    sigmatch_table[DETECT_AL_DNS_RRTYPE].AppLayerTxMatch = DetectDnsRrtypeMatch;
+    sigmatch_table[DETECT_DNS_RRTYPE].name = "dns.rrtype";
+    sigmatch_table[DETECT_DNS_RRTYPE].desc = "Match the DNS rrtype in message body.";
+    sigmatch_table[DETECT_DNS_RRTYPE].url = "/rules/dns-keywords.html#dns-rrtype";
+    sigmatch_table[DETECT_DNS_RRTYPE].Setup = DetectDnsRrtypeSetup;
+    sigmatch_table[DETECT_DNS_RRTYPE].Free = DetectDnsRrtypeFree;
+    sigmatch_table[DETECT_DNS_RRTYPE].Match = NULL;
+    sigmatch_table[DETECT_DNS_RRTYPE].AppLayerTxMatch = DetectDnsRrtypeMatch;
 
     DetectAppLayerInspectEngineRegister(
             "dns.rrtype", ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);

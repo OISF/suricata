@@ -72,12 +72,12 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
 void DetectDnsQueryNameRegister(void)
 {
     static const char *keyword = "dns.query.name";
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].name = keyword;
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].desc = "DNS query name sticky buffer";
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].url = "/rules/dns-keywords.html#dns-query-name";
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].Setup = DetectSetup;
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNS_QUERY_NAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_DNS_QUERY_NAME].name = keyword;
+    sigmatch_table[DETECT_DNS_QUERY_NAME].desc = "DNS query name sticky buffer";
+    sigmatch_table[DETECT_DNS_QUERY_NAME].url = "/rules/dns-keywords.html#dns-query-name";
+    sigmatch_table[DETECT_DNS_QUERY_NAME].Setup = DetectSetup;
+    sigmatch_table[DETECT_DNS_QUERY_NAME].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_DNS_QUERY_NAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     /* Register in both directions as the query is usually echoed back
        in the response. */

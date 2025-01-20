@@ -36,7 +36,7 @@
 #define BUFFER_NAME "http_content_type"
 #define BUFFER_DESC "http content type header"
 #define HEADER_NAME "Content-Type"
-#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONTENT_TYPE
+#define KEYWORD_ID          DETECT_HTTP_HEADER_CONTENT_TYPE
 #define KEYWORD_TOSERVER 1
 #define KEYWORD_TOCLIENT 1
 

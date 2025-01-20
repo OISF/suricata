@@ -48,14 +48,14 @@ static int DetectIkeNoncePayloadLengthMatch(DetectEngineThreadCtx *, Flow *, uin
  */
 void DetectIkeNoncePayloadLengthRegister(void)
 {
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].name = "ike.nonce_payload_length";
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].desc = "match IKE nonce payload length";
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].url =
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].name = "ike.nonce_payload_length";
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].desc = "match IKE nonce payload length";
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].url =
             "/rules/ike-keywords.html#ike-nonce-payload-length";
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].AppLayerTxMatch =
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].AppLayerTxMatch =
             DetectIkeNoncePayloadLengthMatch;
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].Setup = DetectIkeNoncePayloadLengthSetup;
-    sigmatch_table[DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH].Free = DetectIkeNoncePayloadLengthFree;
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].Setup = DetectIkeNoncePayloadLengthSetup;
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].Free = DetectIkeNoncePayloadLengthFree;
 
     DetectAppLayerInspectEngineRegister("ike.nonce_payload_length", ALPROTO_IKE, SIG_FLAG_TOSERVER,
             1, DetectEngineInspectGenericList, NULL);
@@ -116,7 +116,7 @@ static int DetectIkeNoncePayloadLengthSetup(
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_NONCE_PAYLOAD_LENGTH,
                 (SigMatchCtx *)nonce_payload_length,
                 g_ike_nonce_payload_length_buffer_id) == NULL) {
         goto error;

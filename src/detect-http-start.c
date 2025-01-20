@@ -182,12 +182,12 @@ static int DetectHttpStartSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
  */
 void DetectHttpStartRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_START].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_HTTP_START].alias = KEYWORD_NAME_LEGACY;
-    sigmatch_table[DETECT_AL_HTTP_START].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_HTTP_START].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_HTTP_START].Setup = DetectHttpStartSetup;
-    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_START].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_HTTP_START].alias = KEYWORD_NAME_LEGACY;
+    sigmatch_table[DETECT_HTTP_START].desc = BUFFER_NAME " sticky buffer";
+    sigmatch_table[DETECT_HTTP_START].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_HTTP_START].Setup = DetectHttpStartSetup;
+    sigmatch_table[DETECT_HTTP_START].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetBuffer1ForTX, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);

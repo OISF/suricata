@@ -80,16 +80,17 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 void DetectHttpUARegister(void)
 {
     /* http_user_agent content modifier */
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].name = "http_user_agent";
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].desc = "content modifier to match only on the HTTP User-Agent header";
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = "/rules/http-keywords.html#http-user-agent";
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Setup = DetectHttpUASetup;
+    sigmatch_table[DETECT_HTTP_USER_AGENT].name = "http_user_agent";
+    sigmatch_table[DETECT_HTTP_USER_AGENT].desc =
+            "content modifier to match only on the HTTP User-Agent header";
+    sigmatch_table[DETECT_HTTP_USER_AGENT].url = "/rules/http-keywords.html#http-user-agent";
+    sigmatch_table[DETECT_HTTP_USER_AGENT].Setup = DetectHttpUASetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
+    sigmatch_table[DETECT_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].alternative = DETECT_HTTP_UA;
+    sigmatch_table[DETECT_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_USER_AGENT].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_USER_AGENT].alternative = DETECT_HTTP_UA;
 
     /* http.user_agent sticky buffer */
     sigmatch_table[DETECT_HTTP_UA].name = "http.user_agent";
@@ -133,7 +134,7 @@ void DetectHttpUARegister(void)
 int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_USER_AGENT, g_http_ua_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_USER_AGENT, g_http_ua_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

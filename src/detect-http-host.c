@@ -89,15 +89,16 @@ static int g_http_host_buffer_id = 0;
 void DetectHttpHHRegister(void)
 {
     /* http_host content modifier */
-    sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
-    sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match on the HTTP hostname";
-    sigmatch_table[DETECT_AL_HTTP_HOST].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
-    sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
+    sigmatch_table[DETECT_HTTP_HOST_CM].name = "http_host";
+    sigmatch_table[DETECT_HTTP_HOST_CM].desc = "content modifier to match on the HTTP hostname";
+    sigmatch_table[DETECT_HTTP_HOST_CM].url =
+            "/rules/http-keywords.html#http-host-and-http-raw-host";
+    sigmatch_table[DETECT_HTTP_HOST_CM].Setup = DetectHttpHHSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
+    sigmatch_table[DETECT_HTTP_HOST_CM].RegisterTests = DetectHttpHHRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_HOST].alternative = DETECT_HTTP_HOST;
+    sigmatch_table[DETECT_HTTP_HOST_CM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_HOST_CM].alternative = DETECT_HTTP_HOST;
 
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST].name = "http.host";
@@ -127,12 +128,14 @@ void DetectHttpHHRegister(void)
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 
     /* http_raw_host content modifier */
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header or the raw hostname from the HTTP uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
+    sigmatch_table[DETECT_HTTP_RAW_HOST].name = "http_raw_host";
+    sigmatch_table[DETECT_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header "
+                                                "or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_HTTP_RAW_HOST].url =
+            "/rules/http-keywords.html#http-host-and-http-raw-host";
+    sigmatch_table[DETECT_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
+    sigmatch_table[DETECT_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
 
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST_RAW].name = "http.host.raw";
@@ -175,7 +178,7 @@ void DetectHttpHHRegister(void)
 static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_HOST, g_http_host_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_HOST_CM, g_http_host_buffer_id, ALPROTO_HTTP1);
 }
 
 static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
@@ -314,7 +317,7 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
 int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(
-            de_ctx, s, arg, DETECT_AL_HTTP_RAW_HOST, g_http_raw_host_buffer_id, ALPROTO_HTTP1);
+            de_ctx, s, arg, DETECT_HTTP_RAW_HOST, g_http_raw_host_buffer_id, ALPROTO_HTTP1);
 }
 
 /**

@@ -107,7 +107,7 @@ static int DetectSshHasshStringSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     /* Check if Hassh is disabled */
     if (!RunmodeIsUnittests() && !rs_ssh_hassh_is_enabled()) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_SSH_HASSH_STRING)) {
+        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_SSH_HASSH_STRING)) {
             SCLogError("hassh support is not enabled");
         }
         return -2;
@@ -122,12 +122,12 @@ static int DetectSshHasshStringSetup(DetectEngineCtx *de_ctx, Signature *s, cons
  */
 void DetectSshHasshStringRegister(void) 
 {
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].alias = KEYWORD_ALIAS;
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].Setup = DetectSshHasshStringSetup;
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_SSH_HASSH_STRING].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_SSH_HASSH_STRING].alias = KEYWORD_ALIAS;
+    sigmatch_table[DETECT_SSH_HASSH_STRING].desc = BUFFER_NAME " sticky buffer";
+    sigmatch_table[DETECT_SSH_HASSH_STRING].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_SSH_HASSH_STRING].Setup = DetectSshHasshStringSetup;
+    sigmatch_table[DETECT_SSH_HASSH_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSshData, ALPROTO_SSH, SshStateBannerDone);
