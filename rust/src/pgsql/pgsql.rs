@@ -785,8 +785,8 @@ pub unsafe extern "C" fn SCPgsqlTxGetALStateProgress(
     pgsql_tx_get_res_state(tx) as i32
 }
 
-export_tx_data_get!(rs_pgsql_get_tx_data, PgsqlTransaction);
-export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
+export_tx_data_get!(pgsql_get_tx_data, PgsqlTransaction);
+export_state_data_get!(pgsql_get_state_data, PgsqlState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"pgsql\0";
@@ -821,8 +821,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         get_tx_iterator: Some(
             crate::applayer::state_get_tx_iterator::<PgsqlState, PgsqlTransaction>,
         ),
-        get_tx_data: rs_pgsql_get_tx_data,
-        get_state_data: rs_pgsql_get_state_data,
+        get_tx_data: pgsql_get_tx_data,
+        get_state_data: pgsql_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: None,

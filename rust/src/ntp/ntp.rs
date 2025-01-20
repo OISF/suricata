@@ -266,8 +266,8 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow,
     }
 }
 
-export_tx_data_get!(rs_ntp_get_tx_data, NTPTransaction);
-export_state_data_get!(rs_ntp_get_state_data, NTPState);
+export_tx_data_get!(ntp_get_tx_data, NTPTransaction);
+export_state_data_get!(ntp_get_state_data, NTPState);
 
 const PARSER_NAME : &[u8] = b"ntp\0";
 
@@ -298,8 +298,8 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         localstorage_free  : None,
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<NTPState, NTPTransaction>),
-        get_tx_data        : rs_ntp_get_tx_data,
-        get_state_data     : rs_ntp_get_state_data,
+        get_tx_data        : ntp_get_tx_data,
+        get_state_data     : ntp_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
         get_frame_id_by_name: None,

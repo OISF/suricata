@@ -261,8 +261,8 @@ pub unsafe extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut DHCPState));
 }
 
-export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
-export_state_data_get!(rs_dhcp_get_state_data, DHCPState);
+export_tx_data_get!(dhcp_get_tx_data, DHCPTransaction);
+export_state_data_get!(dhcp_get_state_data, DHCPState);
 
 const PARSER_NAME: &[u8] = b"dhcp\0";
 
@@ -294,8 +294,8 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         localstorage_free  : None,
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<DHCPState, DHCPTransaction>),
-        get_tx_data        : rs_dhcp_get_tx_data,
-        get_state_data     : rs_dhcp_get_state_data,
+        get_tx_data        : dhcp_get_tx_data,
+        get_state_data     : dhcp_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
         get_frame_id_by_name: None,

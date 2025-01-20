@@ -140,8 +140,8 @@ impl BitTorrentDHTState {
 
 // C exports.
 
-export_tx_data_get!(rs_bittorrent_dht_get_tx_data, BitTorrentDHTTransaction);
-export_state_data_get!(rs_bittorrent_dht_get_state_data, BitTorrentDHTState);
+export_tx_data_get!(bittorrent_dht_get_tx_data, BitTorrentDHTTransaction);
+export_state_data_get!(bittorrent_dht_get_state_data, BitTorrentDHTState);
 
 #[no_mangle]
 pub extern "C" fn rs_bittorrent_dht_state_new(
@@ -280,8 +280,8 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(rs_bittorrent_dht_state_get_tx_iterator),
-        get_tx_data: rs_bittorrent_dht_get_tx_data,
-        get_state_data: rs_bittorrent_dht_get_state_data,
+        get_tx_data: bittorrent_dht_get_tx_data,
+        get_state_data: bittorrent_dht_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: None,

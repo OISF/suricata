@@ -454,8 +454,8 @@ pub unsafe extern "C" fn rs_rdp_parse_tc(
     return state.parse_tc(buf);
 }
 
-export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);
-export_state_data_get!(rs_rdp_get_state_data, RdpState);
+export_tx_data_get!(rdp_get_tx_data, RdpTransaction);
+export_state_data_get!(rdp_get_state_data, RdpState);
 
 //
 // registration
@@ -490,8 +490,8 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<RdpState, RdpTransaction>),
-        get_tx_data: rs_rdp_get_tx_data,
-        get_state_data: rs_rdp_get_state_data,
+        get_tx_data: rdp_get_tx_data,
+        get_state_data: rdp_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: None,

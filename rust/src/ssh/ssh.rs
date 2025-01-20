@@ -388,8 +388,8 @@ impl SSHState {
 
 // C exports.
 
-export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
-export_state_data_get!(rs_ssh_get_state_data, SSHState);
+export_tx_data_get!(ssh_get_tx_data, SSHTransaction);
+export_state_data_get!(ssh_get_state_data, SSHState);
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
@@ -520,8 +520,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: None,
-        get_tx_data: rs_ssh_get_tx_data,
-        get_state_data: rs_ssh_get_state_data,
+        get_tx_data: ssh_get_tx_data,
+        get_state_data: ssh_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
