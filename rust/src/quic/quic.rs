@@ -471,8 +471,8 @@ pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
     }
 }
 
-export_tx_data_get!(rs_quic_get_tx_data, QuicTransaction);
-export_state_data_get!(rs_quic_get_state_data, QuicState);
+export_tx_data_get!(quic_get_tx_data, QuicTransaction);
+export_state_data_get!(quic_get_state_data, QuicState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"quic\0";
@@ -504,8 +504,8 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(rs_quic_state_get_tx_iterator),
-        get_tx_data: rs_quic_get_tx_data,
-        get_state_data: rs_quic_get_state_data,
+        get_tx_data: quic_get_tx_data,
+        get_state_data: quic_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: None,

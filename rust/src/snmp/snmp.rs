@@ -372,8 +372,8 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
     }
 }
 
-export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
-export_state_data_get!(rs_snmp_get_state_data, SNMPState);
+export_tx_data_get!(snmp_get_tx_data, SNMPTransaction);
+export_state_data_get!(snmp_get_state_data, SNMPState);
 
 const PARSER_NAME : &[u8] = b"snmp\0";
 
@@ -404,8 +404,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         localstorage_free  : None,
         get_tx_files       : None,
         get_tx_iterator    : Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
-        get_tx_data        : rs_snmp_get_tx_data,
-        get_state_data     : rs_snmp_get_state_data,
+        get_tx_data        : snmp_get_tx_data,
+        get_state_data     : snmp_get_state_data,
         apply_tx_config    : None,
         flags              : 0,
         get_frame_id_by_name: None,
