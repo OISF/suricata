@@ -17,7 +17,8 @@
 
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::detect::uint::{
-    detect_parse_uint_enum, rs_detect_u8_free, rs_detect_u8_match, DetectUintData,
+    detect_parse_uint_enum, rs_detect_u32_free, rs_detect_u32_match, rs_detect_u32_parse,
+    rs_detect_u8_free, rs_detect_u8_match, DetectUintData,
 };
 use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
@@ -50,6 +51,8 @@ static mut G_LDAP_REQUEST_OPERATION_KW_ID: c_int = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_OPERATION_KW_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_OPERATION_BUFFER_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_COUNT_KW_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_COUNT_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ldap_parse_protocol_req_op(
     ustr: *const std::os::raw::c_char,
@@ -219,6 +222,47 @@ unsafe extern "C" fn ldap_detect_responses_free(_de: *mut c_void, ctx: *mut c_vo
     std::mem::drop(Box::from_raw(ctx));
 }
 
+unsafe extern "C" fn ldap_detect_responses_count_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_LDAP_RESPONSES_COUNT_KW_ID,
+        ctx,
+        G_LDAP_RESPONSES_COUNT_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ldap_detect_responses_count_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_responses_count_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    let len = tx.responses.len() as u32;
+    return rs_detect_u32_match(len, ctx);
+}
+
+unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    rs_detect_u32_free(ctx);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectLdapRegister() {
     let kw = SCSigTableElmt {
@@ -250,6 +294,22 @@ pub unsafe extern "C" fn ScDetectLdapRegister() {
     G_LDAP_RESPONSES_OPERATION_KW_ID = DetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        true,  //to client
+        false, //to server
+    );
+    let kw = SCSigTableElmt {
+        name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
+        desc: b"match number of LDAP responses\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap.responses.count\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(ldap_detect_responses_count_match),
+        Setup: ldap_detect_responses_count_setup,
+        Free: Some(ldap_detect_responses_count_free),
+        flags: 0,
+    };
+    G_LDAP_RESPONSES_COUNT_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_COUNT_BUFFER_ID = DetectHelperBufferRegister(
+        b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         true,  //to client
         false, //to server
