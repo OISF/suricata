@@ -1389,8 +1389,8 @@ pub unsafe extern "C" fn SCDoH2GetDnsTx(
     std::ptr::null_mut()
 }
 
-export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
-export_state_data_get!(rs_http2_get_state_data, HTTP2State);
+export_tx_data_get!(http2_get_tx_data, HTTP2Transaction);
+export_state_data_get!(http2_get_state_data, HTTP2State);
 
 /// C entry point for a probing parser.
 #[no_mangle]
@@ -1564,8 +1564,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         localstorage_free: None,
         get_tx_files: Some(rs_http2_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<HTTP2State, HTTP2Transaction>),
-        get_tx_data: rs_http2_get_tx_data,
-        get_state_data: rs_http2_get_state_data,
+        get_tx_data: http2_get_tx_data,
+        get_state_data: http2_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(Http2FrameType::ffi_id_from_name),

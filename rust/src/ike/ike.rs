@@ -392,8 +392,8 @@ static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 const PARSER_NAME: &[u8] = b"ike\0";
 const PARSER_ALIAS: &[u8] = b"ikev2\0";
 
-export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
-export_state_data_get!(rs_ike_get_state_data, IKEState);
+export_tx_data_get!(ike_get_tx_data, IKETransaction);
+export_state_data_get!(ike_get_state_data, IKEState);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_register_parser() {
@@ -422,8 +422,8 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<IKEState, IKETransaction>),
-        get_tx_data: rs_ike_get_tx_data,
-        get_state_data: rs_ike_get_state_data,
+        get_tx_data: ike_get_tx_data,
+        get_state_data: ike_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: None,
