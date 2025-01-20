@@ -588,7 +588,7 @@ impl LdapMessage {
     }
 
     fn from_abandon_request(msg: ldap_parser::ldap::MessageID) -> ProtocolOp {
-        ProtocolOp::AbandonRequest(AbandonRequest {message_id: msg.0})
+        ProtocolOp::AbandonRequest(AbandonRequest { message_id: msg.0 })
     }
 
     fn from_extended_request(msg: ldap_parser::ldap::ExtendedRequest) -> ProtocolOp {
