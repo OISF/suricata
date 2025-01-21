@@ -29,9 +29,9 @@
 #include "util-debug.h"
 
 #include "util-debug.h"
-#include "util-validate.h"
 #include "util-lua-sandbox.h"
 #include "util-lua-dataset.h"
+#include "util-lua-hashlib.h"
 
 #define SANDBOX_CTX "SANDBOX_CTX"
 
@@ -266,6 +266,9 @@ static int SCLuaSbRequire(lua_State *L)
 
     if (strcmp(module_name, "suricata.dataset") == 0) {
         LuaLoadDatasetLib(L);
+        return 1;
+    } else if (strcmp(module_name, "suricata.hashlib") == 0) {
+        SCLuaLoadHashlib(L);
         return 1;
     }
 
