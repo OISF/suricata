@@ -353,16 +353,6 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    if ((tlua->flags & FLAG_DATATYPE_PAYLOAD) && p->payload_len) {
-        lua_pushliteral(tlua->luastate, "payload"); /* stack at -2 */
-        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
-        lua_settable(tlua->luastate, -3);
-    }
-    if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p)) {
-        lua_pushliteral(tlua->luastate, "packet"); /* stack at -2 */
-        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
-        lua_settable(tlua->luastate, -3);
-    }
     if (tlua->alproto == ALPROTO_HTTP1) {
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL) {
