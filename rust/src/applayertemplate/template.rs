@@ -16,7 +16,7 @@
  */
 
 use super::parser;
-use crate::applayer::{self, *};
+use crate::applayer::*;
 use crate::conf::conf_get;
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
@@ -121,7 +121,9 @@ impl TemplateState {
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
-        self.transactions.iter_mut().find(|tx| tx.response.is_none())
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.response.is_none())
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -152,11 +154,12 @@ impl TemplateState {
                     SCLogNotice!("Request: {}", request);
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
-                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
-                        tx.tx_data.set_event(TemplateEvent::TooManyTransactions as u8);
+                    if self.transactions.len() >= unsafe { TEMPLATE_MAX_TX } {
+                        tx.tx_data
+                            .set_event(TemplateEvent::TooManyTransactions as u8);
                     }
                     self.transactions.push_back(tx);
-                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
+                    if self.transactions.len() >= unsafe { TEMPLATE_MAX_TX } {
                         return AppLayerResult::err();
                     }
                 }
@@ -201,7 +204,7 @@ impl TemplateState {
                 Ok((rem, response)) => {
                     start = rem;
 
-                    if let Some(tx) =  self.find_request() {
+                    if let Some(tx) = self.find_request() {
                         tx.tx_data.updated_tc = true;
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
@@ -388,9 +391,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(
-            applayer::state_get_tx_iterator::<TemplateState, TemplateTransaction>,
-        ),
+        get_tx_iterator: Some(state_get_tx_iterator::<TemplateState, TemplateTransaction>),
         get_tx_data: template_get_tx_data,
         get_state_data: template_get_state_data,
         apply_tx_config: None,
