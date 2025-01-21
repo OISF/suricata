@@ -167,7 +167,6 @@ static int DetectLoadSigFile(
         sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
-                RetrieveFPForSig(de_ctx, sig);
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(de_ctx, sig, line);
                 }
