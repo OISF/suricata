@@ -19,12 +19,12 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 /* TEMPLATE_START_REMOVE */
 use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
-use crate::direction::Direction;
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
+use crate::direction::Direction;
 use std::os::raw::{c_int, c_void};
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
