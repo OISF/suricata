@@ -82,6 +82,13 @@ Major changes
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unmet requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`.
+- The configuration setting controlling stream checksum checks no longer affects
+  checksum keyword validation. In Suricata 7.0, when ``stream.checksum-validation``
+  was set to ``no``, the checksum keywords (e.g., ``ipv4-csum``, ``tcpv4-csum``, etc)
+  will always consider it valid; e.g., ``tcpv3-csum: invalid`` will never match. In
+  Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
+  E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
+  checksum validations are disabled.
 
 Removals
 ~~~~~~~~
