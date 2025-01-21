@@ -120,7 +120,9 @@ impl TemplateState {
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
-        self.transactions.iter_mut().find(|tx| tx.response.is_none())
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.response.is_none())
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -151,11 +153,12 @@ impl TemplateState {
                     SCLogNotice!("Request: {}", request);
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
-                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
-                        tx.tx_data.set_event(TemplateEvent::TooManyTransactions as u8);
+                    if self.transactions.len() >= unsafe { TEMPLATE_MAX_TX } {
+                        tx.tx_data
+                            .set_event(TemplateEvent::TooManyTransactions as u8);
                     }
                     self.transactions.push_back(tx);
-                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
+                    if self.transactions.len() >= unsafe { TEMPLATE_MAX_TX } {
                         return AppLayerResult::err();
                     }
                 }
@@ -200,7 +203,7 @@ impl TemplateState {
                 Ok((rem, response)) => {
                     start = rem;
 
-                    if let Some(tx) =  self.find_request() {
+                    if let Some(tx) = self.find_request() {
                         tx.tx_data.updated_tc = true;
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
