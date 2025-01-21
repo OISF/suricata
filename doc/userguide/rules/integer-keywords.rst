@@ -55,13 +55,16 @@ Enumerations
 
 Some integers on the wire represent an enumeration, that is, some values
 have a string/meaning associated to it.
-Rules can be written using one of these strings to check for equality.
+Rules can be written using one of these strings to check for equality or inequality.
 This is meant to make rules more human-readable and equivalent for matching.
 
 Examples::
 
     websocket.opcode:text;
     websocket.opcode:1; # behaves the same
+
+    websocket.opcode:!ping;
+    websocket.opcode:!9; # behaves the same
 
 Bitmasks
 --------
