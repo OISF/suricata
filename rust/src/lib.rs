@@ -83,7 +83,7 @@ extern crate suricata_derive;
 pub mod core;
 
 #[macro_use]
-pub(crate) mod debug;
+pub mod debug;
 
 pub mod common;
 pub mod conf;
