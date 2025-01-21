@@ -82,6 +82,14 @@ Major changes
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unmet requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`.
+- The configuration setting controlling stream checksum checks no longer affects
+  checksum keyword validation. Previously, when ``stream.checksum-validation``
+  was set to ``no``, the checksum keywords (e.g., ``ipv4-csum``, ``tcpv4-csum``, etc)
+  would either match or not match according to the value used with the checksum keyword.
+  Previous behavior would return a match when ``ipv4-csum: valid`` was specified and
+  not match if ``ipv4-csum: invalid`` was used. With 8.0, a match will occur based on the
+  computed checksum and the value (``valid`` or ``invalid``) agree.
+
 
 Removals
 ~~~~~~~~
