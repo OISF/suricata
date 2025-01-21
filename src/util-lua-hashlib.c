@@ -27,17 +27,16 @@
  * -- One shot hash
  * hash = hashing.sha256_digest("www.suricata.io")
  *
+ * -- One shot hash to hex
+ * hash = hashing.sha256_hexdigest("www.suricata.io")
+ *
  * -- Incremental hashing
  * hasher = hashing.sha256()
  * hasher:update("www.")
  * hasher:update("suricata.io")
  * hash = hasher:finalize()
  *
- * Support hashes:
- *
- * - sha256: sha256(), sha256_digest()
- * - sha1: sha1(), sha1_digest()
- * - md5: md5(), md5_digest()
+ * Support hashes: sha256, sha1, md5
  */
 
 #include "util-lua-hashlib.h"
