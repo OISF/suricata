@@ -19,7 +19,7 @@ use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
 use nom7::character::complete::{char, digit1, hex_digit1};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
-use nom7::error::{make_error, ErrorKind};
+use nom7::error::{make_error, Error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
 
@@ -58,15 +58,24 @@ pub struct DetectUintData<T> {
 /// And if this fails, will resort to using the enumeration strings.
 ///
 /// Returns Some DetectUintData on success, None on failure
-pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(s: &str) -> Option<DetectUintData<T1>> {
+pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> Option<DetectUintData<T1>> {
     if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
         return Some(ctx);
     }
+
+    let (s, neg) = opt::<&str, _, Error<_>, _>(char('!'))(s).ok()?;
+    let mode = if neg.is_some() {
+        DetectUintMode::DetectUintModeNe
+    } else {
+        DetectUintMode::DetectUintModeEqual
+    };
     if let Some(enum_val) = T2::from_str(s) {
         let ctx = DetectUintData::<T1> {
             arg1: enum_val.into_u(),
             arg2: T1::min_value(),
-            mode: DetectUintMode::DetectUintModeEqual,
+            mode,
         };
         return Some(ctx);
     }
