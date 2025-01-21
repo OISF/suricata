@@ -21,12 +21,14 @@ use sha1::Sha1;
 use sha2::Sha256;
 use std::os::raw::c_char;
 
-pub const SC_SHA1_LEN: usize = 20;
 pub const SC_SHA256_LEN: usize = 32;
+pub const SC_SHA1_LEN: usize = 20;
+pub const SC_MD5_LEN: usize = 16;
 
 // Length of hex digests without trailing NUL.
-pub const SC_MD5_HEX_LEN: usize = 32;
 pub const SC_SHA256_HEX_LEN: usize = 64;
+pub const SC_SHA1_HEX_LEN: usize = 40;
+pub const SC_MD5_HEX_LEN: usize = 32;
 
 // Wrap the Rust Sha256 in a new type named SCSha256 to give this type
 // the "SC" prefix. The one drawback is we must access the actual context
@@ -59,11 +61,13 @@ pub unsafe extern "C" fn SCSha256Finalize(hasher: &mut SCSha256, out: *mut u8, l
 /// But even given the notes, this appears to be faster than the equivalent that we
 /// did in C using NSS.
 #[no_mangle]
-pub unsafe extern "C" fn SCSha256FinalizeToHex(hasher: &mut SCSha256, out: *mut c_char, len: u32) {
+pub unsafe extern "C" fn SCSha256FinalizeToHex(
+    hasher: &mut SCSha256, out: *mut c_char, len: u32,
+) -> bool {
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
     let hex = format!("{:x}", &result);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
 }
 
 /// Free an unfinalized Sha256 context.
@@ -87,6 +91,16 @@ pub unsafe extern "C" fn SCSha256HashBuffer(
     return true;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCSha256HashBufferToHex(
+    buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
+) -> bool {
+    let data = std::slice::from_raw_parts(buf, buf_len as usize);
+    let hash = Sha256::new().chain(data).finalize();
+    let hex = format!("{:x}", &hash);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+}
+
 // Start of SHA1 C bindings.
 
 pub struct SCSha1(Sha1);
@@ -108,6 +122,16 @@ pub unsafe extern "C" fn SCSha1Finalize(hasher: &mut SCSha1, out: *mut u8, len: 
     finalize(hasher.0, out, len);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1FinalizeToHex(
+    hasher: &mut SCSha1, out: *mut c_char, len: u32,
+) -> bool {
+    let hasher: Box<SCSha1> = Box::from_raw(hasher);
+    let result = hasher.0.finalize();
+    let hex = format!("{:x}", &result);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+}
+
 /// Free an unfinalized Sha1 context.
 #[no_mangle]
 pub unsafe extern "C" fn SCSha1Free(hasher: &mut SCSha1) {
@@ -127,6 +151,16 @@ pub unsafe extern "C" fn SCSha1HashBuffer(
     let hash = Sha1::new().chain(data).finalize();
     output.copy_from_slice(&hash);
     return true;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCSha1HashBufferToHex(
+    buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
+) -> bool {
+    let data = std::slice::from_raw_parts(buf, buf_len as usize);
+    let hash = Sha1::new().chain(data).finalize();
+    let hex = format!("{:x}", &hash);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
 }
 
 // Start of MD5 C bindings.
@@ -157,11 +191,13 @@ pub unsafe extern "C" fn SCMd5Finalize(hasher: &mut SCMd5, out: *mut u8, len: u3
 ///
 /// Consumes the hash context and cannot be re-used.
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5FinalizeToHex(hasher: &mut SCMd5, out: *mut c_char, len: u32) {
+pub unsafe extern "C" fn SCMd5FinalizeToHex(
+    hasher: &mut SCMd5, out: *mut c_char, len: u32,
+) -> bool {
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
     let hex = format!("{:x}", &result);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
 }
 
 /// Free an unfinalized Sha1 context.
@@ -172,22 +208,28 @@ pub unsafe extern "C" fn SCMd5Free(hasher: &mut SCMd5) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMd5HashBuffer(buf: *const u8, buf_len: u32, out: *mut u8, len: u32) {
+pub unsafe extern "C" fn SCMd5HashBuffer(
+    buf: *const u8, buf_len: u32, out: *mut u8, len: u32,
+) -> bool {
+    if len as usize != SC_MD5_LEN {
+        return false;
+    }
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
     let hash = Md5::new().chain(data).finalize();
     output.copy_from_slice(&hash);
+    true
 }
 
 /// C binding for a function to MD5 hash a single buffer to a hex string.
 #[no_mangle]
 pub unsafe extern "C" fn SCMd5HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
-) {
+) -> bool {
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let hash = Md5::new().chain(data).finalize();
     let hex = format!("{:x}", &hash);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize);
+    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
 }
 
 // Functions that are generic over Digest. For the most part the C bindings are
@@ -230,9 +272,18 @@ mod test {
             SCSha256Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             SCSha256Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             let hex = [0_u8; SC_SHA256_HEX_LEN + 1];
-            SCSha256FinalizeToHex(hasher, hex.as_ptr() as *mut c_char, (SC_SHA256_HEX_LEN + 1) as u32);
-            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char).to_str().unwrap();
-            assert_eq!(string, "22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153");
+            SCSha256FinalizeToHex(
+                hasher,
+                hex.as_ptr() as *mut c_char,
+                (SC_SHA256_HEX_LEN + 1) as u32,
+            );
+            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char)
+                .to_str()
+                .unwrap();
+            assert_eq!(
+                string,
+                "22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153"
+            );
         }
     }
 
@@ -250,10 +301,15 @@ mod test {
             SCMd5Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             SCMd5Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             let hex = [0_u8; SC_MD5_HEX_LEN + 1];
-            SCMd5FinalizeToHex(hasher, hex.as_ptr() as *mut c_char, (SC_MD5_HEX_LEN + 1) as u32);
-            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char).to_str().unwrap();
+            SCMd5FinalizeToHex(
+                hasher,
+                hex.as_ptr() as *mut c_char,
+                (SC_MD5_HEX_LEN + 1) as u32,
+            );
+            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char)
+                .to_str()
+                .unwrap();
             assert_eq!(string, "5216ddcc58e8dade5256075e77f642da");
         }
     }
-
 }
