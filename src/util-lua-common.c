@@ -134,90 +134,6 @@ static int LuaCallbackStreamingBuffer(lua_State *luastate)
 }
 
 /** \internal
- *  \brief fill lua stack with payload
- *  \param luastate the lua state
- *  \param p packet
- *  \retval cnt number of data items placed on the stack
- *
- *  Places: payload (string)
- */
-static int LuaCallbackPacketPayloadPushToStackFromPacket(lua_State *luastate, const Packet *p)
-{
-    lua_pushlstring (luastate, (const char *)p->payload, p->payload_len);
-    return 1;
-}
-
-/** \internal
- *  \brief Wrapper for getting payload into a lua script
- *  \retval cnt number of items placed on the stack
- */
-static int LuaCallbackPacketPayload(lua_State *luastate)
-{
-    const Packet *p = LuaStateGetPacket(luastate);
-    if (p == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackPacketPayloadPushToStackFromPacket(luastate, p);
-}
-
-/** \internal
- *  \brief fill lua stack with packet timestamp
- *  \param luastate the lua state
- *  \param p packet
- *  \retval cnt number of data items placed on the stack
- *
- *  Places: seconds (number), microseconds (number)
- */
-static int LuaCallbackTimestampPushToStack(lua_State *luastate, const SCTime_t ts)
-{
-    lua_pushnumber(luastate, (double)SCTIME_SECS(ts));
-    lua_pushnumber(luastate, (double)SCTIME_USECS(ts));
-    return 2;
-}
-
-/** \internal
- *  \brief fill lua stack with header info
- *  \param luastate the lua state
- *  \param p packet
- *  \retval cnt number of data items placed on the stack
- *
- *  Places: ts (string)
- */
-static int LuaCallbackTimeStringPushToStackFromPacket(lua_State *luastate, const Packet *p)
-{
-    char timebuf[64];
-    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
-    lua_pushstring (luastate, timebuf);
-    return 1;
-}
-
-/** \internal
- *  \brief Wrapper for getting packet timestamp (as numbers) into a lua script
- *  \retval cnt number of items placed on the stack
- */
-static int LuaCallbackPacketTimestamp(lua_State *luastate)
-{
-    const Packet *p = LuaStateGetPacket(luastate);
-    if (p == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackTimestampPushToStack(luastate, p->ts);
-}
-
-/** \internal
- *  \brief Wrapper for getting tuple info into a lua script
- *  \retval cnt number of items placed on the stack
- */
-static int LuaCallbackPacketTimeString(lua_State *luastate)
-{
-    const Packet *p = LuaStateGetPacket(luastate);
-    if (p == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackTimeStringPushToStackFromPacket(luastate, p);
-}
-
-/** \internal
  *  \brief fill lua stack with flow timestamps
  *  \param luastate the lua state
  *  \param startts timestamp of first packet in the flow
@@ -312,69 +228,6 @@ static int LuaCallbackFlowHasAlerts(lua_State *luastate)
     r = LuaCallbackHasAlertsPushToStackFromFlow(luastate, flow);
 
     return r;
-}
-
-/** \internal
- *  \brief fill lua stack with header info
- *  \param luastate the lua state
- *  \param p packet
- *  \retval cnt number of data items placed on the stack
- *
- *  Places: ipver (number), src ip (string), dst ip (string), protocol (number),
- *          sp or icmp type (number), dp or icmp code (number).
- */
-static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Packet *p)
-{
-    int ipver = 0;
-    if (PacketIsIPv4(p)) {
-        ipver = 4;
-    } else if (PacketIsIPv6(p)) {
-        ipver = 6;
-    }
-    lua_pushinteger(luastate, ipver);
-    if (ipver == 0)
-        return 1;
-
-    char srcip[46] = "", dstip[46] = "";
-    if (PacketIsIPv4(p)) {
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-    } else if (PacketIsIPv6(p)) {
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-    }
-
-    lua_pushstring (luastate, srcip);
-    lua_pushstring (luastate, dstip);
-
-    /* proto and ports (or type/code) */
-    lua_pushinteger(luastate, p->proto);
-    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-        lua_pushinteger(luastate, p->sp);
-        lua_pushinteger(luastate, p->dp);
-
-    } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
-        lua_pushinteger(luastate, p->icmp_s.type);
-        lua_pushinteger(luastate, p->icmp_s.code);
-    } else {
-        lua_pushinteger(luastate, 0);
-        lua_pushinteger(luastate, 0);
-    }
-
-    return 6;
-}
-
-/** \internal
- *  \brief Wrapper for getting tuple info into a lua script
- *  \retval cnt number of items placed on the stack
- */
-static int LuaCallbackTuple(lua_State *luastate)
-{
-    const Packet *p = LuaStateGetPacket(luastate);
-    if (p == NULL)
-        return LuaCallbackError(luastate, "internal error: no packet");
-
-    return LuaCallbackTuplePushToStackFromPacket(luastate, p);
 }
 
 /** \internal
@@ -931,15 +784,6 @@ static int LuaCallbackThreadInfo(lua_State *luastate)
 int LuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
-    lua_pushcfunction(luastate, LuaCallbackPacketPayload);
-    lua_setglobal(luastate, "SCPacketPayload");
-    lua_pushcfunction(luastate, LuaCallbackPacketTimestamp);
-    lua_setglobal(luastate, "SCPacketTimestamp");
-    lua_pushcfunction(luastate, LuaCallbackPacketTimeString);
-    lua_setglobal(luastate, "SCPacketTimeString");
-    lua_pushcfunction(luastate, LuaCallbackTuple);
-    lua_setglobal(luastate, "SCPacketTuple");
-
     lua_pushcfunction(luastate, LuaCallbackFlowTimestamps);
     lua_setglobal(luastate, "SCFlowTimestamps");
     lua_pushcfunction(luastate, LuaCallbackFlowTimeString);
