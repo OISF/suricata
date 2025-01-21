@@ -512,6 +512,7 @@ noinst_HEADERS = \
 	util-lua-dnp3-objects.h \
 	util-lua-dns.h \
 	util-lua.h \
+	util-lua-hashlib.h \
 	util-lua-hassh.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
@@ -1060,6 +1061,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-dnp3.c \
 	util-lua-dnp3-objects.c \
 	util-lua-dns.c \
+	util-lua-hashlib.c \
 	util-lua-hassh.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
