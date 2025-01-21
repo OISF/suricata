@@ -19,12 +19,14 @@
 #include "util-lua-builtins.h"
 #include "util-lua-hashlib.h"
 #include "util-lua-dataset.h"
+#include "util-lua-packetlib.h"
 
 #include "lauxlib.h"
 
 static const luaL_Reg builtins[] = {
     { "suricata.hashlib", SCLuaLoadHashlib },
     { "suricata.dataset", LuaLoadDatasetLib },
+    { "suricata.packet", LuaLoadPacketLib },
     { NULL, NULL },
 };
 
