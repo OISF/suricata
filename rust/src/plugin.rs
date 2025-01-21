@@ -19,9 +19,9 @@
 
 pub fn init() {
     unsafe {
-        let context = super::core::SCGetContext();
-        super::core::init_ffi(context);
+        let context = crate::core::SCGetContext();
+        crate::core::init_ffi(context);
 
-        super::debug::SCSetRustLogLevel(super::debug::SCLogGetLogLevel());
+        crate::debug::LEVEL = crate::debug::SCLogGetLogLevel();
     }
 }
