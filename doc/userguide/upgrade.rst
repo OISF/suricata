@@ -39,7 +39,7 @@ Upgrading to 7.0.8
 - Unknown requirements in the ``requires`` keyword will now be treated
   as unsatisfied requirements, causing the rule to not be loaded. See
   :ref:`keyword_requires`. To opt out of this change and to ignore
-  uknown requirements, effectively treating them as satified the
+  unknown requirements, effectively treating them as satisfied the
   ``ignore-unknown-requirements`` configuration option can be used.
 
   Command line example::
@@ -66,6 +66,13 @@ Upgrading to 7.0.8
   the engine will NOT log any transaction metadata if there is more than one
   live transaction, to reduce the chances of logging unrelated data.** This may
   lead to what looks like a regression in behavior, but it is a considered choice.
+- The configuration setting controlling stream checksum checks no longer affects
+  checksum keyword validation. In previous Suricata versions, when ``stream.checksum-validation``
+  was set to ``no``, the checksum keywords (e.g., ``ipv4-csum``, ``tcpv4-csum``, etc)
+  will always consider it valid; e.g., ``tcpv4-csum: invalid`` will never match. Now,
+  ``stream.checksum-validation`` no longer affects the checksum rule keywords.
+  E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
+  checksum validations are disabled.
 
 Upgrading 6.0 to 7.0
 --------------------
