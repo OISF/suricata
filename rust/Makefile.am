@@ -1,9 +1,10 @@
-EXTRA_DIST =	src derive \
+EXTRA_DIST =	src derive plugin \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
 		vendor \
 		Cargo.toml Cargo.lock \
+		plugin/Cargo.toml \
 		derive/Cargo.toml
 
 if !DEBUG
@@ -61,6 +62,10 @@ all-local: Cargo.toml
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	$(MAKE) plugin/src/bindings.rs
+	cd $(abs_top_srcdir)/rust/plugin && \
+		$(CARGO_ENV) \
+		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) $(RUST_TARGET)
 
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -91,6 +96,19 @@ gen/rust-bindings.h: $(RUST_SURICATA_LIB)
 else
 gen/rust-bindings.h:
 endif
+
+if HAVE_CBINDGEN
+plugin/rust-bindings.h: $(RUST_SURICATA_LIB) plugin/cbindgen.toml
+	cd $(abs_top_srcdir)/rust && \
+		cbindgen --config $(abs_top_srcdir)/rust/plugin/cbindgen.toml \
+		--quiet --verify --output $(abs_top_builddir)/rust/plugin/rust-bindings.h || true
+else
+plugin/rust-bindings.h:
+endif
+
+#TODO check if HAVE_BINDGEN
+plugin/src/bindings.rs: plugin/rust-bindings.h
+	cd $(abs_top_srcdir)/rust/plugin && bindgen --default-enum-style rust -o src/bindings.rs --allowlist-file rust-bindings.h rust-bindings.h
 
 doc:
 	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps

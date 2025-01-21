@@ -110,6 +110,11 @@ exclude = [
     "IPPROTO_TCP",
     "IPPROTO_UDP",
     "SRepCatGetByShortname",
+    "APP_LAYER_PARSER_EOF_TC",
+    "APP_LAYER_PARSER_EOF_TS",
+    "APP_LAYER_PARSER_OPT_ACCEPT_GAPS",
+    "SIGMATCH_NOOPT",
+    "SIGMATCH_INFO_STICKY_BUFFER",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
