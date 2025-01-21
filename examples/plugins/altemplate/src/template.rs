@@ -28,16 +28,18 @@ use crate::suricata::{
     build_slice, cast_pointer, conf_get, AppLayerGetTxIterTuple, AppLayerParserConfParserEnabled,
     AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag,
     AppLayerProtoDetectConfProtoDetectionEnabled, AppLayerRegisterParser,
-    AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData, AppProto,
-    Flow, Level, RustParser, SCLogError, SCLogNotice, StreamSlice, ALPROTO_UNKNOWN,
-    APP_LAYER_EVENT_TYPE_TRANSACTION, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
-    APP_LAYER_PARSER_OPT_ACCEPT_GAPS, IPPROTO_TCP,
+    AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData, Flow,
+    Level, RustParser, SCLogError, SCLogNotice, StreamSlice,
 };
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
+use suricata_plugin::{
+    AppProto, ALPROTO_UNKNOWN, APP_LAYER_EVENT_TYPE_TRANSACTION, APP_LAYER_PARSER_EOF_TC,
+    APP_LAYER_PARSER_EOF_TS, APP_LAYER_PARSER_OPT_ACCEPT_GAPS, IPPROTO_TCP,
+};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
@@ -91,7 +93,7 @@ impl TemplateEvent {
                 return -1;
             }
         };
-        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION as std::os::raw::c_int;
         *event_id = event as std::os::raw::c_int;
         0
     }
@@ -102,7 +104,7 @@ impl TemplateEvent {
     ) -> i8 {
         if let Some(e) = TemplateEvent::from_id(event_id) {
             *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION as std::os::raw::c_int;
             return 0;
         }
         -1

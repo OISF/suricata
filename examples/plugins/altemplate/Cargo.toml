@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 nom7 = { version="7.0", package="nom" }
 libc = "~0.2.82"
+suricata-plugin = { path = "../../../rust/plugin" }
 
 [features]
 default = ["suricata8"]

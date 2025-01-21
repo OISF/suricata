@@ -1,9 +1,10 @@
-EXTRA_DIST =	src derive \
+EXTRA_DIST =	src derive plugin \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
 		vendor \
 		Cargo.toml Cargo.lock \
+		plugin/Cargo.toml \
 		derive/Cargo.toml
 
 if !DEBUG

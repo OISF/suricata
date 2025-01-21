@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.67.1"
 
 [workspace]
-members = [".", "./derive"]
+members = [".", "./derive", "./plugin"]
 
 [lib]
 crate-type = ["staticlib", "rlib"]

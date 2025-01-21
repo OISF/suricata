@@ -17,7 +17,10 @@ extern "C" fn altemplate_plugin_init() {
     };
     unsafe {
         if SCPluginRegisterAppLayer(Box::into_raw(Box::new(plugin))) != 0 {
-            SCLog!(suricata::Level::Error, "Failed to register altemplate plugin");
+            SCLog!(
+                suricata::Level::Error,
+                "Failed to register altemplate plugin"
+            );
         }
     }
 }

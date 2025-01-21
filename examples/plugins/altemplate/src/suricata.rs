@@ -4,25 +4,7 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
 
-// Type definitions
-pub type AppProto = u16;
-pub type AppLayerEventType = c_int;
-
-// Constant definitions
-pub const ALPROTO_UNKNOWN: AppProto = 0;
-
-pub const IPPROTO_TCP: u8 = 6;
-
-pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = 0x00000001;
-
-pub const APP_LAYER_PARSER_EOF_TC: u16 = 0x0040;
-pub const APP_LAYER_PARSER_EOF_TS: u16 = 0x0020;
-
-pub const APP_LAYER_EVENT_TYPE_TRANSACTION: i32 = 1;
-
-pub const SIGMATCH_NOOPT: u16 = 1;
-pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200;
-
+use suricata_plugin::AppProto;
 //pub const STREAM_TOCLIENT: u8 = 0x08;
 
 // Opaque definitions
@@ -215,10 +197,8 @@ pub type StateTxFreeFn = unsafe extern "C" fn(*mut c_void, u64);
 pub type StateGetTxFn = unsafe extern "C" fn(*mut c_void, u64) -> *mut c_void;
 pub type StateGetTxCntFn = unsafe extern "C" fn(*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn(*mut c_void, u8) -> c_int;
-pub type GetEventInfoFn =
-    unsafe extern "C" fn(*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
-pub type GetEventInfoByIdFn =
-    unsafe extern "C" fn(c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
+pub type GetEventInfoFn = unsafe extern "C" fn(*const c_char, *mut c_int, *mut c_int) -> c_int;
+pub type GetEventInfoByIdFn = unsafe extern "C" fn(c_int, *mut *const c_char, *mut c_int) -> i8;
 pub type LocalStorageNewFn = extern "C" fn() -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn(*mut c_void);
 pub type GetTxFilesFn = unsafe extern "C" fn(*mut c_void, *mut c_void, u8) -> AppLayerGetFileState;

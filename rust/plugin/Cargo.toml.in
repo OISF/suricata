@@ -1,0 +1,9 @@
+[package]
+name = "suricata-plugin"
+version = "@PACKAGE_VERSION@"
+license = "GPL-2.0-only"
+description = "Re-exports for Suricata plugins"
+edition = "2021"
+
+[dependencies]
+suricata = { path = "../", version = "@PACKAGE_VERSION@" }

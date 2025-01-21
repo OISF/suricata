@@ -23,10 +23,10 @@
 use crate::suricata::{
     cast_pointer, DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, Direction, SCSigTableElmt,
-    SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
+use suricata_plugin::{SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT};
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
