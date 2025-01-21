@@ -20,3 +20,4 @@
 pub mod hashing;
 pub mod base64;
 pub mod strings;
+pub mod eve;

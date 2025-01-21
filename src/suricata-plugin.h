@@ -31,6 +31,8 @@
 
 /**
  * Structure to define a Suricata plugin.
+ *
+ * Needs to be kept in sync with SCPlugin in Rust as well.
  */
 typedef struct SCPlugin_ {
     const char *name;

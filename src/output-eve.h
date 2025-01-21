@@ -70,6 +70,9 @@ typedef uint32_t ThreadId;
  * may be naturally thread safe. However, if sharing a single file
  * handle across all threads then your filetype will have to take care
  * of locking, etc.
+ *
+ * NOTE: This data structure needs to be kept in sync with the Rust
+ *     mirror of it in rust/src/ffi/eve.rs.
  */
 typedef struct SCEveFileType_ {
     /**
