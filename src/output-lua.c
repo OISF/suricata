@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "output-lua.h"
 
+#include "util-lua-builtins.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -417,6 +418,7 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     if (luastate == NULL)
         goto error;
     luaL_openlibs(luastate);
+    SCLuaRequirefBuiltIns(luastate);
 
     int status = luaL_loadfile(luastate, filename);
     if (status) {
@@ -551,6 +553,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     }
 
     luaL_openlibs(luastate);
+    SCLuaRequirefBuiltIns(luastate);
 
     int status = luaL_loadfile(luastate, filename);
     if (status) {
