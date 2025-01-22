@@ -57,6 +57,7 @@
 #include "util-var-name.h"
 
 #include "util-lua.h"
+#include "util-lua-builtins.h"
 #include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
@@ -474,6 +475,7 @@ static void *DetectLuaThreadInit(void *data)
 
     if (lua->allow_restricted_functions) {
         luaL_openlibs(t->luastate);
+        SCLuaRequirefBuiltIns(t->luastate);
     } else {
         SCLuaSbLoadLibs(t->luastate);
     }
@@ -589,6 +591,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
         return -1;
     if (ld->allow_restricted_functions) {
         luaL_openlibs(luastate);
+        SCLuaRequirefBuiltIns(luastate);
     } else {
         SCLuaSbLoadLibs(luastate);
     }
