@@ -81,10 +81,28 @@ clean-local:
 distclean-local:
 	rm -rf vendor dist
 
+check-bindgen-bindings:
+if HAVE_BINDGEN
+	if test "$(top_srcdir)" = "$(top_builddir)"; then \
+		cp src/_sys.rs src/_sys.rs.orig; \
+		$(MAKE) update-bindings; \
+		if diff src/_sys.rs src/_sys.rs.orig > /dev/null 2>&1; then \
+			rm -f src/_sys.rs.orig; \
+		else \
+			echo "WARNING: bindgen bindings may be out of date"; \
+		fi \
+	else \
+		echo "Not checking bindings for out of tree build"; \
+	fi
+else
+	@echo "Unable to check bindgen bindings: bindgen not found"
+endif
+
 check:
 	cd $(abs_top_srcdir)/rust && \
 		$(CARGO_ENV) \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
+	$(MAKE) check-bindgen-bindings
 
 vendor:
 	$(CARGO_ENV) $(CARGO) vendor
