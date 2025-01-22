@@ -111,6 +111,8 @@ update-bindings:
 if HAVE_BINDGEN
 	$(BINDGEN) \
 		-o src/_sys.rs \
+		--rust-edition 2021 \
+		--rust-target 1.67.1 \
 		--disable-header-comment \
 		--allowlist-type 'SCAppLayerEventType' \
 		--rustified-enum 'SCAppLayerEventType' \
@@ -118,9 +120,10 @@ if HAVE_BINDGEN
 		--allowlist-type 'AppProto' \
 		--allowlist-type 'AppProtoEnum' \
 		--rustified-enum 'AppProtoEnum' \
+		--allowlist-function 'jb_.*' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
-		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)
+		-DHAVE_CONFIG_H -I../src -I../rust/gen $(CPPFLAGS)
 else
 	@echo "error: bindgen not installed, can't update bindings"
 	exit 1

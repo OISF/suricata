@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "rust.h"
 #include "app-layer-protos.h"
 #include "app-layer-events.h"
 
