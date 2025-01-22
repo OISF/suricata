@@ -120,11 +120,13 @@ static const luaL_Reg datasetlib[] = {
 };
 // clang-format on
 
-void LuaLoadDatasetLib(lua_State *luastate)
+int LuaLoadDatasetLib(lua_State *luastate)
 {
     luaL_newmetatable(luastate, "dataset::metatable");
     lua_pushvalue(luastate, -1);
     lua_setfield(luastate, -2, "__index");
     luaL_setfuncs(luastate, datasetlib, 0);
     luaL_newlib(luastate, datasetlib);
+
+    return 1;
 }
