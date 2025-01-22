@@ -15,11 +15,12 @@
  * 02110-1301, USA.
  */
 
-#ifndef SURICATA_UTIL_LUA_DATASET_H
-#define SURICATA_UTIL_LUA_DATASET_H
+#ifndef SURICATA_UTIL_LUA_BUILTINS_H
+#define SURICATA_UTIL_LUA_BUILTINS_H
 
 #include "lua.h"
 
-int LuaLoadDatasetLib(lua_State *luastate);
+bool SCLuaLoadBuiltIns(lua_State *L, const char *name);
+void SCLuaRequirefBuiltIns(lua_State *L);
 
-#endif /* SURICATA_UTIL_LUA_DATASET_H */
+#endif /* SURICATA_UTIL_LUA_BUILTINS_H */
