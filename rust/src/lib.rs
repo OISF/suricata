@@ -145,4 +145,5 @@ pub mod direction;
 pub use suricata_lua_sys;
 
 // Generated Rust bindings from C.
+/// cbindgen:ignore
 pub mod sys;

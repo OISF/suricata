@@ -2270,9 +2270,7 @@ fi
     fi
 
     AC_PATH_PROG([BINDGEN], [bindgen], [no])
-    if test "x$BINDGEN" = "xno"; then
-       AC_MSG_ERROR([bindgen required])
-    fi
+    AM_CONDITIONAL([HAVE_BINDGEN], [test "x$BINDGEN" != "xno"])
 
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then

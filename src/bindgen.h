@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,6 +15,18 @@
  * 02110-1301, USA.
  */
 
-// We do this as an include so we can allow non_camel_case_types.
-#![allow(non_camel_case_types)]
-include!("_sys.rs");
+/**
+ * \file Input to bindgen to generate Rust bindings.
+ *
+ * This file should include every header that should have Rust
+ * bindings generated for it. It is then used by bindgen to generate
+ * the Rust bindings.
+ */
+
+#ifndef SURICATA_BINDGEN_H
+#define SURICATA_BINDGEN_H
+
+#include "app-layer-types.h"
+#include "app-layer-protos.h"
+
+#endif

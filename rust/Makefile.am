@@ -54,7 +54,6 @@ endif
 
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
-	$(MAKE) gen/bindings.rs
 	cd $(abs_top_srcdir)/rust && \
 		$(CARGO_ENV) \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
@@ -90,31 +89,22 @@ check:
 vendor:
 	$(CARGO_ENV) $(CARGO) vendor
 
-gen/bindgen.h: $(abs_top_srcdir)/src/app-layer-types.h \
-			$(abs_top_srcdir)/src/app-layer-protos.h
-	rm -f $@
-	mkdir -p gen
-if HAVE_CYGPATH
-	for header in $^; do \
-		echo "#include \"`cygpath -am $$header`\"" >> gen/bindgen.h; \
-	done
-else
-	for header in $^; do \
-		echo "#include \"$$header\"" >> gen/bindgen.h; \
-	done
-endif
-
-gen/bindings.rs: gen/bindgen.h
-	rm -f $@
+update-bindings:
+if HAVE_BINDGEN
 	$(BINDGEN) \
-		-o $@ \
+		-o src/_sys.rs \
+		--disable-header-comment \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-type 'SCAppLayer.*' \
 		--rustified-enum SCAppLayerEventType \
 		--rustified-enum AppProtoEnum \
-		./gen/bindgen.h \
+		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src $(CPPFLAGS)
+else
+	@echo "error: bindgen not installed, can't update bindings"
+	exit 1
+endif
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
