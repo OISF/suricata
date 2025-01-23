@@ -1,10 +1,14 @@
+SUBDIRS =	sys
+
 EXTRA_DIST =	src derive \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
 		vendor \
 		Cargo.toml Cargo.lock \
-		derive/Cargo.toml
+		derive/Cargo.toml \
+		sys \
+		sys/Cargo.toml
 
 if !DEBUG
 RELEASE = --release
