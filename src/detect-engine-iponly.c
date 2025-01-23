@@ -2251,7 +2251,7 @@ static int IPOnlyTestSig15(void)
     p[0]->flow = &f;
     p[0]->flow->flowvar = &flowvar;
     p[0]->flags |= PKT_HAS_FLOW;
-    p[0]->flowflags |= FLOW_PKT_TOSERVER;
+    p[0]->flowflags |= (FLOW_PKT_TOSERVER | FLOW_PKT_TOSERVER_FIRST);
 
     const char *sigs[numsigs];
     sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; "

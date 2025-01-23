@@ -561,23 +561,12 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
         Flow * const pflow, Packet * const p)
 {
     if (pflow) {
-        /* set the iponly stuff */
-        if (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)
-            p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
-        if (pflow->flags & FLOW_TOSERVER_IPONLY_SET)
-            p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
-
-        if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-            ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
-        {
+        if (p->flowflags & (FLOW_PKT_TOSERVER_FIRST | FLOW_PKT_TOCLIENT_FIRST)) {
             SCLogDebug("testing against \"ip-only\" signatures");
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_IPONLY);
             IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
-
-            /* save in the flow that we scanned this direction... */
-            FlowSetIPOnlyFlag(pflow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
         }
     } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
