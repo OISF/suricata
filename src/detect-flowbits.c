@@ -977,7 +977,7 @@ static int FlowBitsTestSig06(void)
     p->payload_len = buflen;
     p->proto = IPPROTO_TCP;
     p->flags |= PKT_HAS_FLOW;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= (FLOW_PKT_TOSERVER | FLOW_PKT_TOSERVER_FIRST);
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);

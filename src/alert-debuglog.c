@@ -214,17 +214,14 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              p->flow->todstpktcnt, p->flow->tosrcpktcnt,
                              p->flow->todstbytecnt + p->flow->tosrcbytecnt);
         MemBufferWriteString(aft->buffer,
-                             "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n"
-                             "FLOW ACTION:       DROP: %s\n"
-                             "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n"
-                             "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-                             p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
-                             p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE",
-                             p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
-                             p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
-                             p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-                             applayer ? "TRUE" : "FALSE",
-                             (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
+                "FLOW ACTION:       DROP: %s\n"
+                "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n"
+                "FLOW APP_LAYER:    DETECTED: %s, PROTO %" PRIu16 "\n",
+                p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
+                p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
+                p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
+                applayer ? "TRUE" : "FALSE",
+                (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
     }
 
