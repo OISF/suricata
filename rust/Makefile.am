@@ -111,7 +111,6 @@ update-bindings:
 if HAVE_BINDGEN
 	$(BINDGEN) \
 		-o src/_sys.rs \
-		--rust-edition 2021 \
 		--rust-target 1.67.1 \
 		--disable-header-comment \
 		--allowlist-type 'SCAppLayerEventType' \
