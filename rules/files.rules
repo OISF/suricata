@@ -12,36 +12,36 @@
 #alert http any any -> any any (msg:"FILESTORE pdf"; flow:established,to_server; fileext:"pdf"; filestore; sid:8; rev:1;)
 
 # Store all PDF files, regardless of their name.
-#alert http any any -> any any (msg:"FILEMAGIC pdf"; flow:established,to_server; filemagic:"PDF document"; filestore; sid:9; rev:1;)
+#alert http any any -> any any (msg:"FILEMAGIC pdf"; flow:established,to_server; file.magic; content:"PDF document"; filestore; sid:9; rev:1;)
 
 # Same for JPEG's.
-#alert http any any -> any any (msg:"FILEMAGIC jpg(1)"; flow:established,to_server; filemagic:"JPEG image data"; filestore; sid:10; rev:1;)
-#alert http any any -> any any (msg:"FILEMAGIC jpg(2)"; flow:established,to_server; filemagic:"JFIF"; filestore; sid:11; rev:1;)
+#alert http any any -> any any (msg:"FILEMAGIC jpg(1)"; flow:established,to_server; file.magic; content:"JPEG image data"; filestore; sid:10; rev:1;)
+#alert http any any -> any any (msg:"FILEMAGIC jpg(2)"; flow:established,to_server; file.magic; content:"JFIF"; filestore; sid:11; rev:1;)
 
 # Unusually short file
-#alert http any any -> any any (msg:"FILEMAGIC short"; flow:established,to_server; filemagic:"very short file (no magic)"; filestore; sid:12; rev:1;)
+#alert http any any -> any any (msg:"FILEMAGIC short"; flow:established,to_server; file.magic; content:"very short file (no magic)"; filestore; sid:12; rev:1;)
 
 # Simply store all files we encounter, no alerts.
 #alert http any any -> any any (msg:"FILE store all"; filestore; noalert; sid:15; rev:1;)
 
 # Store all JPG files, don't alert.
-#alert http any any -> any any (msg:"FILE magic"; filemagic:"JFIF"; filestore; noalert; sid:16; rev:1;)
-#alert http any any -> any any (msg:"FILE magic"; filemagic:"GIF"; filestore; noalert; sid:23; rev:1;)
-#alert http any any -> any any (msg:"FILE magic"; filemagic:"PNG"; filestore; noalert; sid:17; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; file.magic; content:"JFIF"; filestore; noalert; sid:16; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; file.magic; content:"GIF"; filestore; noalert; sid:23; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; file.magic; content:"PNG"; filestore; noalert; sid:17; rev:1;)
 
 # Store all Windows executables
-#alert http any any -> any any (msg:"FILE magic -- windows"; flow:established,to_client; filemagic:"executable for MS Windows"; filestore; sid:18; rev:1;)
+#alert http any any -> any any (msg:"FILE magic -- windows"; flow:established,to_client; file.magic; content:"executable for MS Windows"; filestore; sid:18; rev:1;)
 
 # Alert on PNG with 1x1 pixels (tracking)
-#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (1)"; filemagic:"PNG image data, 1 x 1,"; sid:19; rev:1;)
-#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (2)"; filemagic:"PNG image data, 1 x 1|00|"; sid:20; rev:1;)
+#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (1)"; file.magic; content:"PNG image data, 1 x 1,"; sid:19; rev:1;)
+#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (2)"; file.magic; content:"PNG image data, 1 x 1|00|"; sid:20; rev:1;)
 
 # Alert on GIF with 1x1 pixels (tracking)
 # The pattern matches on |00| which is the end of the magic buffer, this way we won't match on 1 x 128.
-#alert http any any -> any any (msg:"FILE tracking GIF (1x1 pixel)"; filemagic:"GIF image data, version 89a, 1 x 1|00|"; sid:21; rev:1;)
+#alert http any any -> any any (msg:"FILE tracking GIF (1x1 pixel)"; file.magic; content:"GIF image data, version 89a, 1 x 1|00|"; sid:21; rev:1;)
 
 # Alert and store pdf attachment but not pdf file
-#alert http any any -> any any (msg:"FILE pdf claimed, but not pdf"; flow:established,to_client; fileext:"pdf"; filemagic:!"PDF document"; filestore; sid:22; rev:1;)
+#alert http any any -> any any (msg:"FILE pdf claimed, but not pdf"; flow:established,to_client; fileext:"pdf"; file.magic; content:!"PDF document"; filestore; sid:22; rev:1;)
 
 # Alert and store files over SMTP
 #alert smtp any any -> any any (msg:"File Found over SMTP and stored"; filestore; sid:27; rev:1;)
