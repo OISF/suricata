@@ -142,8 +142,9 @@ static int SetupEngineForPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh
     SCLogDebug("%s: ctx %p extra type %u extra value %u, sig cnt %u",
             sigmatch_table[sm_type].name, ctx, ctx->type, ctx->value,
             ctx->sigs_cnt);
-    PrefilterAppendEngine(
-            de_ctx, sgh, Match, mask, ctx, PrefilterPacketHeaderFree, sigmatch_table[sm_type].name);
+    enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_NOT_SET; // TODO review
+    PrefilterAppendEngine(de_ctx, sgh, Match, mask, hook, ctx, PrefilterPacketHeaderFree,
+            sigmatch_table[sm_type].name);
     return 0;
 }
 
@@ -245,7 +246,8 @@ static int SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *d
     }
 
     if (cnt) {
-        PrefilterAppendEngine(de_ctx, sgh, Match, mask, ctx, PrefilterPacketU8HashCtxFree,
+        enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_NOT_SET; // TODO review
+        PrefilterAppendEngine(de_ctx, sgh, Match, mask, hook, ctx, PrefilterPacketU8HashCtxFree,
                 sigmatch_table[sm_type].name);
     } else {
         PrefilterPacketU8HashCtxFree(ctx);
