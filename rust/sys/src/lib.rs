@@ -15,5 +15,8 @@
  * 02110-1301, USA.
  */
 
-// pub mod sys;
-// pub use sys::*;
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(clippy::all)]
+
+pub mod sys;

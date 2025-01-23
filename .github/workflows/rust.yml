@@ -74,8 +74,8 @@ jobs:
         working-directory: rust
         run: |
           bindgen --version
-          make update-bindings
-          diff=$(git diff src/_sys.rs)
+          make check-bindgen-bindings
+          diff=$(git diff sys)
           if [ "${diff}" ]; then
               echo "${diff}"
               echo "::error ::Bindgen bindings appear to be out of date"

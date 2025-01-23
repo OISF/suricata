@@ -88,10 +88,10 @@ distclean-local:
 check-bindgen-bindings:
 if HAVE_BINDGEN
 	if test "$(top_srcdir)" = "$(top_builddir)"; then \
-		cp src/_sys.rs src/_sys.rs.orig; \
+		cp sys/src/sys.rs sys/src/sys.rs.orig; \
 		$(MAKE) update-bindings; \
-		if diff src/_sys.rs src/_sys.rs.orig > /dev/null 2>&1; then \
-			rm -f src/_sys.rs.orig; \
+		if diff sys/src/sys.rs sys/src/sys.rs.orig > /dev/null 2>&1; then \
+			rm -f sys/src/sys.rs.orig; \
 		else \
 			echo "WARNING: bindgen bindings may be out of date"; \
 		fi \
@@ -114,15 +114,12 @@ vendor:
 update-bindings:
 if HAVE_BINDGEN
 	$(BINDGEN) \
-		-o src/_sys.rs \
+		-o sys/src/sys.rs \
 		--rust-target 1.67.1 \
 		--disable-header-comment \
-		--allowlist-type 'SCAppLayerEventType' \
-		--rustified-enum 'SCAppLayerEventType' \
-		--allowlist-type 'SCAppLayerStateGetEventInfoByIdFn' \
-		--allowlist-type 'AppProto' \
-		--allowlist-type 'AppProtoEnum' \
-		--rustified-enum 'AppProtoEnum' \
+		--default-enum-style rust \
+		--allowlist-type 'SC.*' \
+		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'jb_.*' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \

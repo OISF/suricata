@@ -144,6 +144,5 @@ pub mod direction;
 #[allow(unused_imports)]
 pub use suricata_lua_sys;
 
-// Generated Rust bindings from C.
-/// cbindgen:ignore
-pub mod sys;
+// Pull in the sys module and re-export.
+pub use suricata_sys::sys;
