@@ -653,6 +653,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                             APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     TcpSessionSetReassemblyDepth(ssn,
                             AppLayerParserGetStreamDepth(f));
+                    AppLayerIncFlowCounter(tv, f);
 
                     *alproto = *alproto_otherdir;
                     SCLogDebug("packet %"PRIu64": pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
@@ -663,7 +664,6 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 }
                 *alproto = ALPROTO_FAILED;
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(*stream);
-                AppLayerIncFlowCounter(tv, f);
                 FlagPacketFlow(p, f, flags);
 
             } else if (flags & STREAM_EOF) {
