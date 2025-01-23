@@ -18,7 +18,7 @@
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
@@ -27,6 +27,7 @@ use nom7 as nom;
 use nom7::Needed;
 
 use flate2::read::DeflateDecoder;
+use suricata_sys::sys::AppProto;
 
 use std;
 use std::collections::VecDeque;

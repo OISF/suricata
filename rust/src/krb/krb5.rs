@@ -26,9 +26,10 @@ use der_parser::ber::Class;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm,KrbError};
 use asn1_rs::FromDer;
+use suricata_sys::sys::AppProto;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto,ALPROTO_FAILED,ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::core::{ALPROTO_FAILED,ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
 use crate::direction::Direction;
 use crate::flow::Flow;
 

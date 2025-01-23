@@ -18,9 +18,10 @@
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
 use nom7 as nom;
+use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
