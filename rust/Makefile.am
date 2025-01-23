@@ -84,7 +84,7 @@ vendor:
 	$(CARGO_ENV) $(CARGO) vendor
 
 if HAVE_CBINDGEN
-gen/rust-bindings.h: $(RUST_SURICATA_LIB)
+gen/rust-bindings.h: $(RUST_SURICATA_LIB) cbindgen.toml
 	cd $(abs_top_srcdir)/rust && \
 		cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
