@@ -98,6 +98,7 @@ void PacketReinit(Packet *p)
     PACKET_FREE_EXTDATA(p);
     p->app_update_direction = 0;
     p->sig_mask = 0;
+    p->pkt_hooks = 0;
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
