@@ -512,7 +512,12 @@ typedef struct Packet_
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
     uint8_t app_update_direction; // enum StreamUpdateDir
+
+    /** sig mask flags this packet has, used in signature matching */
     SignatureMask sig_mask;
+
+    /** bit flags of SignatureHookPkt values this packet should trigger */
+    uint16_t pkt_hooks;
 
     /* Pkt Flags */
     uint32_t flags;
