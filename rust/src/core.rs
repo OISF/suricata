@@ -163,8 +163,6 @@ pub struct SuricataContext {
     pub FileAppendData: SCFileAppendDataById,
     pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
-
-    pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
 
 #[allow(non_snake_case)]
