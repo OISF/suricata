@@ -122,8 +122,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         PREFILTER_PROFILING_START(det_ctx);
-        engine->cb.PrefilterTx(
-                det_ctx, engine->pectx, p, p->flow, (void *) tx_ptr, tx->tx_id, tx->tx_data_ptr, flow_flags);
+        engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, (void *)tx_ptr, tx->tx_id,
+                tx->tx_data_ptr, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {

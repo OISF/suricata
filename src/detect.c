@@ -1180,7 +1180,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
-            const void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
+            const void *tx_ptr =
+                    DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
                 if (engine->alproto != ALPROTO_UNKNOWN) {
                     /* special case: file_data on 'alert tcp' will have engines
@@ -1223,8 +1224,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
-                match = engine->v2.Callback(
-                        de_ctx, det_ctx, engine, s, f, flow_flags, alstate, (void *) tx_ptr, tx->tx_id);
+                match = engine->v2.Callback(de_ctx, det_ctx, engine, s, f, flow_flags, alstate,
+                        (void *)tx_ptr, tx->tx_id);
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;
