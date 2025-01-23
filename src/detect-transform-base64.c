@@ -40,11 +40,10 @@
 static int DetectTransformFromBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
+#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) Base64ModeRFC4648
 static void DetectTransformFromBase64DecodeRegisterTests(void);
 #endif
 static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options);
-
-#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) Base64ModeRFC4648
 
 void DetectTransformFromBase64DecodeRegister(void)
 {
