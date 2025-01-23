@@ -537,9 +537,14 @@ typedef struct SignatureInitDataBuffer_ {
     SigMatch *tail;
 } SignatureInitDataBuffer;
 
+enum SignatureHookPkt {
+    SIGNATURE_HOOK_PKT_NOT_SET,
+    SIGNATURE_HOOK_PKT_FLOW_START,
+};
+
 enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_NOT_SET,
-    // SIGNATURE_HOOK_TYPE_PKT,
+    SIGNATURE_HOOK_TYPE_PKT,
     SIGNATURE_HOOK_TYPE_APP,
 };
 
@@ -555,6 +560,9 @@ typedef struct SignatureHook_ {
              *  specific progress value. */
             int app_progress;
         } app;
+        struct {
+            enum SignatureHookPkt ph;
+        } pkt;
     } t;
 } SignatureHook;
 
@@ -1410,6 +1418,8 @@ typedef struct PrefilterEngineList_ {
 
     SignatureMask pkt_mask; /**< mask for pkt engines */
 
+    enum SignatureHookPkt pkt_hook;
+
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
     void *pectx;
@@ -1435,12 +1445,18 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
 
     union {
-        SignatureMask pkt_mask; /**< mask for pkt engines */
+        struct {
+            SignatureMask mask; /**< mask for pkt engines */
+            uint8_t hook;       /**< enum SignatureHookPkt */
+        } pkt;
         /** Minimal Tx progress we need before running the engine. Only used
          *  with Tx Engine */
         uint8_t tx_min_progress;
         uint8_t frame_type;
     } ctx;
+
+    bool is_last;
+    bool is_last_for_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1454,8 +1470,6 @@ typedef struct PrefilterEngine_ {
 
     /* global id for this prefilter */
     uint32_t gid;
-    bool is_last;
-    bool is_last_for_progress;
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {

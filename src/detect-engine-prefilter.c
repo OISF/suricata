@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2021 Open Information Security Foundation
+/* Copyright (C) 2016-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -168,7 +168,12 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
         /* run packet engines */
         PrefilterEngine *engine = sgh->pkt_engines;
         do {
-            if ((engine->ctx.pkt_mask & mask) == engine->ctx.pkt_mask) {
+            /* run engine if:
+             * mask matches
+             * no hook is used OR hook matches
+             */
+            if (((engine->ctx.pkt.mask & mask) == engine->ctx.pkt.mask) &&
+                    (engine->ctx.pkt.hook == 0 || (p->pkt_hooks & BIT_U16(engine->ctx.pkt.hook)))) {
                 PREFILTER_PROFILING_START(det_ctx);
                 engine->cb.Prefilter(det_ctx, p, engine->pectx);
                 PREFILTER_PROFILING_END(det_ctx, engine->gid);
@@ -211,7 +216,8 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
 }
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
-        SignatureMask mask, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
+        SignatureMask mask, enum SignatureHookPkt hook, void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name)
 {
     if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
@@ -221,10 +227,14 @@ int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterP
         return -1;
     memset(e, 0x00, sizeof(*e));
 
+    // TODO right now we represent the hook in a u8 in the prefilter engine for space reasons.
+    BUG_ON(hook >= 8);
+
     e->Prefilter = PrefilterFunc;
     e->pectx = pectx;
     e->Free = FreeFunc;
     e->pkt_mask = mask;
+    e->pkt_hook = hook;
 
     if (sgh->init->pkt_engines == NULL) {
         sgh->init->pkt_engines = e;
@@ -535,6 +545,14 @@ static void PrefilterPktNonPF(DetectEngineThreadCtx *det_ctx, Packet *p, const v
     }
 }
 
+static void PrefilterPktNonPFHookFlowStart(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    if (p->flowflags & (FLOW_PKT_TOSERVER_FIRST | FLOW_PKT_TOCLIENT_FIRST)) {
+        PrefilterPktNonPF(det_ctx, p, pectx);
+    }
+}
+
 /** \internal
  *  \brief engine to select the non-prefilter rules for frames
  *  Checks the alproto and type as well.
@@ -631,10 +649,22 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
     uint32_t frame_non_pf_array_size = 0;
 
+    struct PrefilterNonPFDataSig *pkt_hook_flow_start_non_pf_array =
+            SCCalloc(max_sids, sizeof(*pkt_hook_flow_start_non_pf_array));
+    if (pkt_hook_flow_start_non_pf_array == NULL) {
+        SCFree(pkt_non_pf_array);
+        SCFree(frame_non_pf_array);
+        return -1;
+    }
+    uint32_t pkt_hook_flow_start_non_pf_array_size = 0;
+    SignatureMask pkt_hook_flow_start_mask = 0;
+    bool pkt_hook_flow_start_mask_init = false;
+
     HashListTable *tx_engines_hash =
             HashListTableInit(256, TxNonPFHash, TxNonPFCompare, TxNonPFFree);
     if (tx_engines_hash == NULL) {
         SCFree(pkt_non_pf_array);
+        SCFree(pkt_hook_flow_start_non_pf_array);
         SCFree(frame_non_pf_array);
         return -1;
     }
@@ -644,6 +674,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 HashTableInit(512, NonPFNamesHash, NonPFNamesCompare, NonPFNamesFree);
         if (de_ctx->non_pf_engine_names == NULL) {
             SCFree(pkt_non_pf_array);
+            SCFree(pkt_hook_flow_start_non_pf_array);
             SCFree(frame_non_pf_array);
             HashListTableFree(tx_engines_hash);
             return -1;
@@ -676,6 +707,44 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         bool tx_non_pf = false;
         bool frame_non_pf = false;
         bool pkt_non_pf = false;
+
+        if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
+                s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_FLOW_START) {
+            // TODO code duplication with regular pkt case below
+
+            /* for pkt non prefilter, we have some space in the structure,
+             * so we can squeeze another filter */
+            uint8_t type;
+            uint16_t value;
+            if ((s->flags & SIG_FLAG_DSIZE) && s->dsize_mode == DETECT_UINT_EQ) {
+                SCLogDebug("dsize extra match");
+                type = 2;
+                value = s->dsize_low;
+            } else if (s->dp != NULL && s->dp->next == NULL && s->dp->port == s->dp->port2) {
+                type = 1;
+                value = s->dp->port;
+            } else {
+                type = 0;
+                value = s->alproto;
+            }
+            pkt_hook_flow_start_non_pf_array[pkt_hook_flow_start_non_pf_array_size].sid = s->num;
+            pkt_hook_flow_start_non_pf_array[pkt_hook_flow_start_non_pf_array_size].value = value;
+            pkt_hook_flow_start_non_pf_array[pkt_hook_flow_start_non_pf_array_size].type = type;
+            pkt_hook_flow_start_non_pf_array[pkt_hook_flow_start_non_pf_array_size].pkt.sig_mask =
+                    s->mask;
+            pkt_hook_flow_start_non_pf_array_size++;
+
+            if (pkt_hook_flow_start_mask_init) {
+                pkt_hook_flow_start_mask &= s->mask;
+            } else {
+                pkt_hook_flow_start_mask = s->mask;
+                pkt_hook_flow_start_mask_init = true;
+            }
+
+            SCLogDebug("flow_start hook");
+            continue; // done for this sig
+        }
+
         for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
             const int list_id = s->init_data->buffers[x].id;
             const DetectBufferType *buf = DetectEngineBufferTypeGetById(de_ctx, list_id);
@@ -896,8 +965,28 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         data->size = pkt_non_pf_array_size;
         memcpy((uint8_t *)&data->array, pkt_non_pf_array,
                 pkt_non_pf_array_size * sizeof(data->array[0]));
-        if (PrefilterAppendEngine(de_ctx, sgh, PrefilterPktNonPF, pkt_mask, (void *)data,
+        enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_NOT_SET; // TODO review
+        if (PrefilterAppendEngine(de_ctx, sgh, PrefilterPktNonPF, pkt_mask, hook, (void *)data,
                     PrefilterNonPFDataFree, "packet:non_pf") < 0) {
+            SCFree(data);
+            goto error;
+        }
+    }
+    if (pkt_hook_flow_start_non_pf_array_size) {
+        struct PrefilterNonPFData *data = SCCalloc(
+                1, sizeof(*data) + pkt_hook_flow_start_non_pf_array_size * sizeof(data->array[0]));
+        if (data == NULL)
+            goto error;
+        data->size = pkt_hook_flow_start_non_pf_array_size;
+        memcpy((uint8_t *)&data->array, pkt_hook_flow_start_non_pf_array,
+                pkt_hook_flow_start_non_pf_array_size * sizeof(data->array[0]));
+        SCLogDebug("packet:flow_start:non_pf added with %u rules", data->size);
+        enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_FLOW_START;
+        if (PrefilterAppendEngine(de_ctx, sgh,
+                    PrefilterPktNonPFHookFlowStart, // TODO no longer needed to have a dedicated
+                                                    // callback
+                    pkt_hook_flow_start_mask, hook, (void *)data, PrefilterNonPFDataFree,
+                    "packet:flow_start:non_pf") < 0) {
             SCFree(data);
             goto error;
         }
@@ -918,6 +1007,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
 
+    SCFree(pkt_hook_flow_start_non_pf_array);
+    pkt_hook_flow_start_non_pf_array = NULL;
     SCFree(pkt_non_pf_array);
     pkt_non_pf_array = NULL;
     SCFree(frame_non_pf_array);
@@ -928,6 +1019,7 @@ error:
     if (tx_engines_hash) {
         HashListTableFree(tx_engines_hash);
     }
+    SCFree(pkt_hook_flow_start_non_pf_array);
     SCFree(pkt_non_pf_array);
     SCFree(frame_non_pf_array);
     return -1;
@@ -973,7 +1065,11 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
-            e->ctx.pkt_mask = el->pkt_mask;
+            e->ctx.pkt.mask = el->pkt_mask;
+            // TODO right now we represent the hook in a u8 in the prefilter engine for space
+            // reasons.
+            BUG_ON(el->pkt_hook >= 8);
+            e->ctx.pkt.hook = (uint8_t)el->pkt_hook;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
@@ -998,7 +1094,11 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
-            e->ctx.pkt_mask = el->pkt_mask;
+            e->ctx.pkt.mask = el->pkt_mask;
+            // TODO right now we represent the hook in a u8 in the prefilter engine for space
+            // reasons.
+            BUG_ON(el->pkt_hook >= 8);
+            e->ctx.pkt.hook = (uint8_t)el->pkt_hook;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
@@ -1404,8 +1504,9 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, M
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
+    enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_NOT_SET; // TODO review
     int r = PrefilterAppendEngine(
-            de_ctx, sgh, PrefilterMpmPkt, 0, pectx, PrefilterMpmPktFree, mpm_reg->pname);
+            de_ctx, sgh, PrefilterMpmPkt, 0, hook, pectx, PrefilterMpmPktFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
