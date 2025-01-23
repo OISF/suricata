@@ -23,7 +23,6 @@ use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use std::os::raw::{c_void,c_char,c_int};
-use crate::core::SC;
 use std::ffi::CStr;
 use crate::core::StreamingBufferConfig;
 
@@ -480,12 +479,9 @@ pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
     pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
+    pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
 }
 
-#[allow(non_snake_case)]
-pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int {
-    (SC.unwrap().AppLayerRegisterParser)(parser, alproto)
-}
 
 // Defined in app-layer-detect-proto.h
 /// cbindgen:ignore

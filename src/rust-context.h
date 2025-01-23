@@ -56,9 +56,6 @@ typedef struct SuricataContext_ {
     int (*FileAppendGAPById)(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len);
     void (*FileContainerRecycle)(FileContainer *ffc, const StreamingBufferConfig *);
-
-    int (*AppLayerRegisterParser)(const struct AppLayerParser *p, AppProto alproto);
-
 } SuricataContext;
 
 extern const SuricataContext suricata_context;

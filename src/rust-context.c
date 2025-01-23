@@ -37,8 +37,6 @@ const SuricataContext suricata_context = {
     FileAppendDataById,
     FileAppendGAPById,
     FileContainerRecycle,
-
-    AppLayerRegisterParser,
 };
 
 const SuricataContext *SCGetContext(void)
