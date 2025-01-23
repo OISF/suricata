@@ -25,6 +25,6 @@
 #define SURICATA_OUTPUT_JSON_PGSQL_H
 
 void JsonPgsqlLogRegister(void);
-bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb);
+bool JsonPgsqlAddMetadata(const void *vtx, void *jb);
 
 #endif /* SURICATA_OUTPUT_JSON_PGSQL_H */

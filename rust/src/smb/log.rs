@@ -25,6 +25,7 @@ use crate::smb::smb2::*;
 use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
 use crate::smb::smb_status::*;
+use std::ffi::c_void;
 
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> { Ok(()) }
@@ -445,14 +446,16 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_request(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
+pub unsafe extern "C" fn rs_smb_log_json_request(jsb: *mut c_void, state: &mut SMBState, tx: &SMBTransaction) -> bool
 {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
     smb_common_header(jsb, state, tx).is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_response(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
+pub unsafe extern "C" fn rs_smb_log_json_response(jsb: *mut c_void, state: &mut SMBState, tx: &SMBTransaction) -> bool
 {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
     smb_common_header(jsb, state, tx).is_ok()
 }
 

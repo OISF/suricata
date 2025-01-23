@@ -1456,9 +1456,10 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
-bool EveFTPDataAddMetadata(void *vtx, JsonBuilder *jb)
+bool EveFTPDataAddMetadata(const void *vtx, void *vjb)
 {
     const FtpDataState *ftp_state = (FtpDataState *)vtx;
+    JsonBuilder *jb = (JsonBuilder *)vjb;
     jb_open_object(jb, "ftp_data");
 
     if (ftp_state->file_name) {

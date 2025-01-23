@@ -20,6 +20,7 @@
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::sdp::logger::sdp_log;
 use crate::sip::sip::SIPTransaction;
+use std::ffi::c_void;
 
 fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("sip")?;
@@ -57,6 +58,8 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_log_json(tx: &SIPTransaction, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_sip_log_json(tx: *const c_void, js: *mut c_void) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
+    let tx = cast_pointer!(tx, SIPTransaction);
     log(tx, js).is_ok()
 }

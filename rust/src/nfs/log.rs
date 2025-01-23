@@ -20,6 +20,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::nfs::types::*;
 use crate::nfs::nfs::*;
 use crc::crc32;
+use std::ffi::c_void;
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
@@ -119,9 +120,10 @@ fn nfs_log_request(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
+pub unsafe extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &NFSTransaction,
+        js: *mut c_void) -> bool
 {
+    let js = cast_pointer!(js, JsonBuilder);
     nfs_log_request(state, tx, js).is_ok()
 }
 
@@ -152,9 +154,10 @@ fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
+pub unsafe extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &NFSTransaction,
+        js: *mut c_void) -> bool
 {
+    let js = cast_pointer!(js, JsonBuilder);
     nfs_log_response(state, tx, js).is_ok()
 }
 
@@ -173,8 +176,9 @@ fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rpc_log_json_response(tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
+pub unsafe extern "C" fn rs_rpc_log_json_response(tx: &NFSTransaction,
+        js: *mut c_void) -> bool
 {
+    let js = cast_pointer!(js, JsonBuilder);
     rpc_log_response(tx, js).is_ok()
 }

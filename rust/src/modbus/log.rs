@@ -17,11 +17,14 @@
 
 use super::modbus::ModbusTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::ffi::c_void;
 
 use sawp_modbus::{Data, Message, Read, Write};
 
 #[no_mangle]
-pub extern "C" fn rs_modbus_to_json(tx: &ModbusTransaction, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_modbus_to_json(tx: *const c_void, js: *mut c_void) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
+    let tx = cast_pointer!(tx, ModbusTransaction);
     log(tx, js).is_ok()
 }
 

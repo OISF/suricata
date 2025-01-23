@@ -22,9 +22,12 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::rdp::parser::*;
 use crate::rdp::windows;
 use x509_parser::prelude::{FromDer, X509Certificate};
+use std::ffi::c_void;
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_to_json(tx: &RdpTransaction, js: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_rdp_to_json(tx: *const c_void, js: *mut c_void) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
+    let tx = cast_pointer!(tx, RdpTransaction);
     log(tx, js).is_ok()
 }
 

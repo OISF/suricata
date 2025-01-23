@@ -289,8 +289,9 @@ fn log_pgsql_param(param: &PgsqlParameter) -> Result<JsonBuilder, JsonError> {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCPgsqlLogger(
-    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+    tx: *const std::os::raw::c_void, flags: u32, js: *mut std::os::raw::c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let tx_pgsql = cast_pointer!(tx, PgsqlTransaction);
     SCLogDebug!(
         "----------- PGSQL rs_pgsql_logger call. Tx id is {:?}",

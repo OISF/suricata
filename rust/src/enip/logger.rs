@@ -1891,8 +1891,9 @@ fn log_enip(tx: &EnipTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
 
 #[no_mangle]
 pub unsafe extern "C" fn SCEnipLoggerLog(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *const std::os::raw::c_void, js: *mut std::os::raw::c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let tx = cast_pointer!(tx, EnipTransaction);
     if tx.request.is_none() && tx.response.is_none() {
         return false;

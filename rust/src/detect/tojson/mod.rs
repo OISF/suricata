@@ -17,8 +17,9 @@
 
 use crate::detect::uint::{DetectIntType, DetectUintData, DetectUintMode};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::ffi::c_void;
 
-pub fn detect_uint_to_json<T: DetectIntType>(
+pub(crate) fn detect_uint_to_json<T: DetectIntType>(
     js: &mut JsonBuilder, du: &DetectUintData<T>,
 ) -> Result<(), JsonError>
 where
@@ -75,14 +76,16 @@ where
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectU16ToJson(
-    js: &mut JsonBuilder, du: &DetectUintData<u16>,
+    js: *mut c_void, du: &DetectUintData<u16>,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     return detect_uint_to_json(js, du).is_ok();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectU32ToJson(
-    js: &mut JsonBuilder, du: &DetectUintData<u32>,
+    js: *mut c_void, du: &DetectUintData<u32>,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     return detect_uint_to_json(js, du).is_ok();
 }

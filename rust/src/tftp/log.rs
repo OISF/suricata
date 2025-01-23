@@ -19,6 +19,7 @@
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::tftp::tftp::TFTPTransaction;
+use std::ffi::c_void;
 
 fn tftp_log_request(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> {
     jb.open_object("tftp")?;
@@ -34,6 +35,8 @@ fn tftp_log_request(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> Result<(), Js
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_log_json_request(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn rs_tftp_log_json_request(tx: *const c_void, jb: *mut c_void) -> bool {
+    let jb = cast_pointer!(jb, JsonBuilder);
+    let tx = cast_pointer!(tx, TFTPTransaction);
     tftp_log_request(tx, jb).is_ok()
 }

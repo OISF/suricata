@@ -49,15 +49,17 @@ fn log_websocket(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_websocket_logger_log(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *const std::os::raw::c_void, js: *mut std::os::raw::c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let tx = cast_pointer!(tx, WebSocketTransaction);
     log_websocket(tx, js, false, false).is_ok()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCWebSocketLogDetails(
-    tx: &WebSocketTransaction, js: &mut JsonBuilder, pp: bool, pb64: bool,
+    tx: &WebSocketTransaction, js: *mut std::os::raw::c_void, pp: bool, pb64: bool,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     log_websocket(tx, js, pp, pb64).is_ok()
 }

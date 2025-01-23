@@ -17,7 +17,7 @@
 
 use crate::jsonbuilder::JsonBuilder;
 use crate::x509::time::format_timestamp;
-use std::ffi::CStr;
+use std::ffi::{c_void, CStr};
 use std::os::raw::c_char;
 
 /// Helper function to log a TLS timestamp from C to JSON with the
@@ -29,8 +29,9 @@ use std::os::raw::c_char;
 /// FFI function that dereferences pointers from C.
 #[no_mangle]
 pub unsafe extern "C" fn sc_x509_log_timestamp(
-    jb: &mut JsonBuilder, key: *const c_char, timestamp: i64,
+    jb: *mut c_void, key: *const c_char, timestamp: i64,
 ) -> bool {
+    let jb = cast_pointer!(jb, JsonBuilder);
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         if let Ok(timestamp) = format_timestamp(timestamp) {
             return jb.set_string(key, &timestamp).is_ok();

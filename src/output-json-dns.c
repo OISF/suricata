@@ -248,13 +248,13 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-bool AlertJsonDns(void *txptr, JsonBuilder *js)
+bool AlertJsonDns(const void *txptr, void *js)
 {
     return SCDnsLogJson(
             txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
 }
 
-bool AlertJsonDoh2(void *txptr, JsonBuilder *js)
+bool AlertJsonDoh2(const void *txptr, void *js)
 {
     JsonBuilderMark mark = { 0, 0, 0 };
 

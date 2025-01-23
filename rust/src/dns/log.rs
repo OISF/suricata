@@ -21,6 +21,7 @@ use std::string::String;
 
 use crate::dns::dns::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::ffi::c_void;
 
 pub const LOG_A: u64 = BIT_U64!(2);
 pub const LOG_NS: u64 = BIT_U64!(3);
@@ -800,9 +801,10 @@ fn dns_log_query(
 }
 
 #[no_mangle]
-pub extern "C" fn SCDnsLogJsonQuery(
-    tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
+pub unsafe extern "C" fn SCDnsLogJsonQuery(
+    tx: &DNSTransaction, i: u16, flags: u64, jb: *mut c_void,
 ) -> bool {
+    let jb = cast_pointer!(jb, JsonBuilder);
     match dns_log_query(tx, i, flags, jb) {
         Ok(false) | Err(_) => {
             return false;
@@ -921,7 +923,8 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
 
 /// FFI wrapper around the common V3 style DNS logger.
 #[no_mangle]
-pub extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: *mut c_void) -> bool {
+    let jb = cast_pointer!(jb, JsonBuilder);
     log_json(tx, flags, jb).is_ok()
 }
 
@@ -948,9 +951,10 @@ pub extern "C" fn SCDnsLogEnabled(tx: &DNSTransaction, flags: u64) -> bool {
 
 /// Note: For v2 style logging.
 #[no_mangle]
-pub extern "C" fn SCDnsLogJsonAnswer(
-    tx: &DNSTransaction, flags: u64, js: &mut JsonBuilder,
+pub unsafe extern "C" fn SCDnsLogJsonAnswer(
+    tx: &DNSTransaction, flags: u64, js: *mut c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {

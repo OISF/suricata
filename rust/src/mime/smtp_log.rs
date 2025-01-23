@@ -21,7 +21,7 @@ use crate::mime::smtp::{MimeSmtpMd5State, MimeStateSMTP};
 use digest::Digest;
 use digest::Update;
 use md5::Md5;
-use std::ffi::CStr;
+use std::ffi::{c_void, CStr};
 
 fn log_subject_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
@@ -36,8 +36,9 @@ fn log_subject_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), Json
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogSubjectMd5(
-    js: &mut JsonBuilder, ctx: &MimeStateSMTP,
+    js: *mut c_void, ctx: &MimeStateSMTP,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     return log_subject_md5(js, ctx).is_ok();
 }
 
@@ -50,7 +51,8 @@ fn log_body_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonErr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpLogBodyMd5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> bool {
+pub unsafe extern "C" fn SCMimeSmtpLogBodyMd5(js: *mut c_void, ctx: &MimeStateSMTP) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     return log_body_md5(js, ctx).is_ok();
 }
 
@@ -79,9 +81,10 @@ fn log_field_array(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldArray(
-    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
+    js: *mut c_void, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let e: &CStr = CStr::from_ptr(email); //unsafe
     if let Ok(email_field) = e.to_str() {
         let c: &CStr = CStr::from_ptr(config); //unsafe
@@ -156,9 +159,10 @@ fn log_field_comma(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldComma(
-    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
+    js:  *mut c_void, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let e: &CStr = CStr::from_ptr(email); //unsafe
     if let Ok(email_field) = e.to_str() {
         let c: &CStr = CStr::from_ptr(config); //unsafe
@@ -183,9 +187,10 @@ fn log_field_string(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpLogFieldString(
-    js: &mut JsonBuilder, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
+    js: *mut c_void, ctx: &MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let e: &CStr = CStr::from_ptr(email); //unsafe
     if let Ok(email_field) = e.to_str() {
         let c: &CStr = CStr::from_ptr(config); //unsafe
@@ -234,6 +239,7 @@ fn log_data(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpLogData(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> bool {
+pub unsafe extern "C" fn SCMimeSmtpLogData(js: *mut c_void, ctx: &MimeStateSMTP) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     return log_data(js, ctx).is_ok();
 }

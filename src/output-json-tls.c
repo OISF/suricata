@@ -455,12 +455,13 @@ static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fiel
     }
 }
 
-bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
+bool JsonTlsLogJSONExtended(const void *vtx, void *tjs)
 {
     SSLState *state = (SSLState *)vtx;
-    jb_open_object(tjs, "tls");
-    JsonTlsLogFields(tjs, state, EXTENDED_FIELDS);
-    return jb_close(tjs);
+    JsonBuilder *js = (JsonBuilder *)tjs;
+    jb_open_object(js, "tls");
+    JsonTlsLogFields(js, state, EXTENDED_FIELDS);
+    return jb_close(js);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,

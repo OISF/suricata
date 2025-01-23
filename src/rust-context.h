@@ -33,6 +33,9 @@ typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 
 struct AppLayerParser;
 
+// opaque definition in rust not repr(C)
+typedef struct JsonBuilder JsonBuilder;
+
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int, const char *,
             const char *, const char *message);

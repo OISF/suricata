@@ -58,7 +58,7 @@ pub enum MQTTProperty {
 }
 
 impl crate::mqtt::mqtt_property::MQTTProperty {
-    pub fn set_json(&self, js: &mut JsonBuilder, limit: usize) -> Result<(), JsonError> {
+    pub(crate) fn set_json(&self, js: &mut JsonBuilder, limit: usize) -> Result<(), JsonError> {
         match self {
             crate::mqtt::mqtt_property::MQTTProperty::PAYLOAD_FORMAT_INDICATOR(v) => {
                 js.set_uint("payload_format_indicator", *v as u64)?;

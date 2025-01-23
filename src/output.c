@@ -871,32 +871,27 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, AlertJsonDns, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, rs_modbus_to_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, SCEnipLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNP3, AlertJsonDnp3, NULL);
     // ALPROTO_NFS special: uses state
     // underscore instead of dash for ftp_data
     RegisterSimpleJsonApplayerLogger(ALPROTO_FTPDATA, EveFTPDataAddMetadata, "ftp_data");
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)rs_tftp_log_json_request, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_TFTP, rs_tftp_log_json_request, NULL);
     // ALPROTO_IKE special: uses state
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_KRB5, rs_krb5_log_json_response, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response, NULL);
-    RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SNMP, rs_snmp_log_json_response, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, rs_sip_log_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, rs_rfb_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_MQTT, JsonMQTTAddMetadata, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_PGSQL, JsonPgsqlAddMetadata, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_WEBSOCKET, rs_websocket_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_LDAP, rs_ldap_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, AlertJsonDoh2, NULL);
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)rs_template_logger_log, NULL);
-    RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_TEMPLATE, rs_template_logger_log, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, rs_rdp_to_json, NULL);
     // special case : http2 is logged in http object
     RegisterSimpleJsonApplayerLogger(ALPROTO_HTTP2, rs_http2_log_json, "http");
     // underscore instead of dash for bittorrent_dht

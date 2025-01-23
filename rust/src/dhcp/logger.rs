@@ -69,7 +69,7 @@ impl DHCPLogger {
         return true;
     }
 
-    pub fn log(&self, tx: &DHCPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    fn log(&self, tx: &DHCPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         let header = &tx.message.header;
         let options = &tx.message.options;
 
@@ -269,16 +269,17 @@ pub unsafe extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) 
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
-                                     tx: *mut std::os::raw::c_void,
-                                     js: &mut JsonBuilder) -> bool {
+                                     tx: *const std::os::raw::c_void,
+                                     js: *mut std::os::raw::c_void) -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);
+    let js = cast_pointer!(js, JsonBuilder);
     logger.log(tx, js).is_ok()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_logger_do_log(logger: *mut std::os::raw::c_void,
-                                        tx: *mut std::os::raw::c_void)
+                                        tx: *const std::os::raw::c_void)
                                         -> bool {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);

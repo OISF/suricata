@@ -21,7 +21,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 use super::parser::{ConnectionData, MediaDescription, SdpMessage};
 
-pub fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> {
+pub(crate) fn sdp_log(msg: &SdpMessage, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("sdp")?;
 
     let origin = format!(

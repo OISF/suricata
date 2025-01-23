@@ -210,9 +210,10 @@ static void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
     jb_close(js);
 }
 
-bool AlertJsonDnp3(void *vtx, JsonBuilder *js)
+bool AlertJsonDnp3(const void *vtx, void *vjs)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
+    JsonBuilder *js = (JsonBuilder *)vjs;
     bool logged = false;
     jb_open_object(js, "dnp3");
     if (tx->is_request && tx->done) {

@@ -26,9 +26,6 @@
 
 void JsonTlsLogRegister(void);
 
-/* For JsonBuilder. */
-#include "rust.h"
-
-bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *js);
+bool JsonTlsLogJSONExtended(const void *vtx, void *js);
 
 #endif /* SURICATA_OUTPUT_JSON_TLS_H */

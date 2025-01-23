@@ -59,7 +59,7 @@ typedef struct LogPgsqlLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogPgsqlLogThread;
 
-bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb)
+bool JsonPgsqlAddMetadata(const void *vtx, void *jb)
 {
     return SCPgsqlLogger(vtx, PGSQL_DEFAULTS, jb);
 }

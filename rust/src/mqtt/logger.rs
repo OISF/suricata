@@ -318,8 +318,9 @@ fn log_mqtt(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_logger_log(
-    tx: *mut std::os::raw::c_void, flags: u32, max_log_len: u32, js: &mut JsonBuilder,
+    tx: *const std::os::raw::c_void, flags: u32, max_log_len: u32, js: *mut std::os::raw::c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let tx = cast_pointer!(tx, MQTTTransaction);
     log_mqtt(tx, flags, max_log_len as usize, js).is_ok()
 }

@@ -344,8 +344,9 @@ fn log_controls(controls: &Option<Vec<Control>>, js: &mut JsonBuilder) -> Result
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ldap_logger_log(
-    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+    tx: *const std::os::raw::c_void, js: *mut std::os::raw::c_void,
 ) -> bool {
+    let js = cast_pointer!(js, JsonBuilder);
     let tx = cast_pointer!(tx, LdapTransaction);
     log_ldap(tx, js).is_ok()
 }

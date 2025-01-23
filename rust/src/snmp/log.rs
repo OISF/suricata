@@ -21,6 +21,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::snmp::snmp::SNMPTransaction;
 use crate::snmp::snmp_parser::{NetworkAddress,PduType};
 use std::borrow::Cow;
+use std::ffi::c_void;
 
 fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     match t {
@@ -37,7 +38,7 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     }
 }
 
-fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<(), JsonError>
+fn snmp_log_response(jsb: &mut JsonBuilder, tx: &SNMPTransaction) -> Result<(), JsonError>
 {
     jsb.open_object("snmp")?;
     jsb.set_uint("version", tx.version as u64)?;
@@ -77,7 +78,9 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder) -> bool
+pub unsafe extern "C" fn rs_snmp_log_json_response(tx: *const c_void, jsb: *mut c_void) -> bool
 {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let tx = cast_pointer!(tx, SNMPTransaction);
     snmp_log_response(jsb, tx).is_ok()
 }
