@@ -540,9 +540,14 @@ typedef struct SignatureInitDataBuffer_ {
     SigMatch *tail;
 } SignatureInitDataBuffer;
 
+enum SignatureHookPkt {
+    SIGNATURE_HOOK_PKT_NOT_SET,
+    SIGNATURE_HOOK_PKT_FLOW_START,
+};
+
 enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_NOT_SET,
-    // SIGNATURE_HOOK_TYPE_PKT,
+    SIGNATURE_HOOK_TYPE_PKT,
     SIGNATURE_HOOK_TYPE_APP,
 };
 
@@ -558,6 +563,9 @@ typedef struct SignatureHook_ {
              *  specific progress value. */
             int app_progress;
         } app;
+        struct {
+            enum SignatureHookPkt ph;
+        } pkt;
     } t;
 } SignatureHook;
 
