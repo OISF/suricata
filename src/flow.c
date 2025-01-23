@@ -159,18 +159,6 @@ void FlowCleanupAppLayer(Flow *f)
     return;
 }
 
-/** \brief Set the IPOnly scanned flag for 'direction'.
-  *
-  * \param f Flow to set the flag in
-  * \param direction direction to set the flag in
-  */
-void FlowSetIPOnlyFlag(Flow *f, int direction)
-{
-    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
-        (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    return;
-}
-
 /** \brief Set flag to indicate that flow has alerts
  *
  * \param f flow
@@ -247,7 +235,6 @@ int FlowChangeProto(Flow *f)
 static inline void FlowSwapFlags(Flow *f)
 {
     SWAP_FLAGS(f->flags, FLOW_TO_SRC_SEEN, FLOW_TO_DST_SEEN);
-    SWAP_FLAGS(f->flags, FLOW_TOSERVER_IPONLY_SET, FLOW_TOCLIENT_IPONLY_SET);
     SWAP_FLAGS(f->flags, FLOW_SGH_TOSERVER, FLOW_SGH_TOCLIENT);
 
     SWAP_FLAGS(f->flags, FLOW_TOSERVER_DROP_LOGGED, FLOW_TOCLIENT_DROP_LOGGED);
