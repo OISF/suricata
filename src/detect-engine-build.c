@@ -208,6 +208,10 @@ static bool SignatureInspectsBuffers(const Signature *s)
  */
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
+    /* explicit hook means no IP-only */
+    if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_NOT_SET)
+        return 0;
+
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
@@ -276,6 +280,10 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
  */
 static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
 {
+    /* explicit hook means no PD-only */
+    if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_NOT_SET)
+        return 0;
+
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
@@ -354,6 +362,10 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature
  */
 static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
+    /* explicit hook means no DE-only */
+    if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_NOT_SET)
+        SCReturnInt(0);
+
     if (s->alproto != ALPROTO_UNKNOWN) {
         SCReturnInt(0);
     }
