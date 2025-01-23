@@ -16,12 +16,13 @@
  */
 
 use std;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::applayer::{self, *};
 use crate::flow::Flow;
 use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;
+use suricata_sys::sys::AppProto;
 use super::parser;
 
 static mut ALPROTO_TELNET: AppProto = ALPROTO_UNKNOWN;

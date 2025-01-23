@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 use nom7::{Err, Needed};
+use suricata_sys::sys::AppProto;
 
 use crate::applayer;
 use crate::applayer::*;
