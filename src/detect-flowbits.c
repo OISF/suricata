@@ -1332,8 +1332,9 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     /* finally, register the states with their engines */
     static const char *g_prefilter_flowbits_isset = "flowbits:isset";
     if (isset_ctx != NULL) {
-        PrefilterAppendEngine(de_ctx, sgh, PrefilterFlowbitMatch, SIG_MASK_REQUIRE_FLOW, isset_ctx,
-                PrefilterFlowbitFree, g_prefilter_flowbits_isset);
+        enum SignatureHookPkt hook = SIGNATURE_HOOK_PKT_NOT_SET; // TODO review
+        PrefilterAppendEngine(de_ctx, sgh, PrefilterFlowbitMatch, SIG_MASK_REQUIRE_FLOW, hook,
+                isset_ctx, PrefilterFlowbitFree, g_prefilter_flowbits_isset);
         SCLogDebug("isset: added prefilter engine");
 
         if (set_ctx != NULL && !RB_EMPTY(&set_ctx->fb_tree)) {

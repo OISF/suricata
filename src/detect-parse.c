@@ -1198,6 +1198,7 @@ void DetectRegisterAppLayerHookLists(void)
     }
 }
 
+#ifdef DEBUG
 static const char *SignatureHookTypeToString(enum SignatureHookType t)
 {
     switch (t) {
@@ -1205,10 +1206,67 @@ static const char *SignatureHookTypeToString(enum SignatureHookType t)
             return "not_set";
         case SIGNATURE_HOOK_TYPE_APP:
             return "app";
-            // case SIGNATURE_HOOK_TYPE_PKT:
-            //     return "pkt";
+        case SIGNATURE_HOOK_TYPE_PKT:
+            return "pkt";
     }
     return "unknown";
+}
+#endif
+
+static enum SignatureHookPkt HookPktFromString(const char *str)
+{
+    if (strcmp(str, "flow_start") == 0) {
+        return SIGNATURE_HOOK_PKT_FLOW_START;
+    } else if (strcmp(str, "all") == 0) {
+        return SIGNATURE_HOOK_PKT_ALL;
+    }
+    return SIGNATURE_HOOK_PKT_NOT_SET;
+}
+
+#ifdef DEBUG
+static const char *HookPktToString(const enum SignatureHookPkt ph)
+{
+    switch (ph) {
+        case SIGNATURE_HOOK_PKT_NOT_SET:
+            return "not set";
+        case SIGNATURE_HOOK_PKT_FLOW_START:
+            return "flow_start";
+        case SIGNATURE_HOOK_PKT_ALL:
+            return "all";
+    }
+    return "error";
+}
+#endif
+
+static SignatureHook SetPktHook(const char *hook_str)
+{
+    SignatureHook h = {
+        .type = SIGNATURE_HOOK_TYPE_PKT,
+        .t.pkt.ph = HookPktFromString(hook_str),
+    };
+    return h;
+}
+
+/**
+ * \param proto_hook string of protocol and hook, e.g. dns:request_complete
+ */
+static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char *p, const char *h)
+{
+    enum SignatureHookPkt hook = HookPktFromString(h);
+    if (hook != SIGNATURE_HOOK_PKT_NOT_SET) {
+        s->init_data->hook = SetPktHook(h);
+        if (s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_NOT_SET) {
+            return -1; // TODO unreachable?
+        }
+    } else {
+        SCLogError("unknown pkt hook %s", h);
+        return -1;
+    }
+
+    SCLogDebug("protocol:%s hook:%s: type:%s parsed hook:%s", p, h,
+            SignatureHookTypeToString(s->init_data->hook.type),
+            HookPktToString(s->init_data->hook.t.pkt.ph));
+    return 0;
 }
 
 static SignatureHook SetAppHook(const AppProto alproto, int progress)
@@ -1332,6 +1390,13 @@ static int SigParseProto(Signature *s, const char *protostr)
                        "protocol through the yaml option "
                        "app-layer.protocols.%s.detection-enabled",
                     p, p);
+            SCReturnInt(-1);
+        }
+    } else if (h != NULL) {
+        SCLogDebug("non-app-layer rule with %s:%s", p, h);
+
+        if (SigParseProtoHookPkt(s, protostr, p, h) < 0) {
+            SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
             SCReturnInt(-1);
         }
     }
@@ -2699,6 +2764,14 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
             }
         } else {
             sig->init_data->init_flags |= SIG_FLAG_INIT_PACKET;
+        }
+    }
+
+    if (sig->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT) {
+        if (sig->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_FLOW_START) {
+            if ((sig->flags & SIG_FLAG_TOSERVER) != 0) {
+                sig->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
+            }
         }
     }
 
