@@ -956,12 +956,12 @@ unsafe extern "C" fn state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn SCDnsTxIsRequest(tx: &mut DNSTransaction) -> bool {
+pub extern "C" fn SCDnsTxIsRequest(tx: &DNSTransaction) -> bool {
     tx.request.is_some()
 }
 
 #[no_mangle]
-pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
+pub extern "C" fn SCDnsTxIsResponse(tx: &DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
