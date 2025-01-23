@@ -15,8 +15,20 @@
  * 02110-1301, USA.
  */
 
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(clippy::all)]
+/**
+ * \file Input to bindgen to generate Rust bindings.
+ *
+ * This file should include every header that should have Rust
+ * bindings generated for it. It is then used by bindgen to generate
+ * the Rust bindings.
+ */
 
-pub mod sys;
+#ifndef SURICATA_BINDGEN_H
+#define SURICATA_BINDGEN_H
+
+#include "stdint.h"
+#include "stdbool.h"
+
+#include "app-layer-protos.h"
+
+#endif

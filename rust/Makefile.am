@@ -79,13 +79,48 @@ clean-local:
 distclean-local:
 	rm -rf vendor dist
 
+check-bindgen-bindings:
+if HAVE_BINDGEN
+	if test "$(top_srcdir)" = "$(top_builddir)"; then \
+		cp sys/src/sys.rs sys/src/sys.rs.orig; \
+		$(MAKE) update-bindings; \
+		if diff sys/src/sys.rs sys/src/sys.rs.orig > /dev/null 2>&1; then \
+			rm -f sys/src/sys.rs.orig; \
+		else \
+			echo "WARNING: bindgen bindings may be out of date"; \
+		fi \
+	else \
+		echo "Not checking bindings for out of tree build"; \
+	fi
+else
+	@echo "Unable to check bindgen bindings: bindgen not found"
+endif
+
 check:
 	cd $(abs_top_srcdir)/rust && \
 		$(CARGO_ENV) \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
+	$(MAKE) check-bindgen-bindings
 
 vendor:
 	$(CARGO_ENV) $(CARGO) vendor
+
+update-bindings:
+if HAVE_BINDGEN
+	$(BINDGEN) \
+		-o sys/src/sys.rs \
+		--rust-target 1.71 \
+		--disable-header-comment \
+		--default-enum-style rust \
+		--allowlist-type 'AppProto.*' \
+		--allowlist-function 'AppProto.*' \
+		$(abs_top_srcdir)/src/bindgen.h \
+		-- \
+		-DHAVE_CONFIG_H -I../src -I../rust/gen $(CPPFLAGS)
+else
+	@echo "error: bindgen not installed, can't update bindings"
+	exit 1
+endif
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
