@@ -1393,6 +1393,59 @@ fn bindgen_test_layout_SCEnumCharMap_() {
     );
 }
 pub type SCEnumCharMap = SCEnumCharMap_;
+#[doc = " \\brief Data structure to store app layer decoder events."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerDecoderEvents_ {
+    pub events: *mut u8,
+    pub cnt: u8,
+    pub events_buffer_size: u8,
+    pub event_last_logged: u8,
+}
+#[test]
+fn bindgen_test_layout_AppLayerDecoderEvents_() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerDecoderEvents_> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerDecoderEvents_>(),
+        16usize,
+        "Size of AppLayerDecoderEvents_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerDecoderEvents_>(),
+        8usize,
+        "Alignment of AppLayerDecoderEvents_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).events) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerDecoderEvents_::events"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cnt) as usize - ptr as usize },
+        8usize,
+        "Offset of field: AppLayerDecoderEvents_::cnt"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).events_buffer_size) as usize - ptr as usize },
+        9usize,
+        "Offset of field: AppLayerDecoderEvents_::events_buffer_size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).event_last_logged) as usize - ptr as usize },
+        10usize,
+        "Offset of field: AppLayerDecoderEvents_::event_last_logged"
+    );
+}
+#[doc = " \\brief Data structure to store app layer decoder events."]
+pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerThreadCtx_ {
+    _unused: [u8; 0],
+}
+pub type AppLayerThreadCtx = AppLayerThreadCtx_;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum AppProtoEnum {
@@ -1438,6 +1491,12 @@ pub enum AppProtoEnum {
     ALPROTO_MAX_STATIC = 39,
 }
 pub type AppProto = u16;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerParserState_ {
+    _unused: [u8; 0],
+}
+pub type AppLayerParserState = AppLayerParserState_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct RadixUserData {
@@ -1831,6 +1890,293 @@ pub type SCRadix6TreeCompareFunc = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct StreamingBufferConfig_ {
+    pub buf_size: u32,
+    #[doc = "< max concurrent memory regions. 0 means no limit."]
+    pub max_regions: u16,
+    #[doc = "< max gap size before a new region will be created."]
+    pub region_gap: u32,
+    pub Calloc: ::std::option::Option<
+        unsafe extern "C" fn(n: usize, size: usize) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Realloc: ::std::option::Option<
+        unsafe extern "C" fn(
+            ptr: *mut ::std::os::raw::c_void,
+            orig_size: usize,
+            size: usize,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Free:
+        ::std::option::Option<unsafe extern "C" fn(ptr: *mut ::std::os::raw::c_void, size: usize)>,
+}
+#[test]
+fn bindgen_test_layout_StreamingBufferConfig_() {
+    const UNINIT: ::std::mem::MaybeUninit<StreamingBufferConfig_> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<StreamingBufferConfig_>(),
+        40usize,
+        "Size of StreamingBufferConfig_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<StreamingBufferConfig_>(),
+        8usize,
+        "Alignment of StreamingBufferConfig_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buf_size) as usize - ptr as usize },
+        0usize,
+        "Offset of field: StreamingBufferConfig_::buf_size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).max_regions) as usize - ptr as usize },
+        4usize,
+        "Offset of field: StreamingBufferConfig_::max_regions"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).region_gap) as usize - ptr as usize },
+        8usize,
+        "Offset of field: StreamingBufferConfig_::region_gap"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Calloc) as usize - ptr as usize },
+        16usize,
+        "Offset of field: StreamingBufferConfig_::Calloc"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Realloc) as usize - ptr as usize },
+        24usize,
+        "Offset of field: StreamingBufferConfig_::Realloc"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Free) as usize - ptr as usize },
+        32usize,
+        "Offset of field: StreamingBufferConfig_::Free"
+    );
+}
+pub type StreamingBufferConfig = StreamingBufferConfig_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamingBufferRegion_ {
+    #[doc = "< memory block for reassembly"]
+    pub buf: *mut u8,
+    #[doc = "< size of memory block"]
+    pub buf_size: u32,
+    #[doc = "< how far we are in buf_size"]
+    pub buf_offset: u32,
+    #[doc = "< stream offset of this region"]
+    pub stream_offset: u64,
+    pub next: *mut StreamingBufferRegion_,
+}
+#[test]
+fn bindgen_test_layout_StreamingBufferRegion_() {
+    const UNINIT: ::std::mem::MaybeUninit<StreamingBufferRegion_> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<StreamingBufferRegion_>(),
+        32usize,
+        "Size of StreamingBufferRegion_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<StreamingBufferRegion_>(),
+        8usize,
+        "Alignment of StreamingBufferRegion_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buf) as usize - ptr as usize },
+        0usize,
+        "Offset of field: StreamingBufferRegion_::buf"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buf_size) as usize - ptr as usize },
+        8usize,
+        "Offset of field: StreamingBufferRegion_::buf_size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buf_offset) as usize - ptr as usize },
+        12usize,
+        "Offset of field: StreamingBufferRegion_::buf_offset"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).stream_offset) as usize - ptr as usize },
+        16usize,
+        "Offset of field: StreamingBufferRegion_::stream_offset"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).next) as usize - ptr as usize },
+        24usize,
+        "Offset of field: StreamingBufferRegion_::next"
+    );
+}
+pub type StreamingBufferRegion = StreamingBufferRegion_;
+#[doc = "  \\brief block of continues data"]
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamingBufferBlock {
+    pub offset: u64,
+    pub rb: StreamingBufferBlock__bindgen_ty_1,
+    pub len: u32,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamingBufferBlock__bindgen_ty_1 {
+    pub rbe_left: *mut StreamingBufferBlock,
+    pub rbe_right: *mut StreamingBufferBlock,
+    pub rbe_parent: *mut StreamingBufferBlock,
+    pub rbe_color: ::std::os::raw::c_int,
+}
+#[test]
+fn bindgen_test_layout_StreamingBufferBlock__bindgen_ty_1() {
+    const UNINIT: ::std::mem::MaybeUninit<StreamingBufferBlock__bindgen_ty_1> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<StreamingBufferBlock__bindgen_ty_1>(),
+        32usize,
+        "Size of StreamingBufferBlock__bindgen_ty_1"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<StreamingBufferBlock__bindgen_ty_1>(),
+        8usize,
+        "Alignment of StreamingBufferBlock__bindgen_ty_1"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rbe_left) as usize - ptr as usize },
+        0usize,
+        "Offset of field: StreamingBufferBlock__bindgen_ty_1::rbe_left"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rbe_right) as usize - ptr as usize },
+        8usize,
+        "Offset of field: StreamingBufferBlock__bindgen_ty_1::rbe_right"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rbe_parent) as usize - ptr as usize },
+        16usize,
+        "Offset of field: StreamingBufferBlock__bindgen_ty_1::rbe_parent"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rbe_color) as usize - ptr as usize },
+        24usize,
+        "Offset of field: StreamingBufferBlock__bindgen_ty_1::rbe_color"
+    );
+}
+#[test]
+fn bindgen_test_layout_StreamingBufferBlock() {
+    const UNINIT: ::std::mem::MaybeUninit<StreamingBufferBlock> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<StreamingBufferBlock>(),
+        44usize,
+        "Size of StreamingBufferBlock"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<StreamingBufferBlock>(),
+        1usize,
+        "Alignment of StreamingBufferBlock"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).offset) as usize - ptr as usize },
+        0usize,
+        "Offset of field: StreamingBufferBlock::offset"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rb) as usize - ptr as usize },
+        8usize,
+        "Offset of field: StreamingBufferBlock::rb"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).len) as usize - ptr as usize },
+        40usize,
+        "Offset of field: StreamingBufferBlock::len"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SBB {
+    pub rbh_root: *mut StreamingBufferBlock,
+}
+#[test]
+fn bindgen_test_layout_SBB() {
+    const UNINIT: ::std::mem::MaybeUninit<SBB> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(::std::mem::size_of::<SBB>(), 8usize, "Size of SBB");
+    assert_eq!(::std::mem::align_of::<SBB>(), 8usize, "Alignment of SBB");
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).rbh_root) as usize - ptr as usize },
+        0usize,
+        "Offset of field: SBB::rbh_root"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamingBuffer_ {
+    pub region: StreamingBufferRegion,
+    #[doc = "< red black tree of Stream Buffer Blocks"]
+    pub sbb_tree: SBB,
+    #[doc = "< head, should always be the same as RB_MIN"]
+    pub head: *mut StreamingBufferBlock,
+    #[doc = "< data size covered by sbbs"]
+    pub sbb_size: u32,
+    pub regions: u16,
+    pub max_regions: u16,
+    pub buf_size_max: u32,
+}
+#[test]
+fn bindgen_test_layout_StreamingBuffer_() {
+    const UNINIT: ::std::mem::MaybeUninit<StreamingBuffer_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<StreamingBuffer_>(),
+        64usize,
+        "Size of StreamingBuffer_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<StreamingBuffer_>(),
+        8usize,
+        "Alignment of StreamingBuffer_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).region) as usize - ptr as usize },
+        0usize,
+        "Offset of field: StreamingBuffer_::region"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sbb_tree) as usize - ptr as usize },
+        32usize,
+        "Offset of field: StreamingBuffer_::sbb_tree"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).head) as usize - ptr as usize },
+        40usize,
+        "Offset of field: StreamingBuffer_::head"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sbb_size) as usize - ptr as usize },
+        48usize,
+        "Offset of field: StreamingBuffer_::sbb_size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).regions) as usize - ptr as usize },
+        52usize,
+        "Offset of field: StreamingBuffer_::regions"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).max_regions) as usize - ptr as usize },
+        54usize,
+        "Offset of field: StreamingBuffer_::max_regions"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buf_size_max) as usize - ptr as usize },
+        56usize,
+        "Offset of field: StreamingBuffer_::buf_size_max"
+    );
+}
+pub type StreamingBuffer = StreamingBuffer_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct SCSha256 {
     _unused: [u8; 0],
 }
@@ -1844,6 +2190,230 @@ pub struct SCSha1 {
 pub struct SCMd5 {
     _unused: [u8; 0],
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum FileState_ {
+    #[doc = "< no state"]
+    FILE_STATE_NONE = 0,
+    #[doc = "< flow file is opened"]
+    FILE_STATE_OPENED = 1,
+    #[doc = "< flow file is completed,\nthere will be no more data."]
+    FILE_STATE_CLOSED = 2,
+    #[doc = "< flow file is not complete, but\nthere will be no more data."]
+    FILE_STATE_TRUNCATED = 3,
+    #[doc = "< file is in an error state"]
+    FILE_STATE_ERROR = 4,
+    FILE_STATE_MAX = 5,
+}
+pub use self::FileState_ as FileState;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct File_ {
+    pub flags: u16,
+    pub name_len: u16,
+    pub state: FileState,
+    pub sb: *mut StreamingBuffer,
+    #[doc = "< id used by protocol parser"]
+    pub file_track_id: u32,
+    #[doc = "< id used in store file name file.<id>"]
+    pub file_store_id: u32,
+    #[doc = "< file descriptor for filestore, not\nopen if equal to -1"]
+    pub fd: ::std::os::raw::c_int,
+    pub name: *mut u8,
+    pub magic: *mut ::std::os::raw::c_char,
+    pub next: *mut File_,
+    pub md5_ctx: *mut SCMd5,
+    pub md5: [u8; 16usize],
+    pub sha1_ctx: *mut SCSha1,
+    pub sha1: [u8; 20usize],
+    pub sha256_ctx: *mut SCSha256,
+    pub sha256: [u8; 32usize],
+    #[doc = "< used in pruning if FILE_USE_DETECT\n   flag is set"]
+    pub content_inspected: u64,
+    pub content_stored: u64,
+    pub size: u64,
+    pub inspect_window: u32,
+    pub inspect_min_size: u32,
+    pub start: u64,
+    pub end: u64,
+    pub sid: *mut u32,
+    pub sid_cnt: u32,
+    pub sid_max: u32,
+}
+#[test]
+fn bindgen_test_layout_File_() {
+    const UNINIT: ::std::mem::MaybeUninit<File_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(::std::mem::size_of::<File_>(), 216usize, "Size of File_");
+    assert_eq!(
+        ::std::mem::align_of::<File_>(),
+        8usize,
+        "Alignment of File_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        "Offset of field: File_::flags"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name_len) as usize - ptr as usize },
+        2usize,
+        "Offset of field: File_::name_len"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).state) as usize - ptr as usize },
+        4usize,
+        "Offset of field: File_::state"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sb) as usize - ptr as usize },
+        8usize,
+        "Offset of field: File_::sb"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).file_track_id) as usize - ptr as usize },
+        16usize,
+        "Offset of field: File_::file_track_id"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).file_store_id) as usize - ptr as usize },
+        20usize,
+        "Offset of field: File_::file_store_id"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).fd) as usize - ptr as usize },
+        24usize,
+        "Offset of field: File_::fd"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+        32usize,
+        "Offset of field: File_::name"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).magic) as usize - ptr as usize },
+        40usize,
+        "Offset of field: File_::magic"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).next) as usize - ptr as usize },
+        48usize,
+        "Offset of field: File_::next"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).md5_ctx) as usize - ptr as usize },
+        56usize,
+        "Offset of field: File_::md5_ctx"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).md5) as usize - ptr as usize },
+        64usize,
+        "Offset of field: File_::md5"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sha1_ctx) as usize - ptr as usize },
+        80usize,
+        "Offset of field: File_::sha1_ctx"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sha1) as usize - ptr as usize },
+        88usize,
+        "Offset of field: File_::sha1"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sha256_ctx) as usize - ptr as usize },
+        112usize,
+        "Offset of field: File_::sha256_ctx"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sha256) as usize - ptr as usize },
+        120usize,
+        "Offset of field: File_::sha256"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).content_inspected) as usize - ptr as usize },
+        152usize,
+        "Offset of field: File_::content_inspected"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).content_stored) as usize - ptr as usize },
+        160usize,
+        "Offset of field: File_::content_stored"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).size) as usize - ptr as usize },
+        168usize,
+        "Offset of field: File_::size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).inspect_window) as usize - ptr as usize },
+        176usize,
+        "Offset of field: File_::inspect_window"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).inspect_min_size) as usize - ptr as usize },
+        180usize,
+        "Offset of field: File_::inspect_min_size"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).start) as usize - ptr as usize },
+        184usize,
+        "Offset of field: File_::start"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).end) as usize - ptr as usize },
+        192usize,
+        "Offset of field: File_::end"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sid) as usize - ptr as usize },
+        200usize,
+        "Offset of field: File_::sid"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sid_cnt) as usize - ptr as usize },
+        208usize,
+        "Offset of field: File_::sid_cnt"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sid_max) as usize - ptr as usize },
+        212usize,
+        "Offset of field: File_::sid_max"
+    );
+}
+pub type File = File_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FileContainer_ {
+    pub head: *mut File,
+    pub tail: *mut File,
+}
+#[test]
+fn bindgen_test_layout_FileContainer_() {
+    const UNINIT: ::std::mem::MaybeUninit<FileContainer_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<FileContainer_>(),
+        16usize,
+        "Size of FileContainer_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<FileContainer_>(),
+        8usize,
+        "Alignment of FileContainer_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).head) as usize - ptr as usize },
+        0usize,
+        "Offset of field: FileContainer_::head"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tail) as usize - ptr as usize },
+        8usize,
+        "Offset of field: FileContainer_::tail"
+    );
+}
+pub type FileContainer = FileContainer_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SCSigOrderFunc_ {
@@ -1892,6 +2462,161 @@ fn bindgen_test_layout_SCFPSupportSMList_() {
     );
 }
 pub type SCFPSupportSMList = SCFPSupportSMList_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStoreItem_ {
+    pub flags: u32,
+    pub sid: u32,
+}
+#[test]
+fn bindgen_test_layout_DeStateStoreItem_() {
+    const UNINIT: ::std::mem::MaybeUninit<DeStateStoreItem_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<DeStateStoreItem_>(),
+        8usize,
+        "Size of DeStateStoreItem_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<DeStateStoreItem_>(),
+        4usize,
+        "Alignment of DeStateStoreItem_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        "Offset of field: DeStateStoreItem_::flags"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sid) as usize - ptr as usize },
+        4usize,
+        "Offset of field: DeStateStoreItem_::sid"
+    );
+}
+pub type DeStateStoreItem = DeStateStoreItem_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStore_ {
+    pub store: [DeStateStoreItem; 15usize],
+    pub next: *mut DeStateStore_,
+}
+#[test]
+fn bindgen_test_layout_DeStateStore_() {
+    const UNINIT: ::std::mem::MaybeUninit<DeStateStore_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<DeStateStore_>(),
+        128usize,
+        "Size of DeStateStore_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<DeStateStore_>(),
+        8usize,
+        "Alignment of DeStateStore_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).store) as usize - ptr as usize },
+        0usize,
+        "Offset of field: DeStateStore_::store"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).next) as usize - ptr as usize },
+        120usize,
+        "Offset of field: DeStateStore_::next"
+    );
+}
+pub type DeStateStore = DeStateStore_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineStateDirection_ {
+    #[doc = "< head of the list"]
+    pub head: *mut DeStateStore,
+    #[doc = "< current active store"]
+    pub cur: *mut DeStateStore,
+    #[doc = "< tail of the list"]
+    pub tail: *mut DeStateStore,
+    pub cnt: u32,
+    pub filestore_cnt: u16,
+    pub flags: u8,
+}
+#[test]
+fn bindgen_test_layout_DetectEngineStateDirection_() {
+    const UNINIT: ::std::mem::MaybeUninit<DetectEngineStateDirection_> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<DetectEngineStateDirection_>(),
+        32usize,
+        "Size of DetectEngineStateDirection_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<DetectEngineStateDirection_>(),
+        8usize,
+        "Alignment of DetectEngineStateDirection_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).head) as usize - ptr as usize },
+        0usize,
+        "Offset of field: DetectEngineStateDirection_::head"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cur) as usize - ptr as usize },
+        8usize,
+        "Offset of field: DetectEngineStateDirection_::cur"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tail) as usize - ptr as usize },
+        16usize,
+        "Offset of field: DetectEngineStateDirection_::tail"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cnt) as usize - ptr as usize },
+        24usize,
+        "Offset of field: DetectEngineStateDirection_::cnt"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).filestore_cnt) as usize - ptr as usize },
+        28usize,
+        "Offset of field: DetectEngineStateDirection_::filestore_cnt"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        30usize,
+        "Offset of field: DetectEngineStateDirection_::flags"
+    );
+}
+pub type DetectEngineStateDirection = DetectEngineStateDirection_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineState_ {
+    pub dir_state: [DetectEngineStateDirection; 2usize],
+}
+#[test]
+fn bindgen_test_layout_DetectEngineState_() {
+    const UNINIT: ::std::mem::MaybeUninit<DetectEngineState_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<DetectEngineState_>(),
+        64usize,
+        "Size of DetectEngineState_"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<DetectEngineState_>(),
+        8usize,
+        "Alignment of DetectEngineState_"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).dir_state) as usize - ptr as usize },
+        0usize,
+        "Offset of field: DetectEngineState_::dir_state"
+    );
+}
+pub type DetectEngineState = DetectEngineState_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerParser {
+    _unused: [u8; 0],
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum Base64Mode {
@@ -1942,6 +2667,168 @@ fn bindgen_test_layout_JsonBuilderMark() {
         unsafe { ::std::ptr::addr_of!((*ptr).state) as usize - ptr as usize },
         16usize,
         "Offset of field: JsonBuilderMark::state"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerTxConfig {
+    #[doc = " config: log flags"]
+    pub log_flags: u8,
+}
+#[test]
+fn bindgen_test_layout_AppLayerTxConfig() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerTxConfig> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerTxConfig>(),
+        1usize,
+        "Size of AppLayerTxConfig"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerTxConfig>(),
+        1usize,
+        "Alignment of AppLayerTxConfig"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).log_flags) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerTxConfig::log_flags"
+    );
+}
+#[doc = " LoggerFlags tracks which loggers have already been executed."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LoggerFlags {
+    pub flags: u32,
+}
+#[test]
+fn bindgen_test_layout_LoggerFlags() {
+    const UNINIT: ::std::mem::MaybeUninit<LoggerFlags> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<LoggerFlags>(),
+        4usize,
+        "Size of LoggerFlags"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<LoggerFlags>(),
+        4usize,
+        "Alignment of LoggerFlags"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        "Offset of field: LoggerFlags::flags"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerTxData {
+    #[doc = " config: log flags"]
+    pub config: AppLayerTxConfig,
+    #[doc = " The tx has been updated and needs to be processed : detection, logging, cleaning\n It can then be skipped until new data arrives.\n There is a boolean for both directions : to server and to client"]
+    pub updated_tc: bool,
+    pub updated_ts: bool,
+    #[doc = " logger flags for tx logging api"]
+    pub logged: LoggerFlags,
+    #[doc = " track file open/logs so we can know how long to keep the tx"]
+    pub files_opened: u32,
+    pub files_logged: u32,
+    pub files_stored: u32,
+    pub file_flags: u16,
+    #[doc = " Indicated if a file tracking tx, and if so in which direction:\n  0: not a file tx\n STREAM_TOSERVER: file tx, files only in toserver dir\n STREAM_TOCLIENT: file tx , files only in toclient dir\n STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs"]
+    pub file_tx: u8,
+    #[doc = " Number of times this tx data has already been logged for signatures\n not using application layer keywords"]
+    pub guessed_applayer_logged: u8,
+    #[doc = " detection engine flags for use by detection engine"]
+    pub detect_flags_ts: u64,
+    pub detect_flags_tc: u64,
+    pub de_state: *mut DetectEngineState,
+    pub events: *mut AppLayerDecoderEvents,
+}
+#[test]
+fn bindgen_test_layout_AppLayerTxData() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerTxData> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerTxData>(),
+        56usize,
+        "Size of AppLayerTxData"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerTxData>(),
+        8usize,
+        "Alignment of AppLayerTxData"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).config) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerTxData::config"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).updated_tc) as usize - ptr as usize },
+        1usize,
+        "Offset of field: AppLayerTxData::updated_tc"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).updated_ts) as usize - ptr as usize },
+        2usize,
+        "Offset of field: AppLayerTxData::updated_ts"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).logged) as usize - ptr as usize },
+        4usize,
+        "Offset of field: AppLayerTxData::logged"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).files_opened) as usize - ptr as usize },
+        8usize,
+        "Offset of field: AppLayerTxData::files_opened"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).files_logged) as usize - ptr as usize },
+        12usize,
+        "Offset of field: AppLayerTxData::files_logged"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).files_stored) as usize - ptr as usize },
+        16usize,
+        "Offset of field: AppLayerTxData::files_stored"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).file_flags) as usize - ptr as usize },
+        20usize,
+        "Offset of field: AppLayerTxData::file_flags"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).file_tx) as usize - ptr as usize },
+        22usize,
+        "Offset of field: AppLayerTxData::file_tx"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).guessed_applayer_logged) as usize - ptr as usize },
+        23usize,
+        "Offset of field: AppLayerTxData::guessed_applayer_logged"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).detect_flags_ts) as usize - ptr as usize },
+        24usize,
+        "Offset of field: AppLayerTxData::detect_flags_ts"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).detect_flags_tc) as usize - ptr as usize },
+        32usize,
+        "Offset of field: AppLayerTxData::detect_flags_tc"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).de_state) as usize - ptr as usize },
+        40usize,
+        "Offset of field: AppLayerTxData::de_state"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).events) as usize - ptr as usize },
+        48usize,
+        "Offset of field: AppLayerTxData::events"
     );
 }
 #[repr(C)]
@@ -2078,6 +2965,138 @@ fn bindgen_test_layout_SCDetectTransformFromBase64Data() {
         unsafe { ::std::ptr::addr_of!((*ptr).mode) as usize - ptr as usize },
         32usize,
         "Offset of field: SCDetectTransformFromBase64Data::mode"
+    );
+}
+#[doc = " helper for the GetTxFilesFn. Not meant to be embedded as the config\n pointer is passed around in the API."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerGetFileState {
+    pub fc: *mut FileContainer,
+    pub cfg: *const StreamingBufferConfig,
+}
+#[test]
+fn bindgen_test_layout_AppLayerGetFileState() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerGetFileState> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerGetFileState>(),
+        16usize,
+        "Size of AppLayerGetFileState"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerGetFileState>(),
+        8usize,
+        "Alignment of AppLayerGetFileState"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).fc) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerGetFileState::fc"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cfg) as usize - ptr as usize },
+        8usize,
+        "Offset of field: AppLayerGetFileState::cfg"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerResult {
+    pub status: i32,
+    pub consumed: u32,
+    pub needed: u32,
+}
+#[test]
+fn bindgen_test_layout_AppLayerResult() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerResult> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerResult>(),
+        12usize,
+        "Size of AppLayerResult"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerResult>(),
+        4usize,
+        "Alignment of AppLayerResult"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).status) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerResult::status"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).consumed) as usize - ptr as usize },
+        4usize,
+        "Offset of field: AppLayerResult::consumed"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).needed) as usize - ptr as usize },
+        8usize,
+        "Offset of field: AppLayerResult::needed"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerStateData {
+    pub file_flags: u16,
+}
+#[test]
+fn bindgen_test_layout_AppLayerStateData() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerStateData> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerStateData>(),
+        2usize,
+        "Size of AppLayerStateData"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerStateData>(),
+        2usize,
+        "Alignment of AppLayerStateData"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).file_flags) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerStateData::file_flags"
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerGetTxIterTuple {
+    pub tx_ptr: *mut ::std::os::raw::c_void,
+    pub tx_id: u64,
+    pub has_next: bool,
+}
+#[test]
+fn bindgen_test_layout_AppLayerGetTxIterTuple() {
+    const UNINIT: ::std::mem::MaybeUninit<AppLayerGetTxIterTuple> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<AppLayerGetTxIterTuple>(),
+        24usize,
+        "Size of AppLayerGetTxIterTuple"
+    );
+    assert_eq!(
+        ::std::mem::align_of::<AppLayerGetTxIterTuple>(),
+        8usize,
+        "Alignment of AppLayerGetTxIterTuple"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tx_ptr) as usize - ptr as usize },
+        0usize,
+        "Offset of field: AppLayerGetTxIterTuple::tx_ptr"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tx_id) as usize - ptr as usize },
+        8usize,
+        "Offset of field: AppLayerGetTxIterTuple::tx_id"
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).has_next) as usize - ptr as usize },
+        16usize,
+        "Offset of field: AppLayerGetTxIterTuple::has_next"
     );
 }
 #[repr(C)]

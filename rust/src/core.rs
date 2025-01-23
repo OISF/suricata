@@ -18,6 +18,8 @@
 //! This module exposes items from the core "C" code to Rust.
 
 use std;
+use suricata_sys::sys;
+
 use crate::filecontainer::*;
 use crate::flow::Flow;
 
@@ -25,7 +27,6 @@ pub use crate::sys::{AppProto, AppProtoEnum};
 
 /// Opaque C types.
 pub enum DetectEngineState {}
-pub enum AppLayerDecoderEvents {}
 
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
@@ -83,11 +84,11 @@ pub type DetectEngineStateFreeFunc =
 pub type AppLayerParserTriggerRawStreamReassemblyFunc =
     extern "C" fn (flow: *const Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
+    extern "C" fn (events: *mut *mut sys::AppLayerDecoderEvents,
                    event: u8);
 
 pub type AppLayerDecoderEventsFreeEventsFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
+    extern "C" fn (events: *mut *mut sys::AppLayerDecoderEvents);
 
 pub enum StreamingBufferConfig {}
 
@@ -205,7 +206,7 @@ pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, dire
 
 /// AppLayerDecoderEventsSetEventRaw wrapper.
 pub fn sc_app_layer_decoder_events_set_event_raw(
-    events: *mut *mut AppLayerDecoderEvents, event: u8)
+    events: *mut *mut sys::AppLayerDecoderEvents, event: u8)
 {
     unsafe {
         if let Some(c) = SC {
@@ -216,7 +217,7 @@ pub fn sc_app_layer_decoder_events_set_event_raw(
 
 /// AppLayerDecoderEventsFreeEvents wrapper.
 pub fn sc_app_layer_decoder_events_free_events(
-    events: *mut *mut AppLayerDecoderEvents)
+    events: *mut *mut sys::AppLayerDecoderEvents)
 {
     unsafe {
         if let Some(c) = SC {

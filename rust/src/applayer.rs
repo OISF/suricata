@@ -31,6 +31,7 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
+use suricata_sys::sys;
 
 #[repr(C)]
 pub struct StreamSlice {
@@ -132,7 +133,7 @@ pub struct AppLayerTxData {
     detect_flags_tc: u64,
 
     de_state: *mut DetectEngineState,
-    pub events: *mut core::AppLayerDecoderEvents,
+    pub events: *mut sys::AppLayerDecoderEvents,
 }
 
 impl Default for AppLayerTxData {

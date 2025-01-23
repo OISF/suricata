@@ -120,6 +120,7 @@ if HAVE_BINDGEN
 		--default-enum-style rust \
 		--allowlist-type 'SC.*' \
 		--allowlist-type 'AppProto.*' \
+		--allowlist-type 'AppLayer.*' \
 		--allowlist-function 'jb_.*' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
