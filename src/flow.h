@@ -55,10 +55,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toclient direction will act on updated app-layer state */
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
-/** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET        BIT_U32(3)
-/** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET        BIT_U32(4)
+// vacancy bit 3
+
+// vacancy bit 4
 
 /** Packet belonging to this flow should not be inspected at all */
 #define FLOW_NOPACKET_INSPECTION        BIT_U32(5)
@@ -232,13 +231,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02
 #define FLOW_PKT_ESTABLISHED            0x04
-#define FLOW_PKT_TOSERVER_IPONLY_SET    0x08
-#define FLOW_PKT_TOCLIENT_IPONLY_SET    0x10
-#define FLOW_PKT_TOSERVER_FIRST         0x20
-#define FLOW_PKT_TOCLIENT_FIRST         0x40
+#define FLOW_PKT_TOSERVER_FIRST         0x08
+#define FLOW_PKT_TOCLIENT_FIRST         0x10
 /** last pseudo packet in the flow. Can be used to trigger final clean,
  *  logging, etc. */
-#define FLOW_PKT_LAST_PSEUDO            0x80
+#define FLOW_PKT_LAST_PSEUDO 0x20
 
 #define FLOW_END_FLAG_EMERGENCY 0x01
 #define FLOW_END_FLAG_TIMEOUT   0x02
