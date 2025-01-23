@@ -20,10 +20,11 @@
 //! RDP application layer
 
 use crate::applayer::{self, *};
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
 use crate::rdp::parser::*;
 use nom7::Err;
+use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};

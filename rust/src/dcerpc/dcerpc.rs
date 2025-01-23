@@ -23,6 +23,7 @@ use crate::flow::Flow;
 use nom7::error::{Error, ErrorKind};
 use nom7::number::Endianness;
 use nom7::{Err, IResult, Needed};
+use suricata_sys::sys::AppProto;
 use std;
 use std::cmp;
 use std::ffi::CString;
@@ -1178,7 +1179,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;

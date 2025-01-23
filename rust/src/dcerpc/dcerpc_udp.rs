@@ -24,6 +24,7 @@ use crate::dcerpc::dcerpc::{
 use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::Err;
+use suricata_sys::sys::AppProto;
 use std;
 use std::ffi::CString;
 use std::collections::VecDeque;
@@ -252,7 +253,7 @@ pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -313,7 +314,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
 }
 
 pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const Flow, direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> core::AppProto
+                                      len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
     if len == 0 || input.is_null() {

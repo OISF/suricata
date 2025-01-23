@@ -24,6 +24,7 @@ use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use nom7 as nom;
+use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;

@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType,AppProto};
+use crate::core::{self,DetectEngineState,AppLayerEventType};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -30,6 +30,7 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
+use suricata_sys::sys::AppProto;
 
 #[repr(C)]
 pub struct StreamSlice {

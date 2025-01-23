@@ -15,11 +15,13 @@
  * 02110-1301, USA.
  */
 
+use suricata_sys::sys::AppProto;
+
 use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use std::ffi::CString;

@@ -22,9 +22,10 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::{applayer::{self, *}, direction::Direction, flow::Flow};
-use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::collections::VecDeque;
 use std::ffi::CString;
+use suricata_sys::sys::AppProto;
 use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;

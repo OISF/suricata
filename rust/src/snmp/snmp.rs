@@ -30,6 +30,7 @@ use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
 use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
+use suricata_sys::sys::AppProto;
 
 #[derive(AppLayerEvent)]
 pub enum SNMPEvent {
