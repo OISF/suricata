@@ -2254,6 +2254,24 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
+# Check for bindgen
+    AC_PATH_PROG([BINDGEN], [bindgen], [no])
+    if test "x$BINDGEN" != "xno"; then
+      bindgen_version=$($BINDGEN --version 2>&1 | cut -d' ' -f2-)
+      min_bindgen_version="0.66.0"
+      AS_VERSION_COMPARE([$bindgen_version], [$min_bindgen_version],
+          [bindgen_ok="no"],
+          [bindgen_ok="yes"],
+          [bindgen_ok="yes"])
+      if test "x$bindgen_ok" != "xyes"; then
+        echo "  Warning: bindgen must be at least version $min_bindgen_version,"
+        echo "      found $bindgen_version."
+        echo "  To update: cargo install --force bindgen"
+        BINDGEN="no"
+      fi
+    fi
+    AM_CONDITIONAL([HAVE_BINDGEN], [test "x$BINDGEN" != "xno"])
+
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
     if test -f "$srcdir/rust/dist/rust-bindings.h"; then
