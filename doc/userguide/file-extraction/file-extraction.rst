@@ -133,7 +133,7 @@ Or rather all actual pdf files?
 
 ::
 
-  alert http any any -> any any (msg:"FILE pdf detected"; filemagic:"PDF document"; filestore; sid:3; rev:1;)
+  alert http any any -> any any (msg:"FILE pdf detected"; file.magic; content:"PDF document"; filestore; sid:3; rev:1;)
 
 
 Or rather only store files from black list checksum md5 ?
