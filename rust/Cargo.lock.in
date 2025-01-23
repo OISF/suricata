@@ -1010,6 +1010,7 @@ dependencies = [
  "snmp-parser",
  "suricata-derive",
  "suricata-lua-sys",
+ "suricata-sys",
  "test-case",
  "time",
  "tls-parser",
@@ -1036,6 +1037,10 @@ checksum = "472f537d65345c98e88b8fb027241939404970bc85320da46468a9e424018ad0"
 dependencies = [
  "fs_extra",
 ]
+
+[[package]]
+name = "suricata-sys"
+version = "8.0.0-dev"
 
 [[package]]
 name = "syn"
