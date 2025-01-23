@@ -137,9 +137,11 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
+#if defined(HAVE_SETVBUF) && defined(OS_LINUX)
 #define PCAP_FILE_BUFFER_SIZE_DEFAULT 131072U   // 128 KiB
 #define PCAP_FILE_BUFFER_SIZE_MIN     4096U     // 4 KiB
 #define PCAP_FILE_BUFFER_SIZE_MAX     67108864U // 64MiB
+#endif
 
 void PcapFileGlobalInit(void)
 {
