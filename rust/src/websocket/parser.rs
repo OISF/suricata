@@ -23,7 +23,7 @@ use suricata_derive::EnumStringU8;
 
 #[derive(Clone, Debug, Default, EnumStringU8)]
 #[repr(u8)]
-pub enum WebSocketOpcode {
+pub(super) enum WebSocketOpcode {
     #[default]
     Continuation = 0,
     Text = 1,
@@ -34,7 +34,7 @@ pub enum WebSocketOpcode {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct WebSocketPdu {
+pub(super) struct WebSocketPdu {
     pub flags: u8,
     pub fin: bool,
     pub compress: bool,

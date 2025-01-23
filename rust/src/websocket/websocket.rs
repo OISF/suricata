@@ -39,20 +39,20 @@ pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 
 #[derive(AppLayerFrameType)]
-pub enum WebSocketFrameType {
+enum WebSocketFrameType {
     Header,
     Pdu,
     Data,
 }
 
 #[derive(AppLayerEvent)]
-pub enum WebSocketEvent {
+enum WebSocketEvent {
     SkipEndOfPayload,
     ReassemblyLimitReached,
 }
 
 #[derive(Default)]
-pub struct WebSocketTransaction {
+pub(super) struct WebSocketTransaction {
     tx_id: u64,
     pub pdu: parser::WebSocketPdu,
     tx_data: AppLayerTxData,
@@ -80,7 +80,7 @@ struct WebSocketReassemblyBuffer {
 }
 
 #[derive(Default)]
-pub struct WebSocketState {
+struct WebSocketState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<WebSocketTransaction>,
