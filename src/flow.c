@@ -438,6 +438,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             if (FlowUpdateSeenFlag(p)) {
                 f->flags |= FLOW_TO_DST_SEEN;
                 p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+                p->pkt_hooks |= BIT_U16(SIGNATURE_HOOK_PKT_FLOW_START);
             }
         }
         /* xfer proto detect ts flag to first packet in ts dir */
@@ -463,6 +464,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             if (FlowUpdateSeenFlag(p)) {
                 f->flags |= FLOW_TO_SRC_SEEN;
                 p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+                p->pkt_hooks |= BIT_U16(SIGNATURE_HOOK_PKT_FLOW_START);
             }
         }
         /* xfer proto detect tc flag to first packet in tc dir */
