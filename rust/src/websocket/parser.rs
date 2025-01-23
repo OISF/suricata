@@ -45,7 +45,7 @@ pub(super) struct WebSocketPdu {
 }
 
 // cf rfc6455#section-5.2
-pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu> {
+pub(super) fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu> {
     let (i, flags_op) = be_u8(i)?;
     let fin = (flags_op & 0x80) != 0;
     let compress = (flags_op & 0x40) != 0;
