@@ -84,6 +84,7 @@ include = [
     "FtpEvent",
     "SCSigTableElmt",
     "SCTransformTableElmt",
+    "SCPlugin",
 ]
 
 # A list of items to not include in the generated bindings
