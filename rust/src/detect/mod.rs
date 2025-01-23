@@ -32,8 +32,9 @@ pub mod tojson;
 pub mod vlan;
 pub mod datasets;
 
-use crate::core::AppProto;
 use std::os::raw::{c_int, c_void};
+
+use suricata_sys::sys::AppProto;
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.

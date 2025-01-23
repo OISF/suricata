@@ -15,8 +15,10 @@
  * 02110-1301, USA.
  */
 
+use suricata_sys::sys::AppProto;
+
 use crate::applayer::{self, *};
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::dhcp::parser::*;
 use crate::flow::Flow;
 use std;

@@ -21,13 +21,14 @@ extern crate ntp_parser;
 use self::ntp_parser::*;
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use std;
 use std::ffi::CString;
 
 use nom7::Err;
+use suricata_sys::sys::AppProto;
 
 #[derive(AppLayerEvent)]
 pub enum NTPEvent {
