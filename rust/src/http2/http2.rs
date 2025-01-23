@@ -1374,7 +1374,7 @@ impl HTTP2State {
 #[no_mangle]
 pub unsafe extern "C" fn SCDoH2GetDnsTx(
     tx: &HTTP2Transaction, flags: u8,
-) -> *mut std::os::raw::c_void {
+) -> *const std::os::raw::c_void {
     if let Some(doh) = &tx.doh {
         if flags & Direction::ToServer as u8 != 0 {
             if let Some(ref dtx) = &doh.dns_request_tx {

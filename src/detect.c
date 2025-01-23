@@ -1102,7 +1102,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
 #endif
 
 // Get inner transaction for engine
-void *DetectGetInnerTx(
+const void *DetectGetInnerTx(
         const void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
 {
     if (unlikely(alproto == ALPROTO_DOH2)) {
