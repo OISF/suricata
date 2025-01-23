@@ -210,6 +210,82 @@ static const char *HTTPGetFrameNameById(const uint8_t frame_id)
     return name;
 }
 
+static SCEnumCharMap http_state_client_table[] = {
+    {
+            "request_not_started",
+            HTP_REQUEST_NOT_STARTED,
+    },
+    {
+            "request_line",
+            HTP_REQUEST_PROGRESS_LINE,
+    },
+    {
+            "request_headers",
+            HTP_REQUEST_PROGRESS_HEADERS,
+    },
+    {
+            "request_body",
+            HTP_REQUEST_PROGRESS_BODY,
+    },
+    {
+            "request_trailer",
+            HTP_REQUEST_PROGRESS_TRAILER,
+    },
+    {
+            "request_complete",
+            HTP_REQUEST_PROGRESS_COMPLETE,
+    },
+    { NULL, -1 },
+};
+
+static SCEnumCharMap http_state_server_table[] = {
+    {
+            "response_not_started",
+            HTP_RESPONSE_NOT_STARTED,
+    },
+    {
+            "response_line",
+            HTP_RESPONSE_PROGRESS_LINE,
+    },
+    {
+            "response_headers",
+            HTP_RESPONSE_PROGRESS_HEADERS,
+    },
+    {
+            "response_body",
+            HTP_RESPONSE_PROGRESS_BODY,
+    },
+    {
+            "response_trailer",
+            HTP_RESPONSE_PROGRESS_TRAILER,
+    },
+    {
+            "response_complete",
+            HTP_RESPONSE_PROGRESS_COMPLETE,
+    },
+    { NULL, -1 },
+};
+
+static int HtpStateGetStateIdByName(const char *name, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? http_state_client_table : http_state_server_table;
+
+    int id = SCMapEnumNameToValue(name, map);
+    if (id < 0) {
+        return -1;
+    }
+    return id;
+}
+
+static const char *HtpStateGetStateNameById(const int id, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? http_state_client_table : http_state_server_table;
+    const char *name = SCMapEnumValueToName(id, map);
+    return name;
+}
+
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
@@ -2861,6 +2937,9 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetFrameFuncs(
                 IPPROTO_TCP, ALPROTO_HTTP1, HTTPGetFrameIdByName, HTTPGetFrameNameById);
         /* app-layer-frame-documentation tag end: registering relevant callbacks */
+        AppLayerParserRegisterGetStateFuncs(
+                IPPROTO_TCP, ALPROTO_HTTP1, HtpStateGetStateIdByName, HtpStateGetStateNameById);
+
         HTPConfigure();
     } else {
         SCLogInfo("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
