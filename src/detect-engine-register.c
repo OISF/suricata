@@ -85,6 +85,7 @@
 
 #include "detect-smb-share.h"
 #include "detect-smb-version.h"
+#include "detect-smtp.h"
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
@@ -730,6 +731,7 @@ void SigTableSetup(void)
     DetectVlanIdRegister();
     DetectVlanLayersRegister();
 
+    SCDetectSMTPRegister();
     ScDetectSNMPRegister();
     SCDetectDHCPRegister();
     ScDetectWebsocketRegister();
