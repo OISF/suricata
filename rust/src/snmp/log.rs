@@ -77,8 +77,7 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &SNMPTransaction) -> Result<(), 
     return Ok(());
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_log_json_response(
+pub(super) unsafe extern "C" fn rs_snmp_log_json_response(
     tx: *const std::os::raw::c_void, jsb: *mut std::os::raw::c_void,
 ) -> bool {
     let tx = cast_pointer!(tx, SNMPTransaction);

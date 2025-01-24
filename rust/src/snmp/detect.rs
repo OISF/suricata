@@ -105,7 +105,7 @@ unsafe extern "C" fn snmp_detect_pdutype_free(_de: *mut c_void, ctx: *mut c_void
     rs_detect_u32_free(ctx);
 }
 
-pub unsafe extern "C" fn snmp_detect_usm_setup(
+unsafe extern "C" fn snmp_detect_usm_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn snmp_detect_usm_setup(
     return 0;
 }
 
-pub unsafe extern "C" fn snmp_detect_usm_get(
+unsafe extern "C" fn snmp_detect_usm_get(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SNMPTransaction);
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn snmp_detect_usm_get(
     return false;
 }
 
-pub unsafe extern "C" fn snmp_detect_usm_get_data(
+unsafe extern "C" fn snmp_detect_usm_get_data(
     de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
     tx: *const c_void, list_id: c_int,
 ) -> *mut c_void {
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn snmp_detect_usm_get_data(
     );
 }
 
-pub unsafe extern "C" fn snmp_detect_community_setup(
+unsafe extern "C" fn snmp_detect_community_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn snmp_detect_community_setup(
     return 0;
 }
 
-pub unsafe extern "C" fn snmp_detect_community_get(
+unsafe extern "C" fn snmp_detect_community_get(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SNMPTransaction);
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn snmp_detect_community_get(
     return false;
 }
 
-pub unsafe extern "C" fn snmp_detect_community_get_data(
+unsafe extern "C" fn snmp_detect_community_get_data(
     de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
     tx: *const c_void, list_id: c_int,
 ) -> *mut c_void {
@@ -182,8 +182,8 @@ pub unsafe extern "C" fn snmp_detect_community_get_data(
         snmp_detect_community_get,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn SCDetectSNMPRegister() {
+
+pub(super) unsafe extern "C" fn detect_snmp_register() {
     let kw = SCSigTableElmt {
         name: b"snmp.version\0".as_ptr() as *const libc::c_char,
         desc: b"match SNMP version\0".as_ptr() as *const libc::c_char,
