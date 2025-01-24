@@ -59,6 +59,27 @@ Signature example::
 
 This keyword maps to the eve.json log field ``smtp.mail_from``
 
+smtp.rcpt_to
+------------
+
+SMTP rcpt to is the one of the parameters passed to one RCPT TO command from the client.
+
+Syntax::
+
+ smtp.rcpt_to; content:"sensitive@target";
+
+Signature example::
+
+ alert smtp any any -> any any (msg:"SMTP rcpt to sensitive"; smtp.rcpt_to; content:"sensitive@target"; sid:2; rev:1;)
+
+``smtp.rcpt_to`` is a 'sticky buffer'.
+
+``smtp.rcpt_to`` is a 'multi buffer'.
+
+``smtp.rcpt_to`` can be used as ``fast_pattern``.
+
+This keyword maps to the eve.json log field ``smtp.rcpt_to[]``
+
 
 Frames
 ------
