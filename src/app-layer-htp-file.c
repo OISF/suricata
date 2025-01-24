@@ -93,7 +93,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
  *
  * @return HTP_OK on success, HTP_ERROR on failure.
  */
-int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
+int HTPParseContentRange(const bstr *rawvalue, HTTPContentRange *range)
 {
     uint32_t len = (uint32_t)bstr_len(rawvalue);
     return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
@@ -108,7 +108,7 @@ int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
  * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
  */
 static int HTPParseAndCheckContentRange(
-        bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
+        const bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
@@ -147,8 +147,8 @@ static int HTPParseAndCheckContentRange(
  *  \retval -1 error
  */
 int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filename,
-        uint16_t filename_len, const uint8_t *data, uint32_t data_len, htp_tx_t *tx, bstr *rawvalue,
-        HtpTxUserData *htud)
+        uint16_t filename_len, const uint8_t *data, uint32_t data_len, const htp_tx_t *tx,
+        const bstr *rawvalue, HtpTxUserData *htud)
 {
     SCEnter();
     uint16_t flags;
