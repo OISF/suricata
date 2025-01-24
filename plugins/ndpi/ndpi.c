@@ -226,7 +226,6 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     if (unlikely(ndpi_struct == NULL))
         return NULL;
 
-    ndpi_struct = ndpi_init_detection_module(NULL);
     NDPI_BITMASK_SET_ALL(all);
     ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
     ndpi_finalize_initialization(ndpi_struct);
@@ -346,10 +345,10 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
     if (unlikely(ndpi_struct == NULL))
         return NULL;
 
-    ndpi_struct = ndpi_init_detection_module(NULL);
     NDPI_BITMASK_SET_ALL(all);
     ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
     ndpi_finalize_initialization(ndpi_struct);
+    ndpi_exit_detection_module(ndpi_struct);
 
     if (isdigit(arg[0]))
         risk_mask = atoll(arg);
