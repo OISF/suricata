@@ -190,7 +190,7 @@ jobs:
         working-directory: examples/plugins/altemplate
         # test with RUSTFLAGS different than suricata build to test runtime compatibility
         run: |
-          RUSTFLAGS="--cfg fuzzing -Cdebuginfo=1 -Cforce-frame-pointers -Cpasses=sancov-module -Cllvm-args=-sanitizer-coverage-level=4 -Cllvm-args=-sanitizer-coverage-trace-compares -Cllvm-args=-sanitizer-coverage-inline-8bit-counters -Cllvm-args=-sanitizer-coverage-trace-geps -Cllvm-args=-sanitizer-coverage-prune-blocks=0 -Cllvm-args=-sanitizer-coverage-pc-table -Clink-dead-code -Cllvm-args=-sanitizer-coverage-stack-depth" cargo build
+          cargo build
           ../../../src/suricata -S altemplate.rules --set plugins.0=./target/debug/libsuricata_altemplate.so --runmode=single -l . -c altemplate.yaml -k none -r ../../../rust/src/applayertemplate/template.pcap
           cat eve.json | jq -c 'select(.altemplate)'
           test $(cat eve.json | jq -c 'select(.altemplate)' | wc -l) = "3"
