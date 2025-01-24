@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "app-layer-parser.h"
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
@@ -198,6 +199,13 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
     SCJbSetUint(js, "min_ttl", f->min_ttl_toserver);
     SCJbSetUint(js, "max_ttl", f->max_ttl_toserver);
 
+    if (f->alstate) {
+        uint64_t tx_id = AppLayerParserGetTxCnt(f, f->alstate);
+        if (tx_id) {
+            SCJbSetUint(js, "tx_cnt", tx_id);
+        }
+    }
+
     /* Close netflow. */
     SCJbClose(js);
 
@@ -242,6 +250,13 @@ static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
     if (f->tosrcpktcnt) {
         SCJbSetUint(js, "min_ttl", f->min_ttl_toclient);
         SCJbSetUint(js, "max_ttl", f->max_ttl_toclient);
+    }
+
+    if (f->alstate) {
+        uint64_t tx_id = AppLayerParserGetTxCnt(f, f->alstate);
+        if (tx_id) {
+            SCJbSetUint(js, "tx_cnt", tx_id);
+        }
     }
 
     /* Close netflow. */
