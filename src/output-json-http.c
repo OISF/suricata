@@ -317,13 +317,13 @@ static void EveHttpLogJSONHeaders(
                                                             : htp_tx_response_headers(tx);
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
-    size_t n = htp_table_size(headers);
+    size_t n = htp_headers_size(headers);
     JsonBuilderMark mark = { 0, 0, 0 };
     jb_get_mark(js, &mark);
     bool array_empty = true;
     jb_open_array(js, direction & LOG_HTTP_REQ_HEADERS ? "request_headers" : "response_headers");
     for (size_t i = 0; i < n; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
+        htp_header_t *h = htp_headers_get_index(headers, i);
         if ((http_ctx->flags & direction) == 0 && http_ctx->fields != 0) {
             bool tolog = false;
             for (HttpField f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
