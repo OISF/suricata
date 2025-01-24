@@ -40,6 +40,25 @@ Signature example::
 
 This keyword maps to the eve.json log field ``smtp.helo``
 
+smtp.mail_from
+--------------
+
+SMTP mail from is the parameter passed to the first MAIL FROM command from the client.
+
+Syntax::
+
+ smtp.mail_from; content:"spam";
+
+Signature example::
+
+ alert smtp any any -> any any (msg:"SMTP mail from spam"; smtp.mail_from; content:"spam"; sid:2; rev:1;)
+
+``smtp.mail_from`` is a 'sticky buffer'.
+
+``smtp.mail_from`` can be used as ``fast_pattern``.
+
+This keyword maps to the eve.json log field ``smtp.mail_from``
+
 
 Frames
 ------
