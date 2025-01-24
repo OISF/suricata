@@ -18,6 +18,27 @@ Signature Example:
 
 For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
 
+
+smtp.helo
+---------
+
+SMTP helo is the parameter passed to the first HELO command from the client.
+
+Syntax::
+
+ smtp.helo; content:"localhost";
+
+Signature example::
+
+ alert smtp any any -> any any (msg:"SMTP helo localhost"; smtp.helo; content:"localhost"; sid:2; rev:1;)
+
+``smtp.helo`` is a 'sticky buffer'.
+
+``smtp.helo`` can be used as ``fast_pattern``.
+
+This keyword maps to the eve.json log field ``smtp.helo``
+
+
 Frames
 ------
 
