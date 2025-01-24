@@ -85,7 +85,6 @@ void TmModuleDecodeNetmapRegister (void)
 {
     tmm_modules[TMM_DECODENETMAP].name = "DecodeNetmap";
     tmm_modules[TMM_DECODENETMAP].ThreadInit = NoNetmapSupportExit;
-    tmm_modules[TMM_DECODENETMAP].flags = TM_FLAG_DECODE_TM;
 }
 
 #else /* We have NETMAP support */
@@ -985,7 +984,6 @@ void TmModuleDecodeNetmapRegister(void)
     tmm_modules[TMM_DECODENETMAP].Func = DecodeNetmap;
     tmm_modules[TMM_DECODENETMAP].ThreadDeinit = DecodeNetmapThreadDeinit;
     tmm_modules[TMM_DECODENETMAP].cap_flags = 0;
-    tmm_modules[TMM_DECODENETMAP].flags = TM_FLAG_DECODE_TM;
 }
 
 #endif /* HAVE_NETMAP */

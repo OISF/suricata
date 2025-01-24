@@ -52,7 +52,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
         Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, DECODE_TUNNEL_IPV4);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-            PacketEnqueueNoLock(&tv->decode_pq,tp);
+            PacketEnqueueNoLock(&dtv->decode_pq, tp);
             StatsIncr(tv, dtv->counter_ipv4inipv6);
             return;
         }
@@ -77,7 +77,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, DECODE_TUNNEL_IPV6);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-            PacketEnqueueNoLock(&tv->decode_pq,tp);
+            PacketEnqueueNoLock(&dtv->decode_pq, tp);
             StatsIncr(tv, dtv->counter_ipv6inipv6);
         }
     } else {
@@ -642,7 +642,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
     if (IPV6_EXTHDR_ISSET_FH(p)) {
         Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
-            PacketEnqueueNoLock(&tv->decode_pq,rp);
+            PacketEnqueueNoLock(&dtv->decode_pq, rp);
         }
     }
 
@@ -797,7 +797,7 @@ static int DecodeIPV6FragTest01 (void)
         goto end;
     }
 
-    if (tv.decode_pq.len != 1) {
+    if (dtv.decode_pq.len != 1) {
         printf("no reassembled packet: ");
         goto end;
     }
@@ -808,11 +808,11 @@ end:
     PacketRecycle(p2);
     SCFree(p1);
     SCFree(p2);
-    pkt = PacketDequeueNoLock(&tv.decode_pq);
+    pkt = PacketDequeueNoLock(&dtv.decode_pq);
     while (pkt != NULL) {
         PacketRecycle(pkt);
         SCFree(pkt);
-        pkt = PacketDequeueNoLock(&tv.decode_pq);
+        pkt = PacketDequeueNoLock(&dtv.decode_pq);
     }
     DefragDestroy();
     FlowShutdown();

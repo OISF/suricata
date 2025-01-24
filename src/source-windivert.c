@@ -75,7 +75,6 @@ void TmModuleDecodeWinDivertRegister(void)
 {
     tmm_modules[TMM_DECODEWINDIVERT].name = "DecodeWinDivert";
     tmm_modules[TMM_DECODEWINDIVERT].ThreadInit = NoWinDivertSupportExit;
-    tmm_modules[TMM_DECODEWINDIVERT].flags = TM_FLAG_DECODE_TM;
 }
 
 TmEcode NoWinDivertSupportExit(ThreadVars *tv, const void *initdata,
@@ -392,7 +391,6 @@ void TmModuleDecodeWinDivertRegister(void)
     tm_ptr->ThreadInit = DecodeWinDivertThreadInit;
     tm_ptr->Func = DecodeWinDivert;
     tm_ptr->ThreadDeinit = DecodeWinDivertThreadDeinit;
-    tm_ptr->flags = TM_FLAG_DECODE_TM;
 }
 
 /**

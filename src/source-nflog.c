@@ -135,7 +135,6 @@ void TmModuleDecodeNFLOGRegister (void)
     tmm_modules[TMM_DECODENFLOG].Func = DecodeNFLOG;
     tmm_modules[TMM_DECODENFLOG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFLOG].ThreadDeinit = DecodeNFLOGThreadDeinit;
-    tmm_modules[TMM_DECODENFLOG].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

@@ -61,7 +61,6 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
-    tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
 
 TmEcode
@@ -156,7 +155,6 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = DecodeErfDagThreadDeinit;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
-    tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

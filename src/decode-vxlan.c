@@ -182,7 +182,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-            PacketEnqueueNoLock(&tv->decode_pq, tp);
+            PacketEnqueueNoLock(&dtv->decode_pq, tp);
         }
     }
 
@@ -219,9 +219,9 @@ static int DecodeVXLANtest01 (void)
 
     DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top == NULL);
+    FAIL_IF(dtv.decode_pq.top == NULL);
 
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NOT(PacketIsUDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
@@ -258,7 +258,7 @@ static int DecodeVXLANtest02 (void)
 
     DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top != NULL);
+    FAIL_IF(dtv.decode_pq.top != NULL);
 
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S); /* reset */
     FlowShutdown();
