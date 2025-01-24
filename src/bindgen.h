@@ -30,5 +30,6 @@
 #include "stdbool.h"
 
 #include "app-layer-protos.h"
+#include "suricata-plugin.h"
 
 #endif
