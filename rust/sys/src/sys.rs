@@ -54,3 +54,325 @@ extern "C" {
         alproto: AppProto, proto_name: *const ::std::os::raw::c_char,
     );
 }
+#[doc = " Structure to define a Suricata plugin."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCPlugin_ {
+    pub name: *const ::std::os::raw::c_char,
+    pub license: *const ::std::os::raw::c_char,
+    pub author: *const ::std::os::raw::c_char,
+    pub Init: ::std::option::Option<unsafe extern "C" fn()>,
+}
+#[test]
+fn bindgen_test_layout_SCPlugin_() {
+    const UNINIT: ::std::mem::MaybeUninit<SCPlugin_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<SCPlugin_>(),
+        32usize,
+        concat!("Size of: ", stringify!(SCPlugin_))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<SCPlugin_>(),
+        8usize,
+        concat!("Alignment of ", stringify!(SCPlugin_))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCPlugin_),
+            "::",
+            stringify!(name)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).license) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCPlugin_),
+            "::",
+            stringify!(license)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).author) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCPlugin_),
+            "::",
+            stringify!(author)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Init) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCPlugin_),
+            "::",
+            stringify!(Init)
+        )
+    );
+}
+#[doc = " Structure to define a Suricata plugin."]
+pub type SCPlugin = SCPlugin_;
+pub type SCPluginRegisterFunc = ::std::option::Option<unsafe extern "C" fn() -> *mut SCPlugin>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCCapturePlugin_ {
+    pub name: *mut ::std::os::raw::c_char,
+    pub Init: ::std::option::Option<
+        unsafe extern "C" fn(
+            args: *const ::std::os::raw::c_char,
+            plugin_slot: ::std::os::raw::c_int,
+            receive_slot: ::std::os::raw::c_int,
+            decode_slot: ::std::os::raw::c_int,
+        ),
+    >,
+    pub ThreadInit: ::std::option::Option<
+        unsafe extern "C" fn(
+            ctx: *mut ::std::os::raw::c_void,
+            thread_id: ::std::os::raw::c_int,
+            thread_ctx: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub ThreadDeinit: ::std::option::Option<
+        unsafe extern "C" fn(
+            ctx: *mut ::std::os::raw::c_void,
+            thread_ctx: *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub GetDefaultMode:
+        ::std::option::Option<unsafe extern "C" fn() -> *const ::std::os::raw::c_char>,
+    pub entries: SCCapturePlugin___bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCCapturePlugin___bindgen_ty_1 {
+    pub tqe_next: *mut SCCapturePlugin_,
+    pub tqe_prev: *mut *mut SCCapturePlugin_,
+}
+#[test]
+fn bindgen_test_layout_SCCapturePlugin___bindgen_ty_1() {
+    const UNINIT: ::std::mem::MaybeUninit<SCCapturePlugin___bindgen_ty_1> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<SCCapturePlugin___bindgen_ty_1>(),
+        16usize,
+        concat!("Size of: ", stringify!(SCCapturePlugin___bindgen_ty_1))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<SCCapturePlugin___bindgen_ty_1>(),
+        8usize,
+        concat!("Alignment of ", stringify!(SCCapturePlugin___bindgen_ty_1))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tqe_next) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin___bindgen_ty_1),
+            "::",
+            stringify!(tqe_next)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tqe_prev) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin___bindgen_ty_1),
+            "::",
+            stringify!(tqe_prev)
+        )
+    );
+}
+#[test]
+fn bindgen_test_layout_SCCapturePlugin_() {
+    const UNINIT: ::std::mem::MaybeUninit<SCCapturePlugin_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<SCCapturePlugin_>(),
+        56usize,
+        concat!("Size of: ", stringify!(SCCapturePlugin_))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<SCCapturePlugin_>(),
+        8usize,
+        concat!("Alignment of ", stringify!(SCCapturePlugin_))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(name)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Init) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(Init)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ThreadInit) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(ThreadInit)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ThreadDeinit) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(ThreadDeinit)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).GetDefaultMode) as usize - ptr as usize },
+        32usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(GetDefaultMode)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).entries) as usize - ptr as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCCapturePlugin_),
+            "::",
+            stringify!(entries)
+        )
+    );
+}
+pub type SCCapturePlugin = SCCapturePlugin_;
+extern "C" {
+    pub fn SCPluginRegisterCapture(arg1: *mut SCCapturePlugin) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCAppLayerPlugin_ {
+    pub version: u64,
+    pub name: *mut ::std::os::raw::c_char,
+    pub Register: ::std::option::Option<unsafe extern "C" fn()>,
+    pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
+    pub logname: *mut ::std::os::raw::c_char,
+    pub confname: *mut ::std::os::raw::c_char,
+    pub Logger: ::std::option::Option<
+        unsafe extern "C" fn(
+            tx: *mut ::std::os::raw::c_void,
+            jb: *mut ::std::os::raw::c_void,
+        ) -> bool,
+    >,
+}
+#[test]
+fn bindgen_test_layout_SCAppLayerPlugin_() {
+    const UNINIT: ::std::mem::MaybeUninit<SCAppLayerPlugin_> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<SCAppLayerPlugin_>(),
+        56usize,
+        concat!("Size of: ", stringify!(SCAppLayerPlugin_))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<SCAppLayerPlugin_>(),
+        8usize,
+        concat!("Alignment of ", stringify!(SCAppLayerPlugin_))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).version) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(version)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(name)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Register) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(Register)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).KeywordsRegister) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(KeywordsRegister)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).logname) as usize - ptr as usize },
+        32usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(logname)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).confname) as usize - ptr as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(confname)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).Logger) as usize - ptr as usize },
+        48usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SCAppLayerPlugin_),
+            "::",
+            stringify!(Logger)
+        )
+    );
+}
+pub type SCAppLayerPlugin = SCAppLayerPlugin_;
+extern "C" {
+    pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
+}
