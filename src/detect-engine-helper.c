@@ -104,6 +104,7 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
             return -1;
         }
         sigmatch_table = tmp;
+        memset(&sigmatch_table[DETECT_TBLSIZE], 0, DETECT_TBLSIZE_STEP * sizeof(SigTableElmt));
         DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
     }
 
@@ -130,6 +131,7 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
             return -1;
         }
         sigmatch_table = tmp;
+        memset(&sigmatch_table[DETECT_TBLSIZE], 0, DETECT_TBLSIZE_STEP * sizeof(SigTableElmt));
         DETECT_TBLSIZE += DETECT_TBLSIZE_STEP;
     }
 
