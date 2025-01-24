@@ -374,7 +374,7 @@ export_state_data_get!(rs_template_get_state_data, TemplateState);
 const PARSER_NAME: &[u8] = b"altemplate\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_register_parser() {
+pub unsafe extern "C" fn template_register_parser() {
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,

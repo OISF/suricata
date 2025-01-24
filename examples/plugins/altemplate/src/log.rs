@@ -76,7 +76,7 @@ fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), Js
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_logger_log(
+pub unsafe extern "C" fn template_logger_log(
     tx: *const std::os::raw::c_void, js: *mut std::os::raw::c_void,
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);

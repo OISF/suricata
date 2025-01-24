@@ -79,7 +79,7 @@ unsafe extern "C" fn template_buffer_get(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectTemplateRegister() {
+pub unsafe extern "C" fn DetectTemplateRegister() {
     // TODO create a suricata-verify test
     // Setup a keyword structure and register it
     let kw = SCSigTableElmt {
