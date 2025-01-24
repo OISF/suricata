@@ -15,6 +15,11 @@ Example of configuring Suricata to be compiled with nDPI support:
 
     ./configure --enable-ndpi --with-ndpi=/home/user/nDPI
 
+Note that rules using the ``ndpi-protocol`` should check if the
+``ndpi-protocol`` keyword exists with ``requires``, for example::
+
+  requires: keyword ndpi-protocol
+
 Example of suricata.yaml configuration file to load the ``ndpi`` plugin::
 
   plugins:
@@ -39,5 +44,5 @@ Here is an example of a rule matching TLS traffic on port 53:
 
 .. container:: example-rule
 
-    alert tcp any any -> any 53 (msg:"TLS traffic over DNS standard port"; ndpi-protocol:TLS; sid:1;)
+    alert tcp any any -> any 53 (msg:"TLS traffic over DNS standard port"; requires: keyword ndpi-protocol; ndpi-protocol:TLS; sid:1;)
 

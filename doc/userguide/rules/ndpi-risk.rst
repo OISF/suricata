@@ -14,8 +14,13 @@ by nDPI during the packet dissection and include:
 - Malware host contacted
 - and many other...
 
-Suricata should be compiled with the nDPI support and the ``ndpi`` 
-plugin must be loaded before it can be used. 
+Suricata should be compiled with nDPI support and the ``ndpi`` plugin
+must be loaded before it can be used.
+
+Additionally, rules using the ``ndpi-risk`` keyword should check if
+the keyword exists using the ``requires`` keyword, for example::
+
+  ``requires: keyword ndpi-risk``
 
 Example of configuring Suricata to be compiled with nDPI support:
 
@@ -45,5 +50,5 @@ Here is an example of a rule matching HTTP traffic transferring a binary applica
 
 .. container:: example-rule
 
-    alert tcp any any -> any any (msg:"Binary application transfer over HTTP"; ndpi-protocol:HTTP; ndpi-risk:NDPI_BINARY_APPLICATION_TRANSFER; sid:1;)
+    alert tcp any any -> any any (msg:"Binary application transfer over HTTP"; requires: keyword ndpi-protocol, keyword ndpi-risk; ndpi-protocol:HTTP; ndpi-risk:NDPI_BINARY_APPLICATION_TRANSFER; sid:1;)
 
