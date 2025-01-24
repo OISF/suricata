@@ -31,6 +31,7 @@
 #include "rust.h"
 
 static int g_smtp_helo_buffer_id = 0;
+static int g_smtp_mail_from_buffer_id = 0;
 
 static int DetectSmtpHeloSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -60,6 +61,32 @@ static InspectionBuffer *GetSmtpHeloData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectSmtpMailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_smtp_mail_from_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetSmtpMailFromData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPTransaction *tx = (SMTPTransaction *)txv;
+        if (tx->mail_from == NULL || tx->mail_from_len == 0)
+            return NULL;
+        InspectionBufferSetup(det_ctx, list_id, buffer, tx->mail_from, tx->mail_from_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
 void SCDetectSMTPRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -73,4 +100,15 @@ void SCDetectSMTPRegister(void)
             DetectHelperBufferMpmRegister("smtp.helo", "SMTP helo", ALPROTO_SMTP, false,
                     true, // to server
                     GetSmtpHeloData);
+
+    kw.name = "smtp.mail_from";
+    kw.desc = "SMTP mail from buffer";
+    kw.url = "/rules/smtp-keywords.html#smtp-mail-from";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpMailFromSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_smtp_mail_from_buffer_id =
+            DetectHelperBufferMpmRegister("smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetSmtpMailFromData);
 }
