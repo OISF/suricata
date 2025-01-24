@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "detect-smtp.h"
 #include "detect-engine.h"
+#include "detect-engine-content-inspection.h"
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
 #include "app-layer-smtp.h"
@@ -32,6 +33,7 @@
 
 static int g_smtp_helo_buffer_id = 0;
 static int g_smtp_mail_from_buffer_id = 0;
+static int g_smtp_rcpt_to_buffer_id = 0;
 
 static int DetectSmtpHeloSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -87,6 +89,51 @@ static InspectionBuffer *GetSmtpMailFromData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectSmtpRcptToSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_smtp_rcpt_to_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetSmtpRcptToData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id, uint32_t idx)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
+    if (buffer == NULL || buffer->initialized)
+        return buffer;
+
+    SMTPTransaction *tx = (SMTPTransaction *)txv;
+    if (TAILQ_EMPTY(&tx->rcpt_to_list)) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    SMTPString *s;
+    if (idx == 0) {
+        s = TAILQ_FIRST(&tx->rcpt_to_list);
+    } else {
+        // TODO optimize ?
+        s = TAILQ_FIRST(&tx->rcpt_to_list);
+        for (uint32_t i = 0; i < idx; i++) {
+            s = TAILQ_NEXT(s, next);
+        }
+    }
+    if (s == NULL) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    InspectionBufferSetupMulti(buffer, transforms, s->str, s->len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
+    return buffer;
+}
+
 void SCDetectSMTPRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -111,4 +158,15 @@ void SCDetectSMTPRegister(void)
             DetectHelperBufferMpmRegister("smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, false,
                     true, // to server
                     GetSmtpMailFromData);
+
+    kw.name = "smtp.rcpt_to";
+    kw.desc = "SMTP rcpt to buffer";
+    kw.url = "/rules/smtp-keywords.html#smtp-rcpt-to";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpRcptToSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_smtp_rcpt_to_buffer_id =
+            DetectHelperMultiBufferMpmRegister("smtp.rcpt_to", "SMTP RCPT TO", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetSmtpRcptToData);
 }
