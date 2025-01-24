@@ -181,7 +181,7 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_request_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Cookie");
+        const htp_header_t *h = htp_tx_request_header(tx, "Cookie");
         if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             return NULL;
@@ -208,7 +208,7 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_response_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Set-Cookie");
+        const htp_header_t *h = htp_tx_response_header(tx, "Set-Cookie");
         if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             return NULL;

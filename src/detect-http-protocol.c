@@ -87,7 +87,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        bstr *str = NULL;
+        const bstr *str = NULL;
         htp_tx_t *tx = (htp_tx_t *)txv;
 
         if (flow_flags & STREAM_TOSERVER)

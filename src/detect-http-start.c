@@ -85,7 +85,7 @@ static uint8_t *GetBufferForTX(
         return NULL;
     }
 
-    bstr *line = NULL;
+    const bstr *line = NULL;
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
@@ -117,7 +117,7 @@ static uint8_t *GetBufferForTX(
     size_t i = 0;
     size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_headers_get_index(headers, i);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
         size_t size1 = htp_header_name_len(h);
         size_t size2 = htp_header_value_len(h);
         size_t size = size1 + size2 + 4;

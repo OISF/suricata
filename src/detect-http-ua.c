@@ -165,7 +165,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_request_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "User-Agent");
+        const htp_header_t *h = htp_tx_request_header(tx, "User-Agent");
         if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP UA header not present in this request");
             return NULL;
