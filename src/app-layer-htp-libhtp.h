@@ -137,6 +137,7 @@
 #define htp_headers_get_index(headers, index) htp_table_get_index(headers, index, NULL)
 #define htp_tx_request_headers_size(tx)       htp_table_size(tx->request_headers)
 #define htp_tx_request_header_index(tx, i)    htp_table_get_index(tx->request_headers, i, NULL);
+#define htp_headers_t                         htp_table_t
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
