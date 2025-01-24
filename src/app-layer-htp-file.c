@@ -91,7 +91,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
  * @param[in] rawvalue
  * @param[out] range
  *
- * @return HTP_OK on success, HTP_ERROR on failure.
+ * @return HTP_STATUS_OK on success, HTP_STATUS_ERROR on failure.
  */
 int HTPParseContentRange(const bstr *rawvalue, HTTPContentRange *range)
 {
@@ -105,7 +105,7 @@ int HTPParseContentRange(const bstr *rawvalue, HTTPContentRange *range)
  * @param[in] rawvalue
  * @param[out] range
  *
- * @return HTP_OK on success, HTP_ERROR, -2, -3 on failure.
+ * @return HTP_STATUS_OK on success, HTP_STATUS_ERROR, -2, -3 on failure.
  */
 static int HTPParseAndCheckContentRange(
         const bstr *rawvalue, HTTPContentRange *range, HtpState *s, HtpTxUserData *htud)
@@ -183,7 +183,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     uint32_t keylen;
     if (htp_tx_request_hostname(tx) != NULL) {
         uint32_t hlen = (uint32_t)bstr_len(htp_tx_request_hostname(tx));
-        if (bstr_len(htp_tx_request_hostname(tx)) > UINT16_MAX) {
+        if (hlen > UINT16_MAX) {
             hlen = UINT16_MAX;
         }
         keylen = hlen + filename_len;
