@@ -90,9 +90,9 @@ void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
         rs_http2_tx_set_uri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)),
                 (uint32_t)bstr_len(htp_tx_request_uri(h1tx)));
     }
-    size_t nbheaders = htp_table_size(htp_tx_request_headers(h1tx));
+    size_t nbheaders = htp_tx_request_headers_size(h1tx);
     for (size_t i = 0; i < nbheaders; i++) {
-        htp_header_t *h = htp_table_get_index(htp_tx_request_headers(h1tx), i, NULL);
+        const htp_header_t *h = htp_tx_request_header_index(h1tx, i);
         rs_http2_tx_add_header(h2s, htp_header_name_ptr(h), (uint32_t)htp_header_name_len(h),
                 htp_header_value_ptr(h), (uint32_t)htp_header_value_len(h));
     }

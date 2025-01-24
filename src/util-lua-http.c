@@ -232,9 +232,9 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     lua_newtable(luastate);
     htp_header_t *h = NULL;
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(table);
+    size_t no_of_headers = htp_headers_size(table);
     for (; i < no_of_headers; i++) {
-        h = htp_table_get_index(table, i, NULL);
+        h = htp_headers_get_index(table, i);
         LuaPushStringBuffer(luastate, htp_header_name_ptr(h), htp_header_name_len(h));
         LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
         lua_settable(luastate, -3);

@@ -103,9 +103,9 @@ static uint8_t *GetBufferForTX(
 
     /* fill the buffer. \r\nName1\r\nName2\r\n\r\n */
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(headers);
+    size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
+        htp_header_t *h = htp_headers_get_index(headers, i);
         size_t size = htp_header_name_len(h) + 2; // for \r\n
         if (i == 0)
             size += 2;

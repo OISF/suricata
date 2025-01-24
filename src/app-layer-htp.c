@@ -2942,7 +2942,7 @@ static int HTPParserTest01(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
@@ -2986,7 +2986,7 @@ static int HTPParserTest01b(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
@@ -3041,7 +3041,7 @@ static int HTPParserTest01c(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
@@ -3097,7 +3097,7 @@ static int HTPParserTest01a(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
@@ -3139,7 +3139,7 @@ static int HTPParserTest02(void)
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NOT_NULL(h);
 
     FAIL_IF_NULL(htp_tx_request_method(tx));
@@ -3193,7 +3193,7 @@ static int HTPParserTest03(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NOT_NULL(h);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
@@ -3234,7 +3234,7 @@ static int HTPParserTest04(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
 
     FAIL_IF_NOT_NULL(h);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN);
@@ -3308,7 +3308,7 @@ static int HTPParserTest05(void)
     FAIL_IF_NOT(htp_tx_request_method_number(tx) == HTP_METHOD_POST);
     FAIL_IF_NOT(htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_V1_0);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF_NOT(htp_tx_response_status_number(tx) == 200);
@@ -3399,7 +3399,7 @@ static int HTPParserTest06(void)
     FAIL_IF(htp_tx_response_status_number(tx) != 200);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_1);
 
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     AppLayerParserThreadCtxFree(alp_tctx);
@@ -3638,7 +3638,7 @@ static int HTPParserTest10(void)
     FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     char *name = bstr_util_strdup_to_c(htp_header_name(h));
@@ -3816,7 +3816,7 @@ static int HTPParserTest13(void)
     htp_state = f->alstate;
     FAIL_IF_NULL(htp_state);
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     char *name = bstr_util_strdup_to_c(htp_header_name(h));
@@ -5389,7 +5389,7 @@ static int HTPParserTest20(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
@@ -5448,7 +5448,7 @@ static int HTPParserTest21(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
@@ -5502,7 +5502,7 @@ static int HTPParserTest22(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
@@ -5556,7 +5556,7 @@ static int HTPParserTest23(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);
@@ -5610,7 +5610,7 @@ static int HTPParserTest24(void)
     FAIL_IF_NULL(http_state);
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
     FAIL_IF_NULL(tx);
-    htp_header_t *h = htp_table_get_index(htp_tx_request_headers(tx), 0, NULL);
+    htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_GET);

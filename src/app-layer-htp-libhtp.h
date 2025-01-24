@@ -132,6 +132,12 @@
 #define htp_header_value_ptr(h) bstr_ptr(h->value)
 #define htp_header_value(h)     h->value
 
+// Functions introduced to handle opaque htp_headers_t:
+#define htp_headers_size(headers)             htp_table_size(headers)
+#define htp_headers_get_index(headers, index) htp_table_get_index(headers, index, NULL)
+#define htp_tx_request_headers_size(tx)       htp_table_size(tx->request_headers)
+#define htp_tx_request_header_index(tx, i)    htp_table_get_index(tx->request_headers, i, NULL);
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
