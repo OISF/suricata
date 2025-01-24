@@ -110,10 +110,13 @@ if HAVE_BINDGEN
 	$(BINDGEN) \
 		-o sys/src/sys.rs \
 		--rust-target 1.68 \
+		--no-layout-tests \
 		--disable-header-comment \
 		--default-enum-style rust \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'AppProto.*' \
+		--allowlist-type 'SC.*' \
+		--allowlist-function 'SC.*' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src -I../rust/gen $(CPPFLAGS)

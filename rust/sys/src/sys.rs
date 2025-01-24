@@ -54,3 +54,74 @@ extern "C" {
         alproto: AppProto, proto_name: *const ::std::os::raw::c_char,
     );
 }
+#[doc = " Structure to define a Suricata plugin."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCPlugin_ {
+    pub name: *const ::std::os::raw::c_char,
+    pub license: *const ::std::os::raw::c_char,
+    pub author: *const ::std::os::raw::c_char,
+    pub Init: ::std::option::Option<unsafe extern "C" fn()>,
+}
+#[doc = " Structure to define a Suricata plugin."]
+pub type SCPlugin = SCPlugin_;
+pub type SCPluginRegisterFunc = ::std::option::Option<unsafe extern "C" fn() -> *mut SCPlugin>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCCapturePlugin_ {
+    pub name: *mut ::std::os::raw::c_char,
+    pub Init: ::std::option::Option<
+        unsafe extern "C" fn(
+            args: *const ::std::os::raw::c_char,
+            plugin_slot: ::std::os::raw::c_int,
+            receive_slot: ::std::os::raw::c_int,
+            decode_slot: ::std::os::raw::c_int,
+        ),
+    >,
+    pub ThreadInit: ::std::option::Option<
+        unsafe extern "C" fn(
+            ctx: *mut ::std::os::raw::c_void,
+            thread_id: ::std::os::raw::c_int,
+            thread_ctx: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub ThreadDeinit: ::std::option::Option<
+        unsafe extern "C" fn(
+            ctx: *mut ::std::os::raw::c_void,
+            thread_ctx: *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub GetDefaultMode:
+        ::std::option::Option<unsafe extern "C" fn() -> *const ::std::os::raw::c_char>,
+    pub entries: SCCapturePlugin___bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCCapturePlugin___bindgen_ty_1 {
+    pub tqe_next: *mut SCCapturePlugin_,
+    pub tqe_prev: *mut *mut SCCapturePlugin_,
+}
+pub type SCCapturePlugin = SCCapturePlugin_;
+extern "C" {
+    pub fn SCPluginRegisterCapture(arg1: *mut SCCapturePlugin) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCAppLayerPlugin_ {
+    pub version: u64,
+    pub name: *mut ::std::os::raw::c_char,
+    pub Register: ::std::option::Option<unsafe extern "C" fn()>,
+    pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
+    pub logname: *mut ::std::os::raw::c_char,
+    pub confname: *mut ::std::os::raw::c_char,
+    pub Logger: ::std::option::Option<
+        unsafe extern "C" fn(
+            tx: *mut ::std::os::raw::c_void,
+            jb: *mut ::std::os::raw::c_void,
+        ) -> bool,
+    >,
+}
+pub type SCAppLayerPlugin = SCAppLayerPlugin_;
+extern "C" {
+    pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
+}
