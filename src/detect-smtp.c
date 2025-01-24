@@ -1,0 +1,76 @@
+/* Copyright (C) 2025 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Philippe Antoine <pantoine@oisf.net>
+ *
+ */
+
+#include "suricata-common.h"
+#include "detect-smtp.h"
+#include "detect-engine.h"
+#include "detect-engine-helper.h"
+#include "detect-parse.h"
+#include "app-layer-smtp.h"
+#include "rust.h"
+
+static int g_smtp_helo_buffer_id = 0;
+
+static int DetectSmtpHeloSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_smtp_helo_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetSmtpHeloData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
+        if (smtp_state) {
+            if (smtp_state->helo == NULL || smtp_state->helo_len == 0)
+                return NULL;
+            InspectionBufferSetup(det_ctx, list_id, buffer, smtp_state->helo, smtp_state->helo_len);
+            InspectionBufferApplyTransforms(buffer, transforms);
+        }
+    }
+    return buffer;
+}
+
+void SCDetectSMTPRegister(void)
+{
+    SCSigTableElmt kw = { 0 };
+    kw.name = "smtp.helo";
+    kw.desc = "SMTP helo buffer";
+    kw.url = "/rules/smtp-keywords.html#smtp-helo";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpHeloSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_smtp_helo_buffer_id =
+            DetectHelperBufferMpmRegister("smtp.helo", "SMTP helo", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetSmtpHeloData);
+}
