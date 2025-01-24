@@ -40,20 +40,20 @@ extern "C" {
 }
 
 impl JsonBuilder {
-    pub fn close(&mut self) -> Result<(), JsonError> {
+    fn close(&mut self) -> Result<(), JsonError> {
         if unsafe { !jb_close(self) } {
             return Err(JsonError::Memory);
         }
         Ok(())
     }
-    pub fn open_object(&mut self, key: &str) -> Result<(), JsonError> {
+    fn open_object(&mut self, key: &str) -> Result<(), JsonError> {
         let keyc = CString::new(key).unwrap();
         if unsafe { !jb_open_object(self, keyc.as_ptr()) } {
             return Err(JsonError::Memory);
         }
         Ok(())
     }
-    pub fn set_string(&mut self, key: &str, val: &str) -> Result<(), JsonError> {
+    fn set_string(&mut self, key: &str, val: &str) -> Result<(), JsonError> {
         let keyc = CString::new(key).unwrap();
         let valc = CString::new(val.escape_default().to_string()).unwrap();
         if unsafe { !jb_set_string(self, keyc.as_ptr(), valc.as_ptr()) } {
@@ -75,8 +75,7 @@ fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), Js
     Ok(())
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn template_logger_log(
+pub(super) unsafe extern "C" fn template_logger_log(
     tx: *const std::os::raw::c_void, js: *mut std::os::raw::c_void,
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);

@@ -50,7 +50,7 @@ enum TemplateEvent {
     TooManyTransactions,
 }
 
-pub struct TemplateTransaction {
+pub(super) struct TemplateTransaction {
     tx_id: u64,
     pub request: Option<String>,
     pub response: Option<String>,
@@ -82,7 +82,7 @@ impl Transaction for TemplateTransaction {
 }
 
 #[derive(Default)]
-pub struct TemplateState {
+struct TemplateState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<TemplateTransaction>,
@@ -373,8 +373,7 @@ export_state_data_get!(rs_template_get_state_data, TemplateState);
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"altemplate\0";
 
-#[no_mangle]
-pub unsafe extern "C" fn template_register_parser() {
+pub(super) unsafe extern "C" fn template_register_parser() {
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,

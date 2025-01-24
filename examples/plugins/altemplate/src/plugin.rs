@@ -1,5 +1,5 @@
 use super::template::template_register_parser;
-use crate::detect::DetectTemplateRegister;
+use crate::detect::detect_template_register;
 use crate::log::template_logger_log;
 use suricata::plugin::{
     SCAppLayerPlugin, SCPlugin, SCPluginRegisterAppLayer, SC_PLUGIN_API_VERSION,
@@ -16,7 +16,7 @@ extern "C" fn altemplate_plugin_init() {
         confname: b"eve-log.altemplate\0".as_ptr() as *const libc::c_char,
         Register: template_register_parser,
         Logger: template_logger_log,
-        KeywordsRegister: DetectTemplateRegister,
+        KeywordsRegister: detect_template_register,
     };
     unsafe {
         if SCPluginRegisterAppLayer(Box::into_raw(Box::new(plugin))) != 0 {
