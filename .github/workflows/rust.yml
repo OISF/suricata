@@ -21,20 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     container: almalinux:9
     steps:
-      - name: Cache rust
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
-        with:
-          path: ~/.cargo
-          key: check-rust
-
       - name: Install system packages
         run: |
-          dnf -y install dnf-plugins-core
+          dnf -y install dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb
           dnf -y install \
                 autoconf \
                 automake \
-                cargo-vendor \
+                bindgen \
+                cargo \
+                cbindgen \
+                clang-devel \
+                clippy \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -61,21 +59,28 @@ jobs:
                 python3-devel \
                 python3-sphinx \
                 python3-yaml \
+                rust \
+                rustfmt \
                 sudo \
                 which \
                 zlib-devel
 
-      - name: Installing Rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Install cbindgen
-        run: cargo install --debug cbindgen
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: ./configure --enable-warnings
+      - name: Checking bindgen output
+        working-directory: rust
+        run: |
+          bindgen --version
+          make check-bindgen-bindings
+          diff=$(git diff sys)
+          if [ "${diff}" ]; then
+              echo "${diff}"
+              echo "::error ::Bindgen bindings appear to be out of date"
+              exit 1
+          fi
       - run: cargo clippy --all-features --fix --allow-no-vcs
         working-directory: rust
       - run: |
