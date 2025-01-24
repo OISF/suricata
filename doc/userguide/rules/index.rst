@@ -39,8 +39,6 @@ Suricata Rules
    websocket-keywords
    app-layer
    decode-layer
-   ndpi-protocol
-   ndpi-risk
    xbits
    noalert
    thresholding
