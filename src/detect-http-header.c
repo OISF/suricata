@@ -97,7 +97,7 @@ static uint8_t *GetBufferForTX(
     size_t i = 0;
     size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_headers_get_index(headers, i);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
         size_t size1 = htp_header_name_len(h);
         size_t size2 = htp_header_value_len(h);
 
@@ -575,7 +575,7 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
             hdr_td->cap = no_of_headers;
         }
         for (size_t i = 0; i < no_of_headers; i++) {
-            htp_header_t *h = htp_headers_get_index(headers, i);
+            const htp_header_t *h = htp_headers_get_index(headers, i);
             size_t size1 = htp_header_name_len(h);
             size_t size2 = htp_header_value_len(h);
             size_t size = size1 + size2 + 2;
