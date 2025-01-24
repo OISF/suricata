@@ -154,7 +154,7 @@ static int HttpGetHeader(lua_State *luastate, int dir)
     if (name == NULL)
         return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
 
-    htp_table_t *headers = htp_tx_request_headers(tx);
+    const htp_headers_t *headers = htp_tx_request_headers(tx);
     if (dir == 1)
         headers = htp_tx_response_headers(tx);
     if (headers == NULL)
@@ -223,7 +223,7 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    htp_table_t *table = htp_tx_request_headers(tx);
+    const htp_headers_t *table = htp_tx_request_headers(tx);
     if (dir == 1)
         table = htp_tx_response_headers(tx);
     if (htp_tx_request_headers(tx) == NULL)

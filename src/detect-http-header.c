@@ -79,7 +79,7 @@ static uint8_t *GetBufferForTX(
         return NULL;
     }
 
-    htp_table_t *headers;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_REQUEST_PROGRESS_HEADERS)
@@ -552,7 +552,7 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     }
 
     htp_tx_t *tx = (htp_tx_t *)txv;
-    htp_table_t *headers;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         headers = htp_tx_request_headers(tx);
     } else {
