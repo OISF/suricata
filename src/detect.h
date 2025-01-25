@@ -585,8 +585,6 @@ typedef struct SignatureInitData_ {
     /** address settings for this signature */
     const DetectAddressHead *src, *dst;
 
-    int prefilter_list;
-
     /* holds built-in sm lists */
     struct SigMatch_ *smlists[DETECT_SM_LIST_MAX];
     /* holds built-in sm lists' tails */
