@@ -92,7 +92,6 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             SCLogError("prefilter is not supported for %s", sigmatch_table[sm->type].name);
             SCReturnInt(-1);
         }
-        s->flags |= SIG_FLAG_PREFILTER;
 
         /* make sure setup function runs for this type. */
         de_ctx->sm_types_prefilter[sm->type] = true;
