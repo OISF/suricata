@@ -1908,26 +1908,41 @@ extern int g_skip_prefilter;
 static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
 {
     SCEnter();
-    if (s->init_data->prefilter_sm != NULL || s->init_data->mpm_sm != NULL) {
-        SCReturn;
-    }
-
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
-    RetrieveFPForSig(de_ctx, s);
-    if (s->init_data->mpm_sm != NULL) {
-        s->flags |= SIG_FLAG_PREFILTER;
-        SCReturn;
+    DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
+
+    if (s->init_data->prefilter_sm != NULL) {
+        if (s->init_data->prefilter_sm->type == DETECT_CONTENT) {
+            RetrieveFPForSig(de_ctx, s);
+            if (s->init_data->mpm_sm != NULL) {
+                s->flags |= SIG_FLAG_PREFILTER;
+                SCLogDebug("%u: RetrieveFPForSig set", s->id);
+                SCReturn;
+            }
+            /* fall through, this can happen if the mpm doesn't support the pattern */
+        } else {
+            s->flags |= SIG_FLAG_PREFILTER;
+            SCReturn;
+        }
+    } else {
+        SCLogDebug("%u: RetrieveFPForSig", s->id);
+        RetrieveFPForSig(de_ctx, s);
+        if (s->init_data->mpm_sm != NULL) {
+            s->flags |= SIG_FLAG_PREFILTER;
+            SCLogDebug("%u: RetrieveFPForSig set", s->id);
+            SCReturn;
+        }
     }
 
     SCLogDebug("s %u: no mpm; prefilter? de_ctx->prefilter_setting %u "
                "s->init_data->has_possible_prefilter %s",
             s->id, de_ctx->prefilter_setting, BOOL2STR(s->init_data->has_possible_prefilter));
 
-    if (!s->init_data->has_possible_prefilter)
+    if (!s->init_data->has_possible_prefilter || !g_skip_prefilter)
         SCReturn;
 
-    if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
-            !(s->flags & SIG_FLAG_PREFILTER)) {
+    DEBUG_VALIDATE_BUG_ON(s->flags & SIG_FLAG_PREFILTER);
+    if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO) {
         int prefilter_list = DETECT_TBLSIZE;
         /* get the keyword supporting prefilter with the lowest type */
         for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
