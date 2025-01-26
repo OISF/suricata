@@ -96,180 +96,180 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
         return true;
     }
 
-    match rtype {
-        DNS_RECORD_TYPE_A => {
+    match DNSRecordType::from_u(rtype) {
+        Some(DNSRecordType::A) => {
             return flags & LOG_A != 0;
         }
-        DNS_RECORD_TYPE_NS => {
+        Some(DNSRecordType::NS) => {
             return flags & LOG_NS != 0;
         }
-        DNS_RECORD_TYPE_MD => {
+        Some(DNSRecordType::MD) => {
             return flags & LOG_MD != 0;
         }
-        DNS_RECORD_TYPE_MF => {
+        Some(DNSRecordType::MF) => {
             return flags & LOG_MF != 0;
         }
-        DNS_RECORD_TYPE_CNAME => {
+        Some(DNSRecordType::CNAME) => {
             return flags & LOG_CNAME != 0;
         }
-        DNS_RECORD_TYPE_SOA => {
+        Some(DNSRecordType::SOA) => {
             return flags & LOG_SOA != 0;
         }
-        DNS_RECORD_TYPE_MB => {
+        Some(DNSRecordType::MB) => {
             return flags & LOG_MB != 0;
         }
-        DNS_RECORD_TYPE_MG => {
+        Some(DNSRecordType::MG) => {
             return flags & LOG_MG != 0;
         }
-        DNS_RECORD_TYPE_MR => {
+        Some(DNSRecordType::MR) => {
             return flags & LOG_MR != 0;
         }
-        DNS_RECORD_TYPE_NULL => {
+        Some(DNSRecordType::NULL) => {
             return flags & LOG_NULL != 0;
         }
-        DNS_RECORD_TYPE_WKS => {
+        Some(DNSRecordType::WKS) => {
             return flags & LOG_WKS != 0;
         }
-        DNS_RECORD_TYPE_PTR => {
+        Some(DNSRecordType::PTR) => {
             return flags & LOG_PTR != 0;
         }
-        DNS_RECORD_TYPE_HINFO => {
+        Some(DNSRecordType::HINFO) => {
             return flags & LOG_HINFO != 0;
         }
-        DNS_RECORD_TYPE_MINFO => {
+        Some(DNSRecordType::MINFO) => {
             return flags & LOG_MINFO != 0;
         }
-        DNS_RECORD_TYPE_MX => {
+        Some(DNSRecordType::MX) => {
             return flags & LOG_MX != 0;
         }
-        DNS_RECORD_TYPE_TXT => {
+        Some(DNSRecordType::TXT) => {
             return flags & LOG_TXT != 0;
         }
-        DNS_RECORD_TYPE_RP => {
+        Some(DNSRecordType::RP) => {
             return flags & LOG_RP != 0;
         }
-        DNS_RECORD_TYPE_AFSDB => {
+        Some(DNSRecordType::AFSDB) => {
             return flags & LOG_AFSDB != 0;
         }
-        DNS_RECORD_TYPE_X25 => {
+        Some(DNSRecordType::X25) => {
             return flags & LOG_X25 != 0;
         }
-        DNS_RECORD_TYPE_ISDN => {
+        Some(DNSRecordType::ISDN) => {
             return flags & LOG_ISDN != 0;
         }
-        DNS_RECORD_TYPE_RT => {
+        Some(DNSRecordType::RT) => {
             return flags & LOG_RT != 0;
         }
-        DNS_RECORD_TYPE_NSAP => {
+        Some(DNSRecordType::NSAP) => {
             return flags & LOG_NSAP != 0;
         }
-        DNS_RECORD_TYPE_NSAPPTR => {
+        Some(DNSRecordType::NSAPPTR) => {
             return flags & LOG_NSAPPTR != 0;
         }
-        DNS_RECORD_TYPE_SIG => {
+        Some(DNSRecordType::SIG) => {
             return flags & LOG_SIG != 0;
         }
-        DNS_RECORD_TYPE_KEY => {
+        Some(DNSRecordType::KEY) => {
             return flags & LOG_KEY != 0;
         }
-        DNS_RECORD_TYPE_PX => {
+        Some(DNSRecordType::PX) => {
             return flags & LOG_PX != 0;
         }
-        DNS_RECORD_TYPE_GPOS => {
+        Some(DNSRecordType::GPOS) => {
             return flags & LOG_GPOS != 0;
         }
-        DNS_RECORD_TYPE_AAAA => {
+        Some(DNSRecordType::AAAA) => {
             return flags & LOG_AAAA != 0;
         }
-        DNS_RECORD_TYPE_LOC => {
+        Some(DNSRecordType::LOC) => {
             return flags & LOG_LOC != 0;
         }
-        DNS_RECORD_TYPE_NXT => {
+        Some(DNSRecordType::NXT) => {
             return flags & LOG_NXT != 0;
         }
-        DNS_RECORD_TYPE_SRV => {
+        Some(DNSRecordType::SRV) => {
             return flags & LOG_SRV != 0;
         }
-        DNS_RECORD_TYPE_ATMA => {
+        Some(DNSRecordType::ATMA) => {
             return flags & LOG_ATMA != 0;
         }
-        DNS_RECORD_TYPE_NAPTR => {
+        Some(DNSRecordType::NAPTR) => {
             return flags & LOG_NAPTR != 0;
         }
-        DNS_RECORD_TYPE_KX => {
+        Some(DNSRecordType::KX) => {
             return flags & LOG_KX != 0;
         }
-        DNS_RECORD_TYPE_CERT => {
+        Some(DNSRecordType::CERT) => {
             return flags & LOG_CERT != 0;
         }
-        DNS_RECORD_TYPE_A6 => {
+        Some(DNSRecordType::A6) => {
             return flags & LOG_A6 != 0;
         }
-        DNS_RECORD_TYPE_DNAME => {
+        Some(DNSRecordType::DNAME) => {
             return flags & LOG_DNAME != 0;
         }
-        DNS_RECORD_TYPE_OPT => {
+        Some(DNSRecordType::OPT) => {
             return flags & LOG_OPT != 0;
         }
-        DNS_RECORD_TYPE_APL => {
+        Some(DNSRecordType::APL) => {
             return flags & LOG_APL != 0;
         }
-        DNS_RECORD_TYPE_DS => {
+        Some(DNSRecordType::DS) => {
             return flags & LOG_DS != 0;
         }
-        DNS_RECORD_TYPE_SSHFP => {
+        Some(DNSRecordType::SSHFP) => {
             return flags & LOG_SSHFP != 0;
         }
-        DNS_RECORD_TYPE_IPSECKEY => {
+        Some(DNSRecordType::IPSECKEY) => {
             return flags & LOG_IPSECKEY != 0;
         }
-        DNS_RECORD_TYPE_RRSIG => {
+        Some(DNSRecordType::RRSIG) => {
             return flags & LOG_RRSIG != 0;
         }
-        DNS_RECORD_TYPE_NSEC => {
+        Some(DNSRecordType::NSEC) => {
             return flags & LOG_NSEC != 0;
         }
-        DNS_RECORD_TYPE_DNSKEY => {
+        Some(DNSRecordType::DNSKEY) => {
             return flags & LOG_DNSKEY != 0;
         }
-        DNS_RECORD_TYPE_DHCID => {
+        Some(DNSRecordType::DHCID) => {
             return flags & LOG_DHCID != 0;
         }
-        DNS_RECORD_TYPE_NSEC3 => return flags & LOG_NSEC3 != 0,
-        DNS_RECORD_TYPE_NSEC3PARAM => {
+        Some(DNSRecordType::NSEC3) => return flags & LOG_NSEC3 != 0,
+        Some(DNSRecordType::NSEC3PARAM) => {
             return flags & LOG_NSEC3PARAM != 0;
         }
-        DNS_RECORD_TYPE_TLSA => {
+        Some(DNSRecordType::TLSA) => {
             return flags & LOG_TLSA != 0;
         }
-        DNS_RECORD_TYPE_HIP => {
+        Some(DNSRecordType::HIP) => {
             return flags & LOG_HIP != 0;
         }
-        DNS_RECORD_TYPE_CDS => {
+        Some(DNSRecordType::CDS) => {
             return flags & LOG_CDS != 0;
         }
-        DNS_RECORD_TYPE_CDNSKEY => {
+        Some(DNSRecordType::CDNSKEY) => {
             return flags & LOG_CDNSKEY != 0;
         }
-        DNS_RECORD_TYPE_HTTPS => {
+        Some(DNSRecordType::HTTPS) => {
             return flags & LOG_HTTPS != 0;
         }
-        DNS_RECORD_TYPE_SPF => {
+        Some(DNSRecordType::SPF) => {
             return flags & LOG_SPF != 0;
         }
-        DNS_RECORD_TYPE_TKEY => {
+        Some(DNSRecordType::TKEY) => {
             return flags & LOG_TKEY != 0;
         }
-        DNS_RECORD_TYPE_TSIG => {
+        Some(DNSRecordType::TSIG) => {
             return flags & LOG_TSIG != 0;
         }
-        DNS_RECORD_TYPE_MAILA => {
+        Some(DNSRecordType::MAILA) => {
             return flags & LOG_MAILA != 0;
         }
-        DNS_RECORD_TYPE_ANY => {
+        Some(DNSRecordType::ANY) => {
             return flags & LOG_ANY != 0;
         }
-        DNS_RECORD_TYPE_URI => {
+        Some(DNSRecordType::URI) => {
             return flags & LOG_URI != 0;
         }
         _ => {
@@ -279,71 +279,10 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
 }
 
 pub fn dns_rrtype_string(rrtype: u16) -> String {
-    match rrtype {
-        DNS_RECORD_TYPE_A => "A",
-        DNS_RECORD_TYPE_NS => "NS",
-        DNS_RECORD_TYPE_AAAA => "AAAA",
-        DNS_RECORD_TYPE_CNAME => "CNAME",
-        DNS_RECORD_TYPE_TXT => "TXT",
-        DNS_RECORD_TYPE_MX => "MX",
-        DNS_RECORD_TYPE_SOA => "SOA",
-        DNS_RECORD_TYPE_PTR => "PTR",
-        DNS_RECORD_TYPE_SIG => "SIG",
-        DNS_RECORD_TYPE_KEY => "KEY",
-        DNS_RECORD_TYPE_WKS => "WKS",
-        DNS_RECORD_TYPE_TKEY => "TKEY",
-        DNS_RECORD_TYPE_TSIG => "TSIG",
-        DNS_RECORD_TYPE_ANY => "ANY",
-        DNS_RECORD_TYPE_RRSIG => "RRSIG",
-        DNS_RECORD_TYPE_NSEC => "NSEC",
-        DNS_RECORD_TYPE_DNSKEY => "DNSKEY",
-        DNS_RECORD_TYPE_HINFO => "HINFO",
-        DNS_RECORD_TYPE_MINFO => "MINFO",
-        DNS_RECORD_TYPE_RP => "RP",
-        DNS_RECORD_TYPE_AFSDB => "AFSDB",
-        DNS_RECORD_TYPE_X25 => "X25",
-        DNS_RECORD_TYPE_ISDN => "ISDN",
-        DNS_RECORD_TYPE_RT => "RT",
-        DNS_RECORD_TYPE_NSAP => "NSAP",
-        DNS_RECORD_TYPE_NSAPPTR => "NSAPPT",
-        DNS_RECORD_TYPE_PX => "PX",
-        DNS_RECORD_TYPE_GPOS => "GPOS",
-        DNS_RECORD_TYPE_LOC => "LOC",
-        DNS_RECORD_TYPE_SRV => "SRV",
-        DNS_RECORD_TYPE_ATMA => "ATMA",
-        DNS_RECORD_TYPE_NAPTR => "NAPTR",
-        DNS_RECORD_TYPE_KX => "KX",
-        DNS_RECORD_TYPE_CERT => "CERT",
-        DNS_RECORD_TYPE_A6 => "A6",
-        DNS_RECORD_TYPE_DNAME => "DNAME",
-        DNS_RECORD_TYPE_OPT => "OPT",
-        DNS_RECORD_TYPE_APL => "APL",
-        DNS_RECORD_TYPE_DS => "DS",
-        DNS_RECORD_TYPE_SSHFP => "SSHFP",
-        DNS_RECORD_TYPE_IPSECKEY => "IPSECKEY",
-        DNS_RECORD_TYPE_DHCID => "DHCID",
-        DNS_RECORD_TYPE_NSEC3 => "NSEC3",
-        DNS_RECORD_TYPE_NSEC3PARAM => "NSEC3PARAM",
-        DNS_RECORD_TYPE_TLSA => "TLSA",
-        DNS_RECORD_TYPE_HIP => "HIP",
-        DNS_RECORD_TYPE_CDS => "CDS",
-        DNS_RECORD_TYPE_CDNSKEY => "CDSNKEY",
-        DNS_RECORD_TYPE_HTTPS => "HTTPS",
-        DNS_RECORD_TYPE_MAILA => "MAILA",
-        DNS_RECORD_TYPE_URI => "URI",
-        DNS_RECORD_TYPE_MB => "MB",
-        DNS_RECORD_TYPE_MG => "MG",
-        DNS_RECORD_TYPE_MR => "MR",
-        DNS_RECORD_TYPE_NULL => "NULL",
-        DNS_RECORD_TYPE_SPF => "SPF",
-        DNS_RECORD_TYPE_NXT => "NXT",
-        DNS_RECORD_TYPE_MD => "ND",
-        DNS_RECORD_TYPE_MF => "MF",
-        _ => {
-            return rrtype.to_string();
-        }
+    if let Some(rt) = DNSRecordType::from_u(rrtype) {
+        return rt.to_str().to_uppercase();
     }
-    .to_string()
+    return rrtype.to_string();
 }
 
 pub fn dns_rcode_string(flags: u16) -> String {
