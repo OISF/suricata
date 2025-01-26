@@ -27,11 +27,11 @@
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
 
-typedef struct DetectBase64Decode_ {
+typedef struct DetectSCBase64Decode_ {
     uint32_t bytes;
     uint32_t offset;
     uint8_t relative;
-} DetectBase64Decode;
+} DetectSCBase64Decode;
 
 static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
     "\\s*(offset\\s+(\\d+),?)?"
@@ -39,34 +39,33 @@ static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
 
 static DetectParseRegex decode_pcre;
 
-static int DetectBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectBase64DecodeFree(DetectEngineCtx *, void *);
+static int DetectSCBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectSCBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectBase64DecodeRegisterTests(void);
+static void DetectSCBase64DecodeRegisterTests(void);
 #endif
 
-void DetectBase64DecodeRegister(void)
+void DetectSCBase64DecodeRegister(void)
 {
     sigmatch_table[DETECT_BASE64_DECODE].name = "base64_decode";
     sigmatch_table[DETECT_BASE64_DECODE].desc =
         "Decodes base64 encoded data.";
     sigmatch_table[DETECT_BASE64_DECODE].url =
         "/rules/base64-keywords.html#base64-decode";
-    sigmatch_table[DETECT_BASE64_DECODE].Setup = DetectBase64DecodeSetup;
-    sigmatch_table[DETECT_BASE64_DECODE].Free = DetectBase64DecodeFree;
+    sigmatch_table[DETECT_BASE64_DECODE].Setup = DetectSCBase64DecodeSetup;
+    sigmatch_table[DETECT_BASE64_DECODE].Free = DetectSCBase64DecodeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_BASE64_DECODE].RegisterTests =
-        DetectBase64DecodeRegisterTests;
+    sigmatch_table[DETECT_BASE64_DECODE].RegisterTests = DetectSCBase64DecodeRegisterTests;
 #endif
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(decode_pattern, &decode_pcre);
 }
 
-int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-    const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
+int DetectSCBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
-    DetectBase64Decode *data = (DetectBase64Decode *)smd->ctx;
+    DetectSCBase64Decode *data = (DetectSCBase64Decode *)smd->ctx;
 
 #if 0
     printf("Input data:\n");
@@ -95,7 +94,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 
     if (decode_len > 0) {
         uint32_t num_decoded =
-                Base64Decode(payload, decode_len, Base64ModeRFC4648, det_ctx->base64_decoded);
+                SCBase64Decode(payload, decode_len, SCBase64ModeRFC4648, det_ctx->base64_decoded);
         det_ctx->base64_decoded_len = num_decoded;
         SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
     }
@@ -110,8 +109,8 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     return det_ctx->base64_decoded_len > 0;
 }
 
-static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
-    uint32_t *offset, uint8_t *relative)
+static int DetectSCBase64DecodeParse(
+        const char *str, uint32_t *bytes, uint32_t *offset, uint8_t *relative)
 {
     const char *bytes_str = NULL;
     const char *offset_str = NULL;
@@ -182,22 +181,21 @@ error:
     return retval;
 }
 
-static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
-    const char *str)
+static int DetectSCBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     uint32_t bytes = 0;
     uint32_t offset = 0;
     uint8_t relative = 0;
-    DetectBase64Decode *data = NULL;
+    DetectSCBase64Decode *data = NULL;
     int sm_list;
     SigMatch *pm = NULL;
 
     if (str != NULL) {
-        if (!DetectBase64DecodeParse(str, &bytes, &offset, &relative)) {
+        if (!DetectSCBase64DecodeParse(str, &bytes, &offset, &relative)) {
             goto error;
         }
     }
-    data = SCCalloc(1, sizeof(DetectBase64Decode));
+    data = SCCalloc(1, sizeof(DetectSCBase64Decode));
     if (unlikely(data == NULL)) {
         goto error;
     }
@@ -247,9 +245,9 @@ error:
     return -1;
 }
 
-static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectSCBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectBase64Decode *data = ptr;
+    DetectSCBase64Decode *data = ptr;
     SCFree(data);
 }
 
@@ -271,45 +269,42 @@ static int DetectBase64TestDecodeParse(void)
     uint32_t offset = 0;
     uint8_t relative = 0;
 
-    if (!DetectBase64DecodeParse("bytes 1", &bytes, &offset, &relative)) {
+    if (!DetectSCBase64DecodeParse("bytes 1", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 1 || offset != 0 || relative != 0) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("offset 9", &bytes, &offset, &relative)) {
+    if (!DetectSCBase64DecodeParse("offset 9", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 0 || offset != 9 || relative != 0) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("relative", &bytes, &offset, &relative)) {
+    if (!DetectSCBase64DecodeParse("relative", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 0 || offset != 0 || relative != 1) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("bytes 1, offset 2", &bytes, &offset,
-            &relative)) {
+    if (!DetectSCBase64DecodeParse("bytes 1, offset 2", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 1 || offset != 2 || relative != 0) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("bytes 1, offset 2, relative", &bytes, &offset,
-            &relative)) {
+    if (!DetectSCBase64DecodeParse("bytes 1, offset 2, relative", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 1 || offset != 2 || relative != 1) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("offset 2, relative", &bytes, &offset,
-            &relative)) {
+    if (!DetectSCBase64DecodeParse("offset 2, relative", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 0 || offset != 2 || relative != 1) {
@@ -317,25 +312,22 @@ static int DetectBase64TestDecodeParse(void)
     }
 
     /* Misspelled relative. */
-    if (DetectBase64DecodeParse("bytes 1, offset 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectSCBase64DecodeParse("bytes 1, offset 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
     /* Misspelled bytes. */
-    if (DetectBase64DecodeParse("byts 1, offset 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectSCBase64DecodeParse("byts 1, offset 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
     /* Misspelled offset. */
-    if (DetectBase64DecodeParse("bytes 1, offst 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectSCBase64DecodeParse("bytes 1, offst 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
     /* Misspelled empty string. */
-    if (DetectBase64DecodeParse("", &bytes, &offset, &relative)) {
+    if (DetectSCBase64DecodeParse("", &bytes, &offset, &relative)) {
         goto end;
     }
 
@@ -347,7 +339,7 @@ end:
 /**
  * Test keyword setup on basic content.
  */
-static int DetectBase64DecodeTestSetup(void)
+static int DetectSCBase64DecodeTestSetup(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -362,7 +354,7 @@ static int DetectBase64DecodeTestSetup(void)
     PASS;
 }
 
-static int DetectBase64DecodeTestDecode(void)
+static int DetectSCBase64DecodeTestDecode(void)
 {
     ThreadVars tv;
     DetectEngineCtx *de_ctx = NULL;
@@ -417,7 +409,7 @@ end:
     return retval;
 }
 
-static int DetectBase64DecodeTestDecodeWithOffset(void)
+static int DetectSCBase64DecodeTestDecodeWithOffset(void)
 {
     ThreadVars tv;
     DetectEngineCtx *de_ctx = NULL;
@@ -477,7 +469,7 @@ end:
     return retval;
 }
 
-static int DetectBase64DecodeTestDecodeLargeOffset(void)
+static int DetectSCBase64DecodeTestDecodeLargeOffset(void)
 {
     ThreadVars tv;
     DetectEngineCtx *de_ctx = NULL;
@@ -533,7 +525,7 @@ end:
     return retval;
 }
 
-static int DetectBase64DecodeTestDecodeRelative(void)
+static int DetectSCBase64DecodeTestDecodeRelative(void)
 {
     ThreadVars tv;
     DetectEngineCtx *de_ctx = NULL;
@@ -594,19 +586,18 @@ end:
     return retval;
 }
 
-static void DetectBase64DecodeRegisterTests(void)
+static void DetectSCBase64DecodeRegisterTests(void)
 {
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 
     UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
-    UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
-    UtRegisterTest("DetectBase64DecodeTestDecode",
-                   DetectBase64DecodeTestDecode);
-    UtRegisterTest("DetectBase64DecodeTestDecodeWithOffset",
-                   DetectBase64DecodeTestDecodeWithOffset);
-    UtRegisterTest("DetectBase64DecodeTestDecodeLargeOffset",
-                   DetectBase64DecodeTestDecodeLargeOffset);
-    UtRegisterTest("DetectBase64DecodeTestDecodeRelative",
-                   DetectBase64DecodeTestDecodeRelative);
+    UtRegisterTest("DetectSCBase64DecodeTestSetup", DetectSCBase64DecodeTestSetup);
+    UtRegisterTest("DetectSCBase64DecodeTestDecode", DetectSCBase64DecodeTestDecode);
+    UtRegisterTest(
+            "DetectSCBase64DecodeTestDecodeWithOffset", DetectSCBase64DecodeTestDecodeWithOffset);
+    UtRegisterTest(
+            "DetectSCBase64DecodeTestDecodeLargeOffset", DetectSCBase64DecodeTestDecodeLargeOffset);
+    UtRegisterTest(
+            "DetectSCBase64DecodeTestDecodeRelative", DetectSCBase64DecodeTestDecodeRelative);
 }
 #endif /* UNITTESTS */

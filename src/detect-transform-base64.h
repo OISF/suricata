@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_TRANSFORM_BASE64_H
 
 /* prototypes */
-void DetectTransformFromBase64DecodeRegister(void);
+void DetectTransformFromSCBase64DecodeRegister(void);
 
 #endif /* SURICATA_DETECT_TRANSFORM_BASE64_H */

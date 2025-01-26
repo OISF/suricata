@@ -665,7 +665,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         SCLogDebug("lua match");
         goto match;
     } else if (smd->type == DETECT_BASE64_DECODE) {
-        if (DetectBase64DecodeDoMatch(det_ctx, s, smd, buffer, buffer_len)) {
+        if (DetectSCBase64DecodeDoMatch(det_ctx, s, smd, buffer, buffer_len)) {
             if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
                 if (det_ctx->base64_decoded_len) {
                     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);

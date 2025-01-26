@@ -682,7 +682,7 @@ void SigTableSetup(void)
     DetectLuaRegister();
     DetectIPRepRegister();
     DetectAppLayerProtocolRegister();
-    DetectBase64DecodeRegister();
+    DetectSCBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplate2Register();
@@ -726,7 +726,7 @@ void SigTableSetup(void)
     DetectTransformToLowerRegister();
     DetectTransformToUpperRegister();
     DetectTransformHeaderLowercaseRegister();
-    DetectTransformFromBase64DecodeRegister();
+    DetectTransformFromSCBase64DecodeRegister();
 
     DetectFileHandlerRegister();
 

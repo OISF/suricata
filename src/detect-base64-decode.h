@@ -18,8 +18,8 @@
 #ifndef SURICATA_DETECT_BASE64_DECODE_H
 #define SURICATA_DETECT_BASE64_DECODE_H
 
-void DetectBase64DecodeRegister(void);
-int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
-    const SigMatchData *, const uint8_t *, uint32_t);
+void DetectSCBase64DecodeRegister(void);
+int DetectSCBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchData *,
+        const uint8_t *, uint32_t);
 
 #endif /* SURICATA_DETECT_BASE64_DECODE_H */

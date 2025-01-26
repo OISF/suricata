@@ -37,35 +37,35 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformFromBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *, void *);
+static int DetectTransformFromSCBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectTransformFromSCBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) Base64ModeRFC4648
-static void DetectTransformFromBase64DecodeRegisterTests(void);
+#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t)SCBase64ModeRFC4648
+static void DetectTransformFromSCBase64DecodeRegisterTests(void);
 #endif
-static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options);
+static void TransformFromSCBase64Decode(InspectionBuffer *buffer, void *options);
 
-void DetectTransformFromBase64DecodeRegister(void)
+void DetectTransformFromSCBase64DecodeRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].name = "from_base64";
     sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].desc = "convert the base64 decode of the buffer";
     sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].url = "/rules/transforms.html#from_base64";
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Setup = DetectTransformFromBase64DecodeSetup;
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Transform = TransformFromBase64Decode;
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Free = DetectTransformFromBase64DecodeFree;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Setup = DetectTransformFromSCBase64DecodeSetup;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Transform = TransformFromSCBase64Decode;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Free = DetectTransformFromSCBase64DecodeFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].RegisterTests =
-            DetectTransformFromBase64DecodeRegisterTests;
+            DetectTransformFromSCBase64DecodeRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].flags |= SIGMATCH_OPTIONAL_OPT;
 }
 
-static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectTransformFromSCBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCTransformBase64Free(ptr);
 }
 
-static SCDetectTransformFromBase64Data *DetectTransformFromBase64DecodeParse(const char *str)
+static SCDetectTransformFromBase64Data *DetectTransformFromSCBase64DecodeParse(const char *str)
 {
     SCDetectTransformFromBase64Data *tbd = SCTransformBase64Parse(str);
     if (tbd == NULL) {
@@ -83,14 +83,14 @@ static SCDetectTransformFromBase64Data *DetectTransformFromBase64DecodeParse(con
  *  \retval 0 No decode
  *  \retval >0 Decoded byte count
  */
-static int DetectTransformFromBase64DecodeSetup(
+static int DetectTransformFromSCBase64DecodeSetup(
         DetectEngineCtx *de_ctx, Signature *s, const char *opts_str)
 {
     int r = -1;
 
     SCEnter();
 
-    SCDetectTransformFromBase64Data *b64d = DetectTransformFromBase64DecodeParse(opts_str);
+    SCDetectTransformFromBase64Data *b64d = DetectTransformFromSCBase64DecodeParse(opts_str);
     if (b64d == NULL)
         SCReturnInt(r);
 
@@ -108,18 +108,18 @@ static int DetectTransformFromBase64DecodeSetup(
 
 exit_path:
     if (r != 0)
-        DetectTransformFromBase64DecodeFree(de_ctx, b64d);
+        DetectTransformFromSCBase64DecodeFree(de_ctx, b64d);
     SCReturnInt(r);
 }
 
-static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
+static void TransformFromSCBase64Decode(InspectionBuffer *buffer, void *options)
 {
     SCDetectTransformFromBase64Data *b64d = options;
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
     uint32_t decode_length = input_len;
 
-    Base64Mode mode = b64d->mode;
+    SCBase64Mode mode = b64d->mode;
     uint32_t offset = b64d->offset;
     uint32_t nbytes = b64d->nbytes;
 
@@ -144,9 +144,9 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
         return;
     }
 
-    uint32_t decoded_size = Base64DecodeBufferSize(decode_length);
+    uint32_t decoded_size = SCBase64DecodeBufferSize(decode_length);
     uint8_t decoded[decoded_size];
-    uint32_t num_decoded = Base64Decode((const uint8_t *)input, decode_length, mode, decoded);
+    uint32_t num_decoded = SCBase64Decode((const uint8_t *)input, decode_length, mode, decoded);
     if (num_decoded > 0) {
         //            PrintRawDataFp(stdout, output, b64data->decoded_len);
         InspectionBufferCopy(buffer, decoded, num_decoded);
@@ -155,7 +155,7 @@ static void TransformFromBase64Decode(InspectionBuffer *buffer, void *options)
 
 #ifdef UNITTESTS
 /* Simple success case -- check buffer */
-static int DetectTransformFromBase64DecodeTest01(void)
+static int DetectTransformFromSCBase64DecodeTest01(void)
 {
     const uint8_t *input = (const uint8_t *)"VGhpcyBpcyBTdXJpY2F0YQ==";
     uint32_t input_len = strlen((char *)input);
@@ -170,7 +170,7 @@ static int DetectTransformFromBase64DecodeTest01(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -179,19 +179,19 @@ static int DetectTransformFromBase64DecodeTest01(void)
 }
 
 /* Simple success case with RFC2045 -- check buffer */
-static int DetectTransformFromBase64DecodeTest01a(void)
+static int DetectTransformFromSCBase64DecodeTest01a(void)
 {
     const uint8_t *input = (const uint8_t *)"Zm 9v Ym Fy";
     uint32_t input_len = strlen((char *)input);
     const char *result = "foobar";
     uint32_t result_len = strlen((char *)result);
-    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeRFC2045 };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = SCBase64ModeRFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -200,18 +200,18 @@ static int DetectTransformFromBase64DecodeTest01a(void)
 }
 
 /* Decode failure case -- ensure no change to buffer */
-static int DetectTransformFromBase64DecodeTest02(void)
+static int DetectTransformFromSCBase64DecodeTest02(void)
 {
     const uint8_t *input = (const uint8_t *)"This is Suricata\n";
     uint32_t input_len = strlen((char *)input);
-    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeStrict };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = SCBase64ModeStrict };
     InspectionBuffer buffer;
     InspectionBuffer buffer_orig;
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     buffer_orig = buffer;
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_offset == buffer_orig.inspect_offset);
     FAIL_IF_NOT(buffer.inspect_len == buffer_orig.inspect_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -220,7 +220,7 @@ static int DetectTransformFromBase64DecodeTest02(void)
 }
 
 /* bytes > len so --> no transform */
-static int DetectTransformFromBase64DecodeTest03(void)
+static int DetectTransformFromSCBase64DecodeTest03(void)
 {
     const uint8_t *input = (const uint8_t *)"VGhpcyBpcyBTdXJpY2F0YQ==";
     uint32_t input_len = strlen((char *)input);
@@ -233,7 +233,7 @@ static int DetectTransformFromBase64DecodeTest03(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(strncmp((const char *)input, (const char *)buffer.inspect, input_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
@@ -241,7 +241,7 @@ static int DetectTransformFromBase64DecodeTest03(void)
 }
 
 /* offset > len so --> no transform */
-static int DetectTransformFromBase64DecodeTest04(void)
+static int DetectTransformFromSCBase64DecodeTest04(void)
 {
     const uint8_t *input = (const uint8_t *)"VGhpcyBpcyBTdXJpY2F0YQ==";
     uint32_t input_len = strlen((char *)input);
@@ -254,7 +254,7 @@ static int DetectTransformFromBase64DecodeTest04(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(strncmp((const char *)input, (const char *)buffer.inspect, input_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
@@ -262,7 +262,7 @@ static int DetectTransformFromBase64DecodeTest04(void)
 }
 
 /* partial transform */
-static int DetectTransformFromBase64DecodeTest05(void)
+static int DetectTransformFromSCBase64DecodeTest05(void)
 {
     const uint8_t *input = (const uint8_t *)"VGhpcyBpcyBTdXJpY2F0YQ==";
     uint32_t input_len = strlen((char *)input);
@@ -278,7 +278,7 @@ static int DetectTransformFromBase64DecodeTest05(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -287,7 +287,7 @@ static int DetectTransformFromBase64DecodeTest05(void)
 }
 
 /* transform from non-zero offset */
-static int DetectTransformFromBase64DecodeTest06(void)
+static int DetectTransformFromSCBase64DecodeTest06(void)
 {
     const uint8_t *input = (const uint8_t *)"VGhpcyBpcyBTdXJpY2F0YQ==";
     uint32_t input_len = strlen((char *)input);
@@ -303,7 +303,7 @@ static int DetectTransformFromBase64DecodeTest06(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -312,7 +312,7 @@ static int DetectTransformFromBase64DecodeTest06(void)
 }
 
 /* partial decode */
-static int DetectTransformFromBase64DecodeTest07(void)
+static int DetectTransformFromSCBase64DecodeTest07(void)
 {
     /* Full string decodes to Hello World */
     const uint8_t *input = (const uint8_t *)"SGVs bG8 gV29y bGQ=";
@@ -321,13 +321,13 @@ static int DetectTransformFromBase64DecodeTest07(void)
     uint32_t result_len = strlen((char *)result);
 
     SCDetectTransformFromBase64Data b64d = { .nbytes = input_len - 4, /* NB: stop early */
-        .mode = Base64ModeRFC2045 };
+        .mode = SCBase64ModeRFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
@@ -336,35 +336,43 @@ static int DetectTransformFromBase64DecodeTest07(void)
 }
 
 /* input is not base64 encoded */
-static int DetectTransformFromBase64DecodeTest08(void)
+static int DetectTransformFromSCBase64DecodeTest08(void)
 {
     /* A portion of this string will be decoded */
     const uint8_t *input = (const uint8_t *)"This is not base64-encoded";
     uint32_t input_len = strlen((char *)input);
 
-    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = Base64ModeRFC2045 };
+    SCDetectTransformFromBase64Data b64d = { .nbytes = input_len, .mode = SCBase64ModeRFC2045 };
 
     InspectionBuffer buffer;
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformFromBase64Decode(&buffer, &b64d);
+    TransformFromSCBase64Decode(&buffer, &b64d);
     FAIL_IF_NOT(buffer.inspect_len == 15);
     // PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
 }
-static void DetectTransformFromBase64DecodeRegisterTests(void)
+static void DetectTransformFromSCBase64DecodeRegisterTests(void)
 {
-    UtRegisterTest("DetectTransformFromBase64DecodeTest01", DetectTransformFromBase64DecodeTest01);
     UtRegisterTest(
-            "DetectTransformFromBase64DecodeTest01a", DetectTransformFromBase64DecodeTest01a);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest02", DetectTransformFromBase64DecodeTest02);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest03", DetectTransformFromBase64DecodeTest03);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest04", DetectTransformFromBase64DecodeTest04);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest05", DetectTransformFromBase64DecodeTest05);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest06", DetectTransformFromBase64DecodeTest06);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest07", DetectTransformFromBase64DecodeTest07);
-    UtRegisterTest("DetectTransformFromBase64DecodeTest08", DetectTransformFromBase64DecodeTest08);
+            "DetectTransformFromSCBase64DecodeTest01", DetectTransformFromSCBase64DecodeTest01);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest01a", DetectTransformFromSCBase64DecodeTest01a);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest02", DetectTransformFromSCBase64DecodeTest02);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest03", DetectTransformFromSCBase64DecodeTest03);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest04", DetectTransformFromSCBase64DecodeTest04);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest05", DetectTransformFromSCBase64DecodeTest05);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest06", DetectTransformFromSCBase64DecodeTest06);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest07", DetectTransformFromSCBase64DecodeTest07);
+    UtRegisterTest(
+            "DetectTransformFromSCBase64DecodeTest08", DetectTransformFromSCBase64DecodeTest08);
 }
 #endif
