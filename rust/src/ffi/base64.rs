@@ -15,10 +15,13 @@
  * 02110-1301, USA.
  */
 
-use crate::utils::base64::{decode_rfc4648, decode_rfc2045, get_decoded_buffer_size, Decoder};
+use crate::utils::base64::{decode_rfc2045, decode_rfc4648, get_decoded_buffer_size, Decoder};
+use base64::{
+    engine::general_purpose::{STANDARD, STANDARD_NO_PAD},
+    Engine,
+};
 use libc::c_ulong;
 use std::os::raw::c_uchar;
-use base64::{Engine, engine::general_purpose::{STANDARD, STANDARD_NO_PAD}};
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -77,7 +80,6 @@ pub unsafe extern "C" fn SCBase64DecodeBufferSize(input_len: u32) -> u32 {
     return get_decoded_buffer_size(input_len);
 }
 
-
 /// Base64 decode a buffer.
 ///
 /// This method exposes the Rust base64 decoder to C and should not be called from
@@ -86,7 +88,8 @@ pub unsafe extern "C" fn SCBase64DecodeBufferSize(input_len: u32) -> u32 {
 /// It allows decoding in the modes described by ``SCBase64Mode`` enum.
 #[no_mangle]
 pub unsafe extern "C" fn SCBase64Decode(
-    input: *const u8, len: usize, mode: SCBase64Mode, output: *mut u8) -> u32 {
+    input: *const u8, len: usize, mode: SCBase64Mode, output: *mut u8,
+) -> u32 {
     if input.is_null() || len == 0 {
         return 0;
     }
@@ -125,19 +128,16 @@ pub unsafe extern "C" fn SCBase64Decode(
 }
 
 unsafe fn base64_encode(
-    input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong, mode: SCBase64Mode
+    input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
+    mode: SCBase64Mode,
 ) -> SCBase64ReturnCode {
     if input.is_null() || output.is_null() || output_len.is_null() {
         return SCBase64ReturnCode::SC_BASE64_INVALID_ARG;
     }
     let input = std::slice::from_raw_parts(input, input_len as usize);
     let encoded = match mode {
-        SCBase64Mode::SCBase64ModeNoPad => {
-            STANDARD_NO_PAD.encode(input)
-        }
-        _ => {
-            STANDARD.encode(input)
-        }
+        SCBase64Mode::SCBase64ModeNoPad => STANDARD_NO_PAD.encode(input),
+        _ => STANDARD.encode(input),
     };
     if encoded.len() + 1 > *output_len as usize {
         return SCBase64ReturnCode::SC_BASE64_OVERFLOW;
@@ -161,7 +161,13 @@ unsafe fn base64_encode(
 pub unsafe extern "C" fn SCBase64Encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> SCBase64ReturnCode {
-    base64_encode(input, input_len, output, output_len, SCBase64Mode::SCBase64ModeStrict)
+    base64_encode(
+        input,
+        input_len,
+        output,
+        output_len,
+        SCBase64Mode::SCBase64ModeStrict,
+    )
 }
 
 /// Base64 encode a buffer with no padding.
@@ -176,7 +182,13 @@ pub unsafe extern "C" fn SCBase64Encode(
 pub unsafe extern "C" fn SCBase64EncodeNoPad(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> SCBase64ReturnCode {
-    base64_encode(input, input_len, output, output_len, SCBase64Mode::SCBase64ModeNoPad)
+    base64_encode(
+        input,
+        input_len,
+        output,
+        output_len,
+        SCBase64Mode::SCBase64ModeNoPad,
+    )
 }
 
 /// Ratio of output bytes to input bytes for Base64 Encoding is 4:3, hence the
