@@ -19,6 +19,7 @@ use std;
 use std::collections::HashMap;
 use std::string::String;
 
+use crate::detect::EnumString;
 use crate::dns::dns::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
@@ -346,30 +347,13 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
 }
 
 pub fn dns_rcode_string(flags: u16) -> String {
-    match flags & 0x000f {
-        DNS_RCODE_NOERROR => "NOERROR",
-        DNS_RCODE_FORMERR => "FORMERR",
-        DNS_RCODE_SERVFAIL => "SERVFAIL",
-        DNS_RCODE_NXDOMAIN => "NXDOMAIN",
-        DNS_RCODE_NOTIMP => "NOTIMP",
-        DNS_RCODE_REFUSED => "REFUSED",
-        DNS_RCODE_YXDOMAIN => "YXDOMAIN",
-        DNS_RCODE_YXRRSET => "YXRRSET",
-        DNS_RCODE_NXRRSET => "NXRRSET",
-        DNS_RCODE_NOTAUTH => "NOTAUTH",
-        DNS_RCODE_NOTZONE => "NOTZONE",
-        DNS_RCODE_BADVERS => "BADVERS/BADSIG",
-        DNS_RCODE_BADKEY => "BADKEY",
-        DNS_RCODE_BADTIME => "BADTIME",
-        DNS_RCODE_BADMODE => "BADMODE",
-        DNS_RCODE_BADNAME => "BADNAME",
-        DNS_RCODE_BADALG => "BADALG",
-        DNS_RCODE_BADTRUNC => "BADTRUNC",
-        _ => {
-            return (flags & 0x000f).to_string();
-        }
+    if flags & 0x000f == DNSRcode::BADVERS as u16 {
+        return "BADVERS/BADSIG".to_string();
     }
-    .to_string()
+    if let Some(rc) = DNSRcode::from_u(flags & 0x000f) {
+        return rc.to_str().to_uppercase();
+    }
+    return (flags & 0x000f).to_string();
 }
 
 /// Format bytes as an IP address string.
