@@ -94,27 +94,30 @@ pub const DNS_RECORD_TYPE_ANY: u16 = 255;
 pub const DNS_RECORD_TYPE_URI: u16 = 256;
 
 /// DNS error codes.
-pub const DNS_RCODE_NOERROR: u16 = 0;
-pub const DNS_RCODE_FORMERR: u16 = 1;
-pub const DNS_RCODE_SERVFAIL: u16 = 2;
-pub const DNS_RCODE_NXDOMAIN: u16 = 3;
-pub const DNS_RCODE_NOTIMP: u16 = 4;
-pub const DNS_RCODE_REFUSED: u16 = 5;
-pub const DNS_RCODE_YXDOMAIN: u16 = 6;
-pub const DNS_RCODE_YXRRSET: u16 = 7;
-pub const DNS_RCODE_NXRRSET: u16 = 8;
-pub const DNS_RCODE_NOTAUTH: u16 = 9;
-pub const DNS_RCODE_NOTZONE: u16 = 10;
-// Support for OPT RR from RFC6891 will be needed to
-// parse RCODE values over 15
-pub const DNS_RCODE_BADVERS: u16 = 16;
-//also pub const DNS_RCODE_BADSIG: u16 = 16;
-pub const DNS_RCODE_BADKEY: u16 = 17;
-pub const DNS_RCODE_BADTIME: u16 = 18;
-pub const DNS_RCODE_BADMODE: u16 = 19;
-pub const DNS_RCODE_BADNAME: u16 = 20;
-pub const DNS_RCODE_BADALG: u16 = 21;
-pub const DNS_RCODE_BADTRUNC: u16 = 22;
+#[derive(Clone, Debug, EnumStringU16)]
+pub enum DNSRcode {
+    NOERROR = 0,
+    FORMERR = 1,
+    SERVFAIL = 2,
+    NXDOMAIN = 3,
+    NOTIMP = 4,
+    REFUSED = 5,
+    YXDOMAIN = 6,
+    YXRRSET = 7,
+    NXRRSET = 8,
+    NOTAUTH = 9,
+    NOTZONE = 10,
+    // Support for OPT RR from RFC6891 will be needed to
+    // parse RCODE values over 15
+    BADVERS = 16,
+    //also pub const DNS_RCODE_BADSIG: u16 = 16;
+    BADKEY = 17,
+    BADTIME = 18,
+    BADMODE = 19,
+    BADNAME = 20,
+    BADALG = 21,
+    BADTRUNC = 22,
+}
 
 pub(super) static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
