@@ -115,7 +115,7 @@ pub const DNS_RCODE_BADNAME: u16 = 20;
 pub const DNS_RCODE_BADALG: u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
-static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
 enum DnsFrameType {
@@ -971,56 +971,6 @@ unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut Ap
 }
 
 export_state_data_get!(rs_dns_get_state_data, DNSState);
-
-/// Get the DNS query name at index i.
-#[no_mangle]
-pub unsafe extern "C" fn SCDnsTxGetQueryName(
-    tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    let queries = if to_client {
-        tx.response.as_ref().map(|response| &response.queries)
-    } else {
-        tx.request.as_ref().map(|request| &request.queries)
-    };
-    let index = i as usize;
-
-    if let Some(queries) = queries {
-        if let Some(query) = queries.get(index) {
-            if !query.name.value.is_empty() {
-                *buf = query.name.value.as_ptr();
-                *len = query.name.value.len() as u32;
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Get the DNS response answer name and index i.
-#[no_mangle]
-pub unsafe extern "C" fn SCDnsTxGetAnswerName(
-    tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool {
-    let answers = if to_client {
-        tx.response.as_ref().map(|response| &response.answers)
-    } else {
-        tx.request.as_ref().map(|request| &request.answers)
-    };
-    let index = i as usize;
-
-    if let Some(answers) = answers {
-        if let Some(answer) = answers.get(index) {
-            if !answer.name.value.is_empty() {
-                *buf = answer.name.value.as_ptr();
-                *len = answer.name.value.len() as u32;
-                return true;
-            }
-        }
-    }
-
-    false
-}
 
 /// Get the DNS response flags for a transaction.
 ///
