@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-use super::dns::{DNSRcode, DNSTransaction, ALPROTO_DNS};
+use super::dns::{DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, SCDetectU16Free, SCDetectU16Parse,
-    SCDetectU8Free, SCDetectU8Parse, DetectUintData,
+    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
+    SCDetectU8Parse,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferRegister, DetectHelperGetMultiData,
@@ -188,13 +188,26 @@ unsafe extern "C" fn dns_rcode_free(_de: *mut c_void, ctx: *mut c_void) {
     SCDetectU16Free(ctx);
 }
 
+unsafe extern "C" fn dns_rrtype_parse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u8> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u16, DNSRecordType>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
 unsafe extern "C" fn dns_rrtype_setup(
     de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
     }
-    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    let ctx = dns_rrtype_parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -634,7 +647,7 @@ mod test {
     #[test]
     fn parse_rrtype_good() {
         assert_eq!(
-            detect_parse_uint::<u16>("1").unwrap().1,
+            detect_parse_uint_enum::<u16, DNSRecordType>("1").unwrap(),
             DetectUintData {
                 mode: DetectUintMode::DetectUintModeEqual,
                 arg1: 1,
@@ -642,7 +655,7 @@ mod test {
             }
         );
         assert_eq!(
-            detect_parse_uint::<u16>("123").unwrap().1,
+            detect_parse_uint_enum::<u16, DNSRecordType>("123").unwrap(),
             DetectUintData {
                 mode: DetectUintMode::DetectUintModeEqual,
                 arg1: 123,
@@ -650,7 +663,7 @@ mod test {
             }
         );
         assert_eq!(
-            detect_parse_uint::<u16>("!123").unwrap().1,
+            detect_parse_uint_enum::<u16, DNSRecordType>("!123").unwrap(),
             DetectUintData {
                 mode: DetectUintMode::DetectUintModeNe,
                 arg1: 123,
@@ -658,17 +671,25 @@ mod test {
             }
         );
         assert_eq!(
-            detect_parse_uint::<u16>("7-15").unwrap().1,
+            detect_parse_uint_enum::<u16, DNSRecordType>("7-15").unwrap(),
             DetectUintData {
                 mode: DetectUintMode::DetectUintModeRange,
                 arg1: 7,
                 arg2: 15,
             }
         );
-        assert!(detect_parse_uint::<u16>("").is_err());
-        assert!(detect_parse_uint::<u16>("!").is_err());
-        assert!(detect_parse_uint::<u16>("!   ").is_err());
-        assert!(detect_parse_uint::<u16>("!asdf").is_err());
+        assert_eq!(
+            detect_parse_uint_enum::<u16, DNSRecordType>("a").unwrap(),
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: DNSRecordType::A as u16,
+                arg2: 0,
+            }
+        );
+        assert!(detect_parse_uint_enum::<u16, DNSRecordType>("").is_none());
+        assert!(detect_parse_uint_enum::<u16, DNSRecordType>("!").is_none());
+        assert!(detect_parse_uint_enum::<u16, DNSRecordType>("!   ").is_none());
+        assert!(detect_parse_uint_enum::<u16, DNSRecordType>("!asdf").is_none());
     }
 
     #[test]
