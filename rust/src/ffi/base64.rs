@@ -124,6 +124,31 @@ pub unsafe extern "C" fn SCBase64Decode(
     return num_decoded;
 }
 
+unsafe fn base64_encode(
+    input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong, mode: SCBase64Mode
+) -> SCBase64ReturnCode {
+    if input.is_null() || output.is_null() || output_len.is_null() {
+        return SCBase64ReturnCode::SC_BASE64_INVALID_ARG;
+    }
+    let input = std::slice::from_raw_parts(input, input_len as usize);
+    let encoded = match mode {
+        SCBase64Mode::SCBase64ModeNoPad => {
+            STANDARD_NO_PAD.encode(input)
+        }
+        _ => {
+            STANDARD.encode(input)
+        }
+    };
+    if encoded.len() + 1 > *output_len as usize {
+        return SCBase64ReturnCode::SC_BASE64_OVERFLOW;
+    }
+    let output = std::slice::from_raw_parts_mut(&mut *output, *output_len as usize);
+    output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
+    output[encoded.len()] = 0;
+    *output_len = encoded.len() as c_ulong;
+    SCBase64ReturnCode::SC_BASE64_OK
+}
+
 /// Base64 encode a buffer.
 ///
 /// This method exposes the Rust base64 encoder to C and should not be called from
@@ -136,19 +161,22 @@ pub unsafe extern "C" fn SCBase64Decode(
 pub unsafe extern "C" fn SCBase64Encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> SCBase64ReturnCode {
-    if input.is_null() || output.is_null() || output_len.is_null() {
-        return SCBase64ReturnCode::SC_BASE64_INVALID_ARG;
-    }
-    let input = std::slice::from_raw_parts(input, input_len as usize);
-    let encoded = STANDARD.encode(input);
-    if encoded.len() + 1 > *output_len as usize {
-        return SCBase64ReturnCode::SC_BASE64_OVERFLOW;
-    }
-    let output = std::slice::from_raw_parts_mut(&mut *output, *output_len as usize);
-    output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
-    output[encoded.len()] = 0;
-    *output_len = encoded.len() as c_ulong;
-    SCBase64ReturnCode::SC_BASE64_OK
+    base64_encode(input, input_len, output, output_len, SCBase64Mode::SCBase64ModeStrict)
+}
+
+/// Base64 encode a buffer with no padding.
+///
+/// This method exposes the Rust base64 encoder to C and should not be called from
+/// Rust code.
+///
+/// The output parameter must be an allocated buffer of at least the size returned
+/// from SCBase64EncodeBufferSize for the input_len, and this length must be provided
+/// in the output_len variable.
+#[no_mangle]
+pub unsafe extern "C" fn SCBase64EncodeNoPad(
+    input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
+) -> SCBase64ReturnCode {
+    base64_encode(input, input_len, output, output_len, SCBase64Mode::SCBase64ModeNoPad)
 }
 
 /// Ratio of output bytes to input bytes for Base64 Encoding is 4:3, hence the

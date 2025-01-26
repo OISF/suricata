@@ -40,7 +40,7 @@
 static int DetectTransformFromSCBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformFromSCBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t)SCBase64ModeRFC4648
+#define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) SCBase64ModeRFC4648
 static void DetectTransformFromSCBase64DecodeRegisterTests(void);
 #endif
 static void TransformFromSCBase64Decode(InspectionBuffer *buffer, void *options);
