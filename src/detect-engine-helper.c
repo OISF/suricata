@@ -120,6 +120,11 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
     return DETECT_TBLSIZE_IDX - 1;
 }
 
+void DetectHelperKeywordAliasRegister(int kwid, const char *alias)
+{
+    sigmatch_table[kwid].alias = alias;
+}
+
 int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
 {
     if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
