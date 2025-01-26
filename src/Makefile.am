@@ -111,12 +111,6 @@ noinst_HEADERS = \
 	detect-detection-filter.h \
 	detect-distance.h \
 	detect-dnp3.h \
-	detect-dns-answer-name.h \
-	detect-dns-opcode.h \
-	detect-dns-rcode.h \
-	detect-dns-rrtype.h \
-	detect-dns-query.h \
-	detect-dns-query-name.h \
 	detect-dsize.h \
 	detect-engine-address.h \
 	detect-engine-address-ipv4.h \
@@ -680,12 +674,6 @@ libsuricata_c_a_SOURCES = \
 	detect-detection-filter.c \
 	detect-distance.c \
 	detect-dnp3.c \
-	detect-dns-answer-name.c \
-	detect-dns-opcode.c \
-	detect-dns-rcode.c \
-	detect-dns-rrtype.c \
-	detect-dns-query.c \
-	detect-dns-query-name.c \
 	detect-dsize.c \
 	detect-engine-address.c \
 	detect-engine-address-ipv4.c \
