@@ -141,6 +141,11 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
     return keyword_id;
 }
 
+void DetectHelperKeywordAliasRegister(int kwid, const char *alias)
+{
+    sigmatch_table[kwid].alias = alias;
+}
+
 int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
 {
     int transform_id = SCDetectHelperNewKeywordId();
