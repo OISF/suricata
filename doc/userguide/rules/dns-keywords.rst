@@ -82,6 +82,8 @@ This keyword matches on the **rrtype** (integer) found in the DNS message.
 
 dns.rrtype uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
 
+It can also be specified by text from the enumeration.
+
 Syntax
 ~~~~~~
 
