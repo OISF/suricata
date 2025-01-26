@@ -47,10 +47,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-dns-opcode.h"
-#include "detect-dns-rcode.h"
-#include "detect-dns-rrtype.h"
-#include "detect-dns-query.h"
 #include "detect-dns-name.h"
 #include "detect-dns-response.h"
 #include "detect-tls-sni.h"
@@ -556,10 +552,6 @@ void SigTableSetup(void)
     DetectHttpStatCodeRegister();
     DetectHttp2Register();
 
-    DetectDnsQueryRegister();
-    DetectDnsOpcodeRegister();
-    DetectDnsRcodeRegister();
-    DetectDnsRrtypeRegister();
     DetectDnsNameRegister();
     DetectDnsResponseRegister();
     DetectModbusRegister();
@@ -751,6 +743,14 @@ void SigTableSetup(void)
     SCDetectTemplateRegister();
     SCDetectLdapRegister();
     SCDetectSdpRegister();
+    SCDetectDNSRegister();
+    /* For lua : register these generic engines from here for now */
+    DetectAppLayerInspectEngineRegister(
+            "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectGenericList, NULL);
+    DetectBufferTypeSetDescriptionByName("dns_request", "dns requests");
+    DetectBufferTypeSetDescriptionByName("dns_response", "dns responses");
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

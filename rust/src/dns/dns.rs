@@ -116,7 +116,7 @@ pub const DNS_RCODE_BADNAME: u16 = 20;
 pub const DNS_RCODE_BADALG: u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
-static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
 enum DnsFrameType {
