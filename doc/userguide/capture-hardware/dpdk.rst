@@ -184,3 +184,27 @@ Below is a sample configuration that demonstrates how to enable the interrupt mo
         - interface: 0000:3b:00.0
           interrupt-mode: true
           threads: 4
+
+.. _dpdk-automatic-interface-configuration:
+
+Automatic interface configuration
+---------------------------------
+
+A number of interface properties can be manually configured. However, Suricata
+can automatically configure the interface properties based on the NIC
+capabilities. This can be done by setting ``auto`` to ``mempool-size``,
+``mempool-cache-size``, ``rx-descriptors``, and ``tx-descriptors`` interface
+node properties.
+This will allow Suricata to automatically set the sizes of individual properties
+according to the best-effort calculation based on the NIC capabilities.
+For example, Rx/Tx descriptors are calculated based on the maximal "power of 2"
+that is lower or equal to the number of descriptors supported by the NIC.
+The number of mempool and its cache is then derived from these.
+
+Rx/Tx descriptors are set to the highest possible value to allow more buffer
+room when traffic spikes occur. However, it requires more memory.
+Individual properties can still be set manually if needed.
+
+.. note:: Mellanox ConnectX-4 NICs does not support auto-configuration of
+  ``tx-descriptors``. Instead it can be set to a fixed value (e.g. 16384).
+
