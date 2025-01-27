@@ -134,7 +134,6 @@ typedef struct DPDKThreadVars_ {
     uint16_t port_id;
     uint16_t queue_id;
     int32_t port_socket_id;
-    struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
     DPDKWorkerSync *workers_sync;
 } DPDKThreadVars;
@@ -609,9 +608,6 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
-    // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
-    ptv->pkt_mempool = dpdk_config->pkt_mempool;
-    dpdk_config->pkt_mempool = NULL;
 
     thread_numa = GetNumaNode();
     if (thread_numa >= 0 && ptv->port_socket_id != SOCKET_ID_ANY &&
@@ -770,8 +766,6 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
             SCFree(ptv->workers_sync);
         }
     }
-
-    ptv->pkt_mempool = NULL; // MP is released when device is closed
 
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
