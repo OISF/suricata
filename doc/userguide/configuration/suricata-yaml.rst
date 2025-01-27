@@ -2184,10 +2184,10 @@ The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
           checksum-checks: true
           checksum-checks-offload: true
           mtu: 1500
-          mempool-size: 65535
-          mempool-cache-size: 257
-          rx-descriptors: 1024
-          tx-descriptors: 1024
+          mempool-size: auto
+          mempool-cache-size: auto
+          rx-descriptors: auto
+          tx-descriptors: auto
           copy-mode: none
           copy-iface: none # or PCIe address of the second interface
 

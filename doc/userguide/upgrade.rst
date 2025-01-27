@@ -128,6 +128,9 @@ Major changes
     can be used to tune this value for TPACKET_V2. Due to the
     increased block size, memory usage has been increased, but
     should not be an issue in most cases.
+- DPDK interface settings can now be configured automatically by setting 
+  ``auto`` to ``mempool-size``, ``mempool-cache-size``, ``rx-descriptors``,
+  ``tx-descriptors``. See :ref:`dpdk-automatic-interface-configuration`.
 
 Removals
 ~~~~~~~~
