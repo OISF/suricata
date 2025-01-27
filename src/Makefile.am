@@ -508,6 +508,7 @@ noinst_HEADERS = \
 	util-landlock.h \
 	util-logopenfile.h \
 	util-log-redis.h \
+	util-lua-base64lib.h \
 	util-lua-builtins.h \
 	util-lua-common.h \
 	util-lua-dataset.h \
@@ -1061,6 +1062,7 @@ libsuricata_c_a_SOURCES = \
 	util-logopenfile.c \
 	util-log-redis.c \
 	util-lua.c \
+	util-lua-base64lib.c \
 	util-lua-builtins.c \
 	util-lua-common.c \
 	util-lua-dataset.c \
