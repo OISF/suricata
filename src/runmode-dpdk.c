@@ -1740,6 +1740,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
         FatalError("Device %s is not registered as a live device", iface);
     }
     ldev_instance->dpdk_vars.pkt_mp = iconf->pkt_mempool;
+    iconf->pkt_mempool = NULL;
     return iconf;
 }
 
