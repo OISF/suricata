@@ -89,6 +89,9 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- DPDK interface settings can now be configured automatically by setting 
+  ``auto`` to ``mempool-size``, ``mempool-cache-size``, ``rx-descriptors``,
+  ``tx-descriptors``. See :ref:`dpdk-automatic-interface-configuration`.
 
 Removals
 ~~~~~~~~
