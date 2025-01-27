@@ -95,6 +95,9 @@ Major changes
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
   details.
+- DPDK interface settings can now be configured automatically by setting 
+  ``auto`` to ``mempool-size``, ``mempool-cache-size``, ``rx-descriptors``,
+  ``tx-descriptors``. See :ref:`dpdk-automatic-interface-configuration`.
 
 Removals
 ~~~~~~~~
