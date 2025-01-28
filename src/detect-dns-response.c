@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * Detect keyword for DNS response: dns.response
+ * Detect keyword for DNS response: dns.response.rrname
  */
 
 #include "detect.h"
@@ -290,10 +290,10 @@ static int DetectDnsResponsePrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGro
 
 void DetectDnsResponseRegister(void)
 {
-    static const char *keyword = "dns.response";
+    static const char *keyword = "dns.response.rrname";
     sigmatch_table[DETECT_DNS_RESPONSE].name = keyword;
     sigmatch_table[DETECT_DNS_RESPONSE].desc = "DNS response sticky buffer";
-    sigmatch_table[DETECT_DNS_RESPONSE].url = "/rules/dns-keywords.html#dns-response";
+    sigmatch_table[DETECT_DNS_RESPONSE].url = "/rules/dns-keywords.html#dns-response-rrname";
     sigmatch_table[DETECT_DNS_RESPONSE].Setup = DetectSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DNS_RESPONSE].RegisterTests = DetectDnsResponseRegisterTests;
@@ -307,7 +307,7 @@ void DetectDnsResponseRegister(void)
     DetectAppLayerMpmRegister(keyword, SIG_FLAG_TOCLIENT, 2, DetectDnsResponsePrefilterMpmRegister,
             NULL, ALPROTO_DNS, 1);
 
-    DetectBufferTypeSetDescriptionByName(keyword, "dns response");
+    DetectBufferTypeSetDescriptionByName(keyword, "dns response rrname");
     DetectBufferTypeSupportsMultiInstance(keyword);
 
     detect_buffer_id = DetectBufferTypeGetByName(keyword);
@@ -388,9 +388,10 @@ static int DetectDnsResponseTest01(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response query name match\"; "
-                                      "dns.response; content:\"google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response query name match\"; "
+            "dns.response.rrname; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -498,9 +499,10 @@ static int DetectDnsResponseTest02(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response answer name match\"; "
-                                      "dns.response; content:\"google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response answer name match\"; "
+            "dns.response.rrname; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -659,9 +661,10 @@ static int DetectDnsResponseTest03(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response authority name match\"; "
-                                      "dns.response; content:\"google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response authority name match\"; "
+            "dns.response.rrname; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -795,9 +798,10 @@ static int DetectDnsResponseTest04(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response additional name match\"; "
-                                      "dns.response; content:\"ns1.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response additional name match\"; "
+            "dns.response.rrname; content:\"ns1.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -981,9 +985,10 @@ static int DetectDnsResponseTest05(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response answer data match\"; "
-                                      "dns.response; content:\"mail.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response answer data match\"; "
+            "dns.response.rrname; content:\"mail.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1122,9 +1127,10 @@ static int DetectDnsResponseTest06(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response 2nd answer data match\"; "
-                                      "dns.response; content:\"ns2.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response 2nd answer data match\"; "
+            "dns.response.rrname; content:\"ns2.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1273,9 +1279,10 @@ static int DetectDnsResponseTest07(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response authority data match\"; "
-                                      "dns.response; content:\"ns1.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response authority data match\"; "
+            "dns.response.rrname; content:\"ns1.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1472,9 +1479,10 @@ static int DetectDnsResponseTest08(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response additional data match\"; "
-                                      "dns.response; content:\"ns2.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response additional data match\"; "
+            "dns.response.rrname; content:\"ns2.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1572,9 +1580,10 @@ static int DetectDnsResponseTest09(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response query name match tcp\"; "
-                                      "dns.response; content:\"google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response query name match tcp\"; "
+            "dns.response.rrname; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1755,13 +1764,15 @@ static int DetectDnsResponseTest10(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response multi tx answer match\"; "
-                                      "dns.response; content:\"mail.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response multi tx answer match\"; "
+            "dns.response.rrname; content:\"mail.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response multi tx additional match\"; "
-                                      "dns.response; content:\"ns2.google.com\"; nocase; sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response multi tx additional match\"; "
+            "dns.response.rrname; content:\"ns2.google.com\"; nocase; sid:2;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns response multi tx additional match\"; "
@@ -2012,12 +2023,12 @@ static int DetectDnsResponseTest11(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns response pcre match\"; "
-                                      "dns.response; content:\"google\"; nocase; "
+                                      "dns.response.rrname; content:\"google\"; nocase; "
                                       "pcre:\"/ns2\\.google\\.com$/i\"; sid:1;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns response pcre match\"; "
-                                      "dns.response; content:\"google\"; nocase; "
+                                      "dns.response.rrname; content:\"google\"; nocase; "
                                       "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
     FAIL_IF_NULL(s);
 
@@ -2123,9 +2134,10 @@ static int DetectDnsResponseTest12(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                      "(msg:\"Test dns response additional name match\"; "
-                                      "dns.response; content:\"ns2.google.com\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any "
+            "(msg:\"Test dns response additional name match\"; "
+            "dns.response.rrname; content:\"ns2.google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -2161,7 +2173,7 @@ static int DetectDnsResponseTest12(void)
 }
 
 /**
- * \test Verify transform applies to dns.response sticky buffer.
+ * \test Verify transform applies to dns.response.rrname sticky buffer.
  * Test using "to_uppercase". ns2.google.com response matching
  * 2nd additional section name field.
  */
@@ -2233,7 +2245,7 @@ static int DetectDnsResponseTest13(void)
     s = DetectEngineAppendSig(de_ctx,
             "alert dns any any -> any any "
             "(msg:\"Test dns response additional name match with transform\"; "
-            "dns.response; to_uppercase; content:\"NS2.GOOGLE.COM\"; sid:1;)");
+            "dns.response.rrname; to_uppercase; content:\"NS2.GOOGLE.COM\"; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
