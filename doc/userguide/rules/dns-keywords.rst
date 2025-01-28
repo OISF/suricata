@@ -177,23 +177,30 @@ resource name, for example "www.suricata.io".
 
 ``dns.query.name`` was introduced in Suricata 8.0.0.
 
-dns.response
-------------
+dns.response.rrname
+-------------------
 
-``dns.response`` is a sticky buffer that is used to look at all name and 
-rdata fields of DNS response (answer) resource records. It supports 
-inspecting all DNS response sections. Example::
+``dns.response.rrname`` is a sticky buffer that is used to look at all name
+and rdata fields of DNS response (answer) resource records that are
+represented as a resource name (hostname). It supports inspecting all
+DNS response sections. Example::
 
-  alert dns any any -> any any (msg:"Test dns.response option"; dns.response; content:"google"; nocase; sid:1;)
+  alert dns any any -> any any (msg:"Test dns.response.rrname option"; \
+      dns.response.rrname; content:"google"; nocase; sid:1;)
 
-rdata field matching supports a subset of types that contain 
-domain name structured data, for example: "www.suricata.io". 
-The list of types inspected is: 
-CNAME, PTR, MX, NS, SOA (mname data: primary name server).  
+``rdata`` field matching supports a subset of types that contain
+domain name structured data, for example: "www.suricata.io".  The list
+of types inspected is:
+
+* CNAME
+* PTR
+* MX
+* NS
+* SOA (mname data: primary name server)
 
 The buffer being matched on contains the complete re-assembled
 resource name, for example "www.suricata.io".
 
-``dns.response`` supports :doc:`multi-buffer-matching`.
+``dns.response.rrname`` supports :doc:`multi-buffer-matching`.
 
-``dns.response`` was introduced in Suricata 8.0.0.
+``dns.response.rrname`` was introduced in Suricata 8.0.0.
