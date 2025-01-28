@@ -457,7 +457,6 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             if (r == 0) {
                 goto no_match;
             }
-
             if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
                 SCLogDebug("no relative match coming up, so this is a match");
                 goto match;
@@ -478,6 +477,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 SCReturnInt(-1);
             }
 
+            if (prev_offset == 0) {
+                // This happens for negated PCRE
+                // We do not search for another occurrence of this pcre
+                SCReturnInt(0);
+            }
             det_ctx->buffer_offset = prev_buffer_offset;
             det_ctx->pcre_match_start_offset = prev_offset;
         } while (1);
