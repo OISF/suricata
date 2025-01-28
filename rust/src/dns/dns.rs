@@ -1062,31 +1062,21 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalName(
     false
 }
 
-#[inline]
-unsafe fn dns_get_record_rdata(data: &DNSRData, buf: *mut *const u8, len: *mut u32) -> bool {
+fn get_rdata_name(data: &DNSRData) -> Option<&DNSName> {
     match data {
-        DNSRData::CNAME(bytes)
-        | DNSRData::PTR(bytes)
-        | DNSRData::MX(bytes)
-        | DNSRData::NS(bytes) => {
-            if !bytes.value.is_empty() {
-                *len = bytes.value.len() as u32;
-                *buf = bytes.value.as_ptr();
-                return true;
-            }
+        DNSRData::CNAME(name)
+        | DNSRData::PTR(name)
+        | DNSRData::MX(name)
+        | DNSRData::NS(name) => {
+            Some(name)
         }
         DNSRData::SOA(soa) => {
-            if !soa.mname.value.is_empty() {
-                *len = soa.mname.value.len() as u32;
-                *buf = soa.mname.value.as_ptr();
-                return true;
-            }
+            Some(&soa.mname)
         }
         _ => {
-            return false;
+            None
         }
     }
-    return false;
 }
 
 /// Get the DNS response answer rdata at index i that could be a domain name.
@@ -1098,7 +1088,13 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerRdata(
 
     if let Some(response) = &tx.response {
         if let Some(record) = response.answers.get(index) {
-            return dns_get_record_rdata(&record.data, buf, len);
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
         }
     }
 
@@ -1114,7 +1110,13 @@ pub unsafe extern "C" fn SCDnsTxGetAuthorityRdata(
 
     if let Some(response) = &tx.response {
         if let Some(record) = response.authorities.get(index) {
-            return dns_get_record_rdata(&record.data, buf, len);
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
         }
     }
 
@@ -1130,7 +1132,13 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalRdata(
 
     if let Some(response) = &tx.response {
         if let Some(record) = response.additionals.get(index) {
-            return dns_get_record_rdata(&record.data, buf, len);
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
         }
     }
 
