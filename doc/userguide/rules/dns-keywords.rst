@@ -7,22 +7,6 @@ matching on specific fields in DNS messages.
 Note that sticky buffers are expected to be followed by one or more
 :doc:`payload-keywords`.
 
-dns.answer.name
----------------
-
-``dns.answer.name`` is a sticky buffer that is used to look at the
-name field in DNS answer resource records.
-
-``dns.answer.name`` will look at both requests and responses, so
-``flow`` is recommended to confine to a specific direction.
-
-The buffer being matched on contains the complete re-assembled
-resource name, for example "www.suricata.io".
-
-``dns.answer.name`` supports :doc:`multi-buffer-matching`.
-
-``dns.answer.name`` was introduced in Suricata 8.0.0.
-
 dns.opcode
 ----------
 
@@ -176,6 +160,54 @@ resource name, for example "www.suricata.io".
 ``dns.query.name`` supports :doc:`multi-buffer-matching`.
 
 ``dns.query.name`` was introduced in Suricata 8.0.0.
+
+dns.answer.name
+---------------
+
+``dns.answer.name`` is a sticky buffer that is used to look at the
+name field in DNS answer resource records.
+
+``dns.answer.name`` will look at both requests and responses, so
+``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.answer.name`` supports :doc:`multi-buffer-matching`.
+
+``dns.answer.name`` was introduced in Suricata 8.0.0.
+
+dns.authorities.rrname
+----------------------
+
+``dns.authorities.rrname`` is a sticky buffer that is used to look at the
+rrname field in DNS authority resource records.
+
+``dns.authorities.rrname`` will look at both requests and responses,
+so ``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.authorities.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.authorities.rrname`` was introduced in Suricata 8.0.0.
+
+dns.additionals.rrname
+----------------------
+
+``dns.additionals.rrname`` is a sticky buffer that is used to look at
+the rrname field in DNS additional resource records.
+
+``dns.additionals.rrname`` will look at both requests and responses,
+so ``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.additionals.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.additionals.rrname`` was introduced in Suricata 8.0.0.
 
 dns.response.rrname
 -------------------
