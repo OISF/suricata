@@ -86,12 +86,29 @@ static int LuaBase64DecodeStandardNoPad(lua_State *L)
     return 1;
 }
 
+static int LuaBase64DecodeLenient(lua_State *L)
+{
+    size_t input_len;
+    const char *input = luaL_checklstring(L, 1, &input_len);
+    char output[input_len];
+    uint32_t n = SCBase64DecodeLenient((uint8_t *)input, (uintptr_t)input_len, (uint8_t *)output);
+    if (n == 0) {
+        return luaL_error(L, "base64 decoding failed");
+    }
+    DEBUG_VALIDATE_BUG_ON(n > input_len);
+    output[n] = '\0';
+    lua_pushstring(L, (const char *)output);
+
+    return 1;
+}
+
 static const struct luaL_Reg base64lib[] = {
     // clang-format off
     { "encode", LuaBase64EncodeStandard },
     { "encode_nopad", LuaBase64EncodeStandardNoPad },
     { "decode", LuaBase64DecodeStandard },
     { "decode_nopad", LuaBase64DecodeStandardNoPad },
+    { "decode_lenient", LuaBase64DecodeLenient },
     { NULL, NULL },
     // clang-format on
 };

@@ -31,6 +31,11 @@ padding.
 
 Decode a base64 buffer that contains no padding.
 
+``decode_lenient(string)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Decode a base64 buffer that may or mat not contain padding.
+
 Implementation Details
 ~~~~~~~~~~~~~~~~~~~~~~
 

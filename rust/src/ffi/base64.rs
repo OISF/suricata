@@ -127,6 +127,28 @@ pub unsafe extern "C" fn SCBase64Decode(
     return num_decoded;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCBase64DecodeLenient(
+    input: *const u8, len: usize, output: *mut u8,
+) -> u32 {
+    if input.is_null() || len == 0 {
+        return 0;
+    }
+
+    let in_vec = build_slice!(input, len);
+    let out_vec = std::slice::from_raw_parts_mut(output, len);
+    let mut num_decoded: u32 = 0;
+    let config = base64::engine::GeneralPurposeConfig::new()
+        .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
+    let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
+    if let Ok(decoded_len) = decoder.decode_slice(in_vec, out_vec) {
+        num_decoded = decoded_len as u32;
+    }
+
+    debug_validate_bug_on!(num_decoded >= len as u32);
+    return num_decoded;
+}
+
 unsafe fn base64_encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
     mode: SCBase64Mode,
