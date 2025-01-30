@@ -24,6 +24,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         setenv("SC_LOG_FILE", "/dev/null", 0);
         //global init
         InitGlobal();
+        GlobalsInitPreConfig();
         SCRunmodeSet(RUNMODE_UNITTEST);
         MpmTableSetup();
         SpmTableSetup();
