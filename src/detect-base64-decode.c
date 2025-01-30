@@ -95,7 +95,7 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 
     if (decode_len > 0) {
         uint32_t num_decoded =
-                Base64Decode(payload, decode_len, Base64ModeRFC4648, det_ctx->base64_decoded);
+                SCBase64Decode(payload, decode_len, SCBase64ModeRFC4648, det_ctx->base64_decoded);
         det_ctx->base64_decoded_len = num_decoded;
         SCLogDebug("Decoded %d bytes from base64 data.", det_ctx->base64_decoded_len);
     }
