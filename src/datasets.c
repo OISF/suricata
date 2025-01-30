@@ -517,11 +517,11 @@ static int DatasetLoadString(Dataset *set)
         if (r == NULL) {
             line[strlen(line) - 1] = '\0';
             SCLogDebug("line: '%s'", line);
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
+            uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(line));
             // coverity[alloc_strlen : FALSE]
             uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+            uint32_t num_decoded = SCBase64Decode(
+                    (const uint8_t *)line, strlen(line), SCBase64ModeStrict, decoded);
             if (num_decoded == 0 && strlen(line) > 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -538,10 +538,10 @@ static int DatasetLoadString(Dataset *set)
 
             *r = '\0';
 
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(line));
+            uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(line));
             uint8_t decoded[decoded_size];
-            uint32_t num_decoded =
-                    Base64Decode((const uint8_t *)line, strlen(line), Base64ModeStrict, decoded);
+            uint32_t num_decoded = SCBase64Decode(
+                    (const uint8_t *)line, strlen(line), SCBase64ModeStrict, decoded);
             if (num_decoded == 0) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -1606,10 +1606,10 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
 
     switch (set->type) {
         case DATASET_TYPE_STRING: {
-            uint32_t decoded_size = Base64DecodeBufferSize(strlen(string));
+            uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(string));
             uint8_t decoded[decoded_size];
-            uint32_t num_decoded = Base64Decode(
-                    (const uint8_t *)string, strlen(string), Base64ModeStrict, decoded);
+            uint32_t num_decoded = SCBase64Decode(
+                    (const uint8_t *)string, strlen(string), SCBase64ModeStrict, decoded);
             if (num_decoded == 0) {
                 return -2;
             }

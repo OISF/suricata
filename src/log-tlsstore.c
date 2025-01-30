@@ -111,7 +111,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     }
 
     TAILQ_FOREACH (cert, &connp->certs, next) {
-        pemlen = Base64EncodeBufferSize(cert->cert_len);
+        pemlen = SCBase64EncodeBufferSize(cert->cert_len);
         if (pemlen > aft->enc_buf_len) {
             ptmp = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
             if (ptmp == NULL) {
@@ -127,9 +127,10 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
         memset(aft->enc_buf, 0, aft->enc_buf_len);
 
-        ret = Base64Encode((unsigned char*) cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
+        ret = SCBase64Encode(
+                (unsigned char *)cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
         if (ret != SC_BASE64_OK) {
-            SCLogWarning("Invalid return of Base64Encode function");
+            SCLogWarning("Invalid return of SCBase64Encode function");
             goto end_fwrite_fp;
         }
 
