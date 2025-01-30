@@ -36,7 +36,7 @@ struct HybridParsing_Get_User_Data {
 }
 
 impl HybridParsing_Get_User_Data {
-    pub fn new() -> Self {
+    fn new() -> Self {
         HybridParsing_Get_User_Data {
             callback_REQUEST_START_invoked: 0,
             callback_REQUEST_LINE_invoked: 0,

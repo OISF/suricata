@@ -67,7 +67,7 @@ impl Default for Connection {
 impl Connection {
     /// Opens a connection. This function will essentially only store the provided data
     /// for future reference.
-    pub fn open(
+    pub(crate) fn open(
         &mut self, client_addr: Option<IpAddr>, client_port: Option<u16>,
         server_addr: Option<IpAddr>, server_port: Option<u16>, timestamp: Option<OffsetDateTime>,
     ) {
@@ -83,7 +83,7 @@ impl Connection {
     }
 
     /// Closes the connection.
-    pub fn close(&mut self, timestamp: Option<OffsetDateTime>) {
+    pub(crate) fn close(&mut self, timestamp: Option<OffsetDateTime>) {
         // Update timestamp.
         if let Some(timestamp) = timestamp {
             self.close_timestamp = timestamp;
@@ -91,17 +91,17 @@ impl Connection {
     }
 
     /// Keeps track of inbound packets and data.
-    pub fn track_inbound_data(&mut self, len: usize) {
+    pub(crate) fn track_inbound_data(&mut self, len: usize) {
         self.request_data_counter = (self.request_data_counter).wrapping_add(len as u64);
     }
 
     /// Keeps track of outbound packets and data.
-    pub fn track_outbound_data(&mut self, len: usize) {
+    pub(crate) fn track_outbound_data(&mut self, len: usize) {
         self.response_data_counter = (self.response_data_counter).wrapping_add(len as u64);
     }
 
     /// Return the log channel sender
-    pub fn get_sender(&self) -> &Sender<Message> {
+    pub(crate) fn get_sender(&self) -> &Sender<Message> {
         &self.log_channel.0
     }
 
@@ -115,7 +115,7 @@ impl Connection {
     }
 
     /// Returns the next logged message received by the log channel
-    pub fn get_next_log(&self) -> Option<Log> {
+    pub(crate) fn get_next_log(&self) -> Option<Log> {
         self.log_channel
             .1
             .try_recv()

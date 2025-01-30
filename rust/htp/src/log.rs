@@ -200,7 +200,7 @@ pub struct Logger {
 
 impl Logger {
     /// Returns a new logger instance
-    pub fn new(sender: &Sender<Message>, level: HtpLogLevel) -> Logger {
+    pub(crate) fn new(sender: &Sender<Message>, level: HtpLogLevel) -> Logger {
         Self {
             sender: sender.clone(),
             level,
@@ -234,7 +234,7 @@ pub struct Message {
 
 impl Message {
     /// Returns a new Message instance
-    pub fn new(
+    pub(crate) fn new(
         file: &str, line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
     ) -> Message {
         Self {
@@ -265,7 +265,7 @@ pub struct Log {
 
 impl Log {
     /// Returns a new Log instance.
-    pub fn new(conn: &Connection, msg: Message) -> Log {
+    pub(crate) fn new(conn: &Connection, msg: Message) -> Log {
         Self {
             client_addr: conn.client_addr,
             client_port: conn.client_port,

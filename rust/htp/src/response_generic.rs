@@ -16,7 +16,7 @@ use std::cmp::Ordering;
 
 impl ConnectionParser {
     /// Generic response line parser.
-    pub fn parse_response_line_generic(&mut self, response_line: &[u8]) -> Result<()> {
+    pub(crate) fn parse_response_line_generic(&mut self, response_line: &[u8]) -> Result<()> {
         let response_tx = self.response_mut();
         response_tx.response_protocol_number = HtpProtocol::INVALID;
         response_tx.response_status = None;
@@ -64,7 +64,7 @@ impl ConnectionParser {
     /// Generic response header parser.
     ///
     ///Returns a tuple of the unparsed data and a boolean indicating if the EOH was seen.
-    pub fn process_response_headers_generic<'a>(
+    pub(crate) fn process_response_headers_generic<'a>(
         &mut self,
         data: &'a [u8],
     ) -> Result<(&'a [u8], bool)> {

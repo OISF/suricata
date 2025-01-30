@@ -41,17 +41,6 @@ pub struct Options {
 }
 
 impl Options {
-    /// Get the lzma memlimit.
-    ///
-    /// A value of 0 indicates that lzma is disabled.
-    pub fn get_lzma_memlimit(&self) -> usize {
-        if let Some(options) = self.lzma {
-            options.memlimit.unwrap_or(0)
-        } else {
-            0
-        }
-    }
-
     /// Set the lzma memlimit.
     ///
     /// A value of 0 will disable lzma.
@@ -67,17 +56,17 @@ impl Options {
     }
 
     /// Configures the maximum layers passed to lzma-rs.
-    pub fn set_lzma_layers(&mut self, layers: Option<u32>) {
+    pub(crate) fn set_lzma_layers(&mut self, layers: Option<u32>) {
         self.lzma_layers = layers;
     }
 
     /// Gets the maximum layers passed to lzma-rs.
-    pub fn get_lzma_layers(&self) -> Option<u32> {
+    pub(crate) fn get_lzma_layers(&self) -> Option<u32> {
         self.lzma_layers
     }
 
     /// Get the compression bomb limit.
-    pub fn get_bomb_limit(&self) -> u64 {
+    pub(crate) fn get_bomb_limit(&self) -> u64 {
         self.bomb_limit
     }
 
@@ -87,7 +76,7 @@ impl Options {
     }
 
     /// Get the bomb ratio.
-    pub fn get_bomb_ratio(&self) -> u64 {
+    pub(crate) fn get_bomb_ratio(&self) -> u64 {
         self.bomb_ratio
     }
 
@@ -97,7 +86,7 @@ impl Options {
     }
 
     /// Get the compression time limit in microseconds.
-    pub fn get_time_limit(&self) -> u32 {
+    pub(crate) fn get_time_limit(&self) -> u32 {
         self.time_limit
     }
 
@@ -107,22 +96,17 @@ impl Options {
     }
 
     /// Get the time test frequency.
-    pub fn get_time_test_freq(&self) -> u32 {
+    pub(crate) fn get_time_test_freq(&self) -> u32 {
         self.time_test_freq
     }
 
-    /// Set the time test frequency.
-    pub fn set_time_test_freq(&mut self, time_test_freq: u32) {
-        self.time_test_freq = time_test_freq;
-    }
-
     /// Get the decompression layer limit.
-    pub fn get_layer_limit(&self) -> Option<u32> {
+    pub(crate) fn get_layer_limit(&self) -> Option<u32> {
         self.layer_limit
     }
 
     /// Set the decompression layer limit.
-    pub fn set_layer_limit(&mut self, layer_limit: Option<u32>) {
+    pub(crate) fn set_layer_limit(&mut self, layer_limit: Option<u32>) {
         self.layer_limit = layer_limit;
     }
 }
@@ -146,7 +130,7 @@ impl Default for Options {
 
 /// Describes a decompressor that is able to restart and passthrough data.
 /// Actual decompression is done using the `Write` trait.
-pub trait Decompress: Write {
+pub(crate) trait Decompress: Write {
     /// Restarts the decompressor to try the same one again or a different one.
     fn restart(&mut self) -> std::io::Result<()>;
 
@@ -160,14 +144,14 @@ pub trait Decompress: Write {
 }
 
 /// Type alias for callback function.
-pub type CallbackFn = Box<dyn FnMut(Option<&[u8]>) -> Result<usize, std::io::Error>>;
+pub(crate) type CallbackFn = Box<dyn FnMut(Option<&[u8]>) -> Result<usize, std::io::Error>>;
 
 /// Simple wrapper around a closure to chain it to the other decompressors
 pub struct CallbackWriter(CallbackFn);
 
 impl CallbackWriter {
     /// Create a new CallbackWriter.
-    pub fn new(cbk: CallbackFn) -> Self {
+    pub(crate) fn new(cbk: CallbackFn) -> Self {
         CallbackWriter(cbk)
     }
 }
@@ -303,7 +287,7 @@ impl Decompressor {
 
     /// Stops the decompression timer, updates and returns the time spent
     /// decompressing in microseconds (usec).
-    pub fn timer_reset(&mut self) -> Option<u64> {
+    pub(crate) fn timer_reset(&mut self) -> Option<u64> {
         let now = Instant::now();
         if let Some(time_before) = self.time_before.replace(now) {
             // it is unlikely that more than 2^64 will be spent on a single stream
@@ -317,13 +301,13 @@ impl Decompressor {
     }
 
     /// Increments the number of times the callback was called.
-    pub fn callback_inc(&mut self) -> u32 {
+    pub(crate) fn callback_inc(&mut self) -> u32 {
         self.nb_callbacks = self.nb_callbacks.wrapping_add(1);
         self.nb_callbacks
     }
 
     /// Returns the time spent decompressing in microseconds (usec).
-    pub fn time_spent(&self) -> u64 {
+    pub(crate) fn time_spent(&self) -> u64 {
         self.time_spent
     }
 
@@ -344,12 +328,12 @@ impl Decompressor {
 
     /// Notify decompressors that the end of stream as reached. This is equivalent
     /// to sending a NULL data pointer.
-    pub fn finish(&mut self) -> std::io::Result<()> {
+    pub(crate) fn finish(&mut self) -> std::io::Result<()> {
         self.inner.finish()
     }
 
     /// Set this decompressor to passthrough
-    pub fn set_passthrough(&mut self, passthrough: bool) {
+    pub(crate) fn set_passthrough(&mut self, passthrough: bool) {
         self.inner.set_passthrough(passthrough)
     }
 }
@@ -365,7 +349,7 @@ impl std::fmt::Debug for Decompressor {
 
 /// Trait that represents the decompression writers (gzip, deflate, etc.) and
 /// methods needed to write to a temporary buffer.
-pub trait BufWriter: Write {
+pub(crate) trait BufWriter: Write {
     /// Get a mutable reference to the buffer.
     fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>>;
     /// Notify end of data.
