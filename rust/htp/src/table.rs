@@ -1,5 +1,7 @@
 use crate::bstr::Bstr;
-use std::{cmp::Ordering, iter::Iterator, ops::Index, slice::SliceIndex};
+use std::ops::Index;
+#[cfg(test)]
+use std::{cmp::Ordering, iter::Iterator, slice::SliceIndex};
 
 /// The table structure for key value pairs.
 #[derive(Clone, Debug)]
@@ -44,19 +46,20 @@ impl<T> IntoIterator for Table<T> {
 
 impl<T> Table<T> {
     /// Make a new owned Table with given capacity
-    pub fn with_capacity(size: usize) -> Self {
+    pub(crate) fn with_capacity(size: usize) -> Self {
         Self {
             elements: Vec::with_capacity(size),
         }
     }
 
     /// Add a new tuple (key, item) to the table
-    pub fn add(&mut self, key: Bstr, item: T) {
+    pub(crate) fn add(&mut self, key: Bstr, item: T) {
         self.elements.push((key, item));
     }
 
     /// Retrieve an element from a specific index.
-    pub fn get<I>(&self, index: I) -> Option<&I::Output>
+    #[cfg(test)]
+    pub(crate) fn get<I>(&self, index: I) -> Option<&I::Output>
     where
         I: SliceIndex<[(Bstr, T)]>,
     {
@@ -64,7 +67,8 @@ impl<T> Table<T> {
     }
 
     /// Retrieve a mutable reference to an element from a specific index.
-    pub fn get_mut<I>(&mut self, index: I) -> Option<&mut I::Output>
+    #[cfg(test)]
+    pub(crate) fn get_mut<I>(&mut self, index: I) -> Option<&mut I::Output>
     where
         I: SliceIndex<[(Bstr, T)]>,
     {
@@ -74,14 +78,15 @@ impl<T> Table<T> {
     /// Search the table for the first tuple with a key matching the given slice, ingnoring ascii case in self
     ///
     /// Returns None if no match is found.
-    pub fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&(Bstr, T)> {
+    #[cfg(test)]
+    pub(crate) fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&(Bstr, T)> {
         self.elements
             .iter()
             .find(|x| x.0.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
     }
 
     /// Returns the number of elements in the table
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         self.elements.len()
     }
 }

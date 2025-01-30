@@ -70,7 +70,7 @@ pub struct Utf8Decoder {
 
 impl Utf8Decoder {
     /// Make a new owned Utf8Decoder
-    pub fn new(bestfit_map: UnicodeBestfitMap) -> Self {
+    pub(crate) fn new(bestfit_map: UnicodeBestfitMap) -> Self {
         Self {
             bestfit_map,
             state: 0,
@@ -201,7 +201,7 @@ impl Utf8Decoder {
 /// be replaced with the replacement byte specified in the cfg. Best-fit mapping will
 /// be used to convert UTF-8 into a single-byte stream. The resulting decoded path will
 /// be stored in the input path if the transaction cfg indicates it
-pub fn decode_and_validate_inplace(
+pub(crate) fn decode_and_validate_inplace(
     cfg: &DecoderConfig, flags: &mut u64, status: &mut HtpUnwanted, path: &mut Bstr,
 ) {
     let mut decoder = Utf8Decoder::new(cfg.bestfit_map);

@@ -76,7 +76,7 @@ impl Default for Uri {
 
 impl Uri {
     /// Create an empty Uri struct but with the given DecoderCfg
-    pub fn with_config(cfg: DecoderConfig) -> Self {
+    pub(crate) fn with_config(cfg: DecoderConfig) -> Self {
         Self {
             cfg,
             scheme: None,
@@ -92,7 +92,7 @@ impl Uri {
     }
 
     /// Normalize uri scheme.
-    pub fn normalized_scheme(&self) -> Option<Bstr> {
+    pub(crate) fn normalized_scheme(&self) -> Option<Bstr> {
         if let Some(mut scheme) = self.scheme.clone() {
             scheme.make_ascii_lowercase();
             Some(scheme)
@@ -102,7 +102,7 @@ impl Uri {
     }
 
     /// Normalize uri username.
-    pub fn normalized_username(&self, flags: &mut u64) -> Option<Bstr> {
+    pub(crate) fn normalized_username(&self, flags: &mut u64) -> Option<Bstr> {
         if let Some(username) = self.username.as_ref() {
             decode_uri_with_flags(&self.cfg, flags, username.as_slice()).ok()
         } else {
@@ -111,7 +111,7 @@ impl Uri {
     }
 
     /// Normalize uri password.
-    pub fn normalized_password(&self, flags: &mut u64) -> Option<Bstr> {
+    pub(crate) fn normalized_password(&self, flags: &mut u64) -> Option<Bstr> {
         if let Some(password) = self.password.as_ref() {
             decode_uri_with_flags(&self.cfg, flags, password.as_slice()).ok()
         } else {
@@ -120,7 +120,7 @@ impl Uri {
     }
 
     /// Normalize uri hostname.
-    pub fn normalized_hostname(&self, flags: &mut u64) -> Option<Bstr> {
+    pub(crate) fn normalized_hostname(&self, flags: &mut u64) -> Option<Bstr> {
         if let Some(hostname) = self.hostname.as_ref() {
             let mut normalized_hostname =
                 decode_uri_with_flags(&self.cfg, flags, hostname.as_slice()).ok()?;
@@ -136,7 +136,7 @@ impl Uri {
     }
 
     /// Normalize uri port.
-    pub fn normalized_port(&self, flags: &mut u64) -> Option<u16> {
+    pub(crate) fn normalized_port(&self, flags: &mut u64) -> Option<u16> {
         if let Some(port) = self.port.as_ref() {
             let normalized_port = convert_port(port.as_slice());
             if normalized_port.is_none() {
@@ -150,7 +150,7 @@ impl Uri {
     }
 
     /// Normalize uri fragment.
-    pub fn normalized_fragment(&self, flags: &mut u64) -> Option<Bstr> {
+    pub(crate) fn normalized_fragment(&self, flags: &mut u64) -> Option<Bstr> {
         if let Some(fragment) = self.fragment.as_ref() {
             decode_uri_with_flags(&self.cfg, flags, fragment).ok()
         } else {
@@ -159,7 +159,9 @@ impl Uri {
     }
 
     /// Normalize uri path.
-    pub fn normalized_path(&self, flags: &mut u64, status: &mut HtpUnwanted) -> Option<Bstr> {
+    pub(crate) fn normalized_path(
+        &self, flags: &mut u64, status: &mut HtpUnwanted,
+    ) -> Option<Bstr> {
         if let Some(mut path) = self.path.clone() {
             // Decode URL-encoded (and %u-encoded) characters, as well as lowercase,
             // compress separators and convert backslashes.
@@ -179,7 +181,7 @@ impl Uri {
     ///
     /// It attempts, but is not guaranteed to successfully parse out a scheme, username, password, hostname, port, query, and fragment.
     /// Note: only attempts to extract a username, password, and hostname and subsequently port if it successfully parsed a scheme.
-    pub fn parse_uri(&mut self, input: &[u8]) {
+    pub(crate) fn parse_uri(&mut self, input: &[u8]) {
         let res = tuple((
             opt(tuple((
                 scheme(),
@@ -219,7 +221,7 @@ impl Uri {
     }
 
     /// Parses hostport provided in the URI.
-    pub fn parse_uri_hostport(&mut self, hostport: &Bstr, flags: &mut u64) {
+    pub(crate) fn parse_uri_hostport(&mut self, hostport: &Bstr, flags: &mut u64) {
         if let Ok((_, (host, port_nmb, mut valid))) = parse_hostport(hostport) {
             let hostname = &host.to_ascii_lowercase();
             self.hostname = Some(Bstr::from(hostname.as_slice()));
@@ -238,7 +240,7 @@ impl Uri {
     }
 
     /// Generate a normalized uri string.
-    pub fn generate_normalized_uri(
+    pub(crate) fn generate_normalized_uri(
         &self, mut logger: Option<Logger>,
     ) -> (Option<Bstr>, Option<Bstr>) {
         // On the first pass determine the length of the final bstrs

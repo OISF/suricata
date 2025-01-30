@@ -204,7 +204,7 @@ pub struct Parser {
 /// Returns New parser instance
 impl Parser {
     /// Create new Parser with `Config`, boundary data and flags.
-    pub fn new(cfg: &Rc<Config>, boundary: &[u8], flags: u64) -> Self {
+    pub(crate) fn new(cfg: &Rc<Config>, boundary: &[u8], flags: u64) -> Self {
         Self {
             multipart: Multipart {
                 boundary_len: boundary.len() + 2,
@@ -235,7 +235,7 @@ impl Parser {
     }
 
     /// Returns the part currently being processed.
-    pub fn get_current_part(&mut self) -> Result<&mut Part> {
+    pub(crate) fn get_current_part(&mut self) -> Result<&mut Part> {
         self.current_part_idx
             .and_then(move |idx| self.multipart.parts.get_mut(idx))
             .ok_or(HtpStatus::ERROR)
@@ -288,7 +288,7 @@ impl Parser {
     }
 
     /// Handles part data, updating flags, and creating new headers as necessary.
-    pub fn handle_part_data(&mut self, to_consume: &[u8], is_line: bool) -> Result<()> {
+    pub(crate) fn handle_part_data(&mut self, to_consume: &[u8], is_line: bool) -> Result<()> {
         // End of the line.
         let mut line: Option<Bstr> = None;
         // Keep track of raw part length.
@@ -457,7 +457,7 @@ impl Parser {
     }
 
     /// Finalize parsing.
-    pub fn finalize(&mut self) -> Result<()> {
+    pub(crate) fn finalize(&mut self) -> Result<()> {
         if self.current_part_idx.is_some() {
             // Process buffered data, if any.
             self.process_aside(false);
@@ -473,7 +473,7 @@ impl Parser {
     }
 
     /// Finalizes part processing.
-    pub fn finalize_part_data(&mut self) -> Result<()> {
+    pub(crate) fn finalize_part_data(&mut self) -> Result<()> {
         // Determine if this part is the epilogue.
         if self.multipart.flags.is_set(Flags::SEEN_LAST_BOUNDARY) {
             if self.get_current_part()?.type_0 == HtpMultipartType::UNKNOWN {
@@ -517,7 +517,7 @@ impl Parser {
     }
 
     /// Returns the multipart structure created by the parser.
-    pub fn get_multipart(&mut self) -> &mut Multipart {
+    pub(crate) fn get_multipart(&mut self) -> &mut Multipart {
         &mut self.multipart
     }
 
@@ -698,7 +698,7 @@ impl Parser {
 
     /// Parses a chunk of multipart/form-data data. This function should be called
     /// as many times as necessary until all data has been consumed.
-    pub fn parse(&mut self, mut input: &[u8]) -> HtpStatus {
+    pub(crate) fn parse(&mut self, mut input: &[u8]) -> HtpStatus {
         while !input.is_empty() {
             match self.parser_state {
                 HtpMultipartState::DATA => {
@@ -725,7 +725,7 @@ impl Parser {
     ///
     /// Returns HtpStatus::OK on success, HtpStatus::DECLINED on parsing error, HtpStatus::ERROR
     /// on fatal error.
-    pub fn parse_header(&mut self) -> Result<()> {
+    pub(crate) fn parse_header(&mut self) -> Result<()> {
         // We do not allow NUL bytes here.
         if self.pending_header_line.as_slice().contains(&(b'\0')) {
             self.multipart.flags.set(Flags::NUL_BYTE);
@@ -790,7 +790,7 @@ impl Parser {
     ///
     /// Returns OK on success (header found and parsed), DECLINED if there is no C-D header or if
     ///         it could not be processed, and ERROR on fatal error.
-    pub fn parse_c_d(&mut self) -> Result<()> {
+    pub(crate) fn parse_c_d(&mut self) -> Result<()> {
         // Find the C-D header.
         let part = self.get_current_part()?;
         let header = {
@@ -850,7 +850,7 @@ impl Parser {
     }
 
     /// Send file data to request file data callback.
-    pub fn run_request_file_data_hook(&mut self, is_end: bool) -> Result<()> {
+    pub(crate) fn run_request_file_data_hook(&mut self, is_end: bool) -> Result<()> {
         //TODO: do without these clones!
         let data = self.to_consume.clone();
         let data = if !is_end { data.as_slice() } else { b"" };
@@ -1210,7 +1210,7 @@ fn boundary() -> impl Fn(
 /// Flags may be set on even without successfully locating the boundary. For
 /// example, if a boundary could not be extracted but there is indication that
 /// one is present, the HBOUNDARY_INVALID flag will be set.
-pub fn find_boundary<'a>(content_type: &'a [u8], flags: &mut u64) -> Option<&'a [u8]> {
+pub(crate) fn find_boundary<'a>(content_type: &'a [u8], flags: &mut u64) -> Option<&'a [u8]> {
     // Our approach is to ignore the MIME type and instead just look for
     // the boundary. This approach is more reliable in the face of various
     // evasion techniques that focus on submitting invalid MIME types.

@@ -5,7 +5,7 @@ use crate::{
     decompressors::{Decompressor, HtpContentEncoding},
     error::Result,
     headers::{Parser as HeaderParser, Side},
-    hook::{DataHook, DataNativeCallbackFn},
+    hook::DataHook,
     log::Logger,
     parsers::{parse_authorization, parse_content_length, parse_content_type, parse_hostport},
     request::HtpMethod,
@@ -44,7 +44,7 @@ pub struct Param {
 
 impl Param {
     /// Make a new owned Param
-    pub fn new(name: Bstr, value: Bstr, source: HtpDataSource) -> Self {
+    pub(crate) fn new(name: Bstr, value: Bstr, source: HtpDataSource) -> Self {
         Param {
             name,
             value,
@@ -65,37 +65,32 @@ pub struct Data<'a> {
 
 impl<'a> Data<'a> {
     /// Construct a new Data.
-    pub fn new(tx: *mut Transaction, data: &'a ParserData<'a>) -> Self {
+    pub(crate) fn new(tx: *mut Transaction, data: &'a ParserData<'a>) -> Self {
         Self { tx, data }
     }
 
     /// Returns the transaction associated with the Data.
-    pub fn tx(&self) -> *mut Transaction {
+    pub(crate) fn tx(&self) -> *mut Transaction {
         self.tx
     }
 
     /// Returns a pointer to the raw data associated with Data.
-    pub fn data(&self) -> *const u8 {
+    pub(crate) fn data(&self) -> *const u8 {
         self.data.data_ptr()
     }
 
     /// Returns the length of the data.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.data.len()
     }
 
-    /// Return an immutable slice view of the data.
-    pub fn as_slice(&self) -> Option<&[u8]> {
-        self.data.data()
-    }
-
     /// Determine whether this data is empty.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns a reference to the internal ParserData struct.
-    pub fn parser_data(&self) -> &ParserData {
+    pub(crate) fn parser_data(&self) -> &ParserData {
         self.data
     }
 }
@@ -131,7 +126,7 @@ pub enum HtpResponseNumber {
 
 impl HtpResponseNumber {
     /// Determine if the response status number is in the given range.
-    pub fn in_range(self, min: u16, max: u16) -> bool {
+    pub(crate) fn in_range(self, min: u16, max: u16) -> bool {
         use HtpResponseNumber::*;
         match self {
             UNKNOWN | INVALID => false,
@@ -170,7 +165,7 @@ pub struct Headers {
 
 impl Headers {
     /// Make a new owned Headers Table with given capacity
-    pub fn with_capacity(size: usize) -> Self {
+    pub(crate) fn with_capacity(size: usize) -> Self {
         Self {
             elements: Vec::with_capacity(size),
         }
@@ -188,7 +183,7 @@ impl Headers {
     /// Search the Headers table for the first tuple with a tuple key matching the given slice, ignoring ascii case and any zeros in self
     ///
     /// Returns None if no match is found.
-    pub fn get_nocase_nozero_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
+    pub(crate) fn get_nocase_nozero_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
         self.elements
             .iter_mut()
             .find(|x| x.name.cmp_nocase_nozero_trimmed(key.as_ref()) == Ordering::Equal)
@@ -197,7 +192,7 @@ impl Headers {
     /// Search the Headers table for the first tuple with a key matching the given slice, ingnoring ascii case in self
     ///
     /// Returns None if no match is found.
-    pub fn get_nocase_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
+    pub(crate) fn get_nocase_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
         self.elements
             .iter_mut()
             .find(|x| x.name.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
@@ -206,7 +201,7 @@ impl Headers {
     /// Search the Headers table for the first tuple with a key matching the given slice, ingnoring ascii case in self
     ///
     /// Returns None if no match is found.
-    pub fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
+    pub(crate) fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
         self.elements
             .iter()
             .find(|x| x.name.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
@@ -243,7 +238,7 @@ impl Header {
     }
 
     /// Construct a new header with flags.
-    pub fn new_with_flags(name: Bstr, value: Bstr, flags: u64) -> Self {
+    pub(crate) fn new_with_flags(name: Bstr, value: Bstr, flags: u64) -> Self {
         Self { name, value, flags }
     }
 }
@@ -644,7 +639,7 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     /// Construct a new transaction.
-    pub fn new(cfg: &Rc<Config>, logger: &Logger, index: usize) -> Self {
+    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger, index: usize) -> Self {
         Self {
             logger: logger.clone(),
             cfg: Rc::clone(cfg),
@@ -709,13 +704,8 @@ impl Transaction {
         }
     }
 
-    /// Register callback for the transaction-specific REQUEST_BODY_DATA hook.
-    pub fn register_request_body_data(&mut self, cbk_fn: DataNativeCallbackFn) {
-        self.hook_request_body_data.register(cbk_fn)
-    }
-
     /// Has this transaction started?
-    pub fn is_started(&self) -> bool {
+    pub(crate) fn is_started(&self) -> bool {
         !(self.request_progress == HtpRequestProgress::NOT_STARTED
             && self.response_progress == HtpResponseProgress::NOT_STARTED)
     }
@@ -741,7 +731,7 @@ impl Transaction {
 
     /// Adds one parameter to the request. This function will take over the
     /// responsibility for the provided Param structure.
-    pub fn request_add_param(&mut self, mut param: Param) -> Result<()> {
+    pub(crate) fn request_add_param(&mut self, mut param: Param) -> Result<()> {
         if let Some(parameter_processor_fn) = self.cfg.parameter_processor {
             parameter_processor_fn(&mut param)?
         }
@@ -749,13 +739,13 @@ impl Transaction {
     }
 
     /// Determine if the request has a body.
-    pub fn request_has_body(&self) -> bool {
+    pub(crate) fn request_has_body(&self) -> bool {
         self.request_transfer_coding == HtpTransferCoding::IDENTITY
             || self.request_transfer_coding == HtpTransferCoding::CHUNKED
     }
 
     /// Process the extracted request headers and set the appropriate flags
-    pub fn process_request_headers(&mut self) -> Result<()> {
+    pub(crate) fn process_request_headers(&mut self) -> Result<()> {
         // Determine if we have a request body, and how it is packaged.
         let cl_opt = self.request_headers.get_nocase_nozero("content-length");
         // Check for the Transfer-Encoding header, which would indicate a chunked request body.
@@ -907,7 +897,7 @@ impl Transaction {
     }
 
     /// Sanity check the response line, logging if there is an invalid protocol or status number.
-    pub fn validate_response_line(&mut self) {
+    pub(crate) fn validate_response_line(&mut self) {
         // Is the response line valid?
         if self.response_protocol_number == HtpProtocol::INVALID {
             htp_warn!(
@@ -929,7 +919,7 @@ impl Transaction {
     }
 
     /// Parse the raw request line
-    pub fn parse_request_line(&mut self) -> Result<()> {
+    pub(crate) fn parse_request_line(&mut self) -> Result<()> {
         // Determine how to process the request URI.
         let mut parsed_uri = Uri::with_config(self.cfg.decoder_cfg);
         if self.request_method_number == HtpMethod::CONNECT {
@@ -988,29 +978,22 @@ impl Transaction {
             && self.response_progress == HtpResponseProgress::COMPLETE
     }
 
-    /// Return a reference to the parsed request uri.
-    pub fn get_parsed_uri_query(&self) -> Option<&Bstr> {
-        self.parsed_uri
-            .as_ref()
-            .and_then(|parsed_uri| parsed_uri.query.as_ref())
-    }
-
     /// Return a reference to the uri hostname.
-    pub fn get_parsed_uri_hostname(&self) -> Option<&Bstr> {
+    pub(crate) fn get_parsed_uri_hostname(&self) -> Option<&Bstr> {
         self.parsed_uri
             .as_ref()
             .and_then(|parsed_uri| parsed_uri.hostname.as_ref())
     }
 
     /// Return a reference to the uri port_number.
-    pub fn get_parsed_uri_port_number(&self) -> Option<&u16> {
+    pub(crate) fn get_parsed_uri_port_number(&self) -> Option<&u16> {
         self.parsed_uri
             .as_ref()
             .and_then(|parsed_uri| parsed_uri.port_number.as_ref())
     }
 
     /// Normalize a previously-parsed request URI.
-    pub fn normalize_parsed_uri(&mut self) {
+    pub(crate) fn normalize_parsed_uri(&mut self) {
         let mut uri = Uri::with_config(self.cfg.decoder_cfg);
         if let Some(incomplete) = &self.parsed_uri_raw {
             uri.scheme = incomplete.normalized_scheme();

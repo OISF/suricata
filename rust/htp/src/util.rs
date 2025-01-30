@@ -192,18 +192,18 @@ fn is_separator(c: u8) -> bool {
 /// Determines if character is a token.
 /// token = 1*<any CHAR except CTLs or separators>
 /// CHAR  = <any US-ASCII character (octets 0 - 127)>
-pub fn is_token(c: u8) -> bool {
+pub(crate) fn is_token(c: u8) -> bool {
     (32..=126).contains(&c) && !is_separator(c)
 }
 
 /// This parser takes leading whitespace as defined by is_ascii_whitespace.
-pub fn take_ascii_whitespace() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_ascii_whitespace() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| take_while(|c: u8| c.is_ascii_whitespace())(input)
 }
 
 /// Remove all line terminators (LF, CR or CRLF) from
 /// the end of the line provided as input.
-pub fn chomp(mut data: &[u8]) -> &[u8] {
+pub(crate) fn chomp(mut data: &[u8]) -> &[u8] {
     loop {
         let last_char = data.last();
         if last_char == Some(&(b'\n')) || last_char == Some(&(b'\r')) {
@@ -242,7 +242,7 @@ fn trim_end(input: &[u8]) -> &[u8] {
 }
 
 /// Trim the leading and trailing whitespace from this byteslice.
-pub fn trimmed(input: &[u8]) -> &[u8] {
+pub(crate) fn trimmed(input: &[u8]) -> &[u8] {
     trim_end(trim_start(input))
 }
 
@@ -254,7 +254,7 @@ pub fn trimmed(input: &[u8]) -> &[u8] {
 /// If the predicate does not match, then the entire input is returned
 /// in the first predicate element and an empty binary string is returned
 /// in the second element.
-pub fn split_on_predicate<F>(
+pub(crate) fn split_on_predicate<F>(
     input: &[u8], reverse: bool, do_trim: bool, predicate: F,
 ) -> (&[u8], &[u8])
 where
@@ -286,7 +286,7 @@ where
 
 /// Determines if character is a whitespace character.
 /// whitespace = ' ' | '\t' | '\r' | '\n' | '\x0b' | '\x0c'
-pub fn is_space(c: u8) -> bool {
+pub(crate) fn is_space(c: u8) -> bool {
     matches!(c as char, ' ' | '\t' | '\r' | '\n' | '\x0b' | '\x0c')
 }
 
@@ -307,7 +307,7 @@ fn is_line_whitespace(data: &[u8]) -> bool {
 /// Parses over leading and trailing LWS characters.
 ///
 /// Returns (any trailing non-LWS characters, (non-LWS leading characters, ascii digits))
-pub fn ascii_digits() -> impl Fn(&[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
+pub(crate) fn ascii_digits() -> impl Fn(&[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     move |input| {
         map(
             tuple((
@@ -325,7 +325,7 @@ pub fn ascii_digits() -> impl Fn(&[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
 /// Parses over leading and trailing LWS characters.
 ///
 /// Returns a tuple of any trailing non-LWS characters and the found hex digits
-pub fn hex_digits() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn hex_digits() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         map(
             tuple((
@@ -361,14 +361,14 @@ fn is_line_terminator(
 }
 
 /// Determines if the given line can be ignored when it appears before a request.
-pub fn is_line_ignorable(server_personality: HtpServerPersonality, data: &[u8]) -> bool {
+pub(crate) fn is_line_ignorable(server_personality: HtpServerPersonality, data: &[u8]) -> bool {
     is_line_terminator(server_personality, data, false)
 }
 
 /// Attempts to convert the provided port slice to a u16
 ///
 /// Returns port number if a valid one is found. None if fails to convert or the result is 0
-pub fn convert_port(port: &[u8]) -> Option<u16> {
+pub(crate) fn convert_port(port: &[u8]) -> Option<u16> {
     if port.is_empty() {
         return None;
     }
@@ -386,7 +386,7 @@ pub fn convert_port(port: &[u8]) -> Option<u16> {
 /// words "http" at the beginning.
 ///
 /// Returns true for good enough (treat as response body) or false for not good enough
-pub fn treat_response_line_as_body(data: &[u8]) -> bool {
+pub(crate) fn treat_response_line_as_body(data: &[u8]) -> bool {
     // Browser behavior:
     //      Firefox 3.5.x: (?i)^\s*http
     //      IE: (?i)^\s*http\s*/
@@ -398,7 +398,7 @@ pub fn treat_response_line_as_body(data: &[u8]) -> bool {
 /// Implements relaxed (not strictly RFC) hostname validation.
 ///
 /// Returns true if the supplied hostname is valid; false if it is not.
-pub fn validate_hostname(input: &[u8]) -> bool {
+pub(crate) fn validate_hostname(input: &[u8]) -> bool {
     if input.is_empty() || input.len() > 255 {
         return false;
     }
@@ -438,45 +438,45 @@ pub fn validate_hostname(input: &[u8]) -> bool {
 }
 
 /// Returns the LibHTP version string.
-pub fn get_version() -> &'static str {
+pub(crate) fn get_version() -> &'static str {
     HTP_VERSION_STRING_FULL
 }
 
 /// Take leading whitespace as defined by nom_is_space.
-pub fn nom_take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn nom_take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(nom_is_space)(data)
 }
 
 /// Take data before the first null character if it exists.
-pub fn take_until_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_until_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(|c| c != b'\0')(data)
 }
 
 /// Take leading space as defined by util::is_space.
-pub fn take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(is_space)(data)
 }
 
 /// Take leading null characters or spaces as defined by util::is_space
-pub fn take_is_space_or_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_is_space_or_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(|c| is_space(c) || c == b'\0')(data)
 }
 
 /// Take any non-space character as defined by is_space.
-pub fn take_not_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_not_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(|c: u8| !is_space(c))(data)
 }
 
 /// Returns all data up to and including the first new line or null
 /// Returns Err if not found
-pub fn take_till_lf_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_till_lf_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
     let (_, line) = streaming_take_till(|c| c == b'\n' || c == 0)(data)?;
     Ok((&data[line.len() + 1..], &data[0..line.len() + 1]))
 }
 
 /// Returns all data up to and including the first new line
 /// Returns Err if not found
-pub fn take_till_lf(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_till_lf(data: &[u8]) -> IResult<&[u8], &[u8]> {
     let (_, line) = streaming_take_till(|c| c == b'\n')(data)?;
     Ok((&data[line.len() + 1..], &data[0..line.len() + 1]))
 }
@@ -484,7 +484,7 @@ pub fn take_till_lf(data: &[u8]) -> IResult<&[u8], &[u8]> {
 /// Returns all data up to and including the first EOL and which EOL was seen
 ///
 /// Returns Err if not found
-pub fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
+pub(crate) fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
     let (_, (line, eol)) = tuple((
         streaming_take_till(|c| c == b'\n' || c == b'\r'),
         alt((
@@ -505,14 +505,14 @@ pub fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
 }
 
 /// Skip control characters
-pub fn take_chunked_ctl_chars(data: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn take_chunked_ctl_chars(data: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while(is_chunked_ctl_char)(data)
 }
 
 /// Check if the data contains valid chunked length chars, i.e. leading chunked ctl chars and ascii hexdigits
 ///
 /// Returns true if valid, false otherwise
-pub fn is_valid_chunked_length_data(data: &[u8]) -> bool {
+pub(crate) fn is_valid_chunked_length_data(data: &[u8]) -> bool {
     tuple((
         take_chunked_ctl_chars,
         take_while1(|c: u8| !c.is_ascii_hexdigit()),
@@ -525,7 +525,7 @@ fn is_chunked_ctl_char(c: u8) -> bool {
 }
 
 /// Check if the entire input line is chunked control characters
-pub fn is_chunked_ctl_line(l: &[u8]) -> bool {
+pub(crate) fn is_chunked_ctl_line(l: &[u8]) -> bool {
     for c in l {
         if !is_chunked_ctl_char(*c) {
             return false;

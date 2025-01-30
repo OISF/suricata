@@ -117,7 +117,7 @@ pub fn scheme() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 /// Helper for parsed credentials (username, Option<password>)
-pub type ParsedCredentials<'a> = (&'a [u8], Option<&'a [u8]>);
+pub(crate) type ParsedCredentials<'a> = (&'a [u8], Option<&'a [u8]>);
 
 /// Attempts to extract the credentials from a given input URI, assuming the scheme has already been extracted.
 /// # Example

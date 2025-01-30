@@ -16,7 +16,7 @@ pub struct Transactions {
 
 impl Transactions {
     /// Make a new Transactions struct with the given config
-    pub fn new(cfg: &Rc<Config>, logger: &Logger) -> Self {
+    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger) -> Self {
         Self {
             config: Rc::clone(cfg),
             logger: logger.clone(),
@@ -29,7 +29,7 @@ impl Transactions {
     /// Return the number of transactions processed.
     /// The value returned may wrap around if the number of transactions
     /// exceeds the storage size available to `usize`.
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         // The total number of transactions is just the maximum
         // of the request or response transaction index + 1 (if
         // that transaction is started), or zero if neither
@@ -44,12 +44,12 @@ impl Transactions {
     }
 
     /// Get the current request transaction index
-    pub fn request_index(&self) -> usize {
+    pub(crate) fn request_index(&self) -> usize {
         self.request
     }
 
     /// Get the current request transaction
-    pub fn request(&mut self) -> Option<&Transaction> {
+    pub(crate) fn request(&mut self) -> Option<&Transaction> {
         match self.request_mut() {
             Some(req) => Some(req),
             None => None,
@@ -57,7 +57,7 @@ impl Transactions {
     }
 
     /// Get the current request transaction
-    pub fn request_mut(&mut self) -> Option<&mut Transaction> {
+    pub(crate) fn request_mut(&mut self) -> Option<&mut Transaction> {
         let cfg = &self.config;
         let logger = &self.logger;
         let request = self.request;
@@ -74,12 +74,12 @@ impl Transactions {
     }
 
     /// Get the current response transaction index
-    pub fn response_index(&self) -> usize {
+    pub(crate) fn response_index(&self) -> usize {
         self.response
     }
 
     /// Get the current response transaction
-    pub fn response(&mut self) -> Option<&Transaction> {
+    pub(crate) fn response(&mut self) -> Option<&Transaction> {
         match self.response_mut() {
             Some(resp) => Some(resp),
             None => None,
@@ -87,7 +87,7 @@ impl Transactions {
     }
 
     /// Get the current response transaction
-    pub fn response_mut(&mut self) -> Option<&mut Transaction> {
+    pub(crate) fn response_mut(&mut self) -> Option<&mut Transaction> {
         let cfg = &self.config;
         let logger = &self.logger;
         let response = self.response;
@@ -106,7 +106,7 @@ impl Transactions {
     /// Increment the request transaction number.
     /// May cause the previous transaction to be freed if configured to auto-destroy.
     /// Returns the new request transaction index
-    pub fn request_next(&mut self) -> usize {
+    pub(crate) fn request_next(&mut self) -> usize {
         self.check_free(self.request);
         self.request = self.request.wrapping_add(1);
         self.request
@@ -115,7 +115,7 @@ impl Transactions {
     /// Increment the response transaction number.
     /// May cause the previous transaction to be freed if configured to auto-destroy.
     /// Returns the new response transaction index
-    pub fn response_next(&mut self) -> usize {
+    pub(crate) fn response_next(&mut self) -> usize {
         self.check_free(self.response);
         self.response = self.response.wrapping_add(1);
         self.response
@@ -135,17 +135,17 @@ impl Transactions {
 
     /// Remove the transaction at the given index. If the transaction
     /// existed, it is returned.
-    pub fn remove(&mut self, index: usize) -> Option<Transaction> {
+    pub(crate) fn remove(&mut self, index: usize) -> Option<Transaction> {
         self.transactions.remove(&index)
     }
 
     /// Get the given transaction by index number
-    pub fn get(&self, index: usize) -> Option<&Transaction> {
+    pub(crate) fn get(&self, index: usize) -> Option<&Transaction> {
         self.transactions.get(&index)
     }
 
     /// Get the given transaction by index number
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Transaction> {
+    pub(crate) fn get_mut(&mut self, index: usize) -> Option<&mut Transaction> {
         self.transactions.get_mut(&index)
     }
 }
