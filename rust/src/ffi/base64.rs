@@ -15,10 +15,13 @@
  * 02110-1301, USA.
  */
 
-use crate::utils::base64::{decode_rfc4648, decode_rfc2045, get_decoded_buffer_size, Decoder};
+use crate::utils::base64::{decode_rfc2045, decode_rfc4648, get_decoded_buffer_size, Decoder};
+use base64::{
+    engine::general_purpose::{STANDARD, STANDARD_NO_PAD},
+    Engine,
+};
 use libc::c_ulong;
 use std::os::raw::c_uchar;
-use base64::{Engine, engine::general_purpose::STANDARD};
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -64,6 +67,12 @@ pub enum SCBase64Mode {
      * encountered
      * */
     SCBase64ModeRFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
+
+    /// Standard base64 without padding, and strict about it.
+    SCBase64ModeNoPad,
+
+    /// Standard base64 with optional padding: decode only.
+    SCBase64ModePadOpt,
 }
 
 #[no_mangle]
@@ -79,7 +88,8 @@ pub unsafe extern "C" fn SCBase64DecodeBufferSize(input_len: u32) -> u32 {
 /// It allows decoding in the modes described by ``SCBase64Mode`` enum.
 #[no_mangle]
 pub unsafe extern "C" fn SCBase64Decode(
-    input: *const u8, len: usize, mode: SCBase64Mode, output: *mut u8) -> u32 {
+    input: *const u8, len: usize, mode: SCBase64Mode, output: *mut u8,
+) -> u32 {
     if input.is_null() || len == 0 {
         return 0;
     }
@@ -106,10 +116,54 @@ pub unsafe extern "C" fn SCBase64Decode(
                 num_decoded = decoded_len as u32;
             }
         }
+        SCBase64Mode::SCBase64ModeNoPad => {
+            if let Ok(decoded_len) = STANDARD_NO_PAD.decode_slice(in_vec, out_vec) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+        SCBase64Mode::SCBase64ModePadOpt => {
+            let config = base64::engine::GeneralPurposeConfig::new()
+                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
+            let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
+            if let Ok(decoded_len) = decoder.decode_slice(in_vec, out_vec) {
+                num_decoded = decoded_len as u32;
+            }
+        }
     }
 
     debug_validate_bug_on!(num_decoded >= len as u32);
     return num_decoded;
+}
+
+/// Base64 encode a buffer with a provided mode.
+///
+/// This method exposes the Rust base64 encoder to C and should not be called from
+/// Rust code.
+///
+/// The output parameter must be an allocated buffer of at least the size returned
+/// from SCBase64EncodeBufferSize for the input_len, and this length must be provided
+/// in the output_len variable.
+#[no_mangle]
+pub unsafe extern "C" fn SCBase64EncodeWithMode(
+    input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
+    mode: SCBase64Mode,
+) -> SCBase64ReturnCode {
+    if input.is_null() || output.is_null() || output_len.is_null() {
+        return SCBase64ReturnCode::SC_BASE64_INVALID_ARG;
+    }
+    let input = std::slice::from_raw_parts(input, input_len as usize);
+    let encoded = match mode {
+        SCBase64Mode::SCBase64ModeNoPad => STANDARD_NO_PAD.encode(input),
+        _ => STANDARD.encode(input),
+    };
+    if encoded.len() + 1 > *output_len as usize {
+        return SCBase64ReturnCode::SC_BASE64_OVERFLOW;
+    }
+    let output = std::slice::from_raw_parts_mut(&mut *output, *output_len as usize);
+    output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
+    output[encoded.len()] = 0;
+    *output_len = encoded.len() as c_ulong;
+    SCBase64ReturnCode::SC_BASE64_OK
 }
 
 /// Base64 encode a buffer.
@@ -124,19 +178,13 @@ pub unsafe extern "C" fn SCBase64Decode(
 pub unsafe extern "C" fn SCBase64Encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> SCBase64ReturnCode {
-    if input.is_null() || output.is_null() || output_len.is_null() {
-        return SCBase64ReturnCode::SC_BASE64_INVALID_ARG;
-    }
-    let input = std::slice::from_raw_parts(input, input_len as usize);
-    let encoded = STANDARD.encode(input);
-    if encoded.len() + 1 > *output_len as usize {
-        return SCBase64ReturnCode::SC_BASE64_OVERFLOW;
-    }
-    let output = std::slice::from_raw_parts_mut(&mut *output, *output_len as usize);
-    output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
-    output[encoded.len()] = 0;
-    *output_len = encoded.len() as c_ulong;
-    SCBase64ReturnCode::SC_BASE64_OK
+    SCBase64EncodeWithMode(
+        input,
+        input_len,
+        output,
+        output_len,
+        SCBase64Mode::SCBase64ModeStrict,
+    )
 }
 
 /// Ratio of output bytes to input bytes for Base64 Encoding is 4:3, hence the
