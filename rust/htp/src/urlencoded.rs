@@ -43,7 +43,7 @@ pub struct Parser {
 
 impl Parser {
     /// Construct new Parser with provided decoder configuration
-    pub fn new(cfg: DecoderConfig) -> Self {
+    pub(crate) fn new(cfg: DecoderConfig) -> Self {
         Self {
             cfg,
             argument_separator: b'&',
@@ -60,7 +60,7 @@ impl Parser {
     /// Finalizes parsing, forcing the parser to convert any outstanding
     /// data into parameters. This method should be invoked at the end
     /// of a parsing operation that used urlenp_parse_partial().
-    pub fn finalize(&mut self) {
+    pub(crate) fn finalize(&mut self) {
         self.complete = true;
         self.parse_partial(b"")
     }
@@ -69,7 +69,7 @@ impl Parser {
     /// that it contains all the data that will be parsed. When this
     /// method is used for parsing the finalization method should not
     /// be invoked.
-    pub fn parse_complete(&mut self, data: &[u8]) {
+    pub(crate) fn parse_complete(&mut self, data: &[u8]) {
         self.parse_partial(data);
         self.finalize()
     }
@@ -77,7 +77,7 @@ impl Parser {
     /// Parses the provided data chunk, searching for argument seperators and '=' to locate names and values,
     /// keeping state to allow streaming parsing, i.e., the parsing where only partial information is available
     /// at any one time. The method urlenp_finalize() must be invoked at the end to finalize parsing.
-    pub fn parse_partial(&mut self, data: &[u8]) {
+    pub(crate) fn parse_partial(&mut self, data: &[u8]) {
         self.field.add(data);
         let input = self.field.clone();
         let mut input = input.as_slice();
@@ -506,7 +506,7 @@ fn path_decode_uri<'a>(
 
 /// Decode the parsed uri path inplace according to the settings in the
 /// transaction configuration structure.
-pub fn path_decode_uri_inplace(
+pub(crate) fn path_decode_uri_inplace(
     decoder_cfg: &DecoderConfig, flag: &mut u64, status: &mut HtpUnwanted, path: &mut Bstr,
 ) {
     if let Ok((_, (consumed, flags, expected_status_code))) =
@@ -546,7 +546,7 @@ fn decode_uri<'a>(
 
 /// Performs decoding of the uri string, according to the configuration specified
 /// by cfg. Various flags might be set.
-pub fn decode_uri_with_flags(
+pub(crate) fn decode_uri_with_flags(
     decoder_cfg: &DecoderConfig, flags: &mut u64, input: &[u8],
 ) -> Result<Bstr> {
     let (_, (consumed, f, _)) = decode_uri(input, decoder_cfg)?;
@@ -565,7 +565,7 @@ pub fn decode_uri_with_flags(
 /// Performs in-place decoding of the input uri string, according to the configuration specified by cfg and ctx.
 ///
 /// Returns OK on success, ERROR on failure.
-pub fn decode_uri_inplace(cfg: &DecoderConfig, input: &mut Bstr) -> Result<()> {
+pub(crate) fn decode_uri_inplace(cfg: &DecoderConfig, input: &mut Bstr) -> Result<()> {
     let (_, (consumed, _, _)) = decode_uri(input.as_slice(), cfg)?;
     (*input).clear();
     input.add(consumed.as_slice());

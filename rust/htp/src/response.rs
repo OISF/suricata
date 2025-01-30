@@ -45,7 +45,9 @@ impl ConnectionParser {
 
     /// Finalizes an existing data receiver hook by sending any outstanding data to it. The
     /// hook is then removed so that it receives no more data.
-    pub fn response_receiver_finalize_clear(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_receiver_finalize_clear(
+        &mut self, input: &mut ParserData,
+    ) -> Result<()> {
         if self.response_data_receiver_hook.is_none() {
             return Ok(());
         }
@@ -126,7 +128,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::Error on error, or HtpStatus::DATA
     /// when more data is needed.
-    pub fn response_body_chunked_data_end(&mut self, input: &ParserData) -> Result<()> {
+    pub(crate) fn response_body_chunked_data_end(&mut self, input: &ParserData) -> Result<()> {
         // TODO We shouldn't really see anything apart from CR and LF,
         //      so we should warn about anything else.
         let resp = self.response_mut();
@@ -154,7 +156,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::Error on error, or
     /// HtpStatus::DATA when more data is needed.
-    pub fn response_body_chunked_data(&mut self, input: &ParserData) -> Result<()> {
+    pub(crate) fn response_body_chunked_data(&mut self, input: &ParserData) -> Result<()> {
         let bytes_to_consume = min(
             input.len(),
             self.response_chunked_length.unwrap_or(0) as usize,
@@ -181,7 +183,7 @@ impl ConnectionParser {
     /// Extracts chunk length.
     ///
     /// Returns Ok(()) on success, Err(HTP_ERROR) on error, or Err(HTP_DATA) when more data is needed.
-    pub fn response_body_chunked_length(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_body_chunked_length(&mut self, input: &mut ParserData) -> Result<()> {
         let mut data = input.as_slice();
         loop {
             let resp = self.response_mut();
@@ -279,7 +281,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or
     /// HtpStatus::DATA when more data is needed.
-    pub fn response_body_identity_cl_known(&mut self, data: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_body_identity_cl_known(&mut self, data: &mut ParserData) -> Result<()> {
         if self.response_status == HtpStreamState::CLOSED {
             self.response_state = State::FINALIZE;
             // Sends close signal to decompressors
@@ -331,7 +333,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA
     /// when more data is needed.
-    pub fn response_body_identity_stream_close(&mut self, data: &ParserData) -> Result<()> {
+    pub(crate) fn response_body_identity_stream_close(&mut self, data: &ParserData) -> Result<()> {
         if data.is_gap() {
             // Send the gap to the data hooks
             let resp = self.response_mut();
@@ -356,7 +358,7 @@ impl ConnectionParser {
     }
 
     /// Determines presence (and encoding) of a response body.
-    pub fn response_body_determine(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_body_determine(&mut self, input: &mut ParserData) -> Result<()> {
         // If the request uses the CONNECT method, then not only are we
         // to assume there's no body, but we need to ignore all
         // subsequent data in the stream.
@@ -637,7 +639,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA
     /// when more data is needed.
-    pub fn response_line(&mut self, input: &ParserData) -> Result<()> {
+    pub(crate) fn response_line(&mut self, input: &ParserData) -> Result<()> {
         match take_till_eol(input.as_slice()) {
             Ok((_, (line, _))) => {
                 // We have a line ending, so consume the input
@@ -946,7 +948,7 @@ impl ConnectionParser {
     /// Parses response headers.
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA when more data is needed.
-    pub fn response_headers(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_headers(&mut self, input: &mut ParserData) -> Result<()> {
         let response_index = self.response_index();
         if self.response_status == HtpStreamState::CLOSED {
             let resp = self.response_mut();
@@ -1115,7 +1117,7 @@ impl ConnectionParser {
     /// 3. Decompression is disabled and we do not attempt to enable it, but the user
     ///    forces decompression by setting response_content_encoding to one of the
     ///    supported algorithms.
-    pub fn response_initialize_decompressors(&mut self) -> Result<()> {
+    pub(crate) fn response_initialize_decompressors(&mut self) -> Result<()> {
         let response_decompression_enabled = self.cfg.response_decompression_enabled;
         let resp = self.response_mut();
         if resp.is_none() {
@@ -1360,7 +1362,7 @@ impl ConnectionParser {
     }
 
     /// Finalizes response parsing.
-    pub fn response_finalize(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn response_finalize(&mut self, input: &mut ParserData) -> Result<()> {
         if input.is_gap() {
             return self.state_response_complete(input);
         }
@@ -1416,7 +1418,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA
     /// when more data is needed.
-    pub fn response_idle(&mut self, input: &ParserData) -> Result<()> {
+    pub(crate) fn response_idle(&mut self, input: &ParserData) -> Result<()> {
         // We want to start parsing the next response (and change
         // the state from IDLE) only if there's at least one
         // byte of data available. Otherwise we could be creating
@@ -1473,7 +1475,7 @@ impl ConnectionParser {
     }
 
     /// Process a chunk of outbound (server or response) data.
-    pub fn response_data(
+    pub(crate) fn response_data(
         &mut self, mut chunk: ParserData, timestamp: Option<OffsetDateTime>,
     ) -> HtpStreamState {
         // Reset consumed data tracker

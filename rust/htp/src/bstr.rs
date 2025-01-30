@@ -21,30 +21,21 @@ impl Default for Bstr {
 
 impl Bstr {
     /// Make a new owned Bstr
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Bstr {
             s: BString::from(Vec::new()),
         }
     }
 
     /// Make a new owned Bstr with given capacity
-    pub fn with_capacity(len: usize) -> Self {
+    pub(crate) fn with_capacity(len: usize) -> Self {
         Bstr {
             s: BString::from(Vec::with_capacity(len)),
         }
     }
 
-    /// Split the Bstr into a a collection of substrings, seperated by the given byte string.
-    /// Each element yielded is guaranteed not to include the splitter substring.
-    /// Returns a Vector of the substrings.
-    pub fn split_str_collect<'b, B: ?Sized + AsRef<[u8]>>(
-        &'b self, splitter: &'b B,
-    ) -> Vec<&'b [u8]> {
-        self.s.as_bstr().split_str(splitter.as_ref()).collect()
-    }
-
     /// Compare this bstr with the given slice
-    pub fn cmp_slice<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
+    pub(crate) fn cmp_slice<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
         self.as_slice().cmp(other.as_ref())
     }
 
@@ -54,7 +45,7 @@ impl Bstr {
     }
 
     /// Compare bstr with the given slice, ingnoring ascii case.
-    pub fn cmp_nocase<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
+    pub(crate) fn cmp_nocase<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
         let lefts = &self.as_slice();
         let rights = &other.as_ref();
         let left = LowercaseIterator::new(lefts);
@@ -63,7 +54,7 @@ impl Bstr {
     }
 
     /// Compare trimmed bstr with the given slice, ingnoring ascii case.
-    pub fn cmp_nocase_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
+    pub(crate) fn cmp_nocase_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
         let lefts = &self.trim_with(|c| c.is_ascii_whitespace());
         let rights = &other.as_ref();
         let left = LowercaseIterator::new(lefts);
@@ -71,13 +62,8 @@ impl Bstr {
         left.cmp(right)
     }
 
-    /// Return true if self is equal to other ignoring ascii case
-    pub fn eq_nocase<B: AsRef<[u8]>>(&self, other: B) -> bool {
-        self.cmp_nocase(other) == Ordering::Equal
-    }
-
     /// Case insensitive comparison between self and other, ignoring any zeros in self
-    pub fn cmp_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
+    pub(crate) fn cmp_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
         let lefts = &self.as_slice();
         let rights = &other.as_ref();
         let left = LowercaseNoZeroIterator::new(lefts);
@@ -86,7 +72,7 @@ impl Bstr {
     }
 
     /// Case insensitive comparison between trimmed self and other, ignoring any zeros in self
-    pub fn cmp_nocase_nozero_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
+    pub(crate) fn cmp_nocase_nozero_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
         let lefts = &self.trim();
         let rights = &other.as_ref();
         let left = LowercaseNoZeroIterator::new(lefts);
@@ -94,29 +80,26 @@ impl Bstr {
         left.cmp(right)
     }
 
-    /// Return true if self is equal to other, ignoring ascii case and zeros in self
-    pub fn eq_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> bool {
-        self.cmp_nocase_nozero(other) == Ordering::Equal
-    }
-
     /// Extend this bstr with the given slice
-    pub fn add<B: AsRef<[u8]>>(&mut self, other: B) {
+    pub(crate) fn add<B: AsRef<[u8]>>(&mut self, other: B) {
         self.extend_from_slice(other.as_ref())
     }
 
     /// Extend the bstr as much as possible without growing
-    pub fn add_noex<B: AsRef<[u8]>>(&mut self, other: B) {
+    #[cfg(test)]
+    pub(crate) fn add_noex<B: AsRef<[u8]>>(&mut self, other: B) {
         let len = std::cmp::min(self.capacity() - self.len(), other.as_ref().len());
         self.add(&other.as_ref()[..len]);
     }
 
     /// Return true if this bstr starts with other
-    pub fn starts_with<B: AsRef<[u8]>>(&self, other: B) -> bool {
+    #[cfg(test)]
+    pub(crate) fn starts_with<B: AsRef<[u8]>>(&self, other: B) -> bool {
         self.as_slice().starts_with(other.as_ref())
     }
 
     /// Return true if this bstr starts with other, ignoring ascii case
-    pub fn starts_with_nocase<B: AsRef<[u8]>>(&self, other: B) -> bool {
+    pub(crate) fn starts_with_nocase<B: AsRef<[u8]>>(&self, other: B) -> bool {
         if self.len() < other.as_ref().len() {
             return false;
         }
@@ -125,12 +108,13 @@ impl Bstr {
     }
 
     /// Find the index of the given slice
-    pub fn index_of<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
+    #[cfg(test)]
+    pub(crate) fn index_of<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
         self.find(other.as_ref())
     }
 
     /// Find the index of the given slice ignoring ascii case
-    pub fn index_of_nocase<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
+    pub(crate) fn index_of_nocase<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
         let src = self.as_slice();
         let mut haystack = LowercaseIterator::new(&src);
         let needle = other.as_ref().to_ascii_lowercase();
@@ -138,7 +122,7 @@ impl Bstr {
     }
 
     /// Find the index of the given slice ignoring ascii case and any zeros in self
-    pub fn index_of_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
+    pub(crate) fn index_of_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> Option<usize> {
         let src = self.as_slice();
         let mut haystack = LowercaseNoZeroIterator::new(&src);
         let needle = other.as_ref().to_ascii_lowercase();

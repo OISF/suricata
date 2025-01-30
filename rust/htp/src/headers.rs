@@ -11,15 +11,15 @@ use nom::{
 };
 
 /// Helper for Parsed bytes and corresponding HeaderFlags
-pub type ParsedBytes<'a> = (&'a [u8], u64);
+pub(crate) type ParsedBytes<'a> = (&'a [u8], u64);
 // Helper for Parsed Headers and corresonding termination
-pub type ParsedHeaders = (Vec<Header>, bool);
+pub(crate) type ParsedHeaders = (Vec<Header>, bool);
 // Helper for matched eol+ folding bytes + flags
-pub type FoldingBytes<'a> = (&'a [u8], &'a [u8], u64);
+pub(crate) type FoldingBytes<'a> = (&'a [u8], &'a [u8], u64);
 // Helper for folding or terminator bytes
-pub type FoldingOrTerminator<'a> = (ParsedBytes<'a>, Option<&'a [u8]>);
+pub(crate) type FoldingOrTerminator<'a> = (ParsedBytes<'a>, Option<&'a [u8]>);
 // Helper for value bytes and the value terminator
-pub type ValueBytes<'a> = (&'a [u8], FoldingOrTerminator<'a>);
+pub(crate) type ValueBytes<'a> = (&'a [u8], FoldingOrTerminator<'a>);
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
@@ -46,7 +46,7 @@ pub struct Name {
 }
 
 impl Name {
-    pub fn new(name: &[u8], flags: u64) -> Self {
+    pub(crate) fn new(name: &[u8], flags: u64) -> Self {
         Self {
             name: trimmed(name).to_vec(),
             flags,
@@ -61,7 +61,7 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(value: &[u8], flags: u64) -> Self {
+    pub(crate) fn new(value: &[u8], flags: u64) -> Self {
         Self {
             value: trimmed(value).to_vec(),
             flags,
@@ -76,11 +76,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(name: Name, value: Value) -> Self {
+    pub(crate) fn new(name: Name, value: Value) -> Self {
         Self { name, value }
     }
 
-    pub fn new_with_flags(
+    pub(crate) fn new_with_flags(
         name_bytes: &[u8], name_flags: u64, value_bytes: &[u8], value_flags: u64,
     ) -> Self {
         Self::new(
@@ -105,7 +105,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(side: Side) -> Self {
+    pub(crate) fn new(side: Side) -> Self {
         Self {
             side,
             complete: false,
@@ -115,7 +115,7 @@ impl Parser {
     /// Sets the parser complete state.
     ///
     /// If set to true, parser operates under the assumption that no more data is incoming
-    pub fn set_complete(&mut self, complete: bool) {
+    pub(crate) fn set_complete(&mut self, complete: bool) {
         self.complete = complete;
     }
 
@@ -455,7 +455,7 @@ impl Parser {
     }
 
     /// Parse multiple headers and indicate if end of headers or null was found
-    pub fn headers(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedHeaders> + '_ {
+    pub(crate) fn headers(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedHeaders> + '_ {
         move |input| {
             let (rest, head) = self.header()(input)?;
             let is_null_terminated = head.value.flags.is_set(HeaderFlags::NULL_TERMINATED);
@@ -533,7 +533,7 @@ mod test {
         };
     }
     // Helper for matched leading whitespace, byes, and trailing whitespace
-    pub type SurroundedBytes<'a> = (&'a [u8], &'a [u8], &'a [u8]);
+    pub(crate) type SurroundedBytes<'a> = (&'a [u8], &'a [u8], &'a [u8]);
 
     #[rstest]
     #[case::null_does_not_terminate(b"k1:v1\r\nk2:v2 before\0v2 after\r\n\r\n",Ok((b!(""), (vec![Header::new_with_flags(b"k1", 0, b"v1", 0), Header::new_with_flags(b"k2", 0, b"v2 before\0v2 after", 0)], true))), None)]

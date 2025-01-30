@@ -20,7 +20,7 @@ impl Default for UnicodeBestfitMap {
 }
 
 impl UnicodeBestfitMap {
-    pub fn get(&self, unicode: u32) -> u8 {
+    pub(crate) fn get(&self, unicode: u32) -> u8 {
         self.map
             .get(&unicode)
             .copied()
@@ -37,7 +37,7 @@ macro_rules! bestfit_key {
 }
 
 lazy_static! {
-    pub static ref bestfit_1252: HashMap<u32, u8> = [
+    static ref bestfit_1252: HashMap<u32, u8> = [
         (bestfit_key!(0x01, 0), 0x41),
         (bestfit_key!(0x1, 0x1), 0x61),
         (bestfit_key!(0x1, 0x2), 0x41),
