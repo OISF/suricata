@@ -695,7 +695,8 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
     ssl_state->curr_connp->version = version;
 
     if (ssl_state->curr_connp->ja4 != NULL &&
-            ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+            ssl_state->current_flags &
+                    (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
         SCJA4SetTLSVersion(ssl_state->curr_connp->ja4, version);
     }
 
@@ -870,7 +871,8 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
 
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
                 if (ssl_state->curr_connp->ja4 != NULL &&
-                        ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                        ssl_state->current_flags &
+                                (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
                     SCJA4AddCipher(ssl_state->curr_connp->ja4, cipher_suite);
                 }
                 if (enable_ja3) {
@@ -1293,7 +1295,8 @@ static inline int TLSDecodeHSHelloExtensionALPN(
 
         /* Only record the first value for JA4 */
         if (ssl_state->curr_connp->ja4 != NULL &&
-                ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                ssl_state->current_flags &
+                        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
             if (alpn_processed_len == 1) {
                 SCJA4SetALPN(ssl_state->curr_connp->ja4, (const char *)input, protolen);
             }
@@ -1492,7 +1495,8 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         }
 
         if (ssl_state->curr_connp->ja4 != NULL &&
-                ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                ssl_state->current_flags &
+                        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
                 SCJA4AddExtension(ssl_state->curr_connp->ja4, ext_type);
             }
@@ -1546,11 +1550,12 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     int ret;
     uint32_t parsed = 0;
 
-    /* Ensure that we have a JA4 state defined by now if we have JA4 enabled,
-       we are in a client hello and we don't have such a state yet (to avoid
-       leaking memory in case this function is entered more than once). */
+    /* Ensure that we have a JA4 state defined by now, we are in a client/server hello
+       and we don't have such a state yet (to avoid leaking memory in case this function
+       is entered more than once). */
     if (SC_ATOMIC_GET(ssl_config.enable_ja4) &&
-            ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO &&
+            ssl_state->current_flags &
+                    (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO) &&
             ssl_state->curr_connp->ja4 == NULL) {
         ssl_state->curr_connp->ja4 = SCJA4New();
     }
@@ -2894,6 +2899,8 @@ static void SSLStateFree(void *p)
 
     if (ssl_state->client_connp.ja4)
         SCJA4Free(ssl_state->client_connp.ja4);
+    if (ssl_state->server_connp.ja4)
+        SCJA4Free(ssl_state->server_connp.ja4);
     if (ssl_state->client_connp.ja3_str)
         Ja3BufferFree(&ssl_state->client_connp.ja3_str);
     if (ssl_state->client_connp.ja3_hash)

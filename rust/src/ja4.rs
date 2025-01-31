@@ -288,6 +288,11 @@ pub unsafe extern "C" fn SCJA4GetCiphers(j: &mut JA4, out: *mut usize) -> *const
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCJA4GetFirstCipher(j: &mut JA4) -> u16 {
+    j.ciphersuites.first().map(|&v| *v).unwrap_or(0)
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCJA4GetExtensions(j: &mut JA4, out: *mut usize) -> *const u16 {
     *out = j.extensions.len();
     j.extensions.as_ptr() as *const u16

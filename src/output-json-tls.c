@@ -58,6 +58,7 @@
 #define LOG_TLS_FIELD_CLIENT_ALPNS     BIT_U64(18)
 #define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
 #define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
+#define LOG_TLS_FIELD_SERVER_HANDSHAKE BIT_U64(21)
 
 typedef struct {
     const char *name;
@@ -87,6 +88,7 @@ TlsFields tls_fields[] = {
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
     { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
+    { "server_handshake", LOG_TLS_FIELD_SERVER_HANDSHAKE },
     { NULL, -1 },
     // clang-format on
 };
@@ -413,6 +415,33 @@ static void JsonTlsLogClientHandshake(JsonBuilder *js, SSLState *ssl_state)
     jb_close(js);
 }
 
+static void JsonTlsLogServerHandshake(JsonBuilder *js, SSLState *ssl_state)
+{
+    const uint16_t *val;
+    uintptr_t i, nr;
+
+    if (ssl_state->server_connp.ja4 == NULL) {
+        return;
+    }
+
+    jb_open_object(js, "server_handshake");
+
+    const uint16_t vers = SCJA4GetVersion(ssl_state->server_connp.ja4);
+    JsonTlsLogVersion(js, vers);
+
+    const uint16_t choosen_cipher = SCJA4GetFirstCipher(ssl_state->server_connp.ja4);
+    jb_set_uint(js, "cipher", choosen_cipher);
+
+    val = SCJA4GetExtensions(ssl_state->server_connp.ja4, &nr);
+    jb_open_array(js, "exts");
+    for (i = 0; i < nr; i++) {
+        jb_append_uint(js, val[i]);
+    }
+    jb_close(js);
+
+    jb_close(js);
+}
+
 static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
@@ -496,6 +525,10 @@ static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fiel
     /* tls client handshake parameters */
     if (fields & LOG_TLS_FIELD_CLIENT_HANDSHAKE)
         JsonTlsLogClientHandshake(js, ssl_state);
+
+    /* tls server handshake parameters */
+    if (fields & LOG_TLS_FIELD_SERVER_HANDSHAKE)
+        JsonTlsLogServerHandshake(js, ssl_state);
 }
 
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
