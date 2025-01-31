@@ -35,29 +35,29 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "util-ja3.h"
-#include "util-ja4.h"
 #include "util-time.h"
 
-#define LOG_TLS_FIELD_VERSION         BIT_U64(0)
-#define LOG_TLS_FIELD_SUBJECT         BIT_U64(1)
-#define LOG_TLS_FIELD_ISSUER          BIT_U64(2)
-#define LOG_TLS_FIELD_SERIAL          BIT_U64(3)
-#define LOG_TLS_FIELD_FINGERPRINT     BIT_U64(4)
-#define LOG_TLS_FIELD_NOTBEFORE       BIT_U64(5)
-#define LOG_TLS_FIELD_NOTAFTER        BIT_U64(6)
-#define LOG_TLS_FIELD_SNI             BIT_U64(7)
-#define LOG_TLS_FIELD_CERTIFICATE     BIT_U64(8)
-#define LOG_TLS_FIELD_CHAIN           BIT_U64(9)
-#define LOG_TLS_FIELD_SESSION_RESUMED BIT_U64(10)
-#define LOG_TLS_FIELD_JA3             BIT_U64(11)
-#define LOG_TLS_FIELD_JA3S            BIT_U64(12)
-#define LOG_TLS_FIELD_CLIENT          BIT_U64(13) /**< client fields (issuer, subject, etc) */
-#define LOG_TLS_FIELD_CLIENT_CERT     BIT_U64(14)
-#define LOG_TLS_FIELD_CLIENT_CHAIN    BIT_U64(15)
-#define LOG_TLS_FIELD_JA4             BIT_U64(16)
-#define LOG_TLS_FIELD_SUBJECTALTNAME  BIT_U64(17)
-#define LOG_TLS_FIELD_CLIENT_ALPNS    BIT_U64(18)
-#define LOG_TLS_FIELD_SERVER_ALPNS    BIT_U64(19)
+#define LOG_TLS_FIELD_VERSION          BIT_U64(0)
+#define LOG_TLS_FIELD_SUBJECT          BIT_U64(1)
+#define LOG_TLS_FIELD_ISSUER           BIT_U64(2)
+#define LOG_TLS_FIELD_SERIAL           BIT_U64(3)
+#define LOG_TLS_FIELD_FINGERPRINT      BIT_U64(4)
+#define LOG_TLS_FIELD_NOTBEFORE        BIT_U64(5)
+#define LOG_TLS_FIELD_NOTAFTER         BIT_U64(6)
+#define LOG_TLS_FIELD_SNI              BIT_U64(7)
+#define LOG_TLS_FIELD_CERTIFICATE      BIT_U64(8)
+#define LOG_TLS_FIELD_CHAIN            BIT_U64(9)
+#define LOG_TLS_FIELD_SESSION_RESUMED  BIT_U64(10)
+#define LOG_TLS_FIELD_JA3              BIT_U64(11)
+#define LOG_TLS_FIELD_JA3S             BIT_U64(12)
+#define LOG_TLS_FIELD_CLIENT           BIT_U64(13) /**< client fields (issuer, subject, etc) */
+#define LOG_TLS_FIELD_CLIENT_CERT      BIT_U64(14)
+#define LOG_TLS_FIELD_CLIENT_CHAIN     BIT_U64(15)
+#define LOG_TLS_FIELD_JA4              BIT_U64(16)
+#define LOG_TLS_FIELD_SUBJECTALTNAME   BIT_U64(17)
+#define LOG_TLS_FIELD_CLIENT_ALPNS     BIT_U64(18)
+#define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
+#define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
 
 typedef struct {
     const char *name;
@@ -86,6 +86,7 @@ TlsFields tls_fields[] = {
     { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
+    { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
     { NULL, -1 },
     // clang-format on
 };
@@ -190,10 +191,10 @@ static void JsonTlsLogSerial(JsonBuilder *js, SSLState *ssl_state)
     }
 }
 
-static void JsonTlsLogVersion(JsonBuilder *js, SSLState *ssl_state)
+static void JsonTlsLogVersion(JsonBuilder *js, const uint16_t version)
 {
     char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    SSLVersionToString(version, ssl_version);
     jb_set_string(js, "version", ssl_version);
 }
 
@@ -374,6 +375,44 @@ static void JsonTlsLogClientCert(
     }
 }
 
+static void JsonTlsLogClientHandshake(JsonBuilder *js, SSLState *ssl_state)
+{
+    const uint16_t *val;
+    uintptr_t i, nr;
+
+    if (ssl_state->client_connp.ja4 == NULL) {
+        return;
+    }
+
+    jb_open_object(js, "client_handshake");
+
+    const uint16_t vers = SCJA4GetVersion(ssl_state->client_connp.ja4);
+    JsonTlsLogVersion(js, vers);
+
+    val = SCJA4GetCiphers(ssl_state->client_connp.ja4, &nr);
+    jb_open_array(js, "ciphers");
+    for (i = 0; i < nr; i++) {
+        jb_append_uint(js, val[i]);
+    }
+    jb_close(js);
+
+    val = SCJA4GetExtensions(ssl_state->client_connp.ja4, &nr);
+    jb_open_array(js, "exts");
+    for (i = 0; i < nr; i++) {
+        jb_append_uint(js, val[i]);
+    }
+    jb_close(js);
+
+    val = SCJA4GetSigAlgs(ssl_state->client_connp.ja4, &nr);
+    jb_open_array(js, "sig_algs");
+    for (i = 0; i < nr; i++) {
+        jb_append_uint(js, val[i]);
+    }
+    jb_close(js);
+
+    jb_close(js);
+}
+
 static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
@@ -406,7 +445,7 @@ static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fiel
 
     /* tls version */
     if (fields & LOG_TLS_FIELD_VERSION)
-        JsonTlsLogVersion(js, ssl_state);
+        JsonTlsLogVersion(js, ssl_state->server_connp.version);
 
     /* tls notbefore */
     if (fields & LOG_TLS_FIELD_NOTBEFORE)
@@ -453,6 +492,10 @@ static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fiel
             jb_close(js);
         }
     }
+
+    /* tls client handshake parameters */
+    if (fields & LOG_TLS_FIELD_CLIENT_HANDSHAKE)
+        JsonTlsLogClientHandshake(js, ssl_state);
 }
 
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
