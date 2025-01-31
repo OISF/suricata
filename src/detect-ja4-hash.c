@@ -34,8 +34,6 @@
 #include "detect-engine-prefilter.h"
 #include "detect-ja4-hash.h"
 
-#include "util-ja4.h"
-
 #include "app-layer-ssl.h"
 
 #ifndef HAVE_JA4
