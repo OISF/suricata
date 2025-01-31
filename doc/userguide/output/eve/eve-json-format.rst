@@ -1052,6 +1052,7 @@ In addition to this, custom logging also allows the following fields:
   respectively, in the order that they're mentioned (ie. unsorted)
 * "server_handshake": structure containing "version", "chosen cipher", "exts" ([u16]), for server hello
   in the order that they're mentioned (ie. unsorted)
+* "ja4s": The JA4 server fingerprint for TLS
 
 Examples
 ~~~~~~~~

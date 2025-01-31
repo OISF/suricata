@@ -59,6 +59,7 @@
 #define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
 #define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
 #define LOG_TLS_FIELD_SERVER_HANDSHAKE BIT_U64(21)
+#define LOG_TLS_FIELD_JA4S             BIT_U64(22)
 
 typedef struct {
     const char *name;
@@ -89,6 +90,7 @@ TlsFields tls_fields[] = {
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
     { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
     { "server_handshake", LOG_TLS_FIELD_SERVER_HANDSHAKE },
+    { "ja4s", LOG_TLS_FIELD_JA4S },
     { NULL, -1 },
     // clang-format on
 };
@@ -252,6 +254,15 @@ static void JsonTlsLogSCJA4(JsonBuilder *js, SSLState *ssl_state)
         /* JA4 hash has 36 characters */
         SCJA4GetHash(ssl_state->client_connp.ja4, (uint8_t(*)[JA4_HEX_LEN])buffer);
         jb_set_string_from_bytes(js, "ja4", buffer, 36);
+    }
+}
+
+static void JsonTlsLogSCJA4S(JsonBuilder *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.ja4 != NULL) {
+        uint8_t buffer[JA4S_HEX_LEN];
+        SCJA4SGetHash(ssl_state->server_connp.ja4, (uint8_t(*)[JA4S_HEX_LEN])buffer);
+        jb_set_string_from_bytes(js, "ja4s", buffer, JA4S_HEX_LEN);
     }
 }
 
@@ -503,6 +514,10 @@ static void JsonTlsLogFields(JsonBuilder *js, SSLState *ssl_state, uint64_t fiel
     /* tls ja4 */
     if (fields & LOG_TLS_FIELD_JA4)
         JsonTlsLogSCJA4(js, ssl_state);
+
+    /* tls ja4s */
+    if (fields & LOG_TLS_FIELD_JA4S)
+        JsonTlsLogSCJA4S(js, ssl_state);
 
     if (fields & LOG_TLS_FIELD_CLIENT_ALPNS) {
         JsonTlsLogAlpns(js, &ssl_state->client_connp, "client_alpns");

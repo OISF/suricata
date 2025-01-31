@@ -6847,6 +6847,9 @@
                 },
                 "ja4": {
                     "type": "string"
+                },
+                "ja4s": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
