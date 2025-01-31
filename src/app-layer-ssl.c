@@ -846,7 +846,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
     const bool enable_ja3 =
             SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL;
 
-    if (enable_ja3 || SC_ATOMIC_GET(ssl_config.enable_ja4)) {
+    if (enable_ja3 || ssl_state->curr_connp->ja4 != NULL) {
         JA3Buffer *ja3_cipher_suites = NULL;
 
         if (enable_ja3) {
@@ -1553,8 +1553,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     /* Ensure that we have a JA4 state defined by now, we are in a client/server hello
        and we don't have such a state yet (to avoid leaking memory in case this function
        is entered more than once). */
-    if (SC_ATOMIC_GET(ssl_config.enable_ja4) &&
-            ssl_state->current_flags &
+    if (ssl_state->current_flags &
                     (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO) &&
             ssl_state->curr_connp->ja4 == NULL) {
         ssl_state->curr_connp->ja4 = SCJA4New();

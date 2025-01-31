@@ -1041,7 +1041,7 @@ If extended logging is enabled the following fields are also included:
 * "client_alpns": array of strings with ALPN values
 * "server_alpns": array of strings with ALPN values
 
-JA3 and JA4 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints'/'app-layer.protocols.tls.ja4-fingerprints' to 'yes').
+JA3 and JA4 fingerprints can be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints'/'app-layer.protocols.tls.ja4-fingerprints' to 'yes').
 
 In addition to this, custom logging also allows the following fields:
 
