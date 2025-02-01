@@ -12,7 +12,7 @@ a queue. Packets will be processed by one thread at a time, but there
 can be multiple packets being processed at a time by the engine (see
 :ref:`suricata-yaml-max-pending-packets`). A thread can have one or
 more thread-modules. If they have more modules, they can only be
-active one a a time.  The way threads, modules and queues are arranged
+active one at a time.  The way threads, modules and queues are arranged
 together is called the "Runmode".
 
 Different runmodes
