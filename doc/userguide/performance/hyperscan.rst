@@ -51,7 +51,7 @@ The steps to build and install hyperscan are:
   cmake --build ./
   sudo cmake --install ./
 
-**Note:** Hyperscan can take a a long time to build/compile.
+**Note:** Hyperscan can take a long time to build/compile.
 
 **Note:** It may be necessary to add /usr/local/lib or
 /usr/local/lib64 to the `ld` search path. Typically this is
