@@ -58,41 +58,10 @@ static FTPTransaction *FTPGetOldestTx(const FtpState *, FTPTransaction *);
 
 static void FTPParseMemcap(void)
 {
-    const char *conf_val;
-
-    /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("app-layer.protocols.ftp.memcap", &conf_val)) == 1)
-    {
-        if (ParseSizeStringU64(conf_val, &ftp_config_memcap) < 0) {
-            SCLogError("Error parsing ftp.memcap "
-                       "from conf file - %s.  Killing engine",
-                    conf_val);
-            exit(EXIT_FAILURE);
-        }
-        SCLogInfo("FTP memcap: %"PRIu64, ftp_config_memcap);
-    } else {
-        /* default to unlimited */
-        ftp_config_memcap = 0;
-    }
+    SCFTPGetConfigValues(&ftp_config_memcap, &ftp_config_maxtx, &ftp_max_line_len);
 
     SC_ATOMIC_INIT(ftp_memuse);
     SC_ATOMIC_INIT(ftp_memcap);
-
-    if ((ConfGet("app-layer.protocols.ftp.max-tx", &conf_val)) == 1) {
-        if (ParseSizeStringU32(conf_val, &ftp_config_maxtx) < 0) {
-            SCLogError("Error parsing ftp.max-tx "
-                       "from conf file - %s.",
-                    conf_val);
-        }
-        SCLogInfo("FTP max tx: %" PRIu32, ftp_config_maxtx);
-    }
-
-    if ((ConfGet("app-layer.protocols.ftp.max-line-length", &conf_val)) == 1) {
-        if (ParseSizeStringU32(conf_val, &ftp_max_line_len) < 0) {
-            SCLogError("Error parsing ftp.max-line-length from conf file - %s.", conf_val);
-        }
-        SCLogConfig("FTP max line length: %" PRIu32, ftp_max_line_len);
-    }
 }
 
 static void FTPIncrMemuse(uint64_t size)
