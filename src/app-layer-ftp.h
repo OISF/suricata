@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,12 +27,7 @@
 
 #include "rust.h"
 
-typedef struct FtpCommand_ {
-    const char *command_name;
-    FtpRequestCommand command;
-    const uint8_t command_length;
-} FtpCommand;
-extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
+struct FtpCommand;
 
 typedef uint32_t FtpRequestCommandArgOfs;
 
@@ -53,6 +48,17 @@ typedef struct FTPString_ {
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
+/*
+ * These are the values for the table index value and the FTP command
+ * enum value. These *should* be the same if the enum and command insertion
+ * order remain the same. However, we store each value to protect against
+ * drift between enum and insertion order.
+ */
+typedef struct FtpCommandInfo_ {
+    uint8_t command_index;
+    FtpRequestCommand command_code;
+} FtpCommandInfo;
+
 typedef struct FTPTransaction_  {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
@@ -65,7 +71,7 @@ typedef struct FTPTransaction_  {
     bool request_truncated;
 
     /* for the command description */
-    const FtpCommand *command_descriptor;
+    FtpCommandInfo command_descriptor;
 
     uint16_t dyn_port; /* dynamic port, if applicable */
     bool done; /* transaction complete? */

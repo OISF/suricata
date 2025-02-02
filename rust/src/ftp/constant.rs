@@ -86,5 +86,4 @@ pub enum FtpRequestCommand {
     FTP_COMMAND_UMASK,
     FTP_COMMAND_USER,
     FTP_COMMAND_EPRT,
-    FTP_COMMAND_MAX,
 }
