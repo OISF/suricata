@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,63 +46,6 @@ typedef struct FTPThreadCtx_ {
 #define FTP_MPM mpm_default_matcher
 
 static MpmCtx *ftp_mpm_ctx = NULL;
-
-// clang-format off
-const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1] = {
-    /* Parsed and handled */
-    { "PORT",   FTP_COMMAND_PORT,   4 },
-    { "EPRT",   FTP_COMMAND_EPRT,   4 },
-    { "AUTH TLS",   FTP_COMMAND_AUTH_TLS,   8 },
-    { "PASV",   FTP_COMMAND_PASV,   4 },
-    { "RETR",   FTP_COMMAND_RETR,   4 },
-    { "EPSV",   FTP_COMMAND_EPSV,   4 },
-    { "STOR",   FTP_COMMAND_STOR,   4 },
-
-    /* Parsed, but not handled */
-    { "ABOR",   FTP_COMMAND_ABOR,   4 },
-    { "ACCT",   FTP_COMMAND_ACCT,   4 },
-    { "ALLO",   FTP_COMMAND_ALLO,   4 },
-    { "APPE",   FTP_COMMAND_APPE,   4 },
-    { "CDUP",   FTP_COMMAND_CDUP,   4 },
-    { "CHMOD",  FTP_COMMAND_CHMOD,  5 },
-    { "CWD",    FTP_COMMAND_CWD,    3 },
-    { "DELE",   FTP_COMMAND_DELE,   4 },
-    { "HELP",   FTP_COMMAND_HELP,   4 },
-    { "IDLE",   FTP_COMMAND_IDLE,   4 },
-    { "LIST",   FTP_COMMAND_LIST,   4 },
-    { "MAIL",   FTP_COMMAND_MAIL,   4 },
-    { "MDTM",   FTP_COMMAND_MDTM,   4 },
-    { "MKD",    FTP_COMMAND_MKD,    3 },
-    { "MLFL",   FTP_COMMAND_MLFL,   4 },
-    { "MODE",   FTP_COMMAND_MODE,   4 },
-    { "MRCP",   FTP_COMMAND_MRCP,   4 },
-    { "MRSQ",   FTP_COMMAND_MRSQ,   4 },
-    { "MSAM",   FTP_COMMAND_MSAM,   4 },
-    { "MSND",   FTP_COMMAND_MSND,   4 },
-    { "MSOM",   FTP_COMMAND_MSOM,   4 },
-    { "NLST",   FTP_COMMAND_NLST,   4 },
-    { "NOOP",   FTP_COMMAND_NOOP,   4 },
-    { "PASS",   FTP_COMMAND_PASS,   4 },
-    { "PWD",    FTP_COMMAND_PWD,    3 },
-    { "QUIT",   FTP_COMMAND_QUIT,   4 },
-    { "REIN",   FTP_COMMAND_REIN,   4 },
-    { "REST",   FTP_COMMAND_REST,   4 },
-    { "RMD",    FTP_COMMAND_RMD,    3 },
-    { "RNFR",   FTP_COMMAND_RNFR,   4 },
-    { "RNTO",   FTP_COMMAND_RNTO,   4 },
-    { "SITE",   FTP_COMMAND_SITE,   4 },
-    { "SIZE",   FTP_COMMAND_SIZE,   4 },
-    { "SMNT",   FTP_COMMAND_SMNT,   4 },
-    { "STAT",   FTP_COMMAND_STAT,   4 },
-    { "STOU",   FTP_COMMAND_STOU,   4 },
-    { "STRU",   FTP_COMMAND_STRU,   4 },
-    { "SYST",   FTP_COMMAND_SYST,   4 },
-    { "TYPE",   FTP_COMMAND_TYPE,   4 },
-    { "UMASK",  FTP_COMMAND_UMASK,  5 },
-    { "USER",   FTP_COMMAND_USER,   4 },
-    { NULL,     FTP_COMMAND_UNKNOWN,    0 }
-};
-// clang-format on
 
 uint64_t ftp_config_memcap = 0;
 uint32_t ftp_config_maxtx = 1024;
@@ -421,7 +364,7 @@ static AppLayerResult FTPGetLineForDirection(
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseRequestCommand(
-        FTPThreadCtx *td, FtpLineState *line, const FtpCommand **cmd_descriptor)
+        FTPThreadCtx *td, FtpLineState *line, FtpCommandInfo *cmd_descriptor)
 {
     SCEnter();
 
@@ -431,34 +374,40 @@ static int FTPParseRequestCommand(
     int mpm_cnt = mpm_table[FTP_MPM].Search(
             ftp_mpm_ctx, td->ftp_mpm_thread_ctx, td->pmq, line->buf, line->len);
     if (mpm_cnt) {
-        *cmd_descriptor = &FtpCommands[td->pmq->rule_id_array[0]];
-        SCReturnInt(1);
+        uint8_t command_code;
+        if (SCGetFtpCommandInfo(td->pmq->rule_id_array[0], NULL, &command_code, NULL)) {
+            cmd_descriptor->command_code = command_code;
+            /* FTP command indices are expressed in Rust as a u8 */
+            cmd_descriptor->command_index = (uint8_t)td->pmq->rule_id_array[0];
+            SCReturnInt(1);
+        } else {
+            /* Where is out command? */
+            DEBUG_VALIDATE_BUG_ON(1);
+        }
+#ifdef DEBUG
+        if (SCLogDebugEnabled()) {
+            const char *command_name = NULL;
+            (void)SCGetFtpCommandInfo(td->pmq->rule_id_array[0], &command_name, NULL, NULL);
+            SCLogDebug("matching FTP command is %s [code: %d, index %d]", command_name,
+                    command_code, td->pmq->rule_id_array[0]);
+        }
+#endif
     }
 
-    *cmd_descriptor = NULL;
+    cmd_descriptor->command_code = FTP_COMMAND_UNKNOWN;
     SCReturnInt(0);
 }
 
-struct FtpTransferCmd {
-    /** Need to look like a ExpectationData so DFree must
-     *  be first field . */
-    void (*DFree)(void *);
-    uint64_t flow_id;
-    uint8_t *file_name;
-    uint16_t file_len;
-    uint8_t direction; /**< direction in which the data will flow */
-    FtpRequestCommand cmd;
-};
-
 static void FtpTransferCmdFree(void *data)
 {
-    struct FtpTransferCmd *cmd = (struct FtpTransferCmd *) data;
+    FtpTransferCmd *cmd = (FtpTransferCmd *)data;
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        FTPFree(cmd->file_name, cmd->file_len + 1);
+        FTPFree((void *)cmd->file_name, cmd->file_len + 1);
     }
-    FTPFree(cmd, sizeof(struct FtpTransferCmd));
+    SCFTPTransferCmdFree(cmd);
+    FTPDecrMemuse((uint64_t)sizeof(FtpTransferCmd));
 }
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
@@ -523,14 +472,14 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
         } else if (res.status == -1) {
             break;
         }
-        const FtpCommand *cmd_descriptor;
 
+        FtpCommandInfo cmd_descriptor;
         if (!FTPParseRequestCommand(thread_data, &line, &cmd_descriptor)) {
             state->command = FTP_COMMAND_UNKNOWN;
             continue;
         }
 
-        state->command = cmd_descriptor->command;
+        state->command = cmd_descriptor.command_code;
         FTPTransaction *tx = FTPTransactionCreate(state);
         if (unlikely(tx == NULL))
             SCReturnStruct(APP_LAYER_ERROR);
@@ -588,10 +537,12 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 if (state->dyn_port == 0 || line.len < 6) {
                     SCReturnStruct(APP_LAYER_ERROR);
                 }
-                struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
+                FtpTransferCmd *data = SCFTPTransferCmdNew();
                 if (data == NULL)
                     SCReturnStruct(APP_LAYER_ERROR);
-                data->DFree = FtpTransferCmdFree;
+                FTPIncrMemuse((uint64_t)(sizeof *data));
+                data->data_free = FtpTransferCmdFree;
+
                 /*
                  * Min size has been checked in FTPParseRequestCommand
                  * SC_FILENAME_MAX includes the null
@@ -725,9 +676,9 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
         lasttx = tx;
         tx->tx_data.updated_tc = true;
-        if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
+        if (state->command == FTP_COMMAND_UNKNOWN) {
             /* unknown */
-            tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX - 1];
+            tx->command_descriptor.command_code = FTP_COMMAND_UNKNOWN;
         }
 
         state->curr_tx = tx;
@@ -844,9 +795,17 @@ static void FTPStateFree(void *s)
     FTPTransaction *tx = NULL;
     while ((tx = TAILQ_FIRST(&fstate->tx_list))) {
         TAILQ_REMOVE(&fstate->tx_list, tx, next);
-        SCLogDebug("[%s] state %p id %" PRIu64 ", Freeing %d bytes at %p",
-                tx->command_descriptor->command_name, s, tx->tx_id, tx->request_length,
-                tx->request);
+#ifdef DEBUG
+        if (SCLogDebugEnabled()) {
+            const char *command_name = NULL;
+            (void)SCGetFtpCommandInfo(
+                    tx->command_descriptor.command_index, &command_name, NULL, NULL);
+            SCLogDebug("[%s] state %p id %" PRIu64 ", Freeing %d bytes at %p",
+                    command_name != NULL ? command_name : "n/a", s, tx->tx_id, tx->request_length,
+                    tx->request);
+        }
+#endif
+
         FTPTransactionFree(tx);
     }
 
@@ -957,7 +916,8 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
     FTPTransaction *tx = vtx;
 
     if (!tx->done) {
-        if (direction == STREAM_TOSERVER && tx->command_descriptor->command == FTP_COMMAND_PORT) {
+        if (direction == STREAM_TOSERVER &&
+                tx->command_descriptor.command_code == FTP_COMMAND_PORT) {
             return FTP_STATE_PORT_DONE;
         }
         return FTP_STATE_IN_PROGRESS;
@@ -1071,8 +1031,8 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
     SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (input_len && ftpdata_state->files == NULL) {
-        struct FtpTransferCmd *data =
-                (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
+        FtpTransferCmd *data =
+                (FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
         }
@@ -1283,19 +1243,7 @@ static void FTPSetMpmState(void)
     }
     MpmInitCtx(ftp_mpm_ctx, FTP_MPM);
 
-    uint32_t i = 0;
-    for (i = 0; i < sizeof(FtpCommands)/sizeof(FtpCommand) - 1; i++) {
-        const FtpCommand *cmd = &FtpCommands[i];
-        if (cmd->command_length == 0)
-            continue;
-
-        MpmAddPatternCI(ftp_mpm_ctx,
-                       (uint8_t *)cmd->command_name,
-                       cmd->command_length,
-                       0 /* defunct */, 0 /* defunct */,
-                       i /*  id */, i /* rule id */ , 0 /* no flags */);
-    }
-
+    SCFTPSetMpmState(ftp_mpm_ctx);
     mpm_table[FTP_MPM].Prepare(ftp_mpm_ctx);
 
 }

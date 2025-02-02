@@ -58,18 +58,28 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
             return false;
         }
     }
+    const char *command_name = NULL;
+    uint8_t command_name_length;
+    if (tx->command_descriptor.command_code != FTP_COMMAND_UNKNOWN) {
+        if (!SCGetFtpCommandInfo(tx->command_descriptor.command_index, &command_name, NULL,
+                    &command_name_length)) {
+            SCLogDebug("Unable to fetch info for FTP command code %d [index %d]",
+                    tx->command_descriptor.command_code, tx->command_descriptor.command_index);
+            return false;
+        }
+    }
     jb_open_object(jb, "ftp");
-    jb_set_string(jb, "command", tx->command_descriptor->command_name);
-    uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
-    if (tx->request_length > min_length) {
-        jb_set_string_from_bytes(jb,
-                "command_data",
-                (const uint8_t *)tx->request + min_length,
-                tx->request_length - min_length - 1);
-        if (tx->request_truncated) {
-            JB_SET_TRUE(jb, "command_truncated");
-        } else {
-            JB_SET_FALSE(jb, "command_truncated");
+    if (command_name) {
+        jb_set_string(jb, "command", command_name);
+        uint32_t min_length = command_name_length + 1; /* command + space */
+        if (tx->request_length > min_length) {
+            jb_set_string_from_bytes(jb, "command_data", (const uint8_t *)tx->request + min_length,
+                    tx->request_length - min_length - 1);
+            if (tx->request_truncated) {
+                JB_SET_TRUE(jb, "command_truncated");
+            } else {
+                JB_SET_FALSE(jb, "command_truncated");
+            }
         }
     }
 
@@ -131,8 +141,8 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
         jb_set_uint(jb, "dynamic_port", tx->dyn_port);
     }
 
-    if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
-        tx->command_descriptor->command == FTP_COMMAND_EPRT) {
+    if (tx->command_descriptor.command_code == FTP_COMMAND_PORT ||
+            tx->command_descriptor.command_code == FTP_COMMAND_EPRT) {
         if (tx->active) {
             JB_SET_STRING(jb, "mode", "active");
         } else {
