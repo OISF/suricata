@@ -26,7 +26,9 @@ use std;
 use std::str;
 use std::str::FromStr;
 
+pub mod constant;
 pub mod event;
+pub mod ftp;
 
 // We transform an integer string into a i64, ignoring surrounding whitespaces
 // We look for a digit suite, and try to convert it.
@@ -111,7 +113,7 @@ pub unsafe extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16
     if input.is_null() {
         return 0;
     }
-    let buf =  build_slice!(input, len as usize);
+    let buf = build_slice!(input, len as usize);
     match ftp_pasv_response(buf) {
         Ok((_, dport)) => {
             return dport;
