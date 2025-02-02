@@ -89,6 +89,9 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- If the configuration value ``ftp.memcap`` is invalid, Suricata will set it to ``0`` which means
+  no limit will be placed. In previous Suricata  releases, Suricata would terminate execution. An
+  error message will be displayed `Invalid value <value> for ftp.memcap` when this occurs.
 
 Removals
 ~~~~~~~~
