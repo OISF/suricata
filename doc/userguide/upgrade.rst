@@ -95,6 +95,9 @@ Major changes
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
   details.
+- If the configuration value ``ftp.memcap`` is invalid, Suricata will set it to ``0`` which means
+  no limit will be placed. In previous Suricata  releases, Suricata would terminate execution. A
+  warning message will be displayed `Invalid value <value> for ftp.memcap` when this occurs.
 
 Removals
 ~~~~~~~~
