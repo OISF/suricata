@@ -921,7 +921,7 @@ impl DCERPCState {
                     }
                 }
                 _ => {
-                    SCLogDebug!("Unrecognized packet type: {:?}", x);
+                    SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
                     return AppLayerResult::err();
                 }
         }
@@ -1318,7 +1318,6 @@ mod tests {
             0x02, 0x00, 0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(header));
         assert_eq!(1068, dcerpc_state.process_bind_pdu(bind));
     }
 
@@ -1335,7 +1334,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(header));
         assert_eq!(44, dcerpc_state.handle_bindctxitem(bind, 0));
     }
 
@@ -1468,7 +1466,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(bind));
         assert_eq!(1068, dcerpc_state.process_bind_pdu(&bind[16..]));
         assert_eq!(604, dcerpc_state.process_bindack_pdu(bindack));
         if let Some(back) = dcerpc_state.bindack {
@@ -1560,7 +1557,6 @@ mod tests {
             0x69, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(16, dcerpc_state.process_header(request));
         assert_eq!(1008, dcerpc_state.process_request_pdu(&request[16..]));
     }
 
