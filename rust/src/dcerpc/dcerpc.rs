@@ -315,8 +315,6 @@ pub struct DCERPCBindAck {
 
 #[derive(Default, Debug)]
 pub struct DCERPCState {
-    pub header_tc: Option<DCERPCHdr>,
-    pub header_ts: Option<DCERPCHdr>,
     pub bind: Option<DCERPCBind>,
     pub bindack: Option<DCERPCBindAck>,
     pub transactions: VecDeque<DCERPCTransaction>,
@@ -349,11 +347,11 @@ impl DCERPCState {
         }
     }
 
-    fn create_tx(&mut self, dir_header: &DCERPCHdr) -> DCERPCTransaction {
+    fn create_tx(&mut self, hdr: &DCERPCHdr) -> DCERPCTransaction {
         let mut tx = DCERPCTransaction::new();
-        let endianness = dir_header.packed_drep[0] & 0x10;
+        let endianness = hdr.packed_drep[0] & 0x10;
         tx.id = self.tx_id;
-        tx.call_id = dir_header.call_id;
+        tx.call_id = hdr.call_id;
         tx.endianness = endianness;
         self.tx_id += 1;
         if self.transactions.len() > unsafe { DCERPC_MAX_TX } {
@@ -370,7 +368,7 @@ impl DCERPCState {
             }
             self.tx_index_completed = index;
         }
-        tx.min_version = dir_header.rpc_vers_minor;
+        tx.min_version = hdr.rpc_vers_minor;
         tx
     }
 
@@ -524,8 +522,8 @@ impl DCERPCState {
         Err(Err::Incomplete(Needed::new(2_usize - d.len())))
     }
 
-    pub fn handle_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16, dir_header: &DCERPCHdr) -> i32 {
-        let endianness = if dir_header.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
+    pub fn handle_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16, hdr: &DCERPCHdr) -> i32 {
+        let endianness = if hdr.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
         match parser::parse_bindctx_item(input, endianness) {
             Ok((leftover_bytes, ctxitem)) => {
                 let mut uuidentry = DCERPCUuidEntry::new();
@@ -534,7 +532,7 @@ impl DCERPCState {
                 uuidentry.ctxid = ctxitem.ctxid;
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
-                let pfcflags = dir_header.pfc_flags;
+                let pfcflags = hdr.pfc_flags;
                 // Store the first frag flag in the uuid as pfc_flags will
                 // be overwritten by new packets
                 if pfcflags & PFC_FIRST_FRAG > 0 {
@@ -559,7 +557,7 @@ impl DCERPCState {
         }
     }
 
-    pub fn process_bind_pdu(&mut self, input: &[u8], dir_header: &DCERPCHdr) -> i32 {
+    pub fn process_bind_pdu(&mut self, input: &[u8], hdr: &DCERPCHdr) -> i32 {
         let mut retval = 0;
         let mut idx = 12; // Bytes consumed if parser returns OK would be 12
         match parser::parse_dcerpc_bind(input) {
@@ -567,14 +565,14 @@ impl DCERPCState {
                 let numctxitems = header.numctxitems;
                 self.bind = Some(header);
                 for i in 0..numctxitems {
-                    retval = self.handle_bindctxitem(&input[idx as usize..], i as u16, dir_header);
+                    retval = self.handle_bindctxitem(&input[idx as usize..], i as u16, hdr);
                     if retval == -1 {
                         return -1;
                     }
                     idx += retval;
                 }
-                let mut tx = self.create_tx(dir_header);
-                tx.req_cmd = dir_header.hdrtype;
+                let mut tx = self.create_tx(hdr);
+                tx.req_cmd = hdr.hdrtype;
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
@@ -631,12 +629,12 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_stub_data(&mut self, input: &[u8], input_len: usize, dir: Direction, dir_header: &DCERPCHdr) -> u16 {
+    pub fn handle_stub_data(&mut self, input: &[u8], input_len: usize, dir: Direction, hdr: &DCERPCHdr) -> u16 {
         let retval;
-        let hdrpfcflags = dir_header.pfc_flags;
+        let hdrpfcflags = hdr.pfc_flags;
         let padleft = self.padleft;
-        let call_id = dir_header.call_id;
-        let hdrtype = dir_header.hdrtype;
+        let call_id = hdr.call_id;
+        let hdrtype = hdr.hdrtype;
         let tx;
         if let Some(transaction) = self.get_tx_by_call_id(call_id, dir, hdrtype) {
             tx = transaction;
@@ -704,8 +702,8 @@ impl DCERPCState {
     /// Return value:
     /// * Success: Number of bytes successfully parsed.
     /// * Failure: -1 in case fragment length defined by header mismatches the data.
-    pub fn handle_common_stub(&mut self, input: &[u8], bytes_consumed: usize, dir: Direction, dir_header: &DCERPCHdr) -> i32 {
-        let fraglen = dir_header.frag_length;
+    pub fn handle_common_stub(&mut self, input: &[u8], bytes_consumed: usize, dir: Direction, hdr: &DCERPCHdr) -> i32 {
+        let fraglen = hdr.frag_length;
         if (fraglen as usize) < bytes_consumed + (DCERPC_HDR_LEN as usize) {
             return -1;
         }
@@ -714,7 +712,7 @@ impl DCERPCState {
         let mut input_left = input.len() - bytes_consumed;
         let mut parsed = bytes_consumed as i32;
         while input_left > 0 && parsed < fraglen as i32 {
-            let retval = self.handle_stub_data(&input[parsed as usize..], input_left, dir, dir_header);
+            let retval = self.handle_stub_data(&input[parsed as usize..], input_left, dir, hdr);
             if retval > 0 && retval as usize <= input_left {
                 parsed += retval as i32;
                 input_left -= <u16 as std::convert::Into<usize>>::into(retval);
@@ -734,12 +732,12 @@ impl DCERPCState {
         parsed
     }
 
-    pub fn process_request_pdu(&mut self, input: &[u8], dir_header: &DCERPCHdr) -> i32 {
-        let endianness = if dir_header.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
+    pub fn process_request_pdu(&mut self, input: &[u8], hdr: &DCERPCHdr) -> i32 {
+        let endianness = if hdr.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
         match parser::parse_dcerpc_request(input, endianness) {
             Ok((leftover_input, request)) => {
-                let call_id = dir_header.call_id;
-                let hdr_type = dir_header.hdrtype;
+                let call_id = hdr.call_id;
+                let hdr_type = hdr.hdrtype;
                 let mut transaction = self.get_tx_by_call_id(call_id, Direction::ToServer, hdr_type);
                 match transaction {
                     Some(ref mut tx) => {
@@ -749,7 +747,7 @@ impl DCERPCState {
                         tx.first_request_seen = request.first_request_seen;
                     }
                     None => {
-                        let mut tx = self.create_tx(dir_header);
+                        let mut tx = self.create_tx(hdr);
                         tx.req_cmd = hdr_type;
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
@@ -761,7 +759,7 @@ impl DCERPCState {
                     input,
                     input.len() - leftover_input.len(),
                     Direction::ToServer,
-                    dir_header,
+                    hdr,
                 );
                 parsed
             }
@@ -813,16 +811,13 @@ impl DCERPCState {
             }
         }
 
-        let mut frag_bytes_consumed: u16 = 0;
         let mut flow = std::ptr::null();
         if let Some(f) = self.flow {
             flow = f;
         }
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
-        let dir_header = if direction == Direction::ToServer { &self.header_ts } else { &self.header_tc };
-        if dir_header.is_none() {
-            match parser::parse_dcerpc_header(cur_i) {
+        let hdr = match parser::parse_dcerpc_header(cur_i) {
                 Ok((_leftover_bytes, header)) => {
                     if header.rpc_vers != 5
                         || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
@@ -834,11 +829,7 @@ impl DCERPCState {
                         );
                         return AppLayerResult::err();
                     }
-                    if direction == Direction::ToServer {
-                        self.header_ts = Some(header);
-                    } else {
-                        self.header_tc = Some(header);
-                    }
+                    header
                 }
                 Err(Err::Incomplete(_)) => {
                     // Insufficient data.
@@ -854,49 +845,27 @@ impl DCERPCState {
                     SCLogDebug!("An error occurred while parsing DCERPC header");
                     return AppLayerResult::err();
                 }
-            }
-        } else {
-            frag_bytes_consumed = DCERPC_HDR_LEN;
-        }
+            };
         let parsed = DCERPC_HDR_LEN;
-        let fraglen = if direction == Direction::ToServer {
-            if let Some(h) = &self.header_ts {
-                h.frag_length
-            } else {
-                0
-            }
-        } else {
-            if let Some(h) = &self.header_tc {
-                h.frag_length
-            } else {
-                0
-            }
-        };
+        let fraglen = hdr.frag_length;
 
-        if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
+        if cur_i.len() < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(parsed as u32, fraglen as u32 - parsed as u32);
+            return AppLayerResult::incomplete(0u32, fraglen.into());
         }
 
-        let dir_header = if direction == Direction::ToServer { 
-            let h = std::mem::replace(&mut self.header_ts, None);
-            h.unwrap()
-        } else { 
-            let h = std::mem::replace(&mut self.header_tc, None);
-            h.unwrap()
-        };
-        let hdrtype = dir_header.hdrtype;
+        let hdrtype = hdr.hdrtype;
 
         let _hdr = Frame::new(flow, &stream_slice, cur_i, parsed as i64, DCERPCFrameType::Hdr as u8, None);
         let _pdu = Frame::new(flow, &stream_slice, cur_i, fraglen as i64, DCERPCFrameType::Pdu as u8, None);
         if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
             let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
         }
-        let current_call_id = dir_header.call_id;
+        let current_call_id = hdr.call_id;
 
         match hdrtype {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..], &dir_header);
+                    retval = self.process_bind_pdu(&cur_i[parsed as usize..], &hdr);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -910,7 +879,7 @@ impl DCERPCState {
                         tx.resp_cmd = hdrtype;
                         tx
                     } else {
-                        let mut tx = self.create_tx(&dir_header);
+                        let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
                         self.transactions.push_back(tx);
                         self.transactions.back_mut().unwrap()
@@ -922,7 +891,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..], &dir_header);
+                    retval = self.process_request_pdu(&cur_i[parsed as usize..], &hdr);
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
@@ -936,7 +905,7 @@ impl DCERPCState {
                             tx.resp_cmd = hdrtype;
                         }
                         None => {
-                            let mut tx = self.create_tx(&dir_header);
+                            let mut tx = self.create_tx(&hdr);
                             tx.resp_cmd = hdrtype;
                             self.transactions.push_back(tx);
                         }
@@ -945,7 +914,7 @@ impl DCERPCState {
                         &cur_i[parsed as usize..],
                         0,
                         Direction::ToClient,
-                        &dir_header,
+                        &hdr,
                     );
                     if retval < 0 {
                         return AppLayerResult::err();
