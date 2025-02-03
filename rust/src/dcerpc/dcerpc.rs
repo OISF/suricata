@@ -1230,6 +1230,7 @@ mod tests {
     use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
     use crate::direction::Direction;
+    use super::parser;
     use std::cmp;
 
     #[test]
@@ -1318,7 +1319,8 @@ mod tests {
             0x02, 0x00, 0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(1068, dcerpc_state.process_bind_pdu(bind));
+        let hdr = parser::parse_dcerpc_header(header).unwrap().1;
+        assert_eq!(1068, dcerpc_state.process_bind_pdu(bind, &hdr));
     }
 
     #[test]
@@ -1334,7 +1336,8 @@ mod tests {
             0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(44, dcerpc_state.handle_bindctxitem(bind, 0));
+        let hdr = parser::parse_dcerpc_header(header).unwrap().1;
+        assert_eq!(44, dcerpc_state.handle_bindctxitem(bind, 0, &hdr));
     }
 
     #[test]
@@ -1466,7 +1469,8 @@ mod tests {
             0x00, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(1068, dcerpc_state.process_bind_pdu(&bind[16..]));
+        let hdr = parser::parse_dcerpc_header(bind).unwrap().1;
+        assert_eq!(1068, dcerpc_state.process_bind_pdu(&bind[16..], &hdr));
         assert_eq!(604, dcerpc_state.process_bindack_pdu(bindack));
         if let Some(back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -1557,7 +1561,8 @@ mod tests {
             0x69, 0x00,
         ];
         let mut dcerpc_state = DCERPCState::new();
-        assert_eq!(1008, dcerpc_state.process_request_pdu(&request[16..]));
+        let hdr = parser::parse_dcerpc_header(request).unwrap().1;
+        assert_eq!(1008, dcerpc_state.process_request_pdu(&request[16..], &hdr));
     }
 
     #[test]
@@ -1643,11 +1648,6 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(request, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(hdr) = dcerpc_state.header {
-            assert_eq!(0, hdr.hdrtype);
-            assert_eq!(5, hdr.rpc_vers);
-            assert_eq!(1024, hdr.frag_length);
-        }
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(11, tx.ctxid);
         assert_eq!(9, tx.opnum);
