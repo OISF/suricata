@@ -163,3 +163,41 @@ Example of a signature that would alert if a packet has more than 2 LDAP respons
 .. container:: example-rule
 
   alert ip any any -> any any (msg:"Packet has more than 2 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:>2;` sid:1;)
+
+ldap.request.dn
+---------------
+
+Matches on LDAP distinguished names from request operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.request.dn; content:dc=example,dc=com;
+
+``ldap.request.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the eve fields:
+``ldap.request.bind_request.name``
+``ldap.request.add_request.entry``
+``ldap.request.search_request.base_object``
+``ldap.request.modify_request.object``
+``ldap.request.del_request.dn``
+``ldap.request.mod_dn_request.entry``
+``ldap.request.compare_request.entry``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP distinguished name ``uid=jdoe,ou=People,dc=example,dc=com``:
+
+.. container:: example-rule
+
+  alert tcp any any -> any any (msg:"Test LDAPDN"; :example-rule-emphasis:`ldap.request.dn:uid=jdoe,ou=People,dc=example,dc=com;` sid:1;)
+
+It is possible to use the keyword ``ldap.request.operation`` in the same rule to specify the operation to match.
+Here is an example of a signature that would alert if a packet  has an LDAP search request operation and contains the LDAP distinguished name ``dc=example,dc=com``.
+
+.. container:: example-rule
+
+  alert tcp any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.request.operation:search_request; ldap.request.dn:dc=example,dc=com;` sid:1;)
