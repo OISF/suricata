@@ -808,17 +808,15 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
 
     retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
-    if (retval != 1)
-        SCReturnInt(-ENOENT);
-    if (retval < 0)
-        SCReturnInt(retval);
+    if (retval != 1) {
+        copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
+    }
 
     retval = ConfGetChildValueWithDefault(
             if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
-    if (retval != 1)
-        SCReturnInt(-ENOENT);
-    if (retval < 0)
-        SCReturnInt(retval);
+    if (retval != 1) {
+        copy_iface_str = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
+    }
 
     retval = ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
     if (retval < 0)
