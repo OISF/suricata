@@ -134,6 +134,13 @@ Major changes
 - DPDK interface mempools are now allocated per thread instead of per port. This
   change improves performance and should not be visible from the user
   configuration perspective.
+- DPDK supports link state check, allowing Suricata to start only when the link
+  is up. This is especially useful for Intel E810 (ice) NICs as they need 
+  a few seconds before they are ready to receive packets. With this check
+  disabled, Suricata reports as started but only begins processing packets
+  after the previously mentioned interval. Other cards were not observed to have
+  this issue. This feature is disabled by default.
+  See :ref:`dpdk-link-state-change-timeout`.
 
 Removals
 ~~~~~~~~
