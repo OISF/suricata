@@ -204,3 +204,21 @@ The number of mempool and its cache is then derived from these.
 Rx/Tx descriptors are set to the highest possible value to allow more buffer
 room when traffic spikes occur. However, it requires more memory.
 Individual properties can still be set manually if needed.
+
+.. _dpdk-link-state-change-timeout:
+
+Link State Change timeout
+-------------------------
+
+The `linkup-timeout` YAML configuration option allows the user to set a timeout
+period to wait until the interface's link is detected. This ensures that
+Suricata does not start processing packets until the link is up. This option is
+particularly useful for Intel E810 (Ice) NICs, which begin receiving packets
+only after a few seconds have passed since the interface started. In such cases,
+if this check is disabled, Suricata reports as started but only begins
+processing packets after a few seconds. This issue has not been observed with
+other cards.
+
+Setting the value to 0 causes Suricata to skip the link check.
+If the interface's link remains down after the timeout period, Suricata warns
+the user but continues with the engine initialization.
