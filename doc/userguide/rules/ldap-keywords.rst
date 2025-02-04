@@ -163,3 +163,25 @@ Example of a signature that would alert if a packet has more than 2 LDAP respons
 .. container:: example-rule
 
   alert ip any any -> any any (msg:"Packet has more than 2 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:>2;` sid:1;)
+
+ldap.request.distinguished_name
+-------------------------------
+
+Matches on LDAP distinguished names from request operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.request.distinguished_name; content:dc=example,dc=com;
+
+``ldap.request.distinguished_name`` is a 'sticky buffer'.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP distinguished name ``uid=jdoe,ou=People,dc=example,dc=com``:
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"Test LDAPDN"; :example-rule-emphasis:`ldap.request.distinguished_name:uid=jdoe,ou=People,dc=example,dc=com;` sid:1;)
