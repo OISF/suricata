@@ -638,6 +638,45 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             goto fail;
         }
 
+        uint32_t timeout = dpdk_config->linkup_timeout * 10;
+        while (timeout > 0) {
+            struct rte_eth_link link = { 0 };
+            retval = rte_eth_link_get_nowait(ptv->port_id, &link);
+            if (retval != 0) {
+                if (retval == -ENOTSUP) {
+                    SCLogInfo("%s: link status not supported, skipping", dpdk_config->iface);
+                } else {
+                    SCLogInfo("%s: error (%s) when getting link status, skipping",
+                            dpdk_config->iface, rte_strerror(-retval));
+                }
+                break;
+            }
+            if (link.link_status) {
+                char link_status_str[RTE_ETH_LINK_MAX_STR_LEN];
+#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+                rte_eth_link_to_str(link_status_str, sizeof(link_status_str), &link);
+#pragma GCC diagnostic pop
+#else
+                snprintf(link_status_str, sizeof(link_status_str),
+                        "Link Up, speed %u Mbps, %s", // 22 chars + 10 for digits + 11 for duplex
+                        link.link_speed,
+                        (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? "full-duplex" : "half-duplex");
+#endif
+
+                SCLogInfo("%s: %s", dpdk_config->iface, link_status_str);
+                break;
+            }
+
+            rte_delay_ms(100);
+            timeout--;
+        }
+
+        if (dpdk_config->linkup_timeout && timeout == 0) {
+            SCLogWarning("%s: link is down, trying to continue anyway", dpdk_config->iface);
+        }
+
         // some PMDs requires additional actions only after the device has started
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
 

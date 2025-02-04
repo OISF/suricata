@@ -75,6 +75,7 @@ typedef struct DPDKIfaceConfig_ {
     uint32_t mempool_size;
     uint32_t mempool_cache_size;
     DPDKDeviceResources *pkt_mempools;
+    uint16_t linkup_timeout; // in seconds how long to wait for link to come up
     SC_ATOMIC_DECLARE(unsigned int, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);

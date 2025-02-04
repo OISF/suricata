@@ -797,6 +797,7 @@ dpdk:
       # rss-hash-functions: 0x0 # advanced configuration option, use only if you use untested NIC card and experience RSS warnings,
       # For `rss-hash-functions` use hexadecimal 0x01ab format to specify RSS hash function flags - DumpRssFlags can help (you can see output if you use -vvv option during Suri startup)
       # setting auto to rss_hf sets the default RSS hash functions (based on IP addresses)
+      # linkup-timeout: 0 # how many seconds to wait before giving up, 0 to disable link state checking
 
       # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
       # Make sure you have enough allocated hugepages.
@@ -821,6 +822,7 @@ dpdk:
       mtu: 1500
       vlan-strip-offload: false
       rss-hash-functions: auto
+      linkup-timeout: 0
       mempool-size: 65535
       mempool-cache-size: 257
       rx-descriptors: 1024
