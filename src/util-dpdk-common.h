@@ -113,6 +113,10 @@
 #define RTE_MBUF_F_RX_L4_CKSUM_BAD  PKT_RX_L4_CKSUM_BAD
 #endif
 
+#if RTE_VERSION < RTE_VERSION_NUM(20, 11, 0, 0)
+#define RTE_ETH_LINK_MAX_STR_LEN 40
+#endif
+
 typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;

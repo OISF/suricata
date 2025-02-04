@@ -119,6 +119,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION         1
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD 1
 #define DPDK_CONFIG_DEFAULT_VLAN_STRIP                  0
+#define DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT              0
 #define DPDK_CONFIG_DEFAULT_COPY_MODE                   "none"
 #define DPDK_CONFIG_DEFAULT_COPY_INTERFACE              "none"
 
@@ -132,6 +133,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .mtu = "mtu",
     .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
+    .linkup_timeout = "linkup-timeout",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -690,6 +692,19 @@ static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
     SCReturnInt(0);
 }
 
+static int ConfigSetLinkupTimeout(DPDKIfaceConfig *iconf, intmax_t entry_int)
+{
+    SCEnter();
+    if (entry_int < 0) {
+        SCLogError("%s: Link-up waiting timeout needs to be a positive number or 0 to disable",
+                iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    iconf->linkup_timeout = entry_int;
+    SCReturnInt(0);
+}
+
 static bool ConfigSetPromiscuousMode(DPDKIfaceConfig *iconf, int entry_bool)
 {
     SCEnter();
@@ -945,6 +960,13 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     } else {
         ConfigSetVlanStrip(iconf, entry_bool);
     }
+
+    retval = ConfGetChildValueIntWithDefault(
+                     if_root, if_default, dpdk_yaml.linkup_timeout, &entry_int) != 1
+                     ? ConfigSetLinkupTimeout(iconf, DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT)
+                     : ConfigSetLinkupTimeout(iconf, entry_int);
+    if (retval < 0)
+        SCReturnInt(retval);
 
     retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
     if (retval != 1) {
