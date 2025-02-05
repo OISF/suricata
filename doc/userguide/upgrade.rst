@@ -89,6 +89,8 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- New rule keyword ``entropy`` for alerting based on entropy values. See
+  :ref:`keyword_entropy`.
 
 Removals
 ~~~~~~~~
