@@ -73,3 +73,4 @@ suricata-lua-sys = { version = "0.1.0-alpha.5" }
 
 [dev-dependencies]
 test-case = "~3.3.1"
+assert_float_eq = "~1.1.4"
