@@ -128,6 +128,8 @@ Major changes
     can be used to tune this value for TPACKET_V2. Due to the
     increased block size, memory usage has been increased, but
     should not be an issue in most cases.
+- New rule keyword ``entropy`` for alerting based on entropy values. See
+  :ref:`keyword_entropy`.
 
 Removals
 ~~~~~~~~
