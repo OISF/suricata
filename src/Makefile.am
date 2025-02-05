@@ -148,6 +148,7 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
+	detect-entropy.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -729,6 +730,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
+	detect-entropy.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
