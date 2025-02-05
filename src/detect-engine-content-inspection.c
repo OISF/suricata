@@ -41,6 +41,7 @@
 #include "detect-bytemath.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
+#include "detect-entropy.h"
 #include "detect-replace.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-uricontent.h"
@@ -486,6 +487,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             det_ctx->pcre_match_start_offset = prev_offset;
         } while (1);
 
+    } else if (smd->type == DETECT_ENTROPY) {
+        if (!DetectEntropyDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len)) {
+            goto no_match;
+        }
+        goto match;
     } else if (smd->type == DETECT_BYTETEST) {
         const DetectBytetestData *btd = (const DetectBytetestData *)smd->ctx;
         uint16_t btflags = btd->flags;
