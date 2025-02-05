@@ -95,6 +95,7 @@ enum DetectKeywordId {
     DETECT_ISDATAAT,
     DETECT_URILEN,
     DETECT_ABSENT,
+    DETECT_ENTROPY,
     /* end of content inspection */
 
     DETECT_METADATA,
