@@ -669,6 +669,70 @@ Example::
 	 flow:established,to_server; content:"|00 FF|"; \
 	 byte_extract:2,0,cmp_ver,relative; content:"FooBar"; distance:0; byte_test:2,=,cmp_ver,0; sid:3;)
 
+.. _keyword_entropy:
+
+entropy
+-------
+
+The ``entropy`` keyword calculates the Shannon entropy value for content and compares it with
+an entropy value. When there is a match, rule processing will continue. Entropy values
+are between 0.0 and 8.0, inclusive. Internally, entropy is representing as a 64-bit
+floating point value.
+
+The ``entropy`` keyword syntax is the keyword entropy followed by options
+and the entropy value and operator used to determine if the values agree.
+
+The minimum entropy keyword specification is::
+
+    entropy: value <entropy-spec>
+
+This results in the calculated entropy value being compared with
+`entropy-spec` using the (default) equality operator.
+
+Example::
+
+  entropy: 7.01
+
+A match occurs when the calculated entropy and specified entropy values agree.
+This is determined by calculating the entropy value and comparing it with the
+value from the rule using the specified operator.
+
+Example::
+
+  entropy: <7.01
+
+Options have default values:
+- bytes is equal to the current content length
+- offset is 0
+- equality comparison
+
+When entropy keyword options are specified, all options and "value" must
+be comma-separated. Options and value may be specified in any order.
+
+The complete format for the ``entropy`` keyword is::
+
+	entropy: [bytes <byteval>] [offset <offsetval>] value <operator><entropy-value>
+
+This example shows all possible options with default values and an entropy value of `4.037`::
+
+	entropy: bytes 0, offset 0,  value = 4.037
+
+The following operators are available::
+
+ * = (default): Match when calculated value equals entropy value
+ * < Match when calculated value is strictly less than entropy value
+ * <=  Match when calculated value is less than or equal to entropy value
+ * > Match when calculated value is strictly greater than entropy value
+ * >= Match when calculated value is greater than or equal to entropy value
+ * !=  Match when calculated value is not equal to entropy value
+ * x-y Match when calculated value is within the exclusive range
+ * !x-y Match when calculated value is not within the exclusive range
+
+This example matches if the `file.data` content for an HTTP transaction has
+a Shannon entropy value of 4 or higher::
+
+	alert http any any -> any any (msg:"entropy simple test"; file.data; entropy: value >= 4; sid:1;)
+
 rpc
 ---
 
