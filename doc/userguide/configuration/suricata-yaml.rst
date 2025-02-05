@@ -2183,6 +2183,7 @@ The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
           multicast: true
           checksum-checks: true
           checksum-checks-offload: true
+          vlan-strip-offload: true
           linkup-timeout: 10
           mtu: 1500
           mempool-size: auto
