@@ -19,6 +19,7 @@
 
 pub mod byte_extract;
 pub mod byte_math;
+pub mod entropy;
 pub mod error;
 pub mod flow;
 pub mod iprep;
