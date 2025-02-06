@@ -751,7 +751,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
 }
 
-static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
+static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
 {
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
@@ -974,7 +974,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
             case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
-                    htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Upgrade");
+                    const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
                     if (h == NULL) {
                         break;
                     }
@@ -1044,8 +1044,8 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
 /**
  *  \param name /Lowercase/ version of the variable name
  */
-static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
-        uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
+static int HTTPParseContentDispositionHeader(const uint8_t *name, size_t name_len,
+        const uint8_t *data, size_t len, uint8_t const **retptr, size_t *retlen)
 {
 #ifdef PRINT
     printf("DATA START: \n");
@@ -1063,7 +1063,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
     if (x >= len)
         return 0;
 
-    uint8_t *line = data+x;
+    const uint8_t *line = data + x;
     size_t line_len = len-x;
     size_t offset = 0;
 #ifdef PRINT
@@ -1078,7 +1078,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
             }
 
             if (((line[x - 1] != '\\' && line[x] == ';') || ((x + 1) == line_len)) && (quote == 0 || quote % 2 == 0)) {
-                uint8_t *token = line + offset;
+                const uint8_t *token = line + offset;
                 size_t token_len = x - offset;
 
                 if ((x + 1) == line_len) {
@@ -1098,7 +1098,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
 #endif
                 if (token_len > name_len) {
                     if (name == NULL || SCMemcmpLowercase(name, token, name_len) == 0) {
-                        uint8_t *value = token + name_len;
+                        const uint8_t *value = token + name_len;
                         size_t value_len = token_len - name_len;
 
                         if (value[0] == '\"') {
@@ -1138,9 +1138,9 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
+static int HtpRequestBodySetupMultipart(const htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Content-Type");
+    const htp_header_t *h = htp_tx_request_header(tx, "Content-Type");
     if (h != NULL && htp_header_value_len(h) > 0) {
         htud->mime_state =
                 SCMimeStateInit(htp_header_value_ptr(h), (uint32_t)htp_header_value_len(h));
@@ -1181,7 +1181,7 @@ static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
     }
 }
 
-static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, void *tx,
+static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, const void *tx,
         const uint8_t *chunks_buffer, uint32_t chunks_buffer_len, bool eof)
 {
 #ifdef PRINT
@@ -1192,7 +1192,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
     // libhtp will not call us back too late
     // should libhtp send a callback eof for 0 chunked ?
-    DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, (void *)tx,
                                   STREAM_TOSERVER) >= HTP_REQUEST_PROGRESS_COMPLETE);
 
     const uint8_t *cur_buf = chunks_buffer;
@@ -1288,8 +1288,8 @@ end:
 /** \internal
  *  \brief Handle POST or PUT, no multipart body data
  */
-static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud, const htp_tx_t *tx,
+        const uint8_t *data, uint32_t data_len)
 {
     int result = 0;
 
@@ -1344,8 +1344,8 @@ end:
     return -1;
 }
 
-static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud, const htp_tx_t *tx,
+        const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
@@ -1358,11 +1358,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     if (!(htud->tcflags & HTP_FILENAME_SET)) {
         SCLogDebug("setting up file name");
 
-        uint8_t *filename = NULL;
+        const uint8_t *filename = NULL;
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Content-Disposition");
+        const htp_header_t *h = htp_tx_response_header(tx, "Content-Disposition");
         if (h != NULL && htp_header_value_len(h) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
@@ -1381,7 +1381,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             // set range if present
-            htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
+            const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
