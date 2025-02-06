@@ -37,44 +37,6 @@
 #include "app-layer-frames.h"
 
 #include <htp/htp.h>
-// Temporary include directly app-layer-htp-libhtp.h
-// This helps libhtp.rs transition by making small steps
-// app-layer-htp-libhtp.h will be removed with libhtp.rs final merge
-#include "app-layer-htp-libhtp.h"
-
-/* default request body limit */
-#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT           4096U
-#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT          4096U
-#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE     32768U
-#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW       4096U
-#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE    32768U
-#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW      4096U
-#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT             9000U
-#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD             18000U
-
-#define HTP_CONFIG_DEFAULT_LZMA_LAYERS 0U
-/* default libhtp lzma limit, taken from libhtp. */
-#define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT                1048576U
-#define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT       1048576U
-// 100000 usec is 0.1 sec
-#define HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT 100000
-
-#define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
-#define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
-
-// 0x0001 not used
-#define HTP_FLAG_STATE_CLOSED_TS    0x0002    /**< Flag to indicate that HTTP
-                                             connection is closed */
-#define HTP_FLAG_STATE_CLOSED_TC                                                                   \
-    0x0004 /**< Flag to indicate that HTTP                                                         \
-          connection is closed */
-
-enum {
-    HTP_BODY_REQUEST_NONE = 0,
-    HTP_BODY_REQUEST_MULTIPART, /* POST, MP */
-    HTP_BODY_REQUEST_POST,      /* POST, no MP */
-    HTP_BODY_REQUEST_PUT,
-};
 
 enum {
     /* libhtp errors/warnings */
@@ -141,6 +103,46 @@ enum {
     HTTP_DECODER_EVENT_TOO_MANY_WARNINGS,
 
     HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE,
+};
+
+// Temporary include directly app-layer-htp-libhtp.h
+// This helps libhtp.rs transition by making small steps
+// app-layer-htp-libhtp.h will be removed with libhtp.rs final merge
+#include "app-layer-htp-libhtp.h"
+
+/* default request body limit */
+#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT        4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT       4096U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE  32768U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW    4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE 32768U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW   4096U
+#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT          9000U
+#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD          18000U
+
+#define HTP_CONFIG_DEFAULT_LZMA_LAYERS 0U
+/* default libhtp lzma limit, taken from libhtp. */
+#define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT          1048576U
+#define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT 1048576U
+// 100000 usec is 0.1 sec
+#define HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT 100000
+
+#define HTP_CONFIG_DEFAULT_RANDOMIZE       1
+#define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE 10
+
+// 0x0001 not used
+#define HTP_FLAG_STATE_CLOSED_TS                                                                   \
+    0x0002 /**< Flag to indicate that HTTP                                                         \
+          connection is closed */
+#define HTP_FLAG_STATE_CLOSED_TC                                                                   \
+    0x0004 /**< Flag to indicate that HTTP                                                         \
+          connection is closed */
+
+enum {
+    HTP_BODY_REQUEST_NONE = 0,
+    HTP_BODY_REQUEST_MULTIPART, /* POST, MP */
+    HTP_BODY_REQUEST_POST,      /* POST, no MP */
+    HTP_BODY_REQUEST_PUT,
 };
 
 typedef enum HtpSwfCompressType_ {
