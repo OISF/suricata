@@ -1438,12 +1438,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (d->len == 0)
+    if (htp_tx_data_len(d) == 0)
         SCReturnInt(HTP_STATUS_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
-    PrintRawDataFp(stdout, (uint8_t *)d->data, d->len);
+    PrintRawDataFp(stdout, (uint8_t *)htp_tx_data_data(d), htp_tx_data_len(d));
     printf("HTPBODY END: \n");
 #endif
 
@@ -1453,7 +1453,8 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%" PRIu32 "",
+            hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
@@ -1467,7 +1468,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         if (d->htp_tx_request_method_number(tx) == HTP_METHOD_POST) {
             SCLogDebug("POST");
-            int r = HtpRequestBodySetupMultipart(d->tx, tx_ud);
+            int r = HtpRequestBodySetupMultipart(htp_tx_data_tx(d), tx_ud);
             if (r == 1) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
@@ -1489,13 +1490,11 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (AppLayerHtpCheckDepth(&hstate->cfg->request, &tx_ud->request_body, tx_ud->tsflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
-                                                     hstate->cfg->request.body_limit,
-                                                     stream_depth,
-                                                     tx_ud->tsflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                hstate->cfg->request.body_limit, stream_depth, tx_ud->tsflags,
+                (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->request_body, htp_tx_data_data(d), len);
 
         const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1516,12 +1515,13 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             printf("REASSCHUNK END: \n");
 #endif
 
-            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len,
-                    (d->data == NULL && d->len == 0));
+            HtpRequestBodyHandleMultipart(hstate, tx_ud, htp_tx_data_tx(d), chunks_buffer,
+                    chunks_buffer_len, (htp_tx_data_data(d) == NULL && htp_tx_data_len(d) == 0));
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
                    tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePOSTorPUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
+            HtpRequestBodyHandlePOSTorPUT(
+                    hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
         }
 
     } else {
@@ -1576,7 +1576,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (d->len == 0)
+    if (htp_tx_data_len(d) == 0)
         SCReturnInt(HTP_STATUS_OK);
 
     HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
@@ -1585,7 +1585,8 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%" PRIu32 "",
+            hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
@@ -1607,15 +1608,14 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (AppLayerHtpCheckDepth(&hstate->cfg->response, &tx_ud->response_body, tx_ud->tcflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->response_body.content_len_so_far,
-                                                     hstate->cfg->response.body_limit,
-                                                     stream_depth,
-                                                     tx_ud->tcflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                hstate->cfg->response.body_limit, stream_depth, tx_ud->tcflags,
+                (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&tx_ud->response_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->response_body, htp_tx_data_data(d), len);
 
-        HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
+        HtpResponseBodyHandle(
+                hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -2006,29 +2006,28 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
-    ptmp = HTPRealloc(tx_ud->request_headers_raw,
-                     tx_ud->request_headers_raw_len,
-                     tx_ud->request_headers_raw_len + tx_data->len);
+    ptmp = HTPRealloc(tx_ud->request_headers_raw, tx_ud->request_headers_raw_len,
+            tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->request_headers_raw = ptmp;
     tx_ud->tx_data.updated_ts = true;
 
-    memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->request_headers_raw_len += tx_data->len;
+    memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len, htp_tx_data_data(tx_data),
+            htp_tx_data_len(tx_data));
+    tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
-    if (tx_data->tx && tx_data->tx->flags) {
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
-        HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
+    if (htp_tx_data_tx(tx_data) && htp_tx_data_tx(tx_data)->flags) {
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_data_tx(tx_data)->connp);
+        HTPErrorCheckTxRequestFlags(hstate, htp_tx_data_tx(tx_data));
     }
     return HTP_STATUS_OK;
 }
@@ -2036,25 +2035,24 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->tx_data.updated_tc = true;
-    ptmp = HTPRealloc(tx_ud->response_headers_raw,
-                     tx_ud->response_headers_raw_len,
-                     tx_ud->response_headers_raw_len + tx_data->len);
+    ptmp = HTPRealloc(tx_ud->response_headers_raw, tx_ud->response_headers_raw_len,
+            tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->response_headers_raw = ptmp;
 
-    memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->response_headers_raw_len += tx_data->len;
+    memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len, htp_tx_data_data(tx_data),
+            htp_tx_data_len(tx_data));
+    tx_ud->response_headers_raw_len += htp_tx_data_len(tx_data);
 
     return HTP_STATUS_OK;
 }
