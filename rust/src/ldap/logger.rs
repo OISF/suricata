@@ -17,6 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::ldap::filters::*;
 use crate::ldap::ldap::LdapTransaction;
@@ -319,7 +320,11 @@ fn log_intermediate_response(
 }
 
 fn log_ldap_result(msg: &LdapResult, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.set_string("result_code", &msg.result_code.to_string())?;
+    if let Some(rc) = LdapResultCode::from_u(msg.result_code.0) {
+        js.set_string("result_code", rc.to_str())?;
+    } else {
+        js.set_string("result_code", &format!("unknown-{}", msg.result_code.0))?;
+    }
     js.set_string("matched_dn", &msg.matched_dn.0)?;
     js.set_string("message", &msg.diagnostic_message.0)?;
     Ok(())
