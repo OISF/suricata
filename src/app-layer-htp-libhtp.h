@@ -139,6 +139,11 @@
 #define htp_tx_request_header_index(tx, i)    htp_table_get_index(tx->request_headers, i, NULL);
 #define htp_headers_t                         htp_table_t
 
+// Functions introduced to handle opaque htp_tx_data_t:
+#define htp_tx_data_len(d)  d->len
+#define htp_tx_data_data(d) d->data
+#define htp_tx_data_tx(d)   d->tx
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
