@@ -201,3 +201,45 @@ Here is an example of a signature that would alert if a packet  has an LDAP sear
 .. container:: example-rule
 
   alert tcp any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.request.operation:search_request; ldap.request.dn:dc=example,dc=com;` sid:1;)
+
+ldap.responses.dn
+-----------------
+
+Matches on LDAP distinguished names from response operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.responses.dn; content:dc=example,dc=com;
+
+``ldap.responses.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.responses.dn`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the eve fields:
+``ldap.responses[].search_result_entry.base_object``
+``ldap.responses[].bind_response.matched_dn``
+``ldap.responses[].search_result_done.matched_dn``
+``ldap.responses[].modify_response.matched_dn``
+``ldap.responses[].add_response.matched_dn``
+``ldap.responses[].del_response.matched_dn``
+``ldap.responses[].mod_dn_response.matched_dn``
+``ldap.responses[].compare_response.matched_dn``
+``ldap.responses[].extended_response.matched_dn``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP distinguished name ``dc=example,dc=com``:
+
+.. container:: example-rule
+
+  alert tcp any any -> any any (msg:"Test LDAPDN"; :example-rule-emphasis:`ldap.responses.dn:dc=example,dc=com;` sid:1;)
+
+It is possible to use the keyword ``ldap.responses.operation`` in the same rule to specify the operation to match.
+Here is an example of a signature that would alert if a packet  has an LDAP search result entry operation and contains the LDAP distinguished name ``dc=example,dc=com``.
+
+.. container:: example-rule
+
+  alert tcp any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry; ldap.responses.dn:dc=example,dc=com;` sid:1;)
