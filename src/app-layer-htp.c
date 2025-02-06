@@ -1534,10 +1534,11 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
 end:
     if (hstate->conn != NULL) {
-        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
-                tx_ud->request_body.content_len_so_far,
-                hstate->cfg->request.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_request_data_stamp);
+        SCLogDebug("checking body size %" PRIu64 " against inspect limit %u (cur %" PRIu64
+                   ", last %" PRIu64 ")",
+                tx_ud->request_body.content_len_so_far, hstate->cfg->request.inspect_min_size,
+                (uint64_t)htp_conn_request_data_counter(hstate->conn),
+                hstate->last_request_data_stamp);
 
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
@@ -1545,11 +1546,14 @@ end:
          * get here. */
         if (tx_ud->request_body.body_inspected == 0 &&
             tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
-            if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
-                (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
-            {
-                const uint32_t data_size = (uint32_t)(
-                        (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+            if ((uint64_t)htp_conn_request_data_counter(hstate->conn) >
+                            hstate->last_request_data_stamp &&
+                    (uint64_t)htp_conn_request_data_counter(hstate->conn) -
+                                    hstate->last_request_data_stamp <
+                            (uint64_t)UINT_MAX) {
+                const uint32_t data_size =
+                        (uint32_t)((uint64_t)htp_conn_request_data_counter(hstate->conn) -
+                                   hstate->last_request_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->request.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -1625,21 +1629,25 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     if (hstate->conn != NULL) {
-        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
-                tx_ud->response_body.content_len_so_far,
-                hstate->cfg->response.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
+        SCLogDebug("checking body size %" PRIu64 " against inspect limit %u (cur %" PRIu64
+                   ", last %" PRIu64 ")",
+                tx_ud->response_body.content_len_so_far, hstate->cfg->response.inspect_min_size,
+                (uint64_t)htp_conn_request_data_counter(hstate->conn),
+                hstate->last_response_data_stamp);
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
          * data to be used to the amount of raw bytes we've seen to
          * get here. */
         if (tx_ud->response_body.body_inspected == 0 &&
             tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
-            if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
-                (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
-            {
-                const uint32_t data_size = (uint32_t)((uint64_t)hstate->conn->out_data_counter -
-                                                      hstate->last_response_data_stamp);
+            if ((uint64_t)htp_conn_response_data_counter(hstate->conn) >
+                            hstate->last_response_data_stamp &&
+                    (uint64_t)htp_conn_response_data_counter(hstate->conn) -
+                                    hstate->last_response_data_stamp <
+                            (uint64_t)UINT_MAX) {
+                const uint32_t data_size =
+                        (uint32_t)((uint64_t)htp_conn_response_data_counter(hstate->conn) -
+                                   hstate->last_response_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->response.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -1727,7 +1735,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
 
     uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
     SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->in_data_counter);
+            (uint64_t)htp_conn_request_data_counter(hstate->conn));
 
     /* app-layer-frame-documentation tag start: frame registration http request */
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
@@ -1770,7 +1778,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 
     uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
     SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->out_data_counter);
+            (uint64_t)htp_conn_response_data_counter(hstate->conn));
 
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 1, HTTP_FRAME_RESPONSE);

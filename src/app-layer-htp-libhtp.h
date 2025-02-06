@@ -144,6 +144,10 @@
 #define htp_tx_data_data(d) d->data
 #define htp_tx_data_tx(d)   d->tx
 
+// Functions introduced to handle opaque htp_conn_t:
+#define htp_conn_request_data_counter(c)  c->in_data_counter
+#define htp_conn_response_data_counter(c) c->out_data_counter
+
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
 #endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */
