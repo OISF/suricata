@@ -24,7 +24,7 @@ use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
     SCSigTableElmt, SigMatchAppendSMToList,
 };
-use crate::ldap::types::{LdapMessage, ProtocolOpCode};
+use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -47,12 +47,23 @@ struct DetectLdapRespOpData {
     pub index: LdapIndex,
 }
 
+struct DetectLdapRespResultData {
+    /// Ldap result code
+    pub du32: DetectUintData<u32>,
+    /// Index can be Any to match with any responses index,
+    /// All to match if all indices, or an i32 integer
+    /// Negative values represent back to front indexing.
+    pub index: LdapIndex,
+}
+
 static mut G_LDAP_REQUEST_OPERATION_KW_ID: c_int = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_OPERATION_KW_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_OPERATION_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_COUNT_KW_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_COUNT_BUFFER_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_RESULT_CODE_KW_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ldap_parse_protocol_req_op(
     ustr: *const std::os::raw::c_char,
@@ -263,6 +274,139 @@ unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mu
     rs_detect_u32_free(ctx);
 }
 
+fn aux_ldap_parse_resp_result_code(s: &str) -> Option<DetectLdapRespResultData> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() > 2 {
+        return None;
+    }
+    let index = if parts.len() == 2 {
+        match parts[1] {
+            "all" => LdapIndex::All,
+            "any" => LdapIndex::Any,
+            _ => {
+                let i32_index = i32::from_str(parts[1]).ok()?;
+                LdapIndex::Index(i32_index)
+            }
+        }
+    } else {
+        LdapIndex::Any
+    };
+    if let Some(ctx) = detect_parse_uint_enum::<u32, LdapResultCode>(parts[0]) {
+        let du32 = ctx;
+        return Some(DetectLdapRespResultData { du32, index });
+    }
+    return None;
+}
+
+unsafe extern "C" fn ldap_parse_responses_result_code(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = aux_ldap_parse_resp_result_code(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn ldap_detect_responses_result_code_setup(
+    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    let ctx = ldap_parse_responses_result_code(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SigMatchAppendSMToList(
+        de,
+        s,
+        G_LDAP_RESPONSES_RESULT_CODE_KW_ID,
+        ctx,
+        G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ldap_detect_responses_result_code_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+fn get_ldap_result_code(response: &LdapMessage) -> Option<u32> {
+    let result_code = match &response.protocol_op {
+        ProtocolOp::BindResponse(req) => Some(req.result.result_code.0),
+        ProtocolOp::SearchResultDone(req) => Some(req.result_code.0),
+        ProtocolOp::ModifyResponse(req) => Some(req.result.result_code.0),
+        ProtocolOp::AddResponse(req) => Some(req.result_code.0),
+        ProtocolOp::DelResponse(req) => Some(req.result_code.0),
+        ProtocolOp::ModDnResponse(req) => Some(req.result_code.0),
+        ProtocolOp::CompareResponse(req) => Some(req.result_code.0),
+        ProtocolOp::ExtendedResponse(req) => Some(req.result.result_code.0),
+        _ => None,
+    };
+    return result_code;
+}
+
+unsafe extern "C" fn ldap_detect_responses_result_code_match(
+    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
+    _sig: *const c_void, ctx: *const c_void,
+) -> c_int {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+
+    match ctx.index {
+        LdapIndex::Any => {
+            for responses in &tx.responses {
+                let result_code = get_ldap_result_code(responses);
+                if let Some(rc) = result_code {
+                    if rs_detect_u32_match(rc, &ctx.du32) == 1 {
+                        return 1;
+                    }
+                }
+            }
+            return 0;
+        }
+        LdapIndex::All => {
+            for responses in &tx.responses {
+                let result_code = get_ldap_result_code(responses);
+                if let Some(rc) = result_code {
+                    if rs_detect_u32_match(rc, &ctx.du32) == 0 {
+                        return 0;
+                    }
+                }
+            }
+            return 1;
+        }
+        LdapIndex::Index(idx) => {
+            let index = if idx < 0 {
+                // negative values for backward indexing.
+                ((tx.responses.len() as i32) + idx) as usize
+            } else {
+                idx as usize
+            };
+            if tx.responses.len() <= index {
+                return 0;
+            }
+            let response: &LdapMessage = &tx.responses[index];
+            let result_code = get_ldap_result_code(response);
+            if let Some(rc) = result_code {
+                return rs_detect_u32_match(rc, &ctx.du32);
+            }
+            return 0;
+        }
+    }
+}
+
+unsafe extern "C" fn ldap_detect_responses_result_code_free(_de: *mut c_void, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+    std::mem::drop(Box::from_raw(ctx));
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectLdapRegister() {
     let kw = SCSigTableElmt {
@@ -310,6 +454,23 @@ pub unsafe extern "C" fn ScDetectLdapRegister() {
     G_LDAP_RESPONSES_COUNT_KW_ID = DetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        true,  //to client
+        false, //to server
+    );
+    let kw = SCSigTableElmt {
+        name: b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
+        desc: b"match LDAPResult code\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap.responses.result_code\0".as_ptr()
+            as *const libc::c_char,
+        AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
+        Setup: ldap_detect_responses_result_code_setup,
+        Free: Some(ldap_detect_responses_result_code_free),
+        flags: 0,
+    };
+    G_LDAP_RESPONSES_RESULT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = DetectHelperBufferRegister(
+        b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         true,  //to client
         false, //to server
