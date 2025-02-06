@@ -7,18 +7,10 @@ Introduction
 Suricata can listen to a unix socket and accept commands from the user. The
 exchange protocol is JSON-based and the format of the message is generic.
 
-An example script called ``suricatasc`` is provided in the source and installed
+An application called ``suricatasc`` is provided and installed
 automatically when installing/updating Suricata.
 
 The unix socket is always enabled by default.
-
-You'll need to have JSON support in Python:
-  
-* python-simplejson - simple, fast, extensible JSON encoder/decoder for Python
-  
-Debian/Ubuntu::
-  
-   apt-get install python-simplejson
 
 The creation of the socket is managed by setting enabled to 'yes' or 'auto'
 under unix-command in Suricata YAML configuration file: ::
@@ -34,7 +26,8 @@ directory.
 Clients are implemented for some programming languages and can be used as code
 example to write custom scripts:
 
-* Python: https://github.com/OISF/suricata/blob/master/python/suricata/sc/suricatasc.py (provided with Suricata and used in this document)
+* Rust: https://github.com/OISF/suricata/blob/master/rust/suricatasc (version provided in Suricata 8+)
+* Python: https://github.com/OISF/suricata/blob/main-7.0.x/python/suricata/sc/suricatasc.py (Python version from older versions of Suricata)
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
 * C: https://github.com/regit/SuricataC (a Unix socket mode client in C without interactive mode)
 
@@ -42,13 +35,9 @@ example to write custom scripts:
 
 Commands in standard running mode
 ---------------------------------
-Runnable script for suricatasc is available in `python/bin` directory of suricata. You can
-run it with the following commands.
 
-::
-
-  cd python
-  sudo ./bin/suricatasc
+The ``suricatasc`` command should automatically be installed in the
+same directory as the main ``suricata`` program.
 
 The set of existing commands is the following:
 
@@ -82,7 +71,6 @@ The set of existing commands is the following:
 * remove-hostbit: remove hostbit on a host IP with specified bit name
 * list-hostbit: list hostbit for a particular host IP
 
-You can access these commands with the provided example ``suricatasc`` script.
 A typical session with ``suricatasc`` looks like:
 
 ::
