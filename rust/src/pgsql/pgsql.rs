@@ -632,10 +632,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTS(
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
-            Ok((_, request)) => {
-                if let PgsqlFEMessage::UnknownMessageType(_) = request {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
@@ -663,10 +660,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTC(
         }
 
         match parser::pgsql_parse_response(slice) {
-            Ok((_, response)) => {
-                if let PgsqlBEMessage::UnknownMessageType(_) = response {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
