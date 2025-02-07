@@ -702,7 +702,7 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
         b'X' => parse_terminate_message(i)?,
         _ => {
             let (i, identifier) = be_u8(i)?;
-            let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
+            let (i, length) = verify(be_u32, |&x| x >= PGSQL_LENGTH_FIELD)(i)?;
             let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
             let unknown = PgsqlFEMessage::UnknownMessageType (RegularPacket{
                 identifier,
