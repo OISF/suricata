@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,7 +28,7 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{many1, many_m_n, many_till};
 use nom7::number::streaming::{be_i16, be_i32};
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
-use nom7::sequence::{terminated, tuple};
+use nom7::sequence::terminated;
 use nom7::{Err, IResult};
 
 pub const PGSQL_LENGTH_FIELD: u32 = 4;
@@ -1064,32 +1064,30 @@ fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
 }
 
 pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
-    let (i, pseudo_header) = peek(tuple((be_u8, be_u32)))(i)?;
-    let (i, message) =
-            match pseudo_header.0 {
-                b'E' => pgsql_parse_error_response(i)?,
-                b'K' => parse_backend_key_data_message(i)?,
-                b'N' => pgsql_parse_notice_response(i)?,
-                b'R' => pgsql_parse_authentication_message(i)?,
-                b'S' => parse_parameter_status_message(i)?,
-                b'C' => parse_command_complete(i)?,
-                b'Z' => parse_ready_for_query(i)?,
-                b'T' => parse_row_description(i)?,
-                b'A' => parse_notification_response(i)?,
-                b'D' => parse_consolidated_data_row(i)?,
-                _ => {
-                    let (i, identifier) = be_u8(i)?;
-                    let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
-                    let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
-                    let unknown = PgsqlBEMessage::UnknownMessageType (RegularPacket{
-                        identifier,
-                        length,
-                        payload: payload.to_vec(),
-                    });
-                    (i, unknown)
-                }
-
-            };
+    let (i, tag) = peek(be_u8)(i)?;
+    let (i, message) = match tag {
+        b'E' => pgsql_parse_error_response(i)?,
+        b'K' => parse_backend_key_data_message(i)?,
+        b'N' => pgsql_parse_notice_response(i)?,
+        b'R' => pgsql_parse_authentication_message(i)?,
+        b'S' => parse_parameter_status_message(i)?,
+        b'C' => parse_command_complete(i)?,
+        b'Z' => parse_ready_for_query(i)?,
+        b'T' => parse_row_description(i)?,
+        b'A' => parse_notification_response(i)?,
+        b'D' => parse_consolidated_data_row(i)?,
+        _ => {
+            let (i, identifier) = be_u8(i)?;
+            let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
+            let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
+            let unknown = PgsqlBEMessage::UnknownMessageType(RegularPacket {
+                identifier,
+                length,
+                payload: payload.to_vec(),
+            });
+            (i, unknown)
+        }
+    };
     Ok((i, message))
 }
 
