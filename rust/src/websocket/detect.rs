@@ -277,7 +277,7 @@ pub unsafe extern "C" fn websocket_detect_payload_get_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectWebsocketRegister() {
+pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     let kw = SCSigTableElmt {
         name: b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket opcode\0".as_ptr() as *const libc::c_char,
