@@ -1099,7 +1099,7 @@ unsafe extern "C" fn mqtt_conn_clientid_get_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectMqttRegister() {
+pub unsafe extern "C" fn SCDetectMqttRegister() {
     let keyword_name = b"mqtt.unsubscribe.topic\0".as_ptr() as *const libc::c_char;
     let kw = SCSigTableElmt {
         name: keyword_name,

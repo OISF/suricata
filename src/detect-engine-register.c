@@ -734,15 +734,15 @@ void SigTableSetup(void)
     DetectVlanLayersRegister();
 
     SCDetectSMTPRegister();
-    ScDetectSNMPRegister();
+    SCDetectSNMPRegister();
     SCDetectDHCPRegister();
-    ScDetectWebsocketRegister();
-    ScDetectEnipRegister();
-    ScDetectMqttRegister();
-    ScDetectRfbRegister();
-    ScDetectSipRegister();
-    ScDetectTemplateRegister();
-    ScDetectLdapRegister();
+    SCDetectWebsocketRegister();
+    SCDetectEnipRegister();
+    SCDetectMqttRegister();
+    SCDetectRfbRegister();
+    SCDetectSipRegister();
+    SCDetectTemplateRegister();
+    SCDetectLdapRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
