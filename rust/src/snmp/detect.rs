@@ -183,7 +183,7 @@ pub unsafe extern "C" fn snmp_detect_community_get_data(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectSNMPRegister() {
+pub unsafe extern "C" fn SCDetectSNMPRegister() {
     let kw = SCSigTableElmt {
         name: b"snmp.version\0".as_ptr() as *const libc::c_char,
         desc: b"match SNMP version\0".as_ptr() as *const libc::c_char,
