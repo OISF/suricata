@@ -255,10 +255,10 @@ def detect_patch_detect_engine_register_c(protoname):
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
-            if line.find("ScDetect%sRegister" % protoname) > -1:
+            if line.find("SCDetect%sRegister" % protoname) > -1:
                 # patch already applied
                 return
-            if line.find("ScDetectTemplateRegister") > -1:
+            if line.find("SCDetectTemplateRegister") > -1:
                 new = line.replace("Template", "%s" % protoname)
                 output.write(new)
             output.write(line)

@@ -264,7 +264,7 @@ unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectLdapRegister() {
+pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableElmt {
         name: b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP request operation\0".as_ptr() as *const libc::c_char,

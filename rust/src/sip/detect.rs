@@ -578,7 +578,7 @@ unsafe extern "C" fn sip_content_length_hdr_get_data(
     return false;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectSipRegister() {
+pub unsafe extern "C" fn SCDetectSipRegister() {
     let kw = SCSigTableElmt {
         name: b"sip.protocol\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP protocol\0".as_ptr() as *const libc::c_char,
