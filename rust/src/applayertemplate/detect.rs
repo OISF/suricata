@@ -76,7 +76,7 @@ unsafe extern "C" fn template_buffer_get(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectTemplateRegister() {
+pub unsafe extern "C" fn SCDetectTemplateRegister() {
     /* TEMPLATE_START_REMOVE */
     if conf_get_node("app-layer.protocols.template").is_none() {
         return;
