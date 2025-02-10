@@ -95,6 +95,11 @@ Major changes
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
   details.
+- The utility applications ``suricatasc`` and ``suricatactl`` have
+  been rewritten in Rust. For most end-users this is a transparent
+  change, however if you run these tools from the source directory,
+  patch them or use them as Python modules your workflows may need to
+  be adapted.
 
 Removals
 ~~~~~~~~
