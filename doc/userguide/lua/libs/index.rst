@@ -9,3 +9,4 @@ environment without access to additional modules.
 .. toctree::
 
    hashlib
+   packetlib
