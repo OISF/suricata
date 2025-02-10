@@ -40,8 +40,8 @@ enum LdapIndex {
 }
 
 #[derive(Debug, PartialEq)]
-struct DetectLdapRespData {
-    /// Ldap response code
+struct DetectLdapRespOpData {
+    /// Ldap response operation code
     pub du8: DetectUintData<u8>,
     /// Index can be Any to match with any responses index,
     /// All to match if all indices, or an i32 integer
@@ -115,7 +115,7 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut c_void, ctx: *mut c_void
     rs_detect_u8_free(ctx);
 }
 
-fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespData> {
+fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() > 2 {
         return None;
@@ -134,7 +134,7 @@ fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespData> {
     };
     if let Some(ctx) = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0]) {
         let du8 = ctx;
-        return Some(DetectLdapRespData { du8, index });
+        return Some(DetectLdapRespOpData { du8, index });
     }
     return None;
 }
@@ -182,7 +182,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     _sig: *const c_void, ctx: *const c_void,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
-    let ctx = cast_pointer!(ctx, DetectLdapRespData);
+    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
 
     match ctx.index {
         LdapIndex::Any => {
@@ -222,7 +222,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectLdapRespData);
+    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
     std::mem::drop(Box::from_raw(ctx));
 }
 
