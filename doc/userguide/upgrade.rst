@@ -89,6 +89,11 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- The utility applications ``suricatasc`` and ``suricatactl`` have
+  been rewritten in Rust. For most end-users this is a transparent
+  change, however if you run these tools from the source directory,
+  patch them or use them as Python modules your workflows may need to
+  be adapted.
 
 Removals
 ~~~~~~~~
