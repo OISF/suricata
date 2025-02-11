@@ -58,7 +58,7 @@
  *  it's parent_ctx->data ptr.
  */
 typedef struct LogLuaMasterCtx_ {
-    char path[PATH_MAX]; /**< contains script-dir */
+    char script_dir[PATH_MAX]; /**< contains script-dir */
 } LogLuaMasterCtx;
 
 typedef struct LogLuaCtx_ {
@@ -625,7 +625,7 @@ static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     const char *dir = "";
     if (parent_ctx && parent_ctx->data) {
         LogLuaMasterCtx *mc = parent_ctx->data;
-        dir = mc->path;
+        dir = mc->script_dir;
     }
 
     char path[PATH_MAX] = "";
@@ -702,7 +702,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
         return result;
     }
     LogLuaMasterCtx *master_config = output_ctx->data;
-    strlcpy(master_config->path, dir, sizeof(master_config->path));
+    strlcpy(master_config->script_dir, dir, sizeof(master_config->script_dir));
     TAILQ_INIT(&output_ctx->submodules);
 
     /* check the enables scripts and set them up as submodules */
