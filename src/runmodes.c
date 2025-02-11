@@ -40,6 +40,7 @@
 #include "runmode-nfq.h"
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
+#include "runmode-pcap-over-ip.h"
 #include "runmode-unix-socket.h"
 #include "runmode-windivert.h"
 #include "util-unittest.h"
@@ -219,6 +220,7 @@ void RunModeRegisterRunModes(void)
 
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
+    RunModePcapOverIPRegister();
     RunModeIpsNFQRegister();
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
@@ -294,6 +296,9 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 break;
             case RUNMODE_PCAP_FILE:
                 custom_mode = RunModeFilePcapGetDefaultMode();
+                break;
+            case RUNMODE_PCAP_OVER_IP:
+                custom_mode = RunModePcapOverIPGetDefaultMode();
                 break;
             case RUNMODE_PLUGIN: {
 #ifdef HAVE_PLUGINS
