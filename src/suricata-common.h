@@ -51,6 +51,13 @@
 #include "autoconf.h"
 #endif
 
+#ifndef REVISION
+#define REVISION "undefined"
+#endif
+#ifndef __SCFILENAME__
+#define __SCFILENAME__ "undefined"
+#endif
+
 #ifndef CLS
 #warning "L1 cache line size not detected during build. Assuming 64 bytes."
 #define CLS 64
