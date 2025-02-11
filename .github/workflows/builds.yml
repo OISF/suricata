@@ -400,6 +400,8 @@ jobs:
         container:
           - almalinux:9
           - fedora:40
+    env:
+      skip: false
     steps:
       - name: Cache cargo registry
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
@@ -414,7 +416,13 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
+      - name: Download Suricata distribution archive
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: dist
+
       - name: Install packages
+        if: ${{ env.skip != 'true' }}
         run: |
           if test -e /etc/almalinux-release; then
               dnf -y install \
@@ -435,31 +443,26 @@ jobs:
               echo "ERROR: Unsupported distribution for RPM building"
               exit 1
            fi
-      - name: Download Suricata distribution archive
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-        with:
-          name: dist
-      - run: git clone https://github.com/jasonish/suricata-rpms
-      - run: make update-release update-sources
-        working-directory: suricata-rpms/devel
-      - run: dnf -y install $(rpmspec -q --buildrequires ./suricata.spec)
-        working-directory: suricata-rpms/devel
-      - run: mv suricata-*.tar.gz suricata-rpms/devel
-      - run: make srpm
-        working-directory: suricata-rpms/devel
-      - run: make local
-        working-directory: suricata-rpms/devel
+      - if: ${{ env.skip != 'true' }}
+        run: |
+          git clone https://github.com/jasonish/suricata-rpms
+          cd suricata-rpms/devel
+          make update-release update-sources
+          dnf -y install $(rpmspec -q --buildrequires ./suricata.spec)
+          mv ../../suricata-*.tar.gz .
+          make srpm
+          make local
 
       # We need a step for each RPM upload as we can't use the
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
-      - if: matrix.container == 'fedora:40'
+      - if: matrix.container == 'fedora:40' && ${{ env.skip != 'true' }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
         name: Uploading RPMs
         with:
           name: rpms-fedora-40
           path: suricata-rpms/devel/rpms
-      - if: matrix.container == 'almalinux:9'
+      - if: matrix.container == 'almalinux:9' && ${{ env.skip != 'true' }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
         name: Uploading RPMs
         with:
