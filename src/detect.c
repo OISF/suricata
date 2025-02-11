@@ -1863,7 +1863,7 @@ static void DetectFlow(ThreadVars *tv,
     }
 
     /* see if the packet matches one or more of the sigs */
-    (void)DetectRun(tv, de_ctx, det_ctx, p);
+    DetectRun(tv, de_ctx, det_ctx, p);
 }
 
 
