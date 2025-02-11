@@ -75,6 +75,8 @@ Example:
       file:close(file)
   end
 
+.. _lua-output-yaml:
+
 YAML
 ----
 
@@ -87,6 +89,15 @@ scripts like so:
     - lua:
         enabled: yes
         scripts-dir: /etc/suricata/lua-output/
+
+        # By default the Lua module search paths are empty. If you plan
+        # to use external modules these paths will need to be set. The
+        # examples below are likely suitable for finding modules
+        # installed with a package manager on a 64 bit Linux system, but
+        # may need tweaking.
+        #path: "/usr/share/lua/5.4/?.lua;/usr/share/lua/5.4/?/init.lua;/usr/lib64/lua/5.4/?.lua;/usr/lib64/lua/5.4/?/init.lua;./?.lua;./?/init.lua"
+        #cpath: "/usr/lib64/lua/5.4/?.so;/usr/lib64/lua/5.4/loadall.so;./?.so"
+
         scripts:
           - tcp-data.lua
           - flow.lua
