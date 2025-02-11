@@ -89,6 +89,12 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- Lua detection scripts (rules) now run in a sandboxed
+  environment. See :ref:`lua-detection`.
+- Lua output scripts have no default module search path, a search path
+  will need to be set before external modules can be loaded. See the
+  new default configuration file or :ref:`lua-output-yaml` for more
+  details.
 
 Removals
 ~~~~~~~~
