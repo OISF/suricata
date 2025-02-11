@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -71,13 +71,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -226,7 +226,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           # TODO: Find some variable that matches the job name.
@@ -235,7 +235,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -322,13 +322,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -402,13 +402,13 @@ jobs:
           - fedora:40
     steps:
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -474,13 +474,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -571,13 +571,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -665,13 +665,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -762,13 +762,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -868,7 +868,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -958,13 +958,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -1059,7 +1059,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1232,13 +1232,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -1304,13 +1304,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -1361,7 +1361,7 @@ jobs:
     needs: [prepare-deps]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1435,7 +1435,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1572,7 +1572,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1678,7 +1678,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1815,7 +1815,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1902,7 +1902,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2005,7 +2005,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2105,7 +2105,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2192,7 +2192,7 @@ jobs:
     needs: ubuntu-22-04-dist
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2256,7 +2256,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2338,7 +2338,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2405,7 +2405,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2499,7 +2499,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2544,7 +2544,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2642,7 +2642,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2732,7 +2732,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2745,7 +2745,7 @@ jobs:
           rm -f /etc/apt/apt.conf.d/docker-clean
 
       - name: Cache apt downloads
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/apt/archives
           key: ${{ github.job }}-apt
@@ -2826,7 +2826,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2910,7 +2910,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2984,7 +2984,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -3054,7 +3054,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -3119,7 +3119,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -3175,7 +3175,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -3222,7 +3222,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -3268,13 +3268,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: ~/.cargo/registry
           key: cargo-registry
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
