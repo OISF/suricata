@@ -25,7 +25,6 @@
 #define SURICATA_FLOW_QUEUE_H
 
 #include "suricata-common.h"
-#include "flow.h"
 
 /** Spinlocks or Mutex for the flow queues. */
 //#define FQLOCK_SPIN
