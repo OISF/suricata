@@ -47,9 +47,7 @@
 #define SC_ADDRESS_SANITIZER 1
 #endif
 
-#if HAVE_CONFIG_H
 #include "autoconf.h"
-#endif
 
 #ifndef REVISION
 #define REVISION "undefined"
