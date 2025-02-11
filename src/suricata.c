@@ -1570,7 +1570,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
-                    if (strcmp("short",optarg)) {
+                    if (strcmp("short", optarg) != 0) {
                         suri->keyword_info = optarg;
                     }
                 }
