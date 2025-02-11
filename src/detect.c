@@ -1363,8 +1363,8 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     return tx;
 }
 
-static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_flags,
-        const uint8_t ipproto, const AppProto alproto, const uint64_t detect_flags)
+static inline void StoreDetectFlags(
+        DetectTransaction *tx, const uint8_t flow_flags, const uint64_t detect_flags)
 {
     AppLayerTxData *txd = (AppLayerTxData *)tx->tx_data_ptr;
     if (likely(txd != NULL)) {
@@ -1675,7 +1675,7 @@ static void DetectRunTx(ThreadVars *tv,
             SCLogDebug("%p/%"PRIu64" Storing new flags %016"PRIx64" (was %016"PRIx64")",
                     tx.tx_ptr, tx.tx_id, new_detect_flags, tx.detect_flags);
 
-            StoreDetectFlags(&tx, flow_flags, ipproto, alproto, new_detect_flags);
+            StoreDetectFlags(&tx, flow_flags, new_detect_flags);
         }
         InspectionBufferClean(det_ctx);
 
