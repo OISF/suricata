@@ -315,3 +315,37 @@ This is an example of a signature that would alert if a ``success`` result code 
 .. container:: example-rule
 
   alert tcp any any -> any any (msg:"Test LDAP success at last index"; :example-rule-emphasis:`ldap.responses.result_code:success,-1;` sid:1;)
+
+ldap.responses.error_message
+----------------------------
+
+Matches on LDAP error messages from response operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.responses.error_message; content:"The Directory Server is shutting down";
+
+``ldap.responses.error_message`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.responses.error_message`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the eve fields:
+``ldap.responses[].bind_response.message``
+``ldap.responses[].search_result_done.message``
+``ldap.responses[].modify_response.message``
+``ldap.responses[].add_response.message``
+``ldap.responses[].del_response.message``
+``ldap.responses[].mod_dn_response.message``
+``ldap.responses[].compare_response.message``
+``ldap.responses[].extended_response.message``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP error message ``Size limit exceeded``:
+
+.. container:: example-rule
+
+  alert tcp any any -> any any (msg:"Test LDAP error message"; ldap.responses.error_message; content:"Size limit exceeded"; sid:1;)
