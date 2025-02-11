@@ -290,6 +290,10 @@ typedef unsigned char u_char;
 #include <math.h>
 #endif
 
+#ifdef HAVE_MM_MALLOC_H
+#include <mm_malloc.h>
+#endif
+
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
 #define xstr(s) str(s)
