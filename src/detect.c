@@ -1313,8 +1313,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
  *  \retval struct filled with relevant info or all nulls/0s
  */
 static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
-        void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
-        const uint8_t flow_flags)
+        const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
 {
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
     if (unlikely(txd == NULL)) {
@@ -1476,8 +1475,8 @@ static void DetectRunTx(ThreadVars *tv,
         if (ires.tx_ptr == NULL)
             break;
 
-        DetectTransaction tx = GetDetectTx(ipproto, alproto,
-                alstate, ires.tx_id, ires.tx_ptr, tx_end_state, flow_flags);
+        DetectTransaction tx =
+                GetDetectTx(ipproto, alproto, ires.tx_id, ires.tx_ptr, tx_end_state, flow_flags);
         if (tx.tx_ptr == NULL) {
             SCLogDebug("%p/%"PRIu64" no transaction to inspect",
                     tx.tx_ptr, tx_id_min);
