@@ -1609,8 +1609,8 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
                 uint8_t flags = 0;
                 if ((cd->flags & DETECT_CONTENT_ENDS_WITH) && mpm_supports_endswith)
                     flags = MPM_PATTERN_FLAG_ENDSWITH;
-                PopulateMpmHelperAddPattern(
-                        ms->mpm_ctx, cd, s, flags, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+                PopulateMpmHelperAddPattern(ms->mpm_ctx, cd, s, flags,
+                        (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) != 0);
             }
         }
     }
