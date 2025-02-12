@@ -63,7 +63,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx,
  *
  * \param The internal protocol id.
  */
-AppProto AppLayerGetProtoByName(char *alproto_name);
+AppProto AppLayerGetProtoByName(const char *alproto_name);
 
 /**
  * \brief Given the internal protocol id, returns a string representation

@@ -1645,6 +1645,12 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
     BUG_ON(s->type != SIG_TYPE_NOT_SET);
     int iponly = 0;
 
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        s->type = SIG_TYPE_APP_TX;
+        SCLogNotice("%u: set to app_tx due to hook type app", s->id);
+        SCReturn;
+    }
+
     /* see if the sig is dp only */
     if (SignatureIsPDOnly(de_ctx, s) == 1) {
         s->type = SIG_TYPE_PDONLY;
@@ -1984,8 +1990,6 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
 
         PrefilterSetupRuleGroup(de_ctx, sgh);
 
-        SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
-
         sgh->id = idx;
         cnt++;
     }
@@ -1996,7 +2000,7 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
     if (de_ctx->decoder_event_sgh != NULL) {
         /* no need to set filestore count here as that would make a
          * signature not decode event only. */
-        SigGroupHeadBuildNonPrefilterArray(de_ctx, de_ctx->decoder_event_sgh);
+        PrefilterSetupRuleGroup(de_ctx, de_ctx->decoder_event_sgh);
     }
 
     int dump_grouping = 0;
