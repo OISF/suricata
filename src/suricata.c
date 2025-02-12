@@ -90,6 +90,7 @@
 #include "source-nfq-prototypes.h"
 #include "source-nflog.h"
 #include "source-ipfw.h"
+#include "source-lib.h"
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
@@ -261,12 +262,12 @@ int RunmodeIsUnittests(void)
 }
 #endif
 
-int SCRunmodeGet(void)
+SCRunMode SCRunmodeGet(void)
 {
     return suricata.run_mode;
 }
 
-void SCRunmodeSet(int run_mode)
+void SCRunmodeSet(SCRunMode run_mode)
 {
     suricata.run_mode = run_mode;
 }
@@ -953,6 +954,9 @@ void RegisterAllModules(void)
     /* Dpdk */
     TmModuleReceiveDPDKRegister();
     TmModuleDecodeDPDKRegister();
+
+    /* Library */
+    TmModuleDecodeLibRegister();
 }
 
 TmEcode SCLoadYamlConfig(void)

@@ -94,6 +94,8 @@ ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module,
 ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module,
                                      int mucond);
 TmEcode TmThreadSpawn(ThreadVars *);
+TmEcode TmThreadLibSpawn(ThreadVars *);
+int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s);
 void TmThreadKillThreadsFamily(int family);
 void TmThreadKillThreads(void);
 void TmThreadClearThreadsFamily(int family);
@@ -289,6 +291,7 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 SCTime_t TmThreadsGetThreadTime(const int idx);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
+bool SCTmThreadsSlotPktAcqLoopFinish(ThreadVars *tv);
 
 /** \brief Wait for a thread to become unpaused.
  *

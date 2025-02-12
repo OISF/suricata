@@ -163,7 +163,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
  *  is run until the flow engine kills the thread and the queue is
  *  empty.
  */
-static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
+int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 {
     TmSlot *fw_slot = tv->tm_flowworker;
     int r = TM_ECODE_OK;
@@ -204,37 +204,9 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     return r;
 }
 
-/*
-
-    pcap/nfq
-
-    pkt read
-        callback
-            process_pkt
-
-    pkt read
-        process_pkt
-
-    slot:
-        setup
-
-        pkt_ack_loop(tv, slot_data)
-
-        deinit
-
-    process_pkt:
-        while(s)
-            run s;
-        queue;
-
- */
-
-static void *TmThreadsSlotPktAcqLoop(void *td)
+static bool TmThreadsSlotPktAcqLoopInit(ThreadVars *tv)
 {
-    ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
-    TmEcode r = TM_ECODE_OK;
-    TmSlot *slot = NULL;
 
     SCSetThreadName(tv->name);
 
@@ -244,21 +216,10 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     CaptureStatsSetup(tv);
     PacketPoolInit();
 
-    /* check if we are setup properly */
-    if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
-        SCLogError("TmSlot or ThreadVars badly setup: s=%p,"
-                   " PktAcqLoop=%p, tmqh_in=%p,"
-                   " tmqh_out=%p",
-                s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
-        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        pthread_exit((void *) -1);
-        return NULL;
-    }
-
-    for (slot = s; slot != NULL; slot = slot->slot_next) {
+    for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
             void *slot_data = NULL;
-            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
+            TmEcode r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
                 if (r == TM_ECODE_DONE) {
                     EngineDone();
@@ -280,8 +241,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
-                return NULL;
+                goto error;
             }
         /* setup a queue */
         } else if (slot->tm_id == TMM_FLOWWORKER) {
@@ -295,8 +255,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
-                return NULL;
+                goto error;
             }
         }
     }
@@ -304,6 +263,71 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+
+    return true;
+
+error:
+    return false;
+}
+
+bool SCTmThreadsSlotPktAcqLoopFinish(ThreadVars *tv)
+{
+    TmSlot *s = tv->tm_slots;
+    bool rc = true;
+
+    StatsSyncCounters(tv);
+
+    TmThreadsSetFlag(tv, THV_FLOW_LOOP);
+
+    /* process all pseudo packets the flow timeout may throw at us */
+    TmThreadTimeoutLoop(tv, s);
+
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(tv, THV_DEINIT);
+
+    PacketPoolDestroy();
+
+    for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotThreadExitPrintStats != NULL) {
+            slot->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(slot->slot_data));
+        }
+
+        if (slot->SlotThreadDeinit != NULL) {
+            TmEcode r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
+            if (r != TM_ECODE_OK) {
+                TmThreadsSetFlag(tv, THV_CLOSED);
+                rc = false;
+            }
+        }
+    }
+
+    tv->stream_pq = NULL;
+    SCLogDebug("%s ending", tv->name);
+    TmThreadsSetFlag(tv, THV_CLOSED);
+    return rc;
+}
+
+static void *TmThreadsSlotPktAcqLoop(void *td)
+{
+    ThreadVars *tv = (ThreadVars *)td;
+    TmSlot *s = tv->tm_slots;
+    TmEcode r = TM_ECODE_OK;
+
+    /* check if we are setup properly */
+    if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        SCLogError("TmSlot or ThreadVars badly setup: s=%p,"
+                   " PktAcqLoop=%p, tmqh_in=%p,"
+                   " tmqh_out=%p",
+                s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
+        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+        pthread_exit((void *)-1);
+        return NULL;
+    }
+
+    if (!TmThreadsSlotPktAcqLoopInit(td)) {
+        goto error;
+    }
+
     bool run = TmThreadsWaitForUnpause(tv);
 
     while (run) {
@@ -320,30 +344,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             run = false;
         }
     }
-    StatsSyncCounters(tv);
-
-    TmThreadsSetFlag(tv, THV_FLOW_LOOP);
-
-    /* process all pseudo packets the flow timeout may throw at us */
-    TmThreadTimeoutLoop(tv, s);
-
-    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
-    TmThreadWaitForFlag(tv, THV_DEINIT);
-
-    PacketPoolDestroy();
-
-    for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotThreadExitPrintStats != NULL) {
-            slot->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(slot->slot_data));
-        }
-
-        if (slot->SlotThreadDeinit != NULL) {
-            r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
-            if (r != TM_ECODE_OK) {
-                TmThreadsSetFlag(tv, THV_CLOSED);
-                goto error;
-            }
-        }
+    if (!SCTmThreadsSlotPktAcqLoopFinish(tv)) {
+        goto error;
     }
 
     tv->stream_pq = NULL;
@@ -377,6 +379,33 @@ bool TmThreadsWaitForUnpause(ThreadVars *tv)
     }
 
     return true;
+}
+
+static void *TmThreadsLib(void *td)
+{
+    ThreadVars *tv = (ThreadVars *)td;
+    TmSlot *s = tv->tm_slots;
+
+    /* check if we are setup properly */
+    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        SCLogError("TmSlot or ThreadVars badly setup: s=%p, tmqh_in=%p,"
+                   " tmqh_out=%p",
+                s, tv->tmqh_in, tv->tmqh_out);
+        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+        return NULL;
+    }
+
+    if (!TmThreadsSlotPktAcqLoopInit(tv)) {
+        goto error;
+    }
+
+    TmThreadsWaitForUnpause(tv);
+
+    return NULL;
+
+error:
+    tv->stream_pq = NULL;
+    return NULL;
 }
 
 static void *TmThreadsSlotVar(void *td)
@@ -622,6 +651,8 @@ static TmEcode TmThreadSetSlots(ThreadVars *tv, const char *name, void *(*fn_p)(
         tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "command") == 0) {
         tv->tm_func = TmThreadsManagement;
+    } else if (strcmp(name, "lib") == 0) {
+        tv->tm_func = TmThreadsLib;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -1270,9 +1301,12 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
     }
 
-    /* join it and flag it as dead */
-    pthread_join(tv->t, NULL);
-    SCLogDebug("thread %s stopped", tv->name);
+    /* Join the thread and flag as dead, unless the thread ID is 0 as
+     * its not a thread created by Suricata. */
+    if (tv->t) {
+        pthread_join(tv->t, NULL);
+        SCLogDebug("thread %s stopped", tv->name);
+    }
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
 }
@@ -1705,6 +1739,25 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
     TmThreadAppend(tv, tv->type);
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Spawns a "fake" lib thread associated with the ThreadVars instance tv
+ *
+ * \retval TM_ECODE_OK on success and TM_ECODE_FAILED on failure
+ */
+TmEcode TmThreadLibSpawn(ThreadVars *tv)
+{
+    if (tv->tm_func == NULL) {
+        printf("ERROR: no thread function set\n");
+        return TM_ECODE_FAILED;
+    }
+
+    tv->tm_func((void *)tv);
+
+    TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
+
     return TM_ECODE_OK;
 }
 
