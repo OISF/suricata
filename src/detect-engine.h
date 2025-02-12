@@ -100,7 +100,7 @@ void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, i
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
-//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *);
+const char *DetectEngineMpmCachingGetPath(void);
 /* faster as a macro than a inline function on my box -- VJ */
 #define DetectEngineGetMaxSigId(de_ctx) ((de_ctx)->signum)
 void DetectEngineResetMaxSigId(DetectEngineCtx *);

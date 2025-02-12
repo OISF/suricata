@@ -1296,8 +1296,7 @@ static void FTPSetMpmState(void)
                        i /*  id */, i /* rule id */ , 0 /* no flags */);
     }
 
-    mpm_table[FTP_MPM].Prepare(ftp_mpm_ctx);
-
+    mpm_table[FTP_MPM].Prepare(ftp_mpm_ctx, false);
 }
 
 static void FTPFreeMpmState(void)

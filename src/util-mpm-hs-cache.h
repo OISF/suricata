@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,17 +18,20 @@
 /**
  * \file
  *
- * \author Jim Xu <jim.xu@windriver.com>
- * \author Justin Viiret <justin.viiret@intel.com>
+ * \author Lukas Sismis <lsismis@oisf.net>
  *
- * MPM pattern matcher that calls the Hyperscan regex matcher.
+ * Hyperscan caching logic for faster database compilation.
  */
 
-#ifndef SURICATA_UTIL_MPM_HS__H
-#define SURICATA_UTIL_MPM_HS__H
+#ifndef SURICATA_UTIL_MPM_HS_CACHE__H
+#define SURICATA_UTIL_MPM_HS_CACHE__H
 
-void MpmHSRegister(void);
+#include "util-mpm-hs-core.h"
 
-void MpmHSGlobalCleanup(void);
+#ifdef BUILD_HYPERSCAN
+int HSLoadCache(hs_database_t **hs_db, uint64_t hs_db_hash);
+uint64_t HSHashDb(const PatternDatabase *pd);
+void HSSaveCacheIterator(void *data, void *aux);
+#endif /* BUILD_HYPERSCAN */
 
-#endif /* SURICATA_UTIL_MPM_HS__H */
+#endif /* SURICATA_UTIL_MPM_HS_CACHE__H */
