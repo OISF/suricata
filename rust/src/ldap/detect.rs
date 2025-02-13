@@ -70,6 +70,7 @@ static mut G_LDAP_RESPONSES_DN_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_RESULT_CODE_KW_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_MSG_BUFFER_ID: c_int = 0;
+static mut G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ldap_parse_protocol_req_op(
     ustr: *const std::os::raw::c_char,
@@ -560,6 +561,80 @@ unsafe extern "C" fn ldap_tx_get_responses_msg(
     return true;
 }
 
+unsafe extern "C" fn ldap_detect_request_attibute_type_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_request_attribute_type_get_data(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        ldap_tx_get_req_attribute_type,
+    );
+}
+
+unsafe extern "C" fn ldap_tx_get_req_attribute_type(
+    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, LdapTransaction);
+
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+    if let Some(request) = &tx.request {
+        let str_buffer: &str = match &request.protocol_op {
+            ProtocolOp::SearchRequest(req) => {
+                if local_id as usize >= req.attributes.len() {
+                    return false;
+                }
+                req.attributes[local_id as usize].0.as_str()
+            }
+            ProtocolOp::ModifyRequest(req) => {
+                if local_id as usize >= req.changes.len() {
+                    return false;
+                }
+                req.changes[local_id as usize]
+                    .modification
+                    .attr_type
+                    .0
+                    .as_str()
+            }
+            ProtocolOp::AddRequest(req) => {
+                if local_id as usize >= req.attributes.len() {
+                    return false;
+                }
+                req.attributes[local_id as usize].attr_type.0.as_str()
+            }
+            ProtocolOp::CompareRequest(req) => {
+                if local_id > 0 {
+                    return false;
+                }
+                req.ava.attribute_desc.0.as_str()
+            }
+            _ => return false,
+        };
+        *buffer = str_buffer.as_ptr();
+        *buffer_len = str_buffer.len() as u32;
+        return true;
+    }
+    return false;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableElmt {
@@ -681,5 +756,24 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
         ldap_detect_responses_msg_get_data,
+    );
+    let kw = SCSigTableElmt {
+        name: b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
+        desc: b"match request LDAP attribute type\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap.request.attribute_type\0".as_ptr()
+            as *const libc::c_char,
+        Setup: ldap_detect_request_attibute_type_setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_ldap_request_attribute_type_kw_id = DetectHelperKeywordRegister(&kw);
+    G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
+        b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        false, //to client
+        true,  //to server
+        ldap_detect_request_attribute_type_get_data,
     );
 }
