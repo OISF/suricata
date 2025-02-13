@@ -86,6 +86,7 @@ following keywords:
 * ``ike.vendor``
 * ``krb5_cname``
 * ``krb5_sname``
+* ``ldap.request.attribute_type``
 * ``ldap.responses.dn``
 * ``ldap.responses.message``
 * ``mqtt.subscribe.topic``
