@@ -2273,7 +2273,7 @@ fi
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version 2>&1 | cut -d' ' -f2-)
-      min_cbindgen_version="0.10.0"
+      min_cbindgen_version="0.20.0"
       AS_VERSION_COMPARE([$cbindgen_version], [$min_cbindgen_version],
           [cbindgen_ok="no"],
           [cbindgen_ok="yes"],
