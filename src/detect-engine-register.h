@@ -56,8 +56,7 @@ enum DetectKeywordId {
     DETECT_FLOW,
     /* end prefilter sort */
 
-    /* values used in util-var.c go here, to avoid int overflows
-     * TODO update var logic to use a larger type, see #6855. */
+    /* values used in util-var.c go here, to avoid int overflows */
     DETECT_THRESHOLD,
     DETECT_FLOWBITS,
     DETECT_FLOWVAR,
