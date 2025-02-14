@@ -28,9 +28,14 @@ if [ -f eve.json ]; then
     rm eve.json
 fi
 
+if [ -e ./rust/target/release/suricatasc ]; then
+    SURICATASC=./rust/target/release/suricatasc
+else
+    SURICATASC=./rust/target/debug/suricatasc
+fi
+
 RES=0
 
-export PYTHONPATH=python/
 # Get listen interface and "ping" target address
 IFACE=$(ip r|grep default|awk '{print $5}')
 echo $IFACE
@@ -75,7 +80,7 @@ if [ $CHECK -ne 1 ]; then
 	echo "ERROR alerts count off for sid 222 (datasets)"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -v -c "dataset-clear ipv4-list ipv4" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -v -c "dataset-clear ipv4-list ipv4" /var/run/suricata/suricata-command.socket)
 echo $JSON
 
 sleep 5
@@ -91,41 +96,41 @@ echo "SURIPID $SURIPID PINGPID $PINGPID"
 cp .github/workflows/live/icmp2.rules suricata.rules
 
 # trigger the reload
-JSON=$(python3 python/bin/suricatasc -c "iface-list" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "iface-list" /var/run/suricata/suricata-command.socket)
 PIFACE=$(echo $JSON | jq -r .message.ifaces[0])
-JSON=$(python3 python/bin/suricatasc -c "iface-stat $PIFACE")
+JSON=$(${SURICATASC} -c "iface-stat $PIFACE")
 STATSCHECK=$(echo $JSON | jq '.message.pkts > 0')
 if [ $STATSCHECK = false ]; then
     echo "ERROR unix socket stats check failed"
     RES=1
 fi
-python3 python/bin/suricatasc -c "reload-rules" /var/run/suricata/suricata-command.socket
+${SURICATASC} -c "reload-rules" /var/run/suricata/suricata-command.socket
 
 
-JSON=$(python3 python/bin/suricatasc -c "iface-bypassed-stat" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "iface-bypassed-stat" /var/run/suricata/suricata-command.socket)
 echo $JSON
-JSON=$(python3 python/bin/suricatasc -c "capture-mode" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "capture-mode" /var/run/suricata/suricata-command.socket)
 if [ "$(echo $JSON | jq -r .message)" != "AF_PACKET_DEV" ]; then
     echo "ERROR unix socket capture mode check failed"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -c "dump-counters" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "dump-counters" /var/run/suricata/suricata-command.socket)
 STATSCHECK=$(echo $JSON | jq '.message.uptime >= 15')
 if [ $STATSCHECK = false ]; then
     echo "ERROR unix socket dump-counters uptime check failed"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -c "memcap-list" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "memcap-list" /var/run/suricata/suricata-command.socket)
 echo $JSON
-JSON=$(python3 python/bin/suricatasc -c "running-mode" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "running-mode" /var/run/suricata/suricata-command.socket)
 echo $JSON
 if [ "$(echo $JSON | jq -r .message)" != "$RUNMODE" ]; then
     echo "ERROR unix socket runmode check failed"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -c "version" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "version" /var/run/suricata/suricata-command.socket)
 echo $JSON
-JSON=$(python3 python/bin/suricatasc -c "uptime" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "uptime" /var/run/suricata/suricata-command.socket)
 echo $JSON
 STATSCHECK=$(echo $JSON | jq '.message >= 15')
 if [ $STATSCHECK = false ]; then
@@ -133,7 +138,7 @@ if [ $STATSCHECK = false ]; then
     RES=1
 fi
 sleep 15
-JSON=$(python3 python/bin/suricatasc -c "add-hostbit $GW test 60" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "add-hostbit $GW test 60" /var/run/suricata/suricata-command.socket)
 echo $JSON
 
 sleep 15
@@ -148,17 +153,17 @@ if [ $SID2CHECK = false ]; then
     echo "ERROR no alerts for sid 2"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -c "list-hostbit $GW" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "list-hostbit $GW" /var/run/suricata/suricata-command.socket)
 CHECK=$(echo $JSON|jq -r .message.hostbits[0].name)
 if [ "$CHECK" != "test" ]; then
     echo "ERROR hostbit listing failed"
     RES=1
 fi
-JSON=$(python3 python/bin/suricatasc -c "remove-hostbit $GW test" /var/run/suricata/suricata-command.socket)
+JSON=$(${SURICATASC} -c "remove-hostbit $GW test" /var/run/suricata/suricata-command.socket)
 
 kill -INT $PINGPID
 wait $PINGPID
-python3 python/bin/suricatasc -c "shutdown" /var/run/suricata/suricata-command.socket
+${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
 echo "done: $RES"

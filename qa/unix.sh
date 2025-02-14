@@ -20,7 +20,8 @@ VERBOSE=""
 
 UnixCommand () {
     COMMAND=$1
-    PYTHONPATH=python/ python3 python/bin/suricatasc -c "${COMMAND}" ${USOCKET}
+    #PYTHONPATH=python/ python3 python/bin/suricatasc -c "${COMMAND}" ${USOCKET}
+    ./rust/target/release/suricatasc -c "${COMMAND}" ${USOCKET}
 }
 
 Start () {

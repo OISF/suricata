@@ -3169,7 +3169,7 @@ jobs:
   windows-msys2-mingw64-libpcap:
     name: Windows MSYS2 MINGW64 (libpcap)
     runs-on: windows-latest
-    needs: [prepare-deps]
+    needs: [prepare-deps, ubuntu-22-04-dist]
     defaults:
       run:
         shell: msys2 {0}
@@ -3194,8 +3194,11 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          name: dist
+      - run: tar xvf suricata-*.tar.gz --strip-components=1
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
         run: |

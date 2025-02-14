@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	configuration \
 	devguide \
 	file-extraction \
+	generate-evedoc.sh \
 	index.rst \
 	upgrade \
 	upgrade.rst \

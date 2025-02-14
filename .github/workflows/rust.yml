@@ -90,3 +90,12 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
+      - name: Check if Cargo.lock.in is up to date
+        run: |
+          cp rust/Cargo.lock rust/Cargo.lock.in
+          diff=$(git diff rust/Cargo.lock.in)
+          if [ "${diff}" ]; then
+              echo "${diff}"
+              echo "::error ::Cargo.lock.in needs to be updated"
+              exit 1
+          fi
