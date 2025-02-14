@@ -84,6 +84,8 @@ include = [
     "FtpEvent",
     "SCSigTableElmt",
     "SCTransformTableElmt",
+    "OutputJsonLogDirection",
+    "EveJsonTxLoggerRegistrationData",
 ]
 
 # A list of items to not include in the generated bindings

@@ -119,7 +119,9 @@ void DetectFileRegisterProto(
     al_protocols[i].direction = direction;
     al_protocols[i].to_client_progress = to_client_progress;
     al_protocols[i].to_server_progress = to_server_progress;
-    al_protocols[i + 1].alproto = ALPROTO_UNKNOWN;
+    if (i + 1 < ALPROTO_WITHFILES_MAX) {
+        al_protocols[i + 1].alproto = ALPROTO_UNKNOWN;
+    }
 }
 
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
