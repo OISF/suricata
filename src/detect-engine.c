@@ -105,6 +105,9 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
+static inline void InspectionBufferApplyTransformsInternal(
+        DetectEngineThreadCtx *, InspectionBuffer *, const DetectEngineTransforms *);
+
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
@@ -960,13 +963,14 @@ static char DetectBufferTypeCompareIdFunc(void *data1, uint16_t len1, void *data
     return map1->id == map2->id;
 }
 
-static void DetectBufferTypeFreeFunc(void *data)
+static void DetectBufferTypeFreeFuncWithCtx(void *ctx, void *data)
 {
-    DetectBufferType *map = (DetectBufferType *)data;
-
-    if (map == NULL) {
+    if (data == NULL) {
         return;
     }
+
+    DetectBufferType *map = (DetectBufferType *)data;
+    DetectEngineCtx *de_ctx = (DetectEngineCtx *)ctx;
 
     /* Release transformation option memory, if any */
     for (int i = 0; i < map->transforms.cnt; i++) {
@@ -977,10 +981,16 @@ static void DetectBufferTypeFreeFunc(void *data)
                     sigmatch_table[map->transforms.transforms[i].transform].name);
             continue;
         }
-        sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
+        sigmatch_table[map->transforms.transforms[i].transform].Free(
+                de_ctx, map->transforms.transforms[i].options);
     }
 
     SCFree(map);
+}
+
+static void DetectBufferTypeFreeFunc(void *data)
+{
+    DetectBufferTypeFreeFuncWithCtx(NULL, data);
 }
 
 static int DetectBufferTypeInit(void)
@@ -1557,6 +1567,27 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
     return buffer;
 }
 
+static inline void InspectionBufferApplyTransformsInternal(DetectEngineThreadCtx *det_ctx,
+        InspectionBuffer *buffer, const DetectEngineTransforms *transforms)
+{
+    if (transforms) {
+        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
+            const int id = transforms->transforms[i].transform;
+            if (id == 0)
+                break;
+            BUG_ON(sigmatch_table[id].Transform == NULL);
+            sigmatch_table[id].Transform(det_ctx, buffer, transforms->transforms[i].options);
+            SCLogDebug("applied transform %s", sigmatch_table[id].name);
+        }
+    }
+}
+
+void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms)
+{
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
+}
+
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 {
     memset(buffer, 0, sizeof(*buffer));
@@ -1580,8 +1611,8 @@ void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
-        const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(!buffer->multi);
@@ -1591,11 +1622,10 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->len = 0;
     buffer->initialized = true;
 
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
 }
 
-/** \brief setup the buffer with our initial data */
-void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+static inline void InspectionBufferSetupInternal(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
@@ -1612,6 +1642,21 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
     buffer->initialized = true;
+}
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+{
+    InspectionBufferSetupInternal(det_ctx, list_id, buffer, data, data_len);
+}
+
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
+        InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len,
+        const DetectEngineTransforms *transforms)
+{
+    InspectionBufferSetupInternal(det_ctx, list_id, buffer, data, data_len);
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
 }
 
 void InspectionBufferFree(InspectionBuffer *buffer)
@@ -1711,28 +1756,13 @@ bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_lis
     return true;
 }
 
-void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
-        const DetectEngineTransforms *transforms)
-{
-    if (transforms) {
-        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
-            const int id = transforms->transforms[i].transform;
-            if (id == 0)
-                break;
-            BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
-            SCLogDebug("applied transform %s", sigmatch_table[id].name);
-        }
-    }
-}
-
 static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
 {
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
-    de_ctx->buffer_type_hash_name = HashListTableInit(256, DetectBufferTypeHashNameFunc,
-            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFunc);
+    de_ctx->buffer_type_hash_name = HashListTableInitWithCtx(256, DetectBufferTypeHashNameFunc,
+            DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFuncWithCtx);
     BUG_ON(de_ctx->buffer_type_hash_name == NULL);
     de_ctx->buffer_type_hash_id =
             HashListTableInit(256, DetectBufferTypeHashIdFunc, DetectBufferTypeCompareIdFunc,
@@ -1773,7 +1803,7 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
 {
     if (de_ctx) {
         if (de_ctx->buffer_type_hash_name)
-            HashListTableFree(de_ctx->buffer_type_hash_name);
+            HashListTableFreeWithCtx(de_ctx, de_ctx->buffer_type_hash_name);
         if (de_ctx->buffer_type_hash_id)
             HashListTableFree(de_ctx->buffer_type_hash_id);
 
@@ -2599,6 +2629,9 @@ DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix, uint32_t tena
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
 {
     HashListTableFree(de_ctx->keyword_hash);
+#if UNITTESTS
+    de_ctx->keyword_hash = NULL;
+#endif
 }
 
 static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
@@ -2671,7 +2704,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
 
-    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
     DetectEngineCtxFreeFailedSigs(de_ctx);
 
@@ -2694,6 +2726,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectPortCleanupList(de_ctx, de_ctx->udp_priorityports);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
+    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 

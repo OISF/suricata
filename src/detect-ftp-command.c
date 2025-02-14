@@ -74,7 +74,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         InspectionBufferSetup(det_ctx, list_id, buffer,
                 (const uint8_t *)tx->command_descriptor->command_name,
                 tx->command_descriptor->command_length);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
 
     return buffer;
