@@ -187,7 +187,7 @@ unsafe extern "C" fn rfb_sec_result_free(_de: *mut c_void, ctx: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectRfbRegister() {
+pub unsafe extern "C" fn SCDetectRfbRegister() {
     let kw = SCSigTableElmt {
         name: b"rfb.name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the RFB desktop name\0".as_ptr() as *const libc::c_char,

@@ -1330,7 +1330,7 @@ unsafe extern "C" fn service_name_get_data(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectEnipRegister() {
+pub unsafe extern "C" fn SCDetectEnipRegister() {
     let kw = SCSigTableElmt {
         name: b"cip_service\0".as_ptr() as *const libc::c_char,
         desc: b"match on CIP Service, and optionnally class and attribute\0".as_ptr()
