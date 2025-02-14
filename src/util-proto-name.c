@@ -361,7 +361,7 @@ static uint32_t ProtoNameHashFunc(HashTable *ht, void *data, uint16_t datalen)
      * as the proto number is not used for lookups
      */
     ProtoNameHashEntry *p = (ProtoNameHashEntry *)data;
-    return StringHashDjb2((uint8_t *)p->name, strlen(p->name)) % ht->array_size;
+    return StringHashDjb2((uint8_t *)p->name, (uint32_t)strlen(p->name)) % ht->array_size;
 }
 
 static char ProtoNameHashCompareFunc(void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
@@ -375,8 +375,8 @@ static char ProtoNameHashCompareFunc(void *data1, uint16_t datalen1, void *data2
     if (p1->name == NULL || p2->name == NULL)
         return 0;
 
-    int len1 = strlen(p1->name);
-    int len2 = strlen(p2->name);
+    size_t len1 = strlen(p1->name);
+    size_t len2 = strlen(p2->name);
 
     return len1 == len2 && memcmp(p1->name, p2->name, len1) == 0;
 }

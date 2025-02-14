@@ -38,7 +38,7 @@ static long int RandomGetClock(void)
     clock_gettime(CLOCK_REALTIME, &ts);
 
     // coverity[dont_call : FALSE]
-    srandom(ts.tv_nsec ^ ts.tv_sec);
+    srandom((unsigned int)(ts.tv_nsec ^ ts.tv_sec));
     long int value = random();
     return value;
 }
@@ -103,7 +103,7 @@ long int RandomGet(void)
         return 0;
 
     long int value = 0;
-    int ret = getrandom(&value, sizeof(value), 0);
+    ssize_t ret = getrandom(&value, sizeof(value), 0);
     /* ret should be sizeof(value), but if it is > 0 and < sizeof(value)
      * it's still better than nothing so we return what we have */
     if (ret <= 0) {

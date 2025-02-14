@@ -170,7 +170,7 @@ typedef struct THashTableContext_ {
 #define THashDecrUsecnt(h) \
     (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
-THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
+THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
         bool (*DataExpired)(void *, SCTime_t), uint32_t (*DataSize)(void *), bool reset_memcap,

@@ -30,8 +30,8 @@
 
 typedef struct JA3Buffer_ {
     char *data;
-    size_t size;
-    size_t used;
+    uint32_t size;
+    uint32_t used;
 } JA3Buffer;
 
 JA3Buffer *Ja3BufferInit(void);
