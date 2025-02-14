@@ -32,7 +32,7 @@ pub mod tojson;
 pub mod vlan;
 
 use crate::core::AppProto;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -101,6 +101,7 @@ extern {
         ) -> *mut c_void,
     ) -> c_int;
     pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
     ) -> c_int;
