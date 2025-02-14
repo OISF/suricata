@@ -18,6 +18,8 @@
 //! This module exposes items from the core "C" code to Rust.
 
 use std;
+use suricata_sys::sys::{AppProto, AppProtoEnum};
+
 use crate::filecontainer::*;
 use crate::flow::Flow;
 
@@ -41,11 +43,8 @@ pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
 
-// Application layer protocol identifiers (app-layer-protos.h)
-pub type AppProto = u16;
-
-pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub const ALPROTO_FAILED : AppProto = 1;
+pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
+pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;
 
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;

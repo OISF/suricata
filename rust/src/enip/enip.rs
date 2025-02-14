@@ -20,7 +20,7 @@ use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::{
-    AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
+    ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
     STREAM_TOCLIENT, STREAM_TOSERVER,
 };
 use crate::detect::EnumString;
@@ -28,6 +28,7 @@ use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7 as nom;
+use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;

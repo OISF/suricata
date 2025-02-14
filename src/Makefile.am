@@ -43,6 +43,7 @@ noinst_HEADERS = \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
 	app-layer-imap.h \
+	bindgen.h \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \

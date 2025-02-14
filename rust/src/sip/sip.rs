@@ -19,12 +19,13 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
+use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;

@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 use crate::applayer::{self, *};
-use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
 
 use std::ffi::CString;
@@ -25,6 +25,7 @@ use sawp::error::ErrorKind as SawpErrorKind;
 use sawp::parser::{Direction, Parse};
 use sawp::probe::{Probe, Status};
 use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
+use suricata_sys::sys::AppProto;
 
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
 pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus { probe_strict: true };

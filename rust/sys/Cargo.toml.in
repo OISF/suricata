@@ -1,0 +1,6 @@
+[package]
+name = "suricata-sys"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+description = "Bindings to Suricata C interface"

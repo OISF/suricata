@@ -34,6 +34,7 @@ use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
 use lru::LruCache;
+use suricata_sys::sys::AppProto;
 use std::num::NonZeroUsize;
 
 use crate::core::*;
