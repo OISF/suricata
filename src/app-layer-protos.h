@@ -74,6 +74,7 @@ enum AppProtoEnum {
     // signature-only (ie not seen in flow)
     // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)
     ALPROTO_HTTP,
+    ALPROTO_MYSQL,
 
     /* keep last */
     ALPROTO_MAX_STATIC,

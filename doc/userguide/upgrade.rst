@@ -89,6 +89,8 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- MySQL parser and logger have been introduced.
+- The MySQL keywords ``mysql.command`` and ``mysql.command`` have been introduced.
 
 Removals
 ~~~~~~~~

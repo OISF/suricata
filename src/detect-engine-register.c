@@ -747,6 +747,7 @@ void SigTableSetup(void)
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
     }
+    ScDetectMysqlRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();

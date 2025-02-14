@@ -3057,3 +3057,32 @@ Example of ARP logging: request and response
     "dest_mac": "00:1d:09:f0:92:ab",
     "dest_ip": "10.10.10.1"
   }
+
+Event type: MySQL
+-----------------
+
+Fields
+~~~~~~
+
+* "version": the MySQL protocol version offered by the server.
+* "tls": protocol need to be upgrade to tls.
+* "command": sql query statement or utility command like ping.
+* "rows": zero or multi results from executing sql query statement, one row is splited by comma.
+
+Examples
+~~~~~~~~
+
+Example of MySQL logging:
+
+::
+
+{
+    "mysql": {
+        "version": "8.0.32",
+        "tls": false,
+        "command": "SELECT VERSION()",
+        "rows": [
+            "8.0.32"
+        ]
+    }
+}
