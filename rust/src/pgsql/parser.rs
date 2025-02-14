@@ -779,6 +779,7 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError
                 length,
                 payload: payload.to_vec(),
             });
+            SCLogDebug!("parsed unknown FE message, identifier is {:?}", identifier);
             (i, unknown)
         }
     };
@@ -1221,6 +1222,7 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlPar
                 length,
                 payload: payload.to_vec(),
             });
+            SCLogDebug!("parsed unknown BE message, identifier is {:?}", identifier);
             (i, unknown)
         }
     };
