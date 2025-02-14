@@ -17,6 +17,8 @@
 
 //! Plugin utility module.
 
+use core::ffi::c_int;
+
 pub fn init() {
     unsafe {
         let context = crate::core::SCGetContext();
@@ -24,4 +26,37 @@ pub fn init() {
 
         crate::debug::LEVEL = crate::debug::SCLogGetLogLevel();
     }
+}
+
+// Struct definitions
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct SCPlugin {
+    pub name: *const libc::c_char,
+    pub license: *const libc::c_char,
+    pub author: *const libc::c_char,
+    pub Init: extern "C" fn(),
+}
+
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct SCAppLayerPlugin {
+    pub version: u64,
+    pub name: *const libc::c_char,
+    pub Register: unsafe extern "C" fn(),
+    pub KeywordsRegister: unsafe extern "C" fn(),
+    pub logname: *const libc::c_char,
+    pub confname: *const libc::c_char,
+    pub Logger: unsafe extern "C" fn(
+        tx: *const std::os::raw::c_void,
+        jb: *mut std::os::raw::c_void,
+    ) -> bool,
+}
+
+// Every change in the API used by plugins should change this number
+pub const SC_PLUGIN_API_VERSION: u64 = 8;
+
+/// cbindgen:ignore
+extern {
+    pub fn SCPluginRegisterAppLayer(plugin: *const SCAppLayerPlugin) -> c_int;
 }

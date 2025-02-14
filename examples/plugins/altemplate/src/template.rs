@@ -15,16 +15,31 @@
  * 02110-1301, USA.
  */
 
+// same file as rust/src/applayertemplate/template.rs except
+// different paths for use statements
+// remove TEMPLATE_START_REMOVE
+// name is altemplate instead of template
+
 use super::parser;
-use crate::applayer::*;
-use crate::conf::conf_get;
-use crate::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::flow::Flow;
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
+use suricata::applayer::{
+    state_get_tx_iterator, AppLayerEvent, AppLayerParserConfParserEnabled,
+    AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag,
+    AppLayerProtoDetectConfProtoDetectionEnabled, AppLayerRegisterParser,
+    AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData,
+    RustParser, State, StreamSlice, Transaction, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
+    APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+};
+use suricata::conf::conf_get;
+use suricata::core::{AppProto, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use suricata::flow::Flow;
+use suricata::{
+    build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
+};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
@@ -35,7 +50,7 @@ enum TemplateEvent {
     TooManyTransactions,
 }
 
-pub struct TemplateTransaction {
+pub(super) struct TemplateTransaction {
     tx_id: u64,
     pub request: Option<String>,
     pub response: Option<String>,
@@ -67,7 +82,7 @@ impl Transaction for TemplateTransaction {
 }
 
 #[derive(Default)]
-pub struct TemplateState {
+struct TemplateState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<TemplateTransaction>,
@@ -352,20 +367,13 @@ unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direc
     return 0;
 }
 
-export_tx_data_get!(template_get_tx_data, TemplateTransaction);
-export_state_data_get!(template_get_state_data, TemplateState);
+export_tx_data_get!(rs_template_get_tx_data, TemplateTransaction);
+export_state_data_get!(rs_template_get_state_data, TemplateState);
 
 // Parser name as a C style string.
-const PARSER_NAME: &[u8] = b"template\0";
+const PARSER_NAME: &[u8] = b"altemplate\0";
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_template_register_parser() {
-    /* TEMPLATE_START_REMOVE */
-    if crate::conf::conf_get_node("app-layer.protocols.template").is_none() {
-        return;
-    }
-    /* TEMPLATE_END_REMOVE */
-
+pub(super) unsafe extern "C" fn template_register_parser() {
     let default_port = CString::new("[7000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
@@ -391,8 +399,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(state_get_tx_iterator::<TemplateState, TemplateTransaction>),
-        get_tx_data: template_get_tx_data,
-        get_state_data: template_get_state_data,
+        get_tx_data: rs_template_get_tx_data,
+        get_state_data: rs_template_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: None,

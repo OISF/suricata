@@ -15,17 +15,20 @@
  * 02110-1301, USA.
  */
 
+// same file as rust/src/applayertemplate/detect.rs except
+// TEMPLATE_START_REMOVE removed
+// different paths for use statements
+// keywords prefixed with altemplate instead of just template
+
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
-/* TEMPLATE_START_REMOVE */
-use crate::conf::conf_get_node;
-/* TEMPLATE_END_REMOVE */
-use crate::detect::{
+use std::os::raw::{c_int, c_void};
+use suricata::cast_pointer;
+use suricata::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
-use crate::direction::Direction;
-use std::os::raw::{c_int, c_void};
+use suricata::direction::Direction;
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
@@ -75,17 +78,11 @@ unsafe extern "C" fn template_buffer_get(
     );
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn ScDetectTemplateRegister() {
-    /* TEMPLATE_START_REMOVE */
-    if conf_get_node("app-layer.protocols.template").is_none() {
-        return;
-    }
-    /* TEMPLATE_END_REMOVE */
+pub(super) unsafe extern "C" fn detect_template_register() {
     // TODO create a suricata-verify test
     // Setup a keyword structure and register it
     let kw = SCSigTableElmt {
-        name: b"template.buffer\0".as_ptr() as *const libc::c_char,
+        name: b"altemplate.buffer\0".as_ptr() as *const libc::c_char,
         desc: b"Template content modifier to match on the template buffer\0".as_ptr()
             as *const libc::c_char,
         // TODO use the right anchor for url and write doc
@@ -97,7 +94,7 @@ pub unsafe extern "C" fn ScDetectTemplateRegister() {
     };
     let _g_template_buffer_kw_id = DetectHelperKeywordRegister(&kw);
     G_TEMPLATE_BUFFER_BUFFER_ID = DetectHelperBufferMpmRegister(
-        b"template.buffer\0".as_ptr() as *const libc::c_char,
+        b"altemplate.buffer\0".as_ptr() as *const libc::c_char,
         b"template.buffer intern description\0".as_ptr() as *const libc::c_char,
         ALPROTO_TEMPLATE,
         true, //toclient

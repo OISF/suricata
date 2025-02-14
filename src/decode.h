@@ -28,7 +28,6 @@
 #define COUNTERS
 
 #include "suricata-common.h"
-#include "suricata-plugin.h"
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
@@ -455,6 +454,8 @@ struct PacketL4 {
         ICMPV6Vars icmpv6;
     } vars;
 };
+
+#define PLUGIN_VAR_SIZE 64
 
 /* sizes of the members:
  * src: 17 bytes
