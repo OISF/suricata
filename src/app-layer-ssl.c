@@ -2681,7 +2681,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     const uint8_t *init_input = input;
     int32_t input_len = (int32_t)StreamSliceGetDataLen(&stream_slice);
 
-    if (input == NULL &&
+    if ((input == NULL || input_len == 0) &&
             ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
                     (direction == 1 &&
                             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
