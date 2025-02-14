@@ -5802,6 +5802,8 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
+    /* Signature alerts on http without specifying a way and filestore is just
+       post match. */
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
@@ -5816,12 +5818,12 @@ libhtp:\n\
     http_state = f.alstate;
     FAIL_IF_NULL(http_state);
 
-    /* do detect */
+    /* do detect, first one so will match */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    FAIL_IF((PacketAlertCheck(p1, 1)));
+    FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
-    /* do detect */
+    /* do detect, second one so will not match */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     FAIL_IF((PacketAlertCheck(p1, 1)));
