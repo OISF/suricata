@@ -566,7 +566,9 @@ impl From<u8> for PgsqlErrorNoticeFieldType {
 // standard_conforming_strings
 // (source: PostgreSQL documentation)
 // We may be interested, then, in controling this, somehow, to prevent weird things?
-fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter, PgsqlParseError<&[u8]>> {
+fn pgsql_parse_generic_parameter(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlParameter, PgsqlParseError<&[u8]>> {
     let (i, param_name) = take_until1("\x00")(i)?;
     let (i, _) = tag("\x00")(i)?;
     let (i, param_value) = take_until("\x00")(i)?;
@@ -580,7 +582,9 @@ fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter, Pgs
     ))
 }
 
-pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupParameters, PgsqlParseError<&[u8]>> {
+pub fn pgsql_parse_startup_parameters(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlStartupParameters, PgsqlParseError<&[u8]>> {
     let (i, mut optional) = opt(terminated(
         many1(pgsql_parse_generic_parameter),
         tag("\x00"),
@@ -623,7 +627,9 @@ fn parse_sasl_initial_response_payload(
     Ok((i, (sasl_mechanism, param_length, param.to_vec())))
 }
 
-pub fn parse_sasl_initial_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+pub fn parse_sasl_initial_response(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
     let (i, payload) = map_parser(
@@ -654,7 +660,9 @@ pub fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlPars
     Ok((i, resp))
 }
 
-pub fn pgsql_parse_startup_packet(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+pub fn pgsql_parse_startup_packet(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, length) = verify(be_u32, |&x| x >= 8)(i)?;
     let (i, proto_major) = peek(be_u16)(i)?;
     let (i, b) = take(length - PGSQL_LENGTH_FIELD)(i)?;
@@ -777,7 +785,9 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError
     Ok((i, message))
 }
 
-fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], PgsqlBEMessage, PgsqlParseError<&'a [u8]>> {
+fn pgsql_parse_authentication_message<'a>(
+    i: &'a [u8],
+) -> IResult<&'a [u8], PgsqlBEMessage, PgsqlParseError<&'a [u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'R')(i)?;
     let (i, length) = parse_gte_length(i, 8)?;
     let (i, auth_type) = be_u32(i)?;
@@ -860,7 +870,9 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
     Ok((i, message))
 }
 
-fn parse_parameter_status_message(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_parameter_status_message(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'S')(i)?;
     let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
     let (i, param) = map_parser(
@@ -885,7 +897,9 @@ pub fn parse_ssl_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParse
     ))
 }
 
-fn parse_backend_key_data_message(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_backend_key_data_message(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'K')(i)?;
     let (i, length) = parse_exact_length(i, 12)?;
     let (i, pid) = be_u32(i)?;
@@ -1003,7 +1017,9 @@ fn add_up_data_size(columns: Vec<ColumnFieldValue>) -> u64 {
 // Currently, we don't store the actual DataRow messages, as those could easily become a burden, memory-wise
 // We use ConsolidatedDataRow to store info we still want to log: message size.
 // Later on, we calculate the number of lines the command actually returned by counting ConsolidatedDataRow messages
-pub fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+pub fn parse_consolidated_data_row(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'D')(i)?;
     let (i, length) = parse_gte_length(i, 7)?;
     let (i, field_count) = be_u16(i)?;
@@ -1022,7 +1038,9 @@ pub fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, P
     ))
 }
 
-fn parse_sasl_mechanism(i: &[u8]) -> IResult<&[u8], SASLAuthenticationMechanism, PgsqlParseError<&[u8]>> {
+fn parse_sasl_mechanism(
+    i: &[u8],
+) -> IResult<&[u8], SASLAuthenticationMechanism, PgsqlParseError<&[u8]>> {
     let res: IResult<_, _, ()> = terminated(tag("SCRAM-SHA-256-PLUS"), tag("\x00"))(i);
     if let Ok((i, _)) = res {
         return Ok((i, SASLAuthenticationMechanism::ScramSha256Plus));
@@ -1034,11 +1052,15 @@ fn parse_sasl_mechanism(i: &[u8]) -> IResult<&[u8], SASLAuthenticationMechanism,
     return Err(Err::Error(make_error(i, ErrorKind::Alt)));
 }
 
-fn parse_sasl_mechanisms(i: &[u8]) -> IResult<&[u8], Vec<SASLAuthenticationMechanism>, PgsqlParseError<&[u8]>> {
+fn parse_sasl_mechanisms(
+    i: &[u8],
+) -> IResult<&[u8], Vec<SASLAuthenticationMechanism>, PgsqlParseError<&[u8]>> {
     terminated(many1(parse_sasl_mechanism), tag("\x00"))(i)
 }
 
-pub fn parse_error_response_code(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
+pub fn parse_error_response_code(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, _field_type) = char('C')(i)?;
     let (i, field_value) = map_parser(take(6_usize), alphanumeric1)(i)?;
     Ok((
@@ -1052,7 +1074,9 @@ pub fn parse_error_response_code(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMes
 
 // Parse an error response with non-localizeable severity message.
 // Possible values: ERROR, FATAL, or PANIC
-pub fn parse_error_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
+pub fn parse_error_response_severity(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, field_type) = char('V')(i)?;
     let (i, field_value) = alt((tag("ERROR"), tag("FATAL"), tag("PANIC")))(i)?;
     let (i, _) = tag("\x00")(i)?;
@@ -1067,7 +1091,9 @@ pub fn parse_error_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNotic
 
 // The non-localizable version of Severity field has different values,
 // in case of a notice: 'WARNING', 'NOTICE', 'DEBUG', 'INFO' or 'LOG'
-pub fn parse_notice_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
+pub fn parse_notice_response_severity(
+    i: &[u8],
+) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, field_type) = char('V')(i)?;
     let (i, field_value) = alt((
         tag("WARNING"),
@@ -1559,10 +1585,7 @@ mod tests {
                 assert_eq!(message, ok_res);
             }
             Err(Err::Error(err)) => {
-                panic!(
-                    "Shouldn't be err {:?}, expected Ok(_).",
-                    err
-                );
+                panic!("Shouldn't be err {:?}, expected Ok(_).", err);
             }
             Err(Err::Incomplete(needed)) => {
                 panic!("Should not be incomplete {:?}, expected Ok(_)", needed);
