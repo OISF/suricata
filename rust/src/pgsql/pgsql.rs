@@ -787,7 +787,7 @@ unsafe extern "C" fn state_get_tx(
 }
 
 unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
-    let state_safe: &mut PgsqlState  = cast_pointer!(state, PgsqlState);
+    let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
     return state_safe.tx_id;
 }
 
