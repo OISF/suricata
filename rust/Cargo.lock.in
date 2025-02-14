@@ -864,27 +864,27 @@ checksum = "0e819f2bc632f285be6d7cd36e25940d45b2391dd6d9b939e79de557f7014248"
 
 [[package]]
 name = "sawp"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e74f84d736420afcba72f689a494d275c97cf4775c3fe248f937e9d3bf83e30"
+checksum = "78562a138ea8cc5c8b04531864e5e268ff6b02d3bac0cf4d447f8085c0b0bf02"
 dependencies = [
  "nom",
 ]
 
 [[package]]
 name = "sawp-flags"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f2b22023d224b5314d51e53bfb2dbca53dc2cf90a4435aa4feb78172799dad0"
+checksum = "7e73cb7499d7f375ed6928416fe81aa91b1329d86a9dffb7eccd91e475b342c8"
 dependencies = [
  "sawp-flags-derive",
 ]
 
 [[package]]
 name = "sawp-flags-derive"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49a585d3c22887d23bb06dd602b8ce96c2a716e1fa89beec8bfb49e466f2d643"
+checksum = "15968a3900eb621a4cc5548bb8abd2f10bc3912cec0226975c31e25e59889146"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -894,9 +894,9 @@ dependencies = [
 
 [[package]]
 name = "sawp-modbus"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cbad9b003999a0f3016fb3603da113ff86f06279ccf6aacb577058168c0568d"
+checksum = "620cb1b2194fc49c0ed48f0be97962d6ae8316b5659c06572714dfb82c984f25"
 dependencies = [
  "nom",
  "num_enum",
