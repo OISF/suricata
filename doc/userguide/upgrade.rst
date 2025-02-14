@@ -89,6 +89,19 @@ Major changes
   Suricata 8.0, ``stream.checksum-validation`` no longer affects the checksum rule keywords.
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
+- DPDK interface settings can now be configured automatically by setting 
+  ``auto`` to ``mempool-size``, ``mempool-cache-size``, ``rx-descriptors``,
+  ``tx-descriptors``. See :ref:`dpdk-automatic-interface-configuration`.
+- DPDK interface mempools are now allocated per thread instead of per port. This
+  change improves performance and should not be visible from the user
+  configuration perspective.
+- DPDK supports link state check, allowing Suricata to start only when the link
+  is up. This is especially useful for Intel E810 (ice) NICs as they need 
+  a few seconds before they are ready to receive packets. With this check
+  disabled, Suricata reports as started but only begins processing packets
+  after the previously mentioned interval. Other cards were not observed to have
+  this issue. This feature is disabled by default.
+  See :ref:`dpdk-link-state-change-timeout`.
 
 Removals
 ~~~~~~~~
