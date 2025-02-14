@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	output \
 	partials \
 	performance \
+	plugins \
 	public-data-sets.rst \
 	quickstart.rst \
 	reputation \
