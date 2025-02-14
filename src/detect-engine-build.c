@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2092,6 +2092,8 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             IPOnlyCIDRListFree(s->init_data->cidr_src);
 
         SCFree(s->init_data->buffers);
+        SCFree(s->init_data->rule_state_dependant_sids_array);
+        SCFree(s->init_data->rule_state_flowbits_ids_array);
         SCFree(s->init_data);
         s->init_data = NULL;
     }

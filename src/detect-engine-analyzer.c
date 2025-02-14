@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1045,6 +1045,34 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         case SIG_TYPE_MAX:
             jb_set_string(ctx.js, "type", "error");
             break;
+    }
+
+    // dependencies object and its subfields only logged if we have values
+    if (s->init_data->is_rule_state_dependant) {
+        jb_open_object(ctx.js, "dependencies");
+        jb_open_object(ctx.js, "flowbits");
+        jb_open_object(ctx.js, "upstream");
+        if (s->init_data->rule_state_dependant_sids_size > 0) {
+            jb_open_object(ctx.js, "state_modifying_rules");
+            jb_open_array(ctx.js, "sids");
+            for (uint32_t i = 0; i < s->init_data->rule_state_dependant_sids_idx; i++) {
+                jb_append_uint(ctx.js, s->init_data->rule_state_dependant_sids_array[i]);
+            }
+            jb_close(ctx.js); // sids
+            jb_open_array(ctx.js, "names");
+            for (uint32_t i = 0; i < s->init_data->rule_state_flowbits_ids_size - 1; i++) {
+                if (s->init_data->rule_state_flowbits_ids_array[i] != 0) {
+                    jb_append_string(ctx.js,
+                            VarNameStoreSetupLookup(s->init_data->rule_state_flowbits_ids_array[i],
+                                    VAR_TYPE_FLOW_BIT));
+                }
+            }
+            jb_close(ctx.js); // names
+            jb_close(ctx.js); // state_modifying_rules
+        }
+        jb_close(ctx.js); // upstream
+        jb_close(ctx.js); // flowbits
+        jb_close(ctx.js); // dependencies
     }
 
     jb_open_array(ctx.js, "flags");

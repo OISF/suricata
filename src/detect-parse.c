@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1563,6 +1563,11 @@ Signature *SigAlloc (void)
      * overwritten after the Signature has been parsed, and if it hasn't been
      * overwritten, we can then assign the default value of 3 */
     sig->prio = -1;
+
+    /* rule interdepency is false, at start */
+    sig->init_data->is_rule_state_dependant = false;
+    /* first index is 0 */
+    sig->init_data->rule_state_dependant_sids_idx = 0;
 
     sig->init_data->list = DETECT_SM_LIST_NOTSET;
     return sig;
