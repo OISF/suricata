@@ -67,14 +67,16 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         FTPTransaction *tx = (FTPTransaction *)txv;
 
-        if (tx->command_descriptor->command_name == NULL ||
-                tx->command_descriptor->command_length == 0)
+        if (tx->command_descriptor.command_code == FTP_COMMAND_UNKNOWN)
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer,
-                (const uint8_t *)tx->command_descriptor->command_name,
-                tx->command_descriptor->command_length);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        const char *b = NULL;
+        uint8_t b_len = 0;
+
+        if (SCGetFtpCommandInfo(tx->command_descriptor.command_index, &b, NULL, &b_len)) {
+            InspectionBufferSetup(det_ctx, list_id, buffer, (const uint8_t *)b, b_len);
+            InspectionBufferApplyTransforms(buffer, transforms);
+        }
     }
 
     return buffer;
