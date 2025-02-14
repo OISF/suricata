@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2024 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@ use crate::conf::*;
 use crate::core::{AppProto, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 use crate::direction::Direction;
 use crate::flow::Flow;
+use nom7::error::{Error, ErrorKind};
 use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
@@ -397,8 +398,17 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(Error{code:ErrorKind::Verify, ..})) => {
+                    SCLogDebug!("PgsqlEvent::InvalidLength");
+                    AppLayerResult::ok();
+                }
+                Err(Err::Error(Error{code:ErrorKind::Switch, ..})) => {
+                    SCLogDebug!("PgsqlEvent::MalformedData");
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
-                    return AppLayerResult::err();
+                    SCLogDebug!("Error while parsing PGSQL request");
+                    return AppLayerResult::ok();
                 }
             }
         }
@@ -571,9 +581,17 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(Error{code:ErrorKind::Verify, ..})) => {
+                    SCLogDebug!("PgsqlEvent::InvalidLength");
+                    return AppLayerResult::ok();
+                }
+                Err(Err::Error(Error{code:ErrorKind::Switch, ..})) => {
+                    SCLogDebug!("PgsqlEvent::MalformedData");
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
-                    SCLogDebug!("Error while parsing PostgreSQL response");
-                    return AppLayerResult::err();
+                    SCLogDebug!("Error while parsing PGSQL response");
+                    return AppLayerResult::ok();
                 }
             }
         }
@@ -630,10 +648,7 @@ unsafe extern "C" fn probing_parser_ts(
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
-            Ok((_, request)) => {
-                if let PgsqlFEMessage::UnknownMessageType(_) = request {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
@@ -659,10 +674,7 @@ unsafe extern "C" fn probing_parser_tc(
         }
 
         match parser::pgsql_parse_response(slice) {
-            Ok((_, response)) => {
-                if let PgsqlBEMessage::UnknownMessageType(_) = response {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
