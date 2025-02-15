@@ -599,7 +599,7 @@ static bool RuleMpmIsNegated(const Signature *s)
     return (cd->flags & DETECT_CONTENT_NEGATED) ? true : false;
 }
 
-static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
+static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
         const int add_rules, const int add_mpm_stats)
 {
     uint32_t prefilter_cnt = 0;
@@ -636,14 +636,13 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     if (sgh->init == NULL)
         return NULL;
 
-    json_t *js = json_object();
+    JsonBuilder *js = jb_new_object();
     if (unlikely(js == NULL))
         return NULL;
 
-    json_object_set_new(js, "id", json_integer(sgh->id));
+    jb_set_uint(js, "id", sgh->id);
 
-    json_t *js_array = json_array();
-
+    jb_open_array(js, "rules");
     for (uint32_t x = 0; x < sgh->init->sig_cnt; x++) {
         const Signature *s = sgh->init->match_array[x];
         if (s == NULL)
@@ -766,35 +765,37 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
         alstats[s->alproto]++;
 
         if (add_rules) {
-            json_t *js_sig = json_object();
-            if (unlikely(js == NULL))
-                continue;
-            json_object_set_new(js_sig, "sig_id", json_integer(s->id));
-            json_array_append_new(js_array, js_sig);
+            JsonBuilder *e = jb_new_object();
+            if (e != NULL) {
+                jb_set_uint(e, "sig_id", s->id);
+                jb_close(e);
+                jb_append_object(js, e);
+                jb_free(e);
+            }
         }
     }
+    jb_close(js);
 
-    json_object_set_new(js, "rules", js_array);
+    jb_open_object(js, "stats");
+    jb_set_uint(js, "total", sgh->init->sig_cnt);
 
-    json_t *stats = json_object();
-    json_object_set_new(stats, "total", json_integer(sgh->init->sig_cnt));
-
-    json_t *types = json_object();
-    json_object_set_new(types, "mpm", json_integer(mpm_cnt));
-    json_object_set_new(types, "non_mpm", json_integer(nonmpm_cnt));
-    json_object_set_new(types, "mpm_depth", json_integer(mpm_depth_cnt));
-    json_object_set_new(types, "mpm_endswith", json_integer(mpm_endswith_cnt));
-    json_object_set_new(types, "negated_mpm", json_integer(negmpm_cnt));
-    json_object_set_new(types, "payload_but_no_mpm", json_integer(payload_no_mpm_cnt));
-    json_object_set_new(types, "prefilter", json_integer(prefilter_cnt));
-    json_object_set_new(types, "syn", json_integer(syn_cnt));
-    json_object_set_new(types, "any5", json_integer(any5_cnt));
-    json_object_set_new(stats, "types", types);
+    jb_open_object(js, "types");
+    jb_set_uint(js, "mpm", mpm_cnt);
+    jb_set_uint(js, "non_mpm", nonmpm_cnt);
+    jb_set_uint(js, "mpm_depth", mpm_depth_cnt);
+    jb_set_uint(js, "mpm_endswith", mpm_endswith_cnt);
+    jb_set_uint(js, "negated_mpm", negmpm_cnt);
+    jb_set_uint(js, "payload_but_no_mpm", payload_no_mpm_cnt);
+    jb_set_uint(js, "prefilter", prefilter_cnt);
+    jb_set_uint(js, "syn", syn_cnt);
+    jb_set_uint(js, "any5", any5_cnt);
+    jb_close(js);
 
     for (AppProto i = 0; i < g_alproto_max; i++) {
         if (alstats[i] > 0) {
-            json_t *app = json_object();
-            json_object_set_new(app, "total", json_integer(alstats[i]));
+            const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
+            jb_open_object(js, proto_name);
+            jb_set_uint(js, "total", alstats[i]);
 
             for (int y = 0; y < max_buffer_type_id; y++) {
                 if (alproto_mpm_bufs[i][y] == 0)
@@ -806,54 +807,59 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
                 else
                     name = DetectEngineBufferTypeGetNameById(de_ctx, y);
 
-                json_object_set_new(app, name, json_integer(alproto_mpm_bufs[i][y]));
+                jb_set_uint(js, name, alproto_mpm_bufs[i][y]);
             }
-
-            const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
-            json_object_set_new(stats, proto_name, app);
+            jb_close(js);
         }
     }
 
     if (add_mpm_stats) {
-        json_t *mpm_js = json_object();
+        jb_open_object(js, "mpm");
 
         for (int i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
-
-                json_t *mpm_sizes_array = json_array();
-                for (int y = 0; y < 256; y++) {
-                    if (mpm_sizes[i][y] == 0)
-                        continue;
-
-                    json_t *e = json_object();
-                    json_object_set_new(e, "size", json_integer(y));
-                    json_object_set_new(e, "count", json_integer(mpm_sizes[i][y]));
-                    json_array_append_new(mpm_sizes_array, e);
-                }
-
-                json_t *buf = json_object();
-                json_object_set_new(buf, "total", json_integer(mpm_stats[i].cnt));
-                json_object_set_new(buf, "avg_strength", json_integer(mpm_stats[i].total / mpm_stats[i].cnt));
-                json_object_set_new(buf, "min_strength", json_integer(mpm_stats[i].min));
-                json_object_set_new(buf, "max_strength", json_integer(mpm_stats[i].max));
-
-                json_object_set_new(buf, "sizes", mpm_sizes_array);
-
                 const char *name;
                 if (i < DETECT_SM_LIST_DYNAMIC_START)
                     name = DetectListToHumanString(i);
                 else
                     name = DetectEngineBufferTypeGetNameById(de_ctx, i);
 
-                json_object_set_new(mpm_js, name, buf);
+                jb_open_array(js, name);
+
+                for (int y = 0; y < 256; y++) {
+                    if (mpm_sizes[i][y] == 0)
+                        continue;
+
+                    JsonBuilder *e = jb_new_object();
+                    if (e != NULL) {
+                        jb_set_uint(e, "size", y);
+                        jb_set_uint(e, "count", mpm_sizes[i][y]);
+                        jb_close(e);
+                        jb_append_object(js, e);
+                        jb_free(e);
+                    }
+                }
+
+                JsonBuilder *e = jb_new_object();
+                if (e != NULL) {
+                    jb_set_uint(e, "total", mpm_stats[i].cnt);
+                    jb_set_uint(e, "avg_strength", mpm_stats[i].total / mpm_stats[i].cnt);
+                    jb_set_uint(e, "min_strength", mpm_stats[i].min);
+                    jb_set_uint(e, "max_strength", mpm_stats[i].max);
+                    jb_close(e);
+                    jb_append_object(js, e);
+                    jb_free(e);
+                }
+
+                jb_close(js);
             }
         }
-
-        json_object_set_new(stats, "mpm", mpm_js);
+        jb_close(js);
     }
-    json_object_set_new(js, "stats", stats);
+    jb_close(js);
 
-    json_object_set_new(js, "score", json_integer(sgh->init->score));
+    jb_set_uint(js, "score", sgh->init->score);
+    jb_close(js);
 
     return js;
 }
@@ -861,97 +867,90 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
 static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                        const int add_rules, const int add_mpm_stats)
 {
-    json_t *js = json_object();
+    JsonBuilder *js = jb_new_object();
     if (unlikely(js == NULL))
         return;
 
-    int p;
-    for (p = 0; p < 256; p++) {
+    for (int p = 0; p < 256; p++) {
         if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
             const char *name = (p == IPPROTO_TCP) ? "tcp" : "udp";
 
-            json_t *tcp = json_object();
-
-            json_t *ts_array = json_array();
-            DetectPort *list = (p == IPPROTO_TCP) ? de_ctx->flow_gh[1].tcp :
-                                                    de_ctx->flow_gh[1].udp;
+            jb_open_object(js, name);
+            jb_open_array(js, "toserver");
+            const DetectPort *list =
+                    (p == IPPROTO_TCP) ? de_ctx->flow_gh[1].tcp : de_ctx->flow_gh[1].udp;
             while (list != NULL) {
-                json_t *port = json_object();
-                json_object_set_new(port, "port", json_integer(list->port));
-                json_object_set_new(port, "port2", json_integer(list->port2));
+                JsonBuilder *port = jb_new_object();
+                jb_set_uint(port, "port", list->port);
+                jb_set_uint(port, "port2", list->port2);
 
-                json_t *tcp_ts =
+                JsonBuilder *stats =
                         RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
-                json_object_set_new(port, "rulegroup", tcp_ts);
-                json_array_append_new(ts_array, port);
+                jb_set_object(port, "rulegroup", stats);
+                jb_free(stats);
+                jb_close(port);
+                jb_append_object(js, port);
+                jb_free(port);
 
                 list = list->next;
             }
-            json_object_set_new(tcp, "toserver", ts_array);
+            jb_close(js); // toserver array
 
-            json_t *tc_array = json_array();
+            jb_open_array(js, "toclient");
             list = (p == IPPROTO_TCP) ? de_ctx->flow_gh[0].tcp :
                                         de_ctx->flow_gh[0].udp;
             while (list != NULL) {
-                json_t *port = json_object();
-                json_object_set_new(port, "port", json_integer(list->port));
-                json_object_set_new(port, "port2", json_integer(list->port2));
+                JsonBuilder *port = jb_new_object();
+                jb_set_uint(port, "port", list->port);
+                jb_set_uint(port, "port2", list->port2);
 
-                json_t *tcp_tc =
+                JsonBuilder *stats =
                         RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
-                json_object_set_new(port, "rulegroup", tcp_tc);
-                json_array_append_new(tc_array, port);
+                jb_set_object(port, "rulegroup", stats);
+                jb_free(stats);
+                jb_close(port);
+                jb_append_object(js, port);
+                jb_free(port);
 
                 list = list->next;
             }
-            json_object_set_new(tcp, "toclient", tc_array);
-
-            json_object_set_new(js, name, tcp);
+            jb_close(js); // toclient array
+            jb_close(js);
         } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
             const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
-            json_t *o = json_object();
+            jb_open_object(js, name);
             if (de_ctx->flow_gh[1].sgh[p]) {
-                json_t *ts = json_object();
-                json_t *group_ts = RulesGroupPrintSghStats(
+                jb_open_object(js, "toserver");
+                JsonBuilder *stats = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
-                json_object_set_new(ts, "rulegroup", group_ts);
-                json_object_set_new(o, "toserver", ts);
+                jb_set_object(js, "rulegroup", stats);
+                jb_free(stats);
+                jb_close(js);
             }
             if (de_ctx->flow_gh[0].sgh[p]) {
-                json_t *tc = json_object();
-                json_t *group_tc = RulesGroupPrintSghStats(
+                jb_open_object(js, "toclient");
+                JsonBuilder *stats = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
-                json_object_set_new(tc, "rulegroup", group_tc);
-                json_object_set_new(o, "toclient", tc);
+                jb_set_object(js, "rulegroup", stats);
+                jb_free(stats);
+                jb_close(js);
             }
-            json_object_set_new(js, name, o);
+            jb_close(js);
         }
     }
+    jb_close(js);
 
     const char *filename = "rule_group.json";
     const char *log_dir = ConfigGetLogDirectory();
     char log_path[PATH_MAX] = "";
-
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
 
     FILE *fp = fopen(log_path, "w");
-    if (fp == NULL) {
-        return;
+    if (fp != NULL) {
+        fwrite(jb_ptr(js), jb_len(js), 1, fp);
+        (void)fclose(fp);
     }
-
-    char *js_s = json_dumps(js,
-                            JSON_PRESERVE_ORDER|JSON_ESCAPE_SLASH);
-    if (unlikely(js_s == NULL)) {
-        fclose(fp);
-        return;
-    }
-
-    json_object_clear(js);
-    json_decref(js);
-
-    fprintf(fp, "%s\n", js_s);
-    free(js_s);
-    fclose(fp);
+    jb_free(js);
 }
 
 static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
