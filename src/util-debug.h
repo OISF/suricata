@@ -530,6 +530,8 @@ SCLogInitData *SCLogAllocLogInitData(void);
 
 void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *, SCLogInitData *);
 
+void SCFatalErrorOnInitStatic(const char *);
+
 void SCLogInitLogModule(SCLogInitData *);
 
 void SCLogDeInitLogModule(void);
