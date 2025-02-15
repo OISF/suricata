@@ -29,6 +29,7 @@
 #include "conf.h"
 
 #include "util-debug.h"
+#include "util-streaming-buffer.h"
 #include "util-time.h"
 #include "util-var-name.h"
 #include "util-macset.h"
@@ -121,7 +122,8 @@ json_t *SCJsonString(const char *val)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const uint16_t flags)
+void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const uint16_t flags,
+        int32_t dump_length)
 {
     jb_set_string_from_bytes(jb, "filename", ff->name, ff->name_len);
 
@@ -159,6 +161,8 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const ui
             break;
     }
 
+    /* Log sha256 even if incomplete as it can be useful to correlate with
+       stored file */
     if (ff->flags & FILE_SHA256) {
         jb_set_hex(jb, "sha256", (uint8_t *)ff->sha256, (uint32_t)sizeof(ff->sha256));
     }
@@ -179,6 +183,25 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const uint64_t tx_id, const ui
         jb_set_uint(jb, "end", ff->end);
     }
     jb_set_uint(jb, "tx_id", tx_id);
+
+    if (dump_length >= 0) {
+        const uint8_t *data;
+        uint32_t data_len;
+        uint64_t data_offset;
+        StreamingBufferGetData(ff->sb, &data, &data_len, &data_offset);
+        if (data == NULL || data_len == 0)
+            return;
+        if (dump_length == 0) {
+            jb_set_base64(jb, "data", data, data_len);
+        } else {
+            if (data_len < (uint32_t)dump_length) {
+                jb_set_base64(jb, "data", data, data_len);
+            } else {
+                jb_set_base64(jb, "data", data, dump_length);
+            }
+        }
+        jb_set_uint(jb, "offset", data_offset);
+    }
 }
 
 static void EveAddPacketVars(const Packet *p, JsonBuilder *js_vars)
