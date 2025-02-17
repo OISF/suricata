@@ -95,7 +95,7 @@ int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppPr
     return DetectBufferTypeGetByName(name);
 }
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
 {
     if (DETECT_TBLSIZE_IDX >= DETECT_TBLSIZE) {
         void *tmp = SCRealloc(

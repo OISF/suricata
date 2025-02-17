@@ -68,7 +68,7 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c
     let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
     let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
     let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
-    let st = SCSigTableElmt {
+    let st = SCSigTableAppLiteElmt {
         name,
         desc,
         url,
@@ -85,7 +85,7 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c
 
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct SCSigTableElmt {
+pub struct SCSigTableAppLiteElmt {
     pub name: *const libc::c_char,
     pub desc: *const libc::c_char,
     pub url: *const libc::c_char,
@@ -133,7 +133,7 @@ extern {
             i32,
         ) -> *mut c_void,
     ) -> c_int;
-    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
     pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,

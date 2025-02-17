@@ -28,7 +28,7 @@
 #include "detect.h"
 #include "rust.h"
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw);
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void DetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 

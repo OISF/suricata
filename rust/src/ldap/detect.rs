@@ -22,7 +22,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
-    SCSigTableElmt, SigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList,
 };
 use crate::ldap::types::{LdapMessage, ProtocolOpCode};
 
@@ -265,7 +265,7 @@ unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mu
 
 #[no_mangle]
 pub unsafe extern "C" fn ScDetectLdapRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP request operation\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.operation\0".as_ptr() as *const libc::c_char,
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn ScDetectLdapRegister() {
         false, //to client
         true,  //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP responses operation\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.operation\0".as_ptr()
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn ScDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         desc: b"match number of LDAP responses\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.count\0".as_ptr() as *const libc::c_char,
