@@ -25,7 +25,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
-    SCSigTableElmt, SigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList,
 };
 use std::os::raw::{c_int, c_void};
 
@@ -166,7 +166,7 @@ unsafe extern "C" fn dhcp_detect_renewaltime_match(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDHCPRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP leasetime\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-leasetime\0".as_ptr() as *const libc::c_char,
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.rebinding_time\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP rebinding time\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-rebinding-time\0".as_ptr() as *const libc::c_char,
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.renewal_time\0".as_ptr() as *const libc::c_char,
         desc: b"match DHCP renewal time\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-renewal-time\0".as_ptr() as *const libc::c_char,
