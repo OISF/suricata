@@ -23,7 +23,7 @@ use crate::detect::uint::{
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferRegister, DetectHelperGetMultiData,
     DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::direction::Direction;
@@ -366,7 +366,7 @@ unsafe extern "C" fn dns_query_get_data_wrapper(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDNSRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         desc: b"DNS answer name sticky buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dns-keywords.html#dns-answer-name\0".as_ptr() as *const libc::c_char,
@@ -386,7 +386,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         dns_answer_name_get_data_wrapper,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.opcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header opcode flag.\0".as_ptr() as *const libc::c_char,
         url: b"rules/dns-keywords.html#dns-opcode\0".as_ptr() as *const libc::c_char,
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.query.name\0".as_ptr() as *const libc::c_char,
         desc: b"DNS query name sticky buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dns-keywords.html#dns-query-name\0".as_ptr() as *const libc::c_char,
@@ -422,7 +422,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         dns_query_name_get_data_wrapper,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.rcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header rcode flag.\0".as_ptr() as *const libc::c_char,
         url: b"rules/dns-keywords.html#dns-rcode\0".as_ptr() as *const libc::c_char,
@@ -438,7 +438,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS rrtype in message body.\0".as_ptr() as *const libc::c_char,
         url: b"rules/dns-keywords.html#dns-rrtype\0".as_ptr() as *const libc::c_char,
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"dns.query\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match DNS query-buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dns-keywords.html#dns-query\0".as_ptr() as *const libc::c_char,

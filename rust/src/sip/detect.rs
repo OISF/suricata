@@ -21,7 +21,7 @@ use crate::direction::Direction;
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
-    DetectSignatureSetAppProto, SCSigTableElmt, SIGMATCH_NOOPT,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SIGMATCH_NOOPT,
 };
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
@@ -579,7 +579,7 @@ unsafe extern "C" fn sip_content_length_hdr_get_data(
 }
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSipRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.protocol\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP protocol\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-protocol\0".as_ptr() as *const libc::c_char,
@@ -597,7 +597,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_protocol_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.stat_code\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP status code\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-stat-code\0".as_ptr() as *const libc::c_char,
@@ -615,7 +615,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         false,
         sip_stat_code_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP status message\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-stat-msg\0".as_ptr() as *const libc::c_char,
@@ -633,7 +633,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         false,
         sip_stat_msg_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.request_line\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP request line\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-request-line\0".as_ptr() as *const libc::c_char,
@@ -651,7 +651,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_request_line_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.response_line\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP response line\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-response-line\0".as_ptr() as *const libc::c_char,
@@ -669,7 +669,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         false,
         sip_response_line_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.from\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP From header\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-from\0".as_ptr() as *const libc::c_char,
@@ -687,7 +687,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_from_hdr_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.to\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP To header\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-to\0".as_ptr() as *const libc::c_char,
@@ -705,7 +705,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_to_hdr_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.via\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP Via header\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sip-keywords.html#sip-via\0".as_ptr() as *const libc::c_char,
@@ -723,7 +723,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_via_hdr_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.user_agent\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP User-Agent header\0".as_ptr()
             as *const libc::c_char,
@@ -742,7 +742,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_ua_hdr_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.content_type\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP Content-Type header\0".as_ptr()
             as *const libc::c_char,
@@ -761,7 +761,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         true,
         sip_content_type_hdr_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sip.content_length\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SIP Content-Length header\0".as_ptr()
             as *const libc::c_char,

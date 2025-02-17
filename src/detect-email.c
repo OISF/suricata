@@ -275,7 +275,7 @@ static InspectionBuffer *GetMimeEmailXMailerData(DetectEngineThreadCtx *det_ctx,
 
 void DetectEmailRegister(void)
 {
-    SCSigTableElmt kw = { 0 };
+    SCSigTableAppLiteElmt kw = { 0 };
 
     kw.name = "email.from";
     kw.desc = "'From' field from an email";
