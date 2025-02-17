@@ -23,22 +23,6 @@
 #include "detect-engine-uint.h"
 #include "detect-parse.h"
 
-enum FlowDirection {
-    DETECT_FLOW_TOSERVER = 1,
-    DETECT_FLOW_TOCLIENT,
-    DETECT_FLOW_TOEITHER,
-};
-
-typedef struct DetectFlowPkts_ {
-    DetectU32Data *pkt_data;
-    enum FlowDirection dir;
-} DetectFlowPkts;
-
-typedef struct DetectFlowBytes_ {
-    DetectU64Data *byte_data;
-    enum FlowDirection dir;
-} DetectFlowBytes;
-
 static int DetectFlowPktsMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
@@ -48,41 +32,31 @@ static int DetectFlowPktsMatch(
 
     const DetectFlowPkts *df = (const DetectFlowPkts *)ctx;
     if (df->dir == DETECT_FLOW_TOSERVER) {
-        return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
+        return DetectU32Match(p->flow->todstpktcnt, &df->pkt_data);
     } else if (df->dir == DETECT_FLOW_TOCLIENT) {
-        return DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data);
+        return DetectU32Match(p->flow->tosrcpktcnt, &df->pkt_data);
     } else if (df->dir == DETECT_FLOW_TOEITHER) {
-        if (DetectU32Match(p->flow->tosrcpktcnt, df->pkt_data)) {
+        if (DetectU32Match(p->flow->tosrcpktcnt, &df->pkt_data)) {
             return 1;
         }
-        return DetectU32Match(p->flow->todstpktcnt, df->pkt_data);
+        return DetectU32Match(p->flow->todstpktcnt, &df->pkt_data);
     }
     return 0;
 }
 
 static void DetectFlowPktsFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectFlowPkts *df = (DetectFlowPkts *)ptr;
-    if (df != NULL) {
-        rs_detect_u32_free(df->pkt_data);
-        SCFree(df);
+    if (ptr != NULL) {
+        SCDetectFlowPktsFree(ptr);
     }
 }
 
 static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU32Data *du32 = DetectU32Parse(rawstr);
-    if (du32 == NULL)
-        return -1;
-
-    DetectFlowPkts *df = SCCalloc(1, sizeof(DetectFlowPkts));
+    DetectFlowPkts *df = SCDetectFlowPktsParseDir(rawstr, DETECT_FLOW_TOSERVER);
     if (df == NULL) {
-        rs_detect_u32_free(du32);
         return -1;
     }
-
-    df->pkt_data = du32;
-    df->dir = DETECT_FLOW_TOSERVER;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
@@ -96,18 +70,10 @@ static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, co
 
 static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU32Data *du32 = DetectU32Parse(rawstr);
-    if (du32 == NULL)
-        return -1;
-
-    DetectFlowPkts *df = SCCalloc(1, sizeof(DetectFlowPkts));
+    DetectFlowPkts *df = SCDetectFlowPktsParseDir(rawstr, DETECT_FLOW_TOCLIENT);
     if (df == NULL) {
-        rs_detect_u32_free(du32);
         return -1;
     }
-    df->pkt_data = du32;
-    df->dir = DETECT_FLOW_TOCLIENT;
-
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsFree(de_ctx, df);
@@ -120,59 +86,10 @@ static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, co
 
 static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectFlowPkts *df = NULL;
-    char copy[strlen(rawstr) + 1];
-    strlcpy(copy, rawstr, sizeof(copy));
-    char *context = NULL;
-    char *token = strtok_r(copy, ",", &context);
-    uint8_t num_tokens = 0;
-    uint8_t dir = 0;
-    char *pkt_data = NULL;
-
-    while (token != NULL) {
-        if (num_tokens > 1)
-            return -1;
-
-        while (*token != '\0' && isblank(*token)) {
-            token++;
-        }
-        if (strlen(token) == 0) {
-            goto next;
-        }
-
-        num_tokens++;
-
-        if (dir == 0 && num_tokens == 1) {
-            if (strcmp(token, "toserver") == 0) {
-                dir = DETECT_FLOW_TOSERVER;
-            } else if (strcmp(token, "toclient") == 0) {
-                dir = DETECT_FLOW_TOCLIENT;
-            } else if (strcmp(token, "either") == 0) {
-                dir = DETECT_FLOW_TOEITHER;
-            } else {
-                SCLogError("Invalid direction given: %s", token);
-                return -1;
-            }
-        }
-
-        if (dir && num_tokens == 2) {
-            pkt_data = token;
-        }
-
-    next:
-        token = strtok_r(NULL, ",", &context);
-    }
-
-    DetectU32Data *du32 = DetectU32Parse(pkt_data);
-    if (du32 == NULL)
-        return -1;
-    df = SCCalloc(1, sizeof(DetectFlowPkts));
+    DetectFlowPkts *df = SCDetectFlowPktsParse(rawstr);
     if (df == NULL) {
-        rs_detect_u32_free(du32);
         return -1;
     }
-    df->dir = dir;
-    df->pkt_data = du32;
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsFree(de_ctx, df);
@@ -187,7 +104,7 @@ static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 static void PrefilterPacketFlowPktsSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectFlowPkts *df = smctx;
-    const DetectUintData_u32 *data = df->pkt_data;
+    const DetectUintData_u32 *data = &df->pkt_data;
     v->u8[0] = data->mode;
     v->u8[1] = (uint8_t)df->dir;
     v->u32[1] = data->arg1;
@@ -197,8 +114,8 @@ static void PrefilterPacketFlowPktsSet(PrefilterPacketHeaderValue *v, void *smct
 static bool PrefilterPacketFlowPktsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowPkts *df = smctx;
-    if (v.u8[0] == df->pkt_data->mode && v.u8[1] == df->dir && v.u32[1] == df->pkt_data->arg1 &&
-            v.u32[2] == df->pkt_data->arg2) {
+    if (v.u8[0] == df->pkt_data.mode && v.u8[1] == df->dir && v.u32[1] == df->pkt_data.arg1 &&
+            v.u32[2] == df->pkt_data.arg2) {
         return true;
     }
     return false;
@@ -215,7 +132,7 @@ static void PrefilterPacketFlowPktsMatch(
     DetectUintData_u32 data = {
         .mode = ctx->v1.u8[0], .arg1 = ctx->v1.u32[1], .arg2 = ctx->v1.u32[2]
     };
-    df.pkt_data = &data;
+    df.pkt_data = data;
     df.dir = ctx->v1.u8[1];
 
     if (DetectFlowPktsMatch(det_ctx, p, NULL, (const SigMatchCtx *)&df)) {
@@ -282,40 +199,31 @@ static int DetectFlowBytesMatch(
 
     const DetectFlowBytes *df = (const DetectFlowBytes *)ctx;
     if (df->dir == DETECT_FLOW_TOSERVER) {
-        return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
+        return DetectU64Match(p->flow->todstbytecnt, &df->byte_data);
     } else if (df->dir == DETECT_FLOW_TOCLIENT) {
-        return DetectU64Match(p->flow->tosrcbytecnt, df->byte_data);
+        return DetectU64Match(p->flow->tosrcbytecnt, &df->byte_data);
     } else if (df->dir == DETECT_FLOW_TOEITHER) {
-        if (DetectU64Match(p->flow->tosrcbytecnt, df->byte_data)) {
+        if (DetectU64Match(p->flow->tosrcbytecnt, &df->byte_data)) {
             return 1;
         }
-        return DetectU64Match(p->flow->todstbytecnt, df->byte_data);
+        return DetectU64Match(p->flow->todstbytecnt, &df->byte_data);
     }
     return 0;
 }
 
 static void DetectFlowBytesFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectFlowBytes *df = (DetectFlowBytes *)ptr;
-    if (df != NULL) {
-        rs_detect_u64_free(df->byte_data);
-        SCFree(df);
+    if (ptr != NULL) {
+        SCDetectFlowBytesFree(ptr);
     }
 }
 
 static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU64Data *du64 = DetectU64Parse(rawstr);
-    if (du64 == NULL)
-        return -1;
-
-    DetectFlowBytes *df = SCCalloc(1, sizeof(DetectFlowBytes));
+    DetectFlowPkts *df = SCDetectFlowBytesParseDir(rawstr, DETECT_FLOW_TOSERVER);
     if (df == NULL) {
-        rs_detect_u64_free(du64);
         return -1;
     }
-    df->byte_data = du64;
-    df->dir = DETECT_FLOW_TOSERVER;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
@@ -329,18 +237,10 @@ static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, c
 
 static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectU64Data *du64 = DetectU64Parse(rawstr);
-    if (du64 == NULL)
-        return -1;
-
-    DetectFlowBytes *df = SCCalloc(1, sizeof(DetectFlowBytes));
+    DetectFlowPkts *df = SCDetectFlowBytesParseDir(rawstr, DETECT_FLOW_TOCLIENT);
     if (df == NULL) {
-        rs_detect_u64_free(du64);
         return -1;
     }
-
-    df->byte_data = du64;
-    df->dir = DETECT_FLOW_TOCLIENT;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
@@ -354,59 +254,10 @@ static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, c
 
 static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectFlowBytes *df = NULL;
-    char copy[strlen(rawstr) + 1];
-    strlcpy(copy, rawstr, sizeof(copy));
-    char *context = NULL;
-    char *token = strtok_r(copy, ",", &context);
-    uint8_t num_tokens = 0;
-    uint8_t dir = 0;
-    char *byte_data = NULL;
-
-    while (token != NULL) {
-        if (num_tokens > 1)
-            return -1;
-
-        while (*token != '\0' && isblank(*token)) {
-            token++;
-        }
-        if (strlen(token) == 0) {
-            goto next;
-        }
-
-        num_tokens++;
-
-        if (dir == 0 && num_tokens == 1) {
-            if (strcmp(token, "toserver") == 0) {
-                dir = DETECT_FLOW_TOSERVER;
-            } else if (strcmp(token, "toclient") == 0) {
-                dir = DETECT_FLOW_TOCLIENT;
-            } else if (strcmp(token, "either") == 0) {
-                dir = DETECT_FLOW_TOEITHER;
-            } else {
-                SCLogError("Invalid direction given: %s", token);
-                return -1;
-            }
-        }
-
-        if (dir && num_tokens == 2) {
-            byte_data = token;
-        }
-
-    next:
-        token = strtok_r(NULL, ",", &context);
-    }
-
-    DetectU64Data *du64 = DetectU64Parse(byte_data);
-    if (du64 == NULL)
-        return -1;
-    df = SCCalloc(1, sizeof(DetectFlowBytes));
+    DetectFlowBytes *df = SCDetectFlowBytesParse(rawstr);
     if (df == NULL) {
-        rs_detect_u64_free(du64);
         return -1;
     }
-    df->dir = dir;
-    df->byte_data = du64;
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesFree(de_ctx, df);
