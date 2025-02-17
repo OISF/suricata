@@ -36,6 +36,7 @@ pub mod vlan;
 pub mod datasets;
 
 use std::os::raw::{c_char, c_int, c_void};
+use std::ffi::CString;
 
 use suricata_sys::sys::AppProto;
 
@@ -53,6 +54,61 @@ pub trait EnumString<T> {
 
     /// Get an enum variant from parsing a string.
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
+}
+
+/// Rust app-layer light version of SigTableElmt for simple sticky buffer
+pub struct SigTableElmtStickyBuffer {
+    /// keyword name
+    pub name: String,
+    /// keyword description
+    pub desc: String,
+    /// keyword documentation url
+    pub url: String,
+    /// function callback to parse and setup keyword in rule
+    pub setup: unsafe extern "C" fn(
+        de: *mut c_void,
+        s: *mut c_void,
+        raw: *const std::os::raw::c_char,
+    ) -> c_int,
+}
+
+pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c_int {
+    let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
+    let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
+    let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
+    let st = SCSigTableAppLiteElmt {
+        name,
+        desc,
+        url,
+        Setup: kw.setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    unsafe {
+        let r = DetectHelperKeywordRegister(&st);
+        DetectHelperKeywordSetCleanCString(r);
+        return r;
+    }
+}
+
+#[repr(C)]
+#[allow(non_snake_case)]
+/// Names of SigTableElmt for release by rust
+pub struct SCSigTableNamesElmt {
+    /// keyword name
+    pub name: *mut libc::c_char,
+    /// keyword description
+    pub desc: *mut libc::c_char,
+    /// keyword documentation url
+    pub url: *mut libc::c_char,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt) {
+    let _ = CString::from_raw(kw.name);
+    let _ = CString::from_raw(kw.desc);
+    let _ = CString::from_raw(kw.url);
 }
 
 #[repr(C)]
@@ -95,6 +151,7 @@ pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
 /// cbindgen:ignore
 extern "C" {
+    pub fn DetectHelperKeywordSetCleanCString(id: c_int);
     pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
     pub fn DetectHelperGetData(
         de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
