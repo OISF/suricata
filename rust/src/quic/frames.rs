@@ -540,12 +540,15 @@ impl Frame {
         Ok((rest, value))
     }
 
-    pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
+    pub(crate) fn decode_frames<'a>(
+        input: &'a [u8], past_frag: &'a [u8],
+    ) -> IResult<&'a [u8], Vec<Frame>, QuicError> {
         let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame)))(input)?;
 
-        // reassemble crypto fragments : first find total size
-        let mut crypto_max_size = 0;
+        // we use the already seen past fragment data
+        let mut crypto_max_size = past_frag.len() as u64;
         let mut crypto_total_size = 0;
+        // reassemble crypto fragments : first find total size
         for f in &frames {
             if let Frame::CryptoFrag(c) = f {
                 if crypto_max_size < c.offset + c.length {
@@ -554,19 +557,41 @@ impl Frame {
                 crypto_total_size += c.length;
             }
         }
-        if crypto_max_size > 0 && crypto_total_size == crypto_max_size {
+        if crypto_max_size > 0 {
             // we have some, and no gaps from offset 0
             let mut d = vec![0; crypto_max_size as usize];
+            d[..past_frag.len()].clone_from_slice(past_frag);
             for f in &frames {
                 if let Frame::CryptoFrag(c) = f {
                     d[c.offset as usize..(c.offset + c.length) as usize].clone_from_slice(&c.data);
                 }
             }
-            if let Ok((_, msg)) = parse_tls_message_handshake(&d) {
-                if let Some(c) = parse_quic_handshake(msg) {
-                    // add a parsed crypto frame
-                    frames.push(c);
+            if crypto_total_size + past_frag.len() as u64 >= crypto_max_size {
+                match parse_tls_message_handshake(&d) {
+                    Ok((_, msg)) => {
+                        if let Some(c) = parse_quic_handshake(msg) {
+                            // add a parsed crypto frame
+                            frames.push(c);
+                        }
+                    }
+                    Err(nom7::Err::Incomplete(_)) => {
+                        // this means the current packet does not have all the hanshake data yet
+                        let frag = CryptoFrag {
+                            offset: 0,
+                            length: d.len() as u64,
+                            data: d.to_vec(),
+                        };
+                        frames.push(Frame::CryptoFrag(frag));
+                    }
+                    _ => {}
                 }
+            } else {
+                let frag = CryptoFrag {
+                    offset: 0,
+                    length: d.len() as u64,
+                    data: d.to_vec(),
+                };
+                frames.push(Frame::CryptoFrag(frag));
             }
         }
 
