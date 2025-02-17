@@ -22,7 +22,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::websocket::parser::WebSocketOpcode;
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn websocket_detect_payload_get_data(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectWebsocketRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket opcode\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-opcode\0".as_ptr() as *const libc::c_char,
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"websocket.mask\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket mask\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-mask\0".as_ptr() as *const libc::c_char,
@@ -310,7 +310,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"websocket.flags\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket flags\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-flags\0".as_ptr() as *const libc::c_char,
@@ -326,7 +326,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"websocket.payload\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket payload\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-payload\0".as_ptr() as *const libc::c_char,

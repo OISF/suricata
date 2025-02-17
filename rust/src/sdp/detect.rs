@@ -20,7 +20,7 @@
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
-    DetectSignatureSetAppProto, SCSigTableElmt, SIGMATCH_NOOPT,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SIGMATCH_NOOPT,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -889,7 +889,7 @@ unsafe extern "C" fn sip_media_desc_encryption_key_get_data(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSdpRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP session name field\0".as_ptr()
             as *const libc::c_char,
@@ -908,7 +908,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_session_name_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP session info field\0".as_ptr()
             as *const libc::c_char,
@@ -927,7 +927,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_session_info_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.origin\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP origin field\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sdp-keywords.html#sdp-origin\0".as_ptr() as *const libc::c_char,
@@ -945,7 +945,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_origin_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.uri\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP uri field\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sdp-keywords.html#sdp-uri\0".as_ptr() as *const libc::c_char,
@@ -963,7 +963,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_uri_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.email\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP email field\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sdp-keywords.html#sdp-email\0".as_ptr() as *const libc::c_char,
@@ -981,7 +981,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_email_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP phone number field\0".as_ptr()
             as *const libc::c_char,
@@ -1000,7 +1000,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_phone_number_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP connection data field\0".as_ptr()
             as *const libc::c_char,
@@ -1019,7 +1019,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_conn_data_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP bandwidth field\0".as_ptr()
             as *const libc::c_char,
@@ -1038,7 +1038,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_bandwidth_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.time\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP time field\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sdp-keywords.html#time\0".as_ptr() as *const libc::c_char,
@@ -1056,7 +1056,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_time_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP repeat time field\0".as_ptr()
             as *const libc::c_char,
@@ -1075,7 +1075,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_repeat_time_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP timezone field\0".as_ptr() as *const libc::c_char,
         url: b"/rules/sdp-keywords.html#timezone\0".as_ptr() as *const libc::c_char,
@@ -1093,7 +1093,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_timezone_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP encryption key field\0".as_ptr()
             as *const libc::c_char,
@@ -1112,7 +1112,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_encryption_key_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP attribute field\0".as_ptr()
             as *const libc::c_char,
@@ -1131,7 +1131,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_attribute_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP media subfield of the media_description field\0"
             .as_ptr() as *const libc::c_char,
@@ -1150,7 +1150,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_media_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP session info subfield of the media_description field\0".as_ptr()
             as *const libc::c_char,
@@ -1169,7 +1169,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_session_info_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP connection data subfield of the media_description field\0".as_ptr()
             as *const libc::c_char,
@@ -1188,7 +1188,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_connection_data_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP encryption key subfield of the media_description field\0".as_ptr()
             as *const libc::c_char,
