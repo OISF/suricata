@@ -21,10 +21,10 @@ use crate::detect::uint::{
     SCDetectU8Parse, DetectUintData,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferRegister, DetectHelperGetMultiData,
-    DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList, DetectHelperBufferRegister,
+    DetectHelperGetMultiData, DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
     DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::ffi::CStr;
@@ -366,16 +366,13 @@ unsafe extern "C" fn dns_query_get_data_wrapper(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDNSRegister() {
-    let kw = SCSigTableAppLiteElmt {
-        name: b"dns.answer.name\0".as_ptr() as *const libc::c_char,
-        desc: b"DNS answer name sticky buffer\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/dns-keywords.html#dns-answer-name\0".as_ptr() as *const libc::c_char,
-        Setup: dns_detect_answer_name_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("dns.answer.name"),
+        desc: String::from("DNS answer name sticky buffer"),
+        url: String::from("/rules/dns-keywords.html#dns-answer-name"),
+        setup: dns_detect_answer_name_setup,
     };
-    let _g_dns_answer_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_DNS_ANSWER_NAME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
@@ -402,16 +399,13 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         true,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"dns.query.name\0".as_ptr() as *const libc::c_char,
-        desc: b"DNS query name sticky buffer\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/dns-keywords.html#dns-query-name\0".as_ptr() as *const libc::c_char,
-        Setup: dns_detect_query_name_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("dns.query.name"),
+        desc: String::from("DNS query name sticky buffer"),
+        url: String::from("/rules/dns-keywords.html#dns-query-name"),
+        setup: dns_detect_query_name_setup,
     };
-    let _g_dns_query_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_DNS_QUERY_NAME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
@@ -454,16 +448,13 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
         true,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"dns.query\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match DNS query-buffer\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/dns-keywords.html#dns-query\0".as_ptr() as *const libc::c_char,
-        Setup: dns_detect_query_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("dns.query"),
+        desc: String::from("sticky buffer to match DNS query-buffer"),
+        url: String::from("/rules/dns-keywords.html#dns-query"),
+        setup: dns_detect_query_setup,
     };
-    let g_dns_query_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     DetectHelperKeywordAliasRegister(
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,
