@@ -25,7 +25,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use std::ffi::CStr;
@@ -188,7 +188,7 @@ unsafe extern "C" fn rfb_sec_result_free(_de: *mut c_void, ctx: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectRfbRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"rfb.name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the RFB desktop name\0".as_ptr() as *const libc::c_char,
         url: b"/rules/rfb-keywords.html#rfb-name\0".as_ptr() as *const libc::c_char,
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         false,
         rfb_name_get,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"rfb.sectype\0".as_ptr() as *const libc::c_char,
         desc: b"match RFB security type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/rfb-keywords.html#rfb-sectype\0".as_ptr() as *const libc::c_char,
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         false, // only to server
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"rfb.secresult\0".as_ptr() as *const libc::c_char,
         desc: b"match RFB security result\0".as_ptr() as *const libc::c_char,
         url: b"/rules/rfb-keywords.html#rfb-secresult\0".as_ptr() as *const libc::c_char,

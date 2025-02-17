@@ -21,7 +21,7 @@ use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::direction::Direction;
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn SCDetectTemplateRegister() {
     /* TEMPLATE_END_REMOVE */
     // TODO create a suricata-verify test
     // Setup a keyword structure and register it
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"template.buffer\0".as_ptr() as *const libc::c_char,
         desc: b"Template content modifier to match on the template buffer\0".as_ptr()
             as *const libc::c_char,
