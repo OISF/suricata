@@ -141,7 +141,7 @@ static InspectionBuffer *TlsAlpnGetData(DetectEngineThreadCtx *det_ctx,
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, a->alpn, a->size);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, a->alpn, a->size);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");

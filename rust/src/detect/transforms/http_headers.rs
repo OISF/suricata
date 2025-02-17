@@ -52,7 +52,7 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn header_lowertransform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn header_lowertransform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -114,7 +114,7 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-unsafe extern "C" fn strip_pseudo_transform(buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn strip_pseudo_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {

@@ -101,7 +101,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         return NULL;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, cert->cert_data, cert->cert_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, cert->cert_data, cert->cert_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
