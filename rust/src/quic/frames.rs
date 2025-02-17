@@ -541,7 +541,7 @@ impl Frame {
     }
 
     pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
-        let (rest, mut frames) = many0(complete(Frame::decode_frame))(input)?;
+        let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame)))(input)?;
 
         // reassemble crypto fragments : first find total size
         let mut crypto_max_size = 0;

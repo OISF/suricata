@@ -17,7 +17,7 @@
 use super::error::QuicError;
 use super::frames::Frame;
 use nom7::bytes::complete::take;
-use nom7::combinator::{all_consuming, map};
+use nom7::combinator::map;
 use nom7::number::complete::{be_u24, be_u32, be_u8};
 use nom7::IResult;
 use std::convert::TryFrom;
@@ -393,7 +393,7 @@ impl QuicHeader {
 
 impl QuicData {
     pub(crate) fn from_bytes(input: &[u8]) -> Result<QuicData, QuicError> {
-        let (_, frames) = all_consuming(Frame::decode_frames)(input)?;
+        let (_, frames) = Frame::decode_frames(input)?;
         Ok(QuicData { frames })
     }
 }
