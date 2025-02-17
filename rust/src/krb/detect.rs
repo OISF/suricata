@@ -193,7 +193,8 @@ pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEn
     let (i, v) = many1(detect_parse_encryption_item)(i)?;
     for &val in v.iter() {
         let vali = val.0;
-        if vali < 0 && ((-vali) as usize) < KRB_TICKET_FASTARRAY_SIZE {
+        // KRB_TICKET_FASTARRAY_SIZE is a constant typed usize but which fits in a i32
+        if vali < 0 && vali > -(KRB_TICKET_FASTARRAY_SIZE as i32) {
             l.negative[(-vali) as usize] = true;
         } else if vali >= 0 && (vali as usize) < KRB_TICKET_FASTARRAY_SIZE {
             l.positive[vali as usize] = true;
@@ -325,6 +326,16 @@ mod tests {
             }
             _ => {
                 panic!("Result should have been ok.");
+            }
+        }
+        let ctx = detect_parse_encryption("-2147483648").unwrap().1;
+        match ctx {
+            DetectKrb5TicketEncryptionData::LIST(l) => {
+                assert_eq!(l.other.len(), 1);
+                assert_eq!(l.other[0], EncryptionType(i32::MIN));
+            }
+            _ => {
+                panic!("Result should have been list.");
             }
         }
     }
