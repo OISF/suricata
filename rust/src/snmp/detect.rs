@@ -23,7 +23,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use std::os::raw::{c_int, c_void};
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn snmp_detect_community_get_data(
 }
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSNMPRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"snmp.version\0".as_ptr() as *const libc::c_char,
         desc: b"match SNMP version\0".as_ptr() as *const libc::c_char,
         url: b"/rules/snmp-keywords.html#snmp-version\0".as_ptr() as *const libc::c_char,
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn SCDetectSNMPRegister() {
         true,
     );
 
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
         desc: b"match SNMP PDU type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/snmp-keywords.html#snmp-pdu-type\0".as_ptr() as *const libc::c_char,
@@ -218,7 +218,7 @@ pub unsafe extern "C" fn SCDetectSNMPRegister() {
         true,
     );
 
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"snmp.usm\0".as_ptr() as *const libc::c_char,
         desc: b"SNMP content modifier to match on the SNMP usm\0".as_ptr() as *const libc::c_char,
         url: b"/rules/snmp-keywords.html#snmp-usm\0".as_ptr() as *const libc::c_char,
@@ -237,7 +237,7 @@ pub unsafe extern "C" fn SCDetectSNMPRegister() {
         snmp_detect_usm_get_data,
     );
 
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"snmp.community\0".as_ptr() as *const libc::c_char,
         desc: b"SNMP content modifier to match on the SNMP community\0".as_ptr()
             as *const libc::c_char,
