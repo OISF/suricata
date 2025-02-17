@@ -1321,6 +1321,8 @@ typedef struct SigTableElmt_ {
     const char *desc;
     const char *url;
 
+    // Cleanup function for freeing rust allocated name or such
+    void (*Cleanup)(struct SigTableElmt_ *);
 } SigTableElmt;
 
 /* event code */
