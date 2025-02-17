@@ -36,7 +36,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 
@@ -1331,7 +1331,7 @@ unsafe extern "C" fn service_name_get_data(
 }
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEnipRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"cip_service\0".as_ptr() as *const libc::c_char,
         desc: b"match on CIP Service, and optionnally class and attribute\0".as_ptr()
             as *const libc::c_char,
@@ -1348,7 +1348,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.capabilities\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP capabilities\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-capabilities\0".as_ptr() as *const libc::c_char,
@@ -1364,7 +1364,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_attribute\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-attribute\0".as_ptr() as *const libc::c_char,
@@ -1380,7 +1380,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_class\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_class\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-class\0".as_ptr() as *const libc::c_char,
@@ -1396,7 +1396,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP vendor_id\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-vendor-id\0".as_ptr() as *const libc::c_char,
@@ -1412,7 +1412,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-status\0".as_ptr() as *const libc::c_char,
@@ -1428,7 +1428,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.state\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP state\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-state\0".as_ptr() as *const libc::c_char,
@@ -1444,7 +1444,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.serial\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP serial\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-serial\0".as_ptr() as *const libc::c_char,
@@ -1460,7 +1460,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.revision\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP revision\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-revision\0".as_ptr() as *const libc::c_char,
@@ -1476,7 +1476,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP protocol_version\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-protocol-version\0".as_ptr() as *const libc::c_char,
@@ -1492,7 +1492,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.product_code\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP product_code\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-product-code\0".as_ptr() as *const libc::c_char,
@@ -1508,7 +1508,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip_command\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
@@ -1524,7 +1524,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.identity_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP identity_status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-identity-status\0".as_ptr() as *const libc::c_char,
@@ -1540,7 +1540,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.device_type\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP device_type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-device-type\0".as_ptr() as *const libc::c_char,
@@ -1556,7 +1556,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-status\0".as_ptr() as *const libc::c_char,
@@ -1572,7 +1572,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_instance\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-instance\0".as_ptr() as *const libc::c_char,
@@ -1588,7 +1588,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP cip_extendedstatus\0".as_ptr()
             as *const libc::c_char,
@@ -1605,7 +1605,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.product_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match EtherNet/IP product name\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-product-name\0".as_ptr() as *const libc::c_char,
@@ -1623,7 +1623,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         product_name_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"enip.service_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match EtherNet/IP service name\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-service-name\0".as_ptr() as *const libc::c_char,
