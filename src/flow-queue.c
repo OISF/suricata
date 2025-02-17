@@ -105,13 +105,13 @@ void FlowQueuePrivateAppendPrivate(FlowQueuePrivate *dest, FlowQueuePrivate *src
 
 static inline void FlowQueueAtomicSetNonEmpty(FlowQueue *fq)
 {
-    if (SC_ATOMIC_GET(fq->non_empty) == false) {
+    if (!SC_ATOMIC_GET(fq->non_empty)) {
         SC_ATOMIC_SET(fq->non_empty, true);
     }
 }
 static inline void FlowQueueAtomicSetEmpty(FlowQueue *fq)
 {
-    if (SC_ATOMIC_GET(fq->non_empty) == true) {
+    if (SC_ATOMIC_GET(fq->non_empty)) {
         SC_ATOMIC_SET(fq->non_empty, false);
     }
 }

@@ -187,7 +187,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
         fsd.mpm_ctx = mpm_ctx;
 
         if (SetupStreamCallbackData(&fsd, ssn, stream, det_ctx, ctx->transforms, frames, frame,
-                    ctx->list_id, eof) == true) {
+                    ctx->list_id, eof)) {
             StreamReassembleForFrame(ssn, stream, FrameStreamDataPrefilterFunc, &fsd,
                     fsd.requested_stream_offset, eof);
         }
@@ -238,7 +238,7 @@ bool DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, c
 
             // TODO there should be only one inspect engine for this frame, ever?
 
-            if (e->v1.Callback(det_ctx, e, s, p, frames, frame) == true) {
+            if (e->v1.Callback(det_ctx, e, s, p, frames, frame)) {
                 SCLogDebug("sid %u: e %p Callback returned true", s->id, e);
                 return true;
             }
@@ -591,8 +591,8 @@ int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
     fsd.inspect_result = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     fsd.p = p;
 
-    if (SetupStreamCallbackData(
-                &fsd, ssn, stream, det_ctx, transforms, frames, frame, list_id, eof) == false) {
+    if (!SetupStreamCallbackData(
+                &fsd, ssn, stream, det_ctx, transforms, frames, frame, list_id, eof)) {
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
     StreamReassembleForFrame(

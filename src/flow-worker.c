@@ -470,7 +470,7 @@ static inline void FlowWorkerProcessInjectedFlows(
     /* take injected flows and append to our work queue */
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_INJECTED);
     FlowQueuePrivate injected = { NULL, NULL, 0 };
-    if (SC_ATOMIC_GET(tv->flow_queue->non_empty) == true)
+    if (SC_ATOMIC_GET(tv->flow_queue->non_empty))
         injected = FlowQueueExtractPrivate(tv->flow_queue);
     if (injected.len > 0) {
         StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);

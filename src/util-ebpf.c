@@ -380,7 +380,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         }
     }
 
-    if (found == false) {
+    if (!found) {
         SCLogError("No section '%s' in '%s' file. Will not be able to use the file", section, path);
         return -1;
     }

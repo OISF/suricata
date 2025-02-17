@@ -243,9 +243,9 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
         return;
 
     } else {
-        if (TmThreadsHandleInjectedPackets(tv) == false) {
+        if (!TmThreadsHandleInjectedPackets(tv)) {
             /* see if we have to do some house keeping */
-            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty) == true) {
+            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty)) {
                 TmThreadsCaptureInjectPacket(tv, p); /* consumes 'p' */
                 return;
             }

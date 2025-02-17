@@ -379,7 +379,7 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
     /* init geo engine, but not when running as unittests */
     if (!(RunmodeIsUnittests())) {
         /* Initialize the geolocation engine */
-        if (InitGeolocationEngine(geoipdata) == false)
+        if (!InitGeolocationEngine(geoipdata))
             goto error;
     }
 

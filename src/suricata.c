@@ -2600,14 +2600,14 @@ static void PostConfLoadedSetupHostMode(void)
 static void SetupUserMode(SCInstance *suri)
 {
     /* apply 'user mode' config updates here */
-    if (suri->system == false) {
-        if (suri->set_logdir == false) {
+    if (!suri->system) {
+        if (!suri->set_logdir) {
             /* override log dir to current work dir" */
             if (ConfigSetLogDirectory((char *)".") != TM_ECODE_OK) {
                 FatalError("could not set USER mode logdir");
             }
         }
-        if (suri->set_datadir == false) {
+        if (!suri->set_datadir) {
             /* override data dir to current work dir" */
             if (ConfigSetDataDirectory((char *)".") != TM_ECODE_OK) {
                 FatalError("could not set USER mode datadir");

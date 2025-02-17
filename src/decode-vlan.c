@@ -87,8 +87,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     p->vlan_id[p->vlan_idx++] = (uint16_t)GET_VLAN_ID(vlan_hdr);
 
-    if (DecodeNetworkLayer(tv, dtv, proto, p,
-                pkt + VLAN_HEADER_LEN, len - VLAN_HEADER_LEN) == false) {
+    if (!DecodeNetworkLayer(tv, dtv, proto, p, pkt + VLAN_HEADER_LEN, len - VLAN_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE);
         return TM_ECODE_FAILED;
     }
