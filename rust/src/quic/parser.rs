@@ -392,8 +392,8 @@ impl QuicHeader {
 }
 
 impl QuicData {
-    pub(crate) fn from_bytes(input: &[u8]) -> Result<QuicData, QuicError> {
-        let (_, frames) = Frame::decode_frames(input)?;
+    pub(crate) fn from_bytes(input: &[u8], past_frag: &[u8], past_fraglen: u32) -> Result<QuicData, QuicError> {
+        let (_, frames) = Frame::decode_frames(input, past_frag, past_fraglen)?;
         Ok(QuicData { frames })
     }
 }
@@ -467,7 +467,8 @@ mod tests {
             header
         );
 
-        let data = QuicData::from_bytes(rest).unwrap();
+        let past_frag = Vec::new();
+        let data = QuicData::from_bytes(rest, &past_frag, 0).unwrap();
         assert_eq!(
             QuicData {
                 frames: vec![Frame::Stream(Stream {
