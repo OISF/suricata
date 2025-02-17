@@ -337,31 +337,35 @@ Format of tcp.flags::
     tcp.flags:[modifier]<test flags>[,<ignore flags>];
     tcp.flags:[!|*|+]<FSRPAUCE0>[,<FSRPAUCE>];
 
-Example::
+Example:
 
-  alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"Example tcp.flags sig"; \
- :example-rule-emphasis:`tcp.flags:FPU,CE;` classtype:misc-activity; sid:1; rev:1;)
+.. container:: example-rule
 
-It is also possible to use the `tcp.flags` content as a fast_pattern by using the `prefilter` keyword. For more information on `prefilter` usage see :doc:`prefilter-keywords`
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"Example tcp.flags sig";
+   :example-rule-emphasis:`tcp.flags:FPU,CE;` classtype:misc-activity; sid:1; rev:1;)
 
-Example::
+It is also possible to use the `tcp.flags` content as a fast_pattern by using the `prefilter` keyword. For more information on `prefilter` usage see :doc:`prefilter-keywords`.
+Example:
 
-  alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"Example tcp.flags sig"; \
- :example-rule-emphasis:`tcp.flags:FPU,CE; prefilter;` classtype:misc-activity; sid:1; rev:1;)  
+.. container:: example-rule
+
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"Example tcp.flags sig";
+   :example-rule-emphasis:`tcp.flags:FPU,CE; prefilter;` classtype:misc-activity; sid:1; rev:1;)
 
 seq
 ^^^
-The seq keyword can be used in a signature to check for a specific TCP
+The ``seq`` keyword can be used in a signature to check for a specific TCP
 sequence number. A sequence number is a number that is generated
 practically at random by both endpoints of a TCP-connection. The
 client and the server both create a sequence number, which increases
-with one with every byte that they send. So this sequence number is
+by one with every byte that they send. So this sequence number is
 different for both sides. This sequence number has to be acknowledged
-by both sides of the connection. Through sequence numbers, TCP
-handles acknowledgement, order and retransmission. Its number
-increases with every data-byte the sender has send. The seq helps
+by both sides of the connection.
+
+Through sequence numbers, TCP handles acknowledgement, order and retransmission.
+Its number increases with every data-byte the sender has sent. The seq helps
 keeping track of to what place in a data-stream a byte belongs. If the
-SYN flag is set at 1, than the sequence number of the first byte of
+SYN flag is set at 1, then the sequence number of the first byte of
 the data is this number plus 1 (so, 2).
 
 Example::
@@ -382,42 +386,45 @@ Example of seq in a packet (Wireshark):
 ack
 ^^^
 
-The ack is the acknowledgement of the receipt of all previous
+The ``ack`` keyword can be used in a signature to check for a specific TCP
+acknowledgement number.
+
+The ``ack`` is the acknowledgement of the receipt of all previous
 (data)-bytes send by the other side of the TCP-connection. In most
 occasions every packet of a TCP connection has an ACK flag after the
 first SYN and a ack-number which increases with the receipt of every
-new data-byte. The ack keyword can be used in a signature to check
-for a specific TCP acknowledgement number.
+new data-byte.
 
-Format of ack::
+Format of ``ack``::
 
   ack:1;
 
-Example of ack in a signature:
+Example of ``ack`` in a signature:
 
 .. container:: example-rule
 
     alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN NULL"; flow:stateless; :example-rule-emphasis:`ack:0;` flags:0; seq:0; reference:arachnids,4; classtype:attempted-recon; sid:2100623; rev:7;)
 
-Example of ack in a packet (Wireshark):
+Example of ``ack`` in a packet (Wireshark):
 
 .. image:: header-keywords/Wireshark_ack.png
 
 window
 ^^^^^^
 
-The window keyword is used to check for a specific TCP window size.
+The ``window`` keyword is used to check for a specific TCP window size.
+
 The TCP window size is a mechanism that has control of the
 data-flow. The window is set by the receiver (receiver advertised
 window size) and indicates the amount of bytes that can be
 received. This amount of data has to be acknowledged by the receiver
-first, before the sender can send the same amount of new data. This
-mechanism is used to prevent the receiver from being overflowed by
-data. The value of the window size is limited and can be 2 to 65.535
-bytes. To make more use of your bandwidth you can use a bigger
-TCP-window.
+first, before the sender can send the same amount of new data.
 
-The format of the window keyword::
+This mechanism is used to prevent the receiver from being overflowed by
+data. The value of the window size is limited and can be 2 to 65.535 bytes.
+To make more use of your bandwidth you can use a bigger TCP-window.
+
+The format of the window keyword is::
 
   window:[!]<number>;
 
@@ -433,9 +440,9 @@ tcp.mss
 Match on the TCP MSS option value. Will not match if the option is not
 present.
 
-tcp.mss uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
+``tcp.mss`` uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
 
-The format of the keyword::
+The format of the keyword is::
 
   tcp.mss:<min>-<max>;
   tcp.mss:[<|>]<number>;
