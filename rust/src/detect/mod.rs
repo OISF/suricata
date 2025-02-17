@@ -20,6 +20,7 @@
 pub mod byte_extract;
 pub mod byte_math;
 pub mod error;
+pub mod flow;
 pub mod iprep;
 pub mod parser;
 pub mod requires;
