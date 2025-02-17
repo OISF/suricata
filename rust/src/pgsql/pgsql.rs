@@ -287,7 +287,7 @@ impl PgsqlState {
                 Some(PgsqlStateProgress::ConnectionTerminated)
             }
             PgsqlFEMessage::UnknownMessageType(_) => {
-                SCLogDebug!("Match: Unknown message type");
+                SCLogDebug!("Match: Unknown request message type");
                 // Not changing state when we don't know the message
                 None
             }
@@ -491,6 +491,11 @@ impl PgsqlState {
                 // TODO Do we want to compare the command that was stored when
                 // query was sent with what we received here?
                 Some(PgsqlStateProgress::CommandCompletedReceived)
+            }
+            PgsqlBEMessage::UnknownMessageType(_) => {
+                SCLogDebug!("Match: Unknown response message type");
+                // Not changing state when we don't know the message
+                None
             }
             PgsqlBEMessage::ErrorResponse(_) => Some(PgsqlStateProgress::ErrorMessageReceived),
             _ => {
