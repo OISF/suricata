@@ -120,7 +120,7 @@ int SCDetectHelperNewKeywordId(void)
     return DETECT_TBLSIZE_IDX - 1;
 }
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
 {
     int keyword_id = SCDetectHelperNewKeywordId();
     if (keyword_id < 0) {
