@@ -36,12 +36,14 @@ static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 const DEFAULT_DCID_LEN: usize = 16;
 const PKT_NUM_BUF_MAX_LEN: usize = 4;
+pub(super) const QUIC_MAX_CRYPTO_FRAG_LEN: u64 = 65535;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum QuicEvent {
     FailedDecrypt,
     ErrorOnData,
     ErrorOnHeader,
+    CryptoFragTooLong,
 }
 
 #[derive(Debug)]
@@ -108,6 +110,10 @@ pub struct QuicState {
     state_data: AppLayerStateData,
     max_tx_id: u64,
     keys: Option<QuicKeys>,
+    /// crypto fragment data already seen and reassembled to client
+    crypto_frag_tc: Vec<u8>,
+    /// crypto fragment data already seen and reassembled to server
+    crypto_frag_ts: Vec<u8>,
     hello_tc: bool,
     hello_ts: bool,
     transactions: VecDeque<QuicTransaction>,
@@ -119,6 +125,8 @@ impl Default for QuicState {
             state_data: AppLayerStateData::new(),
             max_tx_id: 0,
             keys: None,
+            crypto_frag_tc: Vec::new(),
+            crypto_frag_ts: Vec::new(),
             hello_tc: false,
             hello_ts: false,
             transactions: VecDeque::new(),
@@ -149,10 +157,14 @@ impl QuicState {
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
         extb: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<String>, client: bool,
+        frag_long: bool,
     ) {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, ja4, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
+        if frag_long {
+            tx.tx_data.set_event(QuicEvent::CryptoFragTooLong as u8);
+        }
         self.transactions.push_back(tx);
     }
 
@@ -230,6 +242,7 @@ impl QuicState {
         let mut ja3: Option<String> = None;
         let mut ja4: Option<String> = None;
         let mut extv: Vec<QuicTlsExtension> = Vec::new();
+        let mut frag_long = false;
         for frame in &data.frames {
             match frame {
                 Frame::Stream(s) => {
@@ -244,6 +257,22 @@ impl QuicState {
                                 break;
                             }
                         }
+                    }
+                }
+                Frame::CryptoFrag(frag) => {
+                    // means we had some fragments but not full TLS hello
+                    // save it for a later packet
+                    if to_server {
+                        // use a hardcoded limit to not grow indefinitely
+                        if frag.length < QUIC_MAX_CRYPTO_FRAG_LEN {
+                            self.crypto_frag_ts = frag.data.clone();
+                        } else {
+                            frag_long = true;
+                        }
+                    } else if frag.length < QUIC_MAX_CRYPTO_FRAG_LEN {
+                        self.crypto_frag_tc = frag.data.clone();
+                    } else {
+                        frag_long = true;
                     }
                 }
                 Frame::Crypto(c) => {
@@ -273,7 +302,7 @@ impl QuicState {
                 _ => {}
             }
         }
-        self.new_tx(header, data, sni, ua, extv, ja3, ja4, to_server);
+        self.new_tx(header, data, sni, ua, extv, ja3, ja4, to_server, frag_long);
     }
 
     fn set_event_notx(&mut self, event: QuicEvent, header: QuicHeader, client: bool) {
@@ -332,11 +361,21 @@ impl QuicState {
                             None,
                             None,
                             to_server,
+                            false,
                         );
                         continue;
                     }
 
-                    match QuicData::from_bytes(framebuf) {
+                    let mut frag = Vec::new();
+                    // take the current fragment and reset it in the state
+                    let past_frag = if to_server {
+                        std::mem::swap(&mut self.crypto_frag_ts, &mut frag);
+                        &frag
+                    } else {
+                        std::mem::swap(&mut self.crypto_frag_tc, &mut frag);
+                        &frag
+                    };
+                    match QuicData::from_bytes(framebuf, past_frag) {
                         Ok(data) => {
                             self.handle_frames(data, header, to_server);
                         }
