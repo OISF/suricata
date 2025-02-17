@@ -263,11 +263,11 @@ lists those keywords with more details:
 Flowbits: ``isset``
 ^^^^^^^^^^^^^^^^^^^
 
-If a non-stateful rule (e.g. a ``pkt`` rule) checks if a flowbit is set (like in
-*flowbits:fb6,isset*) and the rule that sets that variable is a stateful one,
-such as an ``app_tx`` rule, the engine will set a flag to indicate that that
-rule is also stateful - without altering its signature type. This flag is
-currently ``SIG_FLAG_INIT_STATE_MATCH`` (cf. ticket `#7483
+If a non-stateful rule (e.g. a ``pkt`` rule) checks if a ``flowbit`` is set
+(like in *flowbits:fb6,isset*) and the rule that sets that variable is a
+stateful one, such as an ``app_tx`` rule, the engine will set a flag to indicate
+that that rule is also stateful - without altering its signature type. This flag
+is currently ``SIG_FLAG_INIT_STATE_MATCH`` (cf. ticket `#7483
 <https://redmine.openinfosecfoundation.org/issues/7483>`_).
 
 There is a work-in-progress to add information about this to the ``engine-analysis``
@@ -1152,7 +1152,7 @@ Application Layer Protocol, Transaction, Packet, Stream and Stream-Packet rules
 
 ``app_layer``, ``app_tx``, ``pkt``, ``stream`` and ``stream-pkt`` flows.
 
-``REQUIRE_PACKET_`` and ``REQUIRE_STREAM`` can be seen as flags ``need_packet``
+``REQUIRE_PACKET`` and ``REQUIRE_STREAM`` can be seen as flags ``need_packet``
 and ``need_stream`` in the ``engine-analysis`` output.
 
 .. image:: rule-types/APP_Layer-Packet-TX-Stream.png
