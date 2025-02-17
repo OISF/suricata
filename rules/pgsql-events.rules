@@ -1,0 +1,8 @@
+# PGSQL app-layer event rules
+#
+# SID range start: 2241000
+# SID range end:   2241999
+alert pgsql any any -> any any (msg:"SURICATA PGSQL Too many transactions"; app-layer-event:pgsql.too_many_transactions; sid:2241000; rev:1;)
+alert pgsql any any -> any any (msg:"SURICATA PGSQL Malformed request"; app-layer-event:pgsql.malformed_request; flow:to_server; sid:2241001; rev:1;)
+alert pgsql any any -> any any (msg:"SURICATA PGSQL Malformed response"; app-layer-event:pgsql.malformed_response; flow:to_client; sid:2241002; rev:1;)
+alert pgsql any any -> any any (msg:"SURICATA PGSQL Invalid length"; app-layer-event:pgsql.invalid_length; sid:2241003; rev:1;)

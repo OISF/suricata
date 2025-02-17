@@ -27,16 +27,24 @@ use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use nom7::{Err, IResult};
-use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use suricata_sys::sys::AppProto;
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
+
+#[derive(AppLayerEvent, Debug, PartialEq, Eq)]
+pub enum PgsqlEvent {
+    InvalidLength,     // Can't parse the length field
+    MalformedRequest,  // Enough data, but unexpected request format
+    MalformedResponse, // Enough data, but unexpected response format
+    TooManyTransactions,
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -218,7 +226,9 @@ impl PgsqlState {
                     // when they're parsed, as of now
                     tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
                     tx_old.tx_res_state = PgsqlTxProgress::TxFlushedOut;
-                    //TODO set event
+                    tx_old
+                        .tx_data
+                        .set_event(PgsqlEvent::TooManyTransactions as u8);
                     break;
                 }
             }
@@ -400,15 +410,18 @@ impl PgsqlState {
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
                 Err(Err::Error(err)) => {
+                    let mut tx = self.new_tx();
                     match err {
                         PgsqlParseError::InvalidLength => {
-                            // TODO set event invalid length event
+                            tx.tx_data.set_event(PgsqlEvent::InvalidLength as u8);
+                            self.transactions.push_back(tx);
                             // If we don't get a valid length, we can't know how to proceed
                             return AppLayerResult::err();
                         }
                         PgsqlParseError::NomError(_i, error_kind) => {
                             if error_kind == nom7::error::ErrorKind::Switch {
-                                // TODO set event switch / PgsqlEvent::MalformedData // or something like that
+                                tx.tx_data.set_event(PgsqlEvent::MalformedRequest as u8);
+                                self.transactions.push_back(tx);
                             }
                             SCLogDebug!("Parsing error: {:?}", error_kind);
                         }
@@ -593,15 +606,18 @@ impl PgsqlState {
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
                 Err(Err::Error(err)) => {
+                    let mut tx = self.new_tx();
                     match err {
                         PgsqlParseError::InvalidLength => {
-                            // TODO set event invalid length event
+                            tx.tx_data.set_event(PgsqlEvent::InvalidLength as u8);
+                            self.transactions.push_back(tx);
                             // If we don't get a valid length, we can't know how to proceed
                             return AppLayerResult::err();
                         }
                         PgsqlParseError::NomError(_i, error_kind) => {
                             if error_kind == nom7::error::ErrorKind::Switch {
-                                // TODO set event switch / PgsqlEvent::MalformedData // or something like that
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                                self.transactions.push_back(tx);
                             }
                             SCLogDebug!("Parsing error: {:?}", error_kind);
                         }
@@ -830,8 +846,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
         tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
         tx_get_progress: tx_get_al_state_progress,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_eventinfo: Some(PgsqlEvent::get_event_info),
+        get_eventinfo_byid: Some(PgsqlEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
