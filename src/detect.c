@@ -595,7 +595,7 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
 
         /* no flowvars? skip this sig */
         const bool fv = f->flowvar != NULL;
-        if (fv == false) {
+        if (!fv) {
             SCLogDebug("skipping sig as the flow has no flowvars and sig "
                     "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
             return false;
@@ -824,11 +824,11 @@ static inline void DetectRulePacketRules(
             }
         }
 
-        if (DetectRunInspectRuleHeader(p, pflow, s, sflags, s_proto_flags) == false) {
+        if (!DetectRunInspectRuleHeader(p, pflow, s, sflags, s_proto_flags)) {
             goto next;
         }
 
-        if (DetectEnginePktInspectionRun(tv, det_ctx, s, pflow, p, &alert_flags) == false) {
+        if (!DetectEnginePktInspectionRun(tv, det_ctx, s, pflow, p, &alert_flags)) {
             goto next;
         }
 
@@ -1147,11 +1147,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     /* for a new inspection we inspect pkt header and packet matches */
     if (likely(stored_flags == NULL)) {
         TRACE_SID_TXS(s->id, tx, "first inspect, run packet matches");
-        if (DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags) == false) {
+        if (!DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags)) {
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return false;
         }
-        if (DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL) == false) {
+        if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
             TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
             return false;
         }
@@ -1787,9 +1787,9 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
             /* call individual rule inspection */
             RULE_PROFILING_START(p);
             bool r = DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags);
-            if (r == true) {
+            if (r) {
                 r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame);
-                if (r == true) {
+                if (r) {
                     /* match */
                     DetectRunPostMatch(tv, det_ctx, p, s);
 

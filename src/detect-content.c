@@ -330,7 +330,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     DetectContentData *cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr);
     if (cd == NULL)
         goto error;
-    if (s->init_data->negated == true) {
+    if (s->init_data->negated) {
         cd->flags |= DETECT_CONTENT_NEGATED;
     }
 
@@ -824,7 +824,7 @@ static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
         FAIL_IF_NULL(s);                                                                           \
         SigPrepareStage1(de_ctx);                                                                  \
         bool res = TestLastContent(s, (o), (d));                                                   \
-        FAIL_IF(res == false);                                                                     \
+        FAIL_IF(!res);                                                                             \
         DetectEngineCtxFree(de_ctx);                                                               \
     }
 

@@ -448,7 +448,7 @@ void StatsSyncCounters(ThreadVars *tv)
 
 void StatsSyncCountersIfSignalled(ThreadVars *tv)
 {
-    if (SC_ATOMIC_GET(tv->perf_public_ctx.sync_now) == true) {
+    if (SC_ATOMIC_GET(tv->perf_public_ctx.sync_now)) {
         StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
     }
 }

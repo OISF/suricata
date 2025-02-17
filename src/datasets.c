@@ -82,7 +82,7 @@ static Dataset *DatasetSearchByName(const char *name)
 {
     Dataset *set = sets;
     while (set) {
-        if (strcasecmp(name, set->name) == 0 && set->hidden == false) {
+        if (strcasecmp(name, set->name) == 0 && !set->hidden) {
             return set;
         }
         set = set->next;
@@ -488,7 +488,7 @@ void DatasetReload(void)
     SCMutexLock(&sets_lock);
     Dataset *set = sets;
     while (set) {
-        if (!DatasetIsStatic(set->save, set->load) || set->from_yaml == true) {
+        if (!DatasetIsStatic(set->save, set->load) || set->from_yaml) {
             SCLogDebug("Not a static set, skipping %s", set->name);
             set = set->next;
             continue;
@@ -508,7 +508,7 @@ void DatasetPostReloadCleanup(void)
     Dataset *prev = NULL;
     while (cur) {
         Dataset *next = cur->next;
-        if (cur->hidden == false) {
+        if (!cur->hidden) {
             prev = cur;
             cur = next;
             continue;

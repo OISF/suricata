@@ -284,7 +284,7 @@ TmEcode AFXDPQueueProtectionInit(void)
 
 static TmEcode AFXDPAssignQueueID(AFXDPThreadVars *ptv)
 {
-    if (ptv->xsk.queue.assigned == false) {
+    if (!ptv->xsk.queue.assigned) {
         ptv->xsk.queue.queue_num = SC_ATOMIC_GET(xsk_protect.queue_num);
         SC_ATOMIC_ADD(xsk_protect.queue_num, 1);
 

@@ -1217,7 +1217,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
         root_p->nfq_v.verdicted = do_verdict;
         SCSpinUnlock(lock);
         /* don't verdict if we are not ready */
-        if (do_verdict == true) {
+        if (do_verdict) {
             int ret = NFQSetVerdict(root_p, mark_value, mark_modified);
             if (ret != TM_ECODE_OK) {
                 return ret;

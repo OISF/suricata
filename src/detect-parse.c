@@ -1049,7 +1049,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 
         /* handle 'silent' error case */
         if (setup_ret == -2) {
-            if (de_ctx->sm_types_silent_error[idx] == false) {
+            if (!de_ctx->sm_types_silent_error[idx]) {
                 de_ctx->sm_types_silent_error[idx] = true;
                 return -1;
             }
@@ -2037,10 +2037,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
 
         has_frame |= bt->frame;
-        has_app |= (bt->frame == false && bt->packet == false);
+        has_app |= (!bt->frame && !bt->packet);
         has_pkt |= bt->packet;
 
-        if ((s->flags & SIG_FLAG_REQUIRE_PACKET) && bt->packet == false) {
+        if ((s->flags & SIG_FLAG_REQUIRE_PACKET) && !bt->packet) {
             SCLogError("Signature combines packet "
                        "specific matches (like dsize, flags, ttl) with stream / "
                        "state matching by matching on app layer proto (like using "

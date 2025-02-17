@@ -317,7 +317,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv, NtInfoStream_t hInfo, NtStatSt
 
             for (uint32_t hbCount = 0; hbCount < hStat.u.usageData_v0.data.numHostBufferUsed;
                     hbCount++) {
-                if (unlikely(stream_config[inst_id].initialized == false)) {
+                if (unlikely(!stream_config[inst_id].initialized)) {
                     rxPktsStart[stream_id] += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.frames;
                     rxByteStart[stream_id] += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.bytes;
                     dropPktStart[stream_id] +=

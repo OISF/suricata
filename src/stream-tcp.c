@@ -2133,7 +2133,7 @@ static int StreamTcpPacketStateSynSent(
     }
 
     /* check for bad responses */
-    if (StateSynSentValidateTimestamp(ssn, p) == false) {
+    if (!StateSynSentValidateTimestamp(ssn, p)) {
         StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
         return -1;
     }
@@ -5625,7 +5625,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
 
-        if (StreamTcpPacketIsDupAck(ssn, p) == true) {
+        if (StreamTcpPacketIsDupAck(ssn, p)) {
             STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DUP_ACK);
             // TODO see if we can skip work on these
         }
