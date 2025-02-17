@@ -1505,9 +1505,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_IPONLY_COMPAT          BIT_U16(1)
 /** sigmatch is compatible with a decode event only rule */
 #define SIGMATCH_DEONLY_COMPAT          BIT_U16(2)
-
-// vacancy
-
+/** SigTableElmt will need its rust CStrings freed */
+#define SIGMATCH_NEEDS_RUST_FREE BIT_U16(3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
 #define SIGMATCH_OPTIONAL_OPT           BIT_U16(4)
