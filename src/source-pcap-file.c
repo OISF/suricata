@@ -334,7 +334,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             pv->should_loop = (should_loop == 1);
         }
 
-        if (pv->should_recurse == true && pv->should_loop == true) {
+        if (pv->should_recurse && pv->should_loop) {
             SCLogError("Error, --pcap-file-continuous and --pcap-file-recursive "
                        "cannot be used together.");
             closedir(directory);

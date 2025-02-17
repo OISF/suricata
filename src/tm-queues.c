@@ -116,7 +116,7 @@ void TmValidateQueueState(void)
         }
         SCMutexUnlock(&tmq->pq->mutex_q);
 
-        if (err == true)
+        if (err)
             goto error;
     }
 

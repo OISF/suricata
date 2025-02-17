@@ -377,7 +377,7 @@ static RADIX_NODE_TYPE *AddKey(RADIX_TREE_TYPE *tree, const RADIX_CONFIG_TYPE *c
      * being the incoming prefix is shorter than the differ bit of the current
      * node.  In case we fail in this aspect, we walk down to the tree, till we
      * arrive at a node that ends in a prefix */
-    while (node->bit < NETMASK_MAX || node->has_prefix == false) {
+    while (node->bit < NETMASK_MAX || !node->has_prefix) {
         /* if the bitlen isn't long enough to handle the bit test, we just walk
          * down along one of the paths, since either paths should end up with a
          * node that has a common prefix whose differ bit is greater than the
@@ -614,7 +614,7 @@ static void RemoveKey(RADIX_TREE_TYPE *tree, const RADIX_CONFIG_TYPE *config,
         }
     }
 
-    if (node->bit != NETMASK_MAX || node->has_prefix == false) {
+    if (node->bit != NETMASK_MAX || !node->has_prefix) {
         SCLogDebug("node %p bit %d != %d, or not has_prefix %s", node, node->bit, NETMASK_MAX,
                 node->has_prefix ? "true" : "false");
         return;
@@ -751,7 +751,7 @@ static inline RADIX_NODE_TYPE *FindKeyIPNetblock(const uint8_t *key_stream, RADI
                 return NULL;
         }
 
-        if (node->bit != NETMASK_MAX || node->has_prefix == false)
+        if (node->bit != NETMASK_MAX || !node->has_prefix)
             return NULL;
 
         if (SCMemcmp(node->prefix_stream, tmp_stream, sizeof(tmp_stream)) == 0) {
@@ -795,7 +795,7 @@ static RADIX_NODE_TYPE *FindKey(const RADIX_TREE_TYPE *tree, const uint8_t *key_
         }
     }
 
-    if (node->bit != NETMASK_MAX || node->has_prefix == false) {
+    if (node->bit != NETMASK_MAX || !node->has_prefix) {
         return NULL;
     }
 
@@ -937,7 +937,7 @@ static bool CompareTreesSub(
             return false;
 
         if (Callback != NULL) {
-            if (Callback(u1->user, u2->user) == false)
+            if (!Callback(u1->user, u2->user))
                 return false;
         }
 
@@ -946,10 +946,10 @@ static bool CompareTreesSub(
     }
 
     if (n1->left && n2->left)
-        if (CompareTreesSub(n1->left, n2->left, Callback) == false)
+        if (!CompareTreesSub(n1->left, n2->left, Callback))
             return false;
     if (n1->right && n2->right)
-        if (CompareTreesSub(n1->right, n2->right, Callback) == false)
+        if (!CompareTreesSub(n1->right, n2->right, Callback))
             return false;
 
     return true;

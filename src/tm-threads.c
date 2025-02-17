@@ -464,7 +464,7 @@ static void *TmThreadsSlotVar(void *td)
 
         /* if we didn't get a packet see if we need to do some housekeeping */
         if (unlikely(p == NULL)) {
-            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty) == true) {
+            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty)) {
                 p = PacketGetFromQueueOrAlloc();
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;

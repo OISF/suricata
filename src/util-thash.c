@@ -417,7 +417,7 @@ int THashWalk(THashTableContext *ctx, THashFormatFunc FormatterFunc, THashOutput
             h = h->next;
         }
         HRLOCK_UNLOCK(hb);
-        if (err == true)
+        if (err)
             return -1;
     }
     return 0;

@@ -619,7 +619,7 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data)
         bool verdict = VerdictTunnelPacket(p);
 
         /* don't verdict if we are not ready */
-        if (verdict == true) {
+        if (verdict) {
             SCLogDebug("Setting verdict on tunnel");
             retval = IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
         }

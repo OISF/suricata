@@ -191,7 +191,7 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup
             stream->segs_right_edge = SEG_SEQ_RIGHT_EDGE(seg);
 
         /* insert succeeded, now check if we overlap with someone */
-        if (CheckOverlap(&stream->seg_tree, seg) == true) {
+        if (CheckOverlap(&stream->seg_tree, seg)) {
             SCLogDebug("seg %u has overlap in the tree", seg->seq);
             return 1;
         }
