@@ -447,9 +447,30 @@ static void DetectFileHandlerRegister(void)
     }
 }
 
+static void SigCleanCString(SigTableElmt *base)
+{
+    SCSigTableNamesElmt kw;
+    // remove const for mut to release
+    kw.name = (char *)base->name;
+    kw.desc = (char *)base->desc;
+    kw.url = (char *)base->url;
+    SCDetectSigMatchNamesFree(&kw);
+}
+
+void DetectHelperKeywordSetCleanCString(int id)
+{
+    sigmatch_table[id].Cleanup = SigCleanCString;
+}
+
 void SigTableCleanup(void)
 {
     if (sigmatch_table != NULL) {
+        for (int i = 0; i < DETECT_TBLSIZE; i++) {
+            if ((sigmatch_table[i].Cleanup) == NULL) {
+                continue;
+            }
+            sigmatch_table[i].Cleanup(&sigmatch_table[i]);
+        }
         SCFree(sigmatch_table);
         sigmatch_table = NULL;
         DETECT_TBLSIZE = 0;
