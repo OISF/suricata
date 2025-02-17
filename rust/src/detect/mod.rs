@@ -33,7 +33,6 @@ pub mod vlan;
 pub mod datasets;
 
 use std::os::raw::{c_char, c_int, c_void};
-use std::ffi::CString;
 
 use suricata_sys::sys::AppProto;
 
@@ -53,10 +52,15 @@ pub trait EnumString<T> {
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
 }
 
+macro_rules!static_cstring_from {
+    ($x:expr) => (concat!($x, "\0").as_ptr() as *const libc::c_char);
+}
+
+
 pub struct SigTableElmtStickyBuffer {
-    pub name: String,
-    pub desc: String,
-    pub url: String,
+    pub name: *const libc::c_char,
+    pub desc: *const libc::c_char,
+    pub url: *const libc::c_char,
     pub setup: unsafe extern "C" fn(
         de: *mut c_void,
         s: *mut c_void,
@@ -65,13 +69,10 @@ pub struct SigTableElmtStickyBuffer {
 }
 
 pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c_int {
-    let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
-    let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
-    let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
     let st = SCSigTableAppLiteElmt {
-        name,
-        desc,
-        url,
+        name: kw.name,
+        desc: kw.desc,
+        url: kw.url,
         Setup: kw.setup,
         flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
         AppLayerTxMatch: None,

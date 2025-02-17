@@ -367,9 +367,9 @@ unsafe extern "C" fn dns_query_get_data_wrapper(
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SigTableElmtStickyBuffer {
-        name: String::from("dns.answer.name"),
-        desc: String::from("DNS answer name sticky buffer"),
-        url: String::from("/rules/dns-keywords.html#dns-answer-name"),
+        name: static_cstring_from!("dns.answer.name"),
+        desc: static_cstring_from!("DNS answer name sticky buffer"),
+        url: static_cstring_from!("/rules/dns-keywords.html#dns-answer-name"),
         setup: dns_detect_answer_name_setup,
     };
     let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -400,9 +400,9 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
     );
     let kw = SigTableElmtStickyBuffer {
-        name: String::from("dns.query.name"),
-        desc: String::from("DNS query name sticky buffer"),
-        url: String::from("/rules/dns-keywords.html#dns-query-name"),
+        name: static_cstring_from!("dns.query.name"),
+        desc: static_cstring_from!("DNS query name sticky buffer"),
+        url: static_cstring_from!("/rules/dns-keywords.html#dns-query-name"),
         setup: dns_detect_query_name_setup,
     };
     let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -449,9 +449,9 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         true,
     );
     let kw = SigTableElmtStickyBuffer {
-        name: String::from("dns.query"),
-        desc: String::from("sticky buffer to match DNS query-buffer"),
-        url: String::from("/rules/dns-keywords.html#dns-query"),
+        name: static_cstring_from!("dns.query"),
+        desc: static_cstring_from!("sticky buffer to match DNS query-buffer"),
+        url: static_cstring_from!("/rules/dns-keywords.html#dns-query"),
         setup: dns_detect_query_setup,
     };
     let g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);

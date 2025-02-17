@@ -94,6 +94,7 @@ pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
 pub mod kerberos;
+#[macro_use]
 pub mod detect;
 pub mod utils;
 
