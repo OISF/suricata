@@ -437,6 +437,17 @@ static void DetectFileHandlerRegister(void)
 void SigTableCleanup(void)
 {
     if (sigmatch_table != NULL) {
+        for (int i = 0; i < DETECT_TBLSIZE; i++) {
+            if (sigmatch_table[i].flags & SIGMATCH_NEEDS_RUST_FREE) {
+                continue;
+            }
+            SCSigTableNamesElmt kw;
+            // remove const for mut to release
+            kw.name = (char *)sigmatch_table[i].name;
+            kw.desc = (char *)sigmatch_table[i].desc;
+            kw.url = (char *)sigmatch_table[i].url;
+            SCDetectSigMatchNamesFree(&kw);
+        }
         SCFree(sigmatch_table);
         sigmatch_table = NULL;
         DETECT_TBLSIZE = 0;
