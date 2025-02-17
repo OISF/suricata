@@ -136,7 +136,7 @@ static InspectionBuffer *GetSmtpRcptToData(DetectEngineThreadCtx *det_ctx,
 
 void SCDetectSMTPRegister(void)
 {
-    SCSigTableElmt kw = { 0 };
+    SCSigTableAppLiteElmt kw = { 0 };
     kw.name = "smtp.helo";
     kw.desc = "SMTP helo buffer";
     kw.url = "/rules/smtp-keywords.html#smtp-helo";
