@@ -57,17 +57,25 @@ pub trait EnumString<T> {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct SCSigTableElmt {
+/// App-layer light version of SigTableElmt
+pub struct SCSigTableAppLiteElmt {
+    /// keyword name
     pub name: *const libc::c_char,
+    /// keyword description
     pub desc: *const libc::c_char,
+    /// keyword documentation url
     pub url: *const libc::c_char,
+    /// flags SIGMATCH_*
     pub flags: u16,
+    /// function callback to parse and setup keyword in rule
     pub Setup: unsafe extern "C" fn(
         de: *mut c_void,
         s: *mut c_void,
         raw: *const std::os::raw::c_char,
     ) -> c_int,
+    /// function callback to free structure allocated by setup if any
     pub Free: Option<unsafe extern "C" fn(de: *mut c_void, ptr: *mut c_void)>,
+    /// function callback to match on an app-layer transaction
     pub AppLayerTxMatch: Option<
         unsafe extern "C" fn(
             de: *mut c_void,
@@ -105,7 +113,7 @@ extern "C" {
             i32,
         ) -> *mut c_void,
     ) -> c_int;
-    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
     pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
