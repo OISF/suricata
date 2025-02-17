@@ -159,7 +159,7 @@ static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBufferConf
 
     StreamingBufferRegion *p = NULL;
     for (; r != NULL; r = r->next) {
-        if (RegionsIntersect(cfg, r, offset, data_re) == true) {
+        if (RegionsIntersect(cfg, r, offset, data_re)) {
             *prev = p;
             return r;
         }

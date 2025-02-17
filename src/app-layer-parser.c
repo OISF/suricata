@@ -1144,7 +1144,7 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
     uint64_t active_id;
     uint64_t log_id = pstate->log_id;
     uint64_t inspect_id = pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1];
-    if (alp_ctx.ctxs[f->alproto][f->protomap].logger == true) {
+    if (alp_ctx.ctxs[f->alproto][f->protomap].logger) {
         active_id = MIN(log_id, inspect_id);
     } else {
         active_id = inspect_id;
@@ -1525,7 +1525,7 @@ int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
-    int r = (alp_ctx.ctxs[alproto][ipproto_map].logger == false) ? 0 : 1;
+    int r = (!alp_ctx.ctxs[alproto][ipproto_map].logger) ? 0 : 1;
     SCReturnInt(r);
 }
 

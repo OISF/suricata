@@ -398,7 +398,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             (p->action & ACTION_DROP) ? "DROP" : "no drop");
 
     /* we're done with the tunnel root now as well */
-    if (proot == true) {
+    if (proot) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", BOOL2STR(p->root->pool == NULL));
 
         PacketReleaseRefs(p->root);

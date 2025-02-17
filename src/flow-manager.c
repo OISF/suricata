@@ -356,7 +356,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
          * be modified when we have both the flow and hash row lock */
 
         /* timeout logic goes here */
-        if (FlowManagerFlowTimeout(f, ts, next_ts, emergency) == false) {
+        if (!FlowManagerFlowTimeout(f, ts, next_ts, emergency)) {
             FLOWLOCK_UNLOCK(f);
             counters->flows_notimeout++;
 
@@ -898,7 +898,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
             FlowCountersUpdate(th_v, ftd, &counters);
 
-            if (emerg == true) {
+            if (emerg) {
                 SCLogDebug("flow_sparse_q.len = %" PRIu32 " prealloc: %" PRIu32
                            "flow_spare_q status: %" PRIu32 "%% flows at the queue",
                         spare_pool_len, flow_config.prealloc,
@@ -1162,7 +1162,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
                 if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
                     break;
                 }
-                if (SC_ATOMIC_GET(flow_recycle_q.non_empty) == true) {
+                if (SC_ATOMIC_GET(flow_recycle_q.non_empty)) {
                     break;
                 }
             }
@@ -1242,7 +1242,7 @@ void FlowDisableFlowRecyclerThread(void)
     do {
         FlowWakeupFlowRecyclerThread();
         usleep(10);
-    } while (FlowRecyclerReadyToShutdown() == false);
+    } while (!FlowRecyclerReadyToShutdown());
 
     SCMutexLock(&tv_root_lock);
     /* flow recycler thread(s) is/are a part of mgmt threads */
