@@ -314,7 +314,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         case DETECT_IPPROTO_OP_LT:
             if (eq_set || lt_set) {
                 SCLogError("can't use a eq or lt "
-                           "ipproto along with a less than ipproto in the "
+                           "ipproto with a less than ipproto in the "
                            "same sig ");
                 goto error;
             }
@@ -334,7 +334,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 if (temp_sm != NULL) {
                   DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
-                        SCLogError("can't use a have "
+                        SCLogError("can't have "
                                    "both gt and lt ipprotos, with the lt being "
                                    "lower than gt value");
                         goto error;
