@@ -199,6 +199,14 @@ fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
     ))
 }
 
+fn parse_ack3_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    let (rest, ack) = parse_ack_frame(input)?;
+    let (rest, _ect0_count) = quic_var_uint(rest)?;
+    let (rest, _ect1_count) = quic_var_uint(rest)?;
+    let (rest, _ecn_count) = quic_var_uint(rest)?;
+    Ok((rest, ack))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuicTlsExtension {
     pub etype: TlsExtensionType,
@@ -532,6 +540,7 @@ impl Frame {
                 0x00 => parse_padding_frame(rest)?,
                 0x01 => (rest, Frame::Ping),
                 0x02 => parse_ack_frame(rest)?,
+                0x03 => parse_ack3_frame(rest)?,
                 0x06 => parse_crypto_frame(rest)?,
                 0x08 => parse_crypto_stream_frame(rest)?,
                 _ => ([].as_ref(), Frame::Unknown(rest.to_vec())),
