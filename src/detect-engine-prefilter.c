@@ -444,6 +444,11 @@ struct PrefilterNonPFData {
     struct PrefilterNonPFDataSig array[];
 };
 
+struct PrefilterNonPFDataTx {
+    uint32_t size;
+    uint32_t array[];
+};
+
 /** \internal
  *  \brief wrapper for use in APIs */
 static void PrefilterNonPFDataFree(void *data)
@@ -454,15 +459,9 @@ static void PrefilterNonPFDataFree(void *data)
 static void PrefilterTxNonPF(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
         void *tx, const uint64_t tx_id, const AppLayerTxData *tx_data, const uint8_t flags)
 {
-    const struct PrefilterNonPFData *data = (const struct PrefilterNonPFData *)pectx;
+    const struct PrefilterNonPFDataTx *data = (const struct PrefilterNonPFDataTx *)pectx;
     SCLogDebug("adding %u sids", data->size);
-    for (uint32_t i = 0; i < data->size; i++) {
-        const struct PrefilterNonPFDataSig *ds = &data->array[i];
-        DEBUG_VALIDATE_BUG_ON(ds->value == ALPROTO_UNKNOWN);
-        DEBUG_VALIDATE_BUG_ON(!AppProtoEquals(ds->value, f->alproto));
-        const uint32_t sid = ds->sid;
-        PrefilterAddSids(&det_ctx->pmq, &sid, 1);
-    }
+    PrefilterAddSids(&det_ctx->pmq, data->array, data->size);
 }
 
 #ifdef NONPF_PKT_STATS
@@ -610,7 +609,10 @@ static void TxNonPFFree(void *data)
 
 /** \internal
  *  \brief setup non-prefilter rules in special "non-prefilter" engines that are registered in the
- * prefilter logic. \retval 0 ok \retval -1 error
+ * prefilter logic.
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
  */
 static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
@@ -869,12 +871,14 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
         }
 
-        struct PrefilterNonPFData *data =
+        struct PrefilterNonPFDataTx *data =
                 SCCalloc(1, sizeof(*data) + t->sigs_cnt * sizeof(data->array[0]));
         if (data == NULL)
             goto error;
         data->size = t->sigs_cnt;
-        memcpy((uint8_t *)&data->array, t->sigs, t->sigs_cnt * sizeof(data->array[0]));
+        for (uint32_t i = 0; i < t->sigs_cnt; i++) {
+            data->array[i] = t->sigs[i].sid;
+        }
         if (PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxNonPF, t->alproto, t->progress,
                     (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
             SCFree(data);
