@@ -1094,6 +1094,7 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
 }
 
 #[cfg(test)]
+#[allow(clippy::vec_init_then_push)]
 mod tests {
 
     use super::*;

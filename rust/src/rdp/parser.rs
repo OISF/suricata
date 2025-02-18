@@ -1103,6 +1103,7 @@ mod tests_negotiate_49350 {
 }
 
 #[cfg(test)]
+#[allow(clippy::vec_init_then_push)]
 mod tests_core_49350 {
     use crate::rdp::parser::*;
 
