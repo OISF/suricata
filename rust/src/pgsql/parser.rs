@@ -346,6 +346,8 @@ impl SASLAuthenticationMechanism {
     }
 }
 
+type SASLInitialResponse = (SASLAuthenticationMechanism, u32, Vec<u8>);
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct TerminationMessage {
     pub identifier: u8,
@@ -602,7 +604,7 @@ pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupPa
     return Err(Err::Error(make_error(i, ErrorKind::Tag)));
 }
 
-fn parse_sasl_initial_response_payload(i: &[u8]) -> IResult<&[u8], (SASLAuthenticationMechanism, u32, Vec<u8>), PgsqlParseError<&[u8]>> {
+fn parse_sasl_initial_response_payload(i: &[u8]) -> IResult<&[u8], SASLInitialResponse, PgsqlParseError<&[u8]>> {
     let (i, sasl_mechanism) = parse_sasl_mechanism(i)?;
     let (i, param_length) = be_u32(i)?;
     // From RFC 5802 - the client-first-message will always start w/
