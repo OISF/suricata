@@ -444,6 +444,7 @@ pub fn parse_bittorrent_dht_packet(
 }
 
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod tests {
     use super::*;
     use crate::core::Direction;

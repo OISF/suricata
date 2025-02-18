@@ -78,6 +78,7 @@ impl Cyu {
 }
 
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod tests {
     use super::*;
     use crate::quic::frames::{Frame, Stream, StreamTag};
