@@ -608,27 +608,12 @@ static void TxNonPFFree(void *data)
     SCFree(d);
 }
 
-int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+/** \internal
+ *  \brief setup non-prefilter rules in special "non-prefilter" engines that are registered in the
+ * prefilter logic. \retval 0 ok \retval -1 error
+ */
+static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    int r = PatternMatchPrepareGroup(de_ctx, sgh);
-    if (r != 0) {
-        FatalError("failed to set up pattern matching");
-    }
-
-    /* set up engines if needed - when prefilter is set to auto we run
-     * all engines, otherwise only those that have been forced by the
-     * prefilter keyword. */
-    const enum DetectEnginePrefilterSetting setting = de_ctx->prefilter_setting;
-    for (int i = 0; i < DETECT_TBLSIZE; i++)
-    {
-        if (sigmatch_table[i].SetupPrefilter != NULL &&
-                (setting == DETECT_PREFILTER_AUTO ||
-                 de_ctx->sm_types_prefilter[i]))
-        {
-            sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
-        }
-    }
-
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
     SCLogDebug("max_sids %u", max_sids);
     struct PrefilterNonPFDataSig *pkt_non_pf_array = SCCalloc(max_sids, sizeof(*pkt_non_pf_array));
@@ -753,7 +738,6 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         bool found = false;
                         // avoid adding same sid multiple times
                         for (uint32_t y = 0; y < e->sigs_cnt; y++) {
-                            // BUG_ON(e->sigs[y].sid == s->num);
                             if (e->sigs[y].sid == s->num) {
                                 found = true;
                                 break;
@@ -934,6 +918,38 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     pkt_non_pf_array = NULL;
     SCFree(frame_non_pf_array);
     frame_non_pf_array = NULL;
+    return 0;
+
+error:
+    if (tx_engines_hash) {
+        HashListTableFree(tx_engines_hash);
+    }
+    SCFree(pkt_non_pf_array);
+    SCFree(frame_non_pf_array);
+    return -1;
+}
+
+int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    int r = PatternMatchPrepareGroup(de_ctx, sgh);
+    if (r != 0) {
+        FatalError("failed to set up pattern matching");
+    }
+
+    /* set up engines if needed - when prefilter is set to auto we run
+     * all engines, otherwise only those that have been forced by the
+     * prefilter keyword. */
+    const enum DetectEnginePrefilterSetting setting = de_ctx->prefilter_setting;
+    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+        if (sigmatch_table[i].SetupPrefilter != NULL &&
+                (setting == DETECT_PREFILTER_AUTO || de_ctx->sm_types_prefilter[i])) {
+            sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
+        }
+    }
+
+    if (SetupNonPrefilter(de_ctx, sgh) != 0) {
+        return -1;
+    }
 
     /* we have lists of engines in sgh->init now. Lets setup the
      * match arrays */
@@ -945,7 +961,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->pkt_engines == NULL) {
-            goto error;
+            return -1;
         }
         memset(sgh->pkt_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -970,7 +986,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->payload_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->payload_engines == NULL) {
-            goto error;
+            return -1;
         }
         memset(sgh->payload_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -995,7 +1011,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->tx_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->tx_engines == NULL) {
-            goto error;
+            return -1;
         }
         memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -1071,7 +1087,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->frame_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->frame_engines == NULL) {
-            goto error;
+            return -1;
         }
         memset(sgh->frame_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -1091,14 +1107,6 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
     return 0;
-
-error:
-    if (tx_engines_hash) {
-        HashListTableFree(tx_engines_hash);
-    }
-    SCFree(pkt_non_pf_array);
-    SCFree(frame_non_pf_array);
-    return -1;
 }
 
 /* hash table for assigning a unique id to each engine type. */
