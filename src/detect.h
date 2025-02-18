@@ -1047,6 +1047,8 @@ typedef struct DetectEngineCtx_ {
     /* number of signatures using filestore, limited as u16 */
     uint16_t filestore_cnt;
 
+    /* name store for non-prefilter engines. Used in profiling but
+     * part of the API, so hash is always used. */
     HashTable *non_pf_engine_names;
 } DetectEngineCtx;
 

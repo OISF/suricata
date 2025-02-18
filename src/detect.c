@@ -934,7 +934,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
 void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
 {
     if (unlikely(alproto == ALPROTO_DOH2)) {
-        if (engine_alproto == ALPROTO_DNS) { // || engine_alproto == ALPROTO_UNKNOWN) {
+        if (engine_alproto == ALPROTO_DNS) {
             // need to get the dns tx pointer
             tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
         } else if (engine_alproto != ALPROTO_HTTP2 && engine_alproto != ALPROTO_UNKNOWN) {

@@ -581,8 +581,7 @@ static void NonPFNamesFree(void *data)
 
 struct TxNonPFData {
     AppProto alproto;
-    int dir; /**< 0: toserver, 1: toclient */
-    // int sm_list;  /**< sigmatch list for this engine */
+    int dir;      /**< 0: toserver, 1: toclient */
     int progress; /**< progress state value to register at */
     uint32_t sigs_cnt;
     struct PrefilterNonPFDataSig *sigs;
@@ -744,7 +743,6 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     struct TxNonPFData lookup = {
                         .alproto = app->alproto,
                         .dir = app->dir,
-                        //.sm_list = app->sm_list,
                         .progress = app->progress,
                         .sigs_cnt = 0,
                         .sigs = NULL,
@@ -755,7 +753,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         bool found = false;
                         // avoid adding same sid multiple times
                         for (uint32_t y = 0; y < e->sigs_cnt; y++) {
-                            // BUG_ON(e->sigs[x].sid == s->num);
+                            // BUG_ON(e->sigs[y].sid == s->num);
                             if (e->sigs[y].sid == s->num) {
                                 found = true;
                                 break;
@@ -774,7 +772,6 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         }
                         add->dir = app->dir;
                         add->alproto = app->alproto;
-                        // add->sm_list = app->sm_list;
                         add->progress = app->progress;
                         add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
                         if (add->sigs == NULL) {
@@ -815,7 +812,6 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         }
                     }
                     tx_non_pf = true;
-                    // break;
                 }
             }
         }
