@@ -209,6 +209,7 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod tests {
     use super::*;
     use test_case::test_case;

@@ -288,6 +288,7 @@ impl From<Err<der_parser::error::BerError>> for Asn1DecodeError {
 }
 
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod tests {
     use super::*;
     use test_case::test_case;

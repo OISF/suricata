@@ -885,7 +885,7 @@ mod tests {
     #[test]
     fn test_parse_publish() {
         let buf = [
-            0x00, 06, /* Topic Length: 6 */
+            0x00, 0x06, /* Topic Length: 6 */
             0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, /* Topic: topicX */
             0x00, 0x01, /* Message Identifier: 1 */
             0x00, /* Properties 6 */
@@ -914,7 +914,7 @@ mod tests {
     #[test]
     fn test_parse_msgidonly_v3() {
         let buf = [
-            0x00, 01, /* Message Identifier: 1 */
+            0x00, 0x01, /* Message Identifier: 1 */
             0x74, 0x6f, 0x70, 0x69, 0x63, 0x58, 0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34,
             0x33, 0x45, 0x38, 0x30,
         ];
@@ -939,7 +939,7 @@ mod tests {
     #[test]
     fn test_parse_msgidonly_v5() {
         let buf = [
-            0x00, 01,   /* Message Identifier: 1 */
+            0x00, 0x01,   /* Message Identifier: 1 */
             0x00, /* Reason Code: 0 */
             0x00, /* Properties */
             0x00, 0x61, 0x75, 0x74, 0x6f, 0x2d, 0x42, 0x34, 0x33, 0x45, 0x38, 0x30,

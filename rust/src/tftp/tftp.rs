@@ -225,14 +225,8 @@ mod test {
             tx_data: AppLayerTxData::new(),
         };
 
-        match parse_tftp_request(&READ_REQUEST[..]) {
-            Some(txp) => {
-                assert_eq!(tx, txp);
-            }
-            None => {
-                assert!(true);
-            }
-        }
+        let txp = parse_tftp_request(&READ_REQUEST[..]).unwrap();
+        assert_eq!(tx, txp);
     }
 
     #[test]
@@ -245,14 +239,8 @@ mod test {
             tx_data: AppLayerTxData::new(),
         };
 
-        match parse_tftp_request(&WRITE_REQUEST[..]) {
-            Some(txp) => {
-                assert_eq!(tx, txp);
-            }
-            None => {
-                assert!(true, "fadfasd");
-            }
-        }
+        let txp = parse_tftp_request(&WRITE_REQUEST[..]).unwrap();
+        assert_eq!(tx, txp);
     }
 
     // Invalid request: filename not terminated

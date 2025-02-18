@@ -617,36 +617,28 @@ mod tests {
             0x00, 0x00, 0x00, /* ... */
         ];
 
-        let res = dns_parse_request(pkt);
-        match res {
-            Ok((rem, (request, _flags))) => {
-                // For now we have some remainder data as there is an
-                // additional record type we don't parse yet.
-                assert!(!rem.is_empty());
+        let (rem, (request, _flags)) = dns_parse_request(pkt).unwrap();
+        // For now we have some remainder data as there is an
+        // additional record type we don't parse yet.
+        assert!(!rem.is_empty());
 
-                assert_eq!(
-                    request.header,
-                    DNSHeader {
-                        tx_id: 0x8d32,
-                        flags: 0x0120,
-                        questions: 1,
-                        answer_rr: 0,
-                        authority_rr: 0,
-                        additional_rr: 1,
-                    }
-                );
-
-                assert_eq!(request.queries.len(), 1);
-
-                let query = &request.queries[0];
-                assert_eq!(query.name.value, "www.suricata-ids.org".as_bytes().to_vec());
-                assert_eq!(query.rrtype, 1);
-                assert_eq!(query.rrclass, 1);
+        assert_eq!(
+            request.header,
+            DNSHeader {
+                tx_id: 0x8d32,
+                flags: 0x0120,
+                questions: 1,
+                answer_rr: 0,
+                authority_rr: 0,
+                additional_rr: 1,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
+
+        assert_eq!(request.queries.len(), 1);
+        let query = &request.queries[0];
+        assert_eq!(query.name.value, "www.suricata-ids.org".as_bytes().to_vec());
+        assert_eq!(query.rrtype, 1);
+        assert_eq!(query.rrclass, 1);
     }
 
     /// Parse a DNS response.
@@ -675,73 +667,66 @@ mod tests {
             0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, /* ....N. */
         ];
 
-        let res = dns_parse_response(pkt);
-        match res {
-            Ok((rem, (response, _flags))) => {
-                // The response should be full parsed.
-                assert_eq!(rem.len(), 0);
+        let (rem, (response, _flags)) = dns_parse_response(pkt).unwrap();
+        // The response should be full parsed.
+        assert_eq!(rem.len(), 0);
 
-                assert_eq!(
-                    response.header,
-                    DNSHeader {
-                        tx_id: 0x8d32,
-                        flags: 0x81a0,
-                        questions: 1,
-                        answer_rr: 3,
-                        authority_rr: 0,
-                        additional_rr: 0,
-                    }
-                );
-
-                assert_eq!(response.answers.len(), 3);
-
-                let answer1 = &response.answers[0];
-                assert_eq!(answer1.name.value, "www.suricata-ids.org".as_bytes().to_vec());
-                assert_eq!(answer1.rrtype, 5);
-                assert_eq!(answer1.rrclass, 1);
-                assert_eq!(answer1.ttl, 3544);
-                assert_eq!(
-                    answer1.data,
-                    DNSRData::CNAME(DNSName {
-                        value: "suricata-ids.org".as_bytes().to_vec(),
-                        flags: Default::default(),
-                    })
-                );
-
-                let answer2 = &response.answers[1];
-                assert_eq!(
-                    answer2,
-                    &DNSAnswerEntry {
-                        name: DNSName {
-                            value: "suricata-ids.org".as_bytes().to_vec(),
-                            flags: Default::default(),
-                        },
-                        rrtype: 1,
-                        rrclass: 1,
-                        ttl: 244,
-                        data: DNSRData::A([192, 0, 78, 24].to_vec()),
-                    }
-                );
-
-                let answer3 = &response.answers[2];
-                assert_eq!(
-                    answer3,
-                    &DNSAnswerEntry {
-                        name: DNSName {
-                            value: "suricata-ids.org".as_bytes().to_vec(),
-                            flags: Default::default(),
-                        },
-                        rrtype: 1,
-                        rrclass: 1,
-                        ttl: 244,
-                        data: DNSRData::A([192, 0, 78, 25].to_vec()),
-                    }
-                )
+        assert_eq!(
+            response.header,
+            DNSHeader {
+                tx_id: 0x8d32,
+                flags: 0x81a0,
+                questions: 1,
+                answer_rr: 3,
+                authority_rr: 0,
+                additional_rr: 0,
             }
-            _ => {
-                assert!(false);
+        );
+
+        assert_eq!(response.answers.len(), 3);
+
+        let answer1 = &response.answers[0];
+        assert_eq!(answer1.name.value, "www.suricata-ids.org".as_bytes().to_vec());
+        assert_eq!(answer1.rrtype, 5);
+        assert_eq!(answer1.rrclass, 1);
+        assert_eq!(answer1.ttl, 3544);
+        assert_eq!(
+            answer1.data,
+            DNSRData::CNAME(DNSName {
+                value: "suricata-ids.org".as_bytes().to_vec(),
+                flags: Default::default(),
+            })
+        );
+
+        let answer2 = &response.answers[1];
+        assert_eq!(
+            answer2,
+            &DNSAnswerEntry {
+                name: DNSName {
+                    value: "suricata-ids.org".as_bytes().to_vec(),
+                    flags: Default::default(),
+                },
+                rrtype: 1,
+                rrclass: 1,
+                ttl: 244,
+                data: DNSRData::A([192, 0, 78, 24].to_vec()),
             }
-        }
+        );
+
+        let answer3 = &response.answers[2];
+        assert_eq!(
+            answer3,
+            &DNSAnswerEntry {
+                name: DNSName {
+                    value: "suricata-ids.org".as_bytes().to_vec(),
+                    flags: Default::default(),
+                },
+                rrtype: 1,
+                rrclass: 1,
+                ttl: 244,
+                data: DNSRData::A([192, 0, 78, 25].to_vec()),
+            }
+        )
     }
 
     #[test]
@@ -767,55 +752,48 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, /* .... */
         ];
 
-        let res = dns_parse_response(pkt);
-        match res {
-            Ok((rem, (response, _flags))) => {
-                // For now we have some remainder data as there is an
-                // additional record type we don't parse yet.
-                assert!(!rem.is_empty());
+        let (rem, (response, _flags)) = dns_parse_response(pkt).unwrap();
+        // For now we have some remainder data as there is an
+        // additional record type we don't parse yet.
+        assert!(!rem.is_empty());
 
-                assert_eq!(
-                    response.header,
-                    DNSHeader {
-                        tx_id: 0x8295,
-                        flags: 0x8183,
-                        questions: 1,
-                        answer_rr: 0,
-                        authority_rr: 1,
-                        additional_rr: 1,
-                    }
-                );
-
-                assert_eq!(response.authorities.len(), 1);
-
-                let authority = &response.authorities[0];
-                assert_eq!(authority.name.value, "oisf.net".as_bytes().to_vec());
-                assert_eq!(authority.rrtype, 6);
-                assert_eq!(authority.rrclass, 1);
-                assert_eq!(authority.ttl, 899);
-                assert_eq!(
-                    authority.data,
-                    DNSRData::SOA(DNSRDataSOA {
-                        mname: DNSName {
-                            value: "ns-110.awsdns-13.com".as_bytes().to_vec(),
-                            flags: DNSNameFlags::default()
-                        },
-                        rname: DNSName {
-                            value: "awsdns-hostmaster.amazon.com".as_bytes().to_vec(),
-                            flags: DNSNameFlags::default()
-                        },
-                        serial: 1,
-                        refresh: 7200,
-                        retry: 900,
-                        expire: 1209600,
-                        minimum: 86400,
-                    })
-                );
+        assert_eq!(
+            response.header,
+            DNSHeader {
+                tx_id: 0x8295,
+                flags: 0x8183,
+                questions: 1,
+                answer_rr: 0,
+                authority_rr: 1,
+                additional_rr: 1,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
+
+        assert_eq!(response.authorities.len(), 1);
+
+        let authority = &response.authorities[0];
+        assert_eq!(authority.name.value, "oisf.net".as_bytes().to_vec());
+        assert_eq!(authority.rrtype, 6);
+        assert_eq!(authority.rrclass, 1);
+        assert_eq!(authority.ttl, 899);
+        assert_eq!(
+            authority.data,
+            DNSRData::SOA(DNSRDataSOA {
+                mname: DNSName {
+                    value: "ns-110.awsdns-13.com".as_bytes().to_vec(),
+                    flags: DNSNameFlags::default()
+                },
+                rname: DNSName {
+                    value: "awsdns-hostmaster.amazon.com".as_bytes().to_vec(),
+                    flags: DNSNameFlags::default()
+                },
+                serial: 1,
+                refresh: 7200,
+                retry: 900,
+                expire: 1209600,
+                minimum: 86400,
+            })
+        );
     }
 
     #[test]
@@ -834,49 +812,42 @@ mod tests {
             0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
         ];
 
-        let res = dns_parse_response(pkt);
-        match res {
-            Ok((rem, (response, _flags))) => {
-                // The response should be fully parsed.
-                assert_eq!(rem.len(), 0);
+        let (rem, (response, _flags)) = dns_parse_response(pkt).unwrap();
+        // The response should be fully parsed.
+        assert_eq!(rem.len(), 0);
 
-                assert_eq!(
-                    response.header,
-                    DNSHeader {
-                        tx_id: 0x12b0,
-                        flags: 0x8400,
-                        questions: 1,
-                        answer_rr: 1,
-                        authority_rr: 0,
-                        additional_rr: 0,
-                    }
-                );
-
-                assert_eq!(response.queries.len(), 1);
-                let query = &response.queries[0];
-                assert_eq!(query.name.value, "vaaaakardli.pirate.sea".as_bytes().to_vec());
-                assert_eq!(query.rrtype, DNS_RECORD_TYPE_NULL);
-                assert_eq!(query.rrclass, 1);
-
-                assert_eq!(response.answers.len(), 1);
-
-                let answer = &response.answers[0];
-                assert_eq!(answer.name.value, "vaaaakardli.pirate.sea".as_bytes().to_vec());
-                assert_eq!(answer.rrtype, DNS_RECORD_TYPE_NULL);
-                assert_eq!(answer.rrclass, 1);
-                assert_eq!(answer.ttl, 0);
-                assert_eq!(
-                    answer.data,
-                    DNSRData::NULL(vec![
-                        0x56, 0x41, 0x43, 0x4b, /* VACK */
-                        0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
-                    ])
-                );
+        assert_eq!(
+            response.header,
+            DNSHeader {
+                tx_id: 0x12b0,
+                flags: 0x8400,
+                questions: 1,
+                answer_rr: 1,
+                authority_rr: 0,
+                additional_rr: 0,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
+
+        assert_eq!(response.queries.len(), 1);
+        let query = &response.queries[0];
+        assert_eq!(query.name.value, "vaaaakardli.pirate.sea".as_bytes().to_vec());
+        assert_eq!(query.rrtype, DNS_RECORD_TYPE_NULL);
+        assert_eq!(query.rrclass, 1);
+
+        assert_eq!(response.answers.len(), 1);
+
+        let answer = &response.answers[0];
+        assert_eq!(answer.name.value, "vaaaakardli.pirate.sea".as_bytes().to_vec());
+        assert_eq!(answer.rrtype, DNS_RECORD_TYPE_NULL);
+        assert_eq!(answer.rrclass, 1);
+        assert_eq!(answer.ttl, 0);
+        assert_eq!(
+            answer.data,
+            DNSRData::NULL(vec![
+                0x56, 0x41, 0x43, 0x4b, /* VACK */
+                0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
+            ])
+        );
     }
 
     #[test]
@@ -890,25 +861,18 @@ mod tests {
             0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90,
         ];
 
-        let res = dns_parse_rdata_sshfp(data);
-        match res {
-            Ok((rem, rdata)) => {
-                // The data should be fully parsed.
-                assert_eq!(rem.len(), 0);
+        let (rem, rdata) = dns_parse_rdata_sshfp(data).unwrap();
+        // The data should be fully parsed.
+        assert_eq!(rem.len(), 0);
 
-                match rdata {
-                    DNSRData::SSHFP(sshfp) => {
-                        assert_eq!(sshfp.algo, 2);
-                        assert_eq!(sshfp.fp_type, 1);
-                        assert_eq!(sshfp.fingerprint, &data[2..]);
-                    }
-                    _ => {
-                        assert!(false);
-                    }
-                }
+        match rdata {
+            DNSRData::SSHFP(sshfp) => {
+                assert_eq!(sshfp.algo, 2);
+                assert_eq!(sshfp.fp_type, 1);
+                assert_eq!(sshfp.fingerprint, &data[2..]);
             }
             _ => {
-                assert!(false);
+                panic!("Expected DNSRData::SSHFP");
             }
         }
     }
@@ -946,47 +910,40 @@ mod tests {
             0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
         ];
 
-        let res = dns_parse_response(pkt);
-        match res {
-            Ok((rem, (response, _flags))) => {
-                // The data should be fully parsed.
-                assert_eq!(rem.len(), 0);
+        let (rem, (response, _flags)) = dns_parse_response(pkt).unwrap();
+        // The data should be fully parsed.
+        assert_eq!(rem.len(), 0);
 
-                assert_eq!(response.answers.len(), 2);
+        assert_eq!(response.answers.len(), 2);
 
-                let answer1 = &response.answers[0];
-                match &answer1.data {
-                    DNSRData::SRV(srv) => {
-                        assert_eq!(srv.priority, 20);
-                        assert_eq!(srv.weight, 1);
-                        assert_eq!(srv.port, 5060);
-                        assert_eq!(
-                            srv.target.value,
-                            "sip-anycast-2.voice.google.com".as_bytes().to_vec()
-                        );
-                    }
-                    _ => {
-                        assert!(false);
-                    }
-                }
-                let answer2 = &response.answers[1];
-                match &answer2.data {
-                    DNSRData::SRV(srv) => {
-                        assert_eq!(srv.priority, 10);
-                        assert_eq!(srv.weight, 1);
-                        assert_eq!(srv.port, 5060);
-                        assert_eq!(
-                            srv.target.value,
-                            "sip-anycast-1.voice.google.com".as_bytes().to_vec()
-                        );
-                    }
-                    _ => {
-                        assert!(false);
-                    }
-                }
+        let answer1 = &response.answers[0];
+        match &answer1.data {
+            DNSRData::SRV(srv) => {
+                assert_eq!(srv.priority, 20);
+                assert_eq!(srv.weight, 1);
+                assert_eq!(srv.port, 5060);
+                assert_eq!(
+                    srv.target.value,
+                    "sip-anycast-2.voice.google.com".as_bytes().to_vec()
+                );
             }
             _ => {
-                assert!(false);
+                panic!("Expected DNSRData::SRV");
+            }
+        }
+        let answer2 = &response.answers[1];
+        match &answer2.data {
+            DNSRData::SRV(srv) => {
+                assert_eq!(srv.priority, 10);
+                assert_eq!(srv.weight, 1);
+                assert_eq!(srv.port, 5060);
+                assert_eq!(
+                    srv.target.value,
+                    "sip-anycast-1.voice.google.com".as_bytes().to_vec()
+                );
+            }
+            _ => {
+                panic!("Expected DNSRData::SRV");
             }
         }
     }
@@ -995,11 +952,10 @@ mod tests {
     fn test_dns_parse_name_truncated() {
         // Generate a non-compressed hostname over our maximum of 1024.
         let mut buf: Vec<u8> = vec![];
-        for _ in 0..17 {
+
+        for i in 1..18 {
             buf.push(0b0011_1111);
-            for _ in 0..63 {
-                buf.push(b'a');
-            }
+            buf.resize(i * 64, b'a');
         }
 
         let mut flags = DNSNameFlags::default();
@@ -1026,20 +982,21 @@ mod tests {
 
     #[test]
     fn test_dns_parse_name_truncated_max_segments_with_pointer() {
-        let mut buf: Vec<u8> = vec![];
+        #[rustfmt::skip]
+        let buf: Vec<u8> = vec![
+            // "a" at the beginning of the buffer.
+            0b0000_0001,
+            b'a',
 
-        // "a" at the beginning of the buffer.
-        buf.push(0b0000_0001);
-        buf.push(b'a');
+            // Followed by a pointer back to the beginning.
+            0b1100_0000,
+            0b0000_0000,
 
-        // Followed by a pointer back to the beginning.
-        buf.push(0b1100_0000);
-        buf.push(0b0000_0000);
-
-        // The start of the name, which is pointer to the beginning of
-        // the buffer.
-        buf.push(0b1100_0000);
-        buf.push(0b000_0000);
+            // The start of the name, which is pointer to the beginning of
+            // the buffer.
+            0b1100_0000,
+            0b000_0000
+        ];
 
         let mut flags = DNSNameFlags::default();
         let (_rem, name) = dns_parse_name(&buf[4..], &buf, &mut flags).unwrap();
@@ -1049,9 +1006,7 @@ mod tests {
 
     #[test]
     fn test_dns_parse_name_self_reference() {
-        let mut buf = vec![];
-        buf.push(0b1100_0000);
-        buf.push(0b0000_0000);
+        let buf = vec![0b1100_0000, 0b0000_0000];
         let mut flags = DNSNameFlags::default();
         assert!(dns_parse_name(&buf, &buf, &mut flags).is_err());
     }
