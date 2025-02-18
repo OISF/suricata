@@ -52,7 +52,7 @@ Syntax::
 
 ldap.request.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field  ``ldap.request.operation``
+This keyword maps to the EVE field  ``ldap.request.operation``
 
 Examples
 ^^^^^^^^
@@ -79,7 +79,7 @@ Syntax::
 
 ldap.responses.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field ``ldap.responses[].operation``
+This keyword maps to the EVE field ``ldap.responses[].operation``
 
 An LDAP request operation can receive multiple responses. By default, the ldap.responses.operation
 keyword matches all indices, but it is possible to specify a particular index for matching
@@ -147,7 +147,7 @@ It can be matched exactly, or compared using the ``op`` setting::
 
 ldap.responses.count uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field ``len(ldap.responses[])``
+This keyword maps to the EVE field ``len(ldap.responses[])``
 
 Examples
 ^^^^^^^^
