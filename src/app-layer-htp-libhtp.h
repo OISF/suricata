@@ -157,56 +157,56 @@
 #define HTP_LOG_CODE_COMPRESSION_BOMB           HTTP_DECODER_EVENT_COMPRESSION_BOMB
 
 // Functions introduced to handle opaque htp_tx_t
-#define htp_tx_flags(tx)                    tx->flags
-#define htp_tx_is_protocol_0_9(tx)          tx->is_protocol_0_9
-#define htp_tx_request_auth_type(tx)        tx->request_auth_type
-#define htp_tx_request_hostname(tx)         tx->request_hostname
-#define htp_tx_request_line(tx)             tx->request_line
-#define htp_tx_request_message_len(tx)      tx->request_message_len
-#define htp_tx_request_method(tx)           tx->request_method
+#define htp_tx_flags(tx)                    (tx)->flags
+#define htp_tx_is_protocol_0_9(tx)          (tx)->is_protocol_0_9
+#define htp_tx_request_auth_type(tx)        (tx)->request_auth_type
+#define htp_tx_request_hostname(tx)         (tx)->request_hostname
+#define htp_tx_request_line(tx)             (tx)->request_line
+#define htp_tx_request_message_len(tx)      (tx)->request_message_len
+#define htp_tx_request_method(tx)           (tx)->request_method
 #define htp_tx_request_method_number(tx)    tx->request_method_number
-#define htp_tx_request_port_number(tx)      tx->request_port_number
-#define htp_tx_request_progress(tx)         tx->request_progress
-#define htp_tx_request_protocol(tx)         tx->request_protocol
-#define htp_tx_request_protocol_number(tx)  tx->request_protocol_number
-#define htp_tx_request_uri(tx)              tx->request_uri
-#define htp_tx_request_headers(tx)          tx->request_headers
-#define htp_tx_response_headers(tx)         tx->response_headers
-#define htp_tx_response_protocol(tx)        tx->response_protocol
-#define htp_tx_response_line(tx)            tx->response_line
-#define htp_tx_response_message(tx)         tx->response_message
-#define htp_tx_response_message_len(tx)     tx->response_message_len
-#define htp_tx_response_status(tx)          tx->response_status
-#define htp_tx_response_status_number(tx)   tx->response_status_number
-#define htp_tx_response_progress(tx)        tx->response_progress
-#define htp_tx_response_protocol_number(tx) tx->response_protocol_number
+#define htp_tx_request_port_number(tx)      (tx)->request_port_number
+#define htp_tx_request_progress(tx)         (tx)->request_progress
+#define htp_tx_request_protocol(tx)         (tx)->request_protocol
+#define htp_tx_request_protocol_number(tx)  (tx)->request_protocol_number
+#define htp_tx_request_uri(tx)              (tx)->request_uri
+#define htp_tx_request_headers(tx)          (tx)->request_headers
+#define htp_tx_response_headers(tx)         (tx)->response_headers
+#define htp_tx_response_protocol(tx)        (tx)->response_protocol
+#define htp_tx_response_line(tx)            (tx)->response_line
+#define htp_tx_response_message(tx)         (tx)->response_message
+#define htp_tx_response_message_len(tx)     (tx)->response_message_len
+#define htp_tx_response_status(tx)          (tx)->response_status
+#define htp_tx_response_status_number(tx)   (tx)->response_status_number
+#define htp_tx_response_progress(tx)        (tx)->response_progress
+#define htp_tx_response_protocol_number(tx) (tx)->response_protocol_number
 
-#define htp_tx_request_header(tx, header)  htp_table_get_c(tx->request_headers, header)
-#define htp_tx_response_header(tx, header) htp_table_get_c(tx->response_headers, header)
+#define htp_tx_request_header(tx, header)  htp_table_get_c((tx)->request_headers, header)
+#define htp_tx_response_header(tx, header) htp_table_get_c((tx)->response_headers, header)
 
 // Functions introduced to handle opaque htp_header_t
-#define htp_header_name_len(h)  bstr_len(h->name)
-#define htp_header_name_ptr(h)  bstr_ptr(h->name)
-#define htp_header_name(h)      h->name
-#define htp_header_value_len(h) bstr_len(h->value)
-#define htp_header_value_ptr(h) bstr_ptr(h->value)
-#define htp_header_value(h)     h->value
+#define htp_header_name_len(h)  bstr_len((h)->name)
+#define htp_header_name_ptr(h)  bstr_ptr((h)->name)
+#define htp_header_name(h)      (h)->name
+#define htp_header_value_len(h) bstr_len((h)->value)
+#define htp_header_value_ptr(h) bstr_ptr((h)->value)
+#define htp_header_value(h)     (h)->value
 
 // Functions introduced to handle opaque htp_headers_t:
 #define htp_headers_size(headers)             htp_table_size(headers)
 #define htp_headers_get_index(headers, index) htp_table_get_index(headers, index, NULL)
-#define htp_tx_request_headers_size(tx)       htp_table_size(tx->request_headers)
-#define htp_tx_request_header_index(tx, i)    htp_table_get_index(tx->request_headers, i, NULL);
+#define htp_tx_request_headers_size(tx)       htp_table_size((tx)->request_headers)
+#define htp_tx_request_header_index(tx, i)    htp_table_get_index((tx)->request_headers, i, NULL);
 #define htp_headers_t                         htp_table_t
 
 // Functions introduced to handle opaque htp_tx_data_t:
-#define htp_tx_data_len(d)  d->len
-#define htp_tx_data_data(d) d->data
-#define htp_tx_data_tx(d)   d->tx
+#define htp_tx_data_len(d)  (d)->len
+#define htp_tx_data_data(d) (d)->data
+#define htp_tx_data_tx(d)   (d)->tx
 
 // Functions introduced to handle opaque htp_conn_t:
-#define htp_conn_request_data_counter(c)  c->in_data_counter
-#define htp_conn_response_data_counter(c) c->out_data_counter
+#define htp_conn_request_data_counter(c)  (c)->in_data_counter
+#define htp_conn_response_data_counter(c) (c)->out_data_counter
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
