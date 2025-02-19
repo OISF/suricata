@@ -357,6 +357,10 @@ impl QuicHeader {
                         rest
                     }
                 }
+                QuicType::Retry => {
+                    // opaque retry token and 16 bytes retry integrity tag
+                    &rest[rest.len()..]
+                }
                 _ => rest,
             };
             let (rest, length) = if has_length {

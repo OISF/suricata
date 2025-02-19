@@ -334,12 +334,16 @@ impl QuicState {
                     // unprotect/decrypt packet
                     if self.keys.is_none() && header.ty == QuicType::Initial {
                         self.keys = quic_keys_initial(u32::from(header.version), &header.dcid);
+                    } else if !to_server && self.keys.is_some() && header.ty == QuicType::Retry {
+                        // a retry packet discards the current keys, client will resend an initial packet with new keys
+                        self.hello_ts = false;
+                        self.keys = None;
                     }
                     // header.length was checked against rest.len() during parsing
                     let (mut framebuf, next_buf) = rest.split_at(header.length.into());
                     let hlen = buf.len() - rest.len();
                     let mut output;
-                    if self.keys.is_some() {
+                    if self.keys.is_some() && !framebuf.is_empty() {
                         output = Vec::with_capacity(framebuf.len() + 4);
                         if let Ok(dlen) =
                             self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output)
