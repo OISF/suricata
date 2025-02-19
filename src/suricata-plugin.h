@@ -58,12 +58,12 @@ int SCPluginRegisterCapture(SCCapturePlugin *);
 typedef struct SCAppLayerPlugin_ {
     // versioning to check suricata/plugin API compatibility
     uint64_t version;
-    char *name;
+    const char *name;
     void (*Register)(void);
     void (*KeywordsRegister)(void);
-    char *logname;
-    char *confname;
-    bool (*Logger)(void *tx, void *jb);
+    const char *logname;
+    const char *confname;
+    bool (*Logger)(const void *tx, void *jb);
 } SCAppLayerPlugin;
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *);
