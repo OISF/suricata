@@ -100,24 +100,24 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
 {
     ConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
-        int i;
-        long int a,b;
-        int stop = 0;
-        int max = UtilCpuGetNumProcessorsOnline() - 1;
+        uint32_t i;
+        uint32_t a, b;
+        uint32_t stop = 0;
+        uint32_t max = UtilCpuGetNumProcessorsOnline();
+        if (max > 0) {
+            max--;
+        }
         if (!strcmp(lnode->val, "all")) {
             a = 0;
             b = max;
             stop = 1;
         } else if (strchr(lnode->val, '-') != NULL) {
             char *sep = strchr(lnode->val, '-');
-            char *end;
-            a = strtoul(lnode->val, &end, 10);
-            if (end != sep) {
+            if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) < 0) {
                 SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
-            b = strtol(sep + 1, &end, 10);
-            if (end != sep + strlen(sep)) {
+            if (StringParseUint32(&b, 10, strlen(sep) - 1, sep + 1) < 0) {
                 SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
@@ -126,13 +126,11 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
                 exit(EXIT_FAILURE);
             }
             if (b > max) {
-                SCLogError("%s: upper bound (%ld) of cpu set is too high, only %d cpu(s)", name, b,
+                SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
                         max + 1);
             }
         } else {
-            char *end;
-            a = strtoul(lnode->val, &end, 10);
-            if (end != lnode->val + strlen(lnode->val)) {
+            if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) < 0) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }

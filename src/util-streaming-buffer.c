@@ -441,7 +441,8 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
                 DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
-                region->buf_offset = sa_re - region->stream_offset;
+                DEBUG_VALIDATE_BUG_ON(sa_re - region->stream_offset > UINT32_MAX);
+                region->buf_offset = (uint32_t)(sa_re - region->stream_offset);
                 SCLogDebug("-> (fwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
                         sa, sa->offset, sa->len, region, region->stream_offset, region->buf_offset,
@@ -457,8 +458,10 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
                    sa_re >= tr->offset && sa_re < tr_re) // ends inside
         {
             // merge. sb->sbb_size includes both so we need to adjust that too.
-            uint32_t combined_len = sa->len + tr->len;
-            sa->len = tr_re - sa->offset;
+            DEBUG_VALIDATE_BUG_ON(sa->len + tr->len > UINT32_MAX);
+            uint32_t combined_len = (uint32_t)(sa->len + tr->len);
+            DEBUG_VALIDATE_BUG_ON(tr_re - sa->offset > UINT32_MAX);
+            sa->len = (uint32_t)(tr_re - sa->offset);
             sa_re = sa->offset + sa->len;
             SCLogDebug("-> (fwd) tr %p %" PRIu64 "/%u REMOVED MERGED", tr, tr->offset, tr->len);
             SBB_RB_REMOVE(tree, tr);
@@ -471,7 +474,8 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
                 DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
-                region->buf_offset = sa_re - region->stream_offset;
+                DEBUG_VALIDATE_BUG_ON(sa_re - region->stream_offset > UINT32_MAX);
+                region->buf_offset = (uint32_t)(sa_re - region->stream_offset);
                 SCLogDebug("-> (fwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
                         sa, sa->offset, sa->len, region, region->stream_offset, region->buf_offset,
@@ -538,7 +542,8 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
                 DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
-                region->buf_offset = sa_re - region->stream_offset;
+                DEBUG_VALIDATE_BUG_ON(sa_re - region->stream_offset > UINT32_MAX);
+                region->buf_offset = (uint32_t)(sa_re - region->stream_offset);
                 SCLogDebug("-> (bwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
                         sa, sa->offset, sa->len, region, region->stream_offset, region->buf_offset,
@@ -553,8 +558,10 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
             */
         } else if (sa->offset > tr->offset && sa_re > tr_re && sa->offset <= tr_re) {
             // merge. sb->sbb_size includes both so we need to adjust that too.
-            uint32_t combined_len = sa->len + tr->len;
-            sa->len = sa_re - tr->offset;
+            DEBUG_VALIDATE_BUG_ON(sa->len + tr->len > UINT32_MAX);
+            uint32_t combined_len = (uint32_t)(sa->len + tr->len);
+            DEBUG_VALIDATE_BUG_ON(sa_re - tr->offset > UINT32_MAX);
+            sa->len = (uint32_t)(sa_re - tr->offset);
             sa->offset = tr->offset;
             sa_re = sa->offset + sa->len;
             SCLogDebug("-> (bwd) tr %p %" PRIu64 "/%u REMOVED MERGED", tr, tr->offset, tr->len);
@@ -570,7 +577,8 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
                 DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
-                region->buf_offset = sa_re - region->stream_offset;
+                DEBUG_VALIDATE_BUG_ON(sa_re - region->stream_offset > UINT32_MAX);
+                region->buf_offset = (uint32_t)(sa_re - region->stream_offset);
                 SCLogDebug("-> (bwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
                         sa, sa->offset, sa->len, region, region->stream_offset, region->buf_offset,
@@ -656,7 +664,8 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
         /* partly before, partly beyond. Adjust */
         if (sbb->offset < sb->region.stream_offset &&
                 sbb->offset + sbb->len > sb->region.stream_offset) {
-            uint32_t shrink_by = sb->region.stream_offset - sbb->offset;
+            DEBUG_VALIDATE_BUG_ON(sb->region.stream_offset - sbb->offset > UINT32_MAX);
+            uint32_t shrink_by = (uint32_t)(sb->region.stream_offset - sbb->offset);
             DEBUG_VALIDATE_BUG_ON(shrink_by > sbb->len);
             if (sbb->len >= shrink_by) {
                 sbb->len -=  shrink_by;
@@ -876,7 +885,8 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
     if (to_shift) {
         // Do the shift. If new region is exactly at the slide offset we can skip this.
         DEBUG_VALIDATE_BUG_ON(to_shift->stream_offset > slide_offset);
-        const uint32_t s = slide_offset - to_shift->stream_offset;
+        DEBUG_VALIDATE_BUG_ON(slide_offset - to_shift->stream_offset > UINT32_MAX);
+        const uint32_t s = (uint32_t)(slide_offset - to_shift->stream_offset);
         if (s > 0) {
             const uint32_t new_data_size = to_shift->buf_size - s;
             uint32_t new_mem_size = ToNextMultipleOf(new_data_size, cfg->buf_size);
@@ -891,15 +901,21 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                 StreamingBufferRegion *start = to_shift;
                 StreamingBufferRegion *next = start->next;
                 const uint64_t next_re = next->stream_offset + next->buf_size;
-                const uint32_t mem_size = ToNextMultipleOf(next_re - slide_offset, cfg->buf_size);
+                DEBUG_VALIDATE_BUG_ON(next_re - slide_offset > UINT32_MAX);
+                const uint32_t mem_size =
+                        ToNextMultipleOf((uint32_t)(next_re - slide_offset), cfg->buf_size);
 
                 /* using next as the new main */
                 if (start->buf_size < next->buf_size) {
                     SCLogDebug("replace main with the next bigger region");
 
-                    const uint32_t next_data_offset = next->stream_offset - slide_offset;
+                    DEBUG_VALIDATE_BUG_ON(next->stream_offset - slide_offset > UINT32_MAX);
+                    const uint32_t next_data_offset =
+                            (uint32_t)(next->stream_offset - slide_offset);
                     const uint32_t prev_buf_size = next->buf_size;
-                    const uint32_t start_data_offset = slide_offset - start->stream_offset;
+                    DEBUG_VALIDATE_BUG_ON(slide_offset - start->stream_offset > UINT32_MAX);
+                    const uint32_t start_data_offset =
+                            (uint32_t)(slide_offset - start->stream_offset);
                     DEBUG_VALIDATE_BUG_ON(start_data_offset > start->buf_size);
                     if (start_data_offset > start->buf_size) {
                         new_mem_size = new_data_size;
@@ -1033,7 +1049,8 @@ void StreamingBufferSlideToOffset(
     }
 
     if (offset > sb->region.stream_offset) {
-        const uint32_t slide = offset - sb->region.stream_offset;
+        DEBUG_VALIDATE_BUG_ON(offset - sb->region.stream_offset > UINT32_MAX);
+        const uint32_t slide = (uint32_t)(offset - sb->region.stream_offset);
         if (sb->head != NULL) {
             /* have sbb's, so can't rely on buf_offset for the slide */
             if (slide < sb->region.buf_size) {
@@ -1273,7 +1290,8 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
 
     // 2. resize dst
     const uint32_t old_size = dst->buf_size;
-    const uint32_t dst_copy_offset = dst->stream_offset - dst_offset;
+    DEBUG_VALIDATE_BUG_ON(dst->stream_offset - dst_offset > UINT32_MAX);
+    const uint32_t dst_copy_offset = (uint32_t)(dst->stream_offset - dst_offset);
 #ifdef DEBUG
     const uint32_t old_offset = dst->buf_offset;
     SCLogDebug("old_size %u, old_offset %u, dst_copy_offset %u", old_size, old_offset,
@@ -1330,7 +1348,8 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
             r = r->next;
             continue;
         }
-        const uint32_t target_offset = r->stream_offset - dst_offset;
+        DEBUG_VALIDATE_BUG_ON(r->stream_offset - dst_offset > UINT32_MAX);
+        const uint32_t target_offset = (uint32_t)(r->stream_offset - dst_offset);
         SCLogDebug("r %p: target_offset %u", r, target_offset);
         DEBUG_VALIDATE_BUG_ON(target_offset > dst->buf_size);
         DEBUG_VALIDATE_BUG_ON(target_offset + r->buf_size > dst->buf_size);
@@ -1409,8 +1428,9 @@ static StreamingBufferRegion *BufferInsertAtRegionDo(StreamingBuffer *sb,
         }
         insert_adjusted_re = MAX(insert_adjusted_re, (end->stream_offset + end->buf_size));
 
-        uint32_t new_buf_size =
-                ToNextMultipleOf(insert_adjusted_re - insert_start_offset, cfg->buf_size);
+        DEBUG_VALIDATE_BUG_ON(insert_adjusted_re - insert_start_offset > UINT32_MAX);
+        uint32_t new_buf_size = ToNextMultipleOf(
+                (uint32_t)(insert_adjusted_re - insert_start_offset), cfg->buf_size);
         SCLogDebug("new_buf_size %u", new_buf_size);
 
         /* see if our new buf size + cfg->buf_size margin leads to an overlap with the next region.
@@ -1419,8 +1439,9 @@ static StreamingBufferRegion *BufferInsertAtRegionDo(StreamingBuffer *sb,
             SCLogDebug("adjusted end from %p to %p", end, end->next);
             end = end->next;
             insert_adjusted_re = MAX(insert_adjusted_re, (end->stream_offset + end->buf_size));
-            new_buf_size =
-                    ToNextMultipleOf(insert_adjusted_re - insert_start_offset, cfg->buf_size);
+            DEBUG_VALIDATE_BUG_ON(insert_adjusted_re - insert_start_offset > UINT32_MAX);
+            new_buf_size = ToNextMultipleOf(
+                    (uint32_t)(insert_adjusted_re - insert_start_offset), cfg->buf_size);
             SCLogDebug("new_buf_size %u", new_buf_size);
         }
 
@@ -1531,7 +1552,8 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
     SCLogDebug("inserting %" PRIu64 "/%u using %s region %p", offset, data_len,
             region == &sb->region ? "main" : "aux", region);
 
-    uint32_t rel_offset = offset - region->stream_offset;
+    DEBUG_VALIDATE_BUG_ON(offset - region->stream_offset > UINT32_MAX);
+    uint32_t rel_offset = (uint32_t)(offset - region->stream_offset);
     int r = DataFitsAtOffset(region, data_len, rel_offset);
     if (r < 0) {
         DEBUG_VALIDATE_BUG_ON(1);
@@ -1684,7 +1706,7 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
             return;
         } else {
             SCLogDebug("2");
-            uint64_t offset = region->stream_offset - sbb->offset;
+            uint32_t offset = (uint32_t)(region->stream_offset - sbb->offset);
             if (offset < sbb->len) {
                 *data = region->buf;
                 *data_len = sbb->len - offset;
@@ -1713,19 +1735,21 @@ void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
 
     const StreamingBufferRegion *region = GetRegionForOffset(sb, offset);
     if (region) {
-        uint32_t sbblen = sbb->len - (offset - sbb->offset);
+        DEBUG_VALIDATE_BUG_ON(sbb->len - (offset - sbb->offset) > UINT32_MAX);
+        uint32_t sbblen = (uint32_t)(sbb->len - (offset - sbb->offset));
 
         if (offset >= region->stream_offset) {
-            uint64_t data_offset = offset - region->stream_offset;
+            uint32_t data_offset = (uint32_t)(offset - region->stream_offset);
             *data = region->buf + data_offset;
-            if (data_offset + sbblen > region->buf_size)
+            if (data_offset + sbblen > region->buf_size) {
                 *data_len = region->buf_size - data_offset;
-            else
+            } else {
                 *data_len = sbblen;
+            }
             DEBUG_VALIDATE_BUG_ON(*data_len > sbblen);
             return;
         } else {
-            uint64_t data_offset = region->stream_offset - sbb->offset;
+            uint32_t data_offset = (uint32_t)(region->stream_offset - sbb->offset);
             if (data_offset < sbblen) {
                 *data = region->buf;
                 *data_len = sbblen - data_offset;
@@ -1746,16 +1770,17 @@ void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
     const StreamingBufferRegion *region = GetRegionForOffset(sb, seg->stream_offset);
     if (region) {
         if (seg->stream_offset >= region->stream_offset) {
-            uint64_t offset = seg->stream_offset - region->stream_offset;
+            uint32_t offset = (uint32_t)(seg->stream_offset - region->stream_offset);
             *data = region->buf + offset;
-            if (offset + seg->segment_len > region->buf_size)
+            if (offset + seg->segment_len > region->buf_size) {
                 *data_len = region->buf_size - offset;
-            else
+            } else {
                 *data_len = seg->segment_len;
+            }
             SCLogDebug("*data_len %u", *data_len);
             return;
         } else {
-            uint64_t offset = region->stream_offset - seg->stream_offset;
+            uint32_t offset = (uint32_t)(region->stream_offset - seg->stream_offset);
             if (offset < seg->segment_len) {
                 *data = region->buf;
                 *data_len = seg->segment_len - offset;
@@ -1812,7 +1837,8 @@ int StreamingBufferGetDataAtOffset (const StreamingBuffer *sb,
     const StreamingBufferRegion *region = GetRegionForOffset(sb, offset);
     if (region != NULL && region->buf != NULL && offset >= region->stream_offset &&
             offset < (region->stream_offset + region->buf_offset)) {
-        uint32_t skip = offset - region->stream_offset;
+        DEBUG_VALIDATE_BUG_ON(offset - region->stream_offset > UINT32_MAX);
+        uint32_t skip = (uint32_t)(offset - region->stream_offset);
         *data = region->buf + skip;
         *data_len = region->buf_offset - skip;
         return 1;

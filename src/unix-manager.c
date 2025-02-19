@@ -106,7 +106,7 @@ typedef struct UnixCommand_ {
 static int UnixNew(UnixCommand * this)
 {
     struct sockaddr_un addr;
-    int len;
+    socklen_t len;
     int ret;
     int on = 1;
     char sockettarget[PATH_MAX];
@@ -161,7 +161,7 @@ static int UnixNew(UnixCommand * this)
     addr.sun_family = AF_UNIX;
     strlcpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
     addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
-    len = strlen(addr.sun_path) + sizeof(addr.sun_family) + 1;
+    len = (socklen_t)(strlen(addr.sun_path) + sizeof(addr.sun_family) + 1);
 
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -335,7 +335,7 @@ static int UnixCommandAccept(UnixCommand *this)
     json_error_t jerror;
     int client;
     int client_version;
-    int ret;
+    ssize_t ret;
     UnixClient *uclient = NULL;
 
     /* accept client socket */
@@ -537,7 +537,7 @@ error:
 static void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
     char buffer[4096];
-    int ret;
+    ssize_t ret;
     if (client->version <= UNIX_PROTO_V1) {
         ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
         if (ret <= 0) {
@@ -695,7 +695,7 @@ static TmEcode UnixManagerUptimeCommand(json_t *cmd,
                                  json_t *server_msg, void *data)
 {
     SCEnter();
-    int uptime;
+    time_t uptime;
     UnixCommand *ucmd = (UnixCommand *)data;
 
     uptime = time(NULL) - ucmd->start_timestamp;
