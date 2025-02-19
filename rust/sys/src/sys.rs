@@ -109,14 +109,14 @@ extern "C" {
 #[derive(Debug, Copy, Clone)]
 pub struct SCAppLayerPlugin_ {
     pub version: u64,
-    pub name: *mut ::std::os::raw::c_char,
+    pub name: *const ::std::os::raw::c_char,
     pub Register: ::std::option::Option<unsafe extern "C" fn()>,
     pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
-    pub logname: *mut ::std::os::raw::c_char,
-    pub confname: *mut ::std::os::raw::c_char,
+    pub logname: *const ::std::os::raw::c_char,
+    pub confname: *const ::std::os::raw::c_char,
     pub Logger: ::std::option::Option<
         unsafe extern "C" fn(
-            tx: *mut ::std::os::raw::c_void,
+            tx: *const ::std::os::raw::c_void,
             jb: *mut ::std::os::raw::c_void,
         ) -> bool,
     >,
