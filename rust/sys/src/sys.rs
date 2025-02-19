@@ -105,6 +105,7 @@ pub type SCCapturePlugin = SCCapturePlugin_;
 extern "C" {
     pub fn SCPluginRegisterCapture(arg1: *mut SCCapturePlugin) -> ::std::os::raw::c_int;
 }
+pub const SC_PLUGIN_API_VERSION: u64 = 8;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SCAppLayerPlugin_ {
