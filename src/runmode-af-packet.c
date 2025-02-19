@@ -284,6 +284,30 @@ static void *ParseAFPConfig(const char *iface)
         aconf->flags |= AFP_MMAP_LOCKED;
     }
 
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
+    if (boolval) {
+        SCLogConfig("%s: using emergency ring flush", aconf->iface);
+        aconf->flags |= AFP_EMERGENCY_MODE;
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+        if (aconf->out_iface == NULL) {
+            SCLogWarning("%s: copy mode activated but no destination"
+                         " iface. Disabling feature",
+                    iface);
+        } else if (strlen(copymodestr) <= 0) {
+            aconf->out_iface = NULL;
+        } else if (strcmp(copymodestr, "ips") == 0) {
+            SCLogInfo("%s: AF_PACKET IPS mode activated %s->%s", iface, iface, aconf->out_iface);
+            aconf->copy_mode = AFP_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            SCLogInfo("%s: AF_PACKET TAP mode activated %s->%s", iface, iface, aconf->out_iface);
+            aconf->copy_mode = AFP_COPY_MODE_TAP;
+        } else {
+            SCLogWarning("Invalid 'copy-mode' (not in tap, ips)");
+        }
+    }
+
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
         if (boolval) {
             if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
@@ -303,36 +327,15 @@ static void *ParseAFPConfig(const char *iface)
         } else {
             aconf->flags &= ~AFP_TPACKET_V3;
         }
+    } else if (aconf->copy_mode == AFP_COPY_MODE_NONE) {
+        // If copy mode is none (passive IDS) and "tpacket-v3" is not
+        // present, default to TPACKET_V3.
+        SCLogConfig("%s: enabling tpacket v3", aconf->iface);
+        aconf->flags |= AFP_TPACKET_V3;
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
-    if (boolval) {
-        SCLogConfig("%s: using emergency ring flush", aconf->iface);
-        aconf->flags |= AFP_EMERGENCY_MODE;
-    }
-
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
-        if (aconf->out_iface == NULL) {
-            SCLogWarning("%s: copy mode activated but no destination"
-                         " iface. Disabling feature",
-                    iface);
-        } else if (strlen(copymodestr) <= 0) {
-            aconf->out_iface = NULL;
-        } else if (strcmp(copymodestr, "ips") == 0) {
-            SCLogInfo("%s: AF_PACKET IPS mode activated %s->%s", iface, iface, aconf->out_iface);
-            aconf->copy_mode = AFP_COPY_MODE_IPS;
-            if (aconf->flags & AFP_TPACKET_V3) {
-                SCLogWarning("%s: using tpacket_v3 in IPS mode will result in high latency", iface);
-            }
-        } else if (strcmp(copymodestr, "tap") == 0) {
-            SCLogInfo("%s: AF_PACKET TAP mode activated %s->%s", iface, iface, aconf->out_iface);
-            aconf->copy_mode = AFP_COPY_MODE_TAP;
-            if (aconf->flags & AFP_TPACKET_V3) {
-                SCLogWarning("%s: using tpacket_v3 in TAP mode will result in high latency", iface);
-            }
-        } else {
-            SCLogWarning("Invalid 'copy-mode' (not in tap, ips)");
-        }
+    if (aconf->flags & AFP_TPACKET_V3 && aconf->copy_mode) {
+        SCLogWarning("%s: using tpacket-v3 in IPS or TAP mode will result in high latency", iface);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
