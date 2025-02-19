@@ -103,63 +103,60 @@ static uint64_t htp_state_memcnt = 0;
 #endif
 
 SCEnumCharMap http_decoder_event_table[] = {
-    { "UNKNOWN_ERROR", HTTP_DECODER_EVENT_UNKNOWN_ERROR },
-    { "GZIP_DECOMPRESSION_FAILED", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED },
-    { "REQUEST_FIELD_MISSING_COLON", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON },
-    { "RESPONSE_FIELD_MISSING_COLON", HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON },
-    { "INVALID_REQUEST_CHUNK_LEN", HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN },
-    { "INVALID_RESPONSE_CHUNK_LEN", HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN },
+    { "UNKNOWN_ERROR", HTP_LOG_CODE_UNKNOWN },
+    { "GZIP_DECOMPRESSION_FAILED", HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED },
+    { "REQUEST_FIELD_MISSING_COLON", HTP_LOG_CODE_REQUEST_FIELD_MISSING_COLON },
+    { "RESPONSE_FIELD_MISSING_COLON", HTP_LOG_CODE_RESPONSE_FIELD_MISSING_COLON },
+    { "INVALID_REQUEST_CHUNK_LEN", HTP_LOG_CODE_INVALID_REQUEST_CHUNK_LEN },
+    { "INVALID_RESPONSE_CHUNK_LEN", HTP_LOG_CODE_INVALID_RESPONSE_CHUNK_LEN },
     { "INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST",
-            HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST },
+            HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST },
     { "INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE",
-            HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE },
+            HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE },
     { "INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST",
-            HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST },
+            HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST },
     { "INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE",
-            HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+            HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
     { "DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST",
-            HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
+            HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
     { "DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE",
-            HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
-    { "100_CONTINUE_ALREADY_SEEN", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN },
-    { "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
-            HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
-    { "INVALID_SERVER_PORT_IN_REQUEST", HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST },
-    { "INVALID_AUTHORITY_PORT", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT },
-    { "REQUEST_HEADER_INVALID", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
-    { "RESPONSE_HEADER_INVALID", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
-    { "MISSING_HOST_HEADER", HTTP_DECODER_EVENT_MISSING_HOST_HEADER },
-    { "HOST_HEADER_AMBIGUOUS", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS },
-    { "INVALID_REQUEST_FIELD_FOLDING", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING },
-    { "INVALID_RESPONSE_FIELD_FOLDING", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING },
-    { "REQUEST_FIELD_TOO_LONG", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG },
-    { "RESPONSE_FIELD_TOO_LONG", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG },
-    { "FILE_NAME_TOO_LONG", HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG },
-    { "REQUEST_LINE_INVALID", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID },
-    { "REQUEST_BODY_UNEXPECTED", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED },
-    { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
-            HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
-    { "REQUEST_URI_HOST_INVALID", HTTP_DECODER_EVENT_URI_HOST_INVALID },
-    { "REQUEST_HEADER_HOST_INVALID", HTTP_DECODER_EVENT_HEADER_HOST_INVALID },
-    { "REQUEST_AUTH_UNRECOGNIZED", HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED },
-    { "REQUEST_HEADER_REPETITION", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION },
-    { "RESPONSE_HEADER_REPETITION", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION },
-    { "DOUBLE_ENCODED_URI", HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI },
-    { "URI_DELIM_NON_COMPLIANT", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT },
-    { "METHOD_DELIM_NON_COMPLIANT", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT },
-    { "REQUEST_LINE_LEADING_WHITESPACE", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE },
-    { "TOO_MANY_ENCODING_LAYERS", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS },
-    { "ABNORMAL_CE_HEADER", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
-    { "RESPONSE_MULTIPART_BYTERANGES", HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES },
-    { "RESPONSE_ABNORMAL_TRANSFER_ENCODING",
-            HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
-    { "RESPONSE_CHUNKED_OLD_PROTO", HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO },
-    { "RESPONSE_INVALID_PROTOCOL", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL },
-    { "RESPONSE_INVALID_STATUS", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS },
-    { "REQUEST_LINE_INCOMPLETE", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE },
+            HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+    { "100_CONTINUE_ALREADY_SEEN", HTP_LOG_CODE_CONTINUE_ALREADY_SEEN },
+    { "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST", HTP_LOG_CODE_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
+    { "INVALID_SERVER_PORT_IN_REQUEST", HTP_LOG_CODE_INVALID_SERVER_PORT_IN_REQUEST },
+    { "INVALID_AUTHORITY_PORT", HTP_LOG_CODE_INVALID_AUTHORITY_PORT },
+    { "REQUEST_HEADER_INVALID", HTP_LOG_CODE_REQUEST_HEADER_INVALID },
+    { "RESPONSE_HEADER_INVALID", HTP_LOG_CODE_RESPONSE_HEADER_INVALID },
+    { "MISSING_HOST_HEADER", HTP_LOG_CODE_MISSING_HOST_HEADER },
+    { "HOST_HEADER_AMBIGUOUS", HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS },
+    { "INVALID_REQUEST_FIELD_FOLDING", HTP_LOG_CODE_INVALID_REQUEST_FIELD_FOLDING },
+    { "INVALID_RESPONSE_FIELD_FOLDING", HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING },
+    { "REQUEST_FIELD_TOO_LONG", HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG },
+    { "RESPONSE_FIELD_TOO_LONG", HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG },
+    { "FILE_NAME_TOO_LONG", HTP_LOG_CODE_FILE_NAME_TOO_LONG },
+    { "REQUEST_LINE_INVALID", HTP_LOG_CODE_REQUEST_LINE_INVALID },
+    { "REQUEST_BODY_UNEXPECTED", HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED },
+    { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH", HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
+    { "REQUEST_URI_HOST_INVALID", HTP_LOG_CODE_URI_HOST_INVALID },
+    { "REQUEST_HEADER_HOST_INVALID", HTP_LOG_CODE_HEADER_HOST_INVALID },
+    { "REQUEST_AUTH_UNRECOGNIZED", HTP_LOG_CODE_AUTH_UNRECOGNIZED },
+    { "REQUEST_HEADER_REPETITION", HTP_LOG_CODE_REQUEST_HEADER_REPETITION },
+    { "RESPONSE_HEADER_REPETITION", HTP_LOG_CODE_RESPONSE_HEADER_REPETITION },
+    { "DOUBLE_ENCODED_URI", HTP_LOG_CODE_DOUBLE_ENCODED_URI },
+    { "URI_DELIM_NON_COMPLIANT", HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT },
+    { "METHOD_DELIM_NON_COMPLIANT", HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT },
+    { "REQUEST_LINE_LEADING_WHITESPACE", HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE },
+    { "TOO_MANY_ENCODING_LAYERS", HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS },
+    { "ABNORMAL_CE_HEADER", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
+    { "RESPONSE_MULTIPART_BYTERANGES", HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES },
+    { "RESPONSE_ABNORMAL_TRANSFER_ENCODING", HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
+    { "RESPONSE_CHUNKED_OLD_PROTO", HTP_LOG_CODE_RESPONSE_CHUNKED_OLD_PROTO },
+    { "RESPONSE_INVALID_PROTOCOL", HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL },
+    { "RESPONSE_INVALID_STATUS", HTP_LOG_CODE_RESPONSE_INVALID_STATUS },
+    { "REQUEST_LINE_INCOMPLETE", HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE },
 
-    { "LZMA_MEMLIMIT_REACHED", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED },
-    { "COMPRESSION_BOMB", HTTP_DECODER_EVENT_COMPRESSION_BOMB },
+    { "LZMA_MEMLIMIT_REACHED", HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED },
+    { "COMPRESSION_BOMB", HTP_LOG_CODE_COMPRESSION_BOMB },
 
     { "RANGE_INVALID", HTTP_DECODER_EVENT_RANGE_INVALID },
     { "REQUEST_CHUNK_EXTENSION", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
@@ -562,81 +559,73 @@ struct {
     const char *msg;
     uint8_t de;
 } htp_errors[] = {
-    { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED },
-    { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON },
-    { "Response field invalid: missing colon", HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON },
-    { "Request chunk encoding: Invalid chunk length",
-            HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN },
-    { "Response chunk encoding: Invalid chunk length",
-            HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN },
+    { "GZip decompressor: inflateInit2 failed", HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED },
+    { "Request field invalid: colon missing", HTP_LOG_CODE_REQUEST_FIELD_MISSING_COLON },
+    { "Response field invalid: missing colon", HTP_LOG_CODE_RESPONSE_FIELD_MISSING_COLON },
+    { "Request chunk encoding: Invalid chunk length", HTP_LOG_CODE_INVALID_REQUEST_CHUNK_LEN },
+    { "Response chunk encoding: Invalid chunk length", HTP_LOG_CODE_INVALID_RESPONSE_CHUNK_LEN },
     /*  { "Invalid T-E value in request",
-       HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag
+       HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag
        HTP_FLAGS_REQUEST_INVALID_T_E { "Invalid T-E value in response",
-       HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
+       HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
     /*  { "Invalid C-L field in request",
-       HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag
+       HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag
        HTP_FLAGS_REQUEST_INVALID_C_L */
-    { "Invalid C-L field in response",
-            HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
-    { "Already seen 100-Continue", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN },
-    { "Unable to match response to request",
-            HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
-    { "Invalid server port information in request",
-            HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST },
-    /*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer
+    { "Invalid C-L field in response", HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+    { "Already seen 100-Continue", HTP_LOG_CODE_CONTINUE_ALREADY_SEEN },
+    { "Unable to match response to request", HTP_LOG_CODE_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
+    { "Invalid server port information in request", HTP_LOG_CODE_INVALID_SERVER_PORT_IN_REQUEST },
+    /*    { "Invalid authority port", HTP_LOG_CODE_INVALID_AUTHORITY_PORT}, htp no longer
        returns this error */
-    { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG },
-    { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG },
+    { "Request buffer over", HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG },
+    { "Response buffer over", HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG },
     { "C-T multipart/byteranges in responses not supported",
-            HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES },
-    { "Compression bomb:", HTTP_DECODER_EVENT_COMPRESSION_BOMB },
+            HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES },
+    { "Compression bomb:", HTP_LOG_CODE_COMPRESSION_BOMB },
 };
 
 struct {
     const char *msg;
     uint8_t de;
 } htp_warnings[] = {
-    { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED },
-    { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
-    { "Response field invalid", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
-    { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
-    { "Response header name is not a token", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
+    { "GZip decompressor:", HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED },
+    { "Request field invalid", HTP_LOG_CODE_REQUEST_HEADER_INVALID },
+    { "Response field invalid", HTP_LOG_CODE_RESPONSE_HEADER_INVALID },
+    { "Request header name is not a token", HTP_LOG_CODE_REQUEST_HEADER_INVALID },
+    { "Response header name is not a token", HTP_LOG_CODE_RESPONSE_HEADER_INVALID },
     /*  { "Host information in request headers required by HTTP/1.1",
-       HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_FLAGS_HOST_MISSING { "Host
-       information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag
+       HTP_LOG_CODE_MISSING_HOST_HEADER}, <- tx flag HTP_FLAGS_HOST_MISSING { "Host
+       information ambiguous", HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS}, <- tx flag
        HTP_FLAGS_HOST_AMBIGUOUS */
-    { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING },
-    { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING },
+    { "Invalid request field folding", HTP_LOG_CODE_INVALID_REQUEST_FIELD_FOLDING },
+    { "Invalid response field folding", HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING },
     /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number
      * differs from the actual TCP port=%d", port, connp->conn->server_port); luckily, "Request
      * server port=" is unique */
     /*    { "Request server port number differs from the actual TCP port",
-       HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
-    { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
-    { "Request line: URI contains non-compliant delimiter",
-            HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT },
+       HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
+    { "Request server port=", HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
+    { "Request line: URI contains non-compliant delimiter", HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT },
     { "Request line: non-compliant delimiter between Method and URI",
-            HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT },
-    { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE },
-    { "Too many response content encoding layers", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS },
-    { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
-    { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
-    { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
-    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION },
-    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION },
+            HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT },
+    { "Request line: leading whitespace", HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE },
+    { "Too many response content encoding layers", HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS },
+    { "C-E gzip has abnormal value", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
+    { "C-E deflate has abnormal value", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
+    { "C-E unknown setting", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
+    { "Excessive request header repetitions", HTP_LOG_CODE_REQUEST_HEADER_REPETITION },
+    { "Excessive response header repetitions", HTP_LOG_CODE_RESPONSE_HEADER_REPETITION },
     { "Transfer-encoding has abnormal chunked value",
-            HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
+            HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
     { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0",
-            HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO },
-    { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL },
-    { "Invalid response line: invalid response status",
-            HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS },
-    { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE },
-    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED },
-    { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED },
-    { "Ambiguous request C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
-    { "Ambiguous response C-L value",
-            HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+            HTP_LOG_CODE_RESPONSE_CHUNKED_OLD_PROTO },
+    { "Invalid response line: invalid protocol", HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL },
+    { "Invalid response line: invalid response status", HTP_LOG_CODE_RESPONSE_INVALID_STATUS },
+    { "Request line incomplete", HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE },
+    { "Unexpected request body", HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED },
+    { "LZMA decompressor: memory limit reached", HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED },
+    { "Ambiguous request C-L value", HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
+    { "Ambiguous response C-L value", HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
     { "Request chunk extension", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
     { "Request line: missing protocol", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
     { "Too many request headers", HTTP_DECODER_EVENT_REQUEST_TOO_MANY_HEADERS },
@@ -740,7 +729,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
         if (id == 0) {
             id = HTPHandleWarningGetId(log->msg);
             if (id == 0)
-                id = HTTP_DECODER_EVENT_UNKNOWN_ERROR;
+                id = HTP_LOG_CODE_UNKNOWN;
         }
 
         if (id > 0) {
@@ -751,7 +740,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
     SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
 }
 
-static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
+static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
 {
 #ifdef DEBUG
     BUG_ON(s == NULL || tx == NULL);
@@ -765,29 +754,24 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
 
         if (htp_tx_flags(tx) & HTP_FLAGS_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
+                    HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
         if (htp_tx_flags(tx) & HTP_FLAGS_REQUEST_INVALID_C_L)
-            HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
+            HTPSetEvent(
+                    s, htud, STREAM_TOSERVER, HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
         if (htp_tx_flags(tx) & HTP_FLAGS_HOST_MISSING)
-            HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_MISSING_HOST_HEADER);
+            HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_MISSING_HOST_HEADER);
         if (htp_tx_flags(tx) & HTP_FLAGS_HOST_AMBIGUOUS)
-            HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
+            HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS);
         if (htp_tx_flags(tx) & HTP_FLAGS_HOSTU_INVALID)
-            HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_URI_HOST_INVALID);
+            HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_URI_HOST_INVALID);
         if (htp_tx_flags(tx) & HTP_FLAGS_HOSTH_INVALID)
-            HTPSetEvent(s, htud, STREAM_TOSERVER,
-                    HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
+            HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
     if (htp_tx_request_auth_type(tx) == HTP_AUTH_TYPE_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-        HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
+        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_AUTH_UNRECOGNIZED);
     }
     if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_METHOD_UNKNOWN &&
             (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
@@ -795,8 +779,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-        HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_REQUEST_LINE_INVALID);
+        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED);
     }
 }
 
@@ -974,7 +957,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
             case HTP_STREAM_STATE_TUNNEL:
                 tx = htp_connp_get_out_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
-                    htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Upgrade");
+                    const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
                     if (h == NULL) {
                         break;
                     }
@@ -1044,8 +1027,8 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
 /**
  *  \param name /Lowercase/ version of the variable name
  */
-static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
-        uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
+static int HTTPParseContentDispositionHeader(const uint8_t *name, size_t name_len,
+        const uint8_t *data, size_t len, uint8_t const **retptr, size_t *retlen)
 {
 #ifdef PRINT
     printf("DATA START: \n");
@@ -1063,7 +1046,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
     if (x >= len)
         return 0;
 
-    uint8_t *line = data+x;
+    const uint8_t *line = data + x;
     size_t line_len = len-x;
     size_t offset = 0;
 #ifdef PRINT
@@ -1078,7 +1061,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
             }
 
             if (((line[x - 1] != '\\' && line[x] == ';') || ((x + 1) == line_len)) && (quote == 0 || quote % 2 == 0)) {
-                uint8_t *token = line + offset;
+                const uint8_t *token = line + offset;
                 size_t token_len = x - offset;
 
                 if ((x + 1) == line_len) {
@@ -1098,7 +1081,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
 #endif
                 if (token_len > name_len) {
                     if (name == NULL || SCMemcmpLowercase(name, token, name_len) == 0) {
-                        uint8_t *value = token + name_len;
+                        const uint8_t *value = token + name_len;
                         size_t value_len = token_len - name_len;
 
                         if (value[0] == '\"') {
@@ -1138,9 +1121,9 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
+static int HtpRequestBodySetupMultipart(const htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_tx_request_header(tx, "Content-Type");
+    const htp_header_t *h = htp_tx_request_header(tx, "Content-Type");
     if (h != NULL && htp_header_value_len(h) > 0) {
         htud->mime_state =
                 SCMimeStateInit(htp_header_value_ptr(h), (uint32_t)htp_header_value_len(h));
@@ -1181,7 +1164,7 @@ static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
     }
 }
 
-static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, void *tx,
+static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, const void *tx,
         const uint8_t *chunks_buffer, uint32_t chunks_buffer_len, bool eof)
 {
 #ifdef PRINT
@@ -1192,7 +1175,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
     // libhtp will not call us back too late
     // should libhtp send a callback eof for 0 chunked ?
-    DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, (void *)tx,
                                   STREAM_TOSERVER) >= HTP_REQUEST_PROGRESS_COMPLETE);
 
     const uint8_t *cur_buf = chunks_buffer;
@@ -1288,8 +1271,8 @@ end:
 /** \internal
  *  \brief Handle POST or PUT, no multipart body data
  */
-static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud, const htp_tx_t *tx,
+        const uint8_t *data, uint32_t data_len)
 {
     int result = 0;
 
@@ -1309,7 +1292,7 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
-                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
             }
             result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                     STREAM_TOSERVER);
@@ -1344,8 +1327,8 @@ end:
     return -1;
 }
 
-static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud, const htp_tx_t *tx,
+        const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
@@ -1358,11 +1341,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     if (!(htud->tcflags & HTP_FILENAME_SET)) {
         SCLogDebug("setting up file name");
 
-        uint8_t *filename = NULL;
+        const uint8_t *filename = NULL;
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h = (htp_header_t *)htp_tx_response_header(tx, "Content-Disposition");
+        const htp_header_t *h = htp_tx_response_header(tx, "Content-Disposition");
         if (h != NULL && htp_header_value_len(h) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
@@ -1381,11 +1364,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             // set range if present
-            htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
+            const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
-                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
             }
             if (h_content_range != NULL) {
                 result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
@@ -1438,12 +1421,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (d->len == 0)
+    if (htp_tx_data_len(d) == 0)
         SCReturnInt(HTP_STATUS_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
-    PrintRawDataFp(stdout, (uint8_t *)d->data, d->len);
+    PrintRawDataFp(stdout, (uint8_t *)htp_tx_data_data(d), htp_tx_data_len(d));
     printf("HTPBODY END: \n");
 #endif
 
@@ -1453,7 +1436,8 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%" PRIu32 "",
+            hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
@@ -1467,7 +1451,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         if (d->htp_tx_request_method_number(tx) == HTP_METHOD_POST) {
             SCLogDebug("POST");
-            int r = HtpRequestBodySetupMultipart(d->tx, tx_ud);
+            int r = HtpRequestBodySetupMultipart(htp_tx_data_tx(d), tx_ud);
             if (r == 1) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
@@ -1489,13 +1473,11 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (AppLayerHtpCheckDepth(&hstate->cfg->request, &tx_ud->request_body, tx_ud->tsflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
-                                                     hstate->cfg->request.body_limit,
-                                                     stream_depth,
-                                                     tx_ud->tsflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                hstate->cfg->request.body_limit, stream_depth, tx_ud->tsflags,
+                (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->request_body, htp_tx_data_data(d), len);
 
         const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1516,12 +1498,13 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             printf("REASSCHUNK END: \n");
 #endif
 
-            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len,
-                    (d->data == NULL && d->len == 0));
+            HtpRequestBodyHandleMultipart(hstate, tx_ud, htp_tx_data_tx(d), chunks_buffer,
+                    chunks_buffer_len, (htp_tx_data_data(d) == NULL && htp_tx_data_len(d) == 0));
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
                    tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePOSTorPUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
+            HtpRequestBodyHandlePOSTorPUT(
+                    hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
         }
 
     } else {
@@ -1534,10 +1517,11 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
 end:
     if (hstate->conn != NULL) {
-        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
-                tx_ud->request_body.content_len_so_far,
-                hstate->cfg->request.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_request_data_stamp);
+        SCLogDebug("checking body size %" PRIu64 " against inspect limit %u (cur %" PRIu64
+                   ", last %" PRIu64 ")",
+                tx_ud->request_body.content_len_so_far, hstate->cfg->request.inspect_min_size,
+                (uint64_t)htp_conn_request_data_counter(hstate->conn),
+                hstate->last_request_data_stamp);
 
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
@@ -1545,11 +1529,14 @@ end:
          * get here. */
         if (tx_ud->request_body.body_inspected == 0 &&
             tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
-            if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
-                (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
-            {
-                const uint32_t data_size = (uint32_t)(
-                        (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+            if ((uint64_t)htp_conn_request_data_counter(hstate->conn) >
+                            hstate->last_request_data_stamp &&
+                    (uint64_t)htp_conn_request_data_counter(hstate->conn) -
+                                    hstate->last_request_data_stamp <
+                            (uint64_t)UINT_MAX) {
+                const uint32_t data_size =
+                        (uint32_t)((uint64_t)htp_conn_request_data_counter(hstate->conn) -
+                                   hstate->last_request_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->request.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -1576,7 +1563,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (d->len == 0)
+    if (htp_tx_data_len(d) == 0)
         SCReturnInt(HTP_STATUS_OK);
 
     HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
@@ -1585,7 +1572,8 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
-               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+               "%" PRIu32 "",
+            hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
@@ -1607,15 +1595,14 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (AppLayerHtpCheckDepth(&hstate->cfg->response, &tx_ud->response_body, tx_ud->tcflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->response_body.content_len_so_far,
-                                                     hstate->cfg->response.body_limit,
-                                                     stream_depth,
-                                                     tx_ud->tcflags,
-                                                     (uint32_t)d->len);
-        BUG_ON(len > (uint32_t)d->len);
+                hstate->cfg->response.body_limit, stream_depth, tx_ud->tcflags,
+                (uint32_t)htp_tx_data_len(d));
+        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
-        HtpBodyAppendChunk(&tx_ud->response_body, d->data, len);
+        HtpBodyAppendChunk(&tx_ud->response_body, htp_tx_data_data(d), len);
 
-        HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
+        HtpResponseBodyHandle(
+                hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -1625,21 +1612,25 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     if (hstate->conn != NULL) {
-        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
-                tx_ud->response_body.content_len_so_far,
-                hstate->cfg->response.inspect_min_size,
-                (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
+        SCLogDebug("checking body size %" PRIu64 " against inspect limit %u (cur %" PRIu64
+                   ", last %" PRIu64 ")",
+                tx_ud->response_body.content_len_so_far, hstate->cfg->response.inspect_min_size,
+                (uint64_t)htp_conn_request_data_counter(hstate->conn),
+                hstate->last_response_data_stamp);
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
          * data to be used to the amount of raw bytes we've seen to
          * get here. */
         if (tx_ud->response_body.body_inspected == 0 &&
             tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
-            if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
-                (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
-            {
-                const uint32_t data_size = (uint32_t)((uint64_t)hstate->conn->out_data_counter -
-                                                      hstate->last_response_data_stamp);
+            if ((uint64_t)htp_conn_response_data_counter(hstate->conn) >
+                            hstate->last_response_data_stamp &&
+                    (uint64_t)htp_conn_response_data_counter(hstate->conn) -
+                                    hstate->last_response_data_stamp <
+                            (uint64_t)UINT_MAX) {
+                const uint32_t data_size =
+                        (uint32_t)((uint64_t)htp_conn_response_data_counter(hstate->conn) -
+                                   hstate->last_response_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->response.inspect_min_size);
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
@@ -1727,7 +1718,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
 
     uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
     SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->in_data_counter);
+            (uint64_t)htp_conn_request_data_counter(hstate->conn));
 
     /* app-layer-frame-documentation tag start: frame registration http request */
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
@@ -1770,7 +1761,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 
     uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
     SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
-            (uint64_t)hstate->conn->out_data_counter);
+            (uint64_t)htp_conn_response_data_counter(hstate->conn));
 
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 1, HTTP_FRAME_RESPONSE);
@@ -1980,8 +1971,7 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
         HtpState *s = htp_connp_get_user_data(tx->connp);
         if (s == NULL)
             return HTP_STATUS_OK;
-        HTPSetEvent(s, htud, STREAM_TOSERVER,
-                HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
+        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_DOUBLE_ENCODED_URI);
     }
 
     return HTP_STATUS_OK;
@@ -2006,29 +1996,28 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
-    ptmp = HTPRealloc(tx_ud->request_headers_raw,
-                     tx_ud->request_headers_raw_len,
-                     tx_ud->request_headers_raw_len + tx_data->len);
+    ptmp = HTPRealloc(tx_ud->request_headers_raw, tx_ud->request_headers_raw_len,
+            tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->request_headers_raw = ptmp;
     tx_ud->tx_data.updated_ts = true;
 
-    memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->request_headers_raw_len += tx_data->len;
+    memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len, htp_tx_data_data(tx_data),
+            htp_tx_data_len(tx_data));
+    tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
-    if (tx_data->tx && tx_data->tx->flags) {
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
-        HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
+    if (htp_tx_data_tx(tx_data) && htp_tx_data_tx(tx_data)->flags) {
+        HtpState *hstate = htp_connp_get_user_data(htp_tx_data_tx(tx_data)->connp);
+        HTPErrorCheckTxRequestFlags(hstate, htp_tx_data_tx(tx_data));
     }
     return HTP_STATUS_OK;
 }
@@ -2036,25 +2025,24 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0 || tx_data->tx == NULL)
+    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->tx_data.updated_tc = true;
-    ptmp = HTPRealloc(tx_ud->response_headers_raw,
-                     tx_ud->response_headers_raw_len,
-                     tx_ud->response_headers_raw_len + tx_data->len);
+    ptmp = HTPRealloc(tx_ud->response_headers_raw, tx_ud->response_headers_raw_len,
+            tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
         return HTP_STATUS_OK;
     }
     tx_ud->response_headers_raw = ptmp;
 
-    memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len,
-           tx_data->data, tx_data->len);
-    tx_ud->response_headers_raw_len += tx_data->len;
+    memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len, htp_tx_data_data(tx_data),
+            htp_tx_data_len(tx_data));
+    tx_ud->response_headers_raw_len += htp_tx_data_len(tx_data);
 
     return HTP_STATUS_OK;
 }
@@ -5092,7 +5080,7 @@ libhtp:\n\
     PASS;
 }
 
-/** \test Test really long request, this should result in HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
+/** \test Test really long request, this should result in HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG */
 static int HTPParserTest14(void)
 {
     size_t len = 18887;
@@ -5174,7 +5162,7 @@ libhtp:\n\
             AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
     FAIL_IF_NULL(decoder_events);
 
-    FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG);
+    FAIL_IF(decoder_events->events[0] != HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -5286,7 +5274,7 @@ libhtp:\n\
     PASS;
 }
 
-/** \test Test unusual delims in request line HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
+/** \test Test unusual delims in request line HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG */
 static int HTPParserTest16(void)
 {
     Flow *f = NULL;
@@ -5334,8 +5322,8 @@ static int HTPParserTest16(void)
             AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP1, txtmp);
 
     FAIL_IF_NULL(decoder_events);
-    FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT);
-    FAIL_IF(decoder_events->events[1] != HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT);
+    FAIL_IF(decoder_events->events[0] != HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT);
+    FAIL_IF(decoder_events->events[1] != HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT);
 
 #endif
 

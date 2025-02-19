@@ -96,48 +96,117 @@
 #define HTP_RESPONSE_PROGRESS_TRAILER  HTP_RESPONSE_TRAILER
 #define HTP_RESPONSE_PROGRESS_COMPLETE HTP_RESPONSE_COMPLETE
 
-// Functions introduced to handle opaque htp_tx_t
-#define htp_tx_flags(tx)                    tx->flags
-#define htp_tx_is_protocol_0_9(tx)          tx->is_protocol_0_9
-#define htp_tx_request_auth_type(tx)        tx->request_auth_type
-#define htp_tx_request_hostname(tx)         tx->request_hostname
-#define htp_tx_request_line(tx)             tx->request_line
-#define htp_tx_request_message_len(tx)      tx->request_message_len
-#define htp_tx_request_method(tx)           tx->request_method
-#define htp_tx_request_method_number(tx)    tx->request_method_number
-#define htp_tx_request_port_number(tx)      tx->request_port_number
-#define htp_tx_request_progress(tx)         tx->request_progress
-#define htp_tx_request_protocol(tx)         tx->request_protocol
-#define htp_tx_request_protocol_number(tx)  tx->request_protocol_number
-#define htp_tx_request_uri(tx)              tx->request_uri
-#define htp_tx_request_headers(tx)          tx->request_headers
-#define htp_tx_response_headers(tx)         tx->response_headers
-#define htp_tx_response_protocol(tx)        tx->response_protocol
-#define htp_tx_response_line(tx)            tx->response_line
-#define htp_tx_response_message(tx)         tx->response_message
-#define htp_tx_response_message_len(tx)     tx->response_message_len
-#define htp_tx_response_status(tx)          tx->response_status
-#define htp_tx_response_status_number(tx)   tx->response_status_number
-#define htp_tx_response_progress(tx)        tx->response_progress
-#define htp_tx_response_protocol_number(tx) tx->response_protocol_number
+#define HTP_LOG_CODE_UNKNOWN                      HTTP_DECODER_EVENT_UNKNOWN_ERROR
+#define HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED    HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED
+#define HTP_LOG_CODE_REQUEST_FIELD_MISSING_COLON  HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON
+#define HTP_LOG_CODE_RESPONSE_FIELD_MISSING_COLON HTTP_DECODER_EVENT_RESPONSE_FIELD_MISSING_COLON
+#define HTP_LOG_CODE_INVALID_REQUEST_CHUNK_LEN    HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN
+#define HTP_LOG_CODE_INVALID_RESPONSE_CHUNK_LEN   HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN
+#define HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST                                    \
+    HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST
+#define HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE                                   \
+    HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE
+#define HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST                                       \
+    HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST
+#define HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE                                      \
+    HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE
+#define HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST                                     \
+    HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST
+#define HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE                                    \
+    HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE
+#define HTP_LOG_CODE_CONTINUE_ALREADY_SEEN HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN
+#define HTP_LOG_CODE_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST                                           \
+    HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST
+#define HTP_LOG_CODE_INVALID_SERVER_PORT_IN_REQUEST                                                \
+    HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST
+#define HTP_LOG_CODE_INVALID_AUTHORITY_PORT        HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT
+#define HTP_LOG_CODE_REQUEST_HEADER_INVALID        HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID
+#define HTP_LOG_CODE_RESPONSE_HEADER_INVALID       HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID
+#define HTP_LOG_CODE_MISSING_HOST_HEADER           HTTP_DECODER_EVENT_MISSING_HOST_HEADER
+#define HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS         HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS
+#define HTP_LOG_CODE_INVALID_REQUEST_FIELD_FOLDING HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING
+#define HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING                                                \
+    HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING
+#define HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG  HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG
+#define HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG
+#define HTP_LOG_CODE_FILE_NAME_TOO_LONG      HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG
+#define HTP_LOG_CODE_REQUEST_LINE_INVALID    HTTP_DECODER_EVENT_REQUEST_LINE_INVALID
+#define HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED
+#define HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH                                         \
+    HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH
+#define HTP_LOG_CODE_URI_HOST_INVALID           HTTP_DECODER_EVENT_URI_HOST_INVALID
+#define HTP_LOG_CODE_HEADER_HOST_INVALID        HTTP_DECODER_EVENT_HEADER_HOST_INVALID
+#define HTP_LOG_CODE_AUTH_UNRECOGNIZED          HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED
+#define HTP_LOG_CODE_REQUEST_HEADER_REPETITION  HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION
+#define HTP_LOG_CODE_RESPONSE_HEADER_REPETITION HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION
+#define HTP_LOG_CODE_DOUBLE_ENCODED_URI         HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI
+#define HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT    HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT
+#define HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT
+#define HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE                                               \
+    HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE
+#define HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS      HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS
+#define HTP_LOG_CODE_ABNORMAL_CE_HEADER            HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER
+#define HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES
+#define HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING                                           \
+    HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING
+#define HTP_LOG_CODE_RESPONSE_CHUNKED_OLD_PROTO HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO
+#define HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL  HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL
+#define HTP_LOG_CODE_RESPONSE_INVALID_STATUS    HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS
+#define HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE    HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE
+#define HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED      HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED
+#define HTP_LOG_CODE_COMPRESSION_BOMB           HTTP_DECODER_EVENT_COMPRESSION_BOMB
 
-#define htp_tx_request_header(tx, header)  htp_table_get_c(tx->request_headers, header)
-#define htp_tx_response_header(tx, header) htp_table_get_c(tx->response_headers, header)
+// Functions introduced to handle opaque htp_tx_t
+#define htp_tx_flags(tx)                    (tx)->flags
+#define htp_tx_is_protocol_0_9(tx)          (tx)->is_protocol_0_9
+#define htp_tx_request_auth_type(tx)        (tx)->request_auth_type
+#define htp_tx_request_hostname(tx)         (tx)->request_hostname
+#define htp_tx_request_line(tx)             (tx)->request_line
+#define htp_tx_request_message_len(tx)      (tx)->request_message_len
+#define htp_tx_request_method(tx)           (tx)->request_method
+#define htp_tx_request_method_number(tx)    tx->request_method_number
+#define htp_tx_request_port_number(tx)      (tx)->request_port_number
+#define htp_tx_request_progress(tx)         (tx)->request_progress
+#define htp_tx_request_protocol(tx)         (tx)->request_protocol
+#define htp_tx_request_protocol_number(tx)  (tx)->request_protocol_number
+#define htp_tx_request_uri(tx)              (tx)->request_uri
+#define htp_tx_request_headers(tx)          (tx)->request_headers
+#define htp_tx_response_headers(tx)         (tx)->response_headers
+#define htp_tx_response_protocol(tx)        (tx)->response_protocol
+#define htp_tx_response_line(tx)            (tx)->response_line
+#define htp_tx_response_message(tx)         (tx)->response_message
+#define htp_tx_response_message_len(tx)     (tx)->response_message_len
+#define htp_tx_response_status(tx)          (tx)->response_status
+#define htp_tx_response_status_number(tx)   (tx)->response_status_number
+#define htp_tx_response_progress(tx)        (tx)->response_progress
+#define htp_tx_response_protocol_number(tx) (tx)->response_protocol_number
+
+#define htp_tx_request_header(tx, header)  htp_table_get_c((tx)->request_headers, header)
+#define htp_tx_response_header(tx, header) htp_table_get_c((tx)->response_headers, header)
 
 // Functions introduced to handle opaque htp_header_t
-#define htp_header_name_len(h)  bstr_len(h->name)
-#define htp_header_name_ptr(h)  bstr_ptr(h->name)
-#define htp_header_name(h)      h->name
-#define htp_header_value_len(h) bstr_len(h->value)
-#define htp_header_value_ptr(h) bstr_ptr(h->value)
-#define htp_header_value(h)     h->value
+#define htp_header_name_len(h)  bstr_len((h)->name)
+#define htp_header_name_ptr(h)  bstr_ptr((h)->name)
+#define htp_header_name(h)      (h)->name
+#define htp_header_value_len(h) bstr_len((h)->value)
+#define htp_header_value_ptr(h) bstr_ptr((h)->value)
+#define htp_header_value(h)     (h)->value
 
 // Functions introduced to handle opaque htp_headers_t:
 #define htp_headers_size(headers)             htp_table_size(headers)
 #define htp_headers_get_index(headers, index) htp_table_get_index(headers, index, NULL)
-#define htp_tx_request_headers_size(tx)       htp_table_size(tx->request_headers)
-#define htp_tx_request_header_index(tx, i)    htp_table_get_index(tx->request_headers, i, NULL);
+#define htp_tx_request_headers_size(tx)       htp_table_size((tx)->request_headers)
+#define htp_tx_request_header_index(tx, i)    htp_table_get_index((tx)->request_headers, i, NULL);
 #define htp_headers_t                         htp_table_t
+
+// Functions introduced to handle opaque htp_tx_data_t:
+#define htp_tx_data_len(d)  (d)->len
+#define htp_tx_data_data(d) (d)->data
+#define htp_tx_data_tx(d)   (d)->tx
+
+// Functions introduced to handle opaque htp_conn_t:
+#define htp_conn_request_data_counter(c)  (c)->in_data_counter
+#define htp_conn_response_data_counter(c) (c)->out_data_counter
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
