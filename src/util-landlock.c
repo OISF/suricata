@@ -28,6 +28,7 @@
 #include "util-landlock.h"
 #include "util-mem.h"
 #include "util-path.h"
+#include "util-validate.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H
 
