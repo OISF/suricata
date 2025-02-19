@@ -52,7 +52,7 @@ Syntax::
 
 ldap.request.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field  ``ldap.request.operation``
+This keyword maps to the EVE field  ``ldap.request.operation``
 
 Examples
 ^^^^^^^^
@@ -61,11 +61,11 @@ Example of a signatures that would alert if the packet has an LDAP bind request 
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP bind request"; :example-rule-emphasis:`ldap.request.operation:0;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP bind request"; :example-rule-emphasis:`ldap.request.operation:0;` sid:1;)
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP bind request"; :example-rule-emphasis:`ldap.request.operation:bind_request;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP bind request"; :example-rule-emphasis:`ldap.request.operation:bind_request;` sid:1;)
 
 ldap.responses.operation
 ------------------------
@@ -79,7 +79,7 @@ Syntax::
 
 ldap.responses.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field ``ldap.responses[].operation``
+This keyword maps to the EVE field ``ldap.responses[].operation``
 
 An LDAP request operation can receive multiple responses. By default, the ldap.responses.operation
 keyword matches all indices, but it is possible to specify a particular index for matching
@@ -104,23 +104,23 @@ Example of a signatures that would alert if the packet has an LDAP bind response
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP bind response"; :example-rule-emphasis:`ldap.responses.operation:1;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP bind response"; :example-rule-emphasis:`ldap.responses.operation:1;` sid:1;)
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP bind response"; :example-rule-emphasis:`ldap.responses.operation:bind_response;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP bind response"; :example-rule-emphasis:`ldap.responses.operation:bind_response;` sid:1;)
 
 Example of a signature that would alert if the packet has an LDAP search_result_done response operation at index 1:
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_done,1;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_done,1;` sid:1;)
 
 Example of a signature that would alert if all the responses are of type search_result_entry:
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,all;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,all;` sid:1;)
 
 The keyword ldap.responses.operation supports back to front indexing with negative numbers,
 this means that -1 will represent the last index, -2 the second to last index, and so on.
@@ -128,7 +128,7 @@ This is an example of a signature that would alert if a search_result_entry resp
 
 .. container:: example-rule
 
-  alert tcp any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,-1;` sid:1;)
+  alert ldap any any -> any any (msg:"Test LDAP search response"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,-1;` sid:1;)
 
 ldap.responses.count
 --------------------
@@ -147,7 +147,7 @@ It can be matched exactly, or compared using the ``op`` setting::
 
 ldap.responses.count uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
-This keyword maps to the eve field ``len(ldap.responses[])``
+This keyword maps to the EVE field ``len(ldap.responses[])``
 
 Examples
 ^^^^^^^^
@@ -156,10 +156,98 @@ Example of a signature that would alert if a packet has 0 LDAP responses:
 
 .. container:: example-rule
 
-  alert ip any any -> any any (msg:"Packet has 0 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:0;` sid:1;)
+  alert ldap any any -> any any (msg:"Packet has 0 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:0;` sid:1;)
 
 Example of a signature that would alert if a packet has more than 2 LDAP responses:
 
 .. container:: example-rule
 
-  alert ip any any -> any any (msg:"Packet has more than 2 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:>2;` sid:1;)
+  alert ldap any any -> any any (msg:"Packet has more than 2 LDAP responses"; :example-rule-emphasis:`ldap.responses.count:>2;` sid:1;)
+
+ldap.request.dn
+---------------
+
+Matches on LDAP distinguished names from request operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.request.dn; content:dc=example,dc=com;
+
+``ldap.request.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE fields:
+``ldap.request.bind_request.name``
+``ldap.request.add_request.entry``
+``ldap.request.search_request.base_object``
+``ldap.request.modify_request.object``
+``ldap.request.del_request.dn``
+``ldap.request.mod_dn_request.entry``
+``ldap.request.compare_request.entry``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP distinguished name ``uid=jdoe,ou=People,dc=example,dc=com``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAPDN"; :example-rule-emphasis:`ldap.request.dn; content:"uid=jdoe,ou=People,dc=example,dc=com";` sid:1;)
+
+It is possible to use the keyword ``ldap.request.operation`` in the same rule to
+specify the operation to match.
+
+Here is an example of a signature that would alert if a packet has an LDAP
+search request operation and contains the LDAP distinguished name
+``dc=example,dc=com``.
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.request.operation:search_request; ldap.request.dn; content:"dc=example,dc=com";` sid:1;)
+
+ldap.responses.dn
+-----------------
+
+Matches on LDAP distinguished names from response operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.responses.dn; content:dc=example,dc=com;
+
+``ldap.responses.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.responses.dn`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE fields:
+``ldap.responses[].search_result_entry.base_object``
+``ldap.responses[].bind_response.matched_dn``
+``ldap.responses[].search_result_done.matched_dn``
+``ldap.responses[].modify_response.matched_dn``
+``ldap.responses[].add_response.matched_dn``
+``ldap.responses[].del_response.matched_dn``
+``ldap.responses[].mod_dn_response.matched_dn``
+``ldap.responses[].compare_response.matched_dn``
+``ldap.responses[].extended_response.matched_dn``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP distinguished name ``dc=example,dc=com``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAPDN"; :example-rule-emphasis:`ldap.responses.dn; content:"dc=example,dc=com";` sid:1;)
+
+It is possible to use the keyword ``ldap.responses.operation`` in the same rule to
+specify the operation to match.
+
+Here is an example of a signature that would alert if a packet has an LDAP
+search result entry operation at index 1 on the responses array,
+and contains the LDAP distinguished name ``dc=example,dc=com``.
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,1; ldap.responses.dn; content:"dc=example,dc=com";` sid:1;)
