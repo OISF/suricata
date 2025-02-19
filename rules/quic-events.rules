@@ -6,3 +6,4 @@
 
 alert quic any any -> any any (msg:"SURICATA QUIC failed decrypt"; app-layer-event:quic.failed_decrypt; classtype:protocol-command-decode; sid:2231000; rev:1;)
 alert quic any any -> any any (msg:"SURICATA QUIC error on data"; app-layer-event:quic.error_on_data; classtype:protocol-command-decode; sid:2231001; rev:1;)
+alert quic any any -> any any (msg:"SURICATA QUIC crypto fragments too long"; app-layer-event:quic.crypto_frag_too_long; classtype:protocol-command-decode; sid:2231002; rev:1;)

@@ -16,6 +16,7 @@
  */
 
 use super::error::QuicError;
+use super::quic::QUIC_MAX_CRYPTO_FRAG_LEN;
 use crate::ja4::*;
 use crate::quic::parser::quic_var_uint;
 use nom7::bytes::complete::take;
@@ -196,6 +197,14 @@ fn parse_ack_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
             first_ack_range,
         }),
     ))
+}
+
+fn parse_ack3_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
+    let (rest, ack) = parse_ack_frame(input)?;
+    let (rest, _ect0_count) = quic_var_uint(rest)?;
+    let (rest, _ect1_count) = quic_var_uint(rest)?;
+    let (rest, _ecn_count) = quic_var_uint(rest)?;
+    Ok((rest, ack))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -531,6 +540,7 @@ impl Frame {
                 0x00 => parse_padding_frame(rest)?,
                 0x01 => (rest, Frame::Ping),
                 0x02 => parse_ack_frame(rest)?,
+                0x03 => parse_ack3_frame(rest)?,
                 0x06 => parse_crypto_frame(rest)?,
                 0x08 => parse_crypto_stream_frame(rest)?,
                 _ => ([].as_ref(), Frame::Unknown(rest.to_vec())),
@@ -540,12 +550,15 @@ impl Frame {
         Ok((rest, value))
     }
 
-    pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
-        let (rest, mut frames) = many0(complete(Frame::decode_frame))(input)?;
+    pub(crate) fn decode_frames<'a>(
+        input: &'a [u8], past_frag: &'a [u8], past_fraglen: u32,
+    ) -> IResult<&'a [u8], Vec<Frame>, QuicError> {
+        let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame)))(input)?;
 
-        // reassemble crypto fragments : first find total size
-        let mut crypto_max_size = 0;
+        // we use the already seen past fragment data
+        let mut crypto_max_size = past_frag.len() as u64;
         let mut crypto_total_size = 0;
+        // reassemble crypto fragments : first find total size
         for f in &frames {
             if let Frame::CryptoFrag(c) = f {
                 if crypto_max_size < c.offset + c.length {
@@ -554,20 +567,52 @@ impl Frame {
                 crypto_total_size += c.length;
             }
         }
-        if crypto_max_size > 0 && crypto_total_size == crypto_max_size {
+        if crypto_max_size > 0 && crypto_max_size < QUIC_MAX_CRYPTO_FRAG_LEN {
             // we have some, and no gaps from offset 0
             let mut d = vec![0; crypto_max_size as usize];
+            d[..past_frag.len()].clone_from_slice(past_frag);
             for f in &frames {
                 if let Frame::CryptoFrag(c) = f {
                     d[c.offset as usize..(c.offset + c.length) as usize].clone_from_slice(&c.data);
                 }
             }
-            if let Ok((_, msg)) = parse_tls_message_handshake(&d) {
-                if let Some(c) = parse_quic_handshake(msg) {
-                    // add a parsed crypto frame
-                    frames.push(c);
+            // check that we have enough data, some new data, and data for the first byte
+            if crypto_total_size + past_fraglen as u64 >= crypto_max_size && crypto_total_size > 0 {
+                match parse_tls_message_handshake(&d) {
+                    Ok((_, msg)) => {
+                        if let Some(c) = parse_quic_handshake(msg) {
+                            // add a parsed crypto frame
+                            frames.push(c);
+                        }
+                    }
+                    Err(nom7::Err::Incomplete(_)) => {
+                        // this means the current packet does not have all the hanshake data yet
+                        let frag = CryptoFrag {
+                            offset: crypto_total_size + past_fraglen as u64,
+                            length: d.len() as u64,
+                            data: d.to_vec(),
+                        };
+                        frames.push(Frame::CryptoFrag(frag));
+                    }
+                    _ => {}
                 }
+            } else {
+                // pass in offset the number of bytes set in data
+                let frag = CryptoFrag {
+                    offset: crypto_total_size + past_fraglen as u64,
+                    length: d.len() as u64,
+                    data: d.to_vec(),
+                };
+                frames.push(Frame::CryptoFrag(frag));
             }
+        } else if crypto_max_size >= QUIC_MAX_CRYPTO_FRAG_LEN {
+            // just notice the engine that we have a big crypto fragment without supplying data
+            let frag = CryptoFrag {
+                offset: 0,
+                length: crypto_max_size,
+                data: Vec::new(),
+            };
+            frames.push(Frame::CryptoFrag(frag));
         }
 
         Ok((rest, frames))

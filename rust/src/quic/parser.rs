@@ -17,7 +17,7 @@
 use super::error::QuicError;
 use super::frames::Frame;
 use nom7::bytes::complete::take;
-use nom7::combinator::{all_consuming, map};
+use nom7::combinator::map;
 use nom7::number::complete::{be_u24, be_u32, be_u8};
 use nom7::IResult;
 use std::convert::TryFrom;
@@ -357,6 +357,10 @@ impl QuicHeader {
                         rest
                     }
                 }
+                QuicType::Retry => {
+                    // opaque retry token and 16 bytes retry integrity tag
+                    &rest[rest.len()..]
+                }
                 _ => rest,
             };
             let (rest, length) = if has_length {
@@ -392,8 +396,10 @@ impl QuicHeader {
 }
 
 impl QuicData {
-    pub(crate) fn from_bytes(input: &[u8]) -> Result<QuicData, QuicError> {
-        let (_, frames) = all_consuming(Frame::decode_frames)(input)?;
+    pub(crate) fn from_bytes(
+        input: &[u8], past_frag: &[u8], past_fraglen: u32,
+    ) -> Result<QuicData, QuicError> {
+        let (_, frames) = Frame::decode_frames(input, past_frag, past_fraglen)?;
         Ok(QuicData { frames })
     }
 }
@@ -467,7 +473,8 @@ mod tests {
             header
         );
 
-        let data = QuicData::from_bytes(rest).unwrap();
+        let past_frag = Vec::new();
+        let data = QuicData::from_bytes(rest, &past_frag, 0).unwrap();
         assert_eq!(
             QuicData {
                 frames: vec![Frame::Stream(Stream {
