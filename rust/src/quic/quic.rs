@@ -342,6 +342,22 @@ impl QuicState {
                     }
                     // header.length was checked against rest.len() during parsing
                     let (mut framebuf, next_buf) = rest.split_at(header.length.into());
+                    if header.ty != QuicType::Initial {
+                        // only version is interesting, no frames
+                        self.new_tx(
+                            header,
+                            QuicData { frames: Vec::new() },
+                            None,
+                            None,
+                            Vec::new(),
+                            None,
+                            None,
+                            to_server,
+                            false,
+                        );
+                        buf = next_buf;
+                        continue;
+                    }
                     let hlen = buf.len() - rest.len();
                     let mut output;
                     if self.keys.is_some() {
@@ -357,22 +373,6 @@ impl QuicState {
                         framebuf = &output;
                     }
                     buf = next_buf;
-
-                    if header.ty != QuicType::Initial {
-                        // only version is interesting, no frames
-                        self.new_tx(
-                            header,
-                            QuicData { frames: Vec::new() },
-                            None,
-                            None,
-                            Vec::new(),
-                            None,
-                            None,
-                            to_server,
-                            false,
-                        );
-                        continue;
-                    }
 
                     let mut frag = Vec::new();
                     // take the current fragment and reset it in the state
