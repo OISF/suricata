@@ -33,7 +33,7 @@ pub mod tojson;
 pub mod vlan;
 pub mod datasets;
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 
 use suricata_sys::sys::AppProto;
 
@@ -53,9 +53,41 @@ pub trait EnumString<T> {
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
 }
 
+macro_rules!static_cstring_from {
+    ($x:expr) => (concat!($x, "\0").as_ptr() as *const libc::c_char);
+}
+
+
+pub struct SigTableElmtStickyBuffer {
+    pub name: *const libc::c_char,
+    pub desc: *const libc::c_char,
+    pub url: *const libc::c_char,
+    pub setup: unsafe extern "C" fn(
+        de: *mut c_void,
+        s: *mut c_void,
+        raw: *const std::os::raw::c_char,
+    ) -> c_int,
+}
+
+pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c_int {
+    let st = SCSigTableAppLiteElmt {
+        name: kw.name,
+        desc: kw.desc,
+        url: kw.url,
+        Setup: kw.setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    unsafe {
+        return DetectHelperKeywordRegister(&st);
+    }
+}
+
+
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct SCSigTableElmt {
+pub struct SCSigTableAppLiteElmt {
     pub name: *const libc::c_char,
     pub desc: *const libc::c_char,
     pub url: *const libc::c_char,
@@ -103,7 +135,8 @@ extern {
             i32,
         ) -> *mut c_void,
     ) -> c_int;
-    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
+    pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
     ) -> c_int;

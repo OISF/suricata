@@ -82,7 +82,7 @@ include = [
     "QuicState",
     "QuicTransaction",
     "FtpEvent",
-    "SCSigTableElmt",
+    "SCSigTableAppLiteElmt",
     "SCTransformTableElmt",
     "DataRepType",
 ]

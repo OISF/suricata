@@ -18,6 +18,7 @@
 //! Nom parsers for DNS.
 
 use crate::dns::dns::*;
+use crate::detect::EnumString;
 use nom7::combinator::{complete, rest};
 use nom7::error::ErrorKind;
 use nom7::multi::{count, length_data, many_m_n};
@@ -205,24 +206,21 @@ fn dns_parse_answer<'a>(
     for _ in 0..count {
         match subparser(input, message, flags) {
             Ok((rem, val)) => {
-                let n = match val.rrtype {
-                    DNS_RECORD_TYPE_TXT => {
-                        // For TXT records we need to run the parser
-                        // multiple times. Set n high, to the maximum
-                        // value based on a max txt side of 65535, but
-                        // taking into considering that strings need
-                        // to be quoted, so half that.
-                        32767
-                    }
-                    _ => {
-                        // For all other types we only want to run the
-                        // parser once, so set n to 1.
-                        1
-                    }
+                let n = if val.rrtype == DNSRecordType::TXT as u16 {
+                    // For TXT records we need to run the parser
+                    // multiple times. Set n high, to the maximum
+                    // value based on a max txt side of 65535, but
+                    // taking into considering that strings need
+                    // to be quoted, so half that.
+                    32767
+                } else {
+                    // For all other types we only want to run the
+                    // parser once, so set n to 1.
+                    1
                 };
                 // edge case for additional section of type=OPT
                 // with empty data (data length = 0x0000)
-                if val.data.is_empty() && val.rrtype == DNS_RECORD_TYPE_OPT {
+                if val.data.is_empty() && val.rrtype == DNSRecordType::OPT as u16 {
                     answers.push(DNSAnswerEntry {
                         name: val.name.clone(),
                         rrtype: val.rrtype,
@@ -414,19 +412,19 @@ fn dns_parse_rdata_unknown(input: &[u8]) -> IResult<&[u8], DNSRData> {
 fn dns_parse_rdata<'a>(
     input: &'a [u8], message: &'a [u8], rrtype: u16, flags: &mut DNSNameFlags,
 ) -> IResult<&'a [u8], DNSRData> {
-    match rrtype {
-        DNS_RECORD_TYPE_A => dns_parse_rdata_a(input),
-        DNS_RECORD_TYPE_AAAA => dns_parse_rdata_aaaa(input),
-        DNS_RECORD_TYPE_CNAME => dns_parse_rdata_cname(input, message, flags),
-        DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message, flags),
-        DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message, flags),
-        DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message, flags),
-        DNS_RECORD_TYPE_NS => dns_parse_rdata_ns(input, message, flags),
-        DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
-        DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
-        DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
-        DNS_RECORD_TYPE_SRV => dns_parse_rdata_srv(input, message, flags),
-        DNS_RECORD_TYPE_OPT => dns_parse_rdata_opt(input),
+    match DNSRecordType::from_u(rrtype) {
+        Some(DNSRecordType::A) => dns_parse_rdata_a(input),
+        Some(DNSRecordType::AAAA) => dns_parse_rdata_aaaa(input),
+        Some(DNSRecordType::CNAME) => dns_parse_rdata_cname(input, message, flags),
+        Some(DNSRecordType::PTR) => dns_parse_rdata_ptr(input, message, flags),
+        Some(DNSRecordType::SOA) => dns_parse_rdata_soa(input, message, flags),
+        Some(DNSRecordType::MX) => dns_parse_rdata_mx(input, message, flags),
+        Some(DNSRecordType::NS) => dns_parse_rdata_ns(input, message, flags),
+        Some(DNSRecordType::TXT) => dns_parse_rdata_txt(input),
+        Some(DNSRecordType::NULL) => dns_parse_rdata_null(input),
+        Some(DNSRecordType::SSHFP) => dns_parse_rdata_sshfp(input),
+        Some(DNSRecordType::SRV) => dns_parse_rdata_srv(input, message, flags),
+        Some(DNSRecordType::OPT) => dns_parse_rdata_opt(input),
         _ => dns_parse_rdata_unknown(input),
     }
 }
@@ -705,7 +703,7 @@ mod tests {
                     value: vec![],
                     flags: DNSNameFlags::default()
                 },
-                rrtype: DNS_RECORD_TYPE_OPT,
+                rrtype: DNSRecordType::OPT as u16,
                 rrclass: 0x1000,             // for OPT this is UDP payload size
                 ttl: 0,                      // for OPT this is extended RCODE and flags
                 data: DNSRData::OPT(vec![]), // empty rdata
@@ -766,7 +764,7 @@ mod tests {
                     value: vec![],
                     flags: DNSNameFlags::default()
                 },
-                rrtype: DNS_RECORD_TYPE_OPT,
+                rrtype: DNSRecordType::OPT as u16,
                 rrclass: 0x1000, // for OPT this is requestor's UDP payload size
                 ttl: 0,          // for OPT this is extended RCODE and flags
                 // verify two options
@@ -951,7 +949,7 @@ mod tests {
                     value: vec![],
                     flags: DNSNameFlags::default()
                 },
-                rrtype: DNS_RECORD_TYPE_OPT,
+                rrtype: DNSRecordType::OPT as u16,
                 rrclass: 0x0200,             // for OPT this is UDP payload size
                 ttl: 0,                      // for OPT this is extended RCODE and flags
                 data: DNSRData::OPT(vec![]), // no rdata
@@ -997,7 +995,7 @@ mod tests {
             query.name.value,
             "vaaaakardli.pirate.sea".as_bytes().to_vec()
         );
-        assert_eq!(query.rrtype, DNS_RECORD_TYPE_NULL);
+        assert_eq!(query.rrtype, DNSRecordType::NULL as u16);
         assert_eq!(query.rrclass, 1);
 
         assert_eq!(response.answers.len(), 1);
@@ -1007,7 +1005,7 @@ mod tests {
             answer.name.value,
             "vaaaakardli.pirate.sea".as_bytes().to_vec()
         );
-        assert_eq!(answer.rrtype, DNS_RECORD_TYPE_NULL);
+        assert_eq!(answer.rrtype, DNSRecordType::NULL as u16);
         assert_eq!(answer.rrclass, 1);
         assert_eq!(answer.ttl, 0);
         assert_eq!(
