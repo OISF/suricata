@@ -18,8 +18,9 @@
 /**
  * \file
  *
- * Detect keyword for DNS names:
- * - dns.answer.name
+ * Detect keyword for DNS rrnames:
+ * - dns.queries.rrname
+ * - dns.answers.rrname
  * - dns.authorities.name
  * - dns.additionals.name
  */
@@ -130,10 +131,10 @@ static int Register(const char *keyword, const char *desc, const char *doc,
 
 void DetectDnsNameRegister(void)
 {
-    query_buffer_id = Register("dns.query.name", "DNS query name sticky buffer",
-            "/rules/dns-keywords.html#dns-query-name", SetupQueryBuffer);
-    answer_buffer_id = Register("dns.answer.name", "DNS answer name sticky buffer",
-            "/rules/dns-keywords.html#dns-answer-name", SetupAnswerBuffer);
+    query_buffer_id = Register("dns.queries.rrname", "DNS query rrname sticky buffer",
+            "/rules/dns-keywords.html#dns.queries.rrname", SetupQueryBuffer);
+    answer_buffer_id = Register("dns.answers.rrname", "DNS answer rrname sticky buffer",
+            "/rules/dns-keywords.html#dns.answers.rrname", SetupAnswerBuffer);
     additional_buffer_id =
             Register("dns.additionals.rrname", "DNS additionals rrname sticky buffer",
                     "/rules/dns-keywords.html#dns-additionals-rrname", SetupAdditionalsBuffer);

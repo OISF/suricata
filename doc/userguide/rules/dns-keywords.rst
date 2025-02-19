@@ -118,9 +118,9 @@ pkt_data is used or it reaches the end of the rule.
 
 .. note:: **dns.query** will only match on DNS request messages, to
           also match on DNS response message, see
-          `dns.query.name`_.
+          `dns.queries.rrname`_.
 
-``dns.query.name`` supports :doc:`multi-buffer-matching`.
+``dns.queries.rrname`` supports :doc:`multi-buffer-matching`.
 
 Normalized Buffer
 ~~~~~~~~~~~~~~~~~
@@ -144,38 +144,39 @@ DNS query on the wire (snippet)::
 
     mail.google.com
 
-dns.query.name
----------------
+dns.queries.rrname
+------------------
 
-``dns.query.name`` is a sticky buffer that is used to look at the name
-field in DNS query (question) resource records. It is nearly identical
-to ``dns.query`` but supports both DNS requests and responses.
+``dns.queries.rrname`` is a sticky buffer that is used to look at the
+name field in DNS query (question) resource records. It is nearly
+identical to ``dns.query`` but supports both DNS requests and
+responses.
 
-``dns.query.name`` will look at both requests and responses, so
+``dns.queries.rrname`` will look at both requests and responses, so
 ``flow`` is recommended to confine to a specific direction.
 
 The buffer being matched on contains the complete re-assembled
 resource name, for example "www.suricata.io".
 
-``dns.query.name`` supports :doc:`multi-buffer-matching`.
+``dns.queries.rrname`` supports :doc:`multi-buffer-matching`.
 
-``dns.query.name`` was introduced in Suricata 8.0.0.
+``dns.queries.rrname`` was introduced in Suricata 8.0.0.
 
-dns.answer.name
----------------
+dns.answers.rrname
+------------------
 
-``dns.answer.name`` is a sticky buffer that is used to look at the
+``dns.answers.rrname`` is a sticky buffer that is used to look at the
 name field in DNS answer resource records.
 
-``dns.answer.name`` will look at both requests and responses, so
+``dns.answers.rrname`` will look at both requests and responses, so
 ``flow`` is recommended to confine to a specific direction.
 
 The buffer being matched on contains the complete re-assembled
 resource name, for example "www.suricata.io".
 
-``dns.answer.name`` supports :doc:`multi-buffer-matching`.
+``dns.answers.rrname`` supports :doc:`multi-buffer-matching`.
 
-``dns.answer.name`` was introduced in Suricata 8.0.0.
+``dns.answers.rrname`` was introduced in Suricata 8.0.0.
 
 dns.authorities.rrname
 ----------------------
