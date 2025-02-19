@@ -284,22 +284,6 @@ static void *ParseAFPConfig(const char *iface)
         aconf->flags |= AFP_MMAP_LOCKED;
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
-        if (boolval) {
-            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
-                SCLogConfig("%s: enabling tpacket v3", aconf->iface);
-                aconf->flags |= AFP_TPACKET_V3;
-            } else {
-                SCLogWarning("%s: tpacket v3 is only implemented for 'workers' runmode."
-                             " Switching to tpacket v2.",
-                        iface);
-                aconf->flags &= ~AFP_TPACKET_V3;
-            }
-        } else {
-            aconf->flags &= ~AFP_TPACKET_V3;
-        }
-    }
-
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
     if (boolval) {
         SCLogConfig("%s: using emergency ring flush", aconf->iface);
@@ -316,18 +300,37 @@ static void *ParseAFPConfig(const char *iface)
         } else if (strcmp(copymodestr, "ips") == 0) {
             SCLogInfo("%s: AF_PACKET IPS mode activated %s->%s", iface, iface, aconf->out_iface);
             aconf->copy_mode = AFP_COPY_MODE_IPS;
-            if (aconf->flags & AFP_TPACKET_V3) {
-                SCLogWarning("%s: using tpacket_v3 in IPS mode will result in high latency", iface);
-            }
         } else if (strcmp(copymodestr, "tap") == 0) {
             SCLogInfo("%s: AF_PACKET TAP mode activated %s->%s", iface, iface, aconf->out_iface);
             aconf->copy_mode = AFP_COPY_MODE_TAP;
-            if (aconf->flags & AFP_TPACKET_V3) {
-                SCLogWarning("%s: using tpacket_v3 in TAP mode will result in high latency", iface);
-            }
         } else {
             SCLogWarning("Invalid 'copy-mode' (not in tap, ips)");
         }
+    }
+
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
+        if (boolval) {
+            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+                SCLogConfig("%s: enabling tpacket v3", aconf->iface);
+                aconf->flags |= AFP_TPACKET_V3;
+            } else {
+                SCLogWarning("%s: tpacket v3 is only implemented for 'workers' runmode."
+                             " Switching to tpacket v2.",
+                        iface);
+                aconf->flags &= ~AFP_TPACKET_V3;
+            }
+        } else {
+            aconf->flags &= ~AFP_TPACKET_V3;
+        }
+    } else if (aconf->copy_mode == AFP_COPY_MODE_NONE) {
+        // If copy mode is none (passive IDS) and "tpacket-v3" is not
+        // present, default to TPACKET_V3.
+        SCLogConfig("%s: enabling tpacket v3", aconf->iface);
+        aconf->flags |= AFP_TPACKET_V3;
+    }
+
+    if (aconf->flags & AFP_TPACKET_V3 && aconf->copy_mode) {
+        SCLogWarning("%s: using tpacket-v3 in IPS or TAP mode will result in high latency", iface);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {

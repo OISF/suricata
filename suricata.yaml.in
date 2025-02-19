@@ -667,7 +667,8 @@ af-packet:
     # subscribing could lock your system
     #mmap-locked: yes
     # Use tpacket_v3 capture mode.
-    # Don't use it in IPS or TAP mode as it causes severe latency
+    # Defaults to true for non-copy modes, and false for tap and ips mode.
+    # Don't use it in IPS or TAP mode as it causes severe latency.
     #tpacket-v3: yes
     # Ring size will be computed with respect to "max-pending-packets" and number
     # of threads. You can set manually the ring size in number of packets by setting
@@ -720,6 +721,8 @@ af-packet:
   # in the list above.
   - interface: default
     #threads: auto
+    # If left commented out, defaults to true when not in a copy
+    # (inline) mode.
     #tpacket-v3: yes
 
 # Linux high speed af-xdp capture support
