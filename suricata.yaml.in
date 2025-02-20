@@ -1725,15 +1725,15 @@ decoder:
 # The option inspection-recursion-limit is used to limit the recursive calls
 # in the content inspection code.  For certain payload-sig combinations, we
 # might end up taking too much time in the content inspection code.
-# If the argument specified is 0, the engine uses an internally defined
-# default limit.  When a value is not specified, there are no limits on the recursion.
+# If the argument specified is 0, there are no limits on the recursion.
+# When a value is not specified, the default is 3000
 detect:
   profile: medium
   custom-values:
     toclient-groups: 3
     toserver-groups: 25
   sgh-mpm-context: auto
-  inspection-recursion-limit: 3000
+  # inspection-recursion-limit: 3000
   # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
   # Try to guess an app-layer transaction for rules without app-layer keywords,
