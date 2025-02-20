@@ -1399,6 +1399,9 @@
         },
         "drop": {
             "type": "object",
+            "suricata": {
+                "keywords": false
+            },
             "properties": {
                 "ack": {
                     "type": "boolean"
@@ -4595,6 +4598,9 @@
         "stats": {
             "type": "object",
             "optional": true,
+            "suricata": {
+                "keywords": false
+            },
             "properties": {
                 "uptime": {
                     "description": "Suricata engine's uptime",
