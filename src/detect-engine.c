@@ -2870,6 +2870,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     intmax_t value = 0;
+    de_ctx->inspection_recursion_limit = DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
     if (ConfGetInt("detect.inspection-recursion-limit", &value) == 1)
     {
         if (value >= 0 && value <= INT_MAX) {
@@ -2909,9 +2910,6 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                     de_ctx->inspection_recursion_limit =
                         DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
                 }
-            } else {
-                de_ctx->inspection_recursion_limit =
-                    DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
             }
         }
     }
