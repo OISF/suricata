@@ -886,6 +886,7 @@ impl DCERPCState {
         let mut parsed = 0;
         let retval;
         let mut cur_i = stream_slice.as_slice();
+        let mut consumed = 0u32;
 
         // Skip the record since this means that its in the middle of a known length record
         if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
@@ -895,6 +896,7 @@ impl DCERPCState {
                     SCLogDebug!("DCERPC record found");
                     let offset = cur_i.len() - pg.len();
                     cur_i = &cur_i[offset..];
+                    consumed = offset as u32;
                     match direction {
                         Direction::ToServer => {
                             self.ts_gap = false;
@@ -905,7 +907,7 @@ impl DCERPCState {
                     }
                 },
                 _ => {
-                    let mut consumed = cur_i.len();
+                    consumed = cur_i.len() as u32;
                     // At least 2 bytes are required to know if a new record is beginning
                     if consumed < 2 {
                         consumed = 0;
@@ -913,7 +915,7 @@ impl DCERPCState {
                         consumed -= 1;
                     }
                     SCLogDebug!("DCERPC record NOT found");
-                    return AppLayerResult::incomplete(consumed as u32, 2);
+                    return AppLayerResult::incomplete(consumed, 2);
                 },
             }
         }
@@ -928,7 +930,7 @@ impl DCERPCState {
         if self.header.is_none() && !cur_i.is_empty() {
             parsed = self.process_header(cur_i);
             if parsed == -1 {
-                return AppLayerResult::incomplete(0, DCERPC_HDR_LEN as u32);
+                return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
             }
             if parsed < 0 {
                 return AppLayerResult::err();
@@ -941,7 +943,7 @@ impl DCERPCState {
 
         if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(parsed as u32, fraglen as u32 - parsed as u32);
+            return AppLayerResult::incomplete(consumed + parsed as u32, fraglen as u32 - parsed as u32);
         }
 
         let _hdr = Frame::new(flow, &stream_slice, cur_i, parsed as i64, DCERPCFrameType::Hdr as u8, None);
