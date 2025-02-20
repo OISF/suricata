@@ -885,8 +885,6 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, rs_rfb_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_MQTT, JsonMQTTAddMetadata, NULL);
@@ -973,6 +971,15 @@ int OutputPreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data)
     preregistered_loggers[preregistered_loggers_nb] = reg_data;
     preregistered_loggers_nb++;
     return 0;
+}
+
+static TxLogger JsonLoggerFromDir(uint8_t dir)
+{
+    if (dir == LOG_DIR_PACKET) {
+        return JsonGenericDirPacketLogger;
+    }
+    BUG_ON(dir != LOG_DIR_FLOW);
+    return JsonGenericDirFlowLogger;
 }
 
 /**
@@ -1075,12 +1082,7 @@ void OutputRegisterLoggers(void)
     SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
-    /* SNMP JSON logger. */
-    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSNMPLog", "eve-log.snmp",
-            OutputJsonLogInitSub, ALPROTO_SNMP, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
 
-    SCLogDebug("SNMP JSON logger registered.");
     /* SIP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
             OutputJsonLogInitSub, ALPROTO_SIP, JsonGenericDirPacketLogger, JsonLogThreadInit,
@@ -1135,11 +1137,11 @@ void OutputRegisterLoggers(void)
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
                 preregistered_loggers[i].confname, OutputJsonLogInitSub,
-                preregistered_loggers[i].alproto, JsonGenericDirFlowLogger, JsonLogThreadInit,
-                JsonLogThreadDeinit);
+                preregistered_loggers[i].alproto, JsonLoggerFromDir(preregistered_loggers[i].dir),
+                JsonLogThreadInit, JsonLogThreadDeinit);
         SCLogDebug(
                 "%s JSON logger registered.", AppProtoToString(preregistered_loggers[i].alproto));
-        RegisterSimpleJsonApplayerLogger(
-                preregistered_loggers[i].alproto, preregistered_loggers[i].LogTx, NULL);
+        RegisterSimpleJsonApplayerLogger(preregistered_loggers[i].alproto,
+                (EveJsonSimpleTxLogFunc)preregistered_loggers[i].LogTx, NULL);
     }
 }
