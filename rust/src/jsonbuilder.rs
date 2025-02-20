@@ -729,7 +729,7 @@ impl JsonBuilder {
                 offset += 1;
                 buf[offset] = b'0';
                 offset += 1;
-                buf[offset] = HEX[(x >> 4 & 0xf) as usize];
+                buf[offset] = HEX[((x >> 4) & 0xf) as usize];
                 offset += 1;
                 buf[offset] = HEX[(x & 0xf) as usize];
                 offset += 1;
