@@ -115,11 +115,7 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut c_void, ctx: *mut c_void
     rs_detect_u8_free(ctx);
 }
 
-fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
-    let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() > 2 {
-        return None;
-    }
+fn parse_ldap_index(parts: &[&str]) -> Option<LdapIndex> {
     let index = if parts.len() == 2 {
         match parts[1] {
             "all" => LdapIndex::All,
@@ -132,11 +128,19 @@ fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
     } else {
         LdapIndex::Any
     };
-    if let Some(ctx) = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0]) {
-        let du8 = ctx;
-        return Some(DetectLdapRespOpData { du8, index });
+    return Some(index);
+}
+
+fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() > 2 {
+        return None;
     }
-    return None;
+
+    let index = parse_ldap_index(&parts)?;
+    let du8 = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0])?;
+
+    Some(DetectLdapRespOpData { du8, index })
 }
 
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
