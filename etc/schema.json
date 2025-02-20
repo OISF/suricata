@@ -1058,7 +1058,10 @@
                 },
                 "version": {
                     "description": "The version of this EVE DNS event",
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": false
+                    }
                 },
                 "opcode": {
                     "description": "DNS opcode as an integer",
@@ -1280,7 +1283,11 @@
                     "additionalProperties": false
                 },
                 "grouped": {
+                    "desription": "DNS fields grouped by type: alternative format, no direct keywords",
                     "type": "object",
+                    "suricata": {
+                        "keywords": false
+                    },
                     "properties": {
                         "A": {
                             "type": "array",
