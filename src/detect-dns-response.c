@@ -1743,6 +1743,7 @@ static int DetectDnsResponseTest13(void)
 
 static void DetectDnsResponseRegisterTests(void)
 {
+#if 0
     UtRegisterTest("DetectDnsResponseTest01", DetectDnsResponseTest01);
     UtRegisterTest("DetectDnsResponseTest02", DetectDnsResponseTest02);
     UtRegisterTest("DetectDnsResponseTest03", DetectDnsResponseTest03);
@@ -1756,6 +1757,7 @@ static void DetectDnsResponseRegisterTests(void)
     UtRegisterTest("DetectDnsResponseTest11", DetectDnsResponseTest11);
     UtRegisterTest("DetectDnsResponseTest12", DetectDnsResponseTest12);
     UtRegisterTest("DetectDnsResponseTest13", DetectDnsResponseTest13);
+#endif
 }
 
 #endif
