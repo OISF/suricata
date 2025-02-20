@@ -107,8 +107,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
 
     return buffer;
@@ -120,9 +120,8 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        InspectionBufferSetup(
-                det_ctx, list_id, buffer, (const uint8_t *)"HTTP/2", strlen("HTTP/2"));
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, (const uint8_t *)"HTTP/2", strlen("HTTP/2"), transforms);
     }
 
     return buffer;

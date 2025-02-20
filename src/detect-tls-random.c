@@ -221,8 +221,8 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random;
         }
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }
@@ -248,8 +248,8 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
         }
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }
@@ -275,8 +275,8 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random;
         }
-        InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
 }

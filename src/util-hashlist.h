@@ -42,10 +42,16 @@ typedef struct HashListTable_ {
     uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t);
     char (*Compare)(void *, uint16_t, void *, uint16_t);
     void (*Free)(void *);
+    void (*FreeWithCtx)(void *, void *);
 } HashListTable;
 
 /* prototypes */
 HashListTable* HashListTableInit(uint32_t, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
+HashListTable *HashListTableInitWithCtx(uint32_t,
+        uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*FreeWithCtx)(void *, void *));
+
+void HashListTableFreeWithCtx(void *, HashListTable *);
 void HashListTableFree(HashListTable *);
 int HashListTableAdd(HashListTable *, void *, uint16_t);
 int HashListTableRemove(HashListTable *, void *, uint16_t);
