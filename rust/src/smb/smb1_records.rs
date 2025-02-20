@@ -520,7 +520,7 @@ pub fn parse_smb_read_andx_request_record(i: &[u8]) -> IResult<&[u8], SmbRequest
     let record = SmbRequestReadAndXRecord {
         fid,
         size: (((max_count_high as u64) << 16)|max_count_low as u64),
-        offset: high_offset.map(|ho| (ho as u64) << 32 | offset as u64).unwrap_or(0),
+        offset: high_offset.map(|ho| ((ho as u64) << 32) | offset as u64).unwrap_or(0),
     };
     Ok((i, record))
 }
@@ -858,7 +858,7 @@ pub fn parse_smb_record(i: &[u8]) -> IResult<&[u8], SmbRecord> {
         user_id,
         multiplex_id,
 
-        process_id: (process_id_high as u32) << 16 | process_id as u32,
+        process_id: ((process_id_high as u32) << 16) | process_id as u32,
         //ssn_id: (((process_id as u32)<< 16)|(user_id as u32)),
         ssn_id: user_id as u32,
         data,
