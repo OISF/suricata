@@ -304,7 +304,6 @@ impl ConnectionParser {
         // A 2xx response means a tunnel was established. Anything
         // else means we continue to follow the HTTP stream.
         if req.response_status_number.in_range(200, 299) {
-            // TODO Check that the server did not accept a connection to itself.
             // The requested tunnel was established: we are going
             // to probe the remaining data on this stream to see
             // if we need to ignore it or parse it
@@ -327,7 +326,7 @@ impl ConnectionParser {
         }
         let req = req.unwrap();
 
-        // TODO We shouldn't really see anything apart from CR and LF,
+        // TODO post-release We shouldn't really see anything apart from CR and LF,
         //      so we should warn about anything else.
         if let Ok((_, line)) = take_till_lf(input.as_slice()) {
             let len = line.len();
@@ -821,7 +820,7 @@ impl ConnectionParser {
                     // Log only once per transaction.
                     // We handle this case as a header with an empty name, with the value equal
                     // to the entire input string.
-                    // TODO Apache will respond to this problem with a 400.
+                    // Apache will respond to this problem with a 400.
                     // Now extract the name and the value
                     htp_warn_once!(
                         self.logger,

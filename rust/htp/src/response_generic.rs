@@ -122,7 +122,7 @@ impl ConnectionParser {
                 if name_flags.is_set(HeaderFlags::MISSING_COLON) {
                     // We handle this case as a header with an empty name, with the value equal
                     // to the entire input string.
-                    // TODO Apache will respond to this problem with a 400.
+                    // Apache will respond to this problem with a 400.
                     // Now extract the name and the value
                     htp_warn_once!(
                         self.logger,

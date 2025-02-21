@@ -29,8 +29,6 @@ impl ConnectionParser {
             .request_headers
             .get_nocase_mut(header.name.as_slice())
         {
-            // TODO Do we want to have a list of the headers that are
-            //      allowed to be combined in this way?
             if !h_existing.flags.is_set(HtpFlags::FIELD_REPEATED) {
                 // This is the second occurence for this header.
                 repeated = true;
@@ -134,7 +132,7 @@ impl ConnectionParser {
                     // Log only once per transaction.
                     // We handle this case as a header with an empty name, with the value equal
                     // to the entire input string.
-                    // TODO Apache will respond to this problem with a 400.
+                    // Apache will respond to this problem with a 400.
                     // Now extract the name and the value
                     htp_warn_once!(
                         self.logger,

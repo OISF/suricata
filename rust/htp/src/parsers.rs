@@ -425,7 +425,7 @@ pub fn parse_authorization(request_tx: &mut Transaction) -> Result<()> {
         request_tx.request_auth_type = HtpAuthType::NONE;
         return Ok(());
     };
-    // TODO Need a flag to raise when failing to parse authentication headers.
+    // TODO post-release Need a flag to raise when failing to parse authentication headers.
     if auth_header.value.starts_with_nocase("basic") {
         // Basic authentication
         request_tx.request_auth_type = HtpAuthType::BASIC;

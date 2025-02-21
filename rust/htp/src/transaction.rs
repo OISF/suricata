@@ -751,7 +751,7 @@ impl Transaction {
         // Check for the Transfer-Encoding header, which would indicate a chunked request body.
         if let Some(te) = self.request_headers.get_nocase_nozero("transfer-encoding") {
             // Make sure it contains "chunked" only.
-            // TODO The HTTP/1.1 RFC also allows the T-E header to contain "identity", which
+            // The HTTP/1.1 RFC also allows the T-E header to contain "identity", which
             //      presumably should have the same effect as T-E header absence. However, Apache
             //      (2.2.22 on Ubuntu 12.04 LTS) instead errors out with "Unknown Transfer-Encoding: identity".
             //      And it behaves strangely, too, sending a 501 and proceeding to process the request

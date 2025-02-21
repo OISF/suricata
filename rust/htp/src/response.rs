@@ -516,7 +516,7 @@ impl ConnectionParser {
                 .response_headers
                 .get_nocase_nozero("content-type")
             {
-                // TODO Some platforms may do things differently here.
+                // TODO post-release Some platforms may do things differently here.
                 let response_content_type = if let Ok((_, ct)) =
                     streaming_take_till::<_, _, (&[u8], ErrorKind)>(|c| c == b';' || is_space(c))(
                         &ct.value,
@@ -838,7 +838,7 @@ impl ConnectionParser {
                 if name_flags.is_set(HeaderFlags::MISSING_COLON) {
                     // We handle this case as a header with an empty name, with the value equal
                     // to the entire input string.
-                    // TODO Apache will respond to this problem with a 400.
+                    // Apache will respond to this problem with a 400.
                     // Now extract the name and the value
                     htp_warn_once!(
                         self.logger,
