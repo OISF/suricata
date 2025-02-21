@@ -7,22 +7,6 @@ matching on specific fields in DNS messages.
 Note that sticky buffers are expected to be followed by one or more
 :doc:`payload-keywords`.
 
-dns.answer.name
----------------
-
-``dns.answer.name`` is a sticky buffer that is used to look at the
-name field in DNS answer resource records.
-
-``dns.answer.name`` will look at both requests and responses, so
-``flow`` is recommended to confine to a specific direction.
-
-The buffer being matched on contains the complete re-assembled
-resource name, for example "www.suricata.io".
-
-``dns.answer.name`` supports :doc:`multi-buffer-matching`.
-
-``dns.answer.name`` was introduced in Suricata 8.0.0.
-
 dns.opcode
 ----------
 
@@ -134,9 +118,9 @@ pkt_data is used or it reaches the end of the rule.
 
 .. note:: **dns.query** will only match on DNS request messages, to
           also match on DNS response message, see
-          `dns.query.name`_.
+          `dns.queries.rrname`_.
 
-``dns.query.name`` supports :doc:`multi-buffer-matching`.
+``dns.queries.rrname`` supports :doc:`multi-buffer-matching`.
 
 Normalized Buffer
 ~~~~~~~~~~~~~~~~~
@@ -160,19 +144,96 @@ DNS query on the wire (snippet)::
 
     mail.google.com
 
-dns.query.name
----------------
+dns.queries.rrname
+------------------
 
-``dns.query.name`` is a sticky buffer that is used to look at the name
-field in DNS query (question) resource records. It is nearly identical
-to ``dns.query`` but supports both DNS requests and responses.
+``dns.queries.rrname`` is a sticky buffer that is used to look at the
+name field in DNS query (question) resource records. It is nearly
+identical to ``dns.query`` but supports both DNS requests and
+responses.
 
-``dns.query.name`` will look at both requests and responses, so
+``dns.queries.rrname`` will look at both requests and responses, so
 ``flow`` is recommended to confine to a specific direction.
 
 The buffer being matched on contains the complete re-assembled
 resource name, for example "www.suricata.io".
 
-``dns.query.name`` supports :doc:`multi-buffer-matching`.
+``dns.queries.rrname`` supports :doc:`multi-buffer-matching`.
 
-``dns.query.name`` was introduced in Suricata 8.0.0.
+``dns.queries.rrname`` was introduced in Suricata 8.0.0.
+
+dns.answers.rrname
+------------------
+
+``dns.answers.rrname`` is a sticky buffer that is used to look at the
+name field in DNS answer resource records.
+
+``dns.answers.rrname`` will look at both requests and responses, so
+``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.answers.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.answers.rrname`` was introduced in Suricata 8.0.0.
+
+dns.authorities.rrname
+----------------------
+
+``dns.authorities.rrname`` is a sticky buffer that is used to look at the
+rrname field in DNS authority resource records.
+
+``dns.authorities.rrname`` will look at both requests and responses,
+so ``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.authorities.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.authorities.rrname`` was introduced in Suricata 8.0.0.
+
+dns.additionals.rrname
+----------------------
+
+``dns.additionals.rrname`` is a sticky buffer that is used to look at
+the rrname field in DNS additional resource records.
+
+``dns.additionals.rrname`` will look at both requests and responses,
+so ``flow`` is recommended to confine to a specific direction.
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.additionals.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.additionals.rrname`` was introduced in Suricata 8.0.0.
+
+dns.response.rrname
+-------------------
+
+``dns.response.rrname`` is a sticky buffer that is used to look at all name
+and rdata fields of DNS response (answer) resource records that are
+represented as a resource name (hostname). It supports inspecting all
+DNS response sections. Example::
+
+  alert dns any any -> any any (msg:"Test dns.response.rrname option"; \
+      dns.response.rrname; content:"google"; nocase; sid:1;)
+
+``rdata`` field matching supports a subset of types that contain
+domain name structured data, for example: "www.suricata.io".  The list
+of types inspected is:
+
+* CNAME
+* PTR
+* MX
+* NS
+* SOA (mname data: primary name server)
+
+The buffer being matched on contains the complete re-assembled
+resource name, for example "www.suricata.io".
+
+``dns.response.rrname`` supports :doc:`multi-buffer-matching`.
+
+``dns.response.rrname`` was introduced in Suricata 8.0.0.
