@@ -143,7 +143,7 @@ impl JA4 {
             // If the first ALPN value is only a single character, then that character is treated as both the first and last character.
             if alpn.len() == 2 {
                 // GREASE values are 2 bytes, so this could be one -- check
-                let v: u16 = (alpn[0] as u16) << 8 | alpn[alpn.len() - 1] as u16;
+                let v: u16 = ((alpn[0] as u16) << 8) | alpn[alpn.len() - 1] as u16;
                 if JA4::is_grease(v) {
                     return;
                 }
@@ -288,12 +288,12 @@ mod tests {
     fn test_is_grease() {
         let mut alpn = "foobar".as_bytes();
         let mut len = alpn.len();
-        let v: u16 = (alpn[0] as u16) << 8 | alpn[len - 1] as u16;
+        let v: u16 = ((alpn[0] as u16) << 8) | alpn[len - 1] as u16;
         assert!(!JA4::is_grease(v));
 
         alpn = &[0x0a, 0x0a];
         len = alpn.len();
-        let v: u16 = (alpn[0] as u16) << 8 | alpn[len - 1] as u16;
+        let v: u16 = ((alpn[0] as u16) << 8) | alpn[len - 1] as u16;
         assert!(JA4::is_grease(v));
     }
 
