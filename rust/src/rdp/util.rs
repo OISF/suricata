@@ -70,7 +70,7 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32, RdpErro
                 Ok((&input[1..], length))
             }
             _ => {
-                let bit6 = input[0] >> 6 & 0x1;
+                let bit6 = (input[0] >> 6) & 0x1;
                 match bit6 {
                     0b0 => {
                         // byte starts with 0b10.  Length stored in the remaining 6 bits and the next byte
