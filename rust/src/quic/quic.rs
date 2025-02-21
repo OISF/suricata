@@ -115,6 +115,7 @@ pub struct QuicState {
     crypto_fraglen_ts: u32,
     hello_tc: bool,
     hello_ts: bool,
+    has_retried: bool,
     transactions: VecDeque<QuicTransaction>,
 }
 
@@ -130,6 +131,7 @@ impl Default for QuicState {
             crypto_fraglen_ts: 0,
             hello_tc: false,
             hello_ts: false,
+            has_retried: false,
             transactions: VecDeque::new(),
         }
     }
@@ -334,10 +336,17 @@ impl QuicState {
                     // unprotect/decrypt packet
                     if self.keys.is_none() && header.ty == QuicType::Initial {
                         self.keys = quic_keys_initial(u32::from(header.version), &header.dcid);
-                    } else if !to_server && self.keys.is_some() && header.ty == QuicType::Retry {
+                    } else if !to_server
+                        && self.keys.is_some()
+                        && header.ty == QuicType::Retry
+                        && !self.has_retried
+                    {
                         // a retry packet discards the current keys, client will resend an initial packet with new keys
                         self.hello_ts = false;
                         self.keys = None;
+                        // RFC 9000 17.2.5.2 After the client has received and processed an Initial or Retry packet
+                        // from the server, it MUST discard any subsequent Retry packets that it receives.
+                        self.has_retried = true;
                     }
                     // header.length was checked against rest.len() during parsing
                     let (mut framebuf, next_buf) = rest.split_at(header.length.into());
