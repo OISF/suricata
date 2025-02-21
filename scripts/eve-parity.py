@@ -139,6 +139,10 @@ def load_known_keywords():
     for line in lines[1:]:
         parts = line.split(";")
         if parts:
+            # Skip transforms.
+            if len(parts) > 3 and parts[3].find("transform") > -1:
+                continue
+
             keywords.add(parts[0])
     return keywords
 
