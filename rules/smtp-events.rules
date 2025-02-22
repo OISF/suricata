@@ -8,12 +8,12 @@
 #
 alert smtp any any -> any any (msg:"SURICATA SMTP invalid reply"; flow:established,to_client; app-layer-event:smtp.invalid_reply; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220000; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP unable to match reply with request"; flow:established,to_client; app-layer-event:smtp.unable_to_match_reply_with_request; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220001; rev:1;)
-alert smtp any any -> any any (msg:"SURICATA SMTP max command line len exceeded"; flow:established; app-layer-event:smtp.max_command_line_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220002; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP max command line len exceeded"; flow:established,to_server; app-layer-event:smtp.max_command_line_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220002; rev:2;)
 alert smtp any any -> any any (msg:"SURICATA SMTP max reply line len exceeded"; flow:established,to_client; app-layer-event:smtp.max_reply_line_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220003; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP invalid pipelined sequence"; flow:established,to_server; app-layer-event:smtp.invalid_pipelined_sequence; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220004; rev:1;)
-alert smtp any any -> any any (msg:"SURICATA SMTP bdat chunk len exceeded"; flow:established; app-layer-event:smtp.bdat_chunk_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220005; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP bdat chunk len exceeded"; flow:established,to_server; app-layer-event:smtp.bdat_chunk_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220005; rev:2;)
 alert smtp any any -> any any (msg:"SURICATA SMTP no server welcome message"; flow:established,to_client; app-layer-event:smtp.no_server_welcome_message; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220006; rev:1;)
-alert smtp any any -> any any (msg:"SURICATA SMTP tls rejected"; flow:established; app-layer-event:smtp.tls_rejected; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220007; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP tls rejected"; flow:established,to_client; app-layer-event:smtp.tls_rejected; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220007; rev:2;)
 alert smtp any any -> any any (msg:"SURICATA SMTP data command rejected"; flow:established,to_client; app-layer-event:smtp.data_command_rejected; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220008; rev:1;)
 
 # SMTP MIME events
@@ -30,5 +30,5 @@ alert smtp any any -> any any (msg:"SURICATA SMTP Mime boundary length exceeded"
 alert smtp any any -> any any (msg:"SURICATA SMTP duplicate fields"; flow:established,to_server; app-layer-event:smtp.duplicate_fields; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220018; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP unparsable content"; flow:established,to_server; app-layer-event:smtp.unparsable_content; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220019; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP filename truncated"; flow:established,to_server; app-layer-event:smtp.mime_long_filename; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220020; rev:1;)
-alert smtp any any -> any any (msg:"SURICATA SMTP failed protocol change"; flow:established; app-layer-event:smtp.failed_protocol_change; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220021; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP failed protocol change"; flow:established,to_client; app-layer-event:smtp.failed_protocol_change; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220021; rev:2;)
 # next sid 2220022
