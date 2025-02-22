@@ -42,6 +42,7 @@
 #include "util-device.h"
 #include "util-dpdk.h"
 #include "util-dpdk-bonding.h"
+#include "util-dpdk-common.h"
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
@@ -77,12 +78,12 @@ static void InitEal(void);
 
 static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str);
-static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues);
-static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues);
-static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, intmax_t entry_int);
+static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues);
+static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues);
+static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str);
-static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int);
-static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int);
+static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
+static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
 static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int);
 static bool ConfigSetPromiscuousMode(DPDKIfaceConfig *iconf, int entry_bool);
 static bool ConfigSetMulticast(DPDKIfaceConfig *iconf, int entry_bool);
@@ -107,10 +108,10 @@ static void DPDKDerefConfig(void *conf);
 
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
 #define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
-#define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                65535
+#define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                "auto"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
-#define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              1024
-#define DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS              1024
+#define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              "auto"
+#define DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS              "auto"
 #define DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS          RTE_ETH_RSS_IP
 #define DPDK_CONFIG_DEFAULT_MTU                         1500
 #define DPDK_CONFIG_DEFAULT_PROMISCUOUS_MODE            1
@@ -118,6 +119,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION         1
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD 1
 #define DPDK_CONFIG_DEFAULT_VLAN_STRIP                  0
+#define DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT              0
 #define DPDK_CONFIG_DEFAULT_COPY_MODE                   "none"
 #define DPDK_CONFIG_DEFAULT_COPY_INTERFACE              "none"
 
@@ -131,6 +133,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .mtu = "mtu",
     .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
+    .linkup_timeout = "linkup-timeout",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -139,6 +142,10 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .copy_iface = "copy-iface",
 };
 
+/**
+ * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
+ * The divisor is returned.
+ */
 static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
 {
     for (int i = max_num; i >= 2; i--) {
@@ -147,6 +154,28 @@ static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
         }
     }
     return 1;
+}
+
+/**
+ * \brief Input is a number of which we want to find the greatest power of 2 up to num. The power of
+ * 2 is returned or 0 if no valid power of 2 is found.
+ */
+static uint64_t GreatestPowOf2UpTo(uint64_t num)
+{
+    if (num == 0) {
+        return 0; // No power of 2 exists for 0
+    }
+
+    // Bit manipulation to isolate the highest set bit
+    num |= (num >> 1);
+    num |= (num >> 2);
+    num |= (num >> 4);
+    num |= (num >> 8);
+    num |= (num >> 16);
+    num |= (num >> 32);
+    num = num - (num >> 1);
+
+    return num;
 }
 
 static char *AllocArgument(size_t arg_len)
@@ -307,10 +336,7 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
-        if (iconf->pkt_mempool != NULL) {
-            rte_mempool_free(iconf->pkt_mempool);
-        }
-
+        DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
         SCFree(iconf);
     }
     SCReturn;
@@ -324,7 +350,6 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     if (ptr == NULL)
         FatalError("Could not allocate memory for DPDKIfaceConfig");
 
-    ptr->pkt_mempool = NULL;
     ptr->out_port_id = -1; // make sure no port is set
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
@@ -441,43 +466,108 @@ static bool ConfigSetInterruptMode(DPDKIfaceConfig *iconf, bool enable)
     SCReturnBool(true);
 }
 
-static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
+static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues)
 {
     SCEnter();
+    if (nb_queues == 0) {
+        SCLogInfo("%s: positive number of RX queues is required", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    if (nb_queues > max_queues) {
+        SCLogInfo("%s: number of RX queues cannot exceed %" PRIu16, iconf->iface, max_queues);
+        SCReturnInt(-ERANGE);
+    }
+
     iconf->nb_rx_queues = nb_queues;
-    if (iconf->nb_rx_queues < 1) {
-        SCLogError("%s: positive number of RX queues is required", iconf->iface);
-        SCReturnInt(-ERANGE);
-    }
-
     SCReturnInt(0);
 }
 
-static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
+static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues)
 {
     SCEnter();
+    if (nb_queues == 0) {
+        SCLogInfo("%s: positive number of TX queues is required", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    if (nb_queues > max_queues) {
+        SCLogInfo("%s: number of TX queues cannot exceed %" PRIu16, iconf->iface, max_queues);
+        SCReturnInt(-ERANGE);
+    }
+
     iconf->nb_tx_queues = nb_queues;
-    if (iconf->nb_tx_queues < 1) {
-        SCLogError("%s: positive number of TX queues is required", iconf->iface);
+    SCReturnInt(0);
+}
+
+static uint32_t MempoolSizeCalculate(
+        uint32_t rx_queues, uint32_t rx_desc, uint32_t tx_queues, uint32_t tx_desc)
+{
+    return rx_queues * rx_desc + tx_queues * tx_desc;
+}
+
+static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
+{
+    SCEnter();
+    if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
+        // calculate the mempool size based on the number of:
+        //   - RX / TX queues
+        //   - RX / TX descriptors
+        bool err = false;
+        if (iconf->nb_rx_queues == 0) {
+            // in IDS mode, we don't need TX queues
+            SCLogError("%s: cannot autocalculate mempool size without RX queues", iconf->iface);
+            err = true;
+        }
+
+        if (iconf->nb_rx_desc == 0) {
+            SCLogError(
+                    "%s: cannot autocalculate mempool size without RX descriptors", iconf->iface);
+            err = true;
+        }
+
+        if (err) {
+            SCReturnInt(-EINVAL);
+        }
+
+        iconf->mempool_size = MempoolSizeCalculate(
+                iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc);
+        SCReturnInt(0);
+    }
+
+    if (StringParseUint32(&iconf->mempool_size, 10, 0, entry_str) < 0) {
+        SCLogError("%s: mempool size entry contain non-numerical characters - \"%s\"", iconf->iface,
+                entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    if (MempoolSizeCalculate(
+                iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc) >
+            iconf->mempool_size + 1) { // +1 to mask mempool size advice given in Suricata 7.0.x -
+                                       // mp_size should be n = (2^q - 1)
+        SCLogError("%s: mempool size is likely too small for the number of descriptors and queues, "
+                   "set to \"auto\" or adjust to the value of \"%" PRIu32 "\"",
+                iconf->iface,
+                MempoolSizeCalculate(iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues,
+                        iconf->nb_tx_desc));
+        SCReturnInt(-ERANGE);
+    }
+
+    if (iconf->mempool_size == 0) {
+        SCLogError("%s: mempool size requires a positive integer", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
     SCReturnInt(0);
 }
 
-static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, intmax_t entry_int)
+static uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
 {
-    SCEnter();
-    if (entry_int <= 0) {
-        SCLogError("%s: positive memory pool size is required", iconf->iface);
-        SCReturnInt(-ERANGE);
-    } else if (entry_int > UINT32_MAX) {
-        SCLogError("%s: memory pool size cannot exceed %" PRIu32, iconf->iface, UINT32_MAX);
-        SCReturnInt(-ERANGE);
-    }
-
-    iconf->mempool_size = entry_int;
-    SCReturnInt(0);
+    // It is advised to have mempool cache size lower or equal to:
+    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
+    // and at the same time "mempool-size modulo cache_size == 0".
+    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, mp_sz / 1.5);
+    return GreatestDivisorUpTo(mp_sz, max_cache_size);
 }
 
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str)
@@ -485,17 +575,13 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
         // calculate the mempool size based on the mempool size (it needs to be already filled in)
-        // It is advised to have mempool cache size lower or equal to:
-        //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
-        // and at the same time "mempool-size modulo cache_size == 0".
         if (iconf->mempool_size == 0) {
             SCLogError("%s: cannot calculate mempool cache size of a mempool with size %d",
                     iconf->iface, iconf->mempool_size);
             SCReturnInt(-EINVAL);
         }
 
-        uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, iconf->mempool_size / 1.5);
-        iconf->mempool_cache_size = GreatestDivisorUpTo(iconf->mempool_size, max_cache_size);
+        iconf->mempool_cache_size = MempoolCacheSizeCalculate(iconf->mempool_size);
         SCReturnInt(0);
     }
 
@@ -514,33 +600,65 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     SCReturnInt(0);
 }
 
-static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
+static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc)
 {
     SCEnter();
-    if (entry_int <= 0) {
+    if (entry_str == NULL || entry_str[0] == '\0') {
+        SCLogInfo("%s: number of RX descriptors not found, going with: %s", iconf->iface,
+                DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS);
+        entry_str = DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS;
+    }
+
+    if (strcmp(entry_str, "auto") == 0) {
+        iconf->nb_rx_desc = GreatestPowOf2UpTo(max_desc);
+        SCReturnInt(0);
+    }
+
+    if (StringParseUint16(&iconf->nb_rx_desc, 10, 0, entry_str) < 0) {
+        SCLogError("%s: RX descriptors entry contains non-numerical characters - \"%s\"",
+                iconf->iface, entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    if (iconf->nb_rx_desc == 0) {
         SCLogError("%s: positive number of RX descriptors is required", iconf->iface);
         SCReturnInt(-ERANGE);
-    } else if (entry_int > UINT16_MAX) {
-        SCLogError("%s: number of RX descriptors cannot exceed %" PRIu16, iconf->iface, UINT16_MAX);
+    } else if (iconf->nb_rx_desc > max_desc) {
+        SCLogError("%s: number of RX descriptors cannot exceed %" PRIu16, iconf->iface, max_desc);
         SCReturnInt(-ERANGE);
     }
 
-    iconf->nb_rx_desc = entry_int;
     SCReturnInt(0);
 }
 
-static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
+static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc)
 {
     SCEnter();
-    if (entry_int <= 0) {
+    if (entry_str == NULL || entry_str[0] == '\0') {
+        SCLogInfo("%s: number of TX descriptors not found, going with: %s", iconf->iface,
+                DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS);
+        entry_str = DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS;
+    }
+
+    if (strcmp(entry_str, "auto") == 0) {
+        iconf->nb_tx_desc = GreatestPowOf2UpTo(max_desc);
+        SCReturnInt(0);
+    }
+
+    if (StringParseUint16(&iconf->nb_tx_desc, 10, 0, entry_str) < 0) {
+        SCLogError("%s: TX descriptors entry contains non-numerical characters - \"%s\"",
+                iconf->iface, entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    if (iconf->nb_tx_desc == 0) {
         SCLogError("%s: positive number of TX descriptors is required", iconf->iface);
         SCReturnInt(-ERANGE);
-    } else if (entry_int > UINT16_MAX) {
-        SCLogError("%s: number of TX descriptors cannot exceed %" PRIu16, iconf->iface, UINT16_MAX);
+    } else if (iconf->nb_tx_desc > max_desc) {
+        SCLogError("%s: number of TX descriptors cannot exceed %" PRIu16, iconf->iface, max_desc);
         SCReturnInt(-ERANGE);
     }
 
-    iconf->nb_tx_desc = entry_int;
     SCReturnInt(0);
 }
 
@@ -571,6 +689,19 @@ static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
     }
 
     iconf->mtu = entry_int;
+    SCReturnInt(0);
+}
+
+static int ConfigSetLinkupTimeout(DPDKIfaceConfig *iconf, intmax_t entry_int)
+{
+    SCEnter();
+    if (entry_int < 0) {
+        SCLogError("%s: Link-up waiting timeout needs to be a positive number or 0 to disable",
+                iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    iconf->linkup_timeout = entry_int;
     SCReturnInt(0);
 }
 
@@ -706,6 +837,12 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     const char *copy_mode_str = NULL;
 
     ConfigSetIface(iconf, iface);
+    struct rte_eth_dev_info dev_info = { 0 };
+    retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
+    if (retval < 0) {
+        SCLogError("%s: getting device info failed: %s", iconf->iface, rte_strerror(-retval));
+        SCReturnInt(retval);
+    }
 
     retval = ConfSetRootAndDefaultNodes("dpdk.interfaces", iconf->iface, &if_root, &if_default);
     if (retval < 0) {
@@ -730,19 +867,41 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(-EINVAL);
 
     // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads);
-    if (retval < 0)
+    retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_rx_queues);
+    if (retval < 0) {
+        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
+                iconf->iface, dev_info.max_rx_queues);
         SCReturnInt(retval);
+    }
 
     // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    retval = ConfigSetTxQueues(iconf, (uint16_t)iconf->threads);
+    retval = ConfigSetTxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_tx_queues);
+    if (retval < 0) {
+        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
+                iconf->iface, dev_info.max_tx_queues);
+        SCReturnInt(retval);
+    }
+
+    retval = ConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.rx_descriptors, &entry_str) != 1
+                     ? ConfigSetRxDescriptors(iconf, DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS,
+                               dev_info.rx_desc_lim.nb_max)
+                     : ConfigSetRxDescriptors(iconf, entry_str, dev_info.rx_desc_lim.nb_max);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueIntWithDefault(
-                     if_root, if_default, dpdk_yaml.mempool_size, &entry_int) != 1
+    retval = ConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.tx_descriptors, &entry_str) != 1
+                     ? ConfigSetTxDescriptors(iconf, DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS,
+                               dev_info.tx_desc_lim.nb_max)
+                     : ConfigSetTxDescriptors(iconf, entry_str, dev_info.tx_desc_lim.nb_max);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = ConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
                      ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE)
-                     : ConfigSetMempoolSize(iconf, entry_int);
+                     : ConfigSetMempoolSize(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -750,20 +909,6 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
                      if_root, if_default, dpdk_yaml.mempool_cache_size, &entry_str) != 1
                      ? ConfigSetMempoolCacheSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE)
                      : ConfigSetMempoolCacheSize(iconf, entry_str);
-    if (retval < 0)
-        SCReturnInt(retval);
-
-    retval = ConfGetChildValueIntWithDefault(
-                     if_root, if_default, dpdk_yaml.rx_descriptors, &entry_int) != 1
-                     ? ConfigSetRxDescriptors(iconf, DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS)
-                     : ConfigSetRxDescriptors(iconf, entry_int);
-    if (retval < 0)
-        SCReturnInt(retval);
-
-    retval = ConfGetChildValueIntWithDefault(
-                     if_root, if_default, dpdk_yaml.tx_descriptors, &entry_int) != 1
-                     ? ConfigSetTxDescriptors(iconf, DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS)
-                     : ConfigSetTxDescriptors(iconf, entry_int);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -816,18 +961,23 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         ConfigSetVlanStrip(iconf, entry_bool);
     }
 
-    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
-    if (retval != 1)
-        SCReturnInt(-ENOENT);
+    retval = ConfGetChildValueIntWithDefault(
+                     if_root, if_default, dpdk_yaml.linkup_timeout, &entry_int) != 1
+                     ? ConfigSetLinkupTimeout(iconf, DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT)
+                     : ConfigSetLinkupTimeout(iconf, entry_int);
     if (retval < 0)
         SCReturnInt(retval);
 
+    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
+    if (retval != 1) {
+        copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
+    }
+
     retval = ConfGetChildValueWithDefault(
             if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
-    if (retval != 1)
-        SCReturnInt(-ENOENT);
-    if (retval < 0)
-        SCReturnInt(retval);
+    if (retval != 1) {
+        copy_iface_str = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
+    }
 
     retval = ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
     if (retval < 0)
@@ -1246,26 +1396,33 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
 {
     SCEnter();
     int retval;
-    uint16_t mtu_size;
-    uint16_t mbuf_size;
     struct rte_eth_rxconf rxq_conf;
     struct rte_eth_txconf txq_conf;
 
-    char mempool_name[64];
-    snprintf(mempool_name, 64, "mempool_%.20s", iconf->iface);
-    // +4 for VLAN header
-    mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
-    mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
-    SCLogConfig("%s: creating packet mbuf pool %s of size %d, cache size %d, mbuf size %d",
-            iconf->iface, mempool_name, iconf->mempool_size, iconf->mempool_cache_size, mbuf_size);
+    retval = DPDKDeviceResourcesInit(&(iconf->pkt_mempools), iconf->nb_rx_queues);
+    if (retval < 0) {
+        goto cleanup;
+    }
 
-    iconf->pkt_mempool = rte_pktmbuf_pool_create(mempool_name, iconf->mempool_size,
-            iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
-    if (iconf->pkt_mempool == NULL) {
-        retval = -rte_errno;
-        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s): %s",
-                iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
-        SCReturnInt(retval);
+    // +4 for VLAN header
+    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
+    uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
+    // ceil the div so e.g. mp_size of 262144 and 262143 both lead to 65535 on 4 rx queues
+    uint32_t q_mp_sz = (iconf->mempool_size + iconf->nb_rx_queues - 1) / iconf->nb_rx_queues - 1;
+    uint32_t q_mp_cache_sz = MempoolCacheSizeCalculate(q_mp_sz);
+    SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
+            iconf->iface, iconf->nb_rx_queues, q_mp_sz, q_mp_cache_sz, mbuf_size);
+    for (int i = 0; i < iconf->nb_rx_queues; i++) {
+        char mempool_name[64];
+        snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
+        iconf->pkt_mempools->pkt_mp[i] = rte_pktmbuf_pool_create(
+                mempool_name, q_mp_sz, q_mp_cache_sz, 0, mbuf_size, (int)iconf->socket_id);
+        if (iconf->pkt_mempools->pkt_mp[i] == NULL) {
+            retval = -rte_errno;
+            SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
+                    iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
+            goto cleanup;
+        }
     }
 
     for (uint16_t queue_id = 0; queue_id < iconf->nb_rx_queues; queue_id++) {
@@ -1284,12 +1441,11 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
-                iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
+                iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
         if (retval < 0) {
-            rte_mempool_free(iconf->pkt_mempool);
             SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
-            SCReturnInt(retval);
+            goto cleanup;
         }
     }
 
@@ -1306,14 +1462,17 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         retval = rte_eth_tx_queue_setup(
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
-            rte_mempool_free(iconf->pkt_mempool);
             SCLogError("%s: failed to setup TX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
-            SCReturnInt(retval);
+            goto cleanup;
         }
     }
 
     SCReturnInt(0);
+
+cleanup:
+    DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
+    SCReturnInt(retval);
 }
 
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
@@ -1629,7 +1788,10 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    ldev_instance->dpdk_vars.pkt_mp = iconf->pkt_mempool;
+    for (int32_t i = 0; i < iconf->threads; i++) {
+        ldev_instance->dpdk_vars = iconf->pkt_mempools;
+        iconf->pkt_mempools = NULL;
+    }
     return iconf;
 }
 
