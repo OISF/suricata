@@ -95,6 +95,8 @@ Major changes
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
   details.
+- New rule keyword ``entropy`` for alerting based on entropy values. See
+  :ref:`keyword_entropy`.
 
 Removals
 ~~~~~~~~
