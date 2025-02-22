@@ -111,6 +111,8 @@ exclude = [
     "IPPROTO_TCP",
     "IPPROTO_UDP",
     "SRepCatGetByShortname",
+    "SIGMATCH_NOOPT",
+    "SIGMATCH_INFO_STICKY_BUFFER",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
