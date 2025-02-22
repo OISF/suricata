@@ -9,8 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      LIBHTP_REPO:
-      LIBHTP_BRANCH:
       SU_REPO:
       SU_BRANCH:
       SV_REPO:
@@ -148,7 +146,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Configuring
@@ -296,7 +293,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Build
@@ -313,81 +309,6 @@ jobs:
       - name: Verify clippy
         run: cargo clippy --all-features
         working-directory: rust
-
-  almalinux-9-non-bundled-libhtp:
-    name: AlmaLinux 9 Non-Bundled LibHTP
-    runs-on: ubuntu-latest
-    container: almalinux:9
-    needs: [prepare-deps, ubuntu-22-04-dist]
-    steps:
-      # Cache Rust stuff.
-      - name: Cache cargo registry
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: ~/.cargo/registry
-          key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
-      - name: Determine number of CPUs
-        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
-
-      - name: Install system packages
-        run: |
-          dnf -y install dnf-plugins-core epel-release
-          dnf config-manager --set-enabled crb
-          dnf -y install \
-                autoconf \
-                automake \
-                cargo-vendor \
-                cbindgen \
-                diffutils \
-                numactl-devel \
-                dpdk-devel \
-                file-devel \
-                gcc \
-                gcc-c++ \
-                git \
-                jansson-devel \
-                jq \
-                libtool \
-                libyaml-devel \
-                libnfnetlink-devel \
-                libnetfilter_queue-devel \
-                libnet-devel \
-                libcap-ng-devel \
-                libevent-devel \
-                libmaxminddb-devel \
-                libpcap-devel \
-                libtool \
-                lz4-devel \
-                make \
-                pcre2-devel \
-                pkgconfig \
-                python3-devel \
-                python3-sphinx \
-                python3-yaml \
-                rust-toolset \
-                sudo \
-                which \
-                zlib-devel
-
-      - name: Download suricata.tar.gz
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-        with:
-          name: dist
-
-      - run: tar xf suricata-*.tar.gz --strip-components=1
-      - run: cd libhtp && ./configure --prefix=/usr/local
-      - run: cd libhtp && make -j ${{ env.CPUS }}
-      - run: cd libhtp && make install
-
-      - run: PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-non-bundled-htp --with-libhtp-includes=/usr/local/include --with-libhtp-libraries=/usr/local/lib
 
   rpms:
     name: Build RPMs
@@ -447,8 +368,9 @@ jobs:
       - run: mv suricata-*.tar.gz suricata-rpms/devel
       - run: make srpm
         working-directory: suricata-rpms/devel
-      - run: make local
-        working-directory: suricata-rpms/devel
+      # disabled until rpm repo is updated to use libhtp.rs
+      #- run: make local
+      #  working-directory: suricata-rpms/devel
 
       # We need a step for each RPM upload as we can't use the
       # container name directly in an artifact, as artifacts can't
@@ -547,7 +469,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
       - uses: ./.github/actions/install-cbindgen
@@ -727,7 +648,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --disable-shared
@@ -823,7 +743,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
@@ -917,7 +836,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
@@ -1017,7 +935,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
@@ -1108,7 +1025,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
@@ -1194,7 +1110,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: mkdir /home/suricata/suricata
@@ -1286,7 +1201,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
       - run: |
           if ./configure; then
@@ -1348,7 +1262,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }}
@@ -1416,7 +1329,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
@@ -1493,7 +1405,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --disable-shared --enable-unittests
@@ -1549,14 +1460,6 @@ jobs:
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-14 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-14 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
-      - run: |
-          cd libhtp
-          make test
-          cd ..
-        env:
-          LLVM_PROFILE_FILE: "/tmp/htp-test.profraw"
-      - run: llvm-profdata-14 merge -o htp-test.profdata /tmp/htp-test.profraw
-      - run: llvm-cov-14 show libhtp/test/test_all -instr-profile=htp-test.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
         with:
@@ -1634,7 +1537,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
@@ -1740,7 +1642,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
@@ -1875,7 +1776,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Fix kernel mmap rnd bits
@@ -1963,7 +1863,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: Fix kernel mmap rnd bits
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
@@ -2066,7 +1965,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
@@ -2157,7 +2055,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
@@ -2307,7 +2204,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
@@ -2385,7 +2281,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ LDFLAGS="-fsanitize=address" ./configure --enable-warnings --enable-fuzztargets --disable-shared
@@ -2485,7 +2380,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-netmap
@@ -2520,7 +2414,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
@@ -2621,7 +2514,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk
@@ -2702,7 +2594,6 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: ./.github/actions/install-cbindgen
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
@@ -2800,7 +2691,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
@@ -2886,7 +2776,6 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: ./.github/actions/install-cbindgen
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
@@ -2962,7 +2851,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
@@ -3033,7 +2921,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
@@ -3084,7 +2971,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - name: Create Python virtual environment
         run: python3 -m venv ./testenv
@@ -3095,14 +2981,13 @@ jobs:
       - run: ./autogen.sh
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure  --enable-warnings --enable-unittests --prefix="$HOME/.local/"
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
-      # somehow it gets included by some C++ stdlib header (case unsensitive)
-      - run: rm libhtp/VERSION && make check
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: |
           . ./testenv/bin/activate
           python3 ./suricata-verify/run.py -q --debug-failed
-      - run: make install
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make install
       - name: Check Suricata-Update
         run: |
           . ./testenv/bin/activate
@@ -3138,7 +3023,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - name: Npcap DLL
         run: |
@@ -3194,7 +3078,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
@@ -3238,7 +3121,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - name: WinDivert
         run: |
           curl -sL -O https://github.com/basil00/Divert/releases/download/v1.4.3/WinDivert-1.4.3-A.zip
