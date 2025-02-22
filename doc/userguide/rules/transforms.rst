@@ -198,6 +198,20 @@ This transform is similar to the keyword ``base64_decode``: the buffer is decode
 the optional values for ``mode``, ``offset`` and ``bytes`` and is available for matching
 on the decoded data.
 
+The optional value ``set_error`` can also be specified; this causes the output buffer to be
+truncated when the input buffer cannot be decoded.  This can be used in situations to determine
+if the content is base64-decoded. The ``absent`` keyword is often combined with use of ``set_error``.
+When ``set_error`` isn't specified (default), the input buffer will be unchanged if it cannot be
+base64-decoded.
+
+This example will alert if the content cannot be base64 decoded::
+
+    alert tcp any any -> any any (msg:"from_base64: no-decode [mode rfc4648]"; flow:to_server,established;  http.uri; content:"/?arg="; from_base64: set_error; absent;  sid:1; rev:1;)
+
+This example will alert if the content cannot be base64 decoded or if the decoded content is `sisatest`::
+
+    alert http any any -> any any (msg:"from_base64: no-decode with or_else [mode rfc4648]"; http.uri; content:"/?arg=dGhpc2lzYXRlc3QK"; from_base64: offset 10; absent: or_else; content:"sisatest"; sid:2; rev:1;)
+
 After this transform completes, the buffer will contain only bytes that could be bases64-decoded.
 If the decoding process encountered invalid bytes, those will not be included in the buffer.
 
@@ -209,12 +223,13 @@ The option values must be ``,`` separated and can appear in any order.
 
 Format::
 
-    from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
+    from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045] [, set_error]]]
 
 There are defaults for each of the options:
 - ``bytes`` defaults to the length of the input buffer
 - ``offset`` defaults to ``0`` and must be less than ``65536``
 - ``mode`` defaults to ``rfc4648``
+- ``set_error`` defaults to off.
 
 Note that both ``bytes`` and ``offset`` may be variables from `byte_extract` and/or `byte_math` in
 later versions of Suricata. They are not supported yet.
@@ -243,3 +258,13 @@ This example transforms `"Zm 9v Ym Fy"` to `"foobar"`::
 
        content:"/?arg=Zm 9v Ym Fy"; from_base64: offset 6, mode rfc2045; \
        content:"foobar";
+
+This example uses ``set_error`` to test if the input is not-base64 encoded::
+
+       content:"Unencoded content"; from_base64: set_error; absent;
+
+This example uses ``set_error`` to test if the input is base64 encoded or matches
+the specified ``content``::
+
+       content:"/?arg=Zm 9v Ym Fy"; from_base64: set_error; \
+       absent: or_else; content: "foobar";
