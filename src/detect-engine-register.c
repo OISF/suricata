@@ -608,6 +608,7 @@ void SigTableSetup(void)
     DetectOffsetRegister();
     DetectReplaceRegister();
     DetectFlowRegister();
+    DetectBidirRegister();
     DetectFlowAgeRegister();
     DetectFlowPktsRegister();
     DetectFlowPktsToServerRegister();
