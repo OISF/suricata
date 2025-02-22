@@ -62,8 +62,9 @@ void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
 const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *));
-void DetectBufferTypeRegisterValidateCallback(const char *name,
-        bool (*ValidateCallback)(const Signature *, const char **sigerror));
+void DetectBufferTypeRegisterValidateCallback(
+        const char *name, bool (*ValidateCallback)(const Signature *, const char **sigerror,
+                                  const DetectBufferType *));
 
 /* detect engine related buffer funcs */
 
@@ -209,6 +210,9 @@ void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t 
         const uint16_t file_no_match);
 
 void DetectEngineStateResetTxs(Flow *f);
+
+bool DetectMd5ValidateCallback(
+        const Signature *s, const char **sigerror, const DetectBufferType *map);
 
 void DeStateRegisterTests(void);
 
