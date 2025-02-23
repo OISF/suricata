@@ -69,8 +69,8 @@ void PacketAlertTagInit(void)
  * \retval 1 alert is not suppressed
  * \retval 0 alert is suppressed
  */
-static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                             const Signature *s, Packet *p, PacketAlert *pa)
+static int PacketAlertHandle(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Packet *p, PacketAlert *pa)
 {
     SCEnter();
     int ret = 1;
@@ -359,22 +359,14 @@ static inline void FlowApplySignatureActions(
     }
 }
 
-/**
- * \brief Check the threshold of the sigs that match, set actions, break on pass action
- *        This function iterate the packet alerts array, removing those that didn't match
- *        the threshold, and those that match after a signature with the action "pass".
- *        The array is sorted by action priority/order
- * \param de_ctx detection engine context
- * \param det_ctx detection engine thread context
- * \param p pointer to the packet
- */
-void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+static inline void PacketAlertFinalizeProcessQueue(
+        const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    SCEnter();
-
-    /* sort the alert queue before thresholding and appending to Packet */
-    qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
-            AlertQueueSortHelper);
+    if (det_ctx->alert_queue_size > 1) {
+        /* sort the alert queue before thresholding and appending to Packet */
+        qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
+                AlertQueueSortHelper);
+    }
 
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
@@ -432,6 +424,24 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         } else {
             p->alerts.discarded++;
         }
+    }
+}
+
+/**
+ * \brief Check the threshold of the sigs that match, set actions, break on pass action
+ *        This function iterate the packet alerts array, removing those that didn't match
+ *        the threshold, and those that match after a signature with the action "pass".
+ *        The array is sorted by action priority/order
+ * \param de_ctx detection engine context
+ * \param det_ctx detection engine thread context
+ * \param p pointer to the packet
+ */
+void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    SCEnter();
+
+    if (det_ctx->alert_queue_size > 0) {
+        PacketAlertFinalizeProcessQueue(de_ctx, det_ctx, p);
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
