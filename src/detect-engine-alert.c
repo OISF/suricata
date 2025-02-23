@@ -69,8 +69,8 @@ void PacketAlertTagInit(void)
  * \retval 1 alert is not suppressed
  * \retval 0 alert is suppressed
  */
-static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                             const Signature *s, Packet *p, PacketAlert *pa)
+static int PacketAlertHandle(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Packet *p, PacketAlert *pa)
 {
     SCEnter();
     int ret = 1;
