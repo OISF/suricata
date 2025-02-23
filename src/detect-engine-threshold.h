@@ -35,9 +35,8 @@ uint32_t ThresholdsExpire(const SCTime_t ts);
 
 const DetectThresholdData *SigGetThresholdTypeIter(
         const Signature *, const SigMatchData **, int list);
-int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
-        const DetectThresholdData *, Packet *,
-        const Signature *, PacketAlert *);
+int PacketAlertThreshold(const DetectEngineCtx *, DetectEngineThreadCtx *,
+        const DetectThresholdData *, Packet *, const Signature *, PacketAlert *);
 
 void ThresholdListFree(void *ptr);
 void ThresholdCacheThreadFree(void);
