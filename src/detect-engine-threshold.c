@@ -947,7 +947,7 @@ static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdDa
  * \retval 1 alert on this event
  * \retval 0 do not alert on this event
  */
-int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectThresholdData *td, Packet *p, const Signature *s, PacketAlert *pa)
 {
     SCEnter();
