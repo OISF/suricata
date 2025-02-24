@@ -29,6 +29,7 @@ use std;
 use std::str;
 use std::ffi::{self, CString};
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
  
 use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
@@ -78,14 +79,14 @@ pub enum SMBFrameType {
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
-pub static mut SMB_CFG_MAX_READ_SIZE: u32 = 16777216;
-pub static mut SMB_CFG_MAX_READ_QUEUE_SIZE: u32 = 67108864;
-pub static mut SMB_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
-pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 16777216;
-pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
-pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+pub static SMB_CFG_MAX_READ_SIZE: AtomicU32 = AtomicU32::new(16777216);
+pub static SMB_CFG_MAX_READ_QUEUE_SIZE: AtomicU32 = AtomicU32::new(67108864);
+pub static SMB_CFG_MAX_READ_QUEUE_CNT: AtomicU32 = AtomicU32::new(64);
+pub static SMB_CFG_MAX_WRITE_SIZE: AtomicU32 = AtomicU32::new(16777216);
+pub static SMB_CFG_MAX_WRITE_QUEUE_SIZE: AtomicU32 = AtomicU32::new(67108864);
+pub static SMB_CFG_MAX_WRITE_QUEUE_CNT: AtomicU32 = AtomicU32::new(64);
 /// max size of the per state guid2name cache
-pub static mut SMB_CFG_MAX_GUID_CACHE_SIZE: usize = 1024;
+pub static SMB_CFG_MAX_GUID_CACHE_SIZE: AtomicUsize = AtomicUsize::new(1024);
 /// SMBState::read_offset_cache
 pub static mut SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE: usize = 128;
 /// For SMBState::ssn2tree_cache
@@ -791,7 +792,7 @@ impl SMBState {
         Self {
             state_data:AppLayerStateData::new(),
             ssn2vec_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_SSN2VEC_CACHE_SIZE }).unwrap()),
-            guid2name_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
+            guid2name_cache:LruCache::new(NonZeroUsize::new(SMB_CFG_MAX_GUID_CACHE_SIZE.load(Ordering::Relaxed)).unwrap()),
             read_offset_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE }).unwrap()),
             ssn2tree_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_TREE_CACHE_SIZE }).unwrap()),
             dcerpc_rec_frag_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_FRAG_CACHE_SIZE }).unwrap()),
@@ -2418,42 +2419,42 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_SIZE = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_READ_SIZE.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-read-size value"); }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_SIZE = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_WRITE_SIZE.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-write-size value"); }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-queue-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_SIZE = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_WRITE_QUEUE_SIZE.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-write-queue-size value"); }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-queue-cnt");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_CNT = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_WRITE_QUEUE_CNT.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-write-queue-cnt value"); }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-read-queue-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_SIZE = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_READ_QUEUE_SIZE.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-read-queue-size value"); }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-read-queue-cnt");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_CNT = retval as u32; }
+                Ok(retval) => SMB_CFG_MAX_READ_QUEUE_CNT.store(retval as u32, Ordering::Relaxed),
                 Err(_) => { SCLogError!("Invalid max-read-queue-cnt value"); }
             }
         }
@@ -2468,7 +2469,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         if let Some(val) = retval {
             if let Ok(v) = val.parse::<usize>() {
                 if v > 0 {
-                    SMB_CFG_MAX_GUID_CACHE_SIZE = v;
+                    SMB_CFG_MAX_GUID_CACHE_SIZE.store(v, Ordering::Relaxed);
                 } else {
                     SCLogError!("Invalid max-guid-cache-size value");
                 }
@@ -2525,10 +2526,14 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
+                SMB_CFG_MAX_READ_SIZE.load(Ordering::Relaxed),
+                SMB_CFG_MAX_READ_QUEUE_CNT.load(Ordering::Relaxed),
+                SMB_CFG_MAX_READ_QUEUE_SIZE.load(Ordering::Relaxed));
         SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
-        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
+                SMB_CFG_MAX_WRITE_SIZE.load(Ordering::Relaxed),
+                SMB_CFG_MAX_WRITE_QUEUE_CNT.load(Ordering::Relaxed),
+                SMB_CFG_MAX_WRITE_QUEUE_SIZE.load(Ordering::Relaxed));
+        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE.load(Ordering::Relaxed));
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }

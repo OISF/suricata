@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+use std::sync::atomic::Ordering;
+
 use nom7::Err;
 
 use crate::direction::Direction;
@@ -114,8 +116,8 @@ fn smb2_read_response_record_generic(state: &mut SMBState, r: &Smb2Record)
 
 pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
 {
-    let max_queue_size = unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE };
-    let max_queue_cnt = unsafe { SMB_CFG_MAX_READ_QUEUE_CNT };
+    let max_queue_size = SMB_CFG_MAX_READ_QUEUE_SIZE.load(Ordering::Relaxed);
+    let max_queue_cnt = SMB_CFG_MAX_READ_QUEUE_CNT.load(Ordering::Relaxed);
 
     smb2_read_response_record_generic(state, r);
 
@@ -138,8 +140,9 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                 return;
             }
 
+            let max_read_size = SMB_CFG_MAX_READ_SIZE.load(Ordering::Relaxed);
             if (state.max_read_size != 0 && rd.len > state.max_read_size) ||
-               (unsafe { SMB_CFG_MAX_READ_SIZE != 0 && SMB_CFG_MAX_READ_SIZE < rd.len })
+               (max_read_size != 0 && max_read_size < rd.len)
             {
                 state.set_event(SMBEvent::ReadResponseTooLarge);
                 state.set_skip(Direction::ToClient, nbss_remaining);
@@ -271,8 +274,8 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
 
 pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
 {
-    let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
-    let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
+    let max_queue_size = SMB_CFG_MAX_WRITE_QUEUE_SIZE.load(Ordering::Relaxed);
+    let max_queue_cnt = SMB_CFG_MAX_WRITE_QUEUE_CNT.load(Ordering::Relaxed);
 
     SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
@@ -289,8 +292,9 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                 state.set_skip(Direction::ToServer, nbss_remaining);
                 return;
             }
+            let max_write_size = SMB_CFG_MAX_WRITE_SIZE.load(Ordering::Relaxed);
             if (state.max_write_size != 0 && wr.wr_len > state.max_write_size) ||
-               (unsafe { SMB_CFG_MAX_WRITE_SIZE != 0 && SMB_CFG_MAX_WRITE_SIZE < wr.wr_len }) {
+               (max_write_size != 0 && max_write_size < wr.wr_len) {
                 state.set_event(SMBEvent::WriteRequestTooLarge);
                 state.set_skip(Direction::ToServer, nbss_remaining);
                 return;
@@ -533,8 +537,9 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
         },
         SMB2_COMMAND_READ => {
             if let Ok((_, rd)) = parse_smb2_request_read(r.data) {
+                let max_read_size = SMB_CFG_MAX_READ_SIZE.load(Ordering::Relaxed);
                 if (state.max_read_size != 0 && rd.rd_len > state.max_read_size) ||
-                    (unsafe { SMB_CFG_MAX_READ_SIZE != 0 && SMB_CFG_MAX_READ_SIZE < rd.rd_len }) {
+                    (max_read_size != 0 && max_read_size < rd.rd_len) {
                         events.push(SMBEvent::ReadRequestTooLarge);
                     } else {
                         SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
@@ -782,11 +787,11 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
             if let Ok((_, rd)) = res {
                 SCLogDebug!("SERVER dialect => {}", &smb2_dialect_string(rd.dialect));
 
-                let smb_cfg_max_read_size = unsafe { SMB_CFG_MAX_READ_SIZE };
+                let smb_cfg_max_read_size = SMB_CFG_MAX_READ_SIZE.load(Ordering::Relaxed);
                 if smb_cfg_max_read_size != 0 && rd.max_read_size > smb_cfg_max_read_size {
                     state.set_event(SMBEvent::NegotiateMaxReadSizeTooLarge);
                 }
-                let smb_cfg_max_write_size = unsafe { SMB_CFG_MAX_WRITE_SIZE };
+                let smb_cfg_max_write_size = SMB_CFG_MAX_WRITE_SIZE.load(Ordering::Relaxed);
                 if smb_cfg_max_write_size != 0 && rd.max_write_size > smb_cfg_max_write_size {
                     state.set_event(SMBEvent::NegotiateMaxWriteSizeTooLarge);
                 }
