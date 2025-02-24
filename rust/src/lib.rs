@@ -57,9 +57,6 @@
 // example static_mut_refs.
 #![allow(unknown_lints)]
 
-// Allow for now, but need to be fixed.
-#![allow(static_mut_refs)]
-
 #[macro_use]
 extern crate bitflags;
 extern crate byteorder;
