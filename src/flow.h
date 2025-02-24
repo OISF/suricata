@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,7 +55,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toclient direction will act on updated app-layer state */
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
-// vacancy bit 3
+/** if an exception policy was triggered, use this to log about that */
+#define FLOW_TRIGGERED_EXCEPTION_POLICY BIT_U32(3)
 
 // vacancy bit 4
 
@@ -479,6 +480,9 @@ typedef struct Flow_
     /** toserver sgh for this flow. Only use when FLOW_SGH_TOSERVER flow flag
      *  has been set. */
     const struct SigGroupHead_ *sgh_toserver;
+
+    /** which exception policy was applied, if any */
+    uint16_t applied_exception_policy;
 
     /* pointer to the var list */
     GenericVar *flowvar;
