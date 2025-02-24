@@ -25,6 +25,7 @@ use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 use std::os::raw::c_uchar;
+use std::sync::RwLock;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
@@ -293,7 +294,8 @@ fn mime_smtp_finish_url(input: &[u8]) -> &[u8] {
 
 fn mime_smtp_extract_urls(urls: &mut Vec<Vec<u8>>, input_start: &[u8]) {
     //TODO optimize later : use mpm
-    for s in unsafe { MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.iter() } {
+    let schemes = MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.read().unwrap();
+    for s in schemes.iter() {
         let mut input = input_start;
         let mut start = unsafe {
             BasicSearchNocaseIndex(
@@ -710,7 +712,7 @@ static mut MIME_SMTP_CONFIG_BODY_MD5: bool = false;
 static mut MIME_SMTP_CONFIG_HEADER_VALUE_DEPTH: u32 = 0;
 static mut MIME_SMTP_CONFIG_EXTRACT_URLS: bool = true;
 static mut MIME_SMTP_CONFIG_LOG_URL_SCHEME: bool = false;
-static mut MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES: Vec<&str> = Vec::new();
+static MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES: RwLock<Vec<&str>> = RwLock::new(Vec::new());
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpConfigDecodeBase64(val: std::os::raw::c_int) {
@@ -744,7 +746,8 @@ pub unsafe extern "C" fn SCMimeSmtpConfigHeaderValueDepth(val: u32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeReset() {
-    MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.clear();
+    let mut schemes = MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.write().unwrap();
+    schemes.clear();
 }
 
 #[no_mangle]
@@ -753,7 +756,8 @@ pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeAdd(
 ) -> std::os::raw::c_int {
     let scheme: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = scheme.to_str() {
-        MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.push(s);
+        let mut schemes = MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.write().unwrap();
+        schemes.push(s);
         return 0;
     }
     return -1;
