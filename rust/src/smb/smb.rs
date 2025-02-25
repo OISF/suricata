@@ -2524,11 +2524,25 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid max-session-cache-size value");
             }
         }
-        SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
-        SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
-        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
+
+        // Suppress static_mut_refs for this debug code. Safe
+        // otherwise.
+        #[allow(unused_lints, static_mut_refs)]
+        {
+            SCLogConfig!(
+                "read: max record size: {}, max queued chunks {}, max queued size {}",
+                SMB_CFG_MAX_READ_SIZE,
+                SMB_CFG_MAX_READ_QUEUE_CNT,
+                SMB_CFG_MAX_READ_QUEUE_SIZE
+            );
+            SCLogConfig!(
+                "write: max record size: {}, max queued chunks {}, max queued size {}",
+                SMB_CFG_MAX_WRITE_SIZE,
+                SMB_CFG_MAX_WRITE_QUEUE_CNT,
+                SMB_CFG_MAX_WRITE_QUEUE_SIZE
+            );
+            SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
+        }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
