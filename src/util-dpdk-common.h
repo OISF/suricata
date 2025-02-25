@@ -121,6 +121,9 @@ typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;
     uint16_t pkt_mp_capa;
+    struct rte_flow **rte_flow_rule_handlers;
+    uint16_t rte_flow_rule_cnt;
+    uint16_t rte_flow_rule_size;
 } DPDKDeviceResources;
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt);
