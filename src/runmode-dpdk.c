@@ -47,6 +47,7 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-dpdk-rss.h"
+#include "util-dpdk-rte-flow.h"
 #include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
@@ -142,6 +143,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .tx_descriptors = "tx-descriptors",
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
+    .drop_filter = "drop-filter",
 };
 
 /**
@@ -339,6 +341,7 @@ static void DPDKDerefConfig(void *conf)
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
         DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
+        iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
     }
     SCReturn;
@@ -356,6 +359,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
     ptr->DerefFunc = DPDKDerefConfig;
+    ptr->RteRulesFree = RteFlowRuleStorageFree;
     ptr->flags = 0;
 
     *iconf = ptr;
@@ -1024,6 +1028,10 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     }
 
     retval = ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = ConfigLoadRteFlowRules(if_root, dpdk_yaml.drop_filter, &iconf->drop_filter);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -1835,10 +1843,10 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    for (uint16_t i = 0; i < iconf->threads; i++) {
-        ldev_instance->dpdk_vars = iconf->pkt_mempools;
-        iconf->pkt_mempools = NULL;
-    }
+
+    ldev_instance->dpdk_vars = iconf->pkt_mempools;
+    iconf->pkt_mempools = NULL;
+
     return iconf;
 }
 

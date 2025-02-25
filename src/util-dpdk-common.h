@@ -26,6 +26,7 @@
 
 #ifdef HAVE_DPDK
 
+#include "util-dpdk-rte-flow.h"
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #ifdef HAVE_DPDK_BOND
@@ -121,6 +122,7 @@ typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;
     uint16_t pkt_mp_capa;
+    RteFlowRuleStorage *drop_filter;
 } DPDKDeviceResources;
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt);

@@ -510,6 +510,8 @@ noinst_HEADERS = \
 	util-dpdk-mlx5.h \
 	util-dpdk-rss.h \
 	util-dpdk.h \
+	util-dpdk-rte-flow.h \
+	util-dpdk-rte-flow-pattern.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
@@ -1094,6 +1096,8 @@ libsuricata_c_a_SOURCES = \
 	util-dpdk-mlx5.c \
 	util-dpdk-rss.c \
 	util-dpdk.c \
+	util-dpdk-rte-flow.c \
+	util-dpdk-rte-flow-pattern.c \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
