@@ -356,7 +356,6 @@ static void SMTPConfigure(void) {
         if (extract_urls_schemes) {
             ConfNode *scheme = NULL;
 
-            SCMimeSmtpConfigExtractUrlsSchemeReset();
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
                 size_t scheme_len = strlen(scheme->val);
                 if (scheme_len > UINT16_MAX - SCHEME_SUFFIX_LEN) {
@@ -383,7 +382,6 @@ static void SMTPConfigure(void) {
         } else {
             /* Add default extract url scheme 'http' since
              * extract-urls-schemes wasn't found in the config */
-            SCMimeSmtpConfigExtractUrlsSchemeReset();
             SCMimeSmtpConfigExtractUrlsSchemeAdd("http://");
         }
 

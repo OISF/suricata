@@ -743,11 +743,6 @@ pub unsafe extern "C" fn SCMimeSmtpConfigHeaderValueDepth(val: u32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeReset() {
-    MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.clear();
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeAdd(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
