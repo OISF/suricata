@@ -460,6 +460,11 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 SCLogDebug("reversing flow after proto detect told us so");
                 PacketSwap(p);
                 FlowSwap(f);
+                // Reset signature groups
+                f->sgh_toclient = NULL;
+                f->sgh_toserver = NULL;
+                f->flags &= ~FLOW_SGH_TOSERVER;
+                f->flags &= ~FLOW_SGH_TOCLIENT;
                 SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
                 if (*stream == &ssn->client) {
                     *stream = &ssn->server;
