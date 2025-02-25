@@ -104,6 +104,7 @@ int DPDKCreateRSSFlowGeneric(
     rss_conf.types = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_IPV6;
 
     attr.ingress = 1;
+    attr.priority = 1;
     action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
     action[0].conf = &rss_conf;
     action[1].type = RTE_FLOW_ACTION_TYPE_END;

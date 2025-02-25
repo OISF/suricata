@@ -20,6 +20,7 @@
 
 #ifdef HAVE_DPDK
 #include <rte_mempool.h>
+#include <rte_flow.h>
 #endif /* HAVE_DPDK */
 
 #include "queue.h"

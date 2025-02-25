@@ -93,6 +93,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-ixgbe.h"
 #include "util-dpdk-mlx5.h"
 #include "util-dpdk-bonding.h"
+#include <rte_flow.h>
 #include <numa.h>
 
 #define BURST_SIZE 32
@@ -115,6 +116,7 @@ typedef struct DPDKThreadVars_ {
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
     bool intr_enabled;
+    bool port_stopped;
     /* references to packet and drop counters */
     uint16_t capture_dpdk_packets;
     uint16_t capture_dpdk_rx_errs;
@@ -122,6 +124,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t capture_dpdk_rx_no_mbufs;
     uint16_t capture_dpdk_ierrors;
     uint16_t capture_dpdk_tx_errs;
+    uint16_t capture_dpdk_rte_flow_filtered;
     unsigned int flags;
     int threads;
     /* for IPS */
@@ -210,8 +213,11 @@ static int DevicePostStartPMDSpecificActions(
                 strcmp(driver_name, "net_i40e") == 0)) {
         int retval = RteFlowRulesCreate(
                 dpdk_config->iface, dpdk_config->port_id, &dpdk_config->drop_filter, driver_name);
+        ptv->livedev->dpdk_vars.rte_flow_rule_handlers = dpdk_config->drop_filter.rule_handlers;
+        dpdk_config->drop_filter.rule_handlers = NULL;
+        ptv->livedev->dpdk_vars.rte_flow_rule_size = dpdk_config->drop_filter.rule_size;
+        ptv->livedev->dpdk_vars.rte_flow_rule_cnt = dpdk_config->drop_filter.rule_cnt;
         if (retval != 0) {
-            SCLogError("%s: error when creating rte_flow rules", dpdk_config->iface);
             SCReturnInt(retval);
         }
     }
@@ -294,14 +300,23 @@ void TmModuleDecodeDPDKRegister(void)
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
 {
     /* Some NICs (e.g. Intel) do not support queue statistics and the drops can be fetched only on
-     * the port level. Therefore setting it to the first worker to have at least continuous update
+     * the port level. Therefore setting it to the last worker to have at least continuous update
      * on the dropped packets. */
-    if (ptv->queue_id == 0) {
+    if (ptv->queue_id == ptv->threads - 1) {
         struct rte_eth_stats eth_stats;
         int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
         if (unlikely(retval != 0)) {
             SCLogError("%s: failed to get stats: %s", ptv->livedev->dev, rte_strerror(-retval));
             return;
+        }
+
+        if (!ptv->port_stopped) {
+            uint64_t filtered_packets = 0;
+            retval = RteFlowFilteredPacketsQuery(ptv->livedev->dpdk_vars.rte_flow_rule_handlers,
+                    ptv->livedev->dpdk_vars.rte_flow_rule_cnt, ptv->livedev->dev, ptv->port_id,
+                    &filtered_packets);
+            if (retval == 0)
+                StatsSetUI64(ptv->tv, ptv->capture_dpdk_rte_flow_filtered, filtered_packets);
         }
 
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets,
@@ -501,7 +516,9 @@ static void HandleShutdown(DPDKThreadVars *ptv)
     while (SC_ATOMIC_GET(ptv->workers_sync->worker_checked_in) < ptv->workers_sync->worker_cnt) {
         rte_delay_us(10);
     }
-    if (ptv->queue_id == 0) {
+
+    DPDKDumpCounters(ptv);
+    if (ptv->queue_id == ptv->threads - 1) {
         rte_delay_us(20); // wait for all threads to get out of the sync loop
         SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
         // If Suricata runs in peered mode, the peer threads might still want to send
@@ -513,8 +530,8 @@ static void HandleShutdown(DPDKThreadVars *ptv)
             // in IDS we stop our port - no peer threads are running
             rte_eth_dev_stop(ptv->port_id);
         }
+        ptv->port_stopped = true;
     }
-    DPDKDumpCounters(ptv);
 }
 
 static void PeriodicDPDKDumpCounters(DPDKThreadVars *ptv)
@@ -613,12 +630,15 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_imissed = StatsRegisterCounter("capture.dpdk.imissed", ptv->tv);
     ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", ptv->tv);
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", ptv->tv);
+    ptv->capture_dpdk_rte_flow_filtered =
+            StatsRegisterCounter("capture.dpdk.rte_flow_filtered", ptv->tv);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
     ptv->threads = dpdk_config->threads;
     ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) ? true : false;
+    ptv->port_stopped = false;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
