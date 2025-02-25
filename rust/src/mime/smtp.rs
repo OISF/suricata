@@ -291,6 +291,7 @@ fn mime_smtp_finish_url(input: &[u8]) -> &[u8] {
     return input;
 }
 
+#[allow(static_mut_refs)]
 fn mime_smtp_extract_urls(urls: &mut Vec<Vec<u8>>, input_start: &[u8]) {
     //TODO optimize later : use mpm
     for s in unsafe { MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.iter() } {
@@ -743,6 +744,7 @@ pub unsafe extern "C" fn SCMimeSmtpConfigHeaderValueDepth(val: u32) {
 }
 
 #[no_mangle]
+#[allow(static_mut_refs)]
 pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeAdd(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
