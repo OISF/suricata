@@ -999,7 +999,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
 
         if (txd && has_tx_detect_flags) {
-            if (!IS_DISRUPTED(ts_disrupt_flags) && f->sgh_toserver != NULL) {
+            if (!IS_DISRUPTED(ts_disrupt_flags) &&
+                    (f->sgh_toserver != NULL || (f->flags & FLOW_SGH_TOSERVER) == 0)) {
                 uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(txd, STREAM_TOSERVER);
                 if (!(detect_flags_ts &
                             (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {
@@ -1008,7 +1009,8 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
                     tx_skipped = true;
                 }
             }
-            if (!IS_DISRUPTED(tc_disrupt_flags) && f->sgh_toclient != NULL) {
+            if (!IS_DISRUPTED(tc_disrupt_flags) &&
+                    (f->sgh_toclient != NULL || (f->flags & FLOW_SGH_TOCLIENT) == 0)) {
                 uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(txd, STREAM_TOCLIENT);
                 if (!(detect_flags_tc &
                             (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {

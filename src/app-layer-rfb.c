@@ -83,6 +83,7 @@ static int RFBParserTest(void)
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_RFB;
+    f->flags |= FLOW_SGH_TOCLIENT | FLOW_SGH_TOSERVER;
 
     static const unsigned char rfb_version_str[12] = {
             0x52, 0x46, 0x42, 0x20, 0x30, 0x30, 0x33, 0x2e, 0x30, 0x30, 0x37, 0x0a
