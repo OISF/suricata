@@ -48,8 +48,9 @@ typedef struct RteFlowRuleStorage_ {
 void RteFlowRuleStorageFree(RteFlowRuleStorage *rule_storage);
 int ConfigLoadRteFlowRules(
         SCConfNode *if_root, const char *drop_filter_str, RteFlowRuleStorage *rule_storage);
-int RteFlowRulesCreate(
-        uint16_t port_id, RteFlowRuleStorage *rule_storage, const char *driver_name);
+int RteFlowRulesCreate(uint16_t port_id, RteFlowRuleStorage *rule_storage, const char *driver_name);
+uint64_t RteFlowFilteredPacketsQuery(
+        struct rte_flow **rules, uint16_t rule_count, const char *device_name, int port_id);
 
 #endif /* HAVE_DPDK */
 #endif /* SURICATA_RTE_FLOW_RULES_H */
