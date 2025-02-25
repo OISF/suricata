@@ -16,21 +16,31 @@
  */
 
 /**
+ *  \defgroup dpdk DPDK rte_flow rules util functions
+ *
+ *  @{
+ */
+
+/**
  * \file
  *
  * \author Adam Kiripolsky <adam.kiripolsky@cesnet.cz>
+ *
+ * DPDK rte_flow rules util functions
+ *
  */
 
-#ifndef UTIL_DPDK_MLX5_H
-#define UTIL_DPDK_MLX5_H
-
-#include "suricata-common.h"
+#ifndef SURICATA_RTE_FLOW_RULES_PATTERN_H
+#define SURICATA_RTE_FLOW_RULES_PATTERN_H
 
 #ifdef HAVE_DPDK
 
-int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name);
-int mlx5DeviceCheckDropFilterLimits(uint32_t rte_flow_rule_count, char **err_msg);
+#include "util-dpdk.h"
+
+int ParsePattern(char *pattern, struct rte_flow_item **items);
 
 #endif /* HAVE_DPDK */
-
-#endif /* UTIL_DPDK_MLX5_H */
+#endif /* SURICATA_RTE_FLOW_RULES_PATTERN_H */
+/**
+ * @}
+ */
