@@ -679,6 +679,9 @@ has values which can be managed by the user.
     inspection-recursion-limit: 3000
     stream-tx-log-limit: 4
     guess-applayer-tx: no
+    grouping:
+      tcp-priority-ports: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+      udp-priority-ports: 53, 135, 5060
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -723,6 +726,13 @@ and tie a transaction to a given alert if the matching signature doesn't have
 app-layer keywords. If enabled, AND ONLY ONE LIVE TRANSACTION EXISTS, that
 transaction's data will be added to the alert metadata. Note that this may not
 be the expected data, from an analyst's perspective.
+
+The ``grouping`` option allows user to define the most seen ports
+on their network using ``tcp-priority-ports`` and ``udp-priority-ports``
+settings to benefit from the internal signature groups created by Suricata.
+The engine shall then try to club the rules that use the ports defined
+in groups of their own and put them on top of the list of rules to be matched
+against traffic on "priority".
 
 *Example 4	Detection-engine grouping tree*
 
