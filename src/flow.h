@@ -551,7 +551,6 @@ void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
 void FlowReset(void);
 void FlowShutdown(void);
-void FlowSetIPOnlyFlag(Flow *, int);
 void FlowSetHasAlertsFlag(Flow *);
 int FlowHasAlerts(const Flow *);
 void FlowSetChangeProtoFlag(Flow *);
