@@ -74,6 +74,7 @@ static int SMBParserTxCleanupTest(void)
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_SMB;
+    f->flags |= FLOW_SGH_TOCLIENT | FLOW_SGH_TOSERVER;
 
     char req_str[] ="\x00\x00\x00\x79\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00" \
                      "\x05\x00\xe0\x1e\x10\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00" \
