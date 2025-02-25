@@ -410,6 +410,8 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 SCLogDebug("reversing flow after proto detect told us so");
                 PacketSwap(p);
                 FlowSwap(f);
+                // Will reset signature groups in DetectRunSetup
+                f->de_ctx_version = UINT32_MAX;
                 SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
                 if (*stream == &ssn->client) {
                     *stream = &ssn->server;
