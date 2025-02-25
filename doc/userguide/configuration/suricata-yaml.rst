@@ -648,14 +648,32 @@ Detection engine
 Inspection configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.) For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group. The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options: high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting. The option custom is for advanced users. This option has values which can be managed by the user.
+The detection-engine builds internal groups of signatures. Suricata
+loads signatures, with which the network traffic will be compared.
+The fact is, that many rules certainly will not be necessary. For
+instance, if there appears a packet with the UDP-protocol, all signatures
+for the TCP-protocol won't be needed. For that reason, all signatures
+will be divided in groups. However, a distribution containing many
+groups will make use of a lot of memory. Not every type of signature
+gets its own group. There is a possibility that different signatures
+with several properties in common, will be placed together in a group.
+The quantity of groups will determine the balance between memory and
+performance. A small number of groups will lower the performance yet
+use little memory. The opposite counts for a higher amount of groups.
+The engine allows you to manage the balance between memory and performance.
+To manage this, (by determining the amount of groups) there are several
+general options: ``high`` for good performance and more use of memory,
+``low`` for low performance and little use of memory. The option ``medium``
+is the balance between performance and memory usage. This is the default
+setting. The option ``custom-values`` is for advanced users. This option
+has values which can be managed by the user.
 
 ::
 
   detect:
     profile: medium
     custom-values:
-      toclient-groups: 2
+      toclient-groups: 3
       toserver-groups: 25
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
@@ -674,22 +692,22 @@ for that specific group/that specific end of the branch. Also within
 the sig group head the settings for Multi-Pattern-Matcher (MPM) can be
 found: the MPM-context.
 
-As will be described again at the part 'Pattern matching settings',
+As will be described again in :ref:`pattern-matcher-settings`,
 there are several MPM-algorithms of which can be chosen from. Because
 every sig group head has its own MPM-context, some algorithms use a
-lot of memory. For that reason there is the option sgh-mpm-context to
-set whether the groups share one MPM-context, or to set that every
+lot of memory. For that reason there is the option ``sgh-mpm-context``
+to set whether the groups share one MPM-context, or to set that every
 group has its own MPM-context.
 
 For setting the option sgh-mpm-context, you can choose from auto, full
 or single. The default setting is 'auto', meaning Suricata selects
 full or single based on the algorithm you use. 'Full' means that every
 group has its own MPM-context, and 'single' that all groups share one
-MPM-context. The algorithm "ac" uses a single MPM-context if the 
-Sgh-MPM-context setting is 'auto'. The rest of the algorithms use full 
+MPM-context. The algorithm "ac" uses a single MPM-context if the
+Sgh-MPM-context setting is 'auto'. The rest of the algorithms use full
 in that case.
 
-The inspection-recursion-limit option has to mitigate that possible
+The ``inspection-recursion-limit`` option has to mitigate that possible
 bugs in Suricata cause big problems. Often Suricata has to deal with
 complicated issues. It could end up in an 'endless loop' due to a bug,
 meaning it will repeat its actions over and over again. With the
@@ -778,6 +796,8 @@ Thresholding uses a central hash table for tracking thresholds of the types: by_
 
 ``detect.thresholds.hash-size`` controls the number of hash rows in the hash table.
 ``detect.thresholds.memcap`` controls how much memory can be used for the hash table and the data stored in it.
+
+.. _pattern-matcher-settings:
 
 Pattern matcher settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
