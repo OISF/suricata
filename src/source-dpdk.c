@@ -41,6 +41,7 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
+#include "util-dpdk-rte-flow.h"
 #include "action-globals.h"
 
 #ifndef HAVE_DPDK
@@ -191,7 +192,8 @@ static inline void DPDKFreeMbufArray(
     }
 }
 
-static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+static int DevicePostStartPMDSpecificActions(
+        DPDKThreadVars *ptv, DPDKIfaceConfig *dpdk_config, const char *driver_name)
 {
     if (strcmp(driver_name, "net_bonding") == 0)
         driver_name = BondingDeviceDriverGet(ptv->port_id);
@@ -203,6 +205,17 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         iceDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
     else if (strcmp(driver_name, "mlx5_pci") == 0)
         mlx5DeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
+
+    if ((strcmp(driver_name, "mlx5_pci") == 0 || strcmp(driver_name, "net_ice") == 0 ||
+                strcmp(driver_name, "net_i40e") == 0)) {
+        int retval = RteFlowRulesCreate(
+                dpdk_config->iface, dpdk_config->port_id, &dpdk_config->drop_filter, driver_name);
+        if (retval != 0) {
+            SCLogError("%s: error when creating rte_flow rules", dpdk_config->iface);
+            SCReturnInt(retval);
+        }
+    }
+    SCReturnInt(0);
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -642,8 +655,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             goto fail;
         }
 
-        // some PMDs requires additional actions only after the device has started
-        DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
+        retval = DevicePostStartPMDSpecificActions(ptv, dpdk_config, dev_info.driver_name);
+        if (retval != 0) {
+            goto fail;
+        }
 
         uint16_t inconsistent_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsistent_numa_cnt);
         if (inconsistent_numa_cnt > 0 && ptv->port_socket_id != SOCKET_ID_ANY) {

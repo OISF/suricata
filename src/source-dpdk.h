@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,6 +49,13 @@ typedef struct DPDKWorkerSync_ {
     SC_ATOMIC_DECLARE(uint16_t, worker_checked_in);
 } DPDKWorkerSync;
 
+typedef struct RteFlowRuleStorage_ {
+    uint16_t rule_cnt;
+    uint16_t rule_size;
+    char **rules;
+    struct rte_flow **rule_handlers;
+} RteFlowRuleStorage;
+
 typedef struct DPDKIfaceConfig_ {
 #ifdef HAVE_DPDK
     char iface[RTE_ETH_NAME_MAX_LEN];
@@ -73,6 +80,7 @@ typedef struct DPDKIfaceConfig_ {
     uint16_t nb_tx_desc;
     uint32_t mempool_size;
     uint32_t mempool_cache_size;
+    RteFlowRuleStorage drop_filter;
     struct rte_mempool *pkt_mempool;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     /* threads bind queue id one by one */
@@ -80,6 +88,7 @@ typedef struct DPDKIfaceConfig_ {
     SC_ATOMIC_DECLARE(uint16_t, inconsistent_numa_cnt);
     DPDKWorkerSync *workers_sync;
     void (*DerefFunc)(void *);
+    void (*RteRulesFree)(RteFlowRuleStorage *);
 
     struct rte_flow *flow[100];
 #endif

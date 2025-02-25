@@ -1,4 +1,4 @@
-/* Copyright (C) 2021-2025 Open Information Security Foundation
+/* Copyright (C) 2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,24 +16,36 @@
  */
 
 /**
- * \file
+ *  \defgroup dpdk DPDK rte_flow rules util functions
  *
- * \author Lukas Sismis <lukas.sismis@gmail.com>
+ *  @{
  */
 
-#ifndef UTIL_DPDK_ICE_H
-#define UTIL_DPDK_ICE_H
+/**
+ * \file
+ *
+ * \author Adam Kiripolsky <adam.kiripolsky@cesnet.cz>
+ *
+ * DPDK rte_flow rules util functions
+ *
+ */
 
-#include "suricata-common.h"
+#ifndef SURICATA_RTE_FLOW_RULES_H
+#define SURICATA_RTE_FLOW_RULES_H
 
 #ifdef HAVE_DPDK
 
+#include "conf.h"
 #include "util-dpdk.h"
 
-int iceDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
-void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
-bool iceDeviceRteFlowPatternError(struct rte_flow_item *);
+void RteFlowRuleStorageFree(RteFlowRuleStorage *rte_flow_rule_storage);
+int ConfigLoadRteFlowRules(
+        ConfNode *if_root, const char *filter_type, RteFlowRuleStorage *rte_flow_rule_storage);
+int RteFlowRulesCreate(char *port_name, int port_id, RteFlowRuleStorage *rte_flow_rule_storage,
+        const char *driver_name);
 
 #endif /* HAVE_DPDK */
-
-#endif /* UTIL_DPDK_ICE_H */
+#endif /* SURICATA_RTE_FLOW_RULES_H */
+/**
+ * @}
+ */
