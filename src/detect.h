@@ -947,7 +947,7 @@ typedef struct DetectEngineCtx_ {
 
     /** Store rule file and line so that parsers can use them in errors. */
     int rule_line;
-    char *rule_file;
+    const char *rule_file;
     const char *sigerror;
     bool sigerror_silent;
     bool sigerror_ok;
