@@ -73,6 +73,7 @@ Signature *SigInit(DetectEngineCtx *, const char *sigstr);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
+Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *, const char *);
 
 SigMatch *SigMatchAppendSMToList(DetectEngineCtx *, Signature *, uint16_t, SigMatchCtx *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
