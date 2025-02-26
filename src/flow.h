@@ -58,7 +58,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Flow is marked an elephant flow */
 #define FLOW_IS_ELEPHANT BIT_U32(3)
 
-// vacancy bit 4
+/** All packets in this flow should be accepted */
+#define FLOW_ACTION_ACCEPT BIT_U32(4)
 
 // vacancy bit 5
 
