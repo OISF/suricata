@@ -2525,11 +2525,60 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
             }
         }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
+                cfg_max_read_size(), cfg_max_read_queue_cnt(), cfg_max_read_queue_size());
         SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
-        SCLogConfig!("guid: max cache size: {}", SMB_CFG_MAX_GUID_CACHE_SIZE);
+                cfg_max_write_size(), cfg_max_write_queue_cnt(), cfg_max_write_queue_size());
+        SCLogConfig!("guid: max cache size: {}", cfg_max_guid_cache_size());
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_read_size() -> u32 {
+    unsafe { SMB_CFG_MAX_READ_SIZE }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_read_queue_cnt() -> u32 {
+    unsafe { SMB_CFG_MAX_READ_QUEUE_CNT }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_read_queue_size() -> u32 {
+    unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_write_size() -> u32 {
+    unsafe { SMB_CFG_MAX_WRITE_SIZE }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_write_queue_cnt() -> u32 {
+    unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_write_queue_size() -> u32 {
+    unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE }
+}
+
+// Wrapper function around static mutable to prevent refs to static
+// mutables.
+#[inline(always)]
+fn cfg_max_guid_cache_size() -> usize {
+    unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }
 }
