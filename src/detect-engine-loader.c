@@ -110,8 +110,8 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
  *  \param badsigs_tot Will store number of invalid signatures in the file
  *  \retval 0 on success, -1 on error
  */
-static int DetectLoadSigFile(
-        DetectEngineCtx *de_ctx, char *sig_file, int *goodsigs, int *badsigs, int *skippedsigs)
+static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int *goodsigs,
+        int *badsigs, int *skippedsigs)
 {
     Signature *sig = NULL;
     int good = 0, bad = 0, skipped = 0;
