@@ -650,6 +650,9 @@ typedef struct SignatureInitData_ {
     uint32_t rule_state_dependant_sids_idx;
     uint32_t *rule_state_flowbits_ids_array;
     uint32_t rule_state_flowbits_ids_size;
+
+    /* Signature is a "firewall" rule. */
+    bool firewall_rule;
 } SignatureInitData;
 
 /** \brief Signature container */
