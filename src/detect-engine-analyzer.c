@@ -978,6 +978,12 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (ctx.js == NULL)
         SCReturn;
 
+    if (s->init_data->firewall_rule) {
+        JB_SET_STRING(ctx.js, "class", "firewall");
+    } else {
+        JB_SET_STRING(ctx.js, "class", "threat detection");
+    }
+
     SCJbSetString(ctx.js, "raw", s->sig_str);
     SCJbSetUint(ctx.js, "id", s->id);
     SCJbSetUint(ctx.js, "gid", s->gid);
@@ -1034,6 +1040,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->action & ACTION_PASS) {
         SCJbAppendString(ctx.js, "pass");
     }
+    if (s->action & ACTION_ACCEPT) {
+        SCJbAppendString(ctx.js, "accept");
+    }
     SCJbClose(ctx.js);
 
     if (s->action_scope == ACTION_SCOPE_AUTO) {
@@ -1057,6 +1066,12 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 break;
             case ACTION_SCOPE_FLOW:
                 SCJbSetString(ctx.js, "scope", "flow");
+                break;
+            case ACTION_SCOPE_HOOK:
+                SCJbSetString(ctx.js, "scope", "hook");
+                break;
+            case ACTION_SCOPE_TX:
+                SCJbSetString(ctx.js, "scope", "tx");
                 break;
             case ACTION_SCOPE_AUTO: /* should be unreachable */
                 break;

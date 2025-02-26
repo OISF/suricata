@@ -242,7 +242,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_SP_ANY                 BIT_U32(2)  /**< source port is any */
 #define SIG_FLAG_DP_ANY                 BIT_U32(3)  /**< destination port is any */
 
-// vacancy
+#define SIG_FLAG_FIREWALL BIT_U32(4) /**< sig is a firewall rule */
 
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
@@ -327,6 +327,7 @@ typedef struct DetectPort_ {
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
+#define DE_HAS_FIREWALL    0x02     /**< firewall rules loaded, default policies active */
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
@@ -652,6 +653,9 @@ typedef struct SignatureInitData_ {
     uint32_t rule_state_dependant_sids_idx;
     uint32_t *rule_state_flowbits_ids_array;
     uint32_t rule_state_flowbits_ids_size;
+
+    /* Signature is a "firewall" rule. */
+    bool firewall_rule;
 } SignatureInitData;
 
 /** \brief Signature container */
@@ -687,6 +691,9 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint16_t class_id;
+
+    /** firewall: progress value for this signature */
+    uint8_t app_progress_hook;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
@@ -1111,6 +1118,8 @@ typedef struct DetectEngineCtx_ {
     /* name store for non-prefilter engines. Used in profiling but
      * part of the API, so hash is always used. */
     HashTable *non_pf_engine_names;
+
+    const char *firewall_rule_file_exclusive;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
