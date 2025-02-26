@@ -723,6 +723,16 @@ static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
     return 0;
 }
 
+static int SCSigOrderByIIdCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
+{
+    if (sw1->sig->num > sw2->sig->num) {
+        return -1;
+    } else if (sw1->sig->num < sw2->sig->num) {
+        return 1;
+    }
+    return 0;
+}
+
 /**
  * \brief Creates a Wrapper around the Signature
  *
@@ -764,26 +774,36 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         return;
     }
 
-    Signature *sig = NULL;
     SCSigSignatureWrapper *sigw = NULL;
     SCSigSignatureWrapper *sigw_list = NULL;
+    SCSigSignatureWrapper *fw_sigw_list = NULL;
 #ifdef DEBUG
     int i = 0;
 #endif
     SCLogDebug("ordering signatures in memory");
 
-    sig = de_ctx->sig_list;
+    Signature *sig = de_ctx->sig_list;
     while (sig != NULL) {
-        sigw = SCSigAllocSignatureWrapper(sig);
-        /* Push signature wrapper onto a list, order doesn't matter here. */
-        sigw->next = sigw_list;
-        sigw_list = sigw;
+        SCLogNotice("sig %u", sig->id);
 
+        sigw = SCSigAllocSignatureWrapper(sig);
+        if (sig->init_data->firewall_rule) {
+            /* Push signature wrapper onto a list, order doesn't matter here. */
+            sigw->next = fw_sigw_list;
+            fw_sigw_list = sigw;
+        } else {
+            /* Push signature wrapper onto a list, order doesn't matter here. */
+            sigw->next = sigw_list;
+            sigw_list = sigw;
+        }
         sig = sig->next;
 #ifdef DEBUG
         i++;
 #endif
     }
+
+    SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
+    fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
 
     /* Sort the list */
     sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
@@ -793,6 +813,24 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
+
+    /* firewall list */
+    for (sigw = fw_sigw_list; sigw != NULL;) {
+        sigw->sig->next = NULL;
+        if (de_ctx->sig_list == NULL) {
+            /* First entry on the list */
+            de_ctx->sig_list = sigw->sig;
+            sig = de_ctx->sig_list;
+        } else {
+            sig->next = sigw->sig;
+            sig = sig->next;
+        }
+
+        SCSigSignatureWrapper *sigw_to_free = sigw;
+        sigw = sigw->next;
+        SCFree(sigw_to_free);
+    }
+
     sigw = sigw_list;
 #ifdef DEBUG
     i = 0;

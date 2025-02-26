@@ -979,6 +979,12 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (ctx.js == NULL)
         SCReturn;
 
+    if (s->init_data->firewall_rule) {
+        JB_SET_STRING(ctx.js, "class", "firewall");
+    } else {
+        JB_SET_STRING(ctx.js, "class", "threat detection");
+    }
+
     jb_set_string(ctx.js, "raw", s->sig_str);
     jb_set_uint(ctx.js, "id", s->id);
     jb_set_uint(ctx.js, "gid", s->gid);
