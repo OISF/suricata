@@ -668,7 +668,7 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
             any5_cnt++;
         }
 
-        prefilter_cnt += (s->init_data->prefilter_sm != 0);
+        prefilter_cnt += (s->init_data->prefilter_sm != NULL);
         if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
