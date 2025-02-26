@@ -339,6 +339,8 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, SCJsonBuilder *jb, Flow *f)
 
     if (f->flags & FLOW_ACTION_DROP) {
         JB_SET_STRING(jb, "action", "drop");
+    } else if (f->flags & FLOW_ACTION_ACCEPT) {
+        JB_SET_STRING(jb, "action", "accept");
     } else if (f->flags & FLOW_ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
     }
