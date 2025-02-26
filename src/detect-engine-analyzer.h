@@ -31,11 +31,11 @@ struct DetectEngineCtx_;
 void SetupEngineAnalysis(struct DetectEngineCtx_ *de_ctx, bool *, bool *);
 void CleanupEngineAnalysis(struct DetectEngineCtx_ *de_ctx);
 
-void EngineAnalysisFP(const struct DetectEngineCtx_ *de_ctx, const Signature *s, char *line);
+void EngineAnalysisFP(const struct DetectEngineCtx_ *de_ctx, const Signature *s, const char *line);
 void EngineAnalysisRules(
         const struct DetectEngineCtx_ *de_ctx, const Signature *s, const char *line);
 void EngineAnalysisRulesFailure(
-        const struct DetectEngineCtx_ *de_ctx, char *line, char *file, int lineno);
+        const struct DetectEngineCtx_ *de_ctx, const char *line, const char *file, int lineno);
 
 void EngineAnalysisRules2(const struct DetectEngineCtx_ *de_ctx, const Signature *s);
 
