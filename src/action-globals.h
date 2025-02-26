@@ -33,6 +33,7 @@
 #define ACTION_REJECT_BOTH  0x10
 #define ACTION_PASS         0x20
 #define ACTION_CONFIG       0x40
+#define ACTION_ACCEPT       0x80 /**< firewall 'accept' rule */
 
 #define ACTION_REJECT_ANY   (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)
 
@@ -42,6 +43,8 @@ enum ActionScope {
     ACTION_SCOPE_AUTO = 0,
     ACTION_SCOPE_PACKET, /**< apply action to packet */
     ACTION_SCOPE_FLOW,   /**< apply drop/pass/accept action to flow */
+    ACTION_SCOPE_HOOK,   /**< apply action to current hook */
+    ACTION_SCOPE_TX,     /**< apply action to current tx */
 };
 
 #endif /* SURICATA_ACTION_GLOBALS_H */
