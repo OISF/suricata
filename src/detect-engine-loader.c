@@ -54,12 +54,8 @@ extern int engine_analysis;
 static bool fp_engine_analysis_set = false;
 bool rule_engine_analysis_set = false;
 
-/**
- *  \brief Create the path if default-rule-path was specified
- *  \param sig_file The name of the file
- *  \retval str Pointer to the string path + sig_file
- */
-char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_file)
+static char *DetectLoadCompleteSigPathWithKey(
+        const DetectEngineCtx *de_ctx, const char *default_key, const char *sig_file)
 {
     const char *defaultpath = NULL;
     char *path = NULL;
@@ -73,10 +69,9 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
     /* If we have a configuration prefix, only use it if the primary configuration node
      * is not marked as final, as that means it was provided on the command line with
      * a --set. */
-    ConfNode *default_rule_path = ConfGetNode("default-rule-path");
+    ConfNode *default_rule_path = ConfGetNode(default_key);
     if ((!default_rule_path || !default_rule_path->final) && strlen(de_ctx->config_prefix) > 0) {
-        snprintf(varname, sizeof(varname), "%s.default-rule-path",
-                de_ctx->config_prefix);
+        snprintf(varname, sizeof(varname), "%s.%s", de_ctx->config_prefix, default_key);
         default_rule_path = ConfGetNode(varname);
     }
     if (default_rule_path) {
@@ -103,6 +98,16 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
 }
 
 /**
+ *  \brief Create the path if default-rule-path was specified
+ *  \param sig_file The name of the file
+ *  \retval str Pointer to the string path + sig_file
+ */
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_file)
+{
+    return DetectLoadCompleteSigPathWithKey(de_ctx, "default-rule-path", sig_file);
+}
+
+/**
  *  \brief Load a file with signatures
  *  \param de_ctx Pointer to the detection engine context
  *  \param sig_file Filename to load signatures from
@@ -111,7 +116,7 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
  *  \retval 0 on success, -1 on error
  */
 static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int *goodsigs,
-        int *badsigs, int *skippedsigs)
+        int *badsigs, int *skippedsigs, const bool firewall_rule)
 {
     int good = 0, bad = 0, skipped = 0;
     char line[DETECT_MAX_RULE_SIZE] = "";
@@ -165,6 +170,11 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
 
         Signature *sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
+            if (firewall_rule) {
+                sig->init_data->firewall_rule = true;
+                SCLogNotice("fw: rule %u is a firewall rule", sig->id);
+            }
+
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(de_ctx, sig, line);
@@ -174,7 +184,22 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
                 }
             }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
-            good++;
+
+            /* TODO: ideally this is done in SigValidate, but that is run before we
+             * set the firewall flag. Could also add a specific SigValidateFirewallRule or similar.
+             */
+            if (firewall_rule) {
+                if (sig->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
+                    SCLogError("rule %u is loaded as a firewall rule, but does not specify and "
+                               "explicit hook",
+                            sig->id);
+                    bad++;
+                } else {
+                    good++;
+                }
+            } else {
+                good++;
+            }
         } else {
             if (!de_ctx->sigerror_silent) {
                 SCLogError("error parsing signature \"%s\" from "
@@ -257,7 +282,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
         } else {
             SCLogConfig("Loading rule file: %s", fname);
         }
-        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs, skipped_sigs);
+        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs, skipped_sigs, false);
         if (r < 0) {
             ++(st->bad_files);
         }
@@ -273,6 +298,48 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
     globfree(&files);
 #endif
     return r;
+}
+
+static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
+{
+    ConfNode *default_fw_rule_path = ConfGetNode("firewall-rule-path");
+    if (default_fw_rule_path == NULL) {
+        SCLogNotice("fw: firewall-rule-path not defined, skip loading firewall rules");
+        return 0;
+    }
+    ConfNode *rule_files = ConfGetNode("firewall-rule-files");
+    if (rule_files == NULL) {
+        SCLogNotice("fw: firewall-rule-files not defined, skip loading firewall rules");
+        return 0;
+    }
+
+    ConfNode *file = NULL;
+    TAILQ_FOREACH (file, &rule_files->head, next) {
+        int32_t good_sigs = 0;
+        int32_t bad_sigs = 0;
+        int32_t skipped_sigs = 0;
+
+        char *sfile = DetectLoadCompleteSigPathWithKey(de_ctx, "firewall-rule-path", file->val);
+        SCLogNotice("fw: rule file full path \"%s\"", sfile);
+
+        int ret = DetectLoadSigFile(de_ctx, sfile, &good_sigs, &bad_sigs, &skipped_sigs, true);
+        SCFree(sfile);
+
+        /* for now be as strict as possible */
+        if (ret != 0 || bad_sigs != 0 || skipped_sigs != 0) {
+            /* Some rules failed to load, just exit as
+             * errors would have already been logged. */
+            exit(EXIT_FAILURE);
+        }
+
+        if (good_sigs == 0) {
+            SCLogNotice("fw: No rules loaded from %s.", file->val);
+        } else {
+            SCLogNotice("fw: %d rules loaded from %s.", good_sigs, file->val);
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -295,6 +362,17 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
     int good_sigs = 0;
     int bad_sigs = 0;
     int skipped_sigs = 0;
+
+    if (!sig_file_exclusive) {
+        if (LoadFirewallRuleFiles(de_ctx) < 0) {
+            if (de_ctx->failure_fatal) {
+                exit(EXIT_FAILURE);
+            }
+            ret = -1;
+            goto end;
+        }
+    } else {
+    }
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.rule-files",
