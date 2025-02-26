@@ -168,13 +168,18 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
         de_ctx->rule_file = sig_file;
         de_ctx->rule_line = lineno - multiline;
 
-        Signature *sig = DetectEngineAppendSig(de_ctx, line);
+        Signature *sig = NULL;
+        if (firewall_rule)
+            sig = DetectFirewallRuleAppendNew(de_ctx, line);
+        else
+            sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
+#if 0
             if (firewall_rule) {
                 sig->init_data->firewall_rule = true;
                 SCLogNotice("fw: rule %u is a firewall rule", sig->id);
             }
-
+#endif
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(de_ctx, sig, line);
@@ -184,22 +189,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
                 }
             }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
-
-            /* TODO: ideally this is done in SigValidate, but that is run before we
-             * set the firewall flag. Could also add a specific SigValidateFirewallRule or similar.
-             */
-            if (firewall_rule) {
-                if (sig->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
-                    SCLogError("rule %u is loaded as a firewall rule, but does not specify and "
-                               "explicit hook",
-                            sig->id);
-                    bad++;
-                } else {
-                    good++;
-                }
-            } else {
-                good++;
-            }
+            good++;
         } else {
             if (!de_ctx->sigerror_silent) {
                 SCLogError("error parsing signature \"%s\" from "
