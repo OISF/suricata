@@ -59,6 +59,10 @@ It is possible to disable this default, by setting the exception policies'
 **In IDS mode**, setting ``auto`` mode actually means disabling the
 ``master-switch``, or ignoring the exception policies.
 
+.. note::
+
+    If no exception policy is enabled, Suricata will not log exception policy stats.
+
 .. _eps_settings:
 
 Specific settings
@@ -264,7 +268,8 @@ exception policy, but that is set up to ``ignore``::
 Available Stats
 ~~~~~~~~~~~~~~~
 
-There are stats counters for each supported exception policy scenario:
+There are stats counters for each supported exception policy scenario that will
+be logged when exception policies are enabled:
 
 .. list-table:: **Exception Policy Stats Counters**
    :widths: 50 50
@@ -293,7 +298,7 @@ Stats for application layer errors are available in summarized form or per
 application layer protocol. As the latter is extremely verbose, by default
 Suricata logs only the summary. If any further investigation is needed, it
 is recommended to enable per-app-proto exception policy error counters
-temporarily (for :ref:`stats configuration<suricata_yaml_outputs>`).
+temporarily (for more, read :ref:`stats configuration<suricata_yaml_outputs>`).
 
 
 Command-line Options for Simulating Exceptions
