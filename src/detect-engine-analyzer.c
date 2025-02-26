@@ -166,7 +166,7 @@ static void FpPatternStatsAdd(FpPatternStats *fp, int list, uint16_t patlen)
     f->tot += patlen;
 }
 
-void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *line)
+void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, const char *line)
 {
     int fast_pattern_set = 0;
     int fast_pattern_only_set = 0;
@@ -620,7 +620,8 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     fprintf(ea_ctx->rule_engine_analysis_fp, "buffer.\n");
 }
 
-void EngineAnalysisRulesFailure(const DetectEngineCtx *de_ctx, char *line, char *file, int lineno)
+void EngineAnalysisRulesFailure(
+        const DetectEngineCtx *de_ctx, const char *line, const char *file, int lineno)
 {
     fprintf(de_ctx->ea->fp_engine_analysis_fp, "== Sid: UNKNOWN ==\n");
     fprintf(de_ctx->ea->fp_engine_analysis_fp, "%s\n", line);
