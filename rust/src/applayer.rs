@@ -551,6 +551,7 @@ pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = BIT_U8!(0);
 pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = BIT_U8!(1);
 pub const _APP_LAYER_TX_INSPECTED_TS: u8 = BIT_U8!(2);
 pub const _APP_LAYER_TX_INSPECTED_TC: u8 = BIT_U8!(3);
+pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
 /// cbindgen:ignore
 extern "C" {

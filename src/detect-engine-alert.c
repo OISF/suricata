@@ -154,8 +154,14 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 
 static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 {
+    if (action & ACTION_ACCEPT) {
+        f->flags |= FLOW_ACTION_ACCEPT;
+        SCLogDebug("setting flow action pass");
+    }
+
+    // TODO pass and accept could be set at the same time?
     if (action & (ACTION_DROP | ACTION_REJECT_ANY | ACTION_PASS)) {
-        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
+        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS | FLOW_ACTION_ACCEPT)) {
             /* drop or pass already set. First to set wins. */
             SCLogDebug("not setting %s flow already set to %s",
                     (action & ACTION_PASS) ? "pass" : "drop",
@@ -205,13 +211,22 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
         if (pa->action & ACTION_PASS) {
             SCLogDebug("[packet %p][PASS sid %u]", p, s->id);
             // nothing to set in the packet
+        } else if (pa->action & ACTION_ACCEPT) {
+            const enum ActionScope as = pa->s->action_scope;
+            SCLogDebug("packet %" PRIu64 ": ACCEPT %u as:%u flags:%02x", p->pcap_cnt, s->id, as,
+                    pa->flags);
+            if (as == ACTION_SCOPE_PACKET || as == ACTION_SCOPE_FLOW ||
+                    (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET)) {
+                SCLogDebug("packet %" PRIu64 ": sid:%u ACCEPT", p->pcap_cnt, s->id);
+                p->action |= ACTION_ACCEPT;
+            }
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
         } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
 
-        if ((pa->action & ACTION_PASS) && (p->flow != NULL) &&
+        if ((pa->action & (ACTION_PASS | ACTION_ACCEPT)) && (p->flow != NULL) &&
                 (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(pa->action, p->flow);
         }
@@ -337,7 +352,7 @@ static inline void FlowApplySignatureActions(
      * - sig is IP or PD only
      * - match is in applayer
      * - match is in stream */
-    if (pa->action & (ACTION_DROP | ACTION_PASS)) {
+    if (pa->action & (ACTION_DROP | ACTION_PASS | ACTION_ACCEPT)) {
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_NOT_SET);
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_MAX);
 
@@ -366,15 +381,23 @@ static inline void FlowApplySignatureActions(
 static inline void PacketAlertFinalizeProcessQueue(
         const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
+    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+
     if (det_ctx->alert_queue_size > 1) {
         /* sort the alert queue before thresholding and appending to Packet */
         qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
                 AlertQueueSortHelper);
     }
 
+    bool dropped = false;
+    bool skip_td = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
-        const Signature *s = de_ctx->sig_array[pa->num];
+        const Signature *s = pa->s; // de_ctx->sig_array[pa->num];
+        if (have_fw_rules && skip_td && (s->flags & SIG_FLAG_FIREWALL) == 0) {
+            continue;
+        }
+
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
@@ -403,8 +426,12 @@ static inline void PacketAlertFinalizeProcessQueue(
             PacketApplySignatureActions(p, s, pa);
         }
 
-        /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+        /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */
+        if ((s->flags & SIG_FLAG_FIREWALL) && dropped) {
+            p->alerts.discarded++;
+
+            /* Thresholding removes this alert */
+        } else if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
             SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
                     s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
@@ -416,14 +443,27 @@ static inline void PacketAlertFinalizeProcessQueue(
             /* pass w/o alert found, we're done. Alert is not logged. */
             if ((pa->action & (ACTION_PASS | ACTION_ALERT)) == ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
-                break;
+                if (!have_fw_rules)
+                    break;
+                SCLogDebug("skipping td");
+                skip_td = true;
+                continue;
             }
             p->alerts.cnt++;
 
             /* pass with alert, we're done. Alert is logged. */
             if (pa->action & ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
-                break;
+                if (!have_fw_rules)
+                    break;
+                SCLogDebug("skipping td");
+                skip_td = true;
+                continue;
+            }
+
+            // TODO we can also drop if alert is suppressed, right?
+            if (s->action & ACTION_DROP) {
+                dropped = true;
             }
         } else {
             p->alerts.discarded++;
