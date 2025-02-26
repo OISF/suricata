@@ -1329,6 +1329,8 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
             SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
             s->init_data->hook.t.app.app_progress);
+
+    s->app_progress_hook = (uint8_t)s->init_data->hook.t.app.app_progress;
     return 0;
 }
 
@@ -1501,6 +1503,8 @@ static uint8_t ActionStringToFlags(const char *action)
         return ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "config") == 0) {
         return ACTION_CONFIG;
+    } else if (strcasecmp(action, "accept") == 0) {
+        return ACTION_ACCEPT;
     } else {
         SCLogError("An invalid action \"%s\" was given", action);
         return 0;
@@ -1556,12 +1560,45 @@ static int SigParseAction(Signature *s, const char *action_in)
                 return -1;
             }
             s->action_scope = scope_flags;
+        } else if (flags & (ACTION_ACCEPT)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else if (strcmp(o, "hook") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_HOOK;
+            } else if (strcmp(o, "tx") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_TX;
+            } else if (strcmp(o, "flow") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
+            } else {
+                SCLogError(
+                        "invalid action scope '%s' in action '%s': only 'packet', 'flow', 'tx' and "
+                        "'hook' allowed",
+                        o, action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
         } else {
             SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
                        "'drop', 'pass' and 'reject'",
                     o, action_in);
             return -1;
         }
+    }
+
+    /* require explicit action scope for fw rules */
+    if (s->init_data->firewall_rule && s->action_scope == 0) {
+        SCLogError("firewall rules require setting an explicit action scope");
+        return -1;
+    }
+
+    if (!s->init_data->firewall_rule && (flags & ACTION_ACCEPT)) {
+        SCLogError("'accept' action only supported for firewall rules");
+        return -1;
+    }
+
+    if (s->init_data->firewall_rule && (flags & ACTION_PASS)) {
+        SCLogError("'pass' action not supported for firewall rules");
+        return -1;
     }
 
     s->action = flags;
@@ -1719,6 +1756,11 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
     } else if (strcmp(parser->direction, "=>") == 0) {
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            SCLogError("transactional bidirectional rules not supported for firewall rules");
+            goto error;
+        }
+
         s->flags |= SIG_FLAG_TXBOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
@@ -2398,6 +2440,17 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCReturn;
 }
 
+static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
+{
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
+        SCLogError("rule %u is loaded as a firewall rule, but does not specify an "
+                   "explicit hook",
+                s->id);
+        return false;
+    }
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
@@ -2410,6 +2463,11 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     SCEnter();
+
+    if (s->init_data->firewall_rule) {
+        if (!DetectFirewallRuleValidate(de_ctx, s))
+            SCReturnInt(0);
+    }
 
     uint32_t sig_flags = 0;
     int nlists = 0;
@@ -2668,8 +2726,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
  * \internal
  * \brief Helper function for SigInit().
  */
-static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
-                                uint8_t dir)
+static Signature *SigInitHelper(
+        DetectEngineCtx *de_ctx, const char *sigstr, uint8_t dir, const bool firewall_rule)
 {
     SignatureParser parser;
     memset(&parser, 0x00, sizeof(parser));
@@ -2677,6 +2735,10 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
+    if (firewall_rule) {
+        sig->init_data->firewall_rule = true;
+        sig->flags |= SIG_FLAG_FIREWALL;
+    }
 
     sig->sig_str = SCStrdup(sigstr);
     if (unlikely(sig->sig_str == NULL)) {
@@ -2857,16 +2919,7 @@ static bool SigHasSameSourceAndDestination(const Signature *s)
     return true;
 }
 
-/**
- * \brief Parses a signature and adds it to the Detection Engine Context.
- *
- * \param de_ctx Pointer to the Detection Engine Context.
- * \param sigstr Pointer to a character string containing the signature to be
- *               parsed.
- *
- * \retval Pointer to the Signature instance on success; NULL on failure.
- */
-Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
+static Signature *SigInitDo(DetectEngineCtx *de_ctx, const char *sigstr, const bool firewall_rule)
 {
     SCEnter();
 
@@ -2875,9 +2928,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
     de_ctx->sigerror_silent = false;
     de_ctx->sigerror_requires = false;
 
-    Signature *sig;
-
-    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL)) == NULL) {
+    Signature *sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL, firewall_rule);
+    if (sig == NULL) {
         goto error;
     }
 
@@ -2888,7 +2940,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
 
             sig->init_data->init_flags &= ~SIG_FLAG_INIT_BIDIREC;
         } else {
-            sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+            sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED, firewall_rule);
             if (sig->next == NULL) {
                 goto error;
             }
@@ -2906,6 +2958,25 @@ error:
     de_ctx->signum = oldsignum;
 
     SCReturnPtr(NULL, "Signature");
+}
+
+/**
+ * \brief Parses a signature and adds it to the Detection Engine Context.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed.
+ *
+ * \retval Pointer to the Signature instance on success; NULL on failure.
+ */
+Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    return SigInitDo(de_ctx, sigstr, false);
+}
+
+static Signature *DetectFirewallRuleNew(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    return SigInitDo(de_ctx, sigstr, true);
 }
 
 /**
@@ -3146,6 +3217,78 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
 
 end:
     return ret;
+}
+
+/**
+ * \brief Parse and append a Signature into the Detection Engine Context
+ *        signature list.
+ *
+ *        If the signature is bidirectional it should append two signatures
+ *        (with the addresses switched) into the list.  Also handle duplicate
+ *        signatures.  In case of duplicate sigs, use the ones that have the
+ *        latest revision.  We use the sid and the msg to identify duplicate
+ *        sigs.  If 2 sigs have the same sid and gid, they are duplicates.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed.
+ * \param sig_file Pointer to a character string containing the filename from
+ *                 which signature is read
+ * \param lineno Line number from where signature is read
+ *
+ * \retval Pointer to the head Signature in the detection engine ctx sig_list
+ *         on success; NULL on failure.
+ */
+Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    Signature *sig = DetectFirewallRuleNew(de_ctx, sigstr);
+    if (sig == NULL) {
+        return NULL;
+    }
+
+    /* checking for the status of duplicate signature */
+    int dup_sig = DetectEngineSignatureIsDuplicate(de_ctx, sig);
+    /* a duplicate signature that should be chucked out.  Check the previously
+     * called function details to understand the different return values */
+    if (dup_sig == 1) {
+        SCLogError("Duplicate signature \"%s\"", sigstr);
+        goto error;
+    } else if (dup_sig == 2) {
+        SCLogWarning("Signature with newer revision,"
+                     " so the older sig replaced by this new signature \"%s\"",
+                sigstr);
+    }
+
+    if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
+        if (sig->next != NULL) {
+            sig->next->next = de_ctx->sig_list;
+        } else {
+            goto error;
+        }
+    } else {
+        /* if this sig is the first one, sig_list should be null */
+        sig->next = de_ctx->sig_list;
+    }
+
+    de_ctx->sig_list = sig;
+
+    /**
+     * In DetectEngineAppendSig(), the signatures are prepended and we always return the first one
+     * so if the signature is bidirectional, the returned sig will point through "next" ptr
+     * to the cloned signatures with the switched addresses
+     */
+    return (dup_sig == 0 || dup_sig == 2) ? sig : NULL;
+
+error:
+    /* free the 2nd sig bidir may have set up */
+    if (sig != NULL && sig->next != NULL) {
+        SigFree(de_ctx, sig->next);
+        sig->next = NULL;
+    }
+    if (sig != NULL) {
+        SigFree(de_ctx, sig);
+    }
+    return NULL;
 }
 
 /**

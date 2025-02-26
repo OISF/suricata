@@ -55,6 +55,8 @@
 /** is tx fully inspected? */
 #define APP_LAYER_TX_INSPECTED_TS BIT_U8(2)
 #define APP_LAYER_TX_INSPECTED_TC BIT_U8(3)
+/** accept is applied to entire tx */
+#define APP_LAYER_TX_ACCEPT BIT_U8(4)
 
 /** parser has successfully processed in the input, and has consumed
  *  all of it. */
