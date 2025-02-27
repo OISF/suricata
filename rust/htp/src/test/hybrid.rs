@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
-use htp::{
+use crate::{
     bstr::Bstr,
     config::{Config, HtpServerPersonality},
     connection_parser::{ConnectionParser, ParserData},
@@ -11,8 +11,7 @@ use htp::{
 };
 use std::net::{IpAddr, Ipv4Addr};
 
-// import common testing utilities
-mod common;
+use super::common::{assert_header_eq, assert_request_header_eq, assert_response_header_eq};
 
 struct HybridParsing_Get_User_Data {
     // Request callback indicators.

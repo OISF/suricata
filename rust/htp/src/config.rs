@@ -1,9 +1,7 @@
 use crate::decompressors::Options;
 use crate::{
     error::Result,
-    hook::{
-        DataHook, DataNativeCallbackFn, LogHook, TxHook, TxNativeCallbackFn,
-    },
+    hook::{DataHook, DataNativeCallbackFn, LogHook, TxHook, TxNativeCallbackFn},
     log::HtpLogLevel,
     transaction::Param,
     unicode_bestfit_map::UnicodeBestfitMap,

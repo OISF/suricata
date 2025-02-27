@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use htp::{
+use crate::{
     bstr::*,
     config::{Config, HtpServerPersonality},
     connection_parser::{ConnectionParser, ParserData},
@@ -8,9 +8,6 @@ use htp::{
     HtpStatus,
 };
 use std::{env, path::PathBuf};
-
-// import common testing utilities
-mod common;
 
 #[derive(Debug)]
 struct Test {
@@ -63,7 +60,8 @@ impl Test {
             let mut base = PathBuf::from(
                 env::var("CARGO_MANIFEST_DIR").expect("Could not determine test file directory"),
             );
-            base.push("tests");
+            base.push("src");
+            base.push("test");
             base.push("files");
             base
         };

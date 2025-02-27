@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use htp::{
+use crate::{
     bstr::Bstr,
     config::HtpServerPersonality,
     connection::ConnectionFlags,
@@ -13,12 +13,13 @@ use htp::{
     util::{FlagOperations, HtpFlags},
 };
 
-use htp::test::{MainUserData, Test, TestConfig};
+use super::common::{
+    assert_evader_chunked, assert_evader_request, assert_evader_response, assert_header_eq,
+    assert_request_header_eq, assert_response_header_eq, assert_response_header_flag_contains,
+};
+use super::common::{MainUserData, Test, TestConfig};
 
 use std::iter::IntoIterator;
-
-// import common testing utilities
-mod common;
 
 #[test]
 fn AdHoc() {
@@ -1093,7 +1094,7 @@ fn InvalidResponseHeaders2() {
 
 #[test]
 fn Util() {
-    use htp::{htp_error, htp_log};
+    use crate::{htp_error, htp_log};
     let mut cfg = TestConfig();
     cfg.log_level = HtpLogLevel::NONE;
     let mut t = Test::new(cfg);

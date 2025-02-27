@@ -88,5 +88,5 @@ mod utf8_decoder;
 pub mod util;
 
 /// Test harness
-// TODO: add #[cfg(test)] here when this is fixed: https://github.com/rust-lang/cargo/issues/8379
+#[cfg(test)]
 pub mod test;
