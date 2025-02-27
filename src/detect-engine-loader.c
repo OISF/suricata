@@ -292,6 +292,34 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
 
 static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
 {
+    if (de_ctx->firewall_rule_file_exclusive) {
+        int32_t good_sigs = 0;
+        int32_t bad_sigs = 0;
+        int32_t skipped_sigs = 0;
+
+        SCLogNotice("fw: rule file full path \"%s\"", de_ctx->firewall_rule_file_exclusive);
+
+        int ret = DetectLoadSigFile(de_ctx, de_ctx->firewall_rule_file_exclusive, &good_sigs,
+                &bad_sigs, &skipped_sigs, true);
+
+        /* for now be as strict as possible */
+        if (ret != 0 || bad_sigs != 0 || skipped_sigs != 0) {
+            /* Some rules failed to load, just exit as
+             * errors would have already been logged. */
+            exit(EXIT_FAILURE);
+        }
+
+        if (good_sigs == 0) {
+            SCLogNotice("fw: No rules loaded from %s.", de_ctx->firewall_rule_file_exclusive);
+        } else {
+            SCLogNotice("fw: %d rules loaded from %s.", good_sigs,
+                    de_ctx->firewall_rule_file_exclusive);
+            de_ctx->sig_stat.good_sigs_total += good_sigs;
+        }
+
+        return 0;
+    }
+
     ConfNode *default_fw_rule_path = ConfGetNode("firewall-rule-path");
     if (default_fw_rule_path == NULL) {
         SCLogNotice("fw: firewall-rule-path not defined, skip loading firewall rules");
@@ -326,6 +354,7 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
             SCLogNotice("fw: No rules loaded from %s.", file->val);
         } else {
             SCLogNotice("fw: %d rules loaded from %s.", good_sigs, file->val);
+            de_ctx->sig_stat.good_sigs_total += good_sigs;
         }
     }
 
@@ -353,7 +382,15 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
     int bad_sigs = 0;
     int skipped_sigs = 0;
 
-    if (!sig_file_exclusive) {
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.rule-files", de_ctx->config_prefix);
+    }
+
+    if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
+        SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
+    }
+
+    if (!sig_file_exclusive || de_ctx->firewall_rule_file_exclusive) {
         if (LoadFirewallRuleFiles(de_ctx) < 0) {
             if (de_ctx->failure_fatal) {
                 exit(EXIT_FAILURE);
@@ -361,16 +398,12 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
             ret = -1;
             goto end;
         }
-    } else {
-    }
 
-    if (strlen(de_ctx->config_prefix) > 0) {
-        snprintf(varname, sizeof(varname), "%s.rule-files",
-                de_ctx->config_prefix);
-    }
-
-    if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
-        SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
+        /* skip regular rules if we used a exclusive firewall rule file */
+        if (de_ctx->firewall_rule_file_exclusive) {
+            ret = 0;
+            goto skip_regular_rules;
+        }
     }
 
     /* ok, let's load signature files from the general config */
@@ -418,6 +451,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
         }
     }
 
+skip_regular_rules:
     /* now we should have signatures to work with */
     if (sig_stat->good_sigs_total <= 0) {
         if (sig_stat->total_files > 0) {
