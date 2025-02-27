@@ -636,14 +636,15 @@ typedef struct Signature_ {
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
 
-    /** classification id **/
-    uint16_t class_id;
-
     /** ipv4 match arrays */
     uint16_t addr_dst_match4_cnt;
     uint16_t addr_src_match4_cnt;
     uint16_t addr_dst_match6_cnt;
     uint16_t addr_src_match6_cnt;
+
+    /** classification id **/
+    uint16_t class_id;
+
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
     /** ipv6 match arrays */
