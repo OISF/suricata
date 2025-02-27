@@ -918,7 +918,7 @@ void OutputRegisterRootLoggers(void)
     RegisterSimpleJsonApplayerLogger(ALPROTO_HTTP2, rs_http2_log_json, "http");
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(
-            ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log, "bittorrent_dht");
+            ALPROTO_BITTORRENT_DHT, SCBittorrentDhtLogger, "bittorrent_dht");
 
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();
