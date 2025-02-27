@@ -144,7 +144,7 @@ endif
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB) cbindgen.toml
 	cd $(abs_top_srcdir)/rust && \
-		cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		$(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
 else
 gen/rust-bindings.h:
@@ -155,7 +155,7 @@ doc:
 
 if HAVE_CBINDGEN
 dist/rust-bindings.h:
-	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+	$(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
