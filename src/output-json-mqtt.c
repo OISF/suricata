@@ -62,7 +62,7 @@ typedef struct LogMQTTLogThread_ {
 
 bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js)
 {
-    return rs_mqtt_logger_log(vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
+    return SCMqttLoggerLog(vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
 }
 
 static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
@@ -71,7 +71,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     LogMQTTLogThread *thread = thread_data;
     enum OutputJsonLogDirection dir;
 
-    if (rs_mqtt_tx_is_toclient((MQTTTransaction*) tx)) {
+    if (SCMqttTxIsToClient((MQTTTransaction *)tx)) {
         dir = LOG_DIR_FLOW_TOCLIENT;
     } else {
         dir = LOG_DIR_FLOW_TOSERVER;
@@ -82,7 +82,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (!rs_mqtt_logger_log(tx, thread->mqttlog_ctx->flags, thread->mqttlog_ctx->max_log_len, js))
+    if (!SCMqttLoggerLog(tx, thread->mqttlog_ctx->flags, thread->mqttlog_ctx->max_log_len, js))
         goto error;
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
