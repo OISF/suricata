@@ -154,7 +154,7 @@ gen/rust-bindings.h:
 endif
 
 if HAVE_CBINDGEN
-gen/htp/htp_rs.h: $(RUST_SURICATA_LIB)
+gen/htp/htp_rs.h: $(RUST_SURICATA_LIB) htp/cbindgen.toml
 	cd $(abs_top_srcdir)/rust/htp && \
 		cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h || true
