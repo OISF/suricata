@@ -1112,6 +1112,8 @@ typedef struct DetectEngineCtx_ {
     /* name store for non-prefilter engines. Used in profiling but
      * part of the API, so hash is always used. */
     HashTable *non_pf_engine_names;
+
+    const char *firewall_rule_file_exclusive;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
