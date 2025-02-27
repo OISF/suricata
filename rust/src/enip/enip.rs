@@ -468,7 +468,7 @@ unsafe extern "C" fn enip_probing_parser_tcp(
     return ALPROTO_FAILED;
 }
 
-extern "C" fn rs_enip_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
+extern "C" fn enip_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = EnipState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
@@ -537,7 +537,7 @@ unsafe extern "C" fn enip_parse_response_tcp(
     }
 }
 
-unsafe extern "C" fn rs_enip_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
+unsafe extern "C" fn enip_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, EnipState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -549,12 +549,12 @@ unsafe extern "C" fn rs_enip_state_get_tx(state: *mut c_void, tx_id: u64) -> *mu
     }
 }
 
-unsafe extern "C" fn rs_enip_state_get_tx_count(state: *mut c_void) -> u64 {
+unsafe extern "C" fn enip_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, EnipState);
     return state.tx_id;
 }
 
-unsafe extern "C" fn rs_enip_tx_get_alstate_progress(tx: *mut c_void, direction: u8) -> c_int {
+unsafe extern "C" fn enip_tx_get_alstate_progress(tx: *mut c_void, direction: u8) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
 
     // Transaction is done if we have a response.
@@ -598,16 +598,16 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
         probe_tc: Some(enip_probing_parser_udp),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_enip_state_new,
+        state_new: enip_state_new,
         state_free: enip_state_free,
         tx_free: enip_state_tx_free,
         parse_ts: enip_parse_request_udp,
         parse_tc: enip_parse_response_udp,
-        get_tx_count: rs_enip_state_get_tx_count,
-        get_tx: rs_enip_state_get_tx,
+        get_tx_count: enip_state_get_tx_count,
+        get_tx: enip_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_enip_tx_get_alstate_progress,
+        tx_get_progress: enip_tx_get_alstate_progress,
         get_eventinfo: Some(EnipEvent::get_event_info),
         get_eventinfo_byid: Some(EnipEvent::get_event_info_by_id),
         localstorage_new: None,
