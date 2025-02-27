@@ -27,7 +27,7 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 default = ["cbindgen"]
 
 [dependencies]
-base64 = "0.12.3"
+base64 = "0.22.1"
 bstr = "0.2"
 libc = "0.2"
 nom = "7.1.1"
