@@ -2053,7 +2053,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         }
     }
 
-    if (suri->disabled_detect && (suri->sig_file != NULL | suri->firewall_rule_file != NULL)) {
+    if (suri->disabled_detect && (suri->sig_file != NULL || suri->firewall_rule_file != NULL)) {
         SCLogError("can't use -s/-S or --firewall-rules-exclusive when detection is disabled");
         return TM_ECODE_FAILED;
     }
