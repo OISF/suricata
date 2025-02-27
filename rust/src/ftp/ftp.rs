@@ -143,7 +143,6 @@ pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *const c_void) {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct FtpTransferCmd {
     // Must be first -- required by app-layer expectation logic
     data_free: unsafe extern "C" fn(*mut c_void),
@@ -161,7 +160,7 @@ impl Default for FtpTransferCmd {
             file_name: std::ptr::null_mut(),
             file_len: 0,
             direction: 0,
-            cmd: FtpStateValues::FTP_STATE_NONE as u8,
+            cmd: 0,
             data_free: default_free_fn,
         }
     }
