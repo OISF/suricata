@@ -96,7 +96,7 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = NULL;
         uint8_t endianness;
 
-        rs_dcerpc_get_stub_data(txv, &data, &data_len, &endianness, flow_flags);
+        SCDcerpcGetStubData(txv, &data, &data_len, &endianness, flow_flags);
         if (data == NULL || data_len == 0)
             return NULL;
 

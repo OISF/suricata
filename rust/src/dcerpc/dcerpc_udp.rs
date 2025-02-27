@@ -19,7 +19,7 @@ use crate::core;
 use crate::applayer::{self, *};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
-    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
+    get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
 };
 use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
@@ -234,8 +234,7 @@ impl DCERPCUDPState {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_parse(
+unsafe extern "C" fn parse(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
@@ -247,20 +246,17 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     AppLayerResult::err()
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCUDPState) });
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
+unsafe extern "C" fn state_transaction_free(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
@@ -268,8 +264,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
     dce_state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
+unsafe extern "C" fn get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -277,8 +272,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
     return &mut tx.tx_data;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
+unsafe extern "C" fn get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
@@ -292,8 +286,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
     } 
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.tx_id
 }
@@ -315,7 +308,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const Flow, direction: u8, input: *const u8,
+unsafe extern "C" fn probe_udp(_f: *const Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
@@ -343,7 +336,7 @@ fn register_pattern_probe() -> i8 {
     unsafe {
         if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
+                                                     Direction::ToServer.into(), probe_udp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -351,10 +344,10 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
-export_state_data_get!(rs_dcerpc_udp_get_state_data, DCERPCUDPState);
+export_state_data_get!(get_state_data, DCERPCUDPState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
+pub unsafe extern "C" fn SCRegisterDcerpcUdpParser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -363,24 +356,24 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_dcerpc_udp_state_new,
-        state_free: rs_dcerpc_udp_state_free,
-        tx_free: rs_dcerpc_udp_state_transaction_free,
-        parse_ts: rs_dcerpc_udp_parse,
-        parse_tc: rs_dcerpc_udp_parse,
-        get_tx_count: rs_dcerpc_udp_get_tx_cnt,
-        get_tx: rs_dcerpc_udp_get_tx,
+        state_new,
+        state_free,
+        tx_free: state_transaction_free,
+        parse_ts: parse,
+        parse_tc: parse,
+        get_tx_count: get_tx_cnt,
+        get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        tx_get_progress: get_alstate_progress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCUDPState, DCERPCTransaction>),
-        get_tx_data: rs_dcerpc_udp_get_tx_data,
-        get_state_data: rs_dcerpc_udp_get_state_data,
+        get_tx_data,
+        get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: None,

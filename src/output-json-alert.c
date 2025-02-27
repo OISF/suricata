@@ -416,11 +416,11 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                     jb_get_mark(jb, &mark);
                     jb_open_object(jb, "dcerpc");
                     if (p->proto == IPPROTO_TCP) {
-                        if (!rs_dcerpc_log_json_record_tcp(state, tx, jb)) {
+                        if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
                             jb_restore_mark(jb, &mark);
                         }
                     } else {
-                        if (!rs_dcerpc_log_json_record_udp(state, tx, jb)) {
+                        if (!SCDcerpcLogJsonRecordUdp(state, tx, jb)) {
                             jb_restore_mark(jb, &mark);
                         }
                     }
