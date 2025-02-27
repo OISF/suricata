@@ -324,10 +324,10 @@ pub struct DCERPCState {
     pub pad: u8,
     pub padleft: u16,
     pub tx_id: u64,
-    pub ts_gap: bool,
-    pub tc_gap: bool,
-    pub ts_ssn_gap: bool,
-    pub tc_ssn_gap: bool,
+    ts_gap: bool,
+    tc_gap: bool,
+    ts_ssn_gap: bool,
+    tc_ssn_gap: bool,
     pub flow: Option<*const Flow>,
     state_data: AppLayerStateData,
 }
@@ -516,21 +516,7 @@ impl DCERPCState {
         None
     }
 
-    pub fn parse_data_gap(&mut self, direction: Direction) -> AppLayerResult {
-        match direction {
-            Direction::ToServer => {
-                self.ts_gap = true;
-                self.ts_ssn_gap = true;
-            },
-            Direction::ToClient => {
-                self.tc_gap = true;
-                self.tc_ssn_gap = true;
-            },
-        }
-        AppLayerResult::ok()
-    }
-
-    pub fn post_gap_housekeeping(&mut self, dir: Direction) {
+    fn post_gap_housekeeping(&mut self, dir: Direction) {
         SCLogDebug!("ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}", self.ts_ssn_gap, self.tc_ssn_gap, dir);
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
@@ -1047,24 +1033,7 @@ fn evaluate_stub_params(
     stub_len
 }
 
-#[no_mangle]
-pub extern "C" fn rs_parse_dcerpc_request_gap(
-    state: &mut DCERPCState,
-    _input_len: u32,
-) -> AppLayerResult {
-    state.parse_data_gap(Direction::ToServer)
-}
-
-#[no_mangle]
-pub extern "C" fn rs_parse_dcerpc_response_gap(
-    state: &mut DCERPCState,
-    _input_len: u32,
-) -> AppLayerResult {
-    state.parse_data_gap(Direction::ToClient)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_parse_request(
+unsafe extern "C" fn parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
@@ -1088,8 +1057,7 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
     AppLayerResult::err()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_parse_response(
+unsafe extern "C" fn parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
@@ -1111,27 +1079,23 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
     AppLayerResult::err()
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let dce_state = cast_pointer!(state, DCERPCState);
     SCLogDebug!("freeing tx {}", tx_id);
     dce_state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx(
+ unsafe extern "C" fn get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
@@ -1141,14 +1105,12 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCState);
     dce_state.tx_id
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
+pub(super) unsafe extern "C" fn get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
                                                  )-> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == Direction::ToServer.into() && tx.req_done {
@@ -1162,8 +1124,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_alstate_progress(tx: *mut std::os::raw::c
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
+unsafe extern "C" fn get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -1172,7 +1133,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_tx_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
+pub unsafe extern "C" fn SCDcerpcGetStubData(
     tx: &mut DCERPCTransaction, buf: *mut *const u8, len: *mut u32, endianness: *mut u8, dir: u8,
 ) {
     match dir.into() {
@@ -1205,7 +1166,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
+unsafe extern "C" fn probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
                                       len: u32, rdir: *mut u8) -> AppProto
 {
     SCLogDebug!("Probing packet for DCERPC");
@@ -1233,13 +1194,13 @@ fn register_pattern_probe() -> i8 {
     unsafe {
         if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), rs_dcerpc_probe_tcp, 0, 0) < 0 {
+                                                     Direction::ToServer.into(), probe_tcp, 0, 0) < 0 {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
         if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToClient.into(), rs_dcerpc_probe_tcp, 0, 0) < 0 {
+                                                     Direction::ToClient.into(), probe_tcp, 0, 0) < 0 {
             SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -1248,13 +1209,13 @@ fn register_pattern_probe() -> i8 {
     0
 }
 
-export_state_data_get!(rs_dcerpc_get_state_data, DCERPCState);
+export_state_data_get!(get_state_data, DCERPCState);
 
 // Parser name as a C style string.
 pub const PARSER_NAME: &[u8] = b"dcerpc\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_register_parser() {
+pub unsafe extern "C" fn SCRegisterDcerpcParser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -1263,24 +1224,24 @@ pub unsafe extern "C" fn rs_dcerpc_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_dcerpc_state_new,
-        state_free: rs_dcerpc_state_free,
-        tx_free: rs_dcerpc_state_transaction_free,
-        parse_ts: rs_dcerpc_parse_request,
-        parse_tc: rs_dcerpc_parse_response,
-        get_tx_count: rs_dcerpc_get_tx_cnt,
-        get_tx: rs_dcerpc_get_tx,
+        state_new,
+        state_free,
+        tx_free: state_transaction_free,
+        parse_ts: parse_request,
+        parse_tc: parse_response,
+        get_tx_count: get_tx_cnt,
+        get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_dcerpc_get_alstate_progress,
+        tx_get_progress: get_alstate_progress,
         get_eventinfo: None,
         get_eventinfo_byid : None,
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<DCERPCState, DCERPCTransaction>),
-        get_tx_data: rs_dcerpc_get_tx_data,
-        get_state_data: rs_dcerpc_get_state_data,
+        get_tx_data,
+        get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(DCERPCFrameType::ffi_id_from_name),

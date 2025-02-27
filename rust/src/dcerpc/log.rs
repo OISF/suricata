@@ -126,14 +126,14 @@ fn log_dcerpc_header_udp(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_record_tcp(
+pub extern "C" fn SCDcerpcLogJsonRecordTcp(
     state: &DCERPCState, tx: &DCERPCTransaction, jsb: &mut JsonBuilder,
 ) -> bool {
     log_dcerpc_header_tcp(jsb, state, tx).is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_record_udp(
+pub extern "C" fn SCDcerpcLogJsonRecordUdp(
     state: &DCERPCUDPState, tx: &DCERPCTransaction, jsb: &mut JsonBuilder,
 ) -> bool {
     log_dcerpc_header_udp(jsb, state, tx).is_ok()
