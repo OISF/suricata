@@ -856,7 +856,7 @@ impl ConnectionParser {
     }
 
     /// Parses a single request line.
-    pub fn parse_request_line(&mut self, request_line: &[u8]) -> Result<()> {
+    pub(crate) fn parse_request_line(&mut self, request_line: &[u8]) -> Result<()> {
         let req = self.request_mut();
         if req.is_none() {
             return Err(HtpStatus::ERROR);
@@ -1010,7 +1010,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success or HtpStatus::ERROR if the request transaction
     /// is invalid or response body data hook fails.
-    pub fn request_body_data(&mut self, data: Option<&[u8]>) -> Result<()> {
+    pub(crate) fn request_body_data(&mut self, data: Option<&[u8]>) -> Result<()> {
         // None data is used to indicate the end of request body.
         // Keep track of body size before decompression.
         let req = self.request_mut();
@@ -1474,7 +1474,7 @@ impl ConnectionParser {
     }
 
     /// Process a chunk of inbound (client or request) data.
-    pub fn request_data(
+    pub(crate) fn request_data(
         &mut self, mut chunk: ParserData, timestamp: Option<OffsetDateTime>,
     ) -> HtpStreamState {
         // Reset the bytes consumed counter

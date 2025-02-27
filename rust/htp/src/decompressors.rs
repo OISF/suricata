@@ -23,7 +23,7 @@ const DEFAULT_LAYER_LIMIT: u32 = 2;
 
 #[derive(Copy, Clone)]
 /// Decompression options
-pub struct Options {
+pub(crate) struct Options {
     /// lzma options or None to disable lzma.
     lzma: Option<lzma_rs::decompress::Options>,
     /// Max number of LZMA layers to pass to the decompressor.
@@ -44,7 +44,7 @@ impl Options {
     /// Set the lzma memlimit.
     ///
     /// A value of 0 will disable lzma.
-    pub fn set_lzma_memlimit(&mut self, memlimit: usize) {
+    pub(crate) fn set_lzma_memlimit(&mut self, memlimit: usize) {
         self.lzma = if memlimit == 0 {
             None
         } else {
@@ -71,7 +71,7 @@ impl Options {
     }
 
     /// Set the compression bomb limit.
-    pub fn set_bomb_limit(&mut self, bomblimit: u64) {
+    pub(crate) fn set_bomb_limit(&mut self, bomblimit: u64) {
         self.bomb_limit = bomblimit;
     }
 
@@ -81,7 +81,8 @@ impl Options {
     }
 
     /// Set the bomb ratio.
-    pub fn set_bomb_ratio(&mut self, bomb_ratio: u64) {
+    #[cfg(test)]
+    pub(crate) fn set_bomb_ratio(&mut self, bomb_ratio: u64) {
         self.bomb_ratio = bomb_ratio;
     }
 
@@ -91,7 +92,7 @@ impl Options {
     }
 
     /// Set the compression time limit in microseconds.
-    pub fn set_time_limit(&mut self, time_limit: u32) {
+    pub(crate) fn set_time_limit(&mut self, time_limit: u32) {
         self.time_limit = time_limit
     }
 
@@ -147,7 +148,7 @@ pub(crate) trait Decompress: Write {
 pub(crate) type CallbackFn = Box<dyn FnMut(Option<&[u8]>) -> Result<usize, std::io::Error>>;
 
 /// Simple wrapper around a closure to chain it to the other decompressors
-pub struct CallbackWriter(CallbackFn);
+pub(crate) struct CallbackWriter(CallbackFn);
 
 impl CallbackWriter {
     /// Create a new CallbackWriter.
@@ -199,7 +200,7 @@ pub enum HtpContentEncoding {
 
 /// The outer decompressor tracks the number of callbacks and time spent
 /// decompressing.
-pub struct Decompressor {
+pub(crate) struct Decompressor {
     /// First decompressor to call
     inner: Box<dyn Decompress>,
     /// Time we started decompression
@@ -233,30 +234,9 @@ impl Decompressor {
     /// Note that decompressors should be added in the same order the data was
     /// compressed, starting with the callback.
     ///
-    /// ```
-    /// use htp::decompressors::{HtpContentEncoding, Decompressor};
-    ///
-    /// // Example for "Content-Encoding: gzip, deflate"
-    /// let mut decompressor = Decompressor::new_with_callback(HtpContentEncoding::GZIP,
-    ///     Box::new(|data: Option<&[u8]>| -> Result<usize, std::io::Error> {
-    ///         if let Some(data) = data {
-    ///             println!("CALLBACK: {}", data.len());
-    ///             Ok(data.len())
-    ///         } else {
-    ///             println!("CALLBACK: end of data");
-    ///             Ok(0)
-    ///         }
-    ///     }), Default::default()).unwrap();
-    ///
-    /// decompressor = decompressor.prepend(HtpContentEncoding::DEFLATE, Default::default()).unwrap();
-    ///
-    /// // Decompressors will be called in this order:
-    /// // 1. deflate
-    /// // 2. gzip
-    /// // 3. callback
-    /// decompressor.decompress(&[]).unwrap();
-    /// ```
-    pub fn prepend(self, encoding: HtpContentEncoding, options: Options) -> std::io::Result<Self> {
+    pub(crate) fn prepend(
+        self, encoding: HtpContentEncoding, options: Options,
+    ) -> std::io::Result<Self> {
         match encoding {
             HtpContentEncoding::NONE => Ok(Decompressor::new(self.inner)),
             HtpContentEncoding::GZIP
@@ -274,7 +254,7 @@ impl Decompressor {
 
     /// Creates a new decompressor with `encoding` and adds a callback to be called
     /// when data is ready.
-    pub fn new_with_callback(
+    pub(crate) fn new_with_callback(
         encoding: HtpContentEncoding, callback: CallbackFn, options: Options,
     ) -> std::io::Result<Self> {
         Self::callback(callback).prepend(encoding, options)
@@ -316,7 +296,7 @@ impl Decompressor {
     ///
     /// This will reset the number of callbacks called and restart the
     /// decompression timer.
-    pub fn decompress(&mut self, data: &[u8]) -> std::io::Result<()> {
+    pub(crate) fn decompress(&mut self, data: &[u8]) -> std::io::Result<()> {
         self.nb_callbacks = 0;
         self.timer_start();
 

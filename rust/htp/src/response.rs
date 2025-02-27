@@ -728,7 +728,7 @@ impl ConnectionParser {
     }
 
     /// Parses the response line.
-    pub fn parse_response_line(&mut self, response_line: &[u8]) -> Result<()> {
+    pub(crate) fn parse_response_line(&mut self, response_line: &[u8]) -> Result<()> {
         let response_tx = self.response_mut();
         if response_tx.is_none() {
             return Err(HtpStatus::ERROR);
@@ -1032,7 +1032,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success or HtpStatus::ERROR if the request transaction
     /// is invalid or response body data hook fails.
-    pub fn response_body_data(&mut self, data: Option<&[u8]>) -> Result<()> {
+    pub(crate) fn response_body_data(&mut self, data: Option<&[u8]>) -> Result<()> {
         // None data is used to indicate the end of response body.
         // Keep track of body size before decompression.
         let resp = self.response_mut();

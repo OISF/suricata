@@ -1,5 +1,4 @@
-use crate::connection::Connection;
-use std::{net::IpAddr, sync::mpsc::Sender};
+use std::sync::mpsc::Sender;
 
 /// Different codes used for logging.
 #[repr(C)]
@@ -172,9 +171,7 @@ pub enum HtpLogCode {
 /// Enumerates all log levels.
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Debug)]
-pub enum HtpLogLevel {
-    /// No log level.
-    NONE,
+pub(crate) enum HtpLogLevel {
     /// Designates fatal error.
     ERROR,
     /// Designates hazardous situations.
@@ -183,64 +180,54 @@ pub enum HtpLogLevel {
     NOTICE,
     /// Designates useful information,
     INFO,
-    /// Designates lower priority information.
-    DEBUG,
-    /// Designated very low priority, often extremely verbose, information.
-    DEBUG2,
 }
 #[derive(Clone)]
 /// Logger struct
-pub struct Logger {
+pub(crate) struct Logger {
     /// The sender half of a logging channel
-    pub sender: Sender<Message>,
+    pub(crate) sender: Sender<Message>,
     /// Log level used when deciding whether to store or
     /// ignore the messages issued by the parser.
-    pub level: HtpLogLevel,
+    pub(crate) level: HtpLogLevel,
 }
 
 impl Logger {
     /// Returns a new logger instance
-    pub(crate) fn new(sender: &Sender<Message>, level: HtpLogLevel) -> Logger {
+    pub(crate) fn new(sender: &Sender<Message>) -> Logger {
         Self {
             sender: sender.clone(),
-            level,
+            level: HtpLogLevel::NOTICE,
         }
     }
     /// Logs a message to the logger channel.
-    pub fn log(
-        &mut self, file: &str, line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
+    pub(crate) fn log(
+        &mut self, file: &str, _line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
     ) {
         // Ignore messages below our log level.
         if level <= self.level {
-            let _ = self.sender.send(Message::new(file, line, level, code, msg));
+            let _ = self.sender.send(Message::new(file, code, msg));
         }
     }
 }
 
 #[derive(Clone)]
 /// Represents a single Message entry for a log
-pub struct Message {
+pub(crate) struct Message {
     /// Log message string.
-    pub msg: String,
-    /// Message level.
-    pub level: HtpLogLevel,
+    pub(crate) msg: String,
+    //level: HtpLogLevel,
     /// Message code.
-    pub code: HtpLogCode,
+    pub(crate) code: HtpLogCode,
     /// File in which the code that emitted the message resides.
-    pub file: String,
-    /// Line number on which the code that emitted the message resides.
-    pub line: u32,
+    pub(crate) file: String,
+    //line: u32,
 }
 
 impl Message {
     /// Returns a new Message instance
-    pub(crate) fn new(
-        file: &str, line: u32, level: HtpLogLevel, code: HtpLogCode, msg: String,
-    ) -> Message {
+    pub(crate) fn new(file: &str, code: HtpLogCode, msg: String) -> Message {
         Self {
             file: file.to_string(),
-            line,
-            level,
             code,
             msg,
         }
@@ -250,29 +237,14 @@ impl Message {
 /// Represents a single log entry.
 #[derive(Clone)]
 pub struct Log {
-    /// Client IP address.
-    pub client_addr: Option<IpAddr>,
-    /// Client port.
-    pub client_port: Option<u16>,
-    /// Server IP address.
-    pub server_addr: Option<IpAddr>,
-    /// Server port.
-    pub server_port: Option<u16>,
-
     /// Log message.
-    pub msg: Message,
+    pub(crate) msg: Message,
 }
 
 impl Log {
     /// Returns a new Log instance.
-    pub(crate) fn new(conn: &Connection, msg: Message) -> Log {
-        Self {
-            client_addr: conn.client_addr,
-            client_port: conn.client_port,
-            server_addr: conn.server_addr,
-            server_port: conn.server_port,
-            msg,
-        }
+    pub(crate) fn new(msg: Message) -> Log {
+        Self { msg }
     }
 }
 

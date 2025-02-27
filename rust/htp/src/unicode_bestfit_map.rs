@@ -2,12 +2,12 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 #[derive(Copy, Clone)]
-pub struct UnicodeBestfitMap {
+pub(crate) struct UnicodeBestfitMap {
     // Best-fit mapping options.
     /// The best-fit map to use to decode %u-encoded characters.
-    pub map: &'static HashMap<u32, u8>,
+    pub(crate) map: &'static HashMap<u32, u8>,
     /// The replacement byte used when there is no best-fit mapping.
-    pub replacement_byte: u8,
+    pub(crate) replacement_byte: u8,
 }
 
 impl Default for UnicodeBestfitMap {

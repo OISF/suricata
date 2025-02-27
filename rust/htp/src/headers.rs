@@ -26,23 +26,23 @@ pub(crate) type ValueBytes<'a> = (&'a [u8], FoldingOrTerminator<'a>);
 pub struct HeaderFlags;
 
 impl HeaderFlags {
-    pub const FOLDING: u64 = 0x0001;
-    pub const FOLDING_SPECIAL_CASE: u64 = (0x0002 | Self::FOLDING);
-    pub const NAME_EMPTY: u64 = 0x0004;
-    pub const VALUE_EMPTY: u64 = 0x0008;
-    pub const NAME_NON_TOKEN_CHARS: u64 = 0x0010;
-    pub const FIELD_REPEATED: u64 = 0x0020;
-    pub const NAME_TRAILING_WHITESPACE: u64 = 0x0040;
-    pub const NAME_LEADING_WHITESPACE: u64 = 0x0080;
-    pub const NULL_TERMINATED: u64 = 0x0100;
-    pub const MISSING_COLON: u64 = (0x0200 | Self::NAME_EMPTY);
-    pub const DEFORMED_EOL: u64 = 0x0400;
+    pub(crate) const FOLDING: u64 = 0x0001;
+    pub(crate) const FOLDING_SPECIAL_CASE: u64 = (0x0002 | Self::FOLDING);
+    pub(crate) const NAME_EMPTY: u64 = 0x0004;
+    pub(crate) const VALUE_EMPTY: u64 = 0x0008;
+    pub(crate) const NAME_NON_TOKEN_CHARS: u64 = 0x0010;
+    pub(crate) const FIELD_REPEATED: u64 = 0x0020;
+    pub(crate) const NAME_TRAILING_WHITESPACE: u64 = 0x0040;
+    pub(crate) const NAME_LEADING_WHITESPACE: u64 = 0x0080;
+    pub(crate) const NULL_TERMINATED: u64 = 0x0100;
+    pub(crate) const MISSING_COLON: u64 = (0x0200 | Self::NAME_EMPTY);
+    pub(crate) const DEFORMED_EOL: u64 = 0x0400;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Name {
-    pub name: Vec<u8>,
-    pub flags: u64,
+pub(crate) struct Name {
+    pub(crate) name: Vec<u8>,
+    pub(crate) flags: u64,
 }
 
 impl Name {
@@ -55,9 +55,9 @@ impl Name {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Value {
-    pub value: Vec<u8>,
-    pub flags: u64,
+pub(crate) struct Value {
+    pub(crate) value: Vec<u8>,
+    pub(crate) flags: u64,
 }
 
 impl Value {
@@ -70,9 +70,9 @@ impl Value {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Header {
-    pub name: Name,
-    pub value: Value,
+pub(crate) struct Header {
+    pub(crate) name: Name,
+    pub(crate) value: Value,
 }
 
 impl Header {
@@ -92,14 +92,14 @@ impl Header {
 
 /// Enumerates possible parser types
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum Side {
+pub(crate) enum Side {
     /// Request Parser: null terminates
     Request,
     /// Response Parser: accepts CR as a line ending
     Response,
 }
 
-pub struct Parser {
+pub(crate) struct Parser {
     side: Side,
     complete: bool,
 }

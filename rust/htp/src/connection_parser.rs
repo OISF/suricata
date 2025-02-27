@@ -16,7 +16,7 @@ use time::OffsetDateTime;
 
 /// Enumerates parsing state.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum State {
+pub(crate) enum State {
     /// Default state.
     NONE,
     /// State once a transaction is processed or about to be processed.
@@ -96,7 +96,7 @@ pub struct ParserData<'a> {
 impl<'a> ParserData<'a> {
     /// Returns a pointer to the raw data associated with Data.
     /// This returns a pointer to the entire data chunk.
-    pub fn data_ptr(&self) -> *const u8 {
+    pub(crate) fn data_ptr(&self) -> *const u8 {
         self.data()
             .as_ref()
             .map(|data| data.as_ptr())
@@ -104,7 +104,7 @@ impl<'a> ParserData<'a> {
     }
 
     /// Returns the unconsumed data
-    pub fn data(&self) -> Option<&[u8]> {
+    pub(crate) fn data(&self) -> Option<&[u8]> {
         let data = self.data.as_ref()?;
         if self.position.get() <= data.len() {
             Some(&data[self.position.get()..])
@@ -114,7 +114,7 @@ impl<'a> ParserData<'a> {
     }
 
     /// Returns the length of the unconsumed data.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         if let Some(gap_len) = self.gap_len {
             if self.position.get() >= gap_len {
                 0
@@ -132,7 +132,7 @@ impl<'a> ParserData<'a> {
     }
 
     /// Return an immutable slice view of the unconsumed data.
-    pub fn as_slice(&self) -> &[u8] {
+    pub(crate) fn as_slice(&self) -> &[u8] {
         if let Some(data) = self.data.as_ref() {
             if self.position.get() <= data.len() {
                 return &data[self.position.get()..];
@@ -142,12 +142,12 @@ impl<'a> ParserData<'a> {
     }
 
     /// Determines if this chunk is a gap or not
-    pub fn is_gap(&self) -> bool {
+    pub(crate) fn is_gap(&self) -> bool {
         self.gap_len.is_some()
     }
 
     /// Determine whether there is no more data to consume.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -157,7 +157,7 @@ impl<'a> ParserData<'a> {
     }
 
     /// Advances the internal position where we are parsing
-    pub fn consume(&self, consumed: usize) {
+    pub(crate) fn consume(&self, consumed: usize) {
         self.set_position(self.position.get() + consumed);
     }
 
@@ -171,7 +171,8 @@ impl<'a> ParserData<'a> {
     }
 
     /// Make an owned version of this data.
-    pub fn into_owned(self) -> ParserData<'static> {
+    #[cfg(test)]
+    pub(crate) fn into_owned(self) -> ParserData<'static> {
         ParserData {
             data: self.data.map(|d| Cow::Owned(d.into_owned())),
             gap_len: self.gap_len,
@@ -185,7 +186,7 @@ impl<'a> ParserData<'a> {
     ///
     /// This function will return any data that has been consumed but not
     /// yet returned from this function.
-    pub fn callback_data(&mut self) -> &[u8] {
+    pub(crate) fn callback_data(&mut self) -> &[u8] {
         if let Some(data) = self.data.as_ref() {
             if self.position.get() <= data.len() && self.callback_position <= self.position.get() {
                 let d = &data[self.callback_position..self.position.get()];
@@ -197,7 +198,7 @@ impl<'a> ParserData<'a> {
     }
 
     /// Sets the callback start location to the current parsing location
-    pub fn reset_callback_start(&mut self) {
+    pub(crate) fn reset_callback_start(&mut self) {
         self.callback_position = self.position.get();
     }
 }
@@ -275,81 +276,81 @@ impl<'a> From<(*const u8, usize)> for ParserData<'a> {
 pub struct ConnectionParser {
     // General fields
     /// The logger structure associated with this parser
-    pub logger: Logger,
+    pub(crate) logger: Logger,
     /// A reference to the current parser configuration structure.
-    pub cfg: Rc<Config>,
+    pub(crate) cfg: Rc<Config>,
     /// The connection structure associated with this parser.
-    pub conn: Connection,
+    pub(crate) conn: Connection,
     /// Opaque user data associated with this parser.
-    pub user_data: Option<Box<dyn Any>>,
+    pub(crate) user_data: Option<Box<dyn Any>>,
     // Request parser fields
     /// Parser inbound status. Starts as OK, but may turn into ERROR.
-    pub request_status: HtpStreamState,
+    pub(crate) request_status: HtpStreamState,
     /// Parser outbound status. Starts as OK, but may turn into ERROR.
-    pub response_status: HtpStreamState,
+    pub(crate) response_status: HtpStreamState,
     /// When true, this field indicates that there is unprocessed inbound data, and
     /// that the response parsing code should stop at the end of the current request
     /// in order to allow more requests to be produced.
-    pub response_data_other_at_tx_end: bool,
+    pub(crate) response_data_other_at_tx_end: bool,
     /// The time when the last request data chunk was received.
-    pub request_timestamp: OffsetDateTime,
+    pub(crate) request_timestamp: OffsetDateTime,
     /// How many bytes from the last input chunk have we consumed
     /// This is mostly used from callbacks, where the caller
     /// wants to know how far into the last chunk the parser is.
-    pub request_bytes_consumed: usize,
+    pub(crate) request_bytes_consumed: usize,
     /// How many data chunks does the inbound connection stream consist of?
-    pub request_chunk_count: usize,
+    pub(crate) request_chunk_count: usize,
     /// The index of the first chunk used in the current request.
-    pub request_chunk_request_index: usize,
+    pub(crate) request_chunk_request_index: usize,
     /// Used to buffer a line of inbound data when buffering cannot be avoided.
-    pub request_buf: Bstr,
+    pub(crate) request_buf: Bstr,
     /// Stores the current value of a folded request header. Such headers span
     /// multiple lines, and are processed only when all data is available.
-    pub request_header: Option<Bstr>,
+    pub(crate) request_header: Option<Bstr>,
     /// The request body length declared in a valid request header. The key here
     /// is "valid". This field will not be populated if the request contains both
     /// a Transfer-Encoding header and a Content-Length header.
-    pub request_content_length: Option<u64>,
+    pub(crate) request_content_length: Option<u64>,
     /// Holds the remaining request body length that we expect to read. This
     /// field will be available only when the length of a request body is known
     /// in advance, i.e. when request headers contain a Content-Length header.
-    pub request_body_data_left: Option<u64>,
+    pub(crate) request_body_data_left: Option<u64>,
     /// Holds the amount of data that needs to be read from the
     /// current data chunk. Only used with chunked request bodies.
-    pub request_chunked_length: Option<u64>,
+    pub(crate) request_chunked_length: Option<u64>,
     /// Current request parser state.
-    pub request_state: State,
+    pub(crate) request_state: State,
     /// Previous request parser state. Used to detect state changes.
-    pub request_state_previous: State,
+    pub(crate) request_state_previous: State,
     /// The hook that should be receiving raw connection data.
-    pub request_data_receiver_hook: Option<DataHook>,
+    pub(crate) request_data_receiver_hook: Option<DataHook>,
 
     // Response parser fields
     /// The time when the last response data chunk was received.
-    pub response_timestamp: OffsetDateTime,
+    pub(crate) response_timestamp: OffsetDateTime,
     /// How many bytes from the last input chunk have we consumed
     /// This is mostly used from callbacks, where the caller
     /// wants to know how far into the last chunk the parser is.
-    pub response_bytes_consumed: usize,
+    pub(crate) response_bytes_consumed: usize,
     /// Used to buffer a line of outbound data when buffering cannot be avoided.
-    pub response_buf: Bstr,
+    pub(crate) response_buf: Bstr,
     /// Stores the current value of a folded response header. Such headers span
     /// multiple lines, and are processed only when all data is available.
-    pub response_header: Option<Bstr>,
+    pub(crate) response_header: Option<Bstr>,
     /// The length of the current response body as presented in the
     /// Content-Length response header.
-    pub response_content_length: Option<u64>,
+    pub(crate) response_content_length: Option<u64>,
     /// The remaining length of the current response body, if known. Set to None otherwise.
-    pub response_body_data_left: Option<u64>,
+    pub(crate) response_body_data_left: Option<u64>,
     /// Holds the amount of data that needs to be read from the
     /// current response data chunk. Only used with chunked response bodies.
-    pub response_chunked_length: Option<u64>,
+    pub(crate) response_chunked_length: Option<u64>,
     /// Current response parser state.
-    pub response_state: State,
+    pub(crate) response_state: State,
     /// Previous response parser state.
-    pub response_state_previous: State,
+    pub(crate) response_state_previous: State,
     /// The hook that should be receiving raw connection data.
-    pub response_data_receiver_hook: Option<DataHook>,
+    pub(crate) response_data_receiver_hook: Option<DataHook>,
 
     /// Transactions processed by this parser
     transactions: Transactions,
@@ -368,10 +369,10 @@ impl std::fmt::Debug for ConnectionParser {
 
 impl ConnectionParser {
     /// Creates a new ConnectionParser with a preconfigured `Config` struct.
-    pub fn new(cfg: Config) -> Self {
+    pub(crate) fn new(cfg: Config) -> Self {
         let cfg = Rc::new(cfg);
         let conn = Connection::default();
-        let logger = Logger::new(conn.get_sender(), cfg.log_level);
+        let logger = Logger::new(conn.get_sender());
         Self {
             logger: logger.clone(),
             cfg: Rc::clone(&cfg),
@@ -407,28 +408,28 @@ impl ConnectionParser {
     }
 
     /// Get the current request transaction
-    pub fn request(&mut self) -> Option<&Transaction> {
+    pub(crate) fn request(&mut self) -> Option<&Transaction> {
         self.transactions.request()
     }
 
     /// Get the current request transaction
-    pub fn request_mut(&mut self) -> Option<&mut Transaction> {
+    pub(crate) fn request_mut(&mut self) -> Option<&mut Transaction> {
         self.transactions.request_mut()
     }
 
     /// Get the current response transaction
-    pub fn response(&mut self) -> Option<&Transaction> {
+    pub(crate) fn response(&mut self) -> Option<&Transaction> {
         self.transactions.response()
     }
 
     /// Get the current response transaction
-    pub fn response_mut(&mut self) -> Option<&mut Transaction> {
+    pub(crate) fn response_mut(&mut self) -> Option<&mut Transaction> {
         self.transactions.response_mut()
     }
 
     /// Advance to the next request
     /// Returns the next request transaction id
-    pub fn request_next(&mut self) -> usize {
+    pub(crate) fn request_next(&mut self) -> usize {
         // Detect pipelining.
         if self.transactions.request_index() > self.transactions.response_index() {
             self.conn.flags.set(ConnectionFlags::PIPELINED)
@@ -438,37 +439,37 @@ impl ConnectionParser {
 
     /// Advance to the next response
     /// Returns the next response transaction id
-    pub fn response_next(&mut self) -> usize {
+    pub(crate) fn response_next(&mut self) -> usize {
         self.transactions.response_next()
     }
 
     /// Get the index of the request transaction
-    pub fn request_index(&self) -> usize {
+    pub(crate) fn request_index(&self) -> usize {
         self.transactions.request_index()
     }
 
     /// Get the index of the response transaction
-    pub fn response_index(&self) -> usize {
+    pub(crate) fn response_index(&self) -> usize {
         self.transactions.response_index()
     }
 
     /// Get the number of transactions processed up to now
-    pub fn tx_size(&self) -> usize {
+    pub(crate) fn tx_size(&self) -> usize {
         self.transactions.size()
     }
 
     /// Get a specific transaction
-    pub fn tx(&self, index: usize) -> Option<&Transaction> {
+    pub(crate) fn tx(&self, index: usize) -> Option<&Transaction> {
         self.transactions.get(index)
     }
 
     /// Get a specific transaction
-    pub fn tx_mut(&mut self, index: usize) -> Option<&mut Transaction> {
+    pub(crate) fn tx_mut(&mut self, index: usize) -> Option<&mut Transaction> {
         self.transactions.get_mut(index)
     }
 
     /// Handle the current state to be processed.
-    pub fn handle_request_state(&mut self, data: &mut ParserData) -> Result<()> {
+    pub(crate) fn handle_request_state(&mut self, data: &mut ParserData) -> Result<()> {
         match self.request_state {
             State::NONE => Err(HtpStatus::ERROR),
             State::IDLE => self.request_idle(data),
@@ -491,7 +492,7 @@ impl ConnectionParser {
     }
 
     /// Handle the current state to be processed.
-    pub fn handle_response_state(&mut self, data: &mut ParserData) -> Result<()> {
+    pub(crate) fn handle_response_state(&mut self, data: &mut ParserData) -> Result<()> {
         match self.response_state {
             State::NONE => Err(HtpStatus::ERROR),
             State::IDLE => self.response_idle(data),
@@ -510,7 +511,7 @@ impl ConnectionParser {
     }
 
     /// Closes the connection associated with the supplied parser.
-    pub fn request_close(&mut self, timestamp: Option<OffsetDateTime>) {
+    pub(crate) fn request_close(&mut self, timestamp: Option<OffsetDateTime>) {
         // Update internal flags
         if self.request_status != HtpStreamState::ERROR {
             self.request_status = HtpStreamState::CLOSED
@@ -521,7 +522,7 @@ impl ConnectionParser {
     }
 
     /// Closes the connection associated with the supplied parser.
-    pub fn close(&mut self, timestamp: Option<OffsetDateTime>) {
+    pub(crate) fn close(&mut self, timestamp: Option<OffsetDateTime>) {
         // Close the underlying connection.
         self.conn.close(timestamp);
         // Update internal flags
@@ -542,20 +543,20 @@ impl ConnectionParser {
     }
 
     /// This function is most likely not used and/or not needed.
-    pub fn request_reset(&mut self) {
+    pub(crate) fn request_reset(&mut self) {
         self.request_content_length = None;
         self.request_body_data_left = None;
         self.request_chunk_request_index = self.request_chunk_count;
     }
 
     /// Returns the number of bytes consumed from the current data chunks so far.
-    pub fn request_data_consumed(&self) -> usize {
+    pub(crate) fn request_data_consumed(&self) -> usize {
         self.request_bytes_consumed
     }
 
     /// Consume the given number of bytes from the ParserData and update
     /// the internal counter for how many bytes consumed so far.
-    pub fn request_data_consume(&mut self, input: &ParserData, consumed: usize) {
+    pub(crate) fn request_data_consume(&mut self, input: &ParserData, consumed: usize) {
         input.consume(consumed);
         self.request_bytes_consumed = input.consumed_len();
     }
@@ -564,14 +565,14 @@ impl ConnectionParser {
     /// the internal counter for how many bytes are consumed.
     /// If the requested number of bytes is larger than the number of bytes
     /// already consumed then the parser will be unwound to the beginning.
-    pub fn request_data_unconsume(&mut self, input: &mut ParserData, unconsume: usize) {
+    pub(crate) fn request_data_unconsume(&mut self, input: &mut ParserData, unconsume: usize) {
         input.unconsume(unconsume);
         self.request_bytes_consumed = input.consumed_len();
     }
 
     /// Consume the given number of bytes from the ParserData and update
     /// the internal counter for how many bytes consumed so far.
-    pub fn response_data_consume(&mut self, input: &ParserData, consumed: usize) {
+    pub(crate) fn response_data_consume(&mut self, input: &ParserData, consumed: usize) {
         input.consume(consumed);
         self.response_bytes_consumed = input.consumed_len();
     }
@@ -580,7 +581,7 @@ impl ConnectionParser {
     /// the internal counter for how many bytes are consumed.
     /// If the requested number of bytes is larger than the number of bytes
     /// already consumed then the parser will be unwound to the beginning.
-    pub fn response_data_unconsume(&mut self, input: &mut ParserData, unconsume: usize) {
+    pub(crate) fn response_data_unconsume(&mut self, input: &mut ParserData, unconsume: usize) {
         input.unconsume(unconsume);
         self.response_bytes_consumed = input.consumed_len();
     }
@@ -590,12 +591,12 @@ impl ConnectionParser {
     /// where only partial consumption is possible. In such cases DATA_OTHER will be returned.
     /// Consumed bytes are no longer necessary, but the remainder of the buffer will be saved
     /// for later.
-    pub fn response_data_consumed(&self) -> usize {
+    pub(crate) fn response_data_consumed(&self) -> usize {
         self.response_bytes_consumed
     }
 
     /// Opens connection.
-    pub fn open(
+    pub(crate) fn open(
         &mut self, client_addr: Option<IpAddr>, client_port: Option<u16>,
         server_addr: Option<IpAddr>, server_port: Option<u16>, timestamp: Option<OffsetDateTime>,
     ) {
@@ -621,22 +622,15 @@ impl ConnectionParser {
     }
 
     /// Set the user data.
-    pub fn set_user_data(&mut self, data: Box<dyn Any + 'static>) {
+    pub(crate) fn set_user_data(&mut self, data: Box<dyn Any + 'static>) {
         self.user_data = Some(data);
     }
 
     /// Get a reference to the user data.
-    pub fn user_data<T: 'static>(&self) -> Option<&T> {
+    pub(crate) fn user_data<T: 'static>(&self) -> Option<&T> {
         self.user_data
             .as_ref()
             .and_then(|ud| ud.downcast_ref::<T>())
-    }
-
-    /// Get a mutable reference to the user data.
-    pub fn user_data_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        self.user_data
-            .as_mut()
-            .and_then(|ud| ud.downcast_mut::<T>())
     }
 
     /// Initialize request parsing, change state to LINE,
@@ -644,7 +638,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP if one of the
     /// callbacks does not want to follow the transaction any more.
-    pub fn state_request_start(&mut self) -> Result<()> {
+    pub(crate) fn state_request_start(&mut self) -> Result<()> {
         // Change state into request line parsing.
         self.request_state = State::LINE;
         let req = self.request_mut();
@@ -665,7 +659,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP if one of the
     /// callbacks does not want to follow the transaction any more.
-    pub fn state_request_headers(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn state_request_headers(&mut self, input: &mut ParserData) -> Result<()> {
         // Finalize sending raw header data
         self.request_receiver_finalize_clear(input)?;
         // If we're in HTP_REQ_HEADERS that means that this is the
@@ -721,7 +715,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP if one of the
     /// callbacks does not want to follow the transaction any more.
-    pub fn state_request_line(&mut self) -> Result<()> {
+    pub(crate) fn state_request_line(&mut self) -> Result<()> {
         let req = self.request_mut();
         if req.is_none() {
             return Err(HtpStatus::ERROR);
@@ -754,7 +748,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP
     /// if one of the callbacks does not want to follow the transaction any more.
-    pub fn state_request_complete(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn state_request_complete(&mut self, input: &mut ParserData) -> Result<()> {
         let req = self.request_mut();
         if req.is_none() {
             return Err(HtpStatus::ERROR);
@@ -807,7 +801,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP
     /// if one of the callbacks does not want to follow the transaction any more.
-    pub fn state_response_start(&mut self) -> Result<()> {
+    pub(crate) fn state_response_start(&mut self) -> Result<()> {
         // Change state into response line parsing, except if we're following
         // a HTTP/0.9 request (no status line or response headers).
         let tx = self.response_mut();
@@ -852,7 +846,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP
     /// if one of the callbacks does not want to follow the transaction any more.
-    pub fn state_response_headers(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn state_response_headers(&mut self, input: &mut ParserData) -> Result<()> {
         // Finalize sending raw header data.
         self.response_receiver_finalize_clear(input)?;
         // Run hook RESPONSE_HEADERS.
@@ -867,7 +861,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP
     /// if one of the callbacks does not want to follow the transaction any more.
-    pub fn state_response_line(&mut self) -> Result<()> {
+    pub(crate) fn state_response_line(&mut self) -> Result<()> {
         // Is the response line valid?
         let tx = self.response_mut();
         if tx.is_none() {
@@ -885,7 +879,7 @@ impl ConnectionParser {
     ///
     /// Returns HtpStatus::OK on success; HtpStatus::ERROR on error, HtpStatus::STOP
     /// if one of the callbacks does not want to follow the transaction any more.
-    pub fn state_response_complete(&mut self, input: &mut ParserData) -> Result<()> {
+    pub(crate) fn state_response_complete(&mut self, input: &mut ParserData) -> Result<()> {
         let response_index = self.response_index();
         let tx = self.response_mut();
         if tx.is_none() {
@@ -949,7 +943,7 @@ impl ConnectionParser {
     }
 
     /// Remove the given transaction from the parser
-    pub fn remove_tx(&mut self, tx_id: usize) {
+    pub(crate) fn remove_tx(&mut self, tx_id: usize) {
         self.transactions.remove(tx_id);
     }
 

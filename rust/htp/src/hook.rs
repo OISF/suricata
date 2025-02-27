@@ -39,7 +39,7 @@ pub(crate) type LogHook = Hook<LogExternalCallbackFn, LogNativeCallbackFn>;
 #[derive(Clone)]
 pub struct Hook<E, N> {
     /// List of all callbacks.
-    pub callbacks: Vec<Callback<E, N>>,
+    pub(crate) callbacks: Vec<Callback<E, N>>,
 }
 
 impl<E, N> Default for Hook<E, N> {
@@ -52,6 +52,7 @@ impl<E, N> Default for Hook<E, N> {
 }
 impl<E, N> Hook<E, N> {
     /// Register a native (rust) callback function
+    #[cfg(test)]
     pub(crate) fn register(&mut self, cbk_fn: N) {
         self.callbacks.push(Callback::Native(cbk_fn))
     }

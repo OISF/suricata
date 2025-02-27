@@ -21,7 +21,7 @@ use std::str::FromStr;
 pub const HTP_VERSION_STRING_FULL: &'_ str = concat!("LibHTP v", env!("CARGO_PKG_VERSION"), "\x00");
 
 /// Trait to allow interacting with flags.
-pub trait FlagOperations<T> {
+pub(crate) trait FlagOperations<T> {
     /// Inserts the specified flags in-place.
     fn set(&mut self, other: T);
     /// Removes the specified flags in-place.
@@ -77,10 +77,10 @@ impl HtpFlags {
     pub const FIELD_FOLDED: u64 = 0x0000_0000_0010;
     /// Field has been seen more than once.
     pub const FIELD_REPEATED: u64 = 0x0000_0000_0020;
-    /// Field is too long.
-    pub const FIELD_LONG: u64 = 0x0000_0000_0040;
-    /// Field contains raw null byte.
-    pub const FIELD_RAW_NUL: u64 = 0x0000_0000_0080;
+    // Field is too long.
+    //pub const FIELD_LONG: u64 = 0x0000_0000_0040;
+    // Field contains raw null byte.
+    //pub const FIELD_RAW_NUL: u64 = 0x0000_0000_0080;
     /// Detect HTTP request smuggling.
     pub const REQUEST_SMUGGLING: u64 = 0x0000_0000_0100;
     /// Invalid header folding.
@@ -99,8 +99,8 @@ impl HtpFlags {
     pub const PATH_RAW_NUL: u64 = 0x0000_0000_8000;
     /// Url encoding is invalid.
     pub const PATH_INVALID_ENCODING: u64 = 0x0000_0001_0000;
-    /// Path is invalid.
-    pub const PATH_INVALID: u64 = 0x0000_0002_0000;
+    // Path is invalid.
+    //pub const PATH_INVALID: u64 = 0x0000_0002_0000;
     /// Overlong usage in path.
     pub const PATH_OVERLONG_U: u64 = 0x0000_0004_0000;
     /// Encoded path separators present.
@@ -119,8 +119,6 @@ impl HtpFlags {
     pub const HOSTU_INVALID: u64 = 0x0000_0200_0000;
     /// Host in the Host header.
     pub const HOSTH_INVALID: u64 = 0x0000_0400_0000;
-    /// Uri / host header invalid.
-    pub const HOST_INVALID: u64 = (Self::HOSTU_INVALID | Self::HOSTH_INVALID);
     /// Contains null.
     pub const URLEN_ENCODED_NUL: u64 = 0x0000_0800_0000;
     /// Invalid encoding.
@@ -149,9 +147,7 @@ impl HtpFlags {
 
 /// Enumerates possible EOLs
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum Eol {
-    /// No specific EOL found
-    None,
+pub(crate) enum Eol {
     /// '\n'
     LF,
     /// '\r'

@@ -20,7 +20,7 @@ use nom::{
 /// This is the main URLENCODED parser structure. It is used to store
 /// parser configuration, temporary parsing data, as well as the parameters.
 #[derive(Clone)]
-pub struct Parser {
+pub(crate) struct Parser {
     /// The configuration structure associated with this parser
     pub cfg: DecoderConfig,
     /// The character used to separate parameters. Defaults to & and should

@@ -17,42 +17,6 @@ use crate::{
 
 use std::{any::Any, cmp::Ordering, rc::Rc};
 
-/// A collection of possible data sources.
-#[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum HtpDataSource {
-    /// Embedded in the URL.
-    URL,
-    /// Transported in the query string.
-    QUERY_STRING,
-    /// Cookies.
-    COOKIE,
-    /// Transported in the request body.
-    BODY,
-}
-
-/// Represents a single request parameter.
-#[derive(Clone, Debug)]
-pub struct Param {
-    /// Parameter name.
-    pub name: Bstr,
-    /// Parameter value.
-    pub value: Bstr,
-    /// Source of the parameter, for example QUERY_STRING.
-    pub source: HtpDataSource,
-}
-
-impl Param {
-    /// Make a new owned Param
-    pub(crate) fn new(name: Bstr, value: Bstr, source: HtpDataSource) -> Self {
-        Param {
-            name,
-            value,
-            source,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 /// This structure is used to pass transaction data (for example
 /// request and response body buffers) to callbacks.
@@ -115,7 +79,7 @@ pub enum HtpTransferCoding {
 
 /// Enumerates the possible server personalities.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum HtpResponseNumber {
+pub(crate) enum HtpResponseNumber {
     /// Default
     UNKNOWN,
     /// Could not resolve response number
@@ -136,7 +100,7 @@ impl HtpResponseNumber {
 
     /// Determine if the response status number matches the
     /// given status number.
-    pub fn eq_num(self, num: u16) -> bool {
+    pub(crate) fn eq_num(self, num: u16) -> bool {
         use HtpResponseNumber::*;
         match self {
             UNKNOWN | INVALID => false,
@@ -174,7 +138,7 @@ impl Headers {
     /// Search the Headers table for the first tuple with a tuple key matching the given slice, ignoring ascii case and any zeros in self
     ///
     /// Returns None if no match is found.
-    pub fn get_nocase_nozero<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
+    pub(crate) fn get_nocase_nozero<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
         self.elements
             .iter()
             .find(|x| x.name.cmp_nocase_nozero_trimmed(key.as_ref()) == Ordering::Equal)
@@ -208,7 +172,7 @@ impl Headers {
     }
 
     /// Returns the number of elements in the Headers table
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         self.elements.len()
     }
 }
@@ -233,7 +197,8 @@ impl IntoIterator for Headers {
 
 impl Header {
     /// Construct a new header.
-    pub fn new(name: Bstr, value: Bstr) -> Self {
+    #[cfg(test)]
+    pub(crate) fn new(name: Bstr, value: Bstr) -> Self {
         Self::new_with_flags(name, value, 0)
     }
 
@@ -336,54 +301,51 @@ pub enum HtpProtocol {
 /// Represents a single HTTP transaction, which is a combination of a request and a response.
 pub struct Transaction {
     /// The logger structure associated with this transaction
-    pub logger: Logger,
+    pub(crate) logger: Logger,
     /// The configuration structure associated with this transaction.
-    pub cfg: Rc<Config>,
-    /// Is the configuration structure shared with other transactions or connections? If
-    /// this field is set to HTP_CONFIG_PRIVATE, the transaction owns the configuration.
-    pub is_config_shared: bool,
+    pub(crate) cfg: Rc<Config>,
     /// The user data associated with this transaction.
-    pub user_data: Option<Box<dyn Any>>,
+    pub(crate) user_data: Option<Box<dyn Any>>,
     // Request fields
     /// Contains a count of how many empty lines were skipped before the request line.
-    pub request_ignored_lines: u32,
+    pub(crate) request_ignored_lines: u32,
     /// The first line of this request.
-    pub request_line: Option<Bstr>,
+    pub(crate) request_line: Option<Bstr>,
     /// Request method.
-    pub request_method: Option<Bstr>,
+    pub(crate) request_method: Option<Bstr>,
     /// Request method, as number. Available only if we were able to recognize the request method.
-    pub request_method_number: HtpMethod,
+    pub(crate) request_method_number: HtpMethod,
     /// Request URI, raw, as given to us on the request line. This field can take different forms,
     /// for example authority for CONNECT methods, absolute URIs for proxy requests, and the query
     /// string when one is provided. Use Transaction::parsed_uri if you need to access to specific
     /// URI elements. Can be NULL if the request line contains only a request method (which is
     /// an extreme case of HTTP/0.9, but passes in practice.
-    pub request_uri: Option<Bstr>,
+    pub(crate) request_uri: Option<Bstr>,
     /// Request protocol, as text. Can be NULL if no protocol was specified.
-    pub request_protocol: Option<Bstr>,
+    pub(crate) request_protocol: Option<Bstr>,
     /// Protocol version as a number. Multiply the high version number by 100, then add the low
     /// version number. You should prefer to work the pre-defined HtpProtocol constants.
-    pub request_protocol_number: HtpProtocol,
+    pub(crate) request_protocol_number: HtpProtocol,
     /// Is this request using HTTP/0.9? We need a separate field for this purpose because
     /// the protocol version alone is not sufficient to determine if HTTP/0.9 is used. For
     /// example, if you submit "GET / HTTP/0.9" to Apache, it will not treat the request
     /// as HTTP/0.9.
-    pub is_protocol_0_9: bool,
+    pub(crate) is_protocol_0_9: bool,
     /// This structure holds the individual components parsed out of the request URI, with
     /// appropriate normalization and transformation applied, per configuration. No information
     /// is added. In extreme cases when no URI is provided on the request line, all fields
     /// will be NULL. (Well, except for port_number, which will be -1.) To inspect raw data, use
     /// Transaction::request_uri or Transaction::parsed_uri_raw.
-    pub parsed_uri: Option<Uri>,
+    pub(crate) parsed_uri: Option<Uri>,
     /// This structure holds the individual components parsed out of the request URI, but
     /// without any modification. The purpose of this field is to allow you to look at the data as it
     /// was supplied on the request line. Fields can be NULL, depending on what data was supplied.
     /// The port_number field is always -1.
-    pub parsed_uri_raw: Option<Uri>,
+    pub(crate) parsed_uri_raw: Option<Uri>,
     ///  This structure holds the whole normalized uri, including path, query, fragment, scheme, username, password, hostname, and port
-    pub complete_normalized_uri: Option<Bstr>,
+    pub(crate) complete_normalized_uri: Option<Bstr>,
     ///  This structure holds the normalized uri, including path, query, and fragment
-    pub partial_normalized_uri: Option<Bstr>,
+    pub(crate) partial_normalized_uri: Option<Bstr>,
     /// HTTP 1.1 RFC
     ///
     /// 4.3 Message Body
@@ -405,91 +367,91 @@ pub struct Transaction {
     /// request_message_len contains the length of the request body as it
     /// has been seen over TCP; request_entity_len contains length after
     /// de-chunking and decompression.
-    pub request_message_len: u64,
+    pub(crate) request_message_len: u64,
     /// The length of the request entity-body. In most cases, this value
     /// will be the same as request_message_len. The values will be different
     /// if request compression or chunking were applied. In that case,
     /// request_message_len contains the length of the request body as it
     /// has been seen over TCP; request_entity_len contains length after
     /// de-chunking and decompression.
-    pub request_entity_len: u64,
+    pub(crate) request_entity_len: u64,
     /// Parsed request headers.
-    pub request_headers: Headers,
+    pub(crate) request_headers: Headers,
     /// Request transfer coding. Can be one of UNKNOWN (body presence not
     /// determined yet), IDENTITY, CHUNKED, NO_BODY,
     /// and UNRECOGNIZED.
-    pub request_transfer_coding: HtpTransferCoding,
+    pub(crate) request_transfer_coding: HtpTransferCoding,
     /// Request body compression, which indicates if compression is used
     /// for the request body. This field is an interpretation of the information
     /// available in request headers.
-    pub request_content_encoding: HtpContentEncoding,
+    pub(crate) request_content_encoding: HtpContentEncoding,
     /// Request body compression processing information, which is related to how
     /// the library is going to process (or has processed) a request body. Changing
     /// this field mid-processing can influence library actions. For example, setting
     /// this field to NONE in a request_headers callback will prevent
     /// decompression.
-    pub request_content_encoding_processing: HtpContentEncoding,
+    pub(crate) request_content_encoding_processing: HtpContentEncoding,
     /// This field will contain the request content type when that information
     /// is available in request headers. The contents of the field will be converted
     /// to lowercase and any parameters (e.g., character set information) removed.
-    pub request_content_type: Option<Bstr>,
+    pub(crate) request_content_type: Option<Bstr>,
     /// Request decompressor used to decompress request body data.
-    pub request_decompressor: Option<Decompressor>,
+    pub(crate) request_decompressor: Option<Decompressor>,
     /// Contains the value specified in the Content-Length header. The value of this
     /// field will be None from the beginning of the transaction and until request
     /// headers are processed. It will stay None if the C-L header was not provided,
     /// or if the value in it cannot be parsed.
-    pub request_content_length: Option<u64>,
+    pub(crate) request_content_length: Option<u64>,
     /// Transaction-specific REQUEST_BODY_DATA hook. Behaves as
     /// the configuration hook with the same name.
-    pub hook_request_body_data: DataHook,
+    pub(crate) hook_request_body_data: DataHook,
     /// Transaction-specific RESPONSE_BODY_DATA hook. Behaves as
     /// the configuration hook with the same name.
-    pub hook_response_body_data: DataHook,
+    pub(crate) hook_response_body_data: DataHook,
     /// Authentication type used in the request.
-    pub request_auth_type: HtpAuthType,
+    pub(crate) request_auth_type: HtpAuthType,
     /// Authentication username.
-    pub request_auth_username: Option<Bstr>,
+    pub(crate) request_auth_username: Option<Bstr>,
     /// Authentication password. Available only when Transaction::request_auth_type is HTP_AUTH_BASIC.
-    pub request_auth_password: Option<Bstr>,
+    pub(crate) request_auth_password: Option<Bstr>,
     /// Authentication token. Available only when Transaction::request_auth_type is HTP_AUTH_BEARER.
-    pub request_auth_token: Option<Bstr>,
+    pub(crate) request_auth_token: Option<Bstr>,
     /// Request hostname. Per the RFC, the hostname will be taken from the Host header
     /// when available. If the host information is also available in the URI, it is used
     /// instead of whatever might be in the Host header. Can be NULL. This field does
     /// not contain port information.
-    pub request_hostname: Option<Bstr>,
+    pub(crate) request_hostname: Option<Bstr>,
     /// Request port number, if presented. The rules for Transaction::request_host apply. Set to
     /// None by default.
-    pub request_port_number: Option<u16>,
+    pub(crate) request_port_number: Option<u16>,
 
     // Response fields
     /// How many empty lines did we ignore before reaching the status line?
-    pub response_ignored_lines: u32,
+    pub(crate) response_ignored_lines: u32,
     /// Response line.
-    pub response_line: Option<Bstr>,
+    pub(crate) response_line: Option<Bstr>,
     /// Response protocol, as text. Can be NULL.
-    pub response_protocol: Option<Bstr>,
+    pub(crate) response_protocol: Option<Bstr>,
     /// Response protocol as number. Available only if we were able to parse the protocol version,
     /// INVALID otherwise. UNKNOWN until parsing is attempted.
-    pub response_protocol_number: HtpProtocol,
+    pub(crate) response_protocol_number: HtpProtocol,
     /// Response status code, as text. Starts as NULL and can remain NULL on
     /// an invalid response that does not specify status code.
-    pub response_status: Option<Bstr>,
+    pub(crate) response_status: Option<Bstr>,
     /// Response status code, available only if we were able to parse it, HTP_STATUS_INVALID
     /// otherwise. HTP_STATUS_UNKNOWN until parsing is attempted.
-    pub response_status_number: HtpResponseNumber,
+    pub(crate) response_status_number: HtpResponseNumber,
     /// This field is set by the protocol decoder with it thinks that the
     /// backend server will reject a request with a particular status code.
-    pub response_status_expected_number: HtpUnwanted,
+    pub(crate) response_status_expected_number: HtpUnwanted,
     /// The message associated with the response status code. Can be NULL.
-    pub response_message: Option<Bstr>,
+    pub(crate) response_message: Option<Bstr>,
     /// Have we seen the server respond with a 100 response?
-    pub seen_100continue: bool,
+    pub(crate) seen_100continue: bool,
     /// Parsed response headers. Contains instances of Header.
-    pub response_headers: Headers,
+    pub(crate) response_headers: Headers,
     /// Is this a response a HTTP/2.0 upgrade?
-    pub is_http_2_upgrade: bool,
+    pub(crate) is_http_2_upgrade: bool,
 
     /// HTTP 1.1 RFC
     ///
@@ -512,57 +474,57 @@ pub struct Transaction {
     /// response_message_len contains the length of the response body as it
     /// has been seen over TCP; response_entity_len contains the length after
     /// de-chunking and decompression.
-    pub response_message_len: u64,
+    pub(crate) response_message_len: u64,
     /// The length of the response entity-body. In most cases, this value
     /// will be the same as response_message_len. The values will be different
     /// if request compression or chunking were applied. In that case,
     /// response_message_len contains the length of the response body as it
     /// has been seen over TCP; response_entity_len contains length after
     /// de-chunking and decompression.
-    pub response_entity_len: u64,
+    pub(crate) response_entity_len: u64,
     /// Contains the value specified in the Content-Length header. The value of this
     /// field will be -1 from the beginning of the transaction and until response
     /// headers are processed. It will stay None if the C-L header was not provided,
     /// or if the value in it cannot be parsed.
-    pub response_content_length: Option<u64>,
+    pub(crate) response_content_length: Option<u64>,
     /// Response transfer coding, which indicates if there is a response body,
     /// and how it is transported (e.g., as-is, or chunked).
-    pub response_transfer_coding: HtpTransferCoding,
+    pub(crate) response_transfer_coding: HtpTransferCoding,
     /// Response body compression, which indicates if compression is used
     /// for the response body. This field is an interpretation of the information
     /// available in response headers.
-    pub response_content_encoding: HtpContentEncoding,
+    pub(crate) response_content_encoding: HtpContentEncoding,
     /// Response body compression processing information, which is related to how
     /// the library is going to process (or has processed) a response body. Changing
     /// this field mid-processing can influence library actions. For example, setting
     /// this field to NONE in a RESPONSE_HEADERS callback will prevent
     /// decompression.
-    pub response_content_encoding_processing: HtpContentEncoding,
+    pub(crate) response_content_encoding_processing: HtpContentEncoding,
     /// This field will contain the response content type when that information
     /// is available in response headers. The contents of the field will be converted
     /// to lowercase and any parameters (e.g., character set information) removed.
-    pub response_content_type: Option<Bstr>,
+    pub(crate) response_content_type: Option<Bstr>,
     /// Response decompressor used to decompress response body data.
-    pub response_decompressor: Option<Decompressor>,
+    pub(crate) response_decompressor: Option<Decompressor>,
 
     // Common fields
     /// Parsing flags; a combination of: HTP_REQUEST_INVALID_T_E, HTP_INVALID_FOLDING,
     /// HTP_REQUEST_SMUGGLING, HTP_MULTI_PACKET_HEAD, and HTP_FIELD_UNPARSEABLE.
-    pub flags: u64,
+    pub(crate) flags: u64,
     /// Request progress.
-    pub request_progress: HtpRequestProgress,
+    pub(crate) request_progress: HtpRequestProgress,
     /// Response progress.
-    pub response_progress: HtpResponseProgress,
+    pub(crate) response_progress: HtpResponseProgress,
     /// Transaction index on the connection.
-    pub index: usize,
+    pub(crate) index: usize,
     /// Total repetitions for headers in request.
-    pub request_header_repetitions: u16,
+    pub(crate) request_header_repetitions: u16,
     /// Total repetitions for headers in response.
-    pub response_header_repetitions: u16,
+    pub(crate) response_header_repetitions: u16,
     /// Request header parser
-    pub request_header_parser: HeaderParser,
+    pub(crate) request_header_parser: HeaderParser,
     /// Response header parser
-    pub response_header_parser: HeaderParser,
+    pub(crate) response_header_parser: HeaderParser,
 }
 
 impl std::fmt::Debug for Transaction {
@@ -643,7 +605,6 @@ impl Transaction {
         Self {
             logger: logger.clone(),
             cfg: Rc::clone(cfg),
-            is_config_shared: true,
             user_data: None,
             request_ignored_lines: 0,
             request_line: None,
@@ -711,31 +672,23 @@ impl Transaction {
     }
 
     /// Set the user data.
-    pub fn set_user_data(&mut self, data: Box<dyn Any + 'static>) {
+    pub(crate) fn set_user_data(&mut self, data: Box<dyn Any + 'static>) {
         self.user_data = Some(data);
     }
 
     /// Get a reference to the user data.
-    pub fn user_data<T: 'static>(&self) -> Option<&T> {
+    pub(crate) fn user_data<T: 'static>(&self) -> Option<&T> {
         self.user_data
             .as_ref()
             .and_then(|ud| ud.downcast_ref::<T>())
     }
 
     /// Get a mutable reference to the user data.
-    pub fn user_data_mut<T: 'static>(&mut self) -> Option<&mut T> {
+    #[cfg(test)]
+    pub(crate) fn user_data_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.user_data
             .as_mut()
             .and_then(|ud| ud.downcast_mut::<T>())
-    }
-
-    /// Adds one parameter to the request. This function will take over the
-    /// responsibility for the provided Param structure.
-    pub(crate) fn request_add_param(&mut self, mut param: Param) -> Result<()> {
-        if let Some(parameter_processor_fn) = self.cfg.parameter_processor {
-            parameter_processor_fn(&mut param)?
-        }
-        Ok(())
     }
 
     /// Determine if the request has a body.
@@ -947,16 +900,6 @@ impl Transaction {
                 // We have a non-zero length query string.
                 let mut urlenp = UrlEncodedParser::new(self.cfg.decoder_cfg);
                 urlenp.parse_complete(query.as_slice());
-
-                // Add all parameters to the transaction.
-                for (name, value) in urlenp.params.elements.iter() {
-                    let param = Param::new(
-                        Bstr::from(name.as_slice()),
-                        Bstr::from(value.as_slice()),
-                        HtpDataSource::QUERY_STRING,
-                    );
-                    self.request_add_param(param)?;
-                }
             }
         }
 
@@ -970,7 +913,7 @@ impl Transaction {
     }
 
     /// Determines if both request and response are complete.
-    pub fn is_complete(&self) -> bool {
+    pub(crate) fn is_complete(&self) -> bool {
         // A transaction is considered complete only when both the request and
         // response are complete. (Sometimes a complete response can be seen
         // even while the request is ongoing.)

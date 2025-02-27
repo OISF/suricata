@@ -40,7 +40,7 @@ impl Bstr {
     }
 
     /// Return true if self is equal to other
-    pub fn eq_slice<B: AsRef<[u8]>>(&self, other: B) -> bool {
+    pub(crate) fn eq_slice<B: AsRef<[u8]>>(&self, other: B) -> bool {
         self.cmp_slice(other) == Ordering::Equal
     }
 

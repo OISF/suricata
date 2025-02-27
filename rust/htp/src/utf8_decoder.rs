@@ -58,7 +58,7 @@ static utf8d_allow_overlong: [u8; 400] = [
 ];
 
 #[derive(Clone)]
-pub struct Utf8Decoder {
+pub(crate) struct Utf8Decoder {
     bestfit_map: UnicodeBestfitMap,
     state: u32,
     seq: u32,

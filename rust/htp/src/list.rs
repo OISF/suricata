@@ -12,12 +12,12 @@ use core::{ops::Index, slice::SliceIndex};
 
 /// The List structure
 #[derive(Clone, Debug)]
-pub struct List<T> {
+pub(crate) struct List<T> {
     elements: Vec<Option<T>>,
 }
 
 /// Facilitates creating iterators over `List`
-pub struct IntoIter<'a, T> {
+pub(crate) struct IntoIter<'a, T> {
     inner: std::slice::Iter<'a, Option<T>>,
 }
 

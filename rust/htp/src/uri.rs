@@ -16,28 +16,28 @@ use nom::{combinator::opt, sequence::tuple};
 #[derive(Clone)]
 pub struct Uri {
     /// Decoder configuration
-    pub cfg: DecoderConfig,
+    pub(crate) cfg: DecoderConfig,
     /// Scheme, e.g., "http".
-    pub scheme: Option<Bstr>,
+    pub(crate) scheme: Option<Bstr>,
     /// Username.
-    pub username: Option<Bstr>,
+    pub(crate) username: Option<Bstr>,
     /// Password.
-    pub password: Option<Bstr>,
+    pub(crate) password: Option<Bstr>,
     /// Hostname.
-    pub hostname: Option<Bstr>,
+    pub(crate) hostname: Option<Bstr>,
     /// Port, as string.
-    pub port: Option<Bstr>,
+    pub(crate) port: Option<Bstr>,
     /// Port, as number. This field will be None if there was
     /// no port information in the URI or the port information
     /// was invalid (e.g., it's not a number or it falls out of range.
-    pub port_number: Option<u16>,
+    pub(crate) port_number: Option<u16>,
     /// The path part of this URI.
-    pub path: Option<Bstr>,
+    pub(crate) path: Option<Bstr>,
     /// Query string.
-    pub query: Option<Bstr>,
+    pub(crate) query: Option<Bstr>,
     /// Fragment identifier. This field will rarely be available in a server-side
     /// setting, but it's not impossible to see it.
-    pub fragment: Option<Bstr>,
+    pub(crate) fragment: Option<Bstr>,
 }
 
 impl std::fmt::Debug for Uri {

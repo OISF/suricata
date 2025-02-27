@@ -29,86 +29,86 @@ use std::rc::Rc;
 
 /// Export Multipart flags.
 #[derive(Debug)]
-pub struct Flags;
+pub(crate) struct Flags;
 
 impl Flags {
     /// Seen a LF line in the payload. LF lines are not allowed, but
     /// some clients do use them and some backends do accept them. Mixing
     /// LF and CRLF lines within some payload might be unusual.
-    pub const LF_LINE: u64 = 0x0001;
+    pub(crate) const LF_LINE: u64 = 0x0001;
     /// Seen a CRLF line in the payload. This is normal and expected.
-    pub const CRLF_LINE: u64 = 0x0002;
+    pub(crate) const CRLF_LINE: u64 = 0x0002;
     /// Seen LWS after a boundary instance in the body. Unusual.
-    pub const BBOUNDARY_LWS_AFTER: u64 = 0x0004;
+    pub(crate) const BBOUNDARY_LWS_AFTER: u64 = 0x0004;
     /// Seen non-LWS content after a boundary instance in the body. Highly unusual.
-    pub const BBOUNDARY_NLWS_AFTER: u64 = 0x0008;
+    pub(crate) const BBOUNDARY_NLWS_AFTER: u64 = 0x0008;
 
     /// Payload has a preamble part. Might not be that unusual.
-    pub const HAS_PREAMBLE: u64 = 0x0010;
+    pub(crate) const HAS_PREAMBLE: u64 = 0x0010;
 
     /// Payload has an epilogue part. Unusual.
-    pub const HAS_EPILOGUE: u64 = 0x0020;
+    pub(crate) const HAS_EPILOGUE: u64 = 0x0020;
 
     /// The last boundary was seen in the payload. Absence of the last boundary
     /// may not break parsing with some (most?) backends, but it means that the payload
     /// is not well formed. Can occur if the client gives up, or if the connection is
     /// interrupted. Incomplete payloads should be blocked whenever possible.
-    pub const SEEN_LAST_BOUNDARY: u64 = 0x0040;
+    pub(crate) const SEEN_LAST_BOUNDARY: u64 = 0x0040;
 
     /// There was a part after the last boundary. This is highly irregular
     /// and indicative of evasion.
-    pub const PART_AFTER_LAST_BOUNDARY: u64 = 0x0080;
+    pub(crate) const PART_AFTER_LAST_BOUNDARY: u64 = 0x0080;
 
     /// The payloads ends abruptly, without proper termination. Can occur if the client gives up,
     /// or if the connection is interrupted. When this flag is raised, PART_INCOMPLETE
     /// will also be raised for the part that was only partially processed. (But the opposite may not
     /// always be the case -- there are other ways in which a part can be left incomplete.)
-    pub const INCOMPLETE: u64 = 0x0100;
+    pub(crate) const INCOMPLETE: u64 = 0x0100;
     /// The boundary in the Content-Type header is invalid.
-    pub const HBOUNDARY_INVALID: u64 = 0x0200;
+    pub(crate) const HBOUNDARY_INVALID: u64 = 0x0200;
 
     /// The boundary in the Content-Type header is unusual. This may mean that evasion
     /// is attempted, but it could also mean that we have encountered a client that does
     /// not do things in the way it should.
-    pub const HBOUNDARY_UNUSUAL: u64 = 0x0400;
+    pub(crate) const HBOUNDARY_UNUSUAL: u64 = 0x0400;
 
     /// The boundary in the Content-Type header is quoted. This is very unusual,
     /// and may be indicative of an evasion attempt.
-    pub const HBOUNDARY_QUOTED: u64 = 0x0800;
+    pub(crate) const HBOUNDARY_QUOTED: u64 = 0x0800;
     /// Header folding was used in part headers. Very unusual.
-    pub const PART_HEADER_FOLDING: u64 = 0x1000;
+    pub(crate) const PART_HEADER_FOLDING: u64 = 0x1000;
 
     /// A part of unknown type was encountered, which probably means that the part is lacking
     /// a Content-Disposition header, or that the header is invalid. Highly unusual.
-    pub const PART_UNKNOWN: u64 = 0x2000;
+    pub(crate) const PART_UNKNOWN: u64 = 0x2000;
     /// There was a repeated part header, possibly in an attempt to confuse the parser. Very unusual.
-    pub const PART_HEADER_REPEATED: u64 = 0x4000;
+    pub(crate) const PART_HEADER_REPEATED: u64 = 0x4000;
     /// Unknown part header encountered.
-    pub const PART_HEADER_UNKNOWN: u64 = 0x8000;
+    pub(crate) const PART_HEADER_UNKNOWN: u64 = 0x8000;
     /// Invalid part header encountered.
-    pub const PART_HEADER_INVALID: u64 = 0x10000;
+    pub(crate) const PART_HEADER_INVALID: u64 = 0x10000;
     /// Part type specified in the C-D header is neither MULTIPART_PART_TEXT nor MULTIPART_PART_FILE.
-    pub const CD_TYPE_INVALID: u64 = 0x20000;
+    pub(crate) const CD_TYPE_INVALID: u64 = 0x20000;
     /// Content-Disposition part header with multiple parameters with the same name.
-    pub const CD_PARAM_REPEATED: u64 = 0x40000;
+    pub(crate) const CD_PARAM_REPEATED: u64 = 0x40000;
     /// Unknown Content-Disposition parameter.
-    pub const CD_PARAM_UNKNOWN: u64 = 0x80000;
+    pub(crate) const CD_PARAM_UNKNOWN: u64 = 0x80000;
     /// Invalid Content-Disposition syntax.
-    pub const CD_SYNTAX_INVALID: u64 = 0x10_0000;
+    pub(crate) const CD_SYNTAX_INVALID: u64 = 0x10_0000;
 
     /// There is an abruptly terminated part. This can happen when the payload itself is abruptly
     /// terminated (in which case INCOMPLETE) will be raised. However, it can also
     /// happen when a boundary is seen before any part data.
-    pub const PART_INCOMPLETE: u64 = 0x20_0000;
+    pub(crate) const PART_INCOMPLETE: u64 = 0x20_0000;
     /// A NUL byte was seen in a part header area.
-    pub const NUL_BYTE: u64 = 0x40_0000;
+    pub(crate) const NUL_BYTE: u64 = 0x40_0000;
     /// A collection of flags that all indicate an invalid C-D header.
-    pub const CD_INVALID: u64 = (Self::CD_TYPE_INVALID
+    pub(crate) const CD_INVALID: u64 = (Self::CD_TYPE_INVALID
         | Self::CD_PARAM_REPEATED
         | Self::CD_PARAM_UNKNOWN
         | Self::CD_SYNTAX_INVALID);
     /// A collection of flags that all indicate an invalid part.
-    pub const PART_INVALID: u64 = (Self::CD_INVALID
+    pub(crate) const PART_INVALID: u64 = (Self::CD_INVALID
         | Self::NUL_BYTE
         | Self::PART_UNKNOWN
         | Self::PART_HEADER_REPEATED
@@ -116,25 +116,25 @@ impl Flags {
         | Self::PART_HEADER_UNKNOWN
         | Self::PART_HEADER_INVALID);
     /// A collection of flags that all indicate an invalid Multipart payload.
-    pub const INVALID: u64 = (Self::PART_INVALID
+    pub(crate) const INVALID: u64 = (Self::PART_INVALID
         | Self::PART_AFTER_LAST_BOUNDARY
         | Self::INCOMPLETE
         | Self::HBOUNDARY_INVALID);
     /// A collection of flags that all indicate an unusual Multipart payload.
-    pub const UNUSUAL: u64 = (Self::INVALID
+    pub(crate) const UNUSUAL: u64 = (Self::INVALID
         | Self::PART_HEADER_FOLDING
         | Self::BBOUNDARY_NLWS_AFTER
         | Self::HAS_EPILOGUE
         | Self::HBOUNDARY_UNUSUAL
         | Self::HBOUNDARY_QUOTED);
     /// A collection of flags that all indicate an unusual Multipart payload, with a low sensitivity to irregularities.
-    pub const UNUSUAL_PARANOID: u64 =
+    pub(crate) const UNUSUAL_PARANOID: u64 =
         (Self::UNUSUAL | Self::LF_LINE | Self::BBOUNDARY_LWS_AFTER | Self::HAS_PREAMBLE);
 }
 
 /// Keeps track of multipart parsing.
 #[derive(Clone)]
-pub struct Parser {
+pub(crate) struct Parser {
     /// Contains information regarding multipart body.
     pub multipart: Multipart,
     /// Config structure for multipart parsing.
@@ -869,7 +869,7 @@ impl Parser {
 
 /// Holds information related to a part.
 #[derive(Clone)]
-pub struct Part {
+pub(crate) struct Part {
     /// Part type; see the * constants.
     pub type_0: HtpMultipartType,
     /// Raw part length (i.e., headers and data).
@@ -943,7 +943,7 @@ enum HtpMultipartState {
 /// cbindgen:rename-all=QualifiedScreamingSnakeCase
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HtpMultipartType {
+pub(crate) enum HtpMultipartType {
     /// Unknown part.
     UNKNOWN,
     /// Text (parameter) part.
@@ -958,7 +958,7 @@ pub enum HtpMultipartType {
 
 /// Holds information related to a multipart body.
 #[derive(Clone)]
-pub struct Multipart {
+pub(crate) struct Multipart {
     /// Multipart boundary.
     pub boundary: Bstr,
     /// Boundary length.

@@ -6,7 +6,7 @@ use std::rc::Rc;
 /// Transaction is a structure which tracks request and response
 /// transactions, and guarantees that the current request or
 /// response transaction will always exist.
-pub struct Transactions {
+pub(crate) struct Transactions {
     config: Rc<Config>,
     logger: Logger,
     request: usize,
@@ -151,7 +151,7 @@ impl Transactions {
 }
 
 /// An iterator over Transactions
-pub struct TransactionsIterator<'a> {
+pub(crate) struct TransactionsIterator<'a> {
     iter: std::collections::btree_map::IterMut<'a, usize, Transaction>,
 }
 

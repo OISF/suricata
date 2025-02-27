@@ -22,7 +22,7 @@ enum Chunk {
 }
 
 /// A structure to hold callback data
-pub struct MainUserData {
+pub(super) struct MainUserData {
     /// Call order of callbacks
     pub order: Vec<String>,
     /// Request data from callbacks
@@ -129,14 +129,14 @@ impl TestInput {
 
 /// Error types
 #[derive(Debug)]
-pub enum TestError {
+pub(super) enum TestError {
     /// The parser entered the Error state
     StreamError,
 }
 
 /// Test harness
 #[derive(Debug)]
-pub struct Test {
+pub(super) struct Test {
     /// The connection parse
     pub connp: ConnectionParser,
     /// The base directory for the crate - used to find files.
@@ -144,7 +144,7 @@ pub struct Test {
 }
 
 /// Return a default Config to use with tests
-pub fn TestConfig() -> Config {
+pub(super) fn TestConfig() -> Config {
     let mut cfg = Config::default();
     cfg.set_server_personality(HtpServerPersonality::APACHE_2)
         .unwrap();
@@ -158,7 +158,7 @@ pub fn TestConfig() -> Config {
 
 impl Test {
     /// Make a new test with the given config
-    pub fn new(cfg: Config) -> Self {
+    pub(super) fn new(cfg: Config) -> Self {
         let basedir = if let Ok(dir) = std::env::var("srcdir") {
             Some(PathBuf::from(dir))
         } else if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") {
@@ -176,7 +176,7 @@ impl Test {
     }
 
     /// Make a new test with the default TestConfig and register body callbacks.
-    pub fn new_with_callbacks() -> Self {
+    pub(super) fn new_with_callbacks() -> Self {
         let mut cfg = TestConfig();
         cfg.register_request_start(request_start);
         cfg.register_request_complete(request_complete);
@@ -196,7 +196,7 @@ impl Test {
 
     /// Open a connection on the underlying ConnectionParser. Useful if you
     /// want to send data directly to the ConnectionParser after.
-    pub fn open_connection(&mut self, tv_start: Option<OffsetDateTime>) {
+    pub(super) fn open_connection(&mut self, tv_start: Option<OffsetDateTime>) {
         self.connp.open(
             Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
             Some(10000),
@@ -282,12 +282,12 @@ impl Test {
     }
 
     /// Run on a slice of input data. Used with fuzzing.
-    pub fn run_slice(&mut self, slice: &[u8]) -> std::result::Result<(), TestError> {
+    pub(super) fn run_slice(&mut self, slice: &[u8]) -> std::result::Result<(), TestError> {
         self.run(TestInput::from(slice))
     }
 
     /// Run on a file path. Used in integration tests.
-    pub fn run_file(&mut self, file: &str) -> std::result::Result<(), TestError> {
+    pub(super) fn run_file(&mut self, file: &str) -> std::result::Result<(), TestError> {
         let testfile = if let Some(base) = &self.basedir {
             let mut path = base.clone();
             path.push(file);

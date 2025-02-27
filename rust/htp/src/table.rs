@@ -5,9 +5,9 @@ use std::{cmp::Ordering, iter::Iterator, slice::SliceIndex};
 
 /// The table structure for key value pairs.
 #[derive(Clone, Debug)]
-pub struct Table<T> {
+pub(crate) struct Table<T> {
     /// Entries in the table.
-    pub elements: Vec<(Bstr, T)>,
+    elements: Vec<(Bstr, T)>,
 }
 
 impl<T> Index<usize> for Table<T> {

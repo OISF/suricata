@@ -150,7 +150,6 @@ pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *const c_void) {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct FtpTransferCmd {
     // Must be first -- required by app-layer expectation logic
     data_free: unsafe extern "C" fn(*mut c_void),

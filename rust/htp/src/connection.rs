@@ -8,42 +8,40 @@ use time::OffsetDateTime;
 
 /// Export Connection ConnectionFlags
 #[repr(C)]
-pub struct ConnectionFlags;
+pub(crate) struct ConnectionFlags;
 
 /// `Connection` Flags
 impl ConnectionFlags {
-    /// Default, no flags raised.
-    pub const UNKNOWN: u8 = 0x00;
     /// Seen pipelined requests.
-    pub const PIPELINED: u8 = 0x01;
+    pub(crate) const PIPELINED: u8 = 0x01;
     /// Seen extra data after a HTTP 0.9 communication.
-    pub const HTTP_0_9_EXTRA: u8 = 0x02;
+    pub(crate) const HTTP_0_9_EXTRA: u8 = 0x02;
 }
 
 /// Stores information about the session.
 pub struct Connection {
     /// Client IP address.
-    pub client_addr: Option<IpAddr>,
+    pub(crate) client_addr: Option<IpAddr>,
     /// Client port.
-    pub client_port: Option<u16>,
+    pub(crate) client_port: Option<u16>,
     /// Server IP address.
-    pub server_addr: Option<IpAddr>,
+    pub(crate) server_addr: Option<IpAddr>,
     /// Server port.
-    pub server_port: Option<u16>,
+    pub(crate) server_port: Option<u16>,
 
     /// Messages channel associated with this connection.
     log_channel: (Sender<Message>, Receiver<Message>),
 
     /// Parsing flags.
-    pub flags: u8,
+    pub(crate) flags: u8,
     /// When was this connection opened?
-    pub open_timestamp: OffsetDateTime,
+    pub(crate) open_timestamp: OffsetDateTime,
     /// When was this connection closed?
-    pub close_timestamp: OffsetDateTime,
+    pub(crate) close_timestamp: OffsetDateTime,
     /// Inbound data counter.
-    pub request_data_counter: u64,
+    pub(crate) request_data_counter: u64,
     /// Outbound data counter.
-    pub response_data_counter: u64,
+    pub(crate) response_data_counter: u64,
 }
 
 impl Default for Connection {
@@ -106,10 +104,11 @@ impl Connection {
     }
 
     /// Drains and returns a vector of all current logs received by the log channel
-    pub fn get_logs(&self) -> Vec<Log> {
+    #[cfg(test)]
+    pub(crate) fn get_logs(&self) -> Vec<Log> {
         let mut logs = Vec::with_capacity(8);
         while let Ok(message) = self.log_channel.1.try_recv() {
-            logs.push(Log::new(self, message))
+            logs.push(Log::new(message))
         }
         logs
     }
@@ -119,7 +118,7 @@ impl Connection {
         self.log_channel
             .1
             .try_recv()
-            .map(|message| Log::new(self, message))
+            .map(|message| Log::new(message))
             .ok()
     }
 }
