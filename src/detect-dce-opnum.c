@@ -103,7 +103,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     if (f->alproto == ALPROTO_DCERPC) {
-        return rs_dcerpc_opnum_match(txv, (void *)m);
+        return SCDcerpcOpnumMatch(txv, (void *)m);
     }
 
     if (rs_smb_tx_match_dce_opnum(txv, (void *)m) != 1)
@@ -114,7 +114,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
 
 /**
  * \brief Creates a SigMatch for the "dce_opnum" keyword being sent as argument,
- *        and appends it to the rs_dcerpc_opnum_matchSignature(s).
+ *        and appends it to the SCDcerpcOpnumMatchSignature(s).
  *
  * \param de_ctx Pointer to the detection engine context.
  * \param s      Pointer to signature for the current Signature being parsed
@@ -135,7 +135,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
 
-    void *dod = rs_dcerpc_opnum_parse(arg);
+    void *dod = SCDcerpcOpnumParse(arg);
     if (dod == NULL) {
         SCLogError("Error parsing dce_opnum option in "
                    "signature");
@@ -154,7 +154,7 @@ static void DetectDceOpnumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_dcerpc_opnum_free(ptr);
+        SCDcerpcOpnumFree(ptr);
     }
     SCReturn;
 }

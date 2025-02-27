@@ -113,7 +113,7 @@ static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
 
     if (f->alproto == ALPROTO_DCERPC) {
         // TODO check if state is NULL
-        return rs_dcerpc_iface_match(txv, state, (void *)m);
+        return SCDcerpcIfaceMatch(txv, state, (void *)m);
     }
 
     int ret = 0;
@@ -147,7 +147,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
 
-    void *did = rs_dcerpc_iface_parse(arg);
+    void *did = SCDcerpcIfaceParse(arg);
     if (did == NULL) {
         SCLogError("Error parsing dce_iface option in "
                    "signature");
@@ -165,7 +165,7 @@ static void DetectDceIfaceFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_dcerpc_iface_free(ptr);
+        SCDcerpcIfaceFree(ptr);
     }
     SCReturn;
 }
