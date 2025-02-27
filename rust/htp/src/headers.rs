@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag as complete_tag,
     bytes::streaming::{tag, take_till, take_while, take_while1},
-    character::{complete::one_of as complete_one_of, is_space, streaming::space0},
+    character::{is_space, streaming::space0},
     combinator::{complete, map, not, opt, peek},
     sequence::tuple,
     Err::Incomplete,
@@ -152,8 +152,6 @@ impl Parser {
                         )),
                         |(eol, _)| (eol, HeaderFlags::DEFORMED_EOL),
                     ),
-                    // Treat EOL + empty folding + EOL as just EOL
-                    self.folding_empty(),
                     map(
                         tuple((
                             complete_tag("\r\n\r"),
@@ -214,19 +212,6 @@ impl Parser {
         move |input| alt((null, self.complete_eol()))(input)
     }
 
-    /// Parse empty header folding as a single EOL (eol + whitespace + eol = eol)
-    fn folding_empty(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| {
-            map(
-                tuple((
-                    self.complete_eol_regular(),
-                    complete_one_of("\t "),
-                    self.complete_eol_regular(),
-                )),
-                |(eol1, _spaces, eol2)| (&input[..eol1.len() + 1 + eol2.len()], 0),
-            )(input)
-        }
-    }
     /// Parse header folding bytes (eol + whitespace or eol + special cases)
     fn folding(&self) -> impl Fn(&[u8]) -> IResult<&[u8], FoldingBytes> + '_ {
         move |input| {
@@ -478,8 +463,8 @@ impl Parser {
                         if is_null_terminated {
                             return Ok((rest, (out, true)));
                         }
-                        if let Ok((rest, _eoh)) = self.complete_eol()(rest) {
-                            return Ok((rest, (out, true)));
+                        if let Ok((rest2, _eoh)) = self.complete_eol()(rest) {
+                            return Ok((rest2, (out, true)));
                         }
                     }
                     Err(Incomplete(_)) => {
