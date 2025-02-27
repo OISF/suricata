@@ -1531,6 +1531,12 @@ static int SigParseAction(Signature *s, const char *action_in)
         }
     }
 
+    /* require explicit action scope for fw rules */
+    if (s->init_data->firewall_rule && s->action_scope == 0) {
+        SCLogError("firewall rules require setting an explicit action scope");
+        return -1;
+    }
+
     s->action = flags;
     return 0;
 }
