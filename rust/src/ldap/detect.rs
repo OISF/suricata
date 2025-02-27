@@ -181,6 +181,51 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
     return 0;
 }
 
+fn match_at_index<T>(
+    tx: &LdapTransaction, ctx_value: &DetectUintData<T>,
+    get_value: impl Fn(&LdapMessage) -> Option<T>,
+    detect_match: impl Fn(T, &DetectUintData<T>) -> c_int, index: &LdapIndex,
+) -> c_int {
+    match index {
+        LdapIndex::Any => {
+            for response in &tx.responses {
+                if let Some(code) = get_value(response) {
+                    if detect_match(code, ctx_value) == 1 {
+                        return 1;
+                    }
+                }
+            }
+            return 0;
+        }
+        LdapIndex::All => {
+            for response in &tx.responses {
+                if let Some(code) = get_value(response) {
+                    if detect_match(code, ctx_value) == 0 {
+                        return 0;
+                    }
+                }
+            }
+            return 1;
+        }
+        LdapIndex::Index(idx) => {
+            let index = if *idx < 0 {
+                // negative values for backward indexing.
+                ((tx.responses.len() as i32) + idx) as usize
+            } else {
+                *idx as usize
+            };
+            if tx.responses.len() <= index {
+                return 0;
+            }
+            let response: &LdapMessage = &tx.responses[index];
+            if let Some(code) = get_value(response) {
+                return detect_match(code, ctx_value);
+            }
+            return 0;
+        }
+    }
+}
+
 unsafe extern "C" fn ldap_detect_responses_operation_match(
     _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
     _sig: *const c_void, ctx: *const c_void,
@@ -188,40 +233,13 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
 
-    match ctx.index {
-        LdapIndex::Any => {
-            for response in &tx.responses {
-                let option: u8 = response.protocol_op.to_u8();
-                if rs_detect_u8_match(option, &ctx.du8) == 1 {
-                    return 1;
-                }
-            }
-            return 0;
-        }
-        LdapIndex::All => {
-            for response in &tx.responses {
-                let option: u8 = response.protocol_op.to_u8();
-                if rs_detect_u8_match(option, &ctx.du8) == 0 {
-                    return 0;
-                }
-            }
-            return 1;
-        }
-        LdapIndex::Index(idx) => {
-            let index = if idx < 0 {
-                // negative values for backward indexing.
-                ((tx.responses.len() as i32) + idx) as usize
-            } else {
-                idx as usize
-            };
-            if tx.responses.len() <= index {
-                return 0;
-            }
-            let response: &LdapMessage = &tx.responses[index];
-            let option: u8 = response.protocol_op.to_u8();
-            return rs_detect_u8_match(option, &ctx.du8);
-        }
-    }
+    return match_at_index::<u8>(
+        tx,
+        &ctx.du8,
+        |response| Some(response.protocol_op.to_u8()),
+        |code, ctx_value| unsafe { rs_detect_u8_match(code, ctx_value) },
+        &ctx.index,
+    );
 }
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut c_void, ctx: *mut c_void) {
