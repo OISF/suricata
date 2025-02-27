@@ -911,7 +911,7 @@ unsafe extern "C" fn mqtt_conn_flags_setup(
     return 0;
 }
 
-fn rs_mqtt_tx_has_conn_flags(tx: &MQTTTransaction, ctx: &DetectUintData<u8>) -> c_int {
+fn mqtt_tx_has_conn_flags(tx: &MQTTTransaction, ctx: &DetectUintData<u8>) -> c_int {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
             if detect_match_uint(ctx, cv.rawflags) {
@@ -928,7 +928,7 @@ unsafe extern "C" fn mqtt_conn_flags_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    return rs_mqtt_tx_has_conn_flags(tx, ctx);
+    return mqtt_tx_has_conn_flags(tx, ctx);
 }
 
 unsafe extern "C" fn mqtt_conn_flags_free(_de: *mut c_void, ctx: *mut c_void) {

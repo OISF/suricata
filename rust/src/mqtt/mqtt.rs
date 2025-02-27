@@ -20,7 +20,7 @@
 use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::*;
-use crate::applayer::{self, LoggerFlags};
+use crate::applayer;
 use crate::conf::{conf_get, get_memval};
 use crate::core::*;
 use crate::direction::Direction;
@@ -76,7 +76,6 @@ pub struct MQTTTransaction {
     toclient: bool,
     toserver: bool,
 
-    logged: LoggerFlags,
     tx_data: applayer::AppLayerTxData,
 }
 
@@ -92,7 +91,6 @@ impl MQTTTransaction {
             tx_id: 0,
             pkt_id: None,
             complete: false,
-            logged: LoggerFlags::new(),
             msg: Vec::new(),
             toclient: direction.is_to_client(),
             toserver: direction.is_to_server(),
@@ -629,8 +627,7 @@ impl MQTTState {
 
 // C exports.
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_probing_parser(
+unsafe extern "C" fn mqtt_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() {
@@ -654,8 +651,7 @@ pub unsafe extern "C" fn rs_mqtt_probing_parser(
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_mqtt_state_new(
+extern "C" fn mqtt_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = MQTTState::new();
@@ -663,19 +659,16 @@ pub extern "C" fn rs_mqtt_state_new(
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_mqtt_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn mqtt_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut MQTTState) });
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, MQTTState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_parse_request(
+unsafe extern "C" fn mqtt_parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -683,8 +676,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_request(
     return state.parse_request(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_parse_response(
+unsafe extern "C" fn mqtt_parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -692,8 +684,7 @@ pub unsafe extern "C" fn rs_mqtt_parse_response(
     return state.parse_response(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_tx(
+unsafe extern "C" fn mqtt_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, MQTTState);
@@ -707,14 +698,13 @@ pub unsafe extern "C" fn rs_mqtt_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn mqtt_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, MQTTState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(
+pub unsafe extern "C" fn SCMqttTxIsToClient(
     tx:  &MQTTTransaction,
 ) -> std::os::raw::c_int {
     if tx.toclient {
@@ -723,8 +713,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_is_toclient(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
+unsafe extern "C" fn mqtt_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -743,22 +732,6 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_alstate_progress(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
-) -> u32 {
-    let tx = cast_pointer!(tx, MQTTTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_set_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
-) {
-    let tx = cast_pointer!(tx, MQTTTransaction);
-    tx.logged.set(logged);
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"mqtt\0";
 
@@ -772,20 +745,20 @@ pub unsafe extern "C" fn SCMqttRegisterParser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_mqtt_probing_parser),
-        probe_tc: Some(rs_mqtt_probing_parser),
+        probe_ts: Some(mqtt_probing_parser),
+        probe_tc: Some(mqtt_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_mqtt_state_new,
-        state_free: rs_mqtt_state_free,
-        tx_free: rs_mqtt_state_tx_free,
-        parse_ts: rs_mqtt_parse_request,
-        parse_tc: rs_mqtt_parse_response,
-        get_tx_count: rs_mqtt_state_get_tx_count,
-        get_tx: rs_mqtt_state_get_tx,
+        state_new: mqtt_state_new,
+        state_free: mqtt_state_free,
+        tx_free: mqtt_state_tx_free,
+        parse_ts: mqtt_parse_request,
+        parse_tc: mqtt_parse_response,
+        get_tx_count: mqtt_state_get_tx_count,
+        get_tx: mqtt_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_mqtt_tx_get_alstate_progress,
+        tx_get_progress: mqtt_tx_get_alstate_progress,
         get_eventinfo: Some(MQTTEvent::get_event_info),
         get_eventinfo_byid: Some(MQTTEvent::get_event_info_by_id),
         localstorage_new: None,
