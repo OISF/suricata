@@ -1214,6 +1214,39 @@ static int SigParseActionRejectValidate(const char *action)
     return 1;
 }
 
+/** \retval 0 on error
+ *  \retval flags on success
+ */
+static uint8_t ActionStringToFlags(const char *action)
+{
+    if (strcasecmp(action, "alert") == 0) {
+        return ACTION_ALERT;
+    } else if (strcasecmp(action, "drop") == 0) {
+        return ACTION_DROP | ACTION_ALERT;
+    } else if (strcasecmp(action, "pass") == 0) {
+        return ACTION_PASS;
+    } else if (strcasecmp(action, "reject") == 0 ||
+               strcasecmp(action, "rejectsrc") == 0)
+    {
+        if (!(SigParseActionRejectValidate(action)))
+            return 0;
+        return ACTION_REJECT | ACTION_DROP | ACTION_ALERT;
+    } else if (strcasecmp(action, "rejectdst") == 0) {
+        if (!(SigParseActionRejectValidate(action)))
+            return 0;
+        return ACTION_REJECT_DST | ACTION_DROP | ACTION_ALERT;
+    } else if (strcasecmp(action, "rejectboth") == 0) {
+        if (!(SigParseActionRejectValidate(action)))
+            return 0;
+        return ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
+    } else if (strcasecmp(action, "config") == 0) {
+        return ACTION_CONFIG;
+    } else {
+        SCLogError("An invalid action \"%s\" was given", action);
+        return 0;
+    }
+}
+
 /**
  * \brief Parses the action that has been used by the Signature and allots it
  *        to its Signature instance.
@@ -1227,32 +1260,11 @@ static int SigParseActionRejectValidate(const char *action)
  */
 static int SigParseAction(Signature *s, const char *action)
 {
-    if (strcasecmp(action, "alert") == 0) {
-        s->action = ACTION_ALERT;
-    } else if (strcasecmp(action, "drop") == 0) {
-        s->action = ACTION_DROP | ACTION_ALERT;
-    } else if (strcasecmp(action, "pass") == 0) {
-        s->action = ACTION_PASS;
-    } else if (strcasecmp(action, "reject") == 0 ||
-               strcasecmp(action, "rejectsrc") == 0)
-    {
-        if (!(SigParseActionRejectValidate(action)))
-            return -1;
-        s->action = ACTION_REJECT | ACTION_DROP | ACTION_ALERT;
-    } else if (strcasecmp(action, "rejectdst") == 0) {
-        if (!(SigParseActionRejectValidate(action)))
-            return -1;
-        s->action = ACTION_REJECT_DST | ACTION_DROP | ACTION_ALERT;
-    } else if (strcasecmp(action, "rejectboth") == 0) {
-        if (!(SigParseActionRejectValidate(action)))
-            return -1;
-        s->action = ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
-    } else if (strcasecmp(action, "config") == 0) {
-        s->action = ACTION_CONFIG;
-    } else {
-        SCLogError("An invalid action \"%s\" was given", action);
+    uint8_t flags = ActionStringToFlags(action);
+    if (flags == 0)
         return -1;
-    }
+
+    s->action = flags;
     return 0;
 }
 
