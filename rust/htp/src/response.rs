@@ -1056,9 +1056,7 @@ impl ConnectionParser {
                 }
                 let mut decompressor = resp.response_decompressor.take().ok_or(HtpStatus::ERROR)?;
                 if let Some(data) = data {
-                    decompressor
-                        .decompress(data)
-                        .map_err(|_| HtpStatus::ERROR)?;
+                    let _ = decompressor.decompress(data);
 
                     if decompressor.time_spent()
                         > self.cfg.compression_options.get_time_limit() as u64
