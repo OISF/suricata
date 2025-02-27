@@ -129,6 +129,8 @@ typedef struct SCInstance_ {
     bool sig_file_exclusive;
     char *pid_filename;
     char *regex_arg;
+    char *firewall_rule_file;
+    bool firewall_rule_file_exclusive;
 
     char *keyword_info;
     char *runmode_custom_mode;
