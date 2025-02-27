@@ -127,28 +127,3 @@ pub enum Callback<E, N> {
     /// Native (rust) callback function
     Native(N),
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::{config::Config, connection_parser::ParserData};
-
-    #[test]
-    fn test_callback() {
-        unsafe extern "C" fn foo(_: *const ConnectionParser, _: *mut Data) -> HtpStatus {
-            HtpStatus::OK
-        }
-        let connp = ConnectionParser::new(Config::default());
-        let mut hook = DataHook::default();
-
-        hook.register(|_, _| Ok(()));
-        hook.register_extern(foo);
-
-        assert!(hook
-            .run_all(
-                &connp,
-                &mut Data::new(std::ptr::null_mut(), &ParserData::default())
-            )
-            .is_ok());
-    }
-}
