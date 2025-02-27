@@ -912,7 +912,6 @@ impl Drop for Part {
 }
 
 /// Enumerates the current multipart mode.
-/// cbindgen:rename-all=QualifiedScreamingSnakeCase
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum HtpMultipartMode {
@@ -923,7 +922,6 @@ enum HtpMultipartMode {
 }
 
 /// Enumerates the multipart parsing state.
-/// cbindgen:rename-all=QualifiedScreamingSnakeCase
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum HtpMultipartState {
@@ -940,7 +938,6 @@ enum HtpMultipartState {
 }
 
 /// Enumerates the multipart type.
-/// cbindgen:rename-all=QualifiedScreamingSnakeCase
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum HtpMultipartType {

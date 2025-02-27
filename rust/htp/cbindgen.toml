@@ -62,6 +62,3 @@ bitflags = true
 [parse]
 parse_deps = false
 clean = false
-
-[parse.expand]
-features = ["cbindgen"]

@@ -3,8 +3,7 @@ use core::cmp::Ordering;
 use std::{boxed::Box, ffi::CStr};
 
 /// Allocate a zero-length bstring, reserving space for at least size bytes.
-#[no_mangle]
-pub extern "C" fn bstr_alloc(len: libc::size_t) -> *mut Bstr {
+fn bstr_alloc(len: libc::size_t) -> *mut Bstr {
     let b = Bstr::with_capacity(len);
     let boxed = Box::new(b);
     Box::into_raw(boxed)

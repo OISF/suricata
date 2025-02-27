@@ -23,9 +23,6 @@ include = [
 [lib]
 crate-type = ["staticlib", "rlib", "cdylib"]
 
-[features]
-default = ["cbindgen"]
-
 [dependencies]
 base64 = "0.22.1"
 bstr = "1.6.0"
@@ -40,5 +37,4 @@ time = "=0.3.36"
 rstest = "0.17.0"
 
 [build-dependencies]
-cbindgen = { version = "0.24.5", optional = true }
 cdylib-link-lines = "0.1.5"
