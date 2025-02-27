@@ -1738,7 +1738,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSMTPParsers();
     SCRegisterDnsUdpParser();
     SCRegisterDnsTcpParser();
-    rs_bittorrent_dht_udp_register_parser();
+    SCRegisterBittorrentDhtUdpParser();
     RegisterModbusParsers();
     SCEnipRegisterParsers();
     RegisterDNP3Parsers();
