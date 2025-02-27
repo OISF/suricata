@@ -342,12 +342,17 @@ static inline void FlowApplySignatureActions(
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_NOT_SET);
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_MAX);
 
-        enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
-        if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
+        if (s->action_scope == ACTION_SCOPE_FLOW) {
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
-        } else if (flow_action == SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL) {
-            if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) {
+        } else if (s->action_scope == ACTION_SCOPE_AUTO) {
+            enum SignaturePropertyFlowAction flow_action =
+                    signature_properties[s->type].flow_action;
+            if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
                 pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+            } else if (flow_action == SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL) {
+                if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) {
+                    pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+                }
             }
         }
 
