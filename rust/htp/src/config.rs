@@ -2,7 +2,7 @@ use crate::decompressors::Options;
 use crate::{
     error::Result,
     hook::{
-        DataHook, DataNativeCallbackFn, LogHook, LogNativeCallbackFn, TxHook, TxNativeCallbackFn,
+        DataHook, DataNativeCallbackFn, LogHook, TxHook, TxNativeCallbackFn,
     },
     log::HtpLogLevel,
     transaction::Param,
@@ -291,12 +291,6 @@ pub enum HtpUrlEncodingHandling {
 }
 
 impl Config {
-    /// Registers a callback that is invoked every time there is a log message with
-    /// severity equal and higher than the configured log level.
-    pub fn register_log(&mut self, cbk_fn: LogNativeCallbackFn) {
-        self.hook_log.register(cbk_fn);
-    }
-
     /// Registers a request_complete callback, which is invoked when we see the
     /// first bytes of data from a request.
     pub fn register_request_complete(&mut self, cbk_fn: TxNativeCallbackFn) {
