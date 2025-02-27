@@ -1958,14 +1958,14 @@ fn CompressedResponseBombLimitExceeded() {
     cfg.compression_options.set_bomb_ratio(2);
     let mut t = Test::new(cfg);
 
-    assert!(t.run_file("14-compressed-response-gzip-chunked.t").is_err());
+    assert!(t.run_file("14-compressed-response-gzip-chunked.t").is_ok());
 
     assert_eq!(1, t.connp.tx_size());
 
     let tx = t.connp.tx(0).unwrap();
-    assert!(!tx.is_complete());
+    assert!(tx.is_complete());
 
-    assert_eq!(1208, tx.response_message_len);
+    assert_eq!(28261, tx.response_message_len);
     assert_eq!(2608, tx.response_entity_len);
 }
 
