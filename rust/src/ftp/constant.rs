@@ -28,8 +28,8 @@ pub enum FtpStateValues {
 #[repr(u8)]
 #[allow(non_camel_case_types)]
 pub enum FtpDataStateValues {
-    FTPDATA_STATE_IN_PROGRESS = 1,
-    FTPDATA_STATE_FINISHED = 2,
+    FTPDATA_STATE_IN_PROGRESS,
+    FTPDATA_STATE_FINISHED,
 }
 
 // FTP request command values
