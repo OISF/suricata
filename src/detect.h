@@ -663,6 +663,9 @@ typedef struct Signature_ {
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
 
+    /* scope setting for the action: enum ActionScope */
+    uint8_t action_scope;
+
     /** ipv4 match arrays */
     uint16_t addr_dst_match4_cnt;
     uint16_t addr_src_match4_cnt;
