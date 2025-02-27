@@ -18,6 +18,7 @@
 //! This module exposes items from the core "C" code to Rust.
 
 use std;
+use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{AppProto, AppProtoEnum};
 
 use crate::filecontainer::*;
@@ -71,6 +72,15 @@ macro_rules!BIT_U64 {
 extern {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
+
+/// cbindgen:ignore
+extern "C" {
+    pub fn MpmAddPatternCI(
+        ctx: *const c_void, pat: *const libc::c_char, pat_len: c_int, _offset: c_int,
+        _depth: c_int, id: c_int, rule_id: c_int, _flags: c_int,
+    ) -> c_void;
+}
+
 
 //
 // Function types for calls into C.
