@@ -140,3 +140,5 @@ pub mod direction;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;
+//Re-export htp symbols
+pub use htp::c_api::*;
