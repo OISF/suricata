@@ -540,6 +540,7 @@ typedef struct SignatureInitDataBuffer_ {
 enum SignatureHookPkt {
     SIGNATURE_HOOK_PKT_NOT_SET,
     SIGNATURE_HOOK_PKT_FLOW_START,
+    SIGNATURE_HOOK_PKT_ALL, /**< match each packet */
 };
 
 enum SignatureHookType {
