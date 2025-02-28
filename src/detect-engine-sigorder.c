@@ -803,8 +803,10 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     /* despite having Append in the name, the new Sig/Rule funcs actually prepend with some special
      * logic around bidir sigs. So to respect the firewall rule order, we sort this part of the list
      * by the add order. */
-    SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
-    fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
+    if (fw_sigw_list) {
+        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
+        fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
+    }
 
     /* Sort the list */
     sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
