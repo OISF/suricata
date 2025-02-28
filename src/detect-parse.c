@@ -1198,6 +1198,8 @@ static enum SignatureHookPkt HookPktFromString(const char *str)
 {
     if (strcmp(str, "flow_start") == 0) {
         return SIGNATURE_HOOK_PKT_FLOW_START;
+    } else if (strcmp(str, "all") == 0) {
+        return SIGNATURE_HOOK_PKT_ALL;
     }
     return SIGNATURE_HOOK_PKT_NOT_SET;
 }
@@ -1210,6 +1212,8 @@ static const char *HookPktToString(const enum SignatureHookPkt ph)
             return "not set";
         case SIGNATURE_HOOK_PKT_FLOW_START:
             return "flow_start";
+        case SIGNATURE_HOOK_PKT_ALL:
+            return "all";
     }
     return "error";
 }
@@ -1229,13 +1233,15 @@ static SignatureHook SetPktHook(const char *hook_str)
  */
 static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char *p, const char *h)
 {
-    if (strcmp(h, "flow_start") == 0) {
+    enum SignatureHookPkt hook = HookPktFromString(h);
+    if (hook != SIGNATURE_HOOK_PKT_NOT_SET) {
         s->init_data->hook = SetPktHook(h);
         if (s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_NOT_SET) {
-            return -1;
+            return -1; // TODO unreachable?
         }
     } else {
         SCLogError("unknown pkt hook %s", h);
+        return -1;
     }
 
     SCLogDebug("protocol:%s hook:%s: type:%s parsed hook:%s", p, h,
