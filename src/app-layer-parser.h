@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -136,6 +136,8 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx);
  */
 int AppLayerParserConfParserEnabled(const char *ipproto,
                                     const char *alproto_name);
+
+enum ExceptionPolicy AppLayerErrorGetExceptionPolicy(void);
 
 /** \brief Prototype for parsing functions */
 typedef AppLayerResult (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
