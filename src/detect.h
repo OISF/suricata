@@ -242,7 +242,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_SP_ANY                 BIT_U32(2)  /**< source port is any */
 #define SIG_FLAG_DP_ANY                 BIT_U32(3)  /**< destination port is any */
 
-// vacancy
+#define SIG_FLAG_FIREWALL BIT_U32(4) /**< sig is a firewall rule */
 
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
@@ -327,6 +327,7 @@ typedef struct DetectPort_ {
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
+#define DE_HAS_FIREWALL    0x02     /**< firewall rules loaded, default policies active */
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */

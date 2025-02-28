@@ -83,9 +83,9 @@ static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
 static inline void DetectRunPrefilterPkt(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
         DetectRunScratchpad *scratch);
-static inline void DetectRulePacketRules(ThreadVars * const tv,
-        DetectEngineCtx * const de_ctx, DetectEngineThreadCtx * const det_ctx,
-        Packet * const p, Flow * const pflow, const DetectRunScratchpad *scratch);
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
+        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
+        const DetectRunScratchpad *scratch);
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
@@ -132,8 +132,19 @@ static void DetectRun(ThreadVars *th_v,
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the rules against the packet */
-    DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+    const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+
+    /* Only FW rules will already have set the action, IDS rules go through PacketAlertFinalize
+     *
+     * If rules told us to drop or accept:packet/accept:flow, we skip app_filter and app_td.
+     *
+     * accept:hook won't have set the pkt_policy, so we simply continue.
+     *
+     * TODO what about app state progression, cleanup and such? */
+    if (pkt_policy & (ACTION_DROP | ACTION_ACCEPT)) {
+        goto end;
+    }
 
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
@@ -581,15 +592,13 @@ static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
     return false;
 }
 
-static inline void DetectRulePacketRules(
-    ThreadVars * const tv,
-    DetectEngineCtx * const de_ctx,
-    DetectEngineThreadCtx * const det_ctx,
-    Packet * const p,
-    Flow * const pflow,
-    const DetectRunScratchpad *scratch
-)
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
+        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
+        const DetectRunScratchpad *scratch)
 {
+    uint8_t action = 0;
+    bool fw_verdict = false;
+    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
     const Signature *next_s = NULL;
 
     /* inspect the sigs against the packet */
@@ -609,6 +618,7 @@ static inline void DetectRulePacketRules(
         RulesDumpMatchArray(det_ctx, scratch->sgh, p);
 #endif
 
+    bool skip_fw = false;
     uint32_t sflags, next_sflags = 0;
     if (match_cnt) {
         next_s = *match_array++;
@@ -616,6 +626,7 @@ static inline void DetectRulePacketRules(
     }
     while (match_cnt--) {
         RULE_PROFILING_START(p);
+        bool break_out_of_packet_filter = false;
         uint8_t alert_flags = 0;
 #ifdef PROFILE_RULES
         bool smatch = false; /* signature match */
@@ -629,6 +640,12 @@ static inline void DetectRulePacketRules(
         const uint8_t s_proto_flags = s->proto.flags;
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        /* if we accept:hook'd the `packet_filter` hook, we skip the rest of the firewall rules. */
+        if (skip_fw && (s->flags & SIG_FLAG_FIREWALL)) {
+            SCLogDebug("skipping firewall rule %u", s->id);
+            goto next;
+        }
 
         if (s->app_inspect != NULL) {
             goto next; // handle sig in DetectRunTx
@@ -696,12 +713,63 @@ static inline void DetectRulePacketRules(
             }
         }
         AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
+
+        // TODO this can move into a per FW rule post-Match func
+        if (s->flags & SIG_FLAG_FIREWALL) {
+
+            if (s->action & (ACTION_ACCEPT)) {
+                fw_verdict = true;
+
+                enum ActionScope as = s->action_scope;
+                if (as == ACTION_SCOPE_HOOK) {
+                    /* accept:hook: jump to first TD. Implemented as:
+                     * skip until the first TD rule.
+                     * Don't update action as we're just continuing to the next hook. */
+                    skip_fw = true;
+
+                } else if (as == ACTION_SCOPE_PACKET) {
+                    /* accept:packet: break loop, return accept */
+                    action |= s->action;
+                    break_out_of_packet_filter = true;
+
+                } else if (as == ACTION_SCOPE_FLOW) {
+                    /* accept:flow: break loop, return accept */
+                    action |= s->action;
+                    break_out_of_packet_filter = true;
+
+                    /* set immediately, as we're in hook "packet_filter" */
+                    if (pflow) {
+                        pflow->flags |= FLOW_ACTION_ACCEPT;
+                    }
+                }
+            }
+        }
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
+
+        /* fw accept:packet or accept:flow means we're done here */
+        if (break_out_of_packet_filter)
+            break;
+
         continue;
     }
+
+    /* if no rule told us to accept, and no rule explicitly dropped, we invoke the default drop
+     * policy
+     */
+    if (have_fw_rules) {
+        if (!fw_verdict) {
+            DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+            action |= ACTION_DROP;
+        } else {
+            /* apply fw action */
+            p->action |= action;
+        }
+    }
+    return action;
 }
 
 static DetectRunScratchpad DetectRunSetup(
@@ -1334,6 +1402,9 @@ static void DetectRunTx(ThreadVars *tv,
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state = { 0 };
 
+    bool fw_verdict = false;
+    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
         if (ires.tx_ptr == NULL)
@@ -1453,11 +1524,17 @@ static void DetectRunTx(ThreadVars *tv,
             SCLogDebug("%u: sid %u flags %p", i, s->id, can->flags);
         }
 #endif
+        bool skip_fw = false;
         /* run rules: inspect the match candidates */
         for (uint32_t i = 0; i < array_idx; i++) {
             RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
             const Signature *s = det_ctx->tx_candidates[i].s;
             uint32_t *inspect_flags = det_ctx->tx_candidates[i].flags;
+
+            /* if we accept:hook'd the `app_filter` hook, we skip the rest of the firewall rules. */
+            if (skip_fw && s->flags & SIG_FLAG_FIREWALL) {
+                continue;
+            }
 
             /* deduplicate: rules_array is sorted, but not deduplicated:
              * both mpm and stored state could give us the same sid.
@@ -1490,6 +1567,7 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug("%p/%"PRIu64" Start sid %u", tx.tx_ptr, tx.tx_id, s->id);
             }
 
+            bool break_out_of_app_filter = false;
             /* call individual rule inspection */
             RULE_PROFILING_START(p);
             const int r = DetectRunTxInspectRule(tv, de_ctx, det_ctx, p, f, flow_flags,
@@ -1501,9 +1579,38 @@ static void DetectRunTx(ThreadVars *tv,
                 const uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+
+                if (s->flags & SIG_FLAG_FIREWALL) {
+                    // TODO need to make sure that in multiple txs, drop and accept are handled
+                    // correctly
+
+                    if (s->action & (ACTION_ACCEPT)) {
+                        fw_verdict = true;
+
+                        enum ActionScope as = s->action_scope;
+                        /* accept:hook: jump to first TD. Implemented as:
+                         * skip until the first TD rule. */
+                        if (as == ACTION_SCOPE_HOOK) {
+                            skip_fw = true;
+                        } else if (as == ACTION_SCOPE_PACKET) {
+                            break_out_of_app_filter = true;
+                        } else if (as == ACTION_SCOPE_FLOW) {
+                            break_out_of_app_filter = true;
+
+                            // TODO this should be postponed to FinalizeAlerts
+                            // due to "packet_td" drops taken precedence.
+                            if (p->flow) {
+                                p->flow->flags |= FLOW_ACTION_ACCEPT;
+                            }
+                        }
+                    }
+                }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
+
+            if (break_out_of_app_filter)
+                break;
         }
 
         det_ctx->tx_id = 0;
@@ -1537,6 +1644,9 @@ static void DetectRunTx(ThreadVars *tv,
     next:
         if (!ires.has_next)
             break;
+    }
+    if (have_fw_rules && !fw_verdict) {
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
     }
 }
 
@@ -1692,11 +1802,11 @@ static void DetectFlow(ThreadVars *tv,
 {
     Flow *const f = p->flow;
 
-    if (p->flags & PKT_NOPACKET_INSPECTION) {
+    if (p->flags & PKT_NOPACKET_INSPECTION || f->flags & FLOW_ACTION_ACCEPT) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
-        const int pass = ((f->flags & FLOW_NOPACKET_INSPECTION));
+        const int pass = ((f->flags & (FLOW_NOPACKET_INSPECTION | FLOW_ACTION_ACCEPT)));
         if (pass) {
             uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
             flags = FlowGetDisruptionFlags(f, flags);
