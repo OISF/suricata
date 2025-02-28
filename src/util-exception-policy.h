@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2024 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,7 +26,10 @@
 #include "util-exception-policy-types.h"
 
 const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy, bool is_json);
+const char *ExceptionPolicyTargetFlagToString(enum ExceptionPolicyTargets target_flag);
+enum ExceptionPolicy ExceptionPolicyTargetPolicy(enum ExceptionPolicyTargets target_flag);
 void SetMasterExceptionPolicy(void);
+enum ExceptionPolicy GetMasterExceptionPolicy(void);
 void ExceptionPolicyApply(
         Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason);
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow);
