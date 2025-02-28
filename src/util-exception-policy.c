@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2024 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,14 +19,18 @@
  * \file
  */
 
+#include "util-exception-policy.h"
 #include "suricata-common.h"
 #include "suricata.h"
 #include "packet.h"
-#include "util-exception-policy.h"
 #include "util-misc.h"
 #include "stream-tcp-reassemble.h"
 #include "action-globals.h"
 #include "conf.h"
+#include "flow.h"
+#include "stream-tcp.h"
+#include "defrag-hash.h"
+#include "app-layer-parser.h"
 
 enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
 /** true if exception policy was defined in config */
@@ -66,9 +70,76 @@ static enum ExceptionPolicy GetMasterExceptionPolicy(void)
     return g_eps_master_switch;
 }
 
+static uint8_t ExceptionPolicyFlag(enum PacketDropReason drop_reason)
+{
+    switch (drop_reason) {
+        case PKT_DROP_REASON_DEFRAG_MEMCAP:
+            return EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP;
+        case PKT_DROP_REASON_STREAM_MEMCAP:
+            return EXCEPTION_TARGET_FLAG_SESSION_MEMCAP;
+        case PKT_DROP_REASON_STREAM_REASSEMBLY:
+            return EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP;
+        case PKT_DROP_REASON_FLOW_MEMCAP:
+            return EXCEPTION_TARGET_FLAG_FLOW_MEMCAP;
+        case PKT_DROP_REASON_STREAM_MIDSTREAM:
+            return EXCEPTION_TARGET_FLAG_MIDSTREAM;
+        case PKT_DROP_REASON_APPLAYER_ERROR:
+            return EXCEPTION_TARGET_FLAG_APPLAYER_ERROR;
+        default:
+            return 0;
+    }
+
+    return 0;
+}
+
+const char *ExceptionPolicyTargetFlagToString(uint8_t target_flag)
+{
+    switch (target_flag) {
+        case EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP:
+            return "defrag_memcap";
+        case EXCEPTION_TARGET_FLAG_SESSION_MEMCAP:
+            return "stream_memcap";
+        case EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP:
+            return "stream_reassembly_memcap";
+        case EXCEPTION_TARGET_FLAG_FLOW_MEMCAP:
+            return "flow_memcap";
+        case EXCEPTION_TARGET_FLAG_MIDSTREAM:
+            return "stream_midstream";
+        case EXCEPTION_TARGET_FLAG_APPLAYER_ERROR:
+            return "app_layer_error";
+        default:
+            return "none";
+    }
+    return "none";
+}
+
+enum ExceptionPolicy ExceptionPolicyTargetPolicy(uint8_t target_flag)
+{
+    switch (target_flag) {
+        case EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP:
+            return DefragGetMemcapExceptionPolicy();
+        case EXCEPTION_TARGET_FLAG_SESSION_MEMCAP:
+            return StreamTcpSsnMemcapGetExceptionPolicy();
+        case EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP:
+            return StreamTcpReassemblyMemcapGetExceptionPolicy();
+        case EXCEPTION_TARGET_FLAG_FLOW_MEMCAP:
+            return FlowGetMemcapExceptionPolicy();
+        case EXCEPTION_TARGET_FLAG_MIDSTREAM:
+            return StreamMidstreamGetExceptionPolicy();
+        case EXCEPTION_TARGET_FLAG_APPLAYER_ERROR:
+            return AppLayerErrorGetExceptionPolicy();
+        default:
+            return EXCEPTION_POLICY_NOT_SET;
+    }
+    return EXCEPTION_POLICY_NOT_SET;
+}
+
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {
     SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", p->pcap_cnt, policy);
+    if (p->flow) {
+        p->flow->applied_exception_policy |= ExceptionPolicyFlag(drop_reason);
+    }
     switch (policy) {
         case EXCEPTION_POLICY_AUTO:
             break;
