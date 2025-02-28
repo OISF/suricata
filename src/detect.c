@@ -83,9 +83,9 @@ static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
 static inline void DetectRunPrefilterPkt(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
         DetectRunScratchpad *scratch);
-static inline void DetectRulePacketRules(ThreadVars * const tv,
-        DetectEngineCtx * const de_ctx, DetectEngineThreadCtx * const det_ctx,
-        Packet * const p, Flow * const pflow, const DetectRunScratchpad *scratch);
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
+        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
+        const DetectRunScratchpad *scratch);
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
@@ -138,8 +138,18 @@ static void DetectRun(ThreadVars *th_v,
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the rules against the packet */
-    DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+    const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+
+    /* TODO should this be limited to FW rules?
+     * Only FW rules will already have set the action, IDS rules go through PacketAlertFinalize
+     *
+     * If rules told us to drop or pass, we skip
+     *
+     * TODO what about app state progression, cleanup and such? */
+    if (pkt_policy & (ACTION_DROP | ACTION_PASS)) {
+        goto end;
+    }
 
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
@@ -586,15 +596,13 @@ static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
     return false;
 }
 
-static inline void DetectRulePacketRules(
-    ThreadVars * const tv,
-    DetectEngineCtx * const de_ctx,
-    DetectEngineThreadCtx * const det_ctx,
-    Packet * const p,
-    Flow * const pflow,
-    const DetectRunScratchpad *scratch
-)
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
+        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
+        const DetectRunScratchpad *scratch)
 {
+    uint8_t action = 0;
+    bool fw_pass = false;
+    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
     const Signature *next_s = NULL;
 
     /* inspect the sigs against the packet */
@@ -701,12 +709,34 @@ static inline void DetectRulePacketRules(
             }
         }
         AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
+
+        // TODO this can move into a per FW rule post-Match func
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            if (s->action & (ACTION_APPFW | ACTION_PASS)) {
+                DetectVarProcessList(det_ctx, pflow, p);
+                DetectReplaceFree(det_ctx);
+                RULE_PROFILING_END(det_ctx, s, smatch, p);
+                fw_pass = true;
+
+                action |= s->action;
+                break;
+            } else {
+                // TODO check for last firewall rule, then issue drop
+            }
+        }
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
         continue;
     }
+    /* if no rule told us to pass, and no rule explicitly dropped, we invoke the default drop policy
+     */
+    if (have_fw_rules && !fw_pass && (action & ACTION_DROP) == 0) {
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+        action |= ACTION_DROP;
+    }
+    return action;
 }
 
 static DetectRunScratchpad DetectRunSetup(
@@ -1320,6 +1350,9 @@ static void DetectRunTx(ThreadVars *tv,
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state = { 0 };
 
+    bool fw_pass = false;
+    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
         if (ires.tx_ptr == NULL)
@@ -1487,6 +1520,14 @@ static void DetectRunTx(ThreadVars *tv,
                 const uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+                if (s->flags & SIG_FLAG_FIREWALL) {
+                    if (s->action & (ACTION_APPFW | ACTION_PASS)) {
+                        DetectVarProcessList(det_ctx, p->flow, p);
+                        RULE_PROFILING_END(det_ctx, s, r, p);
+                        fw_pass = true;
+                        break;
+                    }
+                }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
@@ -1531,6 +1572,11 @@ static void DetectRunTx(ThreadVars *tv,
     next:
         if (!ires.has_next)
             break;
+    }
+    // TODO skip this if a rule issued an explicit drop
+    if (have_fw_rules && !fw_pass) {
+        // TODO argument can be made that this should be a flow drop
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
     }
 }
 
