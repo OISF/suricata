@@ -374,11 +374,6 @@ typedef struct Flow_
             uint8_t code;   /**< icmp code */
         } icmp_d;
     };
-    uint8_t proto;
-    uint8_t recursion_level;
-    uint16_t vlan_id[VLAN_MAX_LAYERS];
-
-    uint8_t vlan_idx;
 
     /* track toserver/toclient flow timeout needs */
     union {
@@ -389,12 +384,32 @@ typedef struct Flow_
         uint8_t ffr;
     };
 
+    uint8_t flow_end_flags;
+    /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
+
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id[2];
 
+    /** detection engine ctx version used to inspect this flow. Set at initial
+     *  inspection. If it doesn't match the currently in use de_ctx, the
+     *  stored sgh ptrs are reset. */
+    uint32_t de_ctx_version;
+
     struct Flow_ *next; /* (hash) list next */
+
+#ifdef FLOWLOCK_RWLOCK
+    SCRWLock r;
+#elif defined FLOWLOCK_MUTEX
+    SCMutex m;
+#else
+#error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
+#endif
+
     /** Incoming interface */
     struct LiveDevice_ *livedev;
+
+    /** protocol specific data pointer, e.g. for TcpSession */
+    void *protoctx;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
@@ -403,48 +418,43 @@ typedef struct Flow_
      * Ignored in emergency mode. */
     uint32_t timeout_policy;
 
+    SCTime_t startts;
+
     /* time stamp of last update (last packet). Set/updated under the
      * flow and flow hash row locks, safe to read under either the
      * flow lock or flow hash row lock. */
     SCTime_t lastts;
 
-    FlowStateType flow_state;
+    /* Parent flow id for protocol like ftp */
+    int64_t parent_id;
 
-    /** flow tenant id, used to setup flow timeout and stream pseudo
-     *  packets with the correct tenant id set */
-    uint32_t tenant_id;
+    /** which exception policies were applied, if any */
+    ExceptionTargets applied_exception_policy;
 
-    uint32_t probing_parser_toserver_alproto_masks;
-    uint32_t probing_parser_toclient_alproto_masks;
-
-    uint32_t flags;         /**< generic flags */
-
-    uint16_t file_flags;    /**< file tracking/extraction flags */
+    uint8_t proto;
+    uint8_t recursion_level;
+    uint8_t vlan_idx;
+    uint16_t vlan_id[VLAN_MAX_LAYERS];
 
     /** destination port to be used in protocol detection. This is meant
      *  for use with STARTTLS and HTTP CONNECT detection */
     uint16_t protodetect_dp; /**< 0 if not used */
 
-    /* Parent flow id for protocol like ftp */
-    int64_t parent_id;
-
-#ifdef FLOWLOCK_RWLOCK
-    SCRWLock r;
-#elif defined FLOWLOCK_MUTEX
-    SCMutex m;
-#else
-    #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
-#endif
-
-    /** protocol specific data pointer, e.g. for TcpSession */
-    void *protoctx;
-
     /** mapping to Flow's protocol specific protocols for timeouts
         and state and free functions. */
     uint8_t protomap;
 
-    uint8_t flow_end_flags;
-    /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
+    /** ttl tracking */
+    uint8_t min_ttl_toserver;
+    uint8_t max_ttl_toserver;
+    uint8_t min_ttl_toclient;
+    uint8_t max_ttl_toclient;
+
+    /** flow tenant id, used to setup flow timeout and stream pseudo
+     *  packets with the correct tenant id set */
+    uint32_t tenant_id;
+
+    FlowStateType flow_state;
 
     AppProto alproto; /**< \brief application level protocol */
     AppProto alproto_ts;
@@ -456,17 +466,6 @@ typedef struct Flow_
     /** expected app protocol: used in protocol change/upgrade like in
      *  STARTTLS. */
     AppProto alproto_expect;
-
-    /** detection engine ctx version used to inspect this flow. Set at initial
-     *  inspection. If it doesn't match the currently in use de_ctx, the
-     *  stored sgh ptrs are reset. */
-    uint32_t de_ctx_version;
-
-    /** ttl tracking */
-    uint8_t min_ttl_toserver;
-    uint8_t max_ttl_toserver;
-    uint8_t min_ttl_toclient;
-    uint8_t max_ttl_toclient;
 
     /** application level storage ptrs.
      *
@@ -486,15 +485,17 @@ typedef struct Flow_
 
     struct FlowBucket_ *fb;
 
-    SCTime_t startts;
-
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
 
-    /** which exception policies were applied, if any */
-    ExceptionTargets applied_exception_policy;
+    uint32_t probing_parser_toserver_alproto_masks;
+    uint32_t probing_parser_toclient_alproto_masks;
+
+    uint32_t flags; /**< generic flags */
+
+    uint16_t file_flags; /**< file tracking/extraction flags */
 
     Storage storage[];
 } Flow;
