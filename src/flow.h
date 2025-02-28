@@ -55,7 +55,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toclient direction will act on updated app-layer state */
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
-// vacancy bit 3
+/** All packets in this flow should be accepted */
+#define FLOW_ACTION_ACCEPT BIT_U32(3)
 
 // vacancy bit 4
 

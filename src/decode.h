@@ -375,8 +375,10 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,    /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET, /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_NFQ_ERROR,             /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_INNER_PACKET,          /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
+    PKT_DROP_REASON_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
     PKT_DROP_REASON_MAX,
 };
 

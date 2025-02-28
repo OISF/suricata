@@ -1933,7 +1933,8 @@
                     "type": "string"
                 },
                 "exception_policy": {
-                    "description": "The exception policy(ies) triggered by the flow. Not logged if none was triggered",
+                    "description":
+                            "The exception policy(ies) triggered by the flow. Not logged if none was triggered",
                     "type": "array",
                     "properties": {
                         "target": {
@@ -5291,6 +5292,16 @@
                                 "tunnel_packet_drop": {
                                     "description":
                                             "Number of packets dropped due to inner tunnel packet being dropped",
+                                    "type": "integer"
+                                },
+                                "default_packet_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default packet policy",
+                                    "type": "integer"
+                                },
+                                "default_app_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default app policy",
                                     "type": "integer"
                                 }
                             },

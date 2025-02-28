@@ -774,52 +774,76 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         return;
     }
 
-    SCSigSignatureWrapper *sigw = NULL;
-    SCSigSignatureWrapper *sigw_list = NULL;
-    SCSigSignatureWrapper *fw_sigw_list = NULL;
-#ifdef DEBUG
-    int i = 0;
-#endif
     SCLogDebug("ordering signatures in memory");
+    SCSigSignatureWrapper *sigw = NULL;
+#if 0
+    SCSigSignatureWrapper *pt_sigw_list = NULL; /* hook: packet_td */
+    SCSigSignatureWrapper *at_sigw_list = NULL; /* hook: app_td */
+#endif
+    SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
+
+    SCSigSignatureWrapper *fw_pf_sigw_list = NULL; /* hook: packet_filter */
+    SCSigSignatureWrapper *fw_af_sigw_list = NULL; /* hook: app_filter */
 
     Signature *sig = de_ctx->sig_list;
     while (sig != NULL) {
         sigw = SCSigAllocSignatureWrapper(sig);
+        /* Push signature wrapper onto a list, order doesn't matter here. */
         if (sig->init_data->firewall_rule) {
-            /* Push signature wrapper onto a list, order doesn't matter here. */
-            sigw->next = fw_sigw_list;
-            fw_sigw_list = sigw;
+            if (sig->type == SIG_TYPE_PKT) {
+                sigw->next = fw_pf_sigw_list;
+                fw_pf_sigw_list = sigw;
+            } else {
+                // TODO review types.
+                sigw->next = fw_af_sigw_list;
+                fw_af_sigw_list = sigw;
+            }
         } else {
-            /* Push signature wrapper onto a list, order doesn't matter here. */
-            sigw->next = sigw_list;
-            sigw_list = sigw;
+            sigw->next = td_sigw_list;
+            td_sigw_list = sigw;
+#if 0
+            if (sig->type == SIG_TYPE_APP_TX || sig->type == SIG_TYPE_APPLAYER) {
+                sigw->next = at_sigw_list;
+                at_sigw_list = sigw;
+            } else {
+                sigw->next = pt_sigw_list;
+                pt_sigw_list = sigw;
+            }
+#endif
         }
         sig = sig->next;
-#ifdef DEBUG
-        i++;
-#endif
     }
 
     /* despite having Append in the name, the new Sig/Rule funcs actually prepend with some special
      * logic around bidir sigs. So to respect the firewall rule order, we sort this part of the list
      * by the add order. */
-    if (fw_sigw_list) {
+    if (fw_pf_sigw_list) {
         SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
-        fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
+        fw_pf_sigw_list = SCSigOrder(fw_pf_sigw_list, &OrderFn);
     }
-    if (sigw_list) {
+    if (fw_af_sigw_list) {
+        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
+        fw_af_sigw_list = SCSigOrder(fw_af_sigw_list, &OrderFn);
+    }
+    if (td_sigw_list) {
         /* Sort the list */
-        sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
+        td_sigw_list = SCSigOrder(td_sigw_list, de_ctx->sc_sig_order_funcs);
     }
-
-    SCLogDebug("Total Signatures to be processed by the"
-           "sigordering module: %d", i);
-
+#if 0
+    if (pt_sigw_list) {
+        /* Sort the list */
+        pt_sigw_list = SCSigOrder(pt_sigw_list, de_ctx->sc_sig_order_funcs);
+    }
+    if (at_sigw_list) {
+        /* Sort the list */
+        at_sigw_list = SCSigOrder(at_sigw_list, de_ctx->sc_sig_order_funcs);
+    }
+#endif
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
 
-    /* firewall list */
-    for (sigw = fw_sigw_list; sigw != NULL;) {
+    /* firewall list for hook packet_filter */
+    for (sigw = fw_pf_sigw_list; sigw != NULL;) {
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
@@ -834,15 +858,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
-
-    sigw = sigw_list;
-#ifdef DEBUG
-    i = 0;
-#endif
-    while (sigw != NULL) {
-#ifdef DEBUG
-        i++;
-#endif
+#if 0
+    /* threat detect list for hook packet_td */
+    for (sigw = pt_sigw_list; sigw != NULL;) {
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
@@ -852,12 +870,62 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
             sig->next = sigw->sig;
             sig = sig->next;
         }
+
         SCSigSignatureWrapper *sigw_to_free = sigw;
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
+#endif
+    /* firewall list for hook app_filter */
+    for (sigw = fw_af_sigw_list; sigw != NULL;) {
+        sigw->sig->next = NULL;
+        if (de_ctx->sig_list == NULL) {
+            /* First entry on the list */
+            de_ctx->sig_list = sigw->sig;
+            sig = de_ctx->sig_list;
+        } else {
+            sig->next = sigw->sig;
+            sig = sig->next;
+        }
 
-    SCLogDebug("total signatures reordered by the sigordering module: %d", i);
+        SCSigSignatureWrapper *sigw_to_free = sigw;
+        sigw = sigw->next;
+        SCFree(sigw_to_free);
+    }
+#if 0
+    /* threat detect list for hook app_td */
+    for (sigw = at_sigw_list; sigw != NULL;) {
+        sigw->sig->next = NULL;
+        if (de_ctx->sig_list == NULL) {
+            /* First entry on the list */
+            de_ctx->sig_list = sigw->sig;
+            sig = de_ctx->sig_list;
+        } else {
+            sig->next = sigw->sig;
+            sig = sig->next;
+        }
+
+        SCSigSignatureWrapper *sigw_to_free = sigw;
+        sigw = sigw->next;
+        SCFree(sigw_to_free);
+    }
+#endif
+    /* threat detect list for hook app_td */
+    for (sigw = td_sigw_list; sigw != NULL;) {
+        sigw->sig->next = NULL;
+        if (de_ctx->sig_list == NULL) {
+            /* First entry on the list */
+            de_ctx->sig_list = sigw->sig;
+            sig = de_ctx->sig_list;
+        } else {
+            sig->next = sigw->sig;
+            sig = sig->next;
+        }
+
+        SCSigSignatureWrapper *sigw_to_free = sigw;
+        sigw = sigw->next;
+        SCFree(sigw_to_free);
+    }
 }
 
 /**

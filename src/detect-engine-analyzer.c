@@ -1041,6 +1041,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->action & ACTION_PASS) {
         jb_append_string(ctx.js, "pass");
     }
+    if (s->action & ACTION_ACCEPT) {
+        jb_append_string(ctx.js, "accept");
+    }
     jb_close(ctx.js);
 
     if (s->action_scope == ACTION_SCOPE_AUTO) {
@@ -1064,6 +1067,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 break;
             case ACTION_SCOPE_FLOW:
                 jb_set_string(ctx.js, "scope", "flow");
+                break;
+            case ACTION_SCOPE_HOOK:
+                jb_set_string(ctx.js, "scope", "hook");
                 break;
             case ACTION_SCOPE_AUTO: /* should be unreachable */
                 break;
