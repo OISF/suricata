@@ -59,6 +59,8 @@ It is possible to disable this default, by setting the exception policies'
 **In IDS mode**, setting ``auto`` mode actually means disabling the
 ``master-switch``, or ignoring the exception policies.
 
+.. _eps_settings:
+
 Specific settings
 ~~~~~~~~~~~~~~~~~
 
@@ -210,10 +212,59 @@ Notes:
    * Not valid means that Suricata will error out and won't start.
    * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender of the matching packet.
 
+.. _eps_output:
+
+Log Output
+----------
+
+.. _eps_flow_event:
+
+Flow Event
+~~~~~~~~~~
+
+When an Exception Policy is triggered, this will be indicated in the flow log
+event for the associated flow, also indicating which target triggered that, and
+what policy was applied. If no exception policy is triggered, that field won't
+be present in the logs.
+
+Note that this is true even if the policy is applied only to certain packets from
+a flow.
+
+In the log sample below, the flow triggered the ``midstream policy``, leading
+to Suricata applying the behavior that had been configured for such scenario:
+*to pass the flow* (``pass_flow``). It also did trigger the ``app_layer_error``
+exception policy, but that is set up to ``ignore``::
+
+  "flow": {
+    "pkts_toserver": 4,
+    "pkts_toclient": 5,
+    "bytes_toserver": 495,
+    "bytes_toclient": 351,
+    "start": "2016-07-13T22:42:07.199672+0000",
+    "end": "2016-07-13T22:42:07.573174+0000",
+    "age": 0,
+    "state": "new",
+    "reason": "shutdown",
+    "alerted": false,
+    "action": "pass",
+    "exception_policy": {
+        "triggered": [
+          {
+            "target": "stream_midstream",
+            "policy": "pass_flow"
+          },
+          {
+            "target": "app_layer_error",
+            "policy": "ignore"
+          }
+        ]
+     }
+  }
+
 .. _eps_stats:
 
 Available Stats
----------------
+~~~~~~~~~~~~~~~
 
 There are stats counters for each supported exception policy scenario:
 

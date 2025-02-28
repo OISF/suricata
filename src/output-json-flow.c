@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,6 +50,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
+#include "util-exception-policy.h"
 
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
@@ -279,6 +280,29 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
         JB_SET_STRING(jb, "action", "drop");
     } else if (f->flags & FLOW_ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
+    }
+    if (f->flags & FLOW_TRIGGERED_EXCEPTION_POLICY) {
+        jb_open_object(jb, "exception_policy");
+        jb_open_array(jb, "triggered");
+        for (uint8_t i = 0; i < EXCEPTION_POLICY_TARGETS_MAX; i++) {
+            if (f->applied_exception_policy.eps_targets[i]) {
+                SCLogNotice("logging exception policy");
+                JsonBuilder *jb_policy = jb_new_object();
+                if (jb_policy != NULL) {
+                    jb_set_string(jb_policy, "target",
+                            ExceptionPolicyTargetFlagToString((enum ExceptionPolicyTargets)i));
+                    jb_set_string(jb_policy, "policy",
+                            ExceptionPolicyEnumToString(
+                                    ExceptionPolicyTargetPolicy((enum ExceptionPolicyTargets)i),
+                                    true));
+                }
+                jb_close(jb_policy);
+                jb_append_object(jb, jb_policy);
+                jb_free(jb_policy);
+            }
+        }
+        jb_close(jb); /* close array */
+        jb_close(jb); /* close object */
     }
 
     /* Close flow. */

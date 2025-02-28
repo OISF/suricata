@@ -1932,6 +1932,25 @@
                 "end": {
                     "type": "string"
                 },
+                "exception_policy": {
+                    "description": "The exception policy(ies) triggered by the flow. Not logged if none was triggered",
+                    "type": "object",
+                    "properties": {
+                        "triggered": {
+                            "type": "array",
+                            "properties": {
+                                "target": {
+                                    "description": "What triggered the exception",
+                                    "type": "string"
+                                },
+                                "policy": {
+                                    "description": "Which exception policy was applied",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
                 "pkts_toclient": {
                     "type": "integer"
                 },

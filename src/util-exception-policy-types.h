@@ -40,6 +40,24 @@ enum ExceptionPolicy {
  * "tcp.reassembly_exception_policy.drop_packet" + 1 */
 #define EXCEPTION_POLICY_COUNTER_MAX_LEN 45
 
+/** Possible scenario/ config settings for exception policies */
+enum ExceptionPolicyTargets {
+    EXCEPTION_TARGET_NONE = 0,
+    EXCEPTION_TARGET_DEFRAG_MEMCAP,
+    EXCEPTION_TARGET_SESSION_MEMCAP,
+    EXCEPTION_TARGET_REASSEMBLY_MEMCAP,
+    EXCEPTION_TARGET_FLOW_MEMCAP,
+    EXCEPTION_TARGET_MIDSTREAM,
+    EXCEPTION_TARGET_APPLAYER_ERROR,
+};
+
+#define EXCEPTION_POLICY_TARGETS_MAX (EXCEPTION_TARGET_APPLAYER_ERROR + 1)
+
+typedef struct ExceptionTargets_ {
+    /* Follows enum order */
+    bool eps_targets[EXCEPTION_POLICY_TARGETS_MAX];
+} ExceptionTargets;
+
 typedef struct ExceptionPolicyCounters_ {
     /* Follows enum order */
     uint16_t eps_id[EXCEPTION_POLICY_MAX];

@@ -1669,6 +1669,12 @@ Fields
 * "state": display state of the flow (include "new", "established", "closed", "bypassed")
 * "reason": mechanism that did trigger the end of the flow (include "timeout", "forced" and "shutdown")
 * "alerted": "true" or "false" depending if an alert has been seen on flow
+* "action": "pass" or "drop" depending if flow was PASS'ed or DROP'ed (no present if none)
+* "exception_policy.triggered.target": if an exception policy was triggered,
+  what setting exceptions led to this (cf. :ref:`Exception Policy - Specific
+  Settings<eps_settings>`).
+* "exception_policy.triggered.policy": if an exception policy was triggered,
+  what policy was applied (to the flow or to any packet(s) from it)
 
 Example ::
 
@@ -1689,7 +1695,16 @@ Example ::
     "bypass": "capture",
     "state": "bypassed",
     "reason": "timeout",
-    "alerted": false
+    "alerted": false,
+    "action": "pass",
+    "exception_policy": {
+      "triggered": [
+        {
+          "target": "stream_midstream",
+          "policy": "pass_flow"
+        }
+      ]
+    }
   }
 
 Event type: RDP
