@@ -104,7 +104,7 @@ outputs:
       # Specify the amount of buffering, in bytes, for
       # this output type. The default value 0 means "no
       # buffering".
-      buffer-size: 0
+      #buffer-size: 0
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
