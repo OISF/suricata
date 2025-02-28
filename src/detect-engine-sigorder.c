@@ -784,8 +784,6 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     Signature *sig = de_ctx->sig_list;
     while (sig != NULL) {
-        SCLogNotice("sig %u", sig->id);
-
         sigw = SCSigAllocSignatureWrapper(sig);
         if (sig->init_data->firewall_rule) {
             /* Push signature wrapper onto a list, order doesn't matter here. */
@@ -802,6 +800,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 #endif
     }
 
+    /* despite having Append in the name, the new Sig/Rule funcs actually prepend with some special
+     * logic around bidir sigs. So to respect the firewall rule order, we sort this part of the list
+     * by the add order. */
     SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
     fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
 
