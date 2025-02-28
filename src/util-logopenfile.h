@@ -172,7 +172,7 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_ROTATE_INTERVAL 0x04
 
 /* Default EVE output buffering size */
-#define LOGFILE_EVE_BUFFER_SIZE (8 * 1024)
+#define LOGFILE_EVE_BUFFER_SIZE 0
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
