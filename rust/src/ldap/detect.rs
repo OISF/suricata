@@ -362,15 +362,15 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
     let response = &tx.responses[local_id as usize];
     // We expect every response in one tx to be the same protocol_op
     let str_buffer: &str = match &response.protocol_op {
-        ProtocolOp::SearchResultEntry(req) => req.object_name.0.as_str(),
-        ProtocolOp::BindResponse(req) => req.result.matched_dn.0.as_str(),
-        ProtocolOp::SearchResultDone(req) => req.matched_dn.0.as_str(),
-        ProtocolOp::ModifyResponse(req) => req.result.matched_dn.0.as_str(),
-        ProtocolOp::AddResponse(req) => req.matched_dn.0.as_str(),
-        ProtocolOp::DelResponse(req) => req.matched_dn.0.as_str(),
-        ProtocolOp::ModDnResponse(req) => req.matched_dn.0.as_str(),
-        ProtocolOp::CompareResponse(req) => req.matched_dn.0.as_str(),
-        ProtocolOp::ExtendedResponse(req) => req.result.matched_dn.0.as_str(),
+        ProtocolOp::SearchResultEntry(resp) => resp.object_name.0.as_str(),
+        ProtocolOp::BindResponse(resp) => resp.result.matched_dn.0.as_str(),
+        ProtocolOp::SearchResultDone(resp) => resp.matched_dn.0.as_str(),
+        ProtocolOp::ModifyResponse(resp) => resp.result.matched_dn.0.as_str(),
+        ProtocolOp::AddResponse(resp) => resp.matched_dn.0.as_str(),
+        ProtocolOp::DelResponse(resp) => resp.matched_dn.0.as_str(),
+        ProtocolOp::ModDnResponse(resp) => resp.matched_dn.0.as_str(),
+        ProtocolOp::CompareResponse(resp) => resp.matched_dn.0.as_str(),
+        ProtocolOp::ExtendedResponse(resp) => resp.result.matched_dn.0.as_str(),
         _ => return false,
     };
 
