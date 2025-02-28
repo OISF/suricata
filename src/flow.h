@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -466,6 +466,9 @@ typedef struct Flow_
     uint8_t max_ttl_toserver;
     uint8_t min_ttl_toclient;
     uint8_t max_ttl_toclient;
+
+    /** which exception policies were applied, if any */
+    uint8_t applied_exception_policy;
 
     /** application level storage ptrs.
      *
