@@ -173,18 +173,19 @@ Comparison is case-sensitive.
 
 Syntax::
 
- ldap.request.dn; content:dc=example,dc=com;
+ ldap.request.dn; content:"<content to match against>";
 
 ``ldap.request.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
 This keyword maps to the EVE fields:
-``ldap.request.bind_request.name``
-``ldap.request.add_request.entry``
-``ldap.request.search_request.base_object``
-``ldap.request.modify_request.object``
-``ldap.request.del_request.dn``
-``ldap.request.mod_dn_request.entry``
-``ldap.request.compare_request.entry``
+
+   - ``ldap.request.bind_request.name``
+   - ``ldap.request.add_request.entry``
+   - ``ldap.request.search_request.base_object``
+   - ``ldap.request.modify_request.object``
+   - ``ldap.request.del_request.dn``
+   - ``ldap.request.mod_dn_request.entry``
+   - ``ldap.request.compare_request.entry``
 
 Example
 ^^^^^^^
@@ -215,22 +216,23 @@ Comparison is case-sensitive.
 
 Syntax::
 
- ldap.responses.dn; content:dc=example,dc=com;
+ ldap.responses.dn; content:"<content to match against>";
 
 ``ldap.responses.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
 ``ldap.responses.dn`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 This keyword maps to the EVE fields:
-``ldap.responses[].search_result_entry.base_object``
-``ldap.responses[].bind_response.matched_dn``
-``ldap.responses[].search_result_done.matched_dn``
-``ldap.responses[].modify_response.matched_dn``
-``ldap.responses[].add_response.matched_dn``
-``ldap.responses[].del_response.matched_dn``
-``ldap.responses[].mod_dn_response.matched_dn``
-``ldap.responses[].compare_response.matched_dn``
-``ldap.responses[].extended_response.matched_dn``
+
+   - ``ldap.responses[].search_result_entry.base_object``
+   - ``ldap.responses[].bind_response.matched_dn``
+   - ``ldap.responses[].search_result_done.matched_dn``
+   - ``ldap.responses[].modify_response.matched_dn``
+   - ``ldap.responses[].add_response.matched_dn``
+   - ``ldap.responses[].del_response.matched_dn``
+   - ``ldap.responses[].mod_dn_response.matched_dn``
+   - ``ldap.responses[].compare_response.matched_dn``
+   - ``ldap.responses[].extended_response.matched_dn``
 
 Example
 ^^^^^^^
