@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -894,6 +894,21 @@ static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
+}
+
+enum ExceptionPolicy StreamTcpSsnMemcapGetExceptionPolicy(void)
+{
+    return stream_config.ssn_memcap_policy;
+}
+
+enum ExceptionPolicy StreamTcpReassemblyMemcapGetExceptionPolicy(void)
+{
+    return stream_config.reassembly_memcap_policy;
+}
+
+enum ExceptionPolicy StreamMidstreamGetExceptionPolicy(void)
+{
+    return stream_config.midstream_policy;
 }
 
 /** \internal

@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2024-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,6 +39,14 @@ enum ExceptionPolicy {
  * + exception policy type. E.g.:
  * "tcp.reassembly_exception_policy.drop_packet" + 1 */
 #define EXCEPTION_POLICY_COUNTER_MAX_LEN 45
+
+/** Flags for possible scenario/ config settings for exception policies */
+#define EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP     BIT_U16(0)
+#define EXCEPTION_TARGET_FLAG_SESSION_MEMCAP    BIT_U16(1)
+#define EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP BIT_U16(2)
+#define EXCEPTION_TARGET_FLAG_FLOW_MEMCAP       BIT_U16(3)
+#define EXCEPTION_TARGET_FLAG_MIDSTREAM         BIT_U16(4)
+#define EXCEPTION_TARGET_FLAG_APPLAYER_ERROR    BIT_U16(5)
 
 typedef struct ExceptionPolicyCounters_ {
     /* Follows enum order */

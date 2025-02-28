@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,6 +50,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
+#include "util-exception-policy.h"
 
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
@@ -214,6 +215,65 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     jb_set_string(js, "start", timebuf1);
 }
 
+static void EveExceptionPolicyLog(JsonBuilder *js, uint16_t flag)
+{
+    if (flag & EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_SESSION_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_SESSION_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_SESSION_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP),
+                        true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_FLOW_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(
+                js, "target", ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_FLOW_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_FLOW_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_MIDSTREAM) {
+        jb_start_object(js);
+        jb_set_string(
+                js, "target", ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_MIDSTREAM));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_MIDSTREAM), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_APPLAYER_ERROR) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_APPLAYER_ERROR));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_APPLAYER_ERROR), true));
+        jb_close(js);
+    }
+}
+
 /* Eve format logging */
 static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 {
@@ -279,6 +339,11 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
         JB_SET_STRING(jb, "action", "drop");
     } else if (f->flags & FLOW_ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
+    }
+    if (f->flags & FLOW_TRIGGERED_EXCEPTION_POLICY) {
+        jb_open_array(jb, "exception_policy");
+        EveExceptionPolicyLog(jb, f->applied_exception_policy);
+        jb_close(jb); /* close array */
     }
 
     /* Close flow. */
