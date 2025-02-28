@@ -208,6 +208,8 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             // nothing to set in the packet
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
+        } else if (pa->action & (ACTION_ACCEPT)) {
+            DEBUG_VALIDATE_BUG_ON((p->action & ACTION_ACCEPT) == 0); // should be unreachable
         } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
@@ -373,6 +375,7 @@ static inline void PacketAlertFinalizeProcessQueue(
                 AlertQueueSortHelper);
     }
 
+    bool dropped = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = de_ctx->sig_array[pa->num];
@@ -404,8 +407,12 @@ static inline void PacketAlertFinalizeProcessQueue(
             PacketApplySignatureActions(p, s, pa);
         }
 
-        /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+        /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */
+        if ((s->flags & SIG_FLAG_FIREWALL) && dropped) {
+            p->alerts.discarded++;
+
+            /* Thresholding removes this alert */
+        } else if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
             SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
                     s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
@@ -425,6 +432,11 @@ static inline void PacketAlertFinalizeProcessQueue(
             if (pa->action & ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
                 break;
+            }
+
+            // TODO we can also drop if alert is suppressed, right?
+            if (s->action & ACTION_DROP) {
+                dropped = true;
             }
         } else {
             p->alerts.discarded++;
