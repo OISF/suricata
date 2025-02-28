@@ -807,9 +807,10 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
         fw_sigw_list = SCSigOrder(fw_sigw_list, &OrderFn);
     }
-
-    /* Sort the list */
-    sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
+    if (sigw_list) {
+        /* Sort the list */
+        sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
+    }
 
     SCLogDebug("Total Signatures to be processed by the"
            "sigordering module: %d", i);
