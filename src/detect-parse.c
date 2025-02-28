@@ -1474,6 +1474,8 @@ static uint8_t ActionStringToFlags(const char *action)
         return ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "config") == 0) {
         return ACTION_CONFIG;
+    } else if (strcasecmp(action, "accept") == 0) {
+        return ACTION_ACCEPT;
     } else {
         SCLogError("An invalid action \"%s\" was given", action);
         return 0;
@@ -1529,6 +1531,20 @@ static int SigParseAction(Signature *s, const char *action_in)
                 return -1;
             }
             s->action_scope = scope_flags;
+        } else if (flags & (ACTION_ACCEPT)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else if (strcmp(o, "hook") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_HOOK;
+            } else if (strcmp(o, "flow") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
+            } else {
+                SCLogError("invalid action scope '%s' in action '%s': only 'packet', 'flow' and "
+                           "'hook' allowed",
+                        o, action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
         } else {
             SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
                        "'drop', 'pass' and 'reject'",
@@ -1540,6 +1556,16 @@ static int SigParseAction(Signature *s, const char *action_in)
     /* require explicit action scope for fw rules */
     if (s->init_data->firewall_rule && s->action_scope == 0) {
         SCLogError("firewall rules require setting an explicit action scope");
+        return -1;
+    }
+
+    if (!s->init_data->firewall_rule && (flags & ACTION_ACCEPT)) {
+        SCLogError("'accept' action only supported for firewall rules");
+        return -1;
+    }
+
+    if (s->init_data->firewall_rule && (flags & ACTION_PASS)) {
+        SCLogError("'pass' action not supported for firewall rules");
         return -1;
     }
 
@@ -2531,7 +2557,11 @@ static Signature *SigInitHelper(
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
-    sig->init_data->firewall_rule = firewall_rule;
+    if (firewall_rule) {
+        sig->init_data->firewall_rule = true;
+        sig->flags |= SIG_FLAG_FIREWALL;
+        de_ctx->flags |= DE_HAS_FIREWALL;
+    }
 
     sig->sig_str = SCStrdup(sigstr);
     if (unlikely(sig->sig_str == NULL)) {
