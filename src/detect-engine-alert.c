@@ -344,7 +344,7 @@ static inline void FlowApplySignatureActions(
 
         if (s->action_scope == ACTION_SCOPE_FLOW) {
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
-        } else {
+        } else if (s->action_scope == ACTION_SCOPE_AUTO) {
             enum SignaturePropertyFlowAction flow_action =
                     signature_properties[s->type].flow_action;
             if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
