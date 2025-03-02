@@ -73,6 +73,24 @@ int StringSet(void *dst, void *src)
     return 0;
 }
 
+int StringJsonSet(void *dst, void *src)
+{
+    StringType *src_s = src;
+    StringType *dst_s = dst;
+    SCLogDebug("dst %p src %p, src_s->ptr %p src_s->len %u", dst, src, src_s->ptr, src_s->len);
+
+    dst_s->len = src_s->len;
+    dst_s->ptr = SCMalloc(dst_s->len);
+    BUG_ON(dst_s->ptr == NULL);
+    memcpy(dst_s->ptr, src_s->ptr, dst_s->len);
+
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
+
+    SCLogDebug("dst %p src %p, dst_s->ptr %p dst_s->len %u", dst, src, dst_s->ptr, dst_s->len);
+    return 0;
+}
+
 bool StringCompare(void *a, void *b)
 {
     const StringType *as = a;
@@ -101,4 +119,19 @@ void StringFree(void *s)
 {
     StringType *str = s;
     SCFree(str->ptr);
+}
+
+void StringJsonFree(void *s)
+{
+    StringType *str = s;
+    SCFree(str->ptr);
+    if (str->json.value) {
+        SCFree(str->json.value);
+    }
+}
+
+uint32_t StringJsonGetLength(void *s)
+{
+    StringType *str = s;
+    return str->json.len + str->len;
 }
