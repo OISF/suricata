@@ -641,7 +641,6 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto match;
         }
         goto no_match_discontinue;
-
     } else if (smd->type == DETECT_URILEN) {
         SCLogDebug("inspecting uri len");
 

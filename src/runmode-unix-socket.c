@@ -55,6 +55,7 @@
 #include "conf-yaml-loader.h"
 
 #include "datasets.h"
+#include "datajson.h"
 #include "runmode-unix-socket.h"
 
 int unix_socket_mode_is_running = 0;
@@ -802,6 +803,74 @@ TmEcode UnixSocketDatasetLookup(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_OK;
     } else {
         json_object_set_new(answer, "message", json_string("item not found in set"));
+        return TM_ECODE_FAILED;
+    }
+}
+
+/**
+ * \brief Command to add data to a datajson
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketDatajsonAdd(json_t *cmd, json_t *answer, void *data)
+{
+    /* 1 get dataset name */
+    json_t *narg = json_object_get(cmd, "setname");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setname is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *set_name = json_string_value(narg);
+
+    /* 2 get the data type */
+    json_t *targ = json_object_get(cmd, "settype");
+    if (!json_is_string(targ)) {
+        json_object_set_new(answer, "message", json_string("settype is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *type = json_string_value(targ);
+
+    /* 3 get value */
+    json_t *varg = json_object_get(cmd, "datavalue");
+    if (!json_is_string(varg)) {
+        json_object_set_new(answer, "message", json_string("datavalue is not string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *value = json_string_value(varg);
+
+    /* 4 get json */
+    json_t *jarg = json_object_get(cmd, "datajson");
+    if (!json_is_string(varg)) {
+        json_object_set_new(answer, "message", json_string("datajson is not string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *json = json_string_value(jarg);
+
+    SCLogDebug("datajson-add: %s type %s value %s json %s", set_name, type, value, json);
+
+    enum DatasetTypes t = DatasetGetTypeFromString(type);
+    if (t == DATASET_TYPE_NOTSET) {
+        json_object_set_new(answer, "message", json_string("unknown settype"));
+        return TM_ECODE_FAILED;
+    }
+
+    Dataset *set = DatasetFind(set_name, t);
+    if (set == NULL) {
+        json_object_set_new(answer, "message", json_string("set not found or wrong type"));
+        return TM_ECODE_FAILED;
+    }
+
+    int r = DatajsonAddSerialized(set, value, json);
+    if (r == 1) {
+        json_object_set_new(answer, "message", json_string("data added"));
+        return TM_ECODE_OK;
+    } else if (r == 0) {
+        json_object_set_new(answer, "message", json_string("data already in set"));
+        return TM_ECODE_OK;
+    } else {
+        json_object_set_new(answer, "message", json_string("failed to add data"));
         return TM_ECODE_FAILED;
     }
 }

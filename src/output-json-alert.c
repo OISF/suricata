@@ -253,6 +253,15 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, JsonBuilder *js, ui
         AlertJsonMetadata(pa, js);
     }
 
+    if (pa->json_info.json_string != NULL) {
+        jb_open_object(js, "extra");
+        const struct JsonInfoList *json_info = &pa->json_info;
+        while (json_info) {
+            jb_set_formatted(js, json_info->json_string);
+            json_info = json_info->next;
+        }
+        jb_close(js);
+    }
     if (flags & LOG_JSON_RULE) {
         jb_set_string(js, "rule", pa->s->sig_str);
     }
