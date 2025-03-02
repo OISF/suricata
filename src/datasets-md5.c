@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "datasets.h"
+#include "datajson.h"
 #include "datasets-md5.h"
 #include "util-hash-lookup3.h"
 
@@ -36,6 +37,16 @@ int Md5StrSet(void *dst, void *src)
     Md5Type *dst_s = dst;
     memcpy(dst_s->md5, src_s->md5, sizeof(dst_s->md5));
     dst_s->rep = src_s->rep;
+    return 0;
+}
+
+int Md5StrJsonSet(void *dst, void *src)
+{
+    Md5Type *src_s = src;
+    Md5Type *dst_s = dst;
+    memcpy(dst_s->md5, src_s->md5, sizeof(dst_s->md5));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
     return 0;
 }
 
@@ -56,4 +67,18 @@ uint32_t Md5StrHash(uint32_t hash_seed, void *s)
 // data stays in hash
 void Md5StrFree(void *s)
 {
+}
+
+void Md5StrJsonFree(void *s)
+{
+    const Md5Type *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}
+
+uint32_t Md5StrJsonGetLength(void *s)
+{
+    const Md5Type *as = s;
+    return as->json.len;
 }
