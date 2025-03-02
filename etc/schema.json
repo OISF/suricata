@@ -2987,9 +2987,10 @@
                             "username": {
                                 "type": "string"
                             }
-                        }
-                    }
-                }
+                        },
+                        "additionalProperties": true
+                    },
+                },
             },
             "optional": true
         },
