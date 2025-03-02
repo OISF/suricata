@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -156,6 +156,46 @@ void DetectPcreRegister (void)
 #endif
 }
 
+static void DetectAlertStoreMatch(DetectEngineThreadCtx *det_ctx, const Signature *s, uint32_t idx,
+        uint8_t *str_ptr, uint16_t capture_len)
+{
+    /* We need the key */
+    const char *json_key = VarNameStoreLookupById(idx, VAR_TYPE_ALERT_VAR);
+
+    if (json_key == NULL) {
+        SCFree(str_ptr);
+        return;
+    }
+
+    SCLogDebug("json key: %s", json_key);
+    /* Setup the data*/
+    if ((det_ctx->json_content_len < SIG_JSON_CONTENT_ARRAY_LEN) &&
+            (capture_len + strlen(json_key) + 5 < SIG_JSON_CONTENT_ITEM_LEN)) {
+        JsonBuilder *js = jb_new_object();
+        if (unlikely(js == NULL)) {
+            SCFree(str_ptr);
+            return;
+        }
+        jb_set_string_from_bytes(js, json_key, str_ptr, capture_len);
+        uint32_t js_len = jb_len(js);
+        if (js_len > SIG_JSON_CONTENT_ITEM_LEN) {
+            SCLogDebug("Captured length is too long for JSON.");
+            SCFree(str_ptr);
+            return;
+        }
+        /* Copy js but skip the starting curly bracket to just get the inner data */
+        memcpy(det_ctx->json_content[det_ctx->json_content_len].json_content, jb_ptr(js) + 1,
+                js_len - 1);
+        /* end the string as we have used memcpy */
+        det_ctx->json_content[det_ctx->json_content_len].json_content[js_len - 1] = 0;
+        det_ctx->json_content[det_ctx->json_content_len].id = (void *)s;
+        det_ctx->json_content_len++;
+        jb_free(js);
+    }
+
+    SCFree(str_ptr);
+}
+
 /**
  * \brief Match a regex on a single payload.
  *
@@ -280,6 +320,11 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                     } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
                         (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
                                 (uint16_t)capture_len, DETECT_VAR_TYPE_FLOW_POSTMATCH);
+
+                    } else if (pe->captypes[x] == VAR_TYPE_ALERT_VAR) {
+                        (void)DetectAlertStoreMatch(det_ctx, s, pe->capids[x], (uint8_t *)str_ptr,
+                                (uint16_t)capture_len);
+
                     } else {
                         BUG_ON(1); // Impossible captype
                         SCFree(str_ptr);
@@ -363,20 +408,32 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     int cut_capture = 0;
     char *fcap = strstr(regexstr, "flow:");
     char *pcap = strstr(regexstr, "pkt:");
+    char *acap = strstr(regexstr, "alert:");
     /* take the size of the whole input as buffer size for the regex we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
     size_t slen = strlen(regexstr) + 1;
-    if (fcap || pcap) {
+    if (fcap || pcap || acap) {
         SCLogDebug("regexstr %s", regexstr);
 
-        if (fcap && !pcap)
+        bool a_set = false;
+        cut_capture = 0;
+        if (fcap) {
+            a_set = true;
             cut_capture = fcap - regexstr;
-        else if (pcap && !fcap)
-            cut_capture = pcap - regexstr;
-        else {
-            BUG_ON(pcap == NULL); // added to assist cppcheck
-            BUG_ON(fcap == NULL);
-            cut_capture = MIN((pcap - regexstr), (fcap - regexstr));
+        }
+        if (pcap) {
+            if (a_set)
+                cut_capture = MIN(cut_capture, (pcap - regexstr));
+            else {
+                cut_capture = pcap - regexstr;
+                a_set = true;
+            }
+        }
+        if (acap) {
+            if (a_set)
+                cut_capture = MIN(cut_capture, (acap - regexstr));
+            else
+                cut_capture = acap - regexstr;
         }
 
         SCLogDebug("cut_capture %d", cut_capture);
@@ -761,6 +818,12 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
                 SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
                 pd->idx++;
 
+            } else if (strncmp(name_array[name_idx], "alert:", 6) == 0) {
+                pd->capids[pd->idx] =
+                        VarNameStoreRegister(name_array[name_idx] + 6, VAR_TYPE_ALERT_VAR);
+                pd->captypes[pd->idx] = VAR_TYPE_ALERT_VAR;
+                pd->idx++;
+
             } else {
                 SCLogError(" pkt/flow "
                            "var capture names must start with 'pkt:' or 'flow:'");
@@ -825,6 +888,10 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         } else if (strcmp(type_str, "flow") == 0) {
             pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_FLOW_VAR);
             pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
+            pd->idx++;
+        } else if (strcmp(type_str, "alert") == 0) {
+            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_ALERT_VAR);
+            pd->captypes[pd->idx] = VAR_TYPE_ALERT_VAR;
             pd->idx++;
         }
 
