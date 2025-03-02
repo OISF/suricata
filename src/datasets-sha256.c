@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "datasets.h"
+#include "datajson.h"
 #include "datasets-sha256.h"
 #include "util-hash-lookup3.h"
 #include "util-thash.h"
@@ -34,6 +35,16 @@ int Sha256StrSet(void *dst, void *src)
     Sha256Type *dst_s = dst;
     memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
     dst_s->rep = src_s->rep;
+    return 0;
+}
+
+int Sha256StrJsonSet(void *dst, void *src)
+{
+    Sha256Type *src_s = src;
+    Sha256Type *dst_s = dst;
+    memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
     return 0;
 }
 
@@ -55,4 +66,18 @@ uint32_t Sha256StrHash(uint32_t hash_seed, void *s)
 void Sha256StrFree(void *s)
 {
     // no dynamic data
+}
+
+void Sha256StrJsonFree(void *s)
+{
+    const Sha256Type *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}
+
+uint32_t Sha256StrJsonGetLength(void *s)
+{
+    const Sha256Type *as = s;
+    return as->json.len;
 }

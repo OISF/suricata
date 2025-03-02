@@ -25,10 +25,15 @@
 #define SURICATA_DETECT_DATASET_H
 
 #include "datasets.h"
+#include "datajson.h"
 
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
+    DatasetFormats format;
+    DataJsonType json;
+    char json_key[SIG_JSON_CONTENT_KEY_LEN];
+    void *id;
 } DetectDatasetData;
 
 int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
