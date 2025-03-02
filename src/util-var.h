@@ -46,6 +46,7 @@ enum VarTypes {
     VAR_TYPE_IPPAIR_VAR,
 
     VAR_TYPE_TX_BIT,
+    VAR_TYPE_ALERT_VAR,
 };
 
 typedef struct GenericVar_ {
