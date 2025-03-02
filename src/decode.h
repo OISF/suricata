@@ -234,6 +234,11 @@ typedef uint16_t Port;
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
+struct JsonInfoList {
+    char *json_string;
+    struct JsonInfoList *next;
+};
+
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
@@ -243,6 +248,7 @@ typedef struct PacketAlert_ {
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
+    struct JsonInfoList json_info;
 } PacketAlert;
 
 /* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
@@ -274,6 +280,7 @@ typedef struct PacketAlerts_ {
 } PacketAlerts;
 
 PacketAlert *PacketAlertCreate(void);
+void PacketAlertRecycle(PacketAlert *pa_array);
 
 void PacketAlertFree(PacketAlert *pa);
 

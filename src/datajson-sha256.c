@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2024 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,42 +18,44 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <el@stamus-networks.com>
  */
 
 #include "suricata-common.h"
 #include "conf.h"
-#include "datasets.h"
 #include "datajson.h"
-#include "datasets-sha256.h"
+#include "datajson-sha256.h"
 #include "util-hash-lookup3.h"
 #include "util-thash.h"
 
-int Sha256StrSet(void *dst, void *src)
+int Sha256StrJsonSet(void *dst, void *src)
 {
-    Sha256Type *src_s = src;
-    Sha256Type *dst_s = dst;
+    Sha256TypeJson *src_s = src;
+    Sha256TypeJson *dst_s = dst;
     memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
-    dst_s->rep = src_s->rep;
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
     return 0;
 }
 
-bool Sha256StrCompare(void *a, void *b)
+bool Sha256StrJsonCompare(void *a, void *b)
 {
-    Sha256Type *as = a;
-    Sha256Type *bs = b;
+    Sha256TypeJson *as = a;
+    Sha256TypeJson *bs = b;
 
     return (memcmp(as->sha256, bs->sha256, sizeof(as->sha256)) == 0);
 }
 
-uint32_t Sha256StrHash(uint32_t hash_seed, void *s)
+uint32_t Sha256StrJsonHash(uint32_t hash_seed, void *s)
 {
-    Sha256Type *str = s;
+    Sha256TypeJson *str = s;
     return hashword((uint32_t *)str->sha256, sizeof(str->sha256) / 4, hash_seed);
 }
 
-// data stays in hash
-void Sha256StrFree(void *s)
+void Sha256StrJsonFree(void *s)
 {
-    // no dynamic data
+    const Sha256TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
 }

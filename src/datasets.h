@@ -53,6 +53,11 @@ typedef struct Dataset {
 } Dataset;
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s);
+void DatasetAppendSet(Dataset *set);
+Dataset *DatasetAlloc(const char *name);
+void DatasetLock(void);
+void DatasetUnlock(void);
+Dataset *DatasetSearchByName(const char *name);
 Dataset *DatasetFind(const char *name, enum DatasetTypes type);
 Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t memcap, uint32_t hashsize);
@@ -61,6 +66,9 @@ int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         const DataRepType *rep);
+
+void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize);
+int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6);
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
