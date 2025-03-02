@@ -226,6 +226,11 @@
                 "xff": {
                     "type": "string"
                 },
+                "extra": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Extra data created by keywords such as datajson"
+                },
                 "metadata": {
                     "type": "object",
                     "properties": {
