@@ -941,6 +941,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
+    det_ctx->json_content_len = 0;
 
     det_ctx->alert_queue_size = 0;
     p->alerts.drop.action = 0;
