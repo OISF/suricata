@@ -95,36 +95,6 @@ static Dataset *DatasetSearchByName(const char *name)
     return NULL;
 }
 
-static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
-{
-    if (ins < 2)
-        return -1;
-    if (ins % 2 != 0)
-        return -1;
-    if (outs != ins / 2)
-        return -1;
-
-    uint8_t hash[outs];
-    memset(hash, 0, outs);
-    size_t i, x;
-    for (x = 0, i = 0; i < ins; i+=2, x++) {
-        char buf[3] = { 0, 0, 0 };
-        buf[0] = in[i];
-        buf[1] = in[i+1];
-
-        long value = strtol(buf, NULL, 16);
-        if (value >= 0 && value <= 255)
-            hash[x] = (uint8_t)value;
-        else {
-            SCLogError("hash byte out of range %ld", value);
-            return -1;
-        }
-    }
-
-    memcpy(out, hash, outs);
-    return 0;
-}
-
 static int DatasetLoadIPv4(Dataset *set)
 {
     if (strlen(set->load) == 0)
