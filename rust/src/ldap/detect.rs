@@ -371,7 +371,9 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
         ProtocolOp::ModDnResponse(resp) => resp.matched_dn.0.as_str(),
         ProtocolOp::CompareResponse(resp) => resp.matched_dn.0.as_str(),
         ProtocolOp::ExtendedResponse(resp) => resp.result.matched_dn.0.as_str(),
-        _ => return false,
+        _ => "",
+        // This ensures that the iteration continues,
+        // allowing other responses in the transaction to be processed correctly
     };
 
     *buffer = str_buffer.as_ptr();
