@@ -234,6 +234,12 @@ This keyword maps to the EVE fields:
    - ``ldap.responses[].compare_response.matched_dn``
    - ``ldap.responses[].extended_response.matched_dn``
 
+.. note::
+
+    If a response within the array does not contain the
+    distinguished name field, this field will be interpreted
+    as an empty buffer.
+
 Example
 ^^^^^^^
 
