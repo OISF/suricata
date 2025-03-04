@@ -245,6 +245,21 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propegate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->progress == progress && t->v2.Callback == Callback && t->v2.GetData == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
     AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress, Callback, GetData, NULL);
 }
 
@@ -671,7 +686,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list = t->sm_list;
     new_engine->sm_list_base = t->sm_list_base;
     new_engine->smd = smd;
-    new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
+    new_engine->match_on_null = smd ? DetectContentInspectionMatchOnAbsentBuffer(smd) : false;
     new_engine->progress = t->progress;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
@@ -737,6 +752,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     const int files_id = DetectBufferTypeGetByName("files");
     bool head_is_mpm = false;
     uint8_t last_id = DE_STATE_FLAG_BASE;
+    SCLogDebug("%u: setup app inspect engines. %u buffers", s->id, s->init_data->buffer_index);
 
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SigMatchData *smd = SigMatchList2DataArray(s->init_data->buffers[x].head);
@@ -774,6 +790,39 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
                 }
             }
         }
+    }
+
+    /* handle rules that have an app-layer hook w/o bringing their own app inspect engine,
+     * e.g. `alert dns:request_complete ... (sid:1;)`
+     *
+     * Here we use a minimal stub inspect engine in which we set:
+     * - alproto
+     * - progress
+     * - sm_list/sm_list_base to get the mapping to the hook name
+     * - dir based on sig direction
+     *
+     * The inspect engine has no callback and is thus considered a straight match.
+     */
+    if (s->init_data->buffer_index == 0 && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        uint8_t dir = 0;
+        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT))
+            abort();
+        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0)
+            abort();
+        if (s->flags & SIG_FLAG_TOSERVER)
+            dir = 0;
+        else if (s->flags & SIG_FLAG_TOCLIENT)
+            dir = 1;
+
+        DetectEngineAppInspectionEngine t = {
+            .alproto = s->init_data->hook.t.app.alproto,
+            .progress = (uint16_t)s->init_data->hook.t.app.app_progress,
+            .sm_list = (uint16_t)s->init_data->hook.sm_list,
+            .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
+            .dir = dir,
+        };
+        AppendAppInspectEngine(de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm);
     }
 
     if ((s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) &&
@@ -1008,7 +1057,7 @@ static void DetectBufferTypeFree(void)
 #endif
 static int DetectBufferTypeAdd(const char *string)
 {
-    BUG_ON(string == NULL || strlen(string) >= 32);
+    BUG_ON(string == NULL || strlen(string) >= 64);
 
     DetectBufferType *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
@@ -2763,6 +2812,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
         SCDetectRequiresStatusFree(de_ctx->requirements);
     }
 
+    if (de_ctx->non_pf_engine_names) {
+        HashTableFree(de_ctx->non_pf_engine_names);
+    }
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -3329,13 +3381,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         return TM_ECODE_FAILED;
     }
 
-    /* sized to the max of our sgh settings. A max setting of 0 implies that all
-     * sgh's have: sgh->non_pf_store_cnt == 0 */
-    if (de_ctx->non_pf_store_cnt_max > 0) {
-        det_ctx->non_pf_id_array =  SCCalloc(de_ctx->non_pf_store_cnt_max, sizeof(SigIntId));
-        BUG_ON(det_ctx->non_pf_id_array == NULL);
-    }
-
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
@@ -3588,10 +3633,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->spm_thread_ctx != NULL) {
         SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
     }
-
-    if (det_ctx->non_pf_id_array != NULL)
-        SCFree(det_ctx->non_pf_id_array);
-
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
 
@@ -3642,7 +3683,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
 
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
-
+    PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
 
     ThresholdCacheThreadFree();
