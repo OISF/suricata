@@ -11,6 +11,7 @@ RUN git clone --depth 1 -b develop https://github.com/madler/zlib.git
 RUN git clone --depth=1 https://github.com/catenacyber/fuzzpcap
 
 ENV RUSTUP_TOOLCHAIN nightly
+RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu
 RUN cargo install --force cbindgen
 
 RUN git clone --depth 1 https://github.com/OISF/libhtp.git libhtp
