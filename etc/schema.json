@@ -116,7 +116,8 @@
             "type": "integer"
         },
         "tx_guessed": {
-            "description": "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
+            "description":
+                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
             "type": "boolean"
         },
         "files": {
@@ -1192,7 +1193,8 @@
                                 "type": "integer"
                             },
                             "rrname_truncated": {
-                                "description": "Set to true if the rrname was too long and truncated by Suricata",
+                                "description":
+                                        "Set to true if the rrname was too long and truncated by Suricata",
                                 "type": "boolean"
                             }
                         },
@@ -5210,6 +5212,16 @@
                                     "description":
                                             "Number of packets dropped due to inner tunnel packet being dropped",
                                     "type": "integer"
+                                },
+                                "default_packet_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default packet policy",
+                                    "type": "integer"
+                                },
+                                "default_app_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default app policy",
+                                    "type": "integer"
                                 }
                             },
                             "additionalProperties": false
@@ -6613,7 +6625,8 @@
                     "type": "integer"
                 },
                 "tc_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by server using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by server using TCP urgent packets",
                     "type": "integer"
                 },
                 "tcp_flags": {
@@ -6632,7 +6645,8 @@
                     "type": "integer"
                 },
                 "ts_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by client using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by client using TCP urgent packets",
                     "type": "integer"
                 },
                 "urg": {
@@ -6901,7 +6915,8 @@
                     "type": "integer"
                 },
                 "mname_truncated": {
-                    "description": "Set to true if the mname was too long and truncated by Suricata",
+                    "description":
+                            "Set to true if the mname was too long and truncated by Suricata",
                     "type": "boolean"
                 }
             },
@@ -6929,11 +6944,13 @@
                         "$ref": "#/$defs/dns.soa"
                     },
                     "rdata_truncated": {
-                        "description": "Set to true if the rdata was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rdata was too long and truncated by Suricata",
                         "type": "boolean"
                     },
                     "rrname_truncated": {
-                        "description": "Set to true if the rrname was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rrname was too long and truncated by Suricata",
                         "type": "boolean"
                     }
                 },
