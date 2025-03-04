@@ -1019,11 +1019,10 @@ int FileCloseFilePtr(File *ff, const StreamingBufferConfig *sbcfg, const uint8_t
                 SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
                 SCSha256Update(ff->sha256_ctx, data, data_len);
             }
-        } else {
-            if (AppendData(sbcfg, ff, data, data_len) != 0) {
-                ff->state = FILE_STATE_ERROR;
-                SCReturnInt(-1);
-            }
+        }
+        if (AppendData(sbcfg, ff, data, data_len) != 0) {
+            ff->state = FILE_STATE_ERROR;
+            SCReturnInt(-1);
         }
     }
 
