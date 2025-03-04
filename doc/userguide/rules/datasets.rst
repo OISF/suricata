@@ -3,8 +3,8 @@
 Datasets
 ========
 
-Using the ``dataset`` and ``datarep`` keyword it is possible to match on
-large amounts of data against any sticky buffer.
+Using the ``dataset`` and ``datarep`` and ``datajson`` keyword it is possible
+to match on large amounts of data against any sticky buffer.
 
 For example, to match against a DNS black list called ``dns-bl``::
 
@@ -145,6 +145,34 @@ reputation lists. A MD5 list, a SHA256 list, and a raw string (buffer) list.
 The rules will only match if the data is in the list and the reputation
 value is higher than 200.
 
+datajson
+~~~~~~~~
+
+DataJSON allows matching data against a set and output data attached to the matching
+value in the event.
+
+Syntax::
+
+    datajson:<cmd>,<name>,<options>;
+
+    datajson:<isset|isnotset>,<name> \
+        [, type <string|md5|sha256|ipv4|ip>, load <file name>, memcap <size>, hashsize <size>, key <json_key> \
+         , json_key <json_key>, array_key <json_path>];
+
+Example rules could look like::
+
+    alert http any any -> any any (msg:"IP match"; ip.dst; datajson:isset,bad_ips, type ip, load bad_ips.csv, key bad_ones; sid:8000001;)
+
+In this example, the match will occur if the destination IP is in the set and the
+alert will have an ``alert.extra.bad_ones`` subobject that will contain the JSON
+data associated to the value.
+
+If ``json_key`` is present then the data file has to contains a valid JSON object containing an array
+where every elemeents have to contain a key equal to ``json_key``.
+If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
+a JSON array.
+
+See :ref:`Datajson format <datajson_data>` for more information.
 
 Rule Reloads
 ------------
@@ -243,6 +271,44 @@ Syntax::
 
     dataset-dump
 
+datajson-add
+~~~~~~~~~~~~
+
+Unix Socket command to add data to a set. On success, the addition becomes
+active instantly.
+
+Syntax::
+
+    datajson-add <set name> <set type> <data> <json_info>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+data
+  Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
+
+Example adding 'google.com' to set 'myset'::
+
+    datajson-add myset string Z29vZ2xlLmNvbQ== {"city":"Mountain View"}
+
+datajson-remove
+~~~~~~~~~~~~~~~
+
+Unix Socket command to remove data from a set. On success, the removal becomes
+active instantly.
+
+Syntax::
+
+    datajson-remove <set name> <set type> <data>
+
+set name
+  Name of an already defined dataset
+type
+  Data type: string, md5, sha256, ipv4, ip
+data
+  Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
+
 File formats
 ------------
 
@@ -285,12 +351,49 @@ which when piped to ``base64 -d`` reveals its value::
 datarep
 ~~~~~~~
 
-The datarep format follows the dataset, expect that there are 1 more CSV
+The datarep format follows the dataset, except that there are 1 more CSV
 field:
 
 Syntax::
 
     <data>,<value>
+
+.. _datajson_data:
+
+datajson
+~~~~~~~~
+
+The datajson format follows the dataset, except that there is a comma
+separator followed by a second field that must contain a valid JSON
+object:
+
+Syntax::
+
+    <data>,<json_data>
+
+e.g. for ua-seen with type string::
+
+    TW96aWxsYS80LjAgKGNvbXBhdGlibGU7ICk=,{"agent": "Mozilla", "version": "4.0"}
+
+If ``json_key``` option is present then the file has to contain a valid JSON
+object containing an array where the key equal to ``json_key`` value is present.
+
+For example, if the file ``file.json`` is like the following example (typical of return of REST API call) ::
+
+    {
+        "time": "2024-12-21",
+        "response": {
+            "threats":
+                [
+                    {"host": "toto.com", "origin": "japan"},
+                    {"host": "grenouille.com", "origin": "french"}
+                ]
+        }
+    }
+
+then the match to check the list of threats using datajson can be defined as ::
+
+    http.host; datajson:isset,threats,load file.json, key threat, json_key host, array_key response.threats;
 
 .. _datasets_file_locations:
 

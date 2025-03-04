@@ -141,6 +141,7 @@
 #include "detect-filesize.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
+#include "detect-datajson.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -625,6 +626,7 @@ void SigTableSetup(void)
     DetectDsizeRegister();
     DetectDatasetRegister();
     DetectDatarepRegister();
+    DetectDatajsonRegister();
     DetectFlowvarRegister();
     DetectFlowintRegister();
     DetectPktvarRegister();
