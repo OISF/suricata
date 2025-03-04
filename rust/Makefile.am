@@ -128,8 +128,7 @@ if HAVE_BINDGEN
 		--default-enum-style rust \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'AppProto.*' \
-		--allowlist-type 'SC.*' \
-		--allowlist-function 'SC.*' \
+		--allowlist-item 'SC.*' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src -I../rust/gen $(CPPFLAGS)
