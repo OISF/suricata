@@ -789,6 +789,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -812,6 +813,7 @@ jobs:
                 lz4-devel \
                 make \
                 parallel \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python \
@@ -832,7 +834,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -887,6 +889,7 @@ jobs:
                 cbindgen \
                 ccache \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -907,6 +910,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -923,7 +927,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address"
@@ -985,6 +989,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -1007,6 +1012,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1023,7 +1029,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1078,6 +1084,7 @@ jobs:
                 cbindgen \
                 ccache \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -1098,6 +1105,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1114,7 +1122,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address"
@@ -1163,6 +1171,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -1183,6 +1192,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1207,7 +1217,7 @@ jobs:
       - run: sudo -u suricata -s ./autogen.sh
         working-directory: /home/suricata/suricata
 
-      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         working-directory: /home/suricata/suricata
         env:
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1456,6 +1466,7 @@ jobs:
                 automake \
                 clang-14 \
                 curl \
+                dpdk-dev \
                 git \
                 jq \
                 libtool \
@@ -1499,7 +1510,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --disable-shared --enable-unittests
+      - run: ./configure --enable-warnings --disable-shared --enable-unittests --enable-dpdk
         env:
           CC: "clang-14"
           CXX: "clang++-14"
@@ -2542,7 +2553,7 @@ jobs:
     needs: [ prepare-deps, prepare-cbindgen ]
     strategy:
       matrix:
-        dpdk_version: [ 22.11.4, 21.11.6, 20.11.10, 19.11.14 ]
+        dpdk_version: [ 24.11.1, 23.11.3, 22.11.7, 21.11.9, 20.11.10, 19.11.14 ]
     steps:
 
       # Cache Rust stuff.
@@ -2929,6 +2940,7 @@ jobs:
                 autoconf \
                 build-essential \
                 ccache \
+                dpdk-dev \
                 curl \
                 git \
                 jq \
@@ -2940,6 +2952,7 @@ jobs:
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
+                libnuma-dev \
                 libjansson-dev \
                 libgeoip-dev \
                 libhiredis-dev \
@@ -2969,7 +2982,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
