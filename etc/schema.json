@@ -116,7 +116,8 @@
             "type": "integer"
         },
         "tx_guessed": {
-            "description": "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
+            "description":
+                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect",
             "type": "boolean"
         },
         "files": {
@@ -1033,7 +1034,12 @@
                     "type": "boolean"
                 },
                 "rcode": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "dns.rcode"
+                        ]
+                    }
                 },
                 "rd": {
                     "type": "boolean"
@@ -1052,7 +1058,10 @@
                 },
                 "version": {
                     "description": "The version of this EVE DNS event",
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": false
+                    }
                 },
                 "opcode": {
                     "description": "DNS opcode as an integer",
@@ -1069,10 +1078,21 @@
                         "type": "object",
                         "properties": {
                             "rdata": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dns.response.rrname"
+                                    ]
+                                }
                             },
                             "rrname": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dns.answers.rrname",
+                                        "dns.response.rrname"
+                                    ]
+                                }
                             },
                             "rrtype": {
                                 "type": "string"
@@ -1173,10 +1193,21 @@
                                 "type": "integer"
                             },
                             "rrname": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dns.queries.rrname",
+                                        "dns.query"
+                                    ]
+                                }
                             },
                             "rrtype": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dns.rrtype"
+                                    ]
+                                }
                             },
                             "tx_id": {
                                 "type": "integer"
@@ -1189,10 +1220,16 @@
                             },
                             "opcode": {
                                 "description": "DNS opcode as an integer",
-                                "type": "integer"
+                                "type": "integer",
+                                "suricata": {
+                                    "keywords": [
+                                        "dns.opcode"
+                                    ]
+                                }
                             },
                             "rrname_truncated": {
-                                "description": "Set to true if the rrname was too long and truncated by Suricata",
+                                "description":
+                                        "Set to true if the rrname was too long and truncated by Suricata",
                                 "type": "boolean"
                             }
                         },
@@ -1246,7 +1283,11 @@
                     "additionalProperties": false
                 },
                 "grouped": {
+                    "desription": "DNS fields grouped by type: alternative format, no direct keywords",
                     "type": "object",
+                    "suricata": {
+                        "keywords": false
+                    },
                     "properties": {
                         "A": {
                             "type": "array",
@@ -1365,6 +1406,9 @@
         },
         "drop": {
             "type": "object",
+            "suricata": {
+                "keywords": false
+            },
             "properties": {
                 "ack": {
                     "type": "boolean"
@@ -4561,6 +4605,9 @@
         "stats": {
             "type": "object",
             "optional": true,
+            "suricata": {
+                "keywords": false
+            },
             "properties": {
                 "uptime": {
                     "description": "Suricata engine's uptime",
@@ -6613,7 +6660,8 @@
                     "type": "integer"
                 },
                 "tc_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by server using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by server using TCP urgent packets",
                     "type": "integer"
                 },
                 "tcp_flags": {
@@ -6632,7 +6680,8 @@
                     "type": "integer"
                 },
                 "ts_urgent_oob_data": {
-                    "description": "Number of Out-of-Band bytes sent by client using TCP urgent packets",
+                    "description":
+                            "Number of Out-of-Band bytes sent by client using TCP urgent packets",
                     "type": "integer"
                 },
                 "urg": {
@@ -6901,7 +6950,8 @@
                     "type": "integer"
                 },
                 "mname_truncated": {
-                    "description": "Set to true if the mname was too long and truncated by Suricata",
+                    "description":
+                            "Set to true if the mname was too long and truncated by Suricata",
                     "type": "boolean"
                 }
             },
@@ -6914,10 +6964,21 @@
                 "type": "object",
                 "properties": {
                     "rdata": {
-                        "type": "string"
+                        "type": "string",
+                        "suricata": {
+                            "keywords": [
+                                "dns.response.rrname"
+                            ]
+                        }
                     },
                     "rrname": {
-                        "type": "string"
+                        "type": "string",
+                        "suricata": {
+                            "keywords": [
+                                "dns.authorities.rrname",
+                                "dns.response.rrname"
+                            ]
+                        }
                     },
                     "rrtype": {
                         "type": "string"
@@ -6929,11 +6990,13 @@
                         "$ref": "#/$defs/dns.soa"
                     },
                     "rdata_truncated": {
-                        "description": "Set to true if the rdata was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rdata was too long and truncated by Suricata",
                         "type": "boolean"
                     },
                     "rrname_truncated": {
-                        "description": "Set to true if the rrname was too long and truncated by Suricata",
+                        "description":
+                                "Set to true if the rrname was too long and truncated by Suricata",
                         "type": "boolean"
                     }
                 },
@@ -6947,10 +7010,21 @@
                 "type": "object",
                 "properties": {
                     "rdata": {
-                        "type": "string"
+                        "type": "string",
+                        "suricata": {
+                            "keywords": [
+                                "dns.response.rrname"
+                            ]
+                        }
                     },
                     "rrname": {
-                        "type": "string"
+                        "type": "string",
+                        "suricata": {
+                            "keywords": [
+                                "dns.additionals.rrname",
+                                "dns.response.rrname"
+                            ]
+                        }
                     },
                     "rrtype": {
                         "type": "string"

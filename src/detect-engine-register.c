@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,8 +51,8 @@
 #include "detect-dns-rcode.h"
 #include "detect-dns-rrtype.h"
 #include "detect-dns-query.h"
-#include "detect-dns-answer-name.h"
-#include "detect-dns-query-name.h"
+#include "detect-dns-name.h"
+#include "detect-dns-response.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-certs.h"
 #include "detect-tls-cert-fingerprint.h"
@@ -557,8 +557,8 @@ void SigTableSetup(void)
     DetectDnsOpcodeRegister();
     DetectDnsRcodeRegister();
     DetectDnsRrtypeRegister();
-    DetectDnsAnswerNameRegister();
-    DetectDnsQueryNameRegister();
+    DetectDnsNameRegister();
+    DetectDnsResponseRegister();
     DetectModbusRegister();
     DetectDNP3Register();
 

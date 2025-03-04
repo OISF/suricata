@@ -1023,6 +1023,129 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerName(
     false
 }
 
+/// Get the DNS response authority name at index i.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAuthorityName(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool { 
+    let index = i as usize;
+
+    if let Some(response) = &tx.response {
+        if let Some(record) = response.authorities.get(index) {
+            if !record.name.value.is_empty() {
+                *buf = record.name.value.as_ptr();
+                *len = record.name.value.len() as u32;
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Get the DNS response additional name at index i.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAdditionalName(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool { 
+    let index = i as usize;
+
+    if let Some(response) = &tx.response {
+        if let Some(record) = response.additionals.get(index) {
+            if !record.name.value.is_empty() {
+                *buf = record.name.value.as_ptr();
+                *len = record.name.value.len() as u32;
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn get_rdata_name(data: &DNSRData) -> Option<&DNSName> {
+    match data {
+        DNSRData::CNAME(name)
+        | DNSRData::PTR(name)
+        | DNSRData::MX(name)
+        | DNSRData::NS(name) => {
+            Some(name)
+        }
+        DNSRData::SOA(soa) => {
+            Some(&soa.mname)
+        }
+        _ => {
+            None
+        }
+    }
+}
+
+/// Get the DNS response answer rdata at index i that could be a domain name.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAnswerRdata(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool { 
+    let index = i as usize;
+
+    if let Some(response) = &tx.response {
+        if let Some(record) = response.answers.get(index) {
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Get the DNS response authority rdata at index i that could be a domain name.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAuthorityRdata(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool { 
+    let index = i as usize;
+
+    if let Some(response) = &tx.response {
+        if let Some(record) = response.authorities.get(index) {
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Get the DNS response additional rdata at index i that could be a domain name.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAdditionalRdata(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool { 
+    let index = i as usize;
+
+    if let Some(response) = &tx.response {
+        if let Some(record) = response.additionals.get(index) {
+            if let Some(name) = get_rdata_name(&record.data) {
+                if !name.value.is_empty() {
+                    *buf = name.value.as_ptr();
+                    *len = name.value.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
 /// Get the DNS response flags for a transaction.
 ///
 /// extern uint16_t SCDnsTxGetResponseFlags(RSDNSTransaction *);
