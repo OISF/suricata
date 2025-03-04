@@ -533,6 +533,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     /* Determine the buffering for this output device; a value of 0 means to not buffer;
      * any other value must be a multiple of 4096
+     * The default value is 0 (no buffering)
      */
     uint32_t buffer_size = LOGFILE_EVE_BUFFER_SIZE;
     const char *buffer_size_value = ConfNodeLookupChildValue(conf, "buffer-size");
