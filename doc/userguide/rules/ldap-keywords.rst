@@ -251,3 +251,80 @@ and contains the LDAP distinguished name ``dc=example,dc=com``.
 .. container:: example-rule
 
   alert ldap any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,1; ldap.responses.dn; content:"dc=example,dc=com";` sid:1;)
+
+ldap.request.attribute_type
+---------------------------
+
+Matches on LDAP attribute type from request operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.request.attribute_type; content:"<content to match against>";
+
+``ldap.request.attribute_type`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE fields:
+
+   - ``ldap.request.search_request.attributes[]``
+   - ``ldap.request.modify_request.changes[].modification.attribute_type``
+   - ``ldap.request.add_request.attributes[].name``
+   - ``ldap.request.compare_request.attribute_value_assertion.description``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP attribute type ``objectClass``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test attribute type"; :example-rule-emphasis:`ldap.request.attribute_type; content:"objectClass";` sid:1;)
+
+It is possible to use the keyword ``ldap.request.operation`` in the same rule to
+specify the operation to match.
+
+Here is an example of a signature that would alert if a packet has an LDAP
+add request operation and contains the LDAP attribute type
+``objectClass``.
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test attribute type and operation"; :example-rule-emphasis:`ldap.request.operation:add_request; ldap.request.attribute_type; content:"objectClass";` sid:1;)
+
+ldap.responses.attribute_type
+-----------------------------
+
+Matches on LDAP attribute type from response operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.responses.attribute_type; content:"<content to match against>";
+
+``ldap.responses.attribute_type`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.responses.attribute_type`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE field ``ldap.responses[].search_result_entry.attributes[].type``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP attribute type ``dc``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test responses attribute type"; :example-rule-emphasis:`ldap.responses.attribute_type; content:"dc";` sid:1;)
+
+It is possible to use the keyword ``ldap.responses.operation`` in the same rule to
+specify the operation to match.
+
+Here is an example of a signature that would alert if a packet has an LDAP
+search result entry operation at index 1 on the responses array,
+and contains the LDAP attribute type ``dc``.
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test attribute type and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,1; ldap.responses.attribute_type; content:"dc";` sid:1;)
