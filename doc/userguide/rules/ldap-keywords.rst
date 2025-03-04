@@ -173,18 +173,19 @@ Comparison is case-sensitive.
 
 Syntax::
 
- ldap.request.dn; content:dc=example,dc=com;
+ ldap.request.dn; content:"<content to match against>";
 
 ``ldap.request.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
 This keyword maps to the EVE fields:
-``ldap.request.bind_request.name``
-``ldap.request.add_request.entry``
-``ldap.request.search_request.base_object``
-``ldap.request.modify_request.object``
-``ldap.request.del_request.dn``
-``ldap.request.mod_dn_request.entry``
-``ldap.request.compare_request.entry``
+
+   - ``ldap.request.bind_request.name``
+   - ``ldap.request.add_request.entry``
+   - ``ldap.request.search_request.base_object``
+   - ``ldap.request.modify_request.object``
+   - ``ldap.request.del_request.dn``
+   - ``ldap.request.mod_dn_request.entry``
+   - ``ldap.request.compare_request.entry``
 
 Example
 ^^^^^^^
@@ -215,22 +216,29 @@ Comparison is case-sensitive.
 
 Syntax::
 
- ldap.responses.dn; content:dc=example,dc=com;
+ ldap.responses.dn; content:"<content to match against>";
 
 ``ldap.responses.dn`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
 ``ldap.responses.dn`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 This keyword maps to the EVE fields:
-``ldap.responses[].search_result_entry.base_object``
-``ldap.responses[].bind_response.matched_dn``
-``ldap.responses[].search_result_done.matched_dn``
-``ldap.responses[].modify_response.matched_dn``
-``ldap.responses[].add_response.matched_dn``
-``ldap.responses[].del_response.matched_dn``
-``ldap.responses[].mod_dn_response.matched_dn``
-``ldap.responses[].compare_response.matched_dn``
-``ldap.responses[].extended_response.matched_dn``
+
+   - ``ldap.responses[].search_result_entry.base_object``
+   - ``ldap.responses[].bind_response.matched_dn``
+   - ``ldap.responses[].search_result_done.matched_dn``
+   - ``ldap.responses[].modify_response.matched_dn``
+   - ``ldap.responses[].add_response.matched_dn``
+   - ``ldap.responses[].del_response.matched_dn``
+   - ``ldap.responses[].mod_dn_response.matched_dn``
+   - ``ldap.responses[].compare_response.matched_dn``
+   - ``ldap.responses[].extended_response.matched_dn``
+
+.. note::
+
+    If a response within the array does not contain the
+    distinguished name field, this field will be interpreted
+    as an empty buffer.
 
 Example
 ^^^^^^^
@@ -251,3 +259,200 @@ and contains the LDAP distinguished name ``dc=example,dc=com``.
 .. container:: example-rule
 
   alert ldap any any -> any any (msg:"Test LDAPDN and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,1; ldap.responses.dn; content:"dc=example,dc=com";` sid:1;)
+
+ldap.responses.result_code
+--------------------------
+
+Suricata has a ``ldap.responses.result_code`` keyword that can be used in signatures to identify
+and filter network packets based on their LDAP result code.
+
+Syntax::
+
+ ldap.responses.result_code: code[,index];
+
+ldap.responses.result_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
+This keyword maps to the following eve fields:
+
+   - ``ldap.responses[].bind_response.result_code``
+   - ``ldap.responses[].search_result_done.result_code``
+   - ``ldap.responses[].modify_response.result_code``
+   - ``ldap.responses[].add_response.result_code``
+   - ``ldap.responses[].del_response.result_code``
+   - ``ldap.responses[].mod_dn_response.result_code``
+   - ``ldap.responses[].compare_response.result_code``
+   - ``ldap.responses[].extended_response.result_code``
+
+.. table:: **Result code values for ldap.responses.result_code**
+
+    =========  ================================================
+    Code       Name
+    =========  ================================================
+    0          success
+    1          operations_error
+    2          protocol_error
+    3          time_limit_exceeded
+    4          size_limit_exceeded
+    5          compare_false
+    6          compare_true
+    7          auth_method_not_supported
+    8          stronger_auth_required
+    10         referral
+    11         admin_limit_exceeded
+    12         unavailable_critical_extension
+    13         confidentiality_required
+    14         sasl_bind_in_progress
+    16         no_such_attribute
+    17         undefined_attribute_type
+    18         inappropriate_matching
+    19         constraint_violation
+    20         attribute_or_value_exists
+    21         invalid_attribute_syntax
+    32         no_such_object
+    33         alias_problem
+    34         invalid_dns_syntax
+    35         is_leaf
+    36         alias_dereferencing_problem
+    48         inappropriate_authentication
+    49         invalid_credentials
+    50         insufficient_access_rights
+    51         busy
+    52         unavailable
+    53         unwilling_to_perform
+    54         loop_detect
+    60         sort_control_missing
+    61         offset_range_error
+    64         naming_violation
+    65         object_class_violation
+    66         not_allowed_on_non_leaf
+    67         not_allowed_on_rdn
+    68         entry_already_exists
+    69         object_class_mods_prohibited
+    70         results_too_large
+    71         affects_multiple_dsas
+    76         control_error
+    80         other
+    81         server_down
+    82         local_error
+    83         encoding_error
+    84         decoding_error
+    85         timeout
+    86         auth_unknown
+    87         filter_error
+    88         user_canceled
+    89         param_error
+    90         no_memory
+    91         connect_error
+    92         not_supported
+    93         control_not_found
+    94         no_results_returned
+    95         more_results_to_return
+    96         client_loop
+    97         referral_limit_exceeded
+    100        invalid_response
+    101        ambiguous_response
+    112        tls_not_supported
+    113        intermediate_response
+    114        unknown_type
+    118        canceled
+    119        no_such_operation
+    120        too_late
+    121        cannot_cancel
+    122        assertion_failed
+    123        authorization_denied
+    4096       e_sync_refresh_required
+    16654      no_operation
+    =========  ================================================
+
+More information about LDAP result code values can be found here:
+https://ldap.com/ldap-result-code-reference/
+
+An LDAP request operation can receive multiple responses. By default, the ldap.responses.result_code
+keyword matches with any indices, but it is possible to specify a particular index for matching
+and also use flags such as ``all`` and ``any``.
+
+.. table:: **Index values for ldap.responses.result_code keyword**
+
+    =========  ================================================
+    Value      Description
+    =========  ================================================
+    [default]  Match with any index
+    all        Match only if all indexes match
+    any        Match with any index
+    0>=        Match specific index
+    0<         Match specific index with back to front indexing
+    =========  ================================================
+
+Examples
+^^^^^^^^
+
+Example of signatures that would alert if the packet has a ``success`` LDAP result code at any index:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAP result code"; :example-rule-emphasis:`ldap.responses.result_code:0;` sid:1;)
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAP result code"; :example-rule-emphasis:`ldap.responses.result_code:success,any;` sid:1;)
+
+Example of a signature that would alert if the packet has an ``unavailable`` LDAP result code at index 1:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAP result code at index 1"; :example-rule-emphasis:`ldap.responses.result_code:unavailable,1;` sid:1;)
+
+Example of a signature that would alert if all the responses have a ``success`` LDAP result code:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test all LDAP responses have success result code"; :example-rule-emphasis:`ldap.responses.result_code:success,all;` sid:1;)
+
+The keyword ldap.responses.result_code supports back to front indexing with negative numbers,
+this means that -1 will represent the last index, -2 the second to last index, and so on.
+This is an example of a signature that would alert if a ``success`` result code is found at the last index:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAP success at last index"; :example-rule-emphasis:`ldap.responses.result_code:success,-1;` sid:1;)
+
+ldap.responses.message
+----------------------
+
+Matches on LDAP error messages from response operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.responses.message; content:"<content to match against>";
+
+``ldap.responses.message`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.responses.message`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE fields:
+
+   - ``ldap.responses[].bind_response.message``
+   - ``ldap.responses[].search_result_done.message``
+   - ``ldap.responses[].modify_response.message``
+   - ``ldap.responses[].add_response.message``
+   - ``ldap.responses[].del_response.message``
+   - ``ldap.responses[].mod_dn_response.message``
+   - ``ldap.responses[].compare_response.message``
+   - ``ldap.responses[].extended_response.message``
+
+.. note::
+
+    If a response within the array does not contain the
+    error message field, this field will be interpreted
+    as an empty buffer.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP error message ``Size limit exceeded``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test LDAP error message"; ldap.responses.message; content:"Size limit exceeded"; sid:1;)
