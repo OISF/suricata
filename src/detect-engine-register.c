@@ -353,10 +353,6 @@ static void SigMultilinePrint(int i, const char *prefix)
 bool SigTableHasKeyword(const char *keyword)
 {
     for (int i = 0; i < DETECT_TBLSIZE; i++) {
-        if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-            continue;
-        }
-
         const char *name = sigmatch_table[i].name;
 
         if (name == NULL || strlen(name) == 0) {
@@ -384,11 +380,7 @@ int SigTableList(const char *keyword)
                 if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("- %s (not built-in)\n", name);
-                } else {
-                    printf("- %s\n", name);
-                }
+                printf("- %s\n", name);
             }
         }
     } else if (strcmp("csv", keyword) == 0) {
@@ -396,9 +388,6 @@ int SigTableList(const char *keyword)
         for (i = 0; i < size; i++) {
             const char *name = sigmatch_table[i].name;
             if (name != NULL && strlen(name) > 0) {
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    continue;
-                }
                 if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
@@ -432,10 +421,6 @@ int SigTableList(const char *keyword)
             if ((sigmatch_table[i].name != NULL) &&
                 strcmp(sigmatch_table[i].name, keyword) == 0) {
                 printf("= %s =\n", sigmatch_table[i].name);
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("Not built-in\n");
-                    return TM_ECODE_FAILED;
-                }
                 SigMultilinePrint(i, "");
                 return TM_ECODE_DONE;
             }
