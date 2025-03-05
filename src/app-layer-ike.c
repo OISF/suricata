@@ -66,6 +66,7 @@ static int IkeParserTest(void)
     f.proto = IPPROTO_UDP;
     f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_IKE;
+    f.flags |= FLOW_SGH_TOCLIENT | FLOW_SGH_TOSERVER;
 
     StreamTcpInitConfig(true);
 
