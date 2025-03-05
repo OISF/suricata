@@ -159,8 +159,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
     if (plugin->version != SC_PLUGIN_API_VERSION) {
         return 1;
     }
-    AppProto alproto = g_alproto_max;
-    AppProtoRegisterProtoString(alproto, plugin->name);
+    AppProto alproto = AppProtoNewProtoFromString(plugin->name);
     if (plugin->Register) {
         if (AppLayerParserPreRegister(plugin->Register) != 0) {
             return 1;
@@ -176,7 +175,8 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
             .confname = plugin->confname,
             .logname = plugin->logname,
             .alproto = alproto,
-            .LogTx = (EveJsonSimpleTxLogFunc)plugin->Logger,
+            .dir = plugin->dir,
+            .LogTx = plugin->Logger,
         };
         if (OutputPreRegisterLogger(reg_data) != 0) {
             return 1;

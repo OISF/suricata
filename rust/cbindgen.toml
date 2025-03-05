@@ -88,6 +88,8 @@ include = [
     "SCSigTableElmt",
     "SCTransformTableElmt",
     "DataRepType",
+    "OutputJsonLogDirection",
+    "EveJsonTxLoggerRegistrationData",
 ]
 
 # A list of items to not include in the generated bindings
