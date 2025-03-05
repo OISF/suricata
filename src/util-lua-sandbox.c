@@ -26,7 +26,6 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-#include "util-debug.h"
 
 #include "util-debug.h"
 #include "util-lua-sandbox.h"
