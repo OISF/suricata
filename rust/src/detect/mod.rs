@@ -19,6 +19,7 @@
 
 pub mod byte_extract;
 pub mod byte_math;
+pub mod entropy;
 pub mod error;
 pub mod flow;
 pub mod iprep;
@@ -28,6 +29,7 @@ pub mod stream_size;
 pub mod transform_base64;
 pub mod transforms;
 pub mod uint;
+pub mod float;
 pub mod uri;
 pub mod tojson;
 pub mod vlan;
