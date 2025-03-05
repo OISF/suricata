@@ -32,7 +32,9 @@
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
+#include "datajson.h"
 #include "util-conf.h"
+#include "util-mem.h"
 #include "util-thash.h"
 #include "util-print.h"
 #include "util-byte.h"
@@ -52,7 +54,6 @@ static inline void DatasetUnlockData(THashData *d)
     THashDataUnlock(d);
 }
 static bool DatasetIsStatic(const char *save, const char *load);
-static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize);
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s)
 {
@@ -69,7 +70,23 @@ enum DatasetTypes DatasetGetTypeFromString(const char *s)
     return DATASET_TYPE_NOTSET;
 }
 
-static Dataset *DatasetAlloc(const char *name)
+void DatasetAppendSet(Dataset *set)
+{
+    set->next = sets;
+    sets = set;
+}
+
+void DatasetLock(void)
+{
+    SCMutexLock(&sets_lock);
+}
+
+void DatasetUnlock(void)
+{
+    SCMutexUnlock(&sets_lock);
+}
+
+Dataset *DatasetAlloc(const char *name)
 {
     Dataset *set = SCCalloc(1, sizeof(*set));
     if (set) {
@@ -78,7 +95,7 @@ static Dataset *DatasetAlloc(const char *name)
     return set;
 }
 
-static Dataset *DatasetSearchByName(const char *name)
+Dataset *DatasetSearchByName(const char *name)
 {
     Dataset *set = sets;
     while (set) {
@@ -88,36 +105,6 @@ static Dataset *DatasetSearchByName(const char *name)
         set = set->next;
     }
     return NULL;
-}
-
-static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
-{
-    if (ins < 2)
-        return -1;
-    if (ins % 2 != 0)
-        return -1;
-    if (outs != ins / 2)
-        return -1;
-
-    uint8_t hash[outs];
-    memset(hash, 0, outs);
-    size_t i, x;
-    for (x = 0, i = 0; i < ins; i+=2, x++) {
-        char buf[3] = { 0, 0, 0 };
-        buf[0] = in[i];
-        buf[1] = in[i+1];
-
-        long value = strtol(buf, NULL, 16);
-        if (value >= 0 && value <= 255)
-            hash[x] = (uint8_t)value;
-        else {
-            SCLogError("hash byte out of range %ld", value);
-            return -1;
-        }
-    }
-
-    memcpy(out, hash, outs);
-    return 0;
 }
 
 static int DatasetLoadIPv4(Dataset *set)
@@ -143,7 +130,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int ParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
+int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 {
     /* Checking IPv6 case */
     char *got_colon = strchr(line, ':');
@@ -274,8 +261,8 @@ enum DatasetGetPathType {
     TYPE_LOAD,
 };
 
-static void DatasetGetPath(const char *in_path,
-        char *out_path, size_t out_size, enum DatasetGetPathType type)
+static void DatasetGetPath(
+        const char *in_path, char *out_path, size_t out_size, enum DatasetGetPathType type)
 {
     char path[PATH_MAX];
     struct stat st;
@@ -388,7 +375,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     char cnf_name[128];
     snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
 
-    GetDefaultMemcap(&default_memcap, &default_hashsize);
+    DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
@@ -526,7 +513,7 @@ void DatasetPostReloadCleanup(void)
     SCMutexUnlock(&sets_lock);
 }
 
-static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
+void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
     if (ConfGet("datasets.defaults.memcap", &str) == 1) {
@@ -553,7 +540,7 @@ int DatasetsInit(void)
     ConfNode *datasets = ConfGetNode("datasets");
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
-    GetDefaultMemcap(&default_memcap, &default_hashsize);
+    DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
         int list_pos = 0;
         ConfNode *iter = NULL;
@@ -1333,7 +1320,7 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
         }
         case DATASET_TYPE_IPV6: {
             struct in6_addr in6;
-            if (ParseIpv6String(set, string, &in6) != 0) {
+            if (DatasetParseIpv6String(set, string, &in6) != 0) {
                 SCLogError("Dataset failed to import %s as IPv6", string);
                 return -2;
             }
