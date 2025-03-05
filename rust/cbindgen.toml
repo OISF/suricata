@@ -85,7 +85,7 @@ include = [
     "FtpRequestCommand",
     "FtpStateValues",
     "FtpDataStateValues",
-    "SCSigTableElmt",
+    "SCSigTableAppLiteElmt",
     "SCTransformTableElmt",
     "DataRepType",
 ]

@@ -33,7 +33,8 @@ pub mod tojson;
 pub mod vlan;
 pub mod datasets;
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_char, c_int, c_void};
+use std::ffi::CString;
 
 use suricata_sys::sys::AppProto;
 
@@ -53,19 +54,80 @@ pub trait EnumString<T> {
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
 }
 
+/// Rust app-layer light version of SigTableElmt for simple sticky buffer
+pub struct SigTableElmtStickyBuffer {
+    /// keyword name
+    pub name: String,
+    /// keyword description
+    pub desc: String,
+    /// keyword documentation url
+    pub url: String,
+    /// function callback to parse and setup keyword in rule
+    pub setup: unsafe extern "C" fn(
+        de: *mut c_void,
+        s: *mut c_void,
+        raw: *const std::os::raw::c_char,
+    ) -> c_int,
+}
+
+pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c_int {
+    let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
+    let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
+    let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
+    let st = SCSigTableAppLiteElmt {
+        name,
+        desc,
+        url,
+        Setup: kw.setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NEEDS_RUST_FREE,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    unsafe {
+        return DetectHelperKeywordRegister(&st);
+    }
+}
+
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct SCSigTableElmt {
+/// Names of SigTableElmt for release by rust
+pub struct SCSigTableNamesElmt {
+    /// keyword name
+    pub name: *mut libc::c_char,
+    /// keyword description
+    pub desc: *mut libc::c_char,
+    /// keyword documentation url
+    pub url: *mut libc::c_char,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt) {
+    let _ = CString::from_raw(kw.name);
+    let _ = CString::from_raw(kw.desc);
+    let _ = CString::from_raw(kw.url);
+}
+
+#[repr(C)]
+#[allow(non_snake_case)]
+/// App-layer light version of SigTableElmt
+pub struct SCSigTableAppLiteElmt {
+    /// keyword name
     pub name: *const libc::c_char,
+    /// keyword description
     pub desc: *const libc::c_char,
+    /// keyword documentation url
     pub url: *const libc::c_char,
+    /// flags SIGMATCH_*
     pub flags: u16,
+    /// function callback to parse and setup keyword in rule
     pub Setup: unsafe extern "C" fn(
         de: *mut c_void,
         s: *mut c_void,
         raw: *const std::os::raw::c_char,
     ) -> c_int,
+    /// function callback to free structure allocated by setup if any
     pub Free: Option<unsafe extern "C" fn(de: *mut c_void, ptr: *mut c_void)>,
+    /// function callback to match on an app-layer transaction
     pub AppLayerTxMatch: Option<
         unsafe extern "C" fn(
             de: *mut c_void,
@@ -82,6 +144,7 @@ pub struct SCSigTableElmt {
 pub(crate) const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
 pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.h
 pub(crate) const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
+pub(crate) const SIGMATCH_NEEDS_RUST_FREE: u16 = 0x1000; // BIT_U16(12)
 
 /// cbindgen:ignore
 extern {
@@ -103,7 +166,8 @@ extern {
             i32,
         ) -> *mut c_void,
     ) -> c_int;
-    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableElmt) -> c_int;
+    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
+    pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
     ) -> c_int;
