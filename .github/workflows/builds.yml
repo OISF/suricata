@@ -954,10 +954,10 @@ jobs:
   # This job builds and tests Suricata as a non-root user as some
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
-  fedora-40-non-root:
-    name: Fedora 40 (non-root, debug, clang, asan, wshadow, rust-strict)
+  fedora-non-root:
+    name: Fedora (non-root, debug, clang, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:40
+    container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Determine number of CPUs
