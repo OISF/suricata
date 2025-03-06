@@ -118,7 +118,10 @@ static void Init(void)
 }
 
 const SCPlugin PluginRegistration = {
+    .version = SC_API_VERSION,
+    .suricata_version = SC_PACKAGE_VERSION,
     .name = "CustomLogger",
+    .plugin_version = "1.0.0",
     .author = "Firstname Lastname",
     .license = "GPLv2",
     .Init = Init,

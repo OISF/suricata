@@ -44,7 +44,10 @@ static void SCPluginInit(void)
 }
 
 const SCPlugin PluginRegistration = {
+    .version = SC_API_VERSION,
+    .suricata_version = SC_PACKAGE_VERSION,
     .name = "ci-capture",
+    .plugin_version = "0.1.0",
     .author = "OISF Developer",
     .license = "GPL-2.0-only",
     .Init = SCPluginInit,
