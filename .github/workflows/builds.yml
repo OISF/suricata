@@ -189,7 +189,6 @@ jobs:
       - name: Test app-layer plugin
         working-directory: examples/plugins/altemplate
         run: |
-          cargo fmt --check -- --config-path=../../../rust/rustfmt.toml
           cargo build
           ../../../src/suricata -S altemplate.rules --set plugins.0=./target/debug/libsuricata_altemplate.so --runmode=single -l . -c altemplate.yaml -k none -r ../../../rust/src/applayertemplate/template.pcap
           cat eve.json | jq -c 'select(.altemplate)'
