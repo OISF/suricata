@@ -188,7 +188,7 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].desc = KEYWORD_NAME " sticky buffer for the " BUFFER_DESC;
     sigmatch_table[KEYWORD_ID].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetupSticky;
-#ifdef KEYWORD_TOSERVER &&KEYWORD_TOSERVER
+#if defined(KEYWORD_TOSERVER) && defined(KEYWORD_TOSERVER)
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER;
 #else
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
