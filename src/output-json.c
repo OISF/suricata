@@ -767,6 +767,22 @@ static int CreateJSONEther(
             JSONFormatAndAddMACAddr(js, "src_mac", src, false);
             JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
             jb_close(js);
+        } else if (f != NULL) {
+            /* When pseudopackets do not have associated ethernet metadata,
+               use the first set of mac addresses stored with their flow.
+               The first set of macs should come from the flow's first packet,
+               providing the most fitting representation of the event's ethernet. */
+            MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+            if (ms != NULL && MacSetSize(ms) > 0) {
+                uint8_t *src = MacSetGetFirst(ms, MAC_SET_SRC);
+                uint8_t *dst = MacSetGetFirst(ms, MAC_SET_DST);
+                if (dst != NULL && src != NULL) {
+                    jb_open_object(js, "ether");
+                    JSONFormatAndAddMACAddr(js, "src_mac", src, false);
+                    JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
+                    jb_close(js);
+                }
+            }
         }
     } else if (f != NULL) {
         /* we are creating an ether object in a flow context, so we need to
