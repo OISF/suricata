@@ -1,7 +1,7 @@
 use crate::decompressors::Options;
 use crate::{
     error::Result,
-    hook::{DataHook, LogHook, TxHook},
+    hook::{DataHook, TxHook},
     unicode_bestfit_map::UnicodeBestfitMap,
     HtpStatus,
 };
@@ -93,8 +93,6 @@ pub struct Config {
     /// considered complete (request and response are both complete). This is always
     /// the last hook to be invoked.
     pub(crate) hook_transaction_complete: TxHook,
-    /// Log hook, invoked every time the library wants to log.
-    pub(crate) hook_log: LogHook,
     /// Reaction to leading whitespace on the request line
     pub(crate) requestline_leading_whitespace_unwanted: HtpUnwanted,
     /// Whether to decompress compressed request bodies.
@@ -137,7 +135,6 @@ impl Default for Config {
             hook_response_trailer: TxHook::default(),
             hook_response_complete: TxHook::default(),
             hook_transaction_complete: TxHook::default(),
-            hook_log: LogHook::default(),
             requestline_leading_whitespace_unwanted: HtpUnwanted::IGNORE,
             request_decompression_enabled: false,
             compression_options: Options::default(),
@@ -401,12 +398,6 @@ impl Config {
         self.decoder_cfg.double_decode_normalized_query = double_decode_normalized_query;
     }
 
-    /// Enable or disable the built-in Urlencoded parser. Disabled by default.
-    /// The parser will parse query strings and request bodies with the appropriate MIME type.
-    pub(crate) fn set_parse_urlencoded(&mut self, parse_urlencoded: bool) {
-        self.parse_urlencoded = parse_urlencoded;
-    }
-
     /// Configures the maximum size of the buffer LibHTP will use when all data is not available
     /// in the current buffer (e.g., a very long header line that might span several packets). This
     /// limit is controlled by the field_limit parameter.
@@ -484,29 +475,6 @@ impl Config {
         // Remember the personality
         self.server_personality = personality;
         Ok(())
-    }
-
-    /// Configures whether transactions will be automatically destroyed once they
-    /// are processed and all callbacks invoked. This option is appropriate for
-    /// programs that process transactions as they are processed.
-    pub(crate) fn set_tx_auto_destroy(&mut self, tx_auto_destroy: bool) {
-        self.tx_auto_destroy = tx_auto_destroy;
-    }
-
-    /// Configures whether incomplete transactions will be flushed when a connection is closed.
-    ///
-    /// This will invoke the transaction complete callback for each incomplete transaction. The
-    /// transactions passed to the callback will not have their request and response state set
-    /// to complete - they will simply be passed with the state they have within the parser at
-    /// the time of the call.
-    ///
-    /// This option is intended to be used when a connection is closing and we want to process
-    /// any incomplete transactions that were in flight, or which never completed due to packet
-    /// loss or parsing errors.
-    ///
-    /// These transactions will also be removed from the parser when auto destroy is enabled.
-    pub(crate) fn set_flush_incomplete(&mut self, flush_incomplete: bool) {
-        self.flush_incomplete = flush_incomplete;
     }
 
     /// Sets the replacement character that will be used in the lossy best-fit

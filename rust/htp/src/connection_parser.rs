@@ -82,7 +82,7 @@ pub enum HtpStreamState {
 #[derive(Debug, Default, Clone)]
 /// This structure is used to pass data (for example
 /// request and response body buffers or gaps) to parsers.
-pub struct ParserData<'a> {
+pub(crate) struct ParserData<'a> {
     /// Ref to the data buffer.
     data: Option<Cow<'a, [u8]>>,
     // Length of data gap. Only set if is a gap.

@@ -63,9 +63,9 @@ pub(crate) struct Utf8Decoder {
     state: u32,
     seq: u32,
     codepoint: u32,
-    pub flags: u64,
-    pub seen_valid: bool,
-    pub decoded_bytes: Vec<u8>,
+    pub(crate) flags: u64,
+    pub(crate) seen_valid: bool,
+    pub(crate) decoded_bytes: Vec<u8>,
 }
 
 impl Utf8Decoder {

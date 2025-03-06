@@ -912,8 +912,7 @@ fn InvalidRequest3() {
 
 #[test]
 fn AutoDestroyCrash() {
-    let mut cfg = TestConfig();
-    cfg.set_tx_auto_destroy(true);
+    let cfg = TestConfig();
     let mut t = Test::new(cfg);
     assert!(t.run_file("39-auto-destroy-crash.t").is_ok());
 

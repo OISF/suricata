@@ -1092,14 +1092,6 @@ impl ConnectionParser {
                     resp.response_entity_len.wrapping_add(tx_data.len() as u64);
                 self.response_run_hook_body_data(&mut tx_data)?;
             }
-            HtpContentEncoding::ERROR => {
-                htp_error!(
-                    self.logger,
-                    HtpLogCode::INVALID_CONTENT_ENCODING,
-                    "Expected a valid content encoding"
-                );
-                return Err(HtpStatus::ERROR);
-            }
         }
         Ok(())
     }
@@ -1248,14 +1240,6 @@ impl ConnectionParser {
                         }
                     }
                 }
-            }
-            HtpContentEncoding::ERROR => {
-                htp_error!(
-                    self.logger,
-                    HtpLogCode::INVALID_CONTENT_ENCODING,
-                    "Expected a valid content encoding"
-                );
-                return Err(HtpStatus::ERROR);
             }
         }
         Ok(())

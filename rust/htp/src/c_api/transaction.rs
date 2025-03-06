@@ -1,12 +1,8 @@
 use crate::{
-    bstr::Bstr, c_api::header::htp_headers_get, config::Config,
-    connection_parser::ConnectionParser, decompressors::HtpContentEncoding,
-    hook::DataExternalCallbackFn, request::HtpMethod, transaction::*, uri::Uri,
+    bstr::Bstr, c_api::header::htp_headers_get, connection_parser::ConnectionParser,
+    request::HtpMethod, transaction::*, uri::Uri,
 };
-use std::{
-    convert::{TryFrom, TryInto},
-    rc::Rc,
-};
+use std::convert::{TryFrom, TryInto};
 
 /// Destroys the supplied transaction.
 /// # Safety
@@ -36,20 +32,6 @@ pub unsafe extern "C" fn htp_tx_normalized_uri(tx: *const Transaction) -> *const
             .map(|uri| uri as *const Bstr)
             .unwrap_or(std::ptr::null())
     }
-}
-
-/// Get the transaction's configuration.
-///
-/// tx: Transaction pointer.
-///
-/// Returns a pointer to the configuration or NULL on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_cfg(tx: *const Transaction) -> *const Config {
-    tx.as_ref()
-        .map(|tx| Rc::as_ptr(&tx.cfg))
-        .unwrap_or(std::ptr::null())
 }
 
 /// Returns the user data associated with this transaction or NULL on error.
@@ -174,21 +156,6 @@ pub unsafe extern "C" fn htp_tx_is_protocol_0_9(tx: *const Transaction) -> i32 {
     tx.as_ref().map(|tx| tx.is_protocol_0_9 as i32).unwrap_or(0)
 }
 
-/// Get whether a transaction contains a successful 101 Switching Protocol response to HTTP/2.0
-///
-/// tx: Transaction pointer.
-///
-/// Returns 1 if the transaction is an HTTP/2.0 upgrade or 0 otherwise. A NULL argument will
-/// also result in a return value of 0.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_is_http_2_upgrade(tx: *const Transaction) -> i32 {
-    tx.as_ref()
-        .map(|tx| tx.is_http_2_upgrade as i32)
-        .unwrap_or(0)
-}
-
 /// Get a transaction's parsed uri.
 ///
 /// tx: Transaction pointer.
@@ -272,71 +239,6 @@ pub unsafe extern "C" fn htp_tx_request_header_index(
         .unwrap_or(std::ptr::null())
 }
 
-/// Get a transaction's request transfer coding.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the transfer coding or ERROR on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_request_transfer_coding(
-    tx: *const Transaction,
-) -> HtpTransferCoding {
-    tx.as_ref()
-        .map(|tx| tx.request_transfer_coding)
-        .unwrap_or(HtpTransferCoding::ERROR)
-}
-
-/// Get a transaction's request content encoding.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the content encoding or ERROR on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_request_content_encoding(
-    tx: *const Transaction,
-) -> HtpContentEncoding {
-    tx.as_ref()
-        .map(|tx| tx.request_content_encoding)
-        .unwrap_or(HtpContentEncoding::ERROR)
-}
-
-/// Get a transaction's request content type.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the content type or NULL on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_request_content_type(tx: *const Transaction) -> *const Bstr {
-    tx.as_ref()
-        .and_then(|tx| tx.request_content_type.as_ref())
-        .map(|content_type| content_type as *const Bstr)
-        .unwrap_or(std::ptr::null())
-}
-
-/// Get a transaction's request content length.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the content length or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_request_content_length(tx: *const Transaction) -> i64 {
-    tx.as_ref()
-        .map(|tx| {
-            tx.request_content_length
-                .map(|len| len.try_into().ok().unwrap_or(-1))
-                .unwrap_or(-1)
-        })
-        .unwrap_or(-1)
-}
-
 /// Get the transaction's request authentication type.
 ///
 /// tx: Transaction pointer.
@@ -392,20 +294,6 @@ pub unsafe extern "C" fn htp_tx_request_port_number(tx: *const Transaction) -> i
 pub unsafe extern "C" fn htp_tx_request_message_len(tx: *const Transaction) -> i64 {
     tx.as_ref()
         .map(|tx| tx.request_message_len.try_into().ok().unwrap_or(-1))
-        .unwrap_or(-1)
-}
-
-/// Get a transaction's request entity length.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the request entity length or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_request_entity_len(tx: *const Transaction) -> i64 {
-    tx.as_ref()
-        .map(|tx| tx.request_entity_len.try_into().ok().unwrap_or(-1))
         .unwrap_or(-1)
 }
 
@@ -485,19 +373,6 @@ pub unsafe extern "C" fn htp_tx_response_status_number(tx: *const Transaction) -
         })
         .unwrap_or(-1)
 }
-/// Get the transaction's response status expected number.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the expected number or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_status_expected_number(tx: *const Transaction) -> i32 {
-    tx.as_ref()
-        .map(|tx| tx.response_status_expected_number as i32)
-        .unwrap_or(-1)
-}
 
 /// Get a transaction's response message.
 ///
@@ -528,20 +403,6 @@ pub unsafe extern "C" fn htp_tx_response_headers(tx: *const Transaction) -> *con
         .unwrap_or(std::ptr::null())
 }
 
-/// Get a transaction's response headers size.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the size or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_headers_size(tx: *const Transaction) -> isize {
-    tx.as_ref()
-        .map(|tx| isize::try_from(tx.response_headers.size()).unwrap_or(-1))
-        .unwrap_or(-1)
-}
-
 /// Get the first response header value matching the key from a transaction.
 ///
 /// tx: Transaction pointer.
@@ -559,29 +420,6 @@ pub unsafe extern "C" fn htp_tx_response_header(
         .unwrap_or(std::ptr::null())
 }
 
-/// Get the response header at the given index.
-///
-/// tx: Transaction pointer.
-/// index: response header table index.
-///
-/// Returns the header or NULL on error
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_header_index(
-    tx: *const Transaction, index: usize,
-) -> *const Header {
-    tx.as_ref()
-        .map(|tx| {
-            tx.response_headers
-                .elements
-                .get(index)
-                .map(|value| value as *const Header)
-                .unwrap_or(std::ptr::null())
-        })
-        .unwrap_or(std::ptr::null())
-}
-
 /// Get a transaction's response message length.
 ///
 /// tx: Transaction pointer.
@@ -594,53 +432,6 @@ pub unsafe extern "C" fn htp_tx_response_message_len(tx: *const Transaction) -> 
     tx.as_ref()
         .map(|tx| tx.response_message_len.try_into().ok().unwrap_or(-1))
         .unwrap_or(-1)
-}
-
-/// Get a transaction's response entity length.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the response entity length or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_entity_len(tx: *const Transaction) -> i64 {
-    tx.as_ref()
-        .map(|tx| tx.response_entity_len.try_into().ok().unwrap_or(-1))
-        .unwrap_or(-1)
-}
-
-/// Get a transaction's response content length.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the response content length or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_content_length(tx: *const Transaction) -> i64 {
-    tx.as_ref()
-        .map(|tx| {
-            tx.response_content_length
-                .map(|len| len.try_into().ok().unwrap_or(-1))
-                .unwrap_or(-1)
-        })
-        .unwrap_or(-1)
-}
-
-/// Get a transaction's response content type.
-///
-/// tx: Transaction pointer.
-///
-/// Returns the response content type or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_response_content_type(tx: *const Transaction) -> *const Bstr {
-    tx.as_ref()
-        .and_then(|tx| tx.response_content_type.as_ref())
-        .map(|response_content_type| response_content_type as *const Bstr)
-        .unwrap_or(std::ptr::null())
 }
 
 /// Get the transaction's bit flags.
@@ -682,32 +473,6 @@ pub unsafe extern "C" fn htp_tx_response_progress(tx: *const Transaction) -> Htp
     tx.as_ref()
         .map(|tx| tx.response_progress)
         .unwrap_or(HtpResponseProgress::ERROR)
-}
-
-/// Get the transaction's index.
-///
-/// tx: Transaction pointer.
-///
-/// Returns an index or -1 on error.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_index(tx: *const Transaction) -> isize {
-    tx.as_ref()
-        .map(|tx| isize::try_from(tx.index).unwrap_or(-1))
-        .unwrap_or(-1)
-}
-
-/// Register callback for the transaction-specific RESPONSE_BODY_DATA hook.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_register_response_body_data(
-    tx: *mut Transaction, cbk_fn: DataExternalCallbackFn,
-) {
-    if let Some(tx) = tx.as_mut() {
-        tx.hook_response_body_data.register_extern(cbk_fn)
-    }
 }
 
 /// Get the data's transaction.

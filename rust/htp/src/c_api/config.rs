@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 use crate::{
     config::{Config, HtpServerPersonality, HtpUrlEncodingHandling},
-    hook::{DataExternalCallbackFn, LogExternalCallbackFn, TxExternalCallbackFn},
+    hook::{DataExternalCallbackFn, TxExternalCallbackFn},
     HtpStatus,
 };
 use std::convert::TryInto;
@@ -26,17 +26,6 @@ pub unsafe extern "C" fn htp_config_destroy(cfg: *mut Config) {
     }
 }
 
-/// Registers a callback that is invoked every time there is a log message with
-/// severity equal and higher than the configured log level.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_register_log(cfg: *mut Config, cbk_fn: LogExternalCallbackFn) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.hook_log.register_extern(cbk_fn)
-    }
-}
-
 /// Registers a REQUEST_BODY_DATA callback.
 /// # Safety
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
@@ -58,18 +47,6 @@ pub unsafe extern "C" fn htp_config_register_request_complete(
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_complete.register_extern(cbk_fn)
-    }
-}
-
-/// Registers a REQUEST_HEADERS callback.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_register_request_headers(
-    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.hook_request_headers.register_extern(cbk_fn)
     }
 }
 
@@ -158,18 +135,6 @@ pub unsafe extern "C" fn htp_config_register_response_complete(
     }
 }
 
-/// Registers a RESPONSE_HEADERS callback.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_register_response_headers(
-    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.hook_response_headers.register_extern(cbk_fn)
-    }
-}
-
 /// Registers a RESPONSE_HEADER_DATA callback.
 /// # Safety
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
@@ -215,18 +180,6 @@ pub unsafe extern "C" fn htp_config_register_response_trailer_data(
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_response_trailer_data.register_extern(cbk_fn)
-    }
-}
-
-/// Registers a TRANSACTION_COMPLETE callback.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_register_transaction_complete(
-    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.hook_transaction_complete.register_extern(cbk_fn)
     }
 }
 
@@ -541,56 +494,5 @@ pub unsafe extern "C" fn htp_config_set_double_decode_normalized_path(cfg: *mut 
 pub unsafe extern "C" fn htp_config_set_normalized_uri_include_all(cfg: *mut Config, set: bool) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.set_normalized_uri_include_all(set)
-    }
-}
-
-/// Configures whether transactions will be automatically destroyed once they
-/// are processed and all callbacks invoked. This option is appropriate for
-/// programs that process transactions as they are processed.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_set_tx_auto_destroy(
-    cfg: *mut Config, tx_auto_destroy: libc::c_int,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.set_tx_auto_destroy(tx_auto_destroy == 1)
-    }
-}
-
-/// Configures whether incomplete transactions will be flushed when a connection is closed.
-///
-/// This will invoke the transaction complete callback for each incomplete transaction. The
-/// transactions passed to the callback will not have their request and response state set
-/// to complete - they will simply be passed with the state they have within the parser at
-/// the time of the call.
-///
-/// This option is intended to be used when a connection is closing and we want to process
-/// any incomplete transactions that were in flight, or which never completed due to packet
-/// loss or parsing errors.
-///
-/// These transactions will also be removed from the parser when auto destroy is enabled.
-///
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_set_flush_incomplete(
-    cfg: *mut Config, flush_incomplete: libc::c_int,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.set_flush_incomplete(flush_incomplete == 1)
-    }
-}
-
-/// Enable or disable the built-in Urlencoded parser. Disabled by default.
-/// The parser will parse query strings and request bodies with the appropriate MIME type.
-/// # Safety
-/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_config_set_parse_urlencoded(
-    cfg: *mut Config, parse_urlencoded: libc::c_int,
-) {
-    if let Some(cfg) = cfg.as_mut() {
-        cfg.set_parse_urlencoded(parse_urlencoded == 1)
     }
 }

@@ -1075,14 +1075,6 @@ impl ConnectionParser {
                     e
                 })?
             }
-            HtpContentEncoding::ERROR => {
-                htp_error!(
-                    self.logger,
-                    HtpLogCode::INVALID_CONTENT_ENCODING,
-                    "Expected a valid content encoding"
-                );
-                return Err(HtpStatus::ERROR);
-            }
         }
         Ok(())
     }
@@ -1229,14 +1221,6 @@ impl ConnectionParser {
                         }
                     }
                 }
-            }
-            HtpContentEncoding::ERROR => {
-                htp_error!(
-                    self.logger,
-                    HtpLogCode::INVALID_CONTENT_ENCODING,
-                    "Expected a valid content encoding"
-                );
-                return Err(HtpStatus::ERROR);
             }
         }
         Ok(())

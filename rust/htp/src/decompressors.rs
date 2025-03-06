@@ -183,7 +183,7 @@ impl Decompress for CallbackWriter {
 /// Type of compression.
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum HtpContentEncoding {
+pub(crate) enum HtpContentEncoding {
     /// No compression.
     NONE,
     /// Gzip compression.
@@ -194,8 +194,6 @@ pub enum HtpContentEncoding {
     ZLIB,
     /// LZMA compression.
     LZMA,
-    /// Error retrieving the content encoding.
-    ERROR,
 }
 
 /// The outer decompressor tracks the number of callbacks and time spent
@@ -245,10 +243,6 @@ impl Decompressor {
             | HtpContentEncoding::LZMA => Ok(Decompressor::new(Box::new(InnerDecompressor::new(
                 encoding, self.inner, options,
             )?))),
-            HtpContentEncoding::ERROR => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "expected a valid encoding",
-            )),
         }
     }
 
@@ -711,7 +705,7 @@ impl InnerDecompressor {
                     Ok((Box::new(NullBufWriter(buf)), true))
                 }
             }
-            HtpContentEncoding::NONE | HtpContentEncoding::ERROR => Err(std::io::Error::new(
+            HtpContentEncoding::NONE => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "expected a valid encoding",
             )),
@@ -893,7 +887,7 @@ impl Decompress for InnerDecompressor {
                 HtpContentEncoding::DEFLATE => HtpContentEncoding::ZLIB,
                 HtpContentEncoding::ZLIB => HtpContentEncoding::GZIP,
                 HtpContentEncoding::LZMA => HtpContentEncoding::DEFLATE,
-                HtpContentEncoding::NONE | HtpContentEncoding::ERROR => {
+                HtpContentEncoding::NONE => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         "expected a valid encoding",

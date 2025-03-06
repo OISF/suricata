@@ -23,7 +23,7 @@ pub(crate) type ValueBytes<'a> = (&'a [u8], FoldingOrTerminator<'a>);
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct HeaderFlags;
+pub(crate) struct HeaderFlags;
 
 impl HeaderFlags {
     pub(crate) const FOLDING: u64 = 0x0001;

@@ -62,7 +62,7 @@ impl<'a> Data<'a> {
 /// Enumerates the possible request and response body codings.
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum HtpTransferCoding {
+pub(crate) enum HtpTransferCoding {
     /// Body coding not determined yet.
     UNKNOWN,
     /// No body.
@@ -73,8 +73,6 @@ pub enum HtpTransferCoding {
     CHUNKED,
     /// We could not recognize the encoding.
     INVALID,
-    /// Error retrieving the transfer coding.
-    ERROR,
 }
 
 /// Enumerates the possible server personalities.

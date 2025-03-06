@@ -22,19 +22,19 @@ use nom::{
 #[derive(Clone)]
 pub(crate) struct Parser {
     /// The configuration structure associated with this parser
-    pub cfg: DecoderConfig,
+    pub(crate) cfg: DecoderConfig,
     /// The character used to separate parameters. Defaults to & and should
     /// not be changed without good reason.
-    pub argument_separator: u8,
+    pub(crate) argument_separator: u8,
     /// Whether to perform URL-decoding on parameters. Defaults to true.
-    pub decode_url_encoding: bool,
+    pub(crate) decode_url_encoding: bool,
     /// This table contains the list of parameters, indexed by name.
-    pub params: Table<Bstr>,
+    pub(crate) params: Table<Bstr>,
     /// Contains parsing flags
-    pub flags: u64,
+    pub(crate) flags: u64,
     /// This field is set if the parser thinks that the
     /// backend server will reject a request with a particular status code.
-    pub response_status_expected_number: HtpUnwanted,
+    pub(crate) response_status_expected_number: HtpUnwanted,
     // Private fields; these are used during the parsing process only
     complete: bool,
     saw_data: bool,

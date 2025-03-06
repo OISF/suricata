@@ -1,7 +1,6 @@
 use crate::{
     connection_parser::{ConnectionParser, ParserData},
     error::Result,
-    log::Log,
     transaction::{Data, Transaction},
     HtpStatus,
 };
@@ -25,15 +24,6 @@ pub(crate) type DataNativeCallbackFn = fn(&mut Transaction, data: &ParserData) -
 
 /// Hook for Data
 pub(crate) type DataHook = Hook<DataExternalCallbackFn, DataNativeCallbackFn>;
-
-/// External (C) callback function prototype
-pub(crate) type LogExternalCallbackFn = unsafe extern "C" fn(log: *mut Log) -> HtpStatus;
-
-/// Native (rust) callback function prototype
-pub(crate) type LogNativeCallbackFn = fn(log: &mut Log) -> Result<()>;
-
-/// Hook for Log
-pub(crate) type LogHook = Hook<LogExternalCallbackFn, LogNativeCallbackFn>;
 
 /// Callback list
 #[derive(Clone)]
