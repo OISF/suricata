@@ -50,6 +50,12 @@ static TAILQ_HEAD(, SCCapturePlugin_) capture_plugins = TAILQ_HEAD_INITIALIZER(c
 
 bool RegisterPlugin(SCPlugin *plugin, void *lib)
 {
+    if (plugin->version != SC_API_VERSION) {
+        SCLogError("Suricata and plugin versions differ: plugin has %" PRIx64
+                   " (%s) vs Suricata %" PRIx64 " (plugin was built with %s)",
+                plugin->version, plugin->plugin_version, SC_API_VERSION, plugin->suricata_version);
+        return false;
+    }
     BUG_ON(plugin->name == NULL);
     BUG_ON(plugin->author == NULL);
     BUG_ON(plugin->license == NULL);
@@ -63,8 +69,9 @@ bool RegisterPlugin(SCPlugin *plugin, void *lib)
     node->plugin = plugin;
     node->lib = lib;
     TAILQ_INSERT_TAIL(&plugins, node, entries);
-    SCLogNotice("Initializing plugin %s; author=%s; license=%s", plugin->name, plugin->author,
-            plugin->license);
+    SCLogNotice("Initializing plugin %s; version= %s; author=%s; license=%s; built from %s",
+            plugin->name, plugin->plugin_version, plugin->author, plugin->license,
+            plugin->suricata_version);
     (*plugin->Init)();
     return true;
 }
@@ -156,9 +163,6 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
-    if (plugin->version != SC_PLUGIN_API_VERSION) {
-        return 1;
-    }
     AppProto alproto = g_alproto_max;
     AppProtoRegisterProtoString(alproto, plugin->name);
     if (plugin->Register) {
