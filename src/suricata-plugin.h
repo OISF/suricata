@@ -33,11 +33,7 @@
 // Do not reuse autoconf PACKAGE_VERSION which is a string
 // Defined as major version.minor version (no patch version)
 static const uint64_t SC_API_VERSION = 0x0800;
-#ifdef REVISION
-#define SC_PACKAGE_VERSION PACKAGE_VERSION " " REVISION
-#else
 #define SC_PACKAGE_VERSION PACKAGE_VERSION
-#endif
 
 /**
  * Structure to define a Suricata plugin.
