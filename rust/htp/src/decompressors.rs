@@ -839,10 +839,12 @@ impl Write for InnerDecompressor {
                             self.write(data)
                         }
                         _ => {
-                            let written = self.try_finish(&mut writer);
-                            if written && self.restarts == 0 {
-                                // error, but some data has been written, stop here
-                                return Err(e);
+                            if self.restarts == 0 {
+                                let written = self.try_finish(&mut writer);
+                                if written {
+                                    // error, but some data has been written, stop here
+                                    return Err(e);
+                                }
                             }
                             // try to restart, any data in the temp buffer will be
                             // discarded
