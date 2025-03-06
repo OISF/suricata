@@ -15,7 +15,9 @@ Each alert, http log, etc will go into this one file: 'eve.json'. This file
 can then be processed by 3rd party tools like Logstash (ELK) or jq.
 
 If ``ethernet`` is set to yes, then ethernet headers will be added to events
-if available.
+if available. If the ``pkt_src`` value is ``stream (flow timeout)``, then the
+``ethernet`` value will be populated with mac addresses from the flow's first
+packet with ethernet header.
 
 Output Buffering
 ~~~~~~~~~~~~~~~~
