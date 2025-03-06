@@ -399,7 +399,7 @@ jobs:
       matrix:
         container:
           - almalinux:9
-          - fedora:40
+          - fedora:41
     env:
       skip: false
     steps:
@@ -456,7 +456,7 @@ jobs:
       # We need a step for each RPM upload as we can't use the
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
-      - if: ${{ matrix.container == 'fedora:40' &&  env.skip != 'true' }}
+      - if: ${{ matrix.container == 'fedora:41' &&  env.skip != 'true' }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         name: Uploading RPMs
         with:
