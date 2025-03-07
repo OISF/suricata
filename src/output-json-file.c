@@ -83,7 +83,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
         OutputJsonCtx *eve_ctx)
 {
-    enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
+    enum SCOutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
     switch(dir) {
         case STREAM_TOCLIENT:

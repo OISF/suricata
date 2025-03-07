@@ -69,7 +69,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     LogMQTTLogThread *thread = thread_data;
-    enum OutputJsonLogDirection dir;
+    enum SCOutputJsonLogDirection dir;
 
     if (SCMqttTxIsToClient((MQTTTransaction *)tx)) {
         dir = LOG_DIR_FLOW_TOCLIENT;
