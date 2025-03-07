@@ -92,6 +92,12 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
+      - run: cargo fmt --check
+        working-directory: rust/suricatactl
+      - run: cargo fmt --check
+        working-directory: rust/suricatasc
+      - run: cargo fmt --check
+        working-directory: rust/sys
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
