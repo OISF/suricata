@@ -243,11 +243,7 @@ enum DetectKeywordId {
     DETECT_L3PROTO,
     DETECT_IPREP,
 
-    DETECT_DNS_QUERY,
-    DETECT_DNS_OPCODE,
-    DETECT_DNS_RCODE,
     DETECT_DNS_RESPONSE,
-    DETECT_DNS_RRTYPE,
     DETECT_TLS_SNI,
     DETECT_TLS_CERTS,
     DETECT_TLS_CERT_ISSUER,
@@ -352,5 +348,6 @@ void SigTableSetup(void);
 int SigTablePreRegister(void (*KeywordsRegister)(void));
 void SigTableRegisterTests(void);
 bool SigTableHasKeyword(const char *keyword);
+void DetectHelperKeywordSetCleanCString(int id);
 
 #endif /* SURICATA_DETECT_ENGINE_REGISTER_H */
