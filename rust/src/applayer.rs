@@ -19,7 +19,7 @@
 
 use std;
 use crate::core::{self,DetectEngineState,AppLayerEventType};
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use std::os::raw::{c_void,c_char,c_int};

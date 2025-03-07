@@ -17,7 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,

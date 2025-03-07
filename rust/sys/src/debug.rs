@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2017-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,19 @@
  * 02110-1301, USA.
  */
 
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(clippy::all)]
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {};
+);
 
-pub mod debug;
-pub mod direction;
-pub mod sys;
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {
+    // Wrap in a conditional to prevent unreachable code warning in caller.
+    if true {
+      panic!($msg);
+    }
+  };
+);

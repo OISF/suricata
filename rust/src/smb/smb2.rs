@@ -17,7 +17,7 @@
 
 use nom7::Err;
 
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
 use crate::smb::smb2_session::*;

@@ -28,7 +28,7 @@ use suricata::detect::{
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
-use suricata::direction::Direction;
+use suricata_sys::direction::Direction;
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
