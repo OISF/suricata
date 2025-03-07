@@ -88,7 +88,7 @@ def load_schema():
                 ref = find_ref(schema, props["$ref"])
                 if not ref:
                     raise Exception("$ref not found: {}".format(props["$ref"]))
-                props = ref
+                props = props | ref
             if props["type"] in ["string", "integer", "boolean", "number"]:
                 # End of the line...
                 key = ".".join(path + [name])
