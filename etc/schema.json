@@ -539,10 +539,20 @@
                                 "type": "integer"
                             },
                             "uuid": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dcerpc.iface"
+                                    ]
+                                }
                             },
                             "version": {
-                                "type": "string"
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "dcerpc.iface"
+                                    ]
+                                }
                             }
                         },
                         "additionalProperties": false
@@ -555,7 +565,12 @@
                             "type": "integer"
                         },
                         "opnum": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "dcerpc.opnum"
+                                ]
+                            }
                         },
                         "stub_data_size": {
                             "type": "integer"
