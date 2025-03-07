@@ -24,7 +24,7 @@ use crate::core::{
     STREAM_TOCLIENT, STREAM_TOSERVER,
 };
 use crate::detect::EnumString;
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7 as nom;
