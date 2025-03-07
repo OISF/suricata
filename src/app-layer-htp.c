@@ -6829,6 +6829,7 @@ static int HTPParserTest25(void)
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP1;
+    f->flags |= FLOW_SGH_TOCLIENT | FLOW_SGH_TOSERVER;
 
     const char *str = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Suricata/1.0\r\n\r\n";
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START,
