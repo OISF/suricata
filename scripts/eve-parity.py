@@ -118,9 +118,8 @@ def load_schema():
                             ),
                         )
                     else:
-                        # May want to warn that this array has no properties.
                         key = ".".join(path + [name])
-                        keys[key] = {}
+                        keys[key] = props.get("suricata", {})
                 else:
                     # May want to warn that this array has no items.
                     key = ".".join(path + [name])
