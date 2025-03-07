@@ -157,6 +157,11 @@ impl ConnectionParser {
     /// Returns HtpStatus::OK on state change, HtpStatus::Error on error, or
     /// HtpStatus::DATA when more data is needed.
     pub(crate) fn response_body_chunked_data(&mut self, input: &ParserData) -> Result<()> {
+        if self.response_status == HtpStreamState::CLOSED {
+            self.response_state = State::FINALIZE;
+            // Sends close signal to decompressors
+            return self.response_body_data(input.data());
+        }
         let bytes_to_consume = min(
             input.len(),
             self.response_chunked_length.unwrap_or(0) as usize,
