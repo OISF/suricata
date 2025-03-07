@@ -17,7 +17,7 @@
 
 use super::ike::{IKEState, IKETransaction};
 use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use num_traits::FromPrimitive;

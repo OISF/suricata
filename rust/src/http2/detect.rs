@@ -19,7 +19,7 @@ use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
 };
 use super::parser;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
 use std::ffi::CStr;
 use std::str::FromStr;

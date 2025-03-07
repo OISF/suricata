@@ -23,21 +23,21 @@ use super::range;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::*;
-use crate::direction::Direction;
 use crate::filecontainer::*;
 use crate::filetracker::*;
 use crate::flow::Flow;
 use crate::frames::Frame;
+use suricata_core::direction::Direction;
 
 use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
 
 use nom7::Err;
-use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
+use suricata_sys::sys::AppProto;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;

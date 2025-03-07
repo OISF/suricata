@@ -21,7 +21,7 @@ use crate::applayer::StreamSlice;
 use crate::flow::Flow;
 #[cfg(not(test))]
 use crate::core::STREAM_TOSERVER;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 
 #[cfg(not(test))]
 #[repr(C)]

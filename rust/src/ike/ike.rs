@@ -23,7 +23,7 @@ use self::ipsec_parser::*;
 use crate::applayer;
 use crate::applayer::*;
 use crate::core::{self, *};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};

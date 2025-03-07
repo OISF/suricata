@@ -19,7 +19,7 @@
 
 use std;
 use crate::core::{self,DetectEngineState,AppLayerEventType};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use std::os::raw::{c_void,c_char,c_int};
@@ -32,12 +32,7 @@ pub use suricata_derive::AppLayerEvent;
 use suricata_sys::sys::AppProto;
 
 /// Cast pointer to a variable, as a mutable reference to an object
-///
-/// UNSAFE !
-#[macro_export]
-macro_rules! cast_pointer {
-    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
-}
+pub use suricata_core::cast_pointer;
 
 #[repr(C)]
 pub struct StreamSlice {

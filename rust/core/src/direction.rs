@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+pub use crate::debug_validate_fail;
+
 pub const DIR_BOTH: u8 = 0b0000_1100;
 const DIR_TOSERVER: u8 = 0b0000_0100;
 const DIR_TOCLIENT: u8 = 0b0000_1000;

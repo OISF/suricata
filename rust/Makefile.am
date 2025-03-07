@@ -1,6 +1,7 @@
 SUBDIRS =	sys \
 		suricatasc \
-		suricatactl
+		suricatactl \
+		core
 
 EXTRA_DIST =	src derive \
 		.cargo/config.toml.in \
@@ -11,6 +12,8 @@ EXTRA_DIST =	src derive \
 		derive/Cargo.toml \
 		sys \
 		sys/Cargo.toml \
+		core \
+		core/Cargo.toml \
 		suricatasc \
 		suricatactl
 

@@ -30,7 +30,7 @@ use suricata_sys::sys::AppProto;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{ALPROTO_FAILED,ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 
 #[derive(AppLayerEvent)]

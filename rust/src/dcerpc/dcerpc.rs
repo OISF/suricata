@@ -18,7 +18,7 @@
 use crate::applayer::{self, *};
 use crate::core::{self, *};
 use crate::dcerpc::parser;
-use crate::direction::{Direction, DIR_BOTH};
+use suricata_core::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use crate::frames::*;
 use nom7::error::{Error, ErrorKind};
@@ -1285,7 +1285,7 @@ mod tests {
     use crate::applayer::{AppLayerResult, StreamSlice};
     use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
-    use crate::direction::Direction;
+    use suricata_core::direction::Direction;
     use std::cmp;
 
     #[test]

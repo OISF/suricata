@@ -21,7 +21,7 @@ use nom7::bytes::streaming::take;
 use nom7::number::streaming::be_u32;
 use nom7::{Err, IResult};
 
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::nfs::nfs::*;
 use crate::nfs::nfs4_records::*;
 use crate::nfs::nfs_records::*;

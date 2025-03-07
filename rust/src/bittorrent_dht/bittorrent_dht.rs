@@ -22,7 +22,7 @@ use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use std::ffi::CString;
 use std::os::raw::c_char;

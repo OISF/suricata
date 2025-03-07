@@ -19,7 +19,7 @@ use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 

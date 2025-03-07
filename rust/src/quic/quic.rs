@@ -24,12 +24,12 @@ use super::{
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::{
     applayer::{self, *},
-    direction::Direction,
     flow::Flow,
 };
 use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::AppProto;
+use suricata_core::direction::Direction;
 use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;

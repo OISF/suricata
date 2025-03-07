@@ -19,7 +19,7 @@ use super::detect;
 use crate::core::{
     HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
 };
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::http2::http2::HTTP2Transaction;
 use crate::http2::http2::SURICATA_HTTP2_FILE_CONFIG;

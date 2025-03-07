@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 nom7 = { version="7.0", package="nom" }
 libc = "~0.2.82"
 suricata = { path = "../../../rust/" }
+suricata-core = { path = "../../../rust/core" }
 suricata-sys = { path = "../../../rust/sys" }
 
 [features]

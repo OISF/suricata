@@ -1,9 +1,9 @@
 [package]
-name = "suricata-sys"
+name = "suricata-core"
 version = "@PACKAGE_VERSION@"
 edition = "2021"
 license = "GPL-2.0-only"
-description = "Bindings to Suricata C interface"
+description = "Zero-dependency Suricata core elements (for plugins)"
 
 [features]
 debug = []

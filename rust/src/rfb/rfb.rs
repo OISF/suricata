@@ -22,7 +22,7 @@ use super::parser;
 use crate::applayer;
 use crate::applayer::*;
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use nom7::Err;

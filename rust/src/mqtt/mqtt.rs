@@ -23,7 +23,7 @@ use crate::applayer::*;
 use crate::applayer;
 use crate::conf::{conf_get, get_memval};
 use crate::core::*;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use nom7::Err;

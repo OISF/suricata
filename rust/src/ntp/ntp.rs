@@ -22,7 +22,7 @@ use self::ntp_parser::*;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use std;
 use std::ffi::CString;

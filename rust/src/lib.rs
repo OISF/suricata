@@ -75,6 +75,8 @@ extern crate ldap_parser;
 
 #[macro_use]
 extern crate suricata_derive;
+#[macro_use]
+extern crate suricata_core;
 
 #[macro_use]
 pub mod core;
@@ -136,7 +138,6 @@ pub mod feature;
 pub mod sdp;
 pub mod ldap;
 pub mod flow;
-pub mod direction;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;

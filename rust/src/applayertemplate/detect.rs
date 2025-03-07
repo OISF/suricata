@@ -24,8 +24,8 @@ use crate::detect::{
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
-use crate::direction::Direction;
 use std::os::raw::{c_int, c_void};
+use suricata_core::direction::Direction;
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 

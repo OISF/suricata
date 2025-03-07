@@ -22,13 +22,13 @@
 
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
-use suricata::cast_pointer;
 use suricata::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
-use suricata::direction::Direction;
+use suricata_core::cast_pointer;
+use suricata_core::direction::Direction;
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 

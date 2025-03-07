@@ -17,7 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::snmp::snmp_parser::*;
 use crate::core::{self, *};

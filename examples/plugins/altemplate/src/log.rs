@@ -21,47 +21,10 @@
 // Jsonbuilder using C API due to  opaque implementation
 
 use super::template::TemplateTransaction;
-use std::ffi::{c_char, CString};
-use suricata::cast_pointer;
-use suricata::jsonbuilder::JsonError;
+use suricata_core::cast_pointer;
+use suricata_core::jsonbuilder::{JsonBuilder, JsonError};
 
 use std;
-
-// Jsonbuilder opaque with implementation using C API to feel like usual
-#[repr(C)]
-pub struct JsonBuilder {
-    _data: [u8; 0],
-}
-
-extern "C" {
-    pub fn jb_set_string(jb: &mut JsonBuilder, key: *const c_char, val: *const c_char) -> bool;
-    pub fn jb_close(jb: &mut JsonBuilder) -> bool;
-    pub fn jb_open_object(jb: &mut JsonBuilder, key: *const c_char) -> bool;
-}
-
-impl JsonBuilder {
-    fn close(&mut self) -> Result<(), JsonError> {
-        if unsafe { !jb_close(self) } {
-            return Err(JsonError::Memory);
-        }
-        Ok(())
-    }
-    fn open_object(&mut self, key: &str) -> Result<(), JsonError> {
-        let keyc = CString::new(key).unwrap();
-        if unsafe { !jb_open_object(self, keyc.as_ptr()) } {
-            return Err(JsonError::Memory);
-        }
-        Ok(())
-    }
-    fn set_string(&mut self, key: &str, val: &str) -> Result<(), JsonError> {
-        let keyc = CString::new(key).unwrap();
-        let valc = CString::new(val.escape_default().to_string()).unwrap();
-        if unsafe { !jb_set_string(self, keyc.as_ptr(), valc.as_ptr()) } {
-            return Err(JsonError::Memory);
-        }
-        Ok(())
-    }
-}
 
 fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("altemplate")?;

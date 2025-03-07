@@ -24,7 +24,7 @@ use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMess
 use crate::applayer::*;
 use crate::conf::*;
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use nom7::{Err, IResult};
 use std;

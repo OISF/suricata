@@ -18,7 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::applayer::*;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::ike::ipsec_parser::*;
 
 use super::ipsec_parser::IkeV2Transform;

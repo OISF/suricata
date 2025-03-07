@@ -18,7 +18,7 @@
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::detect::uint::detect_match_uint;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::smb::smb::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};

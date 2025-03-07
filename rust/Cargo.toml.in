@@ -13,6 +13,7 @@ members = [
     "suricatactl",
     "suricatasc",
     "sys",
+    "core",
 ]
 
 default-members = [
@@ -81,6 +82,7 @@ time = "~0.3.36"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
+suricata-core = { path = "./core", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "0.1.0-alpha.6" }
 

@@ -16,8 +16,8 @@
  */
 
 use super::dns::DNSTransaction;
-use crate::direction::Direction;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
+use suricata_core::direction::Direction;
 
 /// Perform the DNS opcode match.
 ///

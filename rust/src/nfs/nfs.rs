@@ -27,8 +27,7 @@ use suricata_sys::sys::AppProto;
 
 use crate::applayer;
 use crate::applayer::*;
-use crate::direction::Direction;
-use crate::direction::DIR_BOTH;
+use suricata_core::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use crate::frames::*;
 use crate::core::*;

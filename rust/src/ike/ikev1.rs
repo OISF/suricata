@@ -19,7 +19,7 @@
 
 use crate::applayer::*;
 use crate::common::to_hex;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::ike::ike::{IKEState, IkeEvent};
 use crate::ike::parser::*;
 use nom7::Err;

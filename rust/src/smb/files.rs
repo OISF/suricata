@@ -17,7 +17,7 @@
 
 use std;
 use crate::core::*;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::filetracker::*;
 use crate::filecontainer::*;
 

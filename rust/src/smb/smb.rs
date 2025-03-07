@@ -40,7 +40,7 @@ use std::num::NonZeroUsize;
 use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::{Flow, FLOW_DIR_REVERSED};
 use crate::frames::*;
 use crate::conf::*;

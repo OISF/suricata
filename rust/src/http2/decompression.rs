@@ -15,12 +15,12 @@
 * 02110-1301, USA.
 */
 
-use crate::direction::Direction;
 use brotli;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
 use std::io;
 use std::io::{Cursor, Read, Write};
+use suricata_core::direction::Direction;
 
 pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
 

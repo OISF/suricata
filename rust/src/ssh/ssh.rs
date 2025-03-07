@@ -18,7 +18,7 @@
 use super::parser;
 use crate::applayer::*;
 use crate::core::*;
-use crate::direction::Direction;
+use suricata_core::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7::Err;
