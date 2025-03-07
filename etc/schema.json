@@ -6774,6 +6774,9 @@
                 "client_alpns": {
                     "description": "TLS client ALPN field(s)",
                     "type": "array",
+		    "suricata": {
+			"keywords": ["tls.alpn"]
+		    },
                     "items": {
                         "type": "string"
                     }
