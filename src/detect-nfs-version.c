@@ -69,8 +69,6 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_NFS_VERSION].Setup = DetectNfsVersionSetup;
     sigmatch_table[DETECT_NFS_VERSION].Free = DetectNfsVersionFree;
     // unit tests were the same as DetectNfsProcedureRegisterTests
-    DetectAppLayerInspectEngineRegister(
-            "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");
 

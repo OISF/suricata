@@ -240,11 +240,15 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (tls == NULL)
         goto error;
 
+    /* keyword supports multiple hooks, so attach to the hook specified in the rule. */
+    int list = g_tls_generic_list_id;
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        list = s->init_data->hook.sm_list;
+    }
 
-    if (SigMatchAppendSMToList(
-                de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, g_tls_generic_list_id) == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, list) == NULL) {
         goto error;
     }
 
