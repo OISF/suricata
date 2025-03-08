@@ -28,7 +28,7 @@ COMMANDS
 BUGS
 ----
 
-Please visit Suricata's support page for information about submitting
+Please visit Suricata's Community page for information about submitting
 bugs or feature requests.
 
 NOTES
@@ -38,6 +38,6 @@ NOTES
 
     https://suricata.io/
 
-* Suricata Support Page
+* Suricata Community Page
 
-    https://suricata.io/support/
+    https://suricata.io/community/
