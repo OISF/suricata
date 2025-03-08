@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2024 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,43 +18,46 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <el@stamus-networks.com>
  */
 
 #include "suricata-common.h"
 #include "conf.h"
-#include "datasets.h"
 #include "datajson.h"
-#include "datasets-md5.h"
+#include "datajson-ipv4.h"
 #include "util-hash-lookup3.h"
-
 #include "util-thash.h"
 #include "util-print.h"
 
-int Md5StrSet(void *dst, void *src)
+int IPv4JsonSet(void *dst, void *src)
 {
-    Md5Type *src_s = src;
-    Md5Type *dst_s = dst;
-    memcpy(dst_s->md5, src_s->md5, sizeof(dst_s->md5));
-    dst_s->rep = src_s->rep;
+    IPv4TypeJson *src_s = src;
+    IPv4TypeJson *dst_s = dst;
+    memcpy(dst_s->ipv4, src_s->ipv4, sizeof(dst_s->ipv4));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
+
     return 0;
 }
 
-bool Md5StrCompare(void *a, void *b)
+bool IPv4JsonCompare(void *a, void *b)
 {
-    const Md5Type *as = a;
-    const Md5Type *bs = b;
+    const IPv4TypeJson *as = a;
+    const IPv4TypeJson *bs = b;
 
-    return (memcmp(as->md5, bs->md5, sizeof(as->md5)) == 0);
+    return (memcmp(as->ipv4, bs->ipv4, sizeof(as->ipv4)) == 0);
 }
 
-uint32_t Md5StrHash(uint32_t hash_seed, void *s)
+uint32_t IPv4JsonHash(uint32_t hash_seed, void *s)
 {
-    const Md5Type *str = s;
-    return hashword((uint32_t *)str->md5, sizeof(str->md5) / 4, hash_seed);
+    const IPv4TypeJson *str = s;
+    return hashword((uint32_t *)str->ipv4, 1, hash_seed);
 }
 
-// data stays in hash
-void Md5StrFree(void *s)
+void IPv4JsonFree(void *s)
 {
+    const IPv4TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
 }

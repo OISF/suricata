@@ -52,6 +52,7 @@
 #include "detect-base64-data.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
+#include "detect-datajson.h"
 
 #include "util-spm.h"
 #include "util-debug.h"
@@ -637,7 +638,15 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto match;
         }
         goto no_match_discontinue;
+    } else if (smd->type == DETECT_DATAJSON) {
 
+        // PrintRawDataFp(stdout, buffer, buffer_len);
+        const DetectDatajsonData *sd = (const DetectDatajsonData *)smd->ctx;
+        int r = DetectDatajsonBufferMatch(det_ctx, sd, buffer, buffer_len); // TODO buffer offset?
+        if (r == 1) {
+            goto match;
+        }
+        goto no_match_discontinue;
     } else if (smd->type == DETECT_URILEN) {
         SCLogDebug("inspecting uri len");
 
