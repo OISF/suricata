@@ -23,7 +23,7 @@
 
 #ifndef SURICATA_UTIL_MISC_H
 #define SURICATA_UTIL_MISC_H
-
+#include "util-time.h"
 /**
  * \brief Generic API that can be used by all to log an
  *        invalid conf entry.
@@ -45,10 +45,14 @@ int ParseSizeStringU8(const char *, uint8_t *);
 int ParseSizeStringU16(const char *, uint16_t *);
 int ParseSizeStringU32(const char *, uint32_t *);
 int ParseSizeStringU64(const char *, uint64_t *);
+int ParseTimeString(const char *, SCTime_t *);
 
 #ifdef UNITTESTS
 void UtilMiscRegisterTests(void);
 #endif /* UNITTESTS */
+
+void ParseTimeInit(void);
+void ParseTimeDeinit(void);
 
 void ParseSizeInit(void);
 void ParseSizeDeinit(void);
