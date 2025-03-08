@@ -29,10 +29,8 @@ jobs:
                 autoconf \
                 automake \
                 bindgen \
-                cargo \
                 cbindgen \
                 clang-devel \
-                clippy \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -59,12 +57,11 @@ jobs:
                 python3-devel \
                 python3-sphinx \
                 python3-yaml \
-                rust \
-                rustfmt \
                 sudo \
                 which \
                 zlib-devel
-
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.0 -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
