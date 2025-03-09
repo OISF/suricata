@@ -7,6 +7,10 @@ on:
       # modified.
       - "doc/**"
   pull_request:
+    paths-ignore:
+      # Don't run this workflow if only files under doc/ have been
+      # modified.
+      - "doc/**"
   workflow_dispatch:
     inputs:
       LIBHTP_REPO:
