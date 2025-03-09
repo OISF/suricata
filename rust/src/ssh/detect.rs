@@ -16,7 +16,7 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use std::ptr;
 
 #[no_mangle]

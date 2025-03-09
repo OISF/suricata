@@ -17,7 +17,7 @@
 
 // written by Victor Julien
 
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;

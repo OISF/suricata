@@ -44,7 +44,10 @@ void SCPluginInit(void)
 }
 
 const SCPlugin PluginRegistration = {
+    .version = SC_API_VERSION,
+    .suricata_version = SC_PACKAGE_VERSION,
     .name = "napatech",
+    .plugin_version = "1.0.0",
     .author = "Open Information Security Foundation",
     .license = "GPLv2",
     .Init = SCPluginInit,
