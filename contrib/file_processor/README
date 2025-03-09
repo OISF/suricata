@@ -1,8 +1,0 @@
-This directory contains what's needed for reading the JSON file /var/log/suricata/files-json.log and processing those entries against plugins.  Included are plugins for checking the MD5 of the observed file on the network against already created reports on anubis.iseclab.org, malwr.com, and threatexpert.com.  If you have a virustotal.com API key (free, though see the terms of use on virustotal.com/documentation/public-api/), you can enable the virustotal.com plugin and configure your API key so you can check the MD5 against over forty AV vendors' results.
-
-To create new plugins, use the existing modules as a guide.  Drop a new file with the .pm extension in either the Processor or Action directory, depending on what kind of plugin it is.  Processor plugins add information to the data.  Action plugins do something with the data once all of the information is available.  A simple logging demo has been included, but many different kinds of action plugins could be written to do things like submit full files to a sandbox, send an email, log to a database, send an SNMP trap, etc.
-
-INSTALLATION
-You will need a few Perl modules to get going.  I recommend using the excellent cpanm utility which can be installed by typing "cpan App::cpanminus."  After cpanm is installed, you can install everything in one command like this:
-cpanm Moose Module::Pluggable Log::Log4perl Config::JSON File::Tail LWP::UserAgent Sys::Syslog
-Alternatively, you may wish to install using your operating system's package manager, though that may not use the latest code for these modules.
