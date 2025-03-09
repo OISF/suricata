@@ -103,6 +103,8 @@ Major changes
   change, however if you run these tools from the source directory,
   patch them or use them as Python modules your workflows may need to
   be adapted.
+- New rule keyword ``entropy`` for alerting based on entropy values. See
+  :ref:`keyword_entropy`.
 
 Removals
 ~~~~~~~~
