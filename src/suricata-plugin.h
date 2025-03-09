@@ -63,7 +63,8 @@ typedef struct SCAppLayerPlugin_ {
     void (*KeywordsRegister)(void);
     char *logname;
     char *confname;
-    bool (*Logger)(void *tx, void *jb);
+    uint8_t dir;
+    bool (*Logger)(const void *tx, void *jb);
 } SCAppLayerPlugin;
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *);

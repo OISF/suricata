@@ -27,27 +27,29 @@ pub enum AppProtoEnum {
     ALPROTO_KRB5 = 21,
     ALPROTO_QUIC = 22,
     ALPROTO_DHCP = 23,
-    ALPROTO_SNMP = 24,
-    ALPROTO_SIP = 25,
-    ALPROTO_RFB = 26,
-    ALPROTO_MQTT = 27,
-    ALPROTO_PGSQL = 28,
-    ALPROTO_TELNET = 29,
-    ALPROTO_WEBSOCKET = 30,
-    ALPROTO_LDAP = 31,
-    ALPROTO_DOH2 = 32,
-    ALPROTO_TEMPLATE = 33,
-    ALPROTO_RDP = 34,
-    ALPROTO_HTTP2 = 35,
-    ALPROTO_BITTORRENT_DHT = 36,
-    ALPROTO_POP3 = 37,
-    ALPROTO_HTTP = 38,
-    ALPROTO_MAX_STATIC = 39,
+    ALPROTO_SIP = 24,
+    ALPROTO_RFB = 25,
+    ALPROTO_MQTT = 26,
+    ALPROTO_PGSQL = 27,
+    ALPROTO_TELNET = 28,
+    ALPROTO_WEBSOCKET = 29,
+    ALPROTO_LDAP = 30,
+    ALPROTO_DOH2 = 31,
+    ALPROTO_TEMPLATE = 32,
+    ALPROTO_RDP = 33,
+    ALPROTO_HTTP2 = 34,
+    ALPROTO_BITTORRENT_DHT = 35,
+    ALPROTO_POP3 = 36,
+    ALPROTO_HTTP = 37,
+    ALPROTO_MAX_STATIC = 38,
 }
 pub type AppProto = u16;
 extern "C" {
     #[doc = " \\brief Maps the ALPROTO_*, to its string equivalent.\n\n \\param alproto App layer protocol id.\n\n \\retval String equivalent for the alproto."]
     pub fn AppProtoToString(alproto: AppProto) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn AppProtoNewProtoFromString(proto_name: *const ::std::os::raw::c_char) -> AppProto;
 }
 extern "C" {
     pub fn AppProtoRegisterProtoString(
@@ -114,9 +116,10 @@ pub struct SCAppLayerPlugin_ {
     pub KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     pub logname: *mut ::std::os::raw::c_char,
     pub confname: *mut ::std::os::raw::c_char,
+    pub dir: u8,
     pub Logger: ::std::option::Option<
         unsafe extern "C" fn(
-            tx: *mut ::std::os::raw::c_void,
+            tx: *const ::std::os::raw::c_void,
             jb: *mut ::std::os::raw::c_void,
         ) -> bool,
     >,
@@ -124,4 +127,41 @@ pub struct SCAppLayerPlugin_ {
 pub type SCAppLayerPlugin = SCAppLayerPlugin_;
 extern "C" {
     pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCOutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW = 1,
+    LOG_DIR_FLOW_TOCLIENT = 2,
+    LOG_DIR_FLOW_TOSERVER = 3,
+}
+pub type EveJsonSimpleTxLogFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const ::std::os::raw::c_void,
+        arg2: *mut ::std::os::raw::c_void,
+    ) -> bool,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonSimpleAppLayerLogger {
+    pub LogTx: EveJsonSimpleTxLogFunc,
+    pub name: *const ::std::os::raw::c_char,
+}
+extern "C" {
+    pub fn SCEveJsonSimpleGetLogger(alproto: AppProto) -> *mut EveJsonSimpleAppLayerLogger;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonTxLoggerRegistrationData {
+    pub confname: *const ::std::os::raw::c_char,
+    pub logname: *const ::std::os::raw::c_char,
+    pub alproto: AppProto,
+    pub dir: u8,
+    pub LogTx: EveJsonSimpleTxLogFunc,
+}
+extern "C" {
+    pub fn SCOutputPreRegisterLogger(
+        reg_data: EveJsonTxLoggerRegistrationData,
+    ) -> ::std::os::raw::c_int;
 }
