@@ -627,17 +627,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
         goto error;
     }
 
-    lua_newtable(luastate); /* stack at -1 */
-    if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
-        SCLogError("no table setup");
-        goto error;
-    }
-
-    lua_pushliteral(luastate, "script_api_ver"); /* stack at -2 */
-    lua_pushnumber (luastate, 1); /* stack at -3 */
-    lua_settable(luastate, -3);
-
-    if (lua_pcall(luastate, 1, 1, 0) != 0) {
+    if (lua_pcall(luastate, 0, 1, 0) != 0) {
         SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
