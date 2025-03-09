@@ -998,7 +998,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
 /***** Utility *****/
 
-AppProto AppLayerGetProtoByName(char *alproto_name)
+AppProto AppLayerGetProtoByName(const char *alproto_name)
 {
     SCEnter();
     AppProto r = AppLayerProtoDetectGetProtoByName(alproto_name);
