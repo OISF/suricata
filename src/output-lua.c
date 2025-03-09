@@ -467,17 +467,7 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options, Log
         goto error;
     }
 
-    lua_newtable(luastate); /* stack at -1 */
-    if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
-        SCLogError("no table setup");
-        goto error;
-    }
-
-    lua_pushliteral(luastate, "script_api_ver");
-    lua_pushnumber (luastate, 1);
-    lua_settable(luastate, -3);
-
-    if (lua_pcall(luastate, 1, 1, 0) != 0) {
+    if (lua_pcall(luastate, 0, 1, 0) != 0) {
         SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }

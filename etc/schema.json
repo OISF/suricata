@@ -1283,7 +1283,8 @@
                     "additionalProperties": false
                 },
                 "grouped": {
-                    "desription": "DNS fields grouped by type: alternative format, no direct keywords",
+                    "desription":
+                            "DNS fields grouped by type: alternative format, no direct keywords",
                     "type": "object",
                     "suricata": {
                         "keywords": false
@@ -3813,6 +3814,11 @@
                     "additionalProperties": false
                 },
                 "ja4": {
+                    "suricata": {
+                        "keywords": [
+                            "ja4.hash"
+                        ]
+                    },
                     "type": "string"
                 },
                 "sni": {
@@ -6721,52 +6727,116 @@
             "type": "object",
             "properties": {
                 "certificate": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.certs"
+                        ]
+                    }
                 },
                 "chain": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "tls.certs",
+                            "tls.cert_chain_len"
+                        ]
                     }
                 },
                 "client": {
                     "type": "object",
                     "properties": {
                         "certificate": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "tls.certs"
+                                ]
+                            }
                         },
                         "chain": {
                             "type": "array",
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            },
+                            "suricata": {
+                                "keywords": [
+                                    "tls.certs",
+                                    "tls.cert_chain_len"
+                                ]
                             }
                         },
                         "fingerprint": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "tls.cert_fingerprint",
+                                    "tls.fingerprint"
+                                ]
+                            }
                         },
                         "issuerdn": {
+                            "suricata": {
+                                "keywords": [
+                                    "tls.cert_issuer",
+                                    "tls.issuerdn"
+                                ]
+                            },
                             "type": "string"
                         },
                         "subjectaltname": {
                             "description": "TLS Subject Alternative Name field",
                             "type": "array",
+                            "suricata": {
+                                "keywords": [
+                                    "tls.subjectaltname"
+                                ]
+                            },
                             "items": {
                                 "type": "string"
                             }
                         },
                         "notafter": {
-                            "$ref": "#/$defs/tls_date"
+                            "$ref": "#/$defs/tls_date",
+                            "suricata": {
+                                "keywords": [
+                                    "tls_cert_notafter",
+                                    "tls_cert_expired",
+                                    "tls_cert_valid"
+                                ]
+                            }
                         },
                         "notbefore": {
-                            "$ref": "#/$defs/tls_date"
+                            "$ref": "#/$defs/tls_date",
+                            "suricata": {
+                                "keywords": [
+                                    "tls_cert_notbefore",
+                                    "tls_cert_expired",
+                                    "tls_cert_valid"
+                                ]
+                            }
                         },
                         "serial": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "tls.cert_serial"
+                                ]
+                            }
                         },
                         "subject": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "tls.cert_subject",
+                                    "tls.subject"
+                                ]
+                            }
                         }
                     },
                     "additionalProperties": false
@@ -6774,9 +6844,11 @@
                 "client_alpns": {
                     "description": "TLS client ALPN field(s)",
                     "type": "array",
-		    "suricata": {
-			"keywords": ["tls.alpn"]
-		    },
+                    "suricata": {
+                        "keywords": [
+                            "tls.alpn"
+                        ]
+                    },
                     "items": {
                         "type": "string"
                     }
@@ -6784,54 +6856,121 @@
                 "server_alpns": {
                     "description": "TLS server ALPN field(s)",
                     "type": "array",
+                    "suricata": {
+                        "keywords": [
+                            "tls.alpn"
+                        ]
+                    },
                     "items": {
                         "type": "string"
                     }
                 },
                 "fingerprint": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.cert_fingerprint",
+                            "tls.fingerprint"
+                        ]
+                    }
                 },
                 "from_proto": {
                     "type": "string"
                 },
                 "issuerdn": {
+                    "suricata": {
+                        "keywords": [
+                            "tls.cert_issuer",
+                            "tls.issuerdn"
+                        ]
+                    },
                     "type": "string"
                 },
                 "subjectaltname": {
                     "description": "TLS Subject Alternative Name field",
                     "type": "array",
+                    "suricata": {
+                        "keywords": [
+                            "tls.subjectaltname"
+                        ]
+                    },
                     "items": {
                         "type": "string"
                     }
                 },
                 "notafter": {
-                    "$ref": "#/$defs/tls_date"
+                    "$ref": "#/$defs/tls_date",
+                    "suricata": {
+                        "keywords": [
+                            "tls_cert_notafter",
+                            "tls_cert_expired",
+                            "tls_cert_valid"
+                        ]
+                    }
                 },
                 "notbefore": {
-                    "$ref": "#/$defs/tls_date"
+                    "$ref": "#/$defs/tls_date",
+                    "suricata": {
+                        "keywords": [
+                            "tls_cert_notbefore",
+                            "tls_cert_expired",
+                            "tls_cert_valid"
+                        ]
+                    }
                 },
                 "serial": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.cert_serial"
+                        ]
+                    }
                 },
                 "session_resumed": {
                     "type": "boolean"
                 },
                 "sni": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.sni"
+                        ]
+                    }
                 },
                 "subject": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.cert_subject",
+                            "tls.subject"
+                        ]
+                    }
                 },
                 "version": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "tls.version"
+                        ]
+                    }
                 },
                 "ja3": {
                     "type": "object",
                     "properties": {
                         "hash": {
+                            "suricata": {
+                                "keywords": [
+                                    "ja3.hash"
+                                ]
+                            },
                             "type": "string"
                         },
                         "string": {
+                            "suricata": {
+                                "keywords": [
+                                    "ja3s.string"
+                                ]
+                            },
                             "type": "string"
                         }
                     },
@@ -6841,15 +6980,30 @@
                     "type": "object",
                     "properties": {
                         "hash": {
+                            "suricata": {
+                                "keywords": [
+                                    "ja3s.hash"
+                                ]
+                            },
                             "type": "string"
                         },
                         "string": {
+                            "suricata": {
+                                "keywords": [
+                                    "ja3s.string"
+                                ]
+                            },
                             "type": "string"
                         }
                     },
                     "additionalProperties": false
                 },
                 "ja4": {
+                    "suricata": {
+                        "keywords": [
+                            "ja4.hash"
+                        ]
+                    },
                     "type": "string"
                 }
             },

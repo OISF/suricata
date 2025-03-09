@@ -12,7 +12,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     scripts/docs-ubuntu-debian-minimal-build.sh \
        scripts/evedoc.py \
 	     examples/plugins
-SUBDIRS = $(HTP_DIR) rust src plugins qa rules doc contrib etc python ebpf \
+SUBDIRS = $(HTP_DIR) rust src plugins qa rules doc etc python ebpf \
           $(SURICATA_UPDATE_DIR)
 DIST_SUBDIRS = $(SUBDIRS) examples/lib/simple
 
