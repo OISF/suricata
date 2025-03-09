@@ -7,6 +7,10 @@ on:
       # modified.
       - "doc/**"
   pull_request:
+    paths-ignore:
+      # Don't run this workflow if only files under doc/ have been
+      # modified.
+      - "doc/**"
   workflow_dispatch:
     inputs:
       LIBHTP_REPO:
@@ -75,13 +79,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -225,14 +222,6 @@ jobs:
     container: almalinux:9
     needs: [prepare-deps, prepare-cbindgen]
     steps:
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          # TODO: Find some variable that matches the job name.
-          key: almalinux-9-templates-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
       # Cache Rust stuff.
       - name: Cache cargo registry
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
@@ -327,13 +316,6 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -409,13 +391,6 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
       - name: Download Suricata distribution archive
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
         with:
@@ -481,13 +456,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -579,13 +547,6 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -672,13 +633,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -769,13 +723,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -1049,13 +996,6 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
-
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -1120,13 +1060,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
@@ -2549,19 +2482,6 @@ jobs:
           path: ~/.cargo/registry
           key: cargo-registry
 
-      # Setup apt package caching.
-      - name: Setup apt package caching
-        run: |
-          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >> /etc/apt/apt.conf.d/99cache
-          echo 'APT::Keep-Downloaded-Packages "false";' >> /etc/apt/apt.conf.d/99cache
-          rm -f /etc/apt/apt.conf.d/docker-clean
-
-      - name: Cache apt downloads
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ github.job }}-apt
-
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
@@ -3084,13 +3004,6 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-
-      - name: Cache RPMs
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: /var/cache/dnf
-          key: ${{ github.job }}-dnf
-      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
