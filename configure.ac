@@ -1241,14 +1241,15 @@
         PCAP_LIB_NAME="pcap"
     fi
 
-    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
-
-    AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
-    if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
-        AC_MSG_RESULT(no pcap-config is use)
-    else
-        PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
-        AC_SUBST(PCAP_CFLAGS)
+    PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}" with_pkgconfig_pcap=yes],[with_pkgconfig_pcap=no])
+    if test "$with_pkgconfig_pcap" != "yes"; then
+        AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
+        if test "$HAVE_PCAP_CONFIG" = "no" -o "x$cross_compiling" = "xyes"; then
+            AC_MSG_RESULT(no pcap-config is use)
+        else
+            PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
+            AC_SUBST(PCAP_CFLAGS)
+        fi
     fi
 
     #Appears as if pcap_set_buffer_size is linux only?
