@@ -1361,6 +1361,7 @@ name = "suricatactl"
 version = "8.0.0-dev"
 dependencies = [
  "clap",
+ "once_cell",
  "regex",
  "tracing",
  "tracing-subscriber",
@@ -1371,6 +1372,7 @@ name = "suricatasc"
 version = "8.0.0-dev"
 dependencies = [
  "clap",
+ "once_cell",
  "rustyline",
  "rustyline-derive",
  "serde",
