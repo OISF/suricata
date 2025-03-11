@@ -391,7 +391,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
         SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
     }
 
-    if (!sig_file_exclusive || de_ctx->firewall_rule_file_exclusive) {
+    if (de_ctx->firewall_rule_file_exclusive) {
         if (LoadFirewallRuleFiles(de_ctx) < 0) {
             if (de_ctx->failure_fatal) {
                 exit(EXIT_FAILURE);
@@ -401,7 +401,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
         }
 
         /* skip regular rules if we used a exclusive firewall rule file */
-        if (de_ctx->firewall_rule_file_exclusive) {
+        if (!sig_file_exclusive && de_ctx->firewall_rule_file_exclusive) {
             ret = 0;
             goto skip_regular_rules;
         }
