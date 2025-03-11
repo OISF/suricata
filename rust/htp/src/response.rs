@@ -169,8 +169,29 @@ impl ConnectionParser {
         if bytes_to_consume == 0 {
             return Err(HtpStatus::DATA);
         }
-        // Consume the data.
-        self.response_body_data(Some(&input.as_slice()[0..bytes_to_consume]))?;
+        if input.is_gap() {
+            let resp = self.response_mut();
+            if resp.is_none() {
+                return Err(HtpStatus::ERROR);
+            }
+            let resp = resp.unwrap();
+
+            if resp.response_content_encoding_processing == HtpContentEncoding::NONE {
+                resp.response_message_len =
+                    resp.response_message_len.wrapping_add(bytes_to_consume as u64);
+                // Create a new gap of the appropriate length
+                let parser_data = ParserData::from(bytes_to_consume);
+                // Send the gap to the data hooks
+                let mut tx_data = Data::new(resp, &parser_data);
+                self.response_run_hook_body_data(&mut tx_data)?;
+            } else {
+                // end decompression on gap
+                self.response_body_data(None)?;
+            }
+        } else {
+            // Consume the data.
+            self.response_body_data(Some(&input.as_slice()[0..bytes_to_consume]))?;
+        }
         // Adjust the counters.
         self.response_data_consume(input, bytes_to_consume);
         if let Some(len) = &mut self.response_chunked_length {
@@ -1543,6 +1564,7 @@ impl ConnectionParser {
         {
             if chunk.is_gap()
                 && self.response_state != State::BODY_IDENTITY_CL_KNOWN
+                && self.response_state != State::BODY_CHUNKED_DATA
                 && self.response_state != State::BODY_IDENTITY_STREAM_CLOSE
                 && self.response_state != State::FINALIZE
             {
