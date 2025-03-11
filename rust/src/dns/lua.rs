@@ -50,14 +50,15 @@ pub extern "C" fn SCDnsLuaGetRrname(clua: &mut CLuaState, tx: &mut DNSTransactio
 #[no_mangle]
 pub extern "C" fn SCDnsLuaGetRcode(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
     let lua = LuaState { lua: clua };
+    lua.pushinteger(tx.rcode() as i64);
+    return 1;
+}
 
-    let rcode = tx.rcode();
-    if rcode > 0 {
-        lua.pushstring(&dns_rcode_string(rcode));
-        return 1;
-    }
-
-    return 0;
+#[no_mangle]
+pub extern "C" fn SCDnsLuaGetRcodeString(clua: &mut CLuaState, tx: &mut DNSTransaction) -> c_int {
+    let lua = LuaState { lua: clua };
+    lua.pushstring(&dns_rcode_string(tx.rcode()));
+    return 1;
 }
 
 #[no_mangle]
