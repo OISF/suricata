@@ -3,7 +3,7 @@ name = "htp"
 authors = ["ivanr = Ivan Ristic <ivanr@webkreator.com>", "cccs = Canadian Centre for Cyber Security"]
 version = "2.0.0"
 publish = false
-edition = "2018"
+edition = "2021"
 autobins = false
 license-file = "LICENSE"
 description = "Security Aware HTP Protocol parsing library"
