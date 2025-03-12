@@ -781,6 +781,15 @@ finalize:
         SCLogWarning("%s: AF_PACKET defrag is recommended for IDS cluster_flow", iface);
     }
 
+    /* For tpacket-v2, warn if defrag is enabled and block-size is
+     * less than max defragmented packet size. */
+    if ((aconf->flags & AFP_TPACKET_V3) == 0 && (aconf->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) &&
+            aconf->v2_block_size > 0 && aconf->v2_block_size < MAX_PACKET_SIZE) {
+        SCLogWarning("%s: AF_PACKET v2-block-size is not large enough for max fragmented IP packet "
+                     "size (%u)",
+                iface, MAX_PACKET_SIZE);
+    }
+
     return aconf;
 }
 
