@@ -732,6 +732,19 @@ finalize:
         aconf->flags |= AFP_SOCK_PROTECT;
         aconf->flags |= AFP_NEED_PEER;
     }
+
+    /* Warn if inline and defrag is enabled. */
+    if (aconf->copy_mode != AFP_COPY_MODE_NONE && aconf->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) {
+        SCLogWarning(
+                "%s: AF_PACKET defrag is not recommended for inline use, please disable", iface);
+    }
+
+    /* Warn if not inline and defrag is disabled. */
+    if (aconf->copy_mode == AFP_COPY_MODE_NONE && cluster_type == PACKET_FANOUT_HASH &&
+            ((aconf->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) == 0)) {
+        SCLogWarning("%s: AF_PACKET defrag is recommended for IDS cluster_flow", iface);
+    }
+
     return aconf;
 }
 
