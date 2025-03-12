@@ -1761,21 +1761,12 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRfbRegisterParser();
     SCMqttRegisterParser();
     SCRegisterPgsqlParser();
+    rs_pop3_register_parser();
     rs_rdp_register_parser();
     RegisterHTTP2Parsers();
     rs_telnet_register_parser();
     RegisterIMAPParsers();
 
-    /** POP3 */
-    AppLayerProtoDetectRegisterProtocol(ALPROTO_POP3, "pop3");
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "pop3")) {
-        if (AppLayerProtoDetectPMRegisterPatternCS(
-                    IPPROTO_TCP, ALPROTO_POP3, "+OK ", 4, 0, STREAM_TOCLIENT) < 0) {
-            FatalError("pop3 proto registration failure");
-        }
-    } else {
-        SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
-    }
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreRegisteredCallbacks[i]();
     }
