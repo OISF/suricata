@@ -1322,6 +1322,8 @@ typedef struct SigTableElmt_ {
     const char *desc;
     const char *url;
 
+    // Cleanup function for freeing rust allocated name or such
+    void (*Cleanup)(struct SigTableElmt_ *);
 } SigTableElmt;
 
 /* event code */
@@ -1506,8 +1508,9 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_IPONLY_COMPAT          BIT_U16(1)
 /** sigmatch is compatible with a decode event only rule */
 #define SIGMATCH_DEONLY_COMPAT          BIT_U16(2)
-/**< Flag to indicate that the signature is not built-in */
-#define SIGMATCH_NOT_BUILT              BIT_U16(3)
+
+// vacancy
+
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
 #define SIGMATCH_OPTIONAL_OPT           BIT_U16(4)
