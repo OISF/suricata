@@ -379,8 +379,19 @@ static void *ParseAFPConfig(const char *iface)
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
-        /* default to our safest choice: flow hashing + defrag enabled */
-        aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
+        /* Default to our safest choice: flow hashing + defrag
+         * enabled, unless defrag has been disabled by the user. */
+        uint16_t defrag = PACKET_FANOUT_FLAG_DEFRAG;
+        int conf_val = 0;
+        SCLogConfig("%s: using flow cluster mode for AF_PACKET", aconf->iface);
+        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val)) {
+            if (!conf_val) {
+                SCLogConfig(
+                        "%s: disabling defrag kernel functionality for AF_PACKET", aconf->iface);
+                defrag = 0;
+            }
+        }
+        aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
         cluster_type = PACKET_FANOUT_HASH;
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogConfig("%s: using round-robin cluster mode for AF_PACKET", aconf->iface);
