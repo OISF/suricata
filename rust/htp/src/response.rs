@@ -339,15 +339,7 @@ impl ConnectionParser {
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA
     /// when more data is needed.
     pub(crate) fn response_body_identity_stream_close(&mut self, data: &ParserData) -> Result<()> {
-        if data.is_gap() {
-            // Send the gap to the data hooks
-            let resp = self.response_mut();
-            if resp.is_none() {
-                return Err(HtpStatus::ERROR);
-            }
-            let mut tx_data = Data::new(resp.unwrap(), data);
-            self.response_run_hook_body_data(&mut tx_data)?;
-        } else if !data.is_empty() {
+        if !data.is_empty() {
             // Consume all data from the input buffer.
             self.response_body_data(data.data())?;
             // Adjust the counters.
