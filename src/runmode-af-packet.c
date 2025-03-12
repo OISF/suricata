@@ -764,6 +764,15 @@ finalize:
                 iface, MAX_PACKET_SIZE);
     }
 
+    /* For tpacket-v3, warn if defrag is enabled and block-block-size
+     * is less than max defragmented packet size. */
+    if ((aconf->flags & AFP_TPACKET_V3) && (aconf->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) &&
+            (aconf->block_size < MAX_PACKET_SIZE)) {
+        SCLogWarning("%s: AF_PACKET block-size is not large enough for max fragmented IP packet "
+                     "size (%u)",
+                iface, MAX_PACKET_SIZE);
+    }
+
     return aconf;
 }
 
