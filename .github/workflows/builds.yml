@@ -592,9 +592,19 @@ jobs:
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
         with:
           name: dist
+
+      - name: Build and install nDPI
+        run: |
+          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/4.12.tar.gz
+          tar xvf 4.12.tar.gz
+          cd nDPI-4.12
+          ./autogen.sh
+          ./configure
+          make -j ${{ env.CPUS }}
+
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-4.12
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -612,6 +622,8 @@ jobs:
         with:
           name: prep
           path: prep
+      - name: Check if the nDPI plugin was installed
+        run: test -e /usr/local/lib/suricata/ndpi.so
       - run: tar xf prep/suricata-verify.tar.gz
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
