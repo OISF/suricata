@@ -237,6 +237,18 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         pm = pm2;
     }
 
+    if (s->flags & SIG_FLAG_TXBOTHDIR && s->init_data->curbuf != NULL) {
+        if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
+            if (s->init_data->init_flags & SIG_FLAG_INIT_TXDIR_STREAMING_TOSERVER) {
+                SCLogError("fast_pattern cannot be used on to_client keyword for "
+                           "transactional rule with a streaming buffer to server %u",
+                        s->id);
+                goto error;
+            }
+            s->init_data->init_flags |= SIG_FLAG_INIT_TXDIR_FAST_TOCLIENT;
+        }
+    }
+
     cd = (DetectContentData *)pm->ctx;
     if ((cd->flags & DETECT_CONTENT_NEGATED) &&
         ((cd->flags & DETECT_CONTENT_DISTANCE) ||
