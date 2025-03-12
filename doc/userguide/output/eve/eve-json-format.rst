@@ -3057,3 +3057,29 @@ Example of ARP logging: request and response
     "dest_mac": "00:1d:09:f0:92:ab",
     "dest_ip": "10.10.10.1"
   }
+
+Event type: POP3
+----------------
+
+Fields
+~~~~~~
+
+* "keyword": The POP3 command keyword
+* "args": The arguments accompanying the command
+* "status": The response status, one of "OK" or "ERR"
+* "header": The response header
+* "data": The response data, which may contain multiple lines in array format
+* "error_flags": Non-fatal protocol errors/non-compliance, which may contain multiple lines in array format
+
+Example of POP3 logging:
+
+::
+
+  "pop3": {
+      "keyword": "DELE",
+      "args": ["1"],
+      "status": "OK",
+      "header": "message 1 deleted",
+      "data": []
+      "error_flags": []
+   }
