@@ -77,6 +77,9 @@ struct ebpf_timeout_config {
  * to standard frame size */
 #define AFP_BLOCK_SIZE_DEFAULT_ORDER 5
 
+/* Set max packet size to 65561: IP + Ethernet + 3 VLAN tags. */
+#define MAX_PACKET_SIZE 65561
+
 typedef struct AFPIfaceConfig_
 {
     char iface[AFP_IFACE_NAME_LENGTH];
