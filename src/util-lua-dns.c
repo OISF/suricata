@@ -39,15 +39,15 @@ static int LuaDnsGetTx(lua_State *L)
 {
     if (!(LuaStateNeedProto(L, ALPROTO_DNS))) {
         return LuaCallbackError(L, "error: protocol not dns");
-    }        
+    }
     RSDNSTransaction *tx = LuaStateGetTX(L);
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
-    }        
+    }
     struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
-    }        
+    }
     ltx->tx = tx;
 
     luaL_getmetatable(L, dns_tx);
@@ -62,9 +62,9 @@ static int LuaDnsTxGetRrname(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetRrname(L, tx->tx);
-}    
+}
 
 static int LuaDnsTxGetTxid(lua_State *L)
 {
@@ -72,7 +72,7 @@ static int LuaDnsTxGetTxid(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetTxId(L, tx->tx);
 }
 
@@ -82,7 +82,7 @@ static int LuaDnsTxGetRcode(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetRcode(L, tx->tx);
 }
 
@@ -92,7 +92,7 @@ static int LuaDnsTxGetRcodeString(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetRcodeString(L, tx->tx);
 }
 
@@ -102,7 +102,7 @@ static int LuaDnsTxGetRecursionDesired(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     uint16_t flags = SCDnsTxGetResponseFlags(tx->tx);
     int recursion_desired = flags & 0x0080 ? 1 : 0;
     lua_pushboolean(L, recursion_desired);
@@ -115,7 +115,7 @@ static int LuaDnsTxGetQueries(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetQueryTable(L, tx->tx);
 }
 
@@ -125,7 +125,7 @@ static int LuaDnsTxGetAnswers(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetAnswerTable(L, tx->tx);
 }
 
@@ -135,7 +135,7 @@ static int LuaDnsTxGetAuthorities(lua_State *L)
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
-    }        
+    }
     return SCDnsLuaGetAuthorityTable(L, tx->tx);
 }
 
@@ -151,7 +151,7 @@ static const struct luaL_Reg txlib[] = {
     { "txid", LuaDnsTxGetTxid },
     { NULL, NULL, }
     // clang-format on
-};    
+};
 
 static const struct luaL_Reg dnslib[] = {
     // clang-format off
