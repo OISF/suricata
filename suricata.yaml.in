@@ -684,6 +684,10 @@ af-packet:
     # tpacket_v3 block timeout: an open block is passed to userspace if it is not
     # filled after block-timeout milliseconds.
     #block-timeout: 10
+    # Block size for tpacket-v2. In 7.0.9 the built-in default was
+    # increased from 32768 to 131072. Uncomment and reset back to
+    # 32768 if this is a problem with your configuration.
+    #v2-block-size: 131072
     # On busy systems, set it to yes to help recover from a packet drop
     # phase. This will result in some packets (at max a ring flush) not being inspected.
     #use-emergency-flush: yes

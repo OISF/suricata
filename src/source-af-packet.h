@@ -90,6 +90,8 @@ typedef struct AFPIfaceConfig_
     int block_size;
     /* block timeout for tpacket_v3 in milliseconds */
     int block_timeout;
+    /* block size for tpacket v2 */
+    int v2_block_size;
     /* cluster param */
     uint16_t cluster_id;
     int cluster_type;
