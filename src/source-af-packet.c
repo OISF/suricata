@@ -317,6 +317,7 @@ typedef struct AFPThreadVars_
     int socket;
 
     int ring_size;
+    int v2_block_size;
     int block_size;
     int block_timeout;
     /* socket buffer size */
@@ -1599,6 +1600,63 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     return 1;
 }
 
+static int AFPComputeRingParamsWithBlockSize(AFPThreadVars *ptv, unsigned int block_size)
+{
+    /* Compute structure:
+       Target is to store all pending packets
+       with a size equal to MTU + auxdata
+       And we keep a decent number of block
+
+       To do so:
+       Compute frame_size (aligned to be able to fit in block
+       Check which block size we need. Blocksize is a 2^n * pagesize
+       We then need to get order, big enough to have
+       frame_size < block size
+       Find number of frame per block (divide)
+       Fill in packet_req
+
+       Compute frame size:
+       described in packet_mmap.txt
+       dependent on snaplen (need to use a variable ?)
+snaplen: MTU ?
+tp_hdrlen determine_version in daq_afpacket
+in V1:  sizeof(struct tpacket_hdr);
+in V2: val in getsockopt(instance->fd, SOL_PACKET, PACKET_HDRLEN, &val, &len)
+frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct
+sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+
+     */
+    int tp_hdrlen = sizeof(struct tpacket_hdr);
+    int snaplen = default_packet_size;
+
+    if (snaplen == 0) {
+        snaplen = GetIfaceMaxPacketSize(ptv->livedev);
+        if (snaplen <= 0) {
+            SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
+            snaplen = 1514;
+        }
+    }
+
+    ptv->req.v2.tp_frame_size = TPACKET_ALIGN(
+            snaplen +
+            TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) -
+            ETH_HLEN);
+    ptv->req.v2.tp_block_size = block_size;
+    int frames_per_block = ptv->req.v2.tp_block_size / ptv->req.v2.tp_frame_size;
+    if (frames_per_block == 0) {
+        SCLogError("%s: Frame size bigger than block size", ptv->iface);
+        return -1;
+    }
+    ptv->req.v2.tp_frame_nr = ptv->ring_size;
+    ptv->req.v2.tp_block_nr = ptv->req.v2.tp_frame_nr / frames_per_block + 1;
+    /* exact division */
+    ptv->req.v2.tp_frame_nr = ptv->req.v2.tp_block_nr * frames_per_block;
+    SCLogPerf("%s: rx ring: block_size=%d block_nr=%d frame_size=%d frame_nr=%d", ptv->iface,
+            ptv->req.v2.tp_block_size, ptv->req.v2.tp_block_nr, ptv->req.v2.tp_frame_size,
+            ptv->req.v2.tp_frame_nr);
+    return 1;
+}
+
 #ifdef HAVE_TPACKET_V3
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
@@ -1709,29 +1767,51 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         }
     } else {
 #endif
-        for (order = AFP_BLOCK_SIZE_DEFAULT_ORDER; order >= 0; order--) {
-            if (AFPComputeRingParams(ptv, order) != 1) {
+        if (ptv->v2_block_size) {
+
+            if (AFPComputeRingParamsWithBlockSize(ptv, ptv->v2_block_size) != 1) {
                 SCLogError("%s: ring parameters are incorrect. Please file a bug report", devname);
                 return AFP_FATAL_ERROR;
             }
 
-            r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
-                    (void *) &ptv->req, sizeof(ptv->req));
+            r = setsockopt(
+                    ptv->socket, SOL_PACKET, PACKET_RX_RING, (void *)&ptv->req, sizeof(ptv->req));
 
             if (r < 0) {
                 if (errno == ENOMEM) {
-                    SCLogWarning("%s: memory issue with ring parameters. Retrying", devname);
-                    continue;
+                    SCLogError("%s: memory issue with ring parameters", devname);
+                    return AFP_FATAL_ERROR;
                 }
                 SCLogError("%s: failed to setup RX Ring: %s", devname, strerror(errno));
                 return AFP_FATAL_ERROR;
-            } else {
-                break;
             }
-        }
-        if (order < 0) {
-            SCLogError("%s: failed to setup RX Ring (order 0 failed)", devname);
-            return AFP_FATAL_ERROR;
+
+        } else {
+            for (order = AFP_BLOCK_SIZE_DEFAULT_ORDER; order >= 0; order--) {
+                if (AFPComputeRingParams(ptv, order) != 1) {
+                    SCLogError(
+                            "%s: ring parameters are incorrect. Please file a bug report", devname);
+                    return AFP_FATAL_ERROR;
+                }
+
+                r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING, (void *)&ptv->req,
+                        sizeof(ptv->req));
+
+                if (r < 0) {
+                    if (errno == ENOMEM) {
+                        SCLogWarning("%s: memory issue with ring parameters. Retrying", devname);
+                        continue;
+                    }
+                    SCLogError("%s: failed to setup RX Ring: %s", devname, strerror(errno));
+                    return AFP_FATAL_ERROR;
+                } else {
+                    break;
+                }
+            }
+            if (order < 0) {
+                SCLogError("%s: failed to setup RX Ring (order 0 failed)", devname);
+                return AFP_FATAL_ERROR;
+            }
         }
 #ifdef HAVE_TPACKET_V3
     }
@@ -2516,6 +2596,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     ptv->buffer_size = afpconfig->buffer_size;
     ptv->ring_size = afpconfig->ring_size;
+    ptv->v2_block_size = afpconfig->v2_block_size;
     ptv->block_size = afpconfig->block_size;
     ptv->block_timeout = afpconfig->block_timeout;
 

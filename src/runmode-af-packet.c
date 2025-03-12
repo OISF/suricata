@@ -216,6 +216,7 @@ static void *ParseAFPConfig(const char *iface)
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     aconf->block_timeout = 10;
     aconf->block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
+    aconf->v2_block_size = 0;
 #ifdef HAVE_PACKET_EBPF
     aconf->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 #endif
@@ -627,6 +628,15 @@ static void *ParseAFPConfig(const char *iface)
         aconf->block_timeout = value;
     } else {
         aconf->block_timeout = 10;
+    }
+
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "v2-block-size", &value)) == 1) {
+        if (value % getpagesize()) {
+            SCLogWarning("%s: v2-block-size %" PRIuMAX " must be a multiple of pagesize (%u).",
+                    iface, value, getpagesize());
+        } else {
+            aconf->v2_block_size = value;
+        }
     }
 
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
