@@ -109,12 +109,6 @@ static void DetectRun(ThreadVars *th_v,
                     : "noflow",
             PktSrcToString(p->pkt_src));
 
-    /* bail early if packet should not be inspected */
-    if (p->flags & PKT_NOPACKET_INSPECTION) {
-        /* nothing to do */
-        SCReturn;
-    }
-
     /* Load the Packet's flow early, even though it might not be needed.
      * Mark as a constant pointer, although the flow itself can change. */
     Flow * const pflow = p->flow;
