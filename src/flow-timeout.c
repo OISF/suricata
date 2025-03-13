@@ -93,10 +93,11 @@ static inline Packet *FlowPseudoPacketSetup(
     memcpy(&p->vlan_id[0], &f->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = f->vlan_idx;
     p->livedev = (struct LiveDevice_ *)f->livedev;
-
+#if 0
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(p);
     }
+#endif
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(p);
     }
