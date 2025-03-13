@@ -2778,6 +2778,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
         SCDetectRequiresStatusFree(de_ctx->requirements);
     }
 
+    if (de_ctx->non_pf_engine_names) {
+        HashTableFree(de_ctx->non_pf_engine_names);
+    }
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -3344,13 +3347,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         return TM_ECODE_FAILED;
     }
 
-    /* sized to the max of our sgh settings. A max setting of 0 implies that all
-     * sgh's have: sgh->non_pf_store_cnt == 0 */
-    if (de_ctx->non_pf_store_cnt_max > 0) {
-        det_ctx->non_pf_id_array =  SCCalloc(de_ctx->non_pf_store_cnt_max, sizeof(SigIntId));
-        BUG_ON(det_ctx->non_pf_id_array == NULL);
-    }
-
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
@@ -3603,10 +3599,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->spm_thread_ctx != NULL) {
         SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
     }
-
-    if (det_ctx->non_pf_id_array != NULL)
-        SCFree(det_ctx->non_pf_id_array);
-
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
 
@@ -3657,7 +3649,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
 
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
-
+    PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
 
     ThresholdCacheThreadFree();
