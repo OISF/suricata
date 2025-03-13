@@ -27,6 +27,11 @@
 /* code moved to app-layer-events */
 
 const struct DecodeEvents_ DEvents[] = {
+    /* CAPTURE EVENTS */
+    {
+            "decoder.afpacket.trunc_pkt",
+            AFP_TRUNC_PKT,
+    },
     /* IPV4 EVENTS */
     {
             "decoder.ipv4.pkt_too_small",
