@@ -507,11 +507,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (f->flags & FLOW_ACTION_DROP) {
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
     }
-    /*set the detection bypass flags*/
-    if (f->flags & FLOW_NOPACKET_INSPECTION) {
-        SCLogDebug("setting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
-        DecodeSetNoPacketInspectionFlag(p);
-    }
+
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
