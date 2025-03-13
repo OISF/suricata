@@ -773,6 +773,11 @@ finalize:
                 iface, MAX_PACKET_SIZE);
     }
 
+    /* Warn that if not-inline, tpacket-v3 is the better choice. */
+    if (aconf->copy_mode == AFP_COPY_MODE_NONE && (aconf->flags & AFP_TPACKET_V3) == 0) {
+        SCLogWarning("%s: AF_PACKET tpacket-v3 is recommended for non-inline operation", iface);
+    }
+
     return aconf;
 }
 
