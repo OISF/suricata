@@ -19,7 +19,7 @@
  * - check all parsers for calls on non-SUCCESS status
  */
 
-use crate::direction::Direction;
+use suricata_sys::direction::Direction;
 use crate::smb::smb::*;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;

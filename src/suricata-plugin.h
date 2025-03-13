@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 #include "queue.h"
+#include "autoconf.h"
 
 /**
  * The size of the data chunk inside each packet structure a plugin
@@ -29,11 +30,20 @@
  */
 #define PLUGIN_VAR_SIZE 64
 
+// Do not reuse autoconf PACKAGE_VERSION which is a string
+// Defined as major version.minor version (no patch version)
+static const uint64_t SC_API_VERSION = 0x0800;
+#define SC_PACKAGE_VERSION PACKAGE_VERSION
+
 /**
  * Structure to define a Suricata plugin.
  */
 typedef struct SCPlugin_ {
+    // versioning to check suricata/plugin API compatibility
+    uint64_t version;
+    const char *suricata_version;
     const char *name;
+    const char *plugin_version;
     const char *license;
     const char *author;
     void (*Init)(void);
@@ -52,18 +62,13 @@ typedef struct SCCapturePlugin_ {
 
 int SCPluginRegisterCapture(SCCapturePlugin *);
 
-// Every change in the API used by plugins should change this number
-#define SC_PLUGIN_API_VERSION 8
-
 typedef struct SCAppLayerPlugin_ {
-    // versioning to check suricata/plugin API compatibility
-    uint64_t version;
-    char *name;
+    const char *name;
     void (*Register)(void);
     void (*KeywordsRegister)(void);
-    char *logname;
-    char *confname;
-    bool (*Logger)(void *tx, void *jb);
+    const char *logname;
+    const char *confname;
+    bool (*Logger)(const void *tx, void *jb);
 } SCAppLayerPlugin;
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *);

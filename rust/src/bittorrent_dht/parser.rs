@@ -446,7 +446,7 @@ pub fn parse_bittorrent_dht_packet(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::direction::Direction;
+    use suricata_sys::direction::Direction;
     use test_case::test_case;
 
     #[test_case(
