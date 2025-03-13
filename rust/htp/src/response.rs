@@ -191,6 +191,7 @@ impl ConnectionParser {
     pub(crate) fn response_body_chunked_length(&mut self, input: &mut ParserData) -> Result<()> {
         let mut data = input.as_slice();
         loop {
+            let buf_empty = self.response_buf.is_empty();
             let resp = self.response_mut();
             if resp.is_none() {
                 return Err(HtpStatus::ERROR);
@@ -200,7 +201,7 @@ impl ConnectionParser {
             match take_till_lf(data) {
                 Ok((remaining, line)) => {
                     self.response_data_consume(input, line.len());
-                    if !self.response_buf.is_empty() {
+                    if !buf_empty {
                         self.check_response_buffer_limit(line.len())?;
                     }
                     let mut data2 = take(&mut self.response_buf);
@@ -264,7 +265,7 @@ impl ConnectionParser {
                 }
                 _ => {
                     // Check if the data we have seen so far is invalid
-                    if !is_valid_chunked_length_data(data) {
+                    if buf_empty && !is_valid_chunked_length_data(data) {
                         // Contains leading junk non hex_ascii data
                         resp.response_transfer_coding = HtpTransferCoding::IDENTITY;
                         self.response_state = State::BODY_IDENTITY_STREAM_CLOSE;
