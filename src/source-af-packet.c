@@ -781,6 +781,7 @@ static void AFPReadFromRingSetupPacket(
 
     if (h.h2->tp_len > h.h2->tp_snaplen) {
         SCLogDebug("Packet length (%d) > snaplen (%d), truncating", h.h2->tp_len, h.h2->tp_snaplen);
+        ENGINE_SET_INVALID_EVENT(p, AFP_TRUNC_PKT);
     }
 
     /* get vlan id from header */
@@ -980,6 +981,11 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         p->vlan_id[0] = ppd->hv1.tp_vlan_tci & 0x0fff;
         p->vlan_idx = 1;
         p->afp_v.vlan_tci = (uint16_t)ppd->hv1.tp_vlan_tci;
+    }
+
+    if (ppd->tp_len > ppd->tp_snaplen) {
+        SCLogDebug("Packet length (%d) > snaplen (%d), truncating", ppd->tp_len, ppd->tp_snaplen);
+        ENGINE_SET_INVALID_EVENT(p, AFP_TRUNC_PKT);
     }
 
     (void)PacketSetData(p, (unsigned char *)ppd + ppd->tp_mac, ppd->tp_snaplen);

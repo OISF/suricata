@@ -4297,6 +4297,17 @@
                         "event": {
                             "type": "object",
                             "properties": {
+                                "afpacket": {
+                                    "type": "object",
+                                    "properties": {
+                                        "trunc_pkt": {
+                                            "description":
+                                                    "Number of packets truncated by AF_PACKET",
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
                                 "chdlc": {
                                     "type": "object",
                                     "properties": {
