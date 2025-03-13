@@ -1938,11 +1938,11 @@ static void DetectFlow(ThreadVars *tv,
 {
     Flow *const f = p->flow;
 
-    if (p->flags & PKT_NOPACKET_INSPECTION) {
+    if (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_PASS)) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
-        const int pass = ((f->flags & FLOW_NOPACKET_INSPECTION));
+        const int pass = ((f->flags & (FLOW_ACTION_PASS)));
         if (pass) {
             uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
             flags = FlowGetDisruptionFlags(f, flags);
