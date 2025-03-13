@@ -94,9 +94,6 @@ static inline Packet *FlowPseudoPacketSetup(
     p->vlan_idx = f->vlan_idx;
     p->livedev = (struct LiveDevice_ *)f->livedev;
 
-    if (f->flags & FLOW_NOPACKET_INSPECTION) {
-        DecodeSetNoPacketInspectionFlag(p);
-    }
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(p);
     }

@@ -168,7 +168,6 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
             if (action & ACTION_PASS) {
                 f->flags |= FLOW_ACTION_PASS;
                 SCLogDebug("setting flow action pass");
-                FlowSetNoPacketInspectionFlag(f);
             }
         }
     }
