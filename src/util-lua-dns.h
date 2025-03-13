@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_LUA_DNS_H
 #define SURICATA_UTIL_LUA_DNS_H
 
-int LuaRegisterDnsFunctions(lua_State *luastate);
+#include "lua.h"
+
+int SCLuaLoadDnsLib(lua_State *L);
 
 #endif /* __UTIL_LUA_HTTP_H__ */

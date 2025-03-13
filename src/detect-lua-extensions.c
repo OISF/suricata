@@ -551,7 +551,6 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
-    LuaRegisterDnsFunctions(lua_state);
     LuaRegisterJa3Functions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
     LuaRegisterSshFunctions(lua_state);
