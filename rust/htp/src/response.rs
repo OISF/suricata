@@ -696,7 +696,7 @@ impl ConnectionParser {
         // data as a response body because that is what browsers do.
         if treat_response_line_as_body(line) {
             // if we have a next line beginning with H, skip this one
-            if input.len() > 1 && (input.as_slice()[0] == b'H' || line.len() <= 3) {
+            if input.len() > 1 && (input.as_slice()[0] == b'H' || chomp(line).len() <= 2) {
                 response_tx.response_ignored_lines =
                     response_tx.response_ignored_lines.wrapping_add(1);
                 return Ok(());
