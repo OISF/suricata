@@ -34,5 +34,6 @@ alert tls any any -> any any (msg:"SURICATA TLS certificate invalid der"; flow:e
 alert tls any any -> any any (msg:"SURICATA TLS certificate invalid subject"; flow:established; app-layer-event:tls.certificate_invalid_subject; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230028; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS certificate invalid issuer"; flow:established; app-layer-event:tls.certificate_invalid_issuer; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230029; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS certificate invalid validity"; flow:established; app-layer-event:tls.certificate_invalid_validity; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230030; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid alert message"; flow:established; app-layer-event:tls.invalid_alert_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230031; rev:1;)
 
-#next sid is 2230031
+#next sid is 2230032
