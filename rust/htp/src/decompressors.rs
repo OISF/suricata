@@ -786,18 +786,28 @@ impl InnerDecompressor {
     }
 
     fn try_finish(&mut self, writer: &mut Box<dyn BufWriter>) -> bool {
-        _ = writer.try_finish();
-        if let Some(cursor) = writer.get_mut() {
-            if cursor.position() > 0 {
-                if let Some(mut inner) = self.inner.take() {
-                    _ = inner.write_all(&cursor.get_ref()[0..cursor.position() as usize]);
-                    cursor.set_position(0);
-                    self.inner.replace(inner);
-                    return true;
+        loop {
+            let redo = match writer.try_finish() {
+                Err(e) => {
+                    e.kind() == std::io::ErrorKind::WriteZero
+                }
+                _ => false,
+            };
+            if let Some(cursor) = writer.get_mut() {
+                if cursor.position() > 0 {
+                    if let Some(mut inner) = self.inner.take() {
+                        _ = inner.write_all(&cursor.get_ref()[0..cursor.position() as usize]);
+                        cursor.set_position(0);
+                        self.inner.replace(inner);
+                        if redo {
+                            continue;
+                        }
+                        return true;
+                    }
                 }
             }
+            return false;
         }
-        return false;
     }
 }
 
