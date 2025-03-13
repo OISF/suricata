@@ -264,7 +264,7 @@ impl ConnectionParser {
                 }
                 _ => {
                     // Check if the data we have seen so far is invalid
-                    if !is_valid_chunked_length_data(data) {
+                    if self.response_buf.is_empty() && !is_valid_chunked_length_data(data) {
                         // Contains leading junk non hex_ascii data
                         resp.response_transfer_coding = HtpTransferCoding::IDENTITY;
                         self.response_state = State::BODY_IDENTITY_STREAM_CLOSE;
