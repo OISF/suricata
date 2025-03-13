@@ -641,9 +641,21 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCt
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
         /* if we accept:hook'd the `packet_filter` hook, we skip the rest of the firewall rules. */
-        if (skip_fw && (s->flags & SIG_FLAG_FIREWALL)) {
-            SCLogDebug("skipping firewall rule %u", s->id);
-            goto next;
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            if (skip_fw) {
+                SCLogDebug("skipping firewall rule %u", s->id);
+                goto next;
+            }
+        } else if (have_fw_rules) {
+            /* fw mode, we skip anything after the fw rules if:
+             * - flow pass is set
+             * - packet pass (e.g. exception policy) */
+            if (p->flags & PKT_NOPACKET_INSPECTION ||
+                    (pflow != NULL && pflow->flags & (FLOW_ACTION_PASS))) {
+                SCLogDebug("skipping firewall rule %u", s->id);
+                break_out_of_packet_filter = true;
+                goto next;
+            }
         }
 
         if (s->app_inspect != NULL) {
@@ -1510,6 +1522,25 @@ static void DetectRunTx(ThreadVars *tv,
             RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
             const Signature *s = det_ctx->tx_candidates[i].s;
             uint32_t *inspect_flags = det_ctx->tx_candidates[i].flags;
+            bool break_out_of_app_filter = false;
+
+            /* if we accept:hook'd the `packet_filter` hook, we skip the rest of the firewall rules.
+             */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                if (skip_fw) {
+                    SCLogDebug("skipping firewall rule %u", s->id);
+                    continue;
+                }
+            } else if (have_fw_rules) {
+                /* fw mode, we skip anything after the fw rules if:
+                 * - flow pass is set
+                 * - packet pass (e.g. exception policy) */
+                if (p->flags & PKT_NOPACKET_INSPECTION || (f->flags & (FLOW_ACTION_PASS))) {
+                    SCLogDebug("skipping firewall rule %u", s->id);
+                    break_out_of_app_filter = true;
+                    continue;
+                }
+            }
 
             /* if we accept:hook'd the `app_filter` hook, we skip the rest of the firewall rules. */
             if (skip_fw && s->flags & SIG_FLAG_FIREWALL) {
@@ -1547,7 +1578,6 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug("%p/%"PRIu64" Start sid %u", tx.tx_ptr, tx.tx_id, s->id);
             }
 
-            bool break_out_of_app_filter = false;
             /* call individual rule inspection */
             RULE_PROFILING_START(p);
             const int r = DetectRunTxInspectRule(tv, de_ctx, det_ctx, p, f, flow_flags,
@@ -1798,11 +1828,20 @@ static void DetectFlow(ThreadVars *tv,
         SCReturn;
     }
 
-    if (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_ACCEPT | FLOW_ACTION_PASS)) {
+    /* in firewall mode, we still need to run the fw rulesets even for exception policy pass */
+    bool skip = false;
+    if (de_ctx->flags & DE_HAS_FIREWALL) {
+        skip = (f->flags & (FLOW_ACTION_ACCEPT));
+
+    } else {
+        skip = (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_PASS));
+    }
+
+    if (skip) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
-        const int pass = ((f->flags & (FLOW_ACTION_PASS | FLOW_ACTION_ACCEPT)));
+        const int pass = (f->flags & (FLOW_ACTION_PASS | FLOW_ACTION_ACCEPT));
         if (pass) {
             uint8_t flags = STREAM_FLAGS_FOR_PACKET(p);
             flags = FlowGetDisruptionFlags(f, flags);
