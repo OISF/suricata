@@ -4597,7 +4597,7 @@ static int SigTestDropFlow03(void)
     /* Second part.. Let's feed with another packet */
     if (StreamTcpCheckFlowDrops(p2) == 1) {
         SCLogDebug("This flow/stream triggered a drop rule");
-        FlowSetNoPacketInspectionFlag(p2->flow);
+        // FlowSetNoPacketInspectionFlag(p2->flow);
         DecodeSetNoPacketInspectionFlag(p2);
         StreamTcpDisableAppLayer(p2->flow);
         p2->action |= ACTION_DROP;
