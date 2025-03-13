@@ -60,8 +60,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 // vacancy bit 4
 
-/** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION        BIT_U32(5)
+// vacancy bit 5
+
 /** Packet payloads belonging to this flow should not be inspected */
 #define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)
 
@@ -597,20 +597,6 @@ static inline AppProto FlowGetAppProtocol(const Flow *f)
 static inline void *FlowGetAppState(const Flow *f)
 {
     return f->alstate;
-}
-
-/** \brief Set the No Packet Inspection Flag without locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline  void FlowSetNoPacketInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    f->flags |= FLOW_NOPACKET_INSPECTION;
-
-    SCReturn;
 }
 
 /** \brief Set the No payload inspection Flag without locking the flow.
