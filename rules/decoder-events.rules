@@ -152,5 +152,8 @@ alert pkthdr any any -> any any (msg:"SURICATA CHDLC packet too small"; decode-e
 
 alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; decode-event:too_many_layers; classtype:protocol-command-decode; sid:2200116; rev:1;)
 
-# next sid is 2200122
+# Capture events.
+alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
+
+# next sid is 2200123
 
