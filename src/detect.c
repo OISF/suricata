@@ -1802,6 +1802,14 @@ static void DetectFlow(ThreadVars *tv,
 {
     Flow *const f = p->flow;
 
+    /* we check the flow drop here, and not the packet drop. This is
+     * to allow stream engine "invalid" drop packets to still be
+     * evaluated by the stream event rules. */
+    if (f->flags & FLOW_ACTION_DROP) {
+        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_PSEUDOPKT(p)) && !PacketCheckAction(p, ACTION_DROP));
+        SCReturn;
+    }
+
     if (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_ACCEPT | FLOW_ACTION_PASS)) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
@@ -1817,14 +1825,6 @@ static void DetectFlow(ThreadVars *tv,
         SCLogDebug("p->pcap %"PRIu64": no detection on packet, "
                 "PKT_NOPACKET_INSPECTION is set", p->pcap_cnt);
         return;
-    }
-
-    /* we check the flow drop here, and not the packet drop. This is
-     * to allow stream engine "invalid" drop packets to still be
-     * evaluated by the stream event rules. */
-    if (f->flags & FLOW_ACTION_DROP) {
-        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_PSEUDOPKT(p)) && !PacketCheckAction(p, ACTION_DROP));
-        SCReturn;
     }
 
     /* see if the packet matches one or more of the sigs */
