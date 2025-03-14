@@ -80,7 +80,7 @@ typedef struct FlowBucket_ {
 /* prototypes */
 
 Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *tctx, Packet *, Flow **);
-
+Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash);
 Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash);
 Flow *FlowGetExistingFlowFromFlowId(uint64_t flow_id);
 uint32_t FlowKeyGetHash(FlowKey *flow_key);

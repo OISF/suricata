@@ -1059,7 +1059,7 @@ Flow *FlowGetExistingFlowFromFlowId(uint64_t flow_id)
  *  \param hash Value of the flow hash
  *  \retval f *LOCKED* flow or NULL
  */
-static Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
+Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
 {
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];

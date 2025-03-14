@@ -366,6 +366,18 @@ int LiveDeviceListClean(void)
     }
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
+#ifdef CAPTURE_OFFLOAD
+            SCLogNotice("%s: packets: %" PRIu64 ", bypassed: %" PRIu64 ", drops: %" PRIu64
+                        " (%.2f%%), invalid chksum: %" PRIu64,
+                    pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->bypassed),
+                    SC_ATOMIC_GET(pd->drop),
+                    SC_ATOMIC_GET(pd->pkts) > 0
+                            ? 100 * ((double)SC_ATOMIC_GET(pd->drop)) /
+                                      ((double)SC_ATOMIC_GET(pd->pkts) +
+                                              (double)SC_ATOMIC_GET(pd->bypassed))
+                            : 0,
+                    SC_ATOMIC_GET(pd->invalid_checksums));
+#else
             SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
                         " (%.2f%%), invalid chksum: %" PRIu64,
                     pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->drop),
@@ -373,6 +385,7 @@ int LiveDeviceListClean(void)
                                                           (double)SC_ATOMIC_GET(pd->pkts)
                                                 : 0,
                     SC_ATOMIC_GET(pd->invalid_checksums));
+#endif
         }
 
         RestoreIfaceOffloading(pd);

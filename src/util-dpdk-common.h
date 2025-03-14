@@ -117,6 +117,13 @@
 #define RTE_ETH_LINK_MAX_STR_LEN 40
 #endif
 
+typedef struct RteFlowBypassData_ {
+    struct rte_mempool *bypass_mp;
+    struct rte_ring *bypass_ring;
+    SC_ATOMIC_DECLARE(int32_t, rte_bypass_rules_active);
+    SC_ATOMIC_DECLARE(int32_t, rte_bypass_rules_created);
+} RteFlowBypassData;
+
 typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;
@@ -124,10 +131,14 @@ typedef struct {
     struct rte_flow **rte_flow_rule_handlers;
     uint16_t rte_flow_rule_cnt;
     uint16_t rte_flow_rule_size;
+    RteFlowBypassData *rte_flow_bypass_data;
+    uint16_t port_id;
+    ;
 } DPDKDeviceResources;
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt);
 void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars);
+uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz);
 
 #endif /* HAVE_DPDK */
 

@@ -105,6 +105,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         const struct rte_eth_conf *port_conf);
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf);
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf);
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info);
 static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
@@ -113,6 +115,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                "auto"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
+#define DPDK_CONFIG_DEFAULT_BYPASS_RING_SIZE            "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              "auto"
 #define DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS              "auto"
 #define DPDK_CONFIG_DEFAULT_RSS_HASH_FUNCTIONS          RTE_ETH_RSS_IP
@@ -140,26 +143,13 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .linkup_timeout = "linkup-timeout",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
+    .bypass_ring_size = "bypass-ring-size",
     .rx_descriptors = "rx-descriptors",
     .tx_descriptors = "tx-descriptors",
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
     .drop_filter = "drop-filter",
 };
-
-/**
- * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
- * The divisor is returned.
- */
-static uint32_t GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
-{
-    for (uint32_t i = max_num; i >= 2; i--) {
-        if (num % i == 0) {
-            return i;
-        }
-    }
-    return 1;
-}
 
 /**
  * \brief Input is a number of which we want to find the greatest power of 2 up to num. The power of
@@ -341,6 +331,12 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
+        if (iconf->pkt_mempools != NULL) {
+            if (iconf->pkt_mempools->rte_flow_bypass_data->bypass_mp != NULL) {
+                rte_mempool_free(iconf->pkt_mempools->rte_flow_bypass_data->bypass_mp);
+                iconf->pkt_mempools->rte_flow_bypass_data->bypass_mp = NULL;
+            }
+        }
         DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
         iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
@@ -599,15 +595,6 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturnInt(0);
 }
 
-static uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
-{
-    // It is advised to have mempool cache size lower or equal to:
-    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
-    // and at the same time "mempool-size modulo cache_size == 0".
-    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, (uint32_t)(mp_sz / 1.5));
-    return GreatestDivisorUpTo(mp_sz, max_cache_size);
-}
-
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
@@ -632,6 +619,34 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
     if (iconf->mempool_cache_size <= 0 || iconf->mempool_cache_size > RTE_MEMPOOL_CACHE_MAX_SIZE) {
         SCLogError("%s: mempool cache size requires a positive number smaller than %" PRIu32,
                 iconf->iface, RTE_MEMPOOL_CACHE_MAX_SIZE);
+        SCReturnInt(-ERANGE);
+    }
+
+    SCReturnInt(0);
+}
+
+static int ConfigSetBypassRingSize(DPDKIfaceConfig *iconf, const char *entry_str)
+{
+    SCEnter();
+    if (entry_str == NULL || entry_str[0] == '\0') {
+        SCLogInfo("%s: size of bypass ring not found, going with: %s", iconf->iface,
+                DPDK_CONFIG_DEFAULT_BYPASS_RING_SIZE);
+        entry_str = DPDK_CONFIG_DEFAULT_BYPASS_RING_SIZE;
+    }
+
+    if (strcmp(entry_str, "auto") == 0) {
+        iconf->bypass_ring_size = 1024;
+        SCReturnInt(0);
+    }
+
+    if (StringParseUint32(&iconf->bypass_ring_size, 10, 0, entry_str) < 0) {
+        SCLogError("%s: bypass ring size entry contains non-numerical characters - \"%s\"",
+                iconf->iface, entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    if (iconf->bypass_ring_size == 0) {
+        SCLogError("%s: positive number for bypass ring size is required", iconf->iface);
         SCReturnInt(-ERANGE);
     }
 
@@ -956,6 +971,13 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
                      ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE)
                      : ConfigSetMempoolSize(iconf, entry_str);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    retval = SCConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.bypass_ring_size, &entry_str) != 1
+                     ? ConfigSetBypassRingSize(iconf, DPDK_CONFIG_DEFAULT_BYPASS_RING_SIZE)
+                     : ConfigSetBypassRingSize(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -1458,7 +1480,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     if (retval < 0) {
         goto cleanup;
     }
-
+    iconf->pkt_mempools->port_id = iconf->port_id;
     // +4 for VLAN header
     uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
@@ -1618,6 +1640,24 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+// if possible, configure dynamic bypass with rte_flow -> can return error, ASK ABOUT THIS
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    SCEnter();
+    const char *driver_name = dev_info->driver_name;
+    int retval = 0;
+    if ((strcmp(driver_name, "net_ice") == 0) || strcmp(driver_name, "mlx5_pci") == 0) {
+        retval = RteBypassInit(
+                iconf->pkt_mempools, iconf->bypass_ring_size, iconf->iface, iconf->port_id);
+    }
+    if (retval < 0) {
+        SCLogError(
+                "%s: failed to configure dynamic bypass: %s", iconf->iface, rte_strerror(-retval));
+        SCReturnInt(retval);
+    }
+    SCReturnInt(0);
+}
 /**
  * Function verifies changes in e.g. device info after configuration has
  * happened. Sometimes (e.g. DPDK Bond PMD with Intel NICs i40e/ixgbe) change
@@ -1795,6 +1835,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
+    retval = DeviceConfigureDynamicBypass(iconf, &dev_info);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
     SCReturnInt(0);
 }
 

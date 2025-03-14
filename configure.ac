@@ -2422,10 +2422,10 @@ return 0;
 # get MAJOR_MINOR version for embedding in configuration file.
     MAJOR_MINOR=`expr "${PACKAGE_VERSION}" : "\([[0-9]]\+\.[[0-9]]\+\).*"`
 
-if test "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes"; then
+if test "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes" ||  test "${enable_dpdk}" = "yes"; then
   AC_DEFINE([CAPTURE_OFFLOAD_MANAGER], [1],[Building flow bypass manager code])
 fi
-if test "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${enable_pfring}" = "yes" || test "${enable_napatech}" = "yes"  || test "${enable_unittests}" = "yes"; then
+if test "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${enable_pfring}" = "yes" || test "${enable_napatech}" = "yes"  || test "${enable_unittests}" = "yes" || test "${enable_dpdk}" = "yes"; then
   AC_DEFINE([CAPTURE_OFFLOAD], [1],[Building flow capture bypass code])
 fi
 

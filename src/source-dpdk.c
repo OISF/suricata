@@ -87,6 +87,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* We have DPDK support */
 
+#include "flow-private.h"
 #include "util-affinity.h"
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
@@ -105,6 +106,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #define STANDARD_SLEEP_TIME_US       100U
 #define MAX_EPOLL_TIMEOUT_MS         500U
 static rte_spinlock_t intr_lock[RTE_MAX_ETHPORTS];
+SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -126,6 +128,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t capture_dpdk_ierrors;
     uint16_t capture_dpdk_tx_errs;
     uint16_t capture_dpdk_rte_flow_filtered;
+    uint16_t capture_dpdk_rules_created;
     unsigned int flags;
     uint16_t threads;
     /* for IPS */
@@ -457,6 +460,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
     p->ts = TimeGet();
     p->dpdk_v.mbuf = mbuf;
     p->ReleasePacket = DPDKReleasePacket;
+    p->BypassPacketsFlow = RteFlowBypassCallback;
     p->dpdk_v.copy_mode = ptv->copy_mode;
     p->dpdk_v.out_port_id = ptv->out_port_id;
     p->dpdk_v.out_queue_id = ptv->queue_id;
@@ -524,6 +528,23 @@ static void HandleShutdown(DPDKThreadVars *ptv)
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
+        if (SC_ATOMIC_GET(ptv->livedev->dpdk_vars->rte_flow_bypass_data->rte_bypass_rules_active) !=
+                0) {
+            SCLogInfo("Waiting for all bypass rte_flow rules to be removed");
+            while (SC_ATOMIC_GET(ptv->livedev->dpdk_vars->rte_flow_bypass_data
+                                         ->rte_bypass_rules_active) != 0) {
+                rte_delay_us(100000);
+                SCLogInfo("rules added %d, rules left to remove %d",
+                        SC_ATOMIC_GET(ptv->livedev->dpdk_vars->rte_flow_bypass_data
+                                              ->rte_bypass_rules_created),
+                        SC_ATOMIC_GET(ptv->livedev->dpdk_vars->rte_flow_bypass_data
+                                              ->rte_bypass_rules_active));
+            }
+        }
+        StatsSetUI64(ptv->tv, ptv->capture_dpdk_rules_created,
+                SC_ATOMIC_GET(
+                        ptv->livedev->dpdk_vars->rte_flow_bypass_data->rte_bypass_rules_created));
+        DPDKDumpCounters(ptv);
         if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
             rte_eth_dev_stop(ptv->out_port_id);
         } else {
@@ -632,6 +653,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", ptv->tv);
     ptv->capture_dpdk_rte_flow_filtered =
             StatsRegisterCounter("capture.dpdk.rte_flow_filtered", ptv->tv);
+    ptv->capture_dpdk_rules_created = StatsRegisterCounter("capture.dpdk.rules_created", ptv->tv);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;

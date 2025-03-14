@@ -37,6 +37,29 @@
 
 #include "conf.h"
 #include "util-dpdk.h"
+#include "flow-bypass.h"
+#include "flow-hash.h"
+
+typedef struct RteFlowHandlerToFlow_ {
+    Flow *flow;
+    struct rte_flow *src_handler;
+    struct rte_flow *dst_handler;
+    DPDKDeviceResources *dpdk_vars;
+} RteFlowHandlerToFlow;
+
+typedef struct RteFlowHandlerTable_ {
+    // timespec to periodically check the table for changes
+    struct timespec *ts;
+    RteFlowHandlerToFlow *handler_to_flow;
+    uint16_t size;
+    uint16_t cnt;
+    uint16_t ref_count;
+} RteFlowHandlerTable;
+
+typedef struct RteFlowBypassPacketData_ {
+    FlowKey *flow_key;
+    uint16_t port_id;
+} RteFlowBypassPacketData;
 
 void RteFlowRuleStorageFree(RteFlowRuleStorage *rte_flow_rule_storage);
 int ConfigLoadRteFlowRules(
@@ -45,6 +68,15 @@ int RteFlowRulesCreate(char *port_name, int port_id, RteFlowRuleStorage *rte_flo
         const char *driver_name);
 uint64_t RteFlowFilteredPacketsQuery(struct rte_flow **rte_flow_rules, uint16_t rule_count,
         char *device_name, int port_id, uint64_t *filtered_packets);
+int RteBypassInit(DPDKDeviceResources *dpdk_resources, uint32_t bypass_ring_size,
+        const char *port_name, int port_id);
+void RteBypassMempoolFree(void *data);
+int RteFlowBypassCallback(Packet *);
+int RteFlowBypassCheckFlowInit(ThreadVars *th_v, struct timespec *curtime, void *data);
+int RteFlowBypassRuleLoad(
+        ThreadVars *th_v, struct flows_stats *bypassstats, struct timespec *curtime, void *data);
+bool RteBypassUpdate(Flow *flow, void *data, time_t tsec);
+void RteBypassFree(void *data);
 
 #endif /* HAVE_DPDK */
 #endif /* SURICATA_RTE_FLOW_RULES_H */

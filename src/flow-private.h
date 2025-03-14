@@ -36,6 +36,12 @@
  *  flow engine with evaluate flows with lower timeout settings. */
 #define FLOW_EMERGENCY   0x01
 
+/** Flow engine is in shutdown mode. This means it will not accept new flows
+ *  and will only process existing flows.
+ * todo*/
+#define FLOW_SHUTDOWN     0x02
+#define FLOW_SHUTDOWN_END 0x04
+
 /* Flow Time out values */
 #define FLOW_DEFAULT_NEW_TIMEOUT 30
 #define FLOW_DEFAULT_EST_TIMEOUT           300
