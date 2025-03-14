@@ -115,24 +115,32 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
             // incompatible engine->alproto with flow alproto
             goto next;
         }
-        if (engine->ctx.tx_min_progress > tx->tx_progress)
-            break;
-        if (tx->tx_progress > engine->ctx.tx_min_progress) {
-            if (tx->prefilter_flags & BIT_U64(engine->ctx.tx_min_progress)) {
-                goto next;
+
+        if (engine->ctx.tx_min_progress != -1) {
+            if (engine->ctx.tx_min_progress > tx->tx_progress)
+                break;
+            if (tx->tx_progress > engine->ctx.tx_min_progress) {
+                if (tx->prefilter_flags & BIT_U64(engine->ctx.tx_min_progress)) {
+                    goto next;
+                }
             }
-        }
 
-        PREFILTER_PROFILING_START(det_ctx);
-        engine->cb.PrefilterTx(
-                det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id, tx->tx_data_ptr, flow_flags);
-        PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            PREFILTER_PROFILING_START(det_ctx);
+            engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
+                    tx->tx_data_ptr, flow_flags);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
-        if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
-            SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
-                       "engine->is_last_for_progress %d",
-                    tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress);
-            tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
+            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
+                SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
+                           "engine->is_last_for_progress %d",
+                        tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress);
+                tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
+            }
+        } else {
+            PREFILTER_PROFILING_START(det_ctx);
+            engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
+                    tx->tx_data_ptr, flow_flags);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
         }
     next:
         if (engine->is_last)
@@ -301,7 +309,7 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->pectx = pectx;
     e->alproto = alproto;
     // TODO change function prototype ?
-    DEBUG_VALIDATE_BUG_ON(tx_min_progress > UINT8_MAX);
+    DEBUG_VALIDATE_BUG_ON(tx_min_progress > INT8_MAX);
     e->tx_min_progress = (uint8_t)tx_min_progress;
     e->Free = FreeFunc;
 
@@ -1148,7 +1156,8 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterEngine *prev_engine = NULL;
             engine = sgh->tx_engines;
             do {
-                BUG_ON(engine->ctx.tx_min_progress < last_tx_progress);
+                if (engine->ctx.tx_min_progress != -1)
+                    BUG_ON(engine->ctx.tx_min_progress < last_tx_progress);
                 if (engine->alproto == a) {
                     if (last_tx_progress_set && engine->ctx.tx_min_progress > last_tx_progress) {
                         if (prev_engine) {
