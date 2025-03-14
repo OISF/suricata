@@ -1057,7 +1057,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
 
-    TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
+    TRACE_SID_TXS(s->id, tx, "pcap_cnt %" PRIu64 ": starting %s", p->pcap_cnt,
+            direction ? "toclient" : "toserver");
 
     /* for a new inspection we inspect pkt header and packet matches */
     if (likely(stored_flags == NULL)) {
@@ -1134,11 +1135,22 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
                 /* we don't have to store a "hook" match, also don't want to keep any state to make
                  * sure the hook gets invoked again until tx progress progresses. */
-                if (tx->tx_progress <= engine->progress)
+                if (tx->tx_progress <= engine->progress) {
+                    TRACE_SID_TXS(s->id, tx, "engine %p DETECT_ENGINE_INSPECT_SIG_MATCH shortcut",
+                            engine);
                     return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                }
 
-                /* if progress > engine progress, track state to avoid additional matches */
-                match = DETECT_ENGINE_INSPECT_SIG_MATCH;
+                /* a rule like `accept:packet tls:request_update any any -> any any (sid:1;)` will
+                 * be triggering this. */
+                if (s->flags & SIG_FLAG_APP_UPDATE) {
+                    match = DETECT_ENGINE_INSPECT_SIG_MATCH_STATELESS;
+                } else {
+                    /* if progress > engine progress, track state to avoid additional matches */
+                    match = DETECT_ENGINE_INSPECT_SIG_MATCH;
+                }
+                TRACE_SID_TXS(s->id, tx, "engine %p DETECT_ENGINE_INSPECT_SIG_MATCH (no callback)",
+                        engine);
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 DEBUG_VALIDATE_BUG_ON(engine->v2.Callback == NULL);
@@ -1152,7 +1164,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 }
             }
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
+                TRACE_SID_TXS(s->id, tx, "engine %p DETECT_ENGINE_INSPECT_SIG_MATCH", engine);
                 inspect_flags |= BIT_U32(engine->id);
+                engine = engine->next;
+                total_matches++;
+                continue;
+            } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_STATELESS) {
+                TRACE_SID_TXS(
+                        s->id, tx, "engine %p DETECT_ENGINE_INSPECT_SIG_MATCH_STATELESS", engine);
                 engine = engine->next;
                 total_matches++;
                 continue;
@@ -1196,8 +1215,12 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             inspect_flags, total_matches, engine);
 
     if (engine == NULL && total_matches) {
-        inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
-        TRACE_SID_TXS(s->id, tx, "MATCH");
+        if ((s->flags & SIG_FLAG_APP_UPDATE) == 0) {
+            inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
+            TRACE_SID_TXS(s->id, tx, "MATCH with DE_STATE_FLAG_FULL_INSPECT");
+        } else {
+            TRACE_SID_TXS(s->id, tx, "MATCH without DE_STATE_FLAG_FULL_INSPECT");
+        }
         retval = true;
     }
 

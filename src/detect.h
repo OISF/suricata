@@ -248,6 +248,10 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_TXBOTHDIR              BIT_U32(7) /**< signature needs tx with both directions to match */
 
+#define SIG_FLAG_APP_UPDATE                                                                        \
+    BIT_U32(8) /**< sig uses <alproto>:(request|response)_update, meaning it should match applayer \
+                  for each update. */
+
 // vacancy
 
 #define SIG_FLAG_REQUIRE_PACKET         BIT_U32(9)  /**< signature is requiring packet match */

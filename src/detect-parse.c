@@ -1176,6 +1176,20 @@ void DetectRegisterAppLayerHookLists(void)
                         list_name, a, SIG_FLAG_TOCLIENT, p, DetectEngineInspectGenericList, NULL);
             }
         }
+
+        char ts_tx_update[64];
+        snprintf(ts_tx_update, sizeof(ts_tx_update), "%s:request_update:generic", alproto_name);
+        DetectAppLayerInspectEngineRegister(
+                ts_tx_update, a, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_update,
+                (uint32_t)strlen(ts_tx_update));
+
+        char tc_tx_update[64];
+        snprintf(tc_tx_update, sizeof(tc_tx_update), "%s:response_update:generic", alproto_name);
+        DetectAppLayerInspectEngineRegister(
+                tc_tx_update, a, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_update,
+                (uint32_t)strlen(tc_tx_update));
     }
 }
 
@@ -1265,7 +1279,15 @@ static SignatureHook SetAppHook(const AppProto alproto, int progress)
  */
 static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char *p, const char *h)
 {
-    if (strcmp(h, "request_complete") == 0) {
+    if (strcmp(h, "request_update") == 0) {
+        s->flags |= SIG_FLAG_TOSERVER;
+        s->init_data->hook = SetAppHook(s->alproto, 0);
+        s->flags |= SIG_FLAG_APP_UPDATE;
+    } else if (strcmp(h, "response_update") == 0) {
+        s->flags |= SIG_FLAG_TOCLIENT;
+        s->init_data->hook = SetAppHook(s->alproto, 0);
+        s->flags |= SIG_FLAG_APP_UPDATE;
+    } else if (strcmp(h, "request_complete") == 0) {
         s->flags |= SIG_FLAG_TOSERVER;
         s->init_data->hook = SetAppHook(s->alproto,
                 AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOSERVER));
