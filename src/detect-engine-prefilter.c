@@ -682,6 +682,8 @@ struct TxNonPFData {
     AppProto alproto;
     int dir;      /**< 0: toserver, 1: toclient */
     int progress; /**< progress state value to register at */
+    int sig_list; /**< special handling: normally 0, but for special cases (app-layer-state,
+                     app-layer-event) use the list id to create separate engines */
     uint32_t sigs_cnt;
     struct PrefilterNonPFDataSig *sigs;
     const char *engine_name; /**< pointer to name owned by DetectEngineCtx::non_pf_engine_names */
@@ -690,14 +692,15 @@ struct TxNonPFData {
 static uint32_t TxNonPFHash(HashListTable *h, void *data, uint16_t _len)
 {
     struct TxNonPFData *d = data;
-    return (d->alproto + d->progress + d->dir) % h->array_size;
+    return (d->alproto + d->progress + d->dir + d->sig_list) % h->array_size;
 }
 
 static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t len2)
 {
     struct TxNonPFData *d1 = data1;
     struct TxNonPFData *d2 = data2;
-    return d1->alproto == d2->alproto && d1->progress == d2->progress && d1->dir == d2->dir;
+    return d1->alproto == d2->alproto && d1->progress == d2->progress && d1->dir == d2->dir &&
+           d1->sig_list == d2->sig_list;
 }
 
 static void TxNonPFFree(void *data)
@@ -708,8 +711,8 @@ static void TxNonPFFree(void *data)
 }
 
 static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
-        const AppProto alproto, const int dir, const int16_t progress, const char *name,
-        const Signature *s)
+        const AppProto alproto, const int dir, const int16_t progress, const int sig_list,
+        const char *name, const Signature *s)
 {
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
 
@@ -717,6 +720,7 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
         .alproto = alproto,
         .dir = dir,
         .progress = progress,
+        .sig_list = sig_list,
         .sigs_cnt = 0,
         .sigs = NULL,
         .engine_name = NULL,
@@ -747,6 +751,7 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
     add->dir = dir;
     add->alproto = alproto;
     add->progress = progress;
+    add->sig_list = sig_list;
     add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
     if (add->sigs == NULL) {
         SCFree(add);
@@ -852,6 +857,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 #endif
     const int app_events_list_id = DetectBufferTypeGetByName("app-layer-events");
     SCLogDebug("app_events_list_id %d", app_events_list_id);
+    const int app_state_list_id = DetectBufferTypeGetByName("app-layer-state");
+    SCLogDebug("app_state_list_id %d", app_state_list_id);
     for (uint32_t sig = 0; sig < sgh->init->sig_cnt; sig++) {
         Signature *s = sgh->init->match_array[sig];
         if (s == NULL)
@@ -958,8 +965,11 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                                         AppProtoEquals(s->alproto, app->alproto))))
                         continue;
 
+                    int sig_list = 0;
+                    if (list_id == app_state_list_id)
+                        sig_list = app_state_list_id;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
-                                app->progress, buf->name, s) != 0) {
+                                app->progress, sig_list, buf->name, s) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
@@ -1036,6 +1046,13 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
         }
 
+        /* register special progress value to indicate we need to run it all the time */
+        int engine_progress = t->progress;
+        if (t->sig_list == app_state_list_id) {
+            SCLogDebug("engine %s for state list", t->engine_name);
+            engine_progress = -1;
+        }
+
         struct PrefilterNonPFDataTx *data =
                 SCCalloc(1, sizeof(*data) + t->sigs_cnt * sizeof(data->array[0]));
         if (data == NULL)
@@ -1044,7 +1061,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (uint32_t i = 0; i < t->sigs_cnt; i++) {
             data->array[i] = t->sigs[i].sid;
         }
-        if (PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxNonPF, t->alproto, t->progress,
+        if (PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxNonPF, t->alproto, engine_progress,
                     (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
             SCFree(data);
             goto error;
