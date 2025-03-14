@@ -562,7 +562,6 @@ void FlowSwap(Flow *);
 void FlowRegisterTests(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
-static inline void FlowSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(const Flow *, const Packet *);

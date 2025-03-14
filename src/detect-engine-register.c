@@ -184,6 +184,7 @@
 #include "detect-replace.h"
 #include "detect-tos.h"
 #include "detect-app-layer-event.h"
+#include "detect-app-layer-state.h"
 #include "detect-lua.h"
 #include "detect-iprep.h"
 #include "detect-geoip.h"
@@ -590,6 +591,7 @@ void SigTableSetup(void)
     DetectTlsJa3SStringRegister();
 
     DetectAppLayerEventRegister();
+    DetectAppLayerStateRegister();
     /* end of order dependent regs */
 
     DetectFrameRegister();
