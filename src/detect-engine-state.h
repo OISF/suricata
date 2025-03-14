@@ -34,19 +34,22 @@
 #ifndef SURICATA_DETECT_ENGINE_STATE_H
 #define SURICATA_DETECT_ENGINE_STATE_H
 
-#define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
-#define DETECT_ENGINE_INSPECT_SIG_MATCH 1
-#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH 2
-/** indicate that the file inspection portion of a sig didn't match.
- *  This is used to handle state keeping as the detect engine is still
- *  only marginally aware of files. */
-#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES 3
-/** hack to work around a file inspection limitation. Since there can be
- *  multiple files in a TX and the detection engine really don't know
- *  about that, we have to give the file inspection engine a way to
- *  indicate that one of the files matched, but that there are still
- *  more files that have ongoing inspection. */
-#define DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES 4
+enum {
+    DETECT_ENGINE_INSPECT_SIG_NO_MATCH = 0,
+    DETECT_ENGINE_INSPECT_SIG_MATCH = 1,
+    DETECT_ENGINE_INSPECT_SIG_CANT_MATCH = 2,
+    /** indicate that the file inspection portion of a sig didn't match.
+     *  This is used to handle state keeping as the detect engine is still
+     *  only marginally aware of files. */
+    DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES = 3,
+    /** hack to work around a file inspection limitation. Since there can be
+     *  multiple files in a TX and the detection engine really don't know
+     *  about that, we have to give the file inspection engine a way to
+     *  indicate that one of the files matched, but that there are still
+     *  more files that have ongoing inspection. */
+    DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES = 4,
+    DETECT_ENGINE_INSPECT_SIG_MATCH_STATELESS = 5,
+};
 
 /** number of DeStateStoreItem's in one DeStateStore object */
 #define DE_STATE_CHUNK_SIZE             15
