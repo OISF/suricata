@@ -88,6 +88,7 @@ noinst_HEADERS = \
 	defrag-timeout.h \
 	detect-app-layer-event.h \
 	detect-app-layer-protocol.h \
+	detect-app-layer-state.h \
 	detect-asn1.h \
 	detect-base64-data.h \
 	detect-base64-decode.h \
@@ -672,6 +673,7 @@ libsuricata_c_a_SOURCES = \
 	defrag-timeout.c \
 	detect-app-layer-event.c \
 	detect-app-layer-protocol.c \
+	detect-app-layer-state.c \
 	detect-asn1.c \
 	detect-base64-data.c \
 	detect-base64-decode.c \
