@@ -1436,8 +1436,8 @@ typedef struct PrefilterEngineList_ {
     /** App Proto this engine applies to: only used with Tx Engines */
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
-     *  with Tx Engine */
-    uint8_t tx_min_progress;
+     *  with Tx Engine. Set to -1 for all states. */
+    int8_t tx_min_progress;
 
     uint8_t frame_type;
 
@@ -1475,8 +1475,8 @@ typedef struct PrefilterEngine_ {
             uint8_t hook;       /**< enum SignatureHookPkt */
         } pkt;
         /** Minimal Tx progress we need before running the engine. Only used
-         *  with Tx Engine */
-        uint8_t tx_min_progress;
+         *  with Tx Engine. Set to -1 for all states. */
+        int8_t tx_min_progress;
         uint8_t frame_type;
     } ctx;
 
