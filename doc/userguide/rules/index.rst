@@ -53,3 +53,4 @@ Suricata Rules
    vlan-keywords
    ldap-keywords
    rule-types
+   mime-keywords
