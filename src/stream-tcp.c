@@ -6683,11 +6683,7 @@ void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
 void StreamTcpSetSessionNoReassemblyFlag(TcpSession *ssn, char direction)
 {
     ssn->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED;
-    if (direction) {
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED;
-    } else {
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED;
-    }
+    StreamTcpSetDisableRawReassemblyFlag(ssn, direction);
 }
 
 /** \brief  Set the No reassembly flag for the given direction in given TCP
