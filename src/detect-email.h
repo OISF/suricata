@@ -1,4 +1,4 @@
-/* Copyright (C) 2021-2024 Open Information Security Foundation
+/* Copyright (C) 2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-//! MIME protocol parser module.
+#ifndef SURICATA_DETECT_EMAIL_H
+#define SURICATA_DETECT_EMAIL_H
 
-pub mod detect;
-pub mod mime;
-pub mod smtp;
-pub mod smtp_log;
+void DetectEmailRegister(void);
+
+#endif /* SURICATA_DETECT_EMAIL_H */
