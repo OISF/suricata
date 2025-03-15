@@ -407,9 +407,12 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 
 static inline uint64_t GetAbsLastAck(const TcpStream *stream)
 {
+    /* There's data that has been ack'd but is yet to be reassembled */
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         return STREAM_BASE_OFFSET(stream) + (stream->last_ack - stream->base_seq);
     }
+    /* More data has been reassembled than is ack'd by the engine. */
+    DEBUG_VALIDATE_BUG_ON(STREAM_BASE_OFFSET(stream) > stream->last_ack);
     return STREAM_BASE_OFFSET(stream);
 }
 
@@ -1100,7 +1103,11 @@ static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_b
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
-            GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len)) {
+            GetAbsLastAck(stream) >
+                    (cur_blk->offset +
+                            cur_blk->len)) { /* only if the stream has been ack'd, consider a gap
+                                                for sure otherwise there may still be a chance of
+                                                pkts coming in */
         return true;
     }
     return false;
@@ -1419,8 +1426,10 @@ int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
         if (ssn->state >= TCP_CLOSING || (p->flags & PKT_PSEUDO_STREAM_END)) {
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0,
-                    StreamGetAppLayerFlags(ssn, stream, p), app_update_dir);
+            uint8_t stream_flags = StreamGetAppLayerFlags(ssn, stream, p);
+            DEBUG_VALIDATE_BUG_ON((stream_flags & STREAM_EOF) == 0);
+            AppLayerHandleTCPData(
+                    tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0, stream_flags, app_update_dir);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
@@ -1442,10 +1451,11 @@ static int GetRawBuffer(const TcpStream *stream, const uint8_t **data, uint32_t 
     if (RB_EMPTY(&stream->sb.sbb_tree)) {
         SCLogDebug("getting one blob for offset %"PRIu64, offset);
 
+        /* No gaps in the stream, data must exist in the streaming buffer array */
         uint64_t roffset = offset;
-        if (offset)
+        if (offset) {
             StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
-        else {
+        } else {
             StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &roffset);
         }
 
@@ -1703,8 +1713,12 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                 mydata_len -= excess;
                 SCLogDebug("cutting tail of the buffer with %u", excess);
             } else {
-                uint32_t before = (uint32_t)(packet_leftedge_abs - mydata_offset);
-                uint32_t after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
+                DEBUG_VALIDATE_BUG_ON(mydata_offset > packet_leftedge_abs);
+                uint32_t abs_before = (uint32_t)(packet_leftedge_abs - mydata_offset);
+                DEBUG_VALIDATE_BUG_ON(packet_rightedge_abs > mydata_rightedge_abs);
+                uint32_t abs_after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
+                uint32_t before = abs_before;
+                uint32_t after = abs_after;
                 SCLogDebug("before %u after %u", before, after);
 
                 if (after >= (chunk_size - p->payload_len) / 2) {
@@ -1729,8 +1743,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                 }
 
                 /* adjust the buffer */
-                uint32_t skip = (uint32_t)(packet_leftedge_abs - mydata_offset) - before;
-                uint32_t cut = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs) - after;
+                DEBUG_VALIDATE_BUG_ON(before > abs_before);
+                uint32_t skip = abs_before - before;
+                DEBUG_VALIDATE_BUG_ON(after > abs_after);
+                uint32_t cut = abs_after - after;
                 DEBUG_VALIDATE_BUG_ON(skip > mydata_len);
                 DEBUG_VALIDATE_BUG_ON(cut > mydata_len);
                 DEBUG_VALIDATE_BUG_ON(skip + cut > mydata_len);
