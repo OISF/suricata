@@ -317,6 +317,7 @@ noinst_HEADERS = \
 	detect-within.h \
 	detect-xbits.h \
 	detect-vlan.h \
+	detect-email.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
@@ -891,6 +892,7 @@ libsuricata_c_a_SOURCES = \
 	detect-within.c \
 	detect-xbits.c \
 	detect-vlan.c \
+	detect-email.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
