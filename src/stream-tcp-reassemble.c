@@ -620,10 +620,10 @@ static void StreamTcpReassembleExceptionPolicyStatsIncr(
  *
  *  \param p packet with *LOCKED* flow
  *
- *  \retval 1 stream has depth reached
- *  \retval 0 stream does not have depth reached
+ *  \retval true stream has depth reached
+ *  \retval false stream does not have depth reached
  */
-int StreamTcpReassembleDepthReached(Packet *p)
+bool StreamTcpReassembleDepthReached(Packet *p)
 {
     if (p->flow != NULL && p->flow->protoctx != NULL) {
         TcpSession *ssn = p->flow->protoctx;
@@ -634,10 +634,10 @@ int StreamTcpReassembleDepthReached(Packet *p)
             stream = &ssn->server;
         }
 
-        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? 1 : 0;
+        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? true : false;
     }
 
-    return 0;
+    return false;
 }
 
 /**
@@ -915,11 +915,11 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
 /**
  *  \brief Check the minimum size limits for reassembly.
  *
- *  \retval 0 don't reassemble yet
- *  \retval 1 do reassemble
+ *  \retval false don't reassemble yet
+ *  \retval true do reassemble
  */
-static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
-        const TcpStream *stream, const Packet *p)
+static bool StreamTcpReassembleRawCheckLimit(
+        const TcpSession *ssn, const TcpStream *stream, const Packet *p)
 {
     SCEnter();
 
@@ -941,16 +941,16 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
             SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED is set, "
                     "so no new segments will be considered");
         }
-        SCReturnInt(1);
+        SCReturnBool(true);
     }
 #undef STREAMTCP_STREAM_FLAG_FLUSH_FLAGS
 
     /* some states mean we reassemble no matter how much data we have */
     if (ssn->state > TCP_TIME_WAIT)
-        SCReturnInt(1);
+        SCReturnBool(true);
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
-        SCReturnInt(1);
+        SCReturnBool(true);
 
     const uint64_t last_ack_abs = GetAbsLastAck(stream);
     int64_t diff = last_ack_abs - STREAM_RAW_PROGRESS(stream);
@@ -959,17 +959,17 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 
     /* check if we have enough data to do raw reassembly */
     if (chunk_size <= diff) {
-        SCReturnInt(1);
+        SCReturnBool(true);
     } else {
         SCLogDebug("%s min chunk len not yet reached: "
                    "last_ack %" PRIu32 ", ra_raw_base_seq %" PRIu32 ", %" PRIu32 " < "
                    "%" PRIi64,
                 PKT_IS_TOSERVER(p) ? "toserver" : "toclient", stream->last_ack, stream->base_seq,
                 (stream->last_ack - stream->base_seq), chunk_size);
-        SCReturnInt(0);
+        SCReturnBool(false);
     }
 
-    SCReturnInt(0);
+    SCReturnBool(false);
 }
 
 /**
