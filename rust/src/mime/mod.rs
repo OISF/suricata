@@ -17,6 +17,7 @@
 
 //! MIME protocol parser module.
 
+pub mod detect;
 pub mod mime;
 pub mod smtp;
 pub mod smtp_log;

@@ -25,6 +25,9 @@ use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 use std::os::raw::c_uchar;
+use suricata_sys::sys::AppProto;
+
+pub(super) static mut ALPROTO_SMTP: AppProto = 4;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
