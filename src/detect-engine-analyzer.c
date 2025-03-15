@@ -979,6 +979,12 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (ctx.js == NULL)
         SCReturn;
 
+    if (s->init_data->firewall_rule) {
+        JB_SET_STRING(ctx.js, "class", "firewall");
+    } else {
+        JB_SET_STRING(ctx.js, "class", "threat detection");
+    }
+
     jb_set_string(ctx.js, "raw", s->sig_str);
     jb_set_uint(ctx.js, "id", s->id);
     jb_set_uint(ctx.js, "gid", s->gid);
@@ -1035,18 +1041,39 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->action & ACTION_PASS) {
         jb_append_string(ctx.js, "pass");
     }
+    if (s->action & ACTION_ACCEPT) {
+        jb_append_string(ctx.js, "accept");
+    }
     jb_close(ctx.js);
-    enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
-    switch (flow_action) {
-        case SIG_PROP_FLOW_ACTION_PACKET:
-            jb_set_string(ctx.js, "scope", "packet");
-            break;
-        case SIG_PROP_FLOW_ACTION_FLOW:
-            jb_set_string(ctx.js, "scope", "flow");
-            break;
-        case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
-            jb_set_string(ctx.js, "scope", "flow_if_stateful");
-            break;
+
+    if (s->action_scope == ACTION_SCOPE_AUTO) {
+        enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
+        switch (flow_action) {
+            case SIG_PROP_FLOW_ACTION_PACKET:
+                jb_set_string(ctx.js, "scope", "packet");
+                break;
+            case SIG_PROP_FLOW_ACTION_FLOW:
+                jb_set_string(ctx.js, "scope", "flow");
+                break;
+            case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
+                jb_set_string(ctx.js, "scope", "flow_if_stateful");
+                break;
+        }
+    } else {
+        enum ActionScope as = s->action_scope;
+        switch (as) {
+            case ACTION_SCOPE_PACKET:
+                jb_set_string(ctx.js, "scope", "packet");
+                break;
+            case ACTION_SCOPE_FLOW:
+                jb_set_string(ctx.js, "scope", "flow");
+                break;
+            case ACTION_SCOPE_HOOK:
+                jb_set_string(ctx.js, "scope", "hook");
+                break;
+            case ACTION_SCOPE_AUTO: /* should be unreachable */
+                break;
+        }
     }
     jb_close(ctx.js);
 
