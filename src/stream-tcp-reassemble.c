@@ -1642,14 +1642,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     uint32_t chunk_size = PKT_IS_TOSERVER(p) ?
         stream_config.reassembly_toserver_chunk_size :
         stream_config.reassembly_toclient_chunk_size;
-    if (chunk_size <= p->payload_len) {
+    if ((chunk_size <= p->payload_len) || (((chunk_size / 3) * 2) < p->payload_len)) {
         chunk_size = p->payload_len + (chunk_size / 3);
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
-    } else if (((chunk_size / 3 ) * 2) < p->payload_len) {
-        chunk_size = p->payload_len + ((chunk_size / 3));
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
+        SCLogDebug(
+                "packet payload len %u, so chunk_size adjusted to %u", p->payload_len, chunk_size);
     }
 
     const TCPHdr *tcph = PacketGetTCP(p);
