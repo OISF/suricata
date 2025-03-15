@@ -409,9 +409,8 @@ static inline uint64_t GetAbsLastAck(const TcpStream *stream)
 {
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         return STREAM_BASE_OFFSET(stream) + (stream->last_ack - stream->base_seq);
-    } else {
-        return STREAM_BASE_OFFSET(stream);
     }
+    return STREAM_BASE_OFFSET(stream);
 }
 
 // may contain gaps
@@ -727,11 +726,11 @@ uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
             return 0;
 
         return stream->sb.region.buf_offset;
-    } else {
-        DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
-        DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
-        return stream->sb.sbb_size;
     }
+
+    DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
+    DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
+    return stream->sb.sbb_size;
 }
 
 /**
@@ -1201,17 +1200,16 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
                            "next_seq %u < last_ack %u, but no data in list",
                         p->pcap_cnt, stream->next_seq, stream->last_ack);
                 return false;
-            } else {
-                const uint64_t next_seq_abs =
-                        STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                const StreamingBufferBlock *blk = stream->sb.head;
-                if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
-                    /* ack'd data after the gap */
-                    SCLogDebug("packet %" PRIu64 ": GAP. "
-                               "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
-                            p->pcap_cnt, stream->next_seq, stream->last_ack);
-                    return true;
-                }
+            }
+            const uint64_t next_seq_abs =
+                    STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
+            const StreamingBufferBlock *blk = stream->sb.head;
+            if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
+                /* ack'd data after the gap */
+                SCLogDebug("packet %" PRIu64 ": GAP. "
+                           "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
+                        p->pcap_cnt, stream->next_seq, stream->last_ack);
+                return true;
             }
         }
 
