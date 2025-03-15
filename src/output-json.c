@@ -428,8 +428,16 @@ void EvePacket(const Packet *p, JsonBuilder *js, uint32_t max_length)
         return;
     }
     if (!jb_set_uint(js, "linktype", p->datalink)) {
+        jb_close(js);
         return;
     }
+
+    const char *dl_name = DatalinkValueToName(p->datalink);
+
+    // Intentionally ignore the return value from jb_set_string and proceed
+    // so the jb object is closed
+    (void)jb_set_string(js, "linktype_name", dl_name == NULL ? "n/a" : dl_name);
+
     jb_close(js);
 }
 
