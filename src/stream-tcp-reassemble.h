@@ -123,7 +123,7 @@ void StreamTcpSegmentReturntoPool(TcpSegment *);
 void StreamTcpReassembleTriggerRawReassembly(TcpSession *, int direction);
 
 void StreamTcpPruneSession(Flow *, uint8_t);
-int StreamTcpReassembleDepthReached(Packet *p);
+bool StreamTcpReassembleDepthReached(Packet *p);
 
 void StreamTcpReassembleIncrMemuse(uint64_t size);
 void StreamTcpReassembleDecrMemuse(uint64_t size);
