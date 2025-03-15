@@ -314,7 +314,13 @@ Event type: ``flow``::
         "age": 40,
         "state": "closed",
         "reason": "shutdown",
-        "alerted": true
+        "alerted": true,
+        "exception_policy": [
+          {
+            "target": "stream_midstream",
+            "policy": "ignore"
+          }
+        ]
       },
       "ether": {
         "dest_macs": [
@@ -1669,6 +1675,14 @@ Fields
 * "state": display state of the flow (include "new", "established", "closed", "bypassed")
 * "reason": mechanism that did trigger the end of the flow (include "timeout", "forced" and "shutdown")
 * "alerted": "true" or "false" depending if an alert has been seen on flow
+* "action": "pass" or "drop" depending if flow was PASS'ed or DROP'ed (no present if none)
+* "exception_policy": array consisting of exception policies that have been triggered by
+  the flow:
+
+    * "target": if an exception policy was triggered, what setting exceptions
+      led to this (cf. :ref:`Exception Policy - Specific Settings<eps_settings>`).
+    * "policy": if an exception policy was triggered, what policy was applied
+      (to the flow or to any packet(s) from it).
 
 Example ::
 
@@ -1689,7 +1703,14 @@ Example ::
     "bypass": "capture",
     "state": "bypassed",
     "reason": "timeout",
-    "alerted": false
+    "alerted": false,
+    "action": "pass",
+    "exception_policy": [
+      {
+        "target": "stream_midstream",
+        "policy": "pass_flow"
+      }
+    ]
   }
 
 Event type: RDP
