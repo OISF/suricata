@@ -642,7 +642,7 @@ bool StreamTcpReassembleDepthReached(Packet *p)
 
 /**
  *  \internal
- *  \brief Function to Check the reassembly depth valuer against the
+ *  \brief Function to check the reassembly depth value against the
  *        allowed max depth of the stream reassembly for TCP streams.
  *
  *  \param stream stream direction
@@ -680,7 +680,7 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
         seg_depth = STREAM_BASE_OFFSET(stream) + ((seq + size) - stream->base_seq);
     }
 
-    /* if the base_seq has moved passed the depth window we stop
+    /* if the base_seq has moved past the depth window we stop
      * checking and just reject the rest of the packets including
      * retransmissions. Saves us the hassle of dealing with sequence
      * wraps as well */
@@ -735,7 +735,7 @@ uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
 }
 
 /**
- *  \brief Insert a packets TCP data into the stream reassembly engine.
+ *  \brief Insert a TCP packet data into the stream reassembly engine.
  *
  *  \retval 0 good segment, as far as we checked.
  *  \retval -1 insert failure due to memcap
