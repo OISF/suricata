@@ -16,9 +16,9 @@
  */
 
 use super::mime;
-use crate::utils::base64;
 use crate::core::StreamingBufferConfig;
 use crate::filecontainer::FileContainer;
+use crate::utils::base64;
 use digest::generic_array::{typenum::U16, GenericArray};
 use digest::Digest;
 use digest::Update;
@@ -457,17 +457,16 @@ fn mime_smtp_parse_line(
                                 for _i in 0..4 - decoder.nb {
                                     v.push(b'=');
                                 }
-                                let dec_size = base64::get_decoded_buffer_size((decoder.nb as usize + v.len()) as u32);
+                                let dec_size = base64::get_decoded_buffer_size(
+                                    (decoder.nb as usize + v.len()) as u32,
+                                );
                                 let mut dec = vec![0; dec_size as usize];
                                 let mut dec_len = 0;
-                                if base64::decode_rfc2045(decoder, &v, &mut dec, &mut dec_len).is_ok() {
+                                if base64::decode_rfc2045(decoder, &v, &mut dec, &mut dec_len)
+                                    .is_ok()
+                                {
                                     unsafe {
-                                        FileAppendData(
-                                            ctx.files,
-                                            ctx.sbcfg,
-                                            dec.as_ptr(),
-                                            dec_len,
-                                        );
+                                        FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len);
                                     }
                                 }
                             }
@@ -505,10 +504,14 @@ fn mime_smtp_parse_line(
                                     if i.len() > MAX_ENC_LINE_LEN {
                                         warnings |= MIME_ANOM_LONG_ENC_LINE;
                                     }
-                                    let dec_size = base64::get_decoded_buffer_size((decoder.nb as usize + i.len()) as u32);
+                                    let dec_size = base64::get_decoded_buffer_size(
+                                        (decoder.nb as usize + i.len()) as u32,
+                                    );
                                     let mut dec = vec![0; dec_size as usize];
                                     let mut dec_len = 0; // unnecessary but required by fn args
-                                    if base64::decode_rfc2045(decoder, i, &mut dec, &mut dec_len).is_ok() {
+                                    if base64::decode_rfc2045(decoder, i, &mut dec, &mut dec_len)
+                                        .is_ok()
+                                    {
                                         mime_smtp_find_url_strings(ctx, &dec);
                                     } else {
                                         warnings |= MIME_ANOM_INVALID_BASE64;
@@ -547,18 +550,15 @@ fn mime_smtp_parse_line(
                             if i.len() > MAX_ENC_LINE_LEN {
                                 warnings |= MIME_ANOM_LONG_ENC_LINE;
                             }
-                            let dec_size = base64::get_decoded_buffer_size((decoder.nb as usize + i.len()) as u32);
+                            let dec_size = base64::get_decoded_buffer_size(
+                                (decoder.nb as usize + i.len()) as u32,
+                            );
                             let mut dec = vec![0; dec_size as usize];
                             let mut dec_len = 0;
                             if base64::decode_rfc2045(decoder, i, &mut dec, &mut dec_len).is_ok() {
                                 mime_smtp_find_url_strings(ctx, &dec);
                                 unsafe {
-                                    FileAppendData(
-                                        ctx.files,
-                                        ctx.sbcfg,
-                                        dec.as_ptr(),
-                                        dec_len,
-                                    );
+                                    FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len);
                                 }
                             } else {
                                 warnings |= MIME_ANOM_INVALID_BASE64;
