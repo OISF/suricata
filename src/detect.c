@@ -1560,8 +1560,9 @@ static void DetectRunTx(ThreadVars *tv,
                  * - packet pass (e.g. exception policy) */
                 if (p->flags & PKT_NOPACKET_INSPECTION || (f->flags & (FLOW_ACTION_PASS))) {
                     SCLogDebug("skipping firewall rule %u", s->id);
-                    break_out_of_app_filter = true;
-                    continue;
+                    DetectVarProcessList(det_ctx, p->flow, p);
+                    RULE_PROFILING_END(det_ctx, s, 0, p);
+                    break;
                 }
             }
 
