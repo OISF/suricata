@@ -407,11 +407,13 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 
 static inline uint64_t GetAbsLastAck(const TcpStream *stream)
 {
+    /* There's data that has been ack'd but is yet to be reassembled */
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         return STREAM_BASE_OFFSET(stream) + (stream->last_ack - stream->base_seq);
-    } else {
-        return STREAM_BASE_OFFSET(stream);
     }
+    /* More data has been reassembled than is ack'd by the engine. */
+    DEBUG_VALIDATE_BUG_ON(STREAM_BASE_OFFSET(stream) > stream->last_ack);
+    return STREAM_BASE_OFFSET(stream);
 }
 
 // may contain gaps
@@ -620,10 +622,10 @@ static void StreamTcpReassembleExceptionPolicyStatsIncr(
  *
  *  \param p packet with *LOCKED* flow
  *
- *  \retval 1 stream has depth reached
- *  \retval 0 stream does not have depth reached
+ *  \retval true stream has depth reached
+ *  \retval false stream does not have depth reached
  */
-int StreamTcpReassembleDepthReached(Packet *p)
+bool StreamTcpReassembleDepthReached(Packet *p)
 {
     if (p->flow != NULL && p->flow->protoctx != NULL) {
         TcpSession *ssn = p->flow->protoctx;
@@ -634,15 +636,15 @@ int StreamTcpReassembleDepthReached(Packet *p)
             stream = &ssn->server;
         }
 
-        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? 1 : 0;
+        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? true : false;
     }
 
-    return 0;
+    return false;
 }
 
 /**
  *  \internal
- *  \brief Function to Check the reassembly depth valuer against the
+ *  \brief Function to check the reassembly depth value against the
  *        allowed max depth of the stream reassembly for TCP streams.
  *
  *  \param stream stream direction
@@ -680,7 +682,7 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
         seg_depth = STREAM_BASE_OFFSET(stream) + ((seq + size) - stream->base_seq);
     }
 
-    /* if the base_seq has moved passed the depth window we stop
+    /* if the base_seq has moved past the depth window we stop
      * checking and just reject the rest of the packets including
      * retransmissions. Saves us the hassle of dealing with sequence
      * wraps as well */
@@ -727,15 +729,15 @@ uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream)
             return 0;
 
         return stream->sb.region.buf_offset;
-    } else {
-        DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
-        DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
-        return stream->sb.sbb_size;
     }
+
+    DEBUG_VALIDATE_BUG_ON(stream->sb.head == NULL);
+    DEBUG_VALIDATE_BUG_ON(stream->sb.sbb_size == 0);
+    return stream->sb.sbb_size;
 }
 
 /**
- *  \brief Insert a packets TCP data into the stream reassembly engine.
+ *  \brief Insert a TCP packet data into the stream reassembly engine.
  *
  *  \retval 0 good segment, as far as we checked.
  *  \retval -1 insert failure due to memcap
@@ -915,11 +917,11 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
 /**
  *  \brief Check the minimum size limits for reassembly.
  *
- *  \retval 0 don't reassemble yet
- *  \retval 1 do reassemble
+ *  \retval false don't reassemble yet
+ *  \retval true do reassemble
  */
-static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
-        const TcpStream *stream, const Packet *p)
+static bool StreamTcpReassembleRawCheckLimit(
+        const TcpSession *ssn, const TcpStream *stream, const Packet *p)
 {
     SCEnter();
 
@@ -941,16 +943,16 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
             SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED is set, "
                     "so no new segments will be considered");
         }
-        SCReturnInt(1);
+        SCReturnBool(true);
     }
 #undef STREAMTCP_STREAM_FLAG_FLUSH_FLAGS
 
     /* some states mean we reassemble no matter how much data we have */
     if (ssn->state > TCP_TIME_WAIT)
-        SCReturnInt(1);
+        SCReturnBool(true);
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
-        SCReturnInt(1);
+        SCReturnBool(true);
 
     const uint64_t last_ack_abs = GetAbsLastAck(stream);
     int64_t diff = last_ack_abs - STREAM_RAW_PROGRESS(stream);
@@ -959,17 +961,17 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 
     /* check if we have enough data to do raw reassembly */
     if (chunk_size <= diff) {
-        SCReturnInt(1);
+        SCReturnBool(true);
     } else {
         SCLogDebug("%s min chunk len not yet reached: "
                    "last_ack %" PRIu32 ", ra_raw_base_seq %" PRIu32 ", %" PRIu32 " < "
                    "%" PRIi64,
                 PKT_IS_TOSERVER(p) ? "toserver" : "toclient", stream->last_ack, stream->base_seq,
                 (stream->last_ack - stream->base_seq), chunk_size);
-        SCReturnInt(0);
+        SCReturnBool(false);
     }
 
-    SCReturnInt(0);
+    SCReturnBool(false);
 }
 
 /**
@@ -1101,7 +1103,11 @@ static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_b
 {
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
-            GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len)) {
+            GetAbsLastAck(stream) >
+                    (cur_blk->offset +
+                            cur_blk->len)) { /* only if the stream has been ack'd, consider a gap
+                                                for sure otherwise there may still be a chance of
+                                                pkts coming in */
         return true;
     }
     return false;
@@ -1201,17 +1207,16 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
                            "next_seq %u < last_ack %u, but no data in list",
                         p->pcap_cnt, stream->next_seq, stream->last_ack);
                 return false;
-            } else {
-                const uint64_t next_seq_abs =
-                        STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                const StreamingBufferBlock *blk = stream->sb.head;
-                if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
-                    /* ack'd data after the gap */
-                    SCLogDebug("packet %" PRIu64 ": GAP. "
-                               "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
-                            p->pcap_cnt, stream->next_seq, stream->last_ack);
-                    return true;
-                }
+            }
+            const uint64_t next_seq_abs =
+                    STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
+            const StreamingBufferBlock *blk = stream->sb.head;
+            if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
+                /* ack'd data after the gap */
+                SCLogDebug("packet %" PRIu64 ": GAP. "
+                           "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
+                        p->pcap_cnt, stream->next_seq, stream->last_ack);
+                return true;
             }
         }
 
@@ -1421,8 +1426,10 @@ int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
         if (ssn->state >= TCP_CLOSING || (p->flags & PKT_PSEUDO_STREAM_END)) {
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0,
-                    StreamGetAppLayerFlags(ssn, stream, p), app_update_dir);
+            uint8_t stream_flags = StreamGetAppLayerFlags(ssn, stream, p);
+            DEBUG_VALIDATE_BUG_ON((stream_flags & STREAM_EOF) == 0);
+            AppLayerHandleTCPData(
+                    tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0, stream_flags, app_update_dir);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
@@ -1444,10 +1451,11 @@ static int GetRawBuffer(const TcpStream *stream, const uint8_t **data, uint32_t 
     if (RB_EMPTY(&stream->sb.sbb_tree)) {
         SCLogDebug("getting one blob for offset %"PRIu64, offset);
 
+        /* No gaps in the stream, data must exist in the streaming buffer array */
         uint64_t roffset = offset;
-        if (offset)
+        if (offset) {
             StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
-        else {
+        } else {
             StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &roffset);
         }
 
@@ -1636,14 +1644,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     uint32_t chunk_size = PKT_IS_TOSERVER(p) ?
         stream_config.reassembly_toserver_chunk_size :
         stream_config.reassembly_toclient_chunk_size;
-    if (chunk_size <= p->payload_len) {
+    if ((chunk_size <= p->payload_len) || (((chunk_size / 3) * 2) < p->payload_len)) {
         chunk_size = p->payload_len + (chunk_size / 3);
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
-    } else if (((chunk_size / 3 ) * 2) < p->payload_len) {
-        chunk_size = p->payload_len + ((chunk_size / 3));
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
+        SCLogDebug(
+                "packet payload len %u, so chunk_size adjusted to %u", p->payload_len, chunk_size);
     }
 
     const TCPHdr *tcph = PacketGetTCP(p);
@@ -1705,8 +1709,12 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                 mydata_len -= excess;
                 SCLogDebug("cutting tail of the buffer with %u", excess);
             } else {
-                uint32_t before = (uint32_t)(packet_leftedge_abs - mydata_offset);
-                uint32_t after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
+                DEBUG_VALIDATE_BUG_ON(packet_leftedge_abs > mydata_offset);
+                uint32_t abs_before = (uint32_t)(packet_leftedge_abs - mydata_offset);
+                DEBUG_VALIDATE_BUG_ON(packet_rightedge_abs > mydata_rightedge_abs);
+                uint32_t abs_after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
+                uint32_t before = abs_before;
+                uint32_t after = abs_after;
                 SCLogDebug("before %u after %u", before, after);
 
                 if (after >= (chunk_size - p->payload_len) / 2) {
@@ -1731,8 +1739,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                 }
 
                 /* adjust the buffer */
-                uint32_t skip = (uint32_t)(packet_leftedge_abs - mydata_offset) - before;
-                uint32_t cut = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs) - after;
+                DEBUG_VALIDATE_BUG_ON(before > abs_before);
+                uint32_t skip = abs_before - before;
+                DEBUG_VALIDATE_BUG_ON(after > abs_after);
+                uint32_t cut = abs_after - after;
                 DEBUG_VALIDATE_BUG_ON(skip > mydata_len);
                 DEBUG_VALIDATE_BUG_ON(cut > mydata_len);
                 DEBUG_VALIDATE_BUG_ON(skip + cut > mydata_len);
