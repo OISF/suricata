@@ -252,6 +252,7 @@
 #include "detect-ike-nonce-payload.h"
 #include "detect-ike-key-exchange-payload.h"
 #include "detect-vlan.h"
+#include "detect-mime.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -732,6 +733,8 @@ void SigTableSetup(void)
 
     DetectVlanIdRegister();
     DetectVlanLayersRegister();
+
+    DetectMimeRegister();
 
     SCDetectSMTPRegister();
     SCDetectSNMPRegister();
