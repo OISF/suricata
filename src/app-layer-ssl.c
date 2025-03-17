@@ -2644,6 +2644,9 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                 ssl_state->flags |= SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC;
             } else {
                 ssl_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
+
+                // TODO TLS 1.3
+                UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
             }
             break;
 
