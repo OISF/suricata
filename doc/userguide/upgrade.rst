@@ -59,6 +59,8 @@ Upgrading to 7.0.9
         #single-hashsize: 262144
         # Max combined hashsize values for all datasets.
         #total-hashsizes: 67108864
+- For detect inspection recursion limits, if no value is provided, the default is
+  3000 now.
 
 Upgrading to 7.0.8
 ------------------
