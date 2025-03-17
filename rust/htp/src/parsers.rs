@@ -27,7 +27,10 @@ use nom::{
 fn content_type() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         map(
-            tuple((take_ascii_whitespace(), is_not(";, "))),
+            tuple((
+                take_ascii_whitespace(),
+                take_till(|c| c == b';' || c == b',' || c == b' '),
+            )),
             |(_, content_type)| content_type,
         )(input)
     }
@@ -616,6 +619,7 @@ mod test {
     #[case("multipart/FoRm-data", "multipart/form-data")]
     #[case("multipart/form-data\t boundary=X", "multipart/form-data\t")]
     #[case("   \tmultipart/form-data boundary=X", "multipart/form-data")]
+    #[case("", "")]
     fn test_parse_content_type(#[case] input: &str, #[case] expected: &str) {
         assert_eq!(
             parse_content_type(input.as_bytes()).unwrap(),
