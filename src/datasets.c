@@ -45,8 +45,9 @@ SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
 
-uint32_t dataset_max_one_hashsize = 65536;
-uint32_t dataset_max_total_hashsize = 16777216;
+/* 4x what we set in master to allow a smoother upgrade path */
+uint32_t dataset_max_one_hashsize = 262144;
+uint32_t dataset_max_total_hashsize = 67108864;
 uint32_t dataset_used_hashsize = 0;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,

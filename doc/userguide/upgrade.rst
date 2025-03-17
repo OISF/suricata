@@ -44,6 +44,21 @@ Upgrading to 7.0.9
   been added, ``v2-block-size`` which can be used to tune this value
   for TPACKET_V2. Due to the increased block size, memory usage has
   been increased, but should not be an issue in most cases.
+- Datasets specifying a custom `hashsize` will now be limited to 262144 by default.
+  Additionally, the cumulative hash sizes for all datasets in use should not exceed
+  67108864. These settings can be changed with the following settings.
+
+  .. code-block:: yaml
+
+    datasets:
+      # Limits for per rule dataset instances to avoid rules using too many
+      # resources.
+      # Note: in Suricata 8 the built-in default will be set to lower values.
+      limits:
+        # Max value for per dataset `hashsize` setting
+        #single-hashsize: 262144
+        # Max combined hashsize values for all datasets.
+        #total-hashsizes: 67108864
 
 Upgrading to 7.0.8
 ------------------

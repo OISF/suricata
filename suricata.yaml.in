@@ -1190,11 +1190,12 @@ datasets:
 
   # Limits for per rule dataset instances to avoid rules using too many
   # resources.
+  # Note: in Suricata 8 the built-in default will be set to lower values.
   limits:
     # Max value for per dataset `hashsize` setting
-    #single-hashsize: 65536
+    #single-hashsize: 262144
     # Max combined hashsize values for all datasets.
-    #total-hashsizes: 16777216
+    #total-hashsizes: 67108864
 
   rules:
     # Set to true to allow absolute filenames and filenames that use
