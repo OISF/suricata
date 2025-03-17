@@ -1523,10 +1523,7 @@ impl ConnectionParser {
 
             if idx == 0 && req.request_progress == HtpRequestProgress::NOT_STARTED {
                 // We have a leading gap on the first transaction.
-                // Force the parser to start if it hasn't already.
-                self.request_mut().unwrap().request_progress = HtpRequestProgress::GAP;
-                self.request_status = HtpStreamState::ERROR;
-                return HtpStreamState::ERROR;
+                return HtpStreamState::CLOSED;
             }
         }
 
