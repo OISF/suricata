@@ -323,6 +323,14 @@ static void AlertAddAppLayer(
         if (state) {
             void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
             if (tx) {
+                const int ts =
+                        AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOSERVER);
+                const int tc =
+                        AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOCLIENT);
+                SCJbSetString(jb, "ts_progress",
+                        AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
+                SCJbSetString(jb, "tc_progress",
+                        AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
                 SCJbGetMark(jb, &mark);
                 switch (proto) {
                     // first check some protocols need special options for alerts logging
@@ -344,6 +352,20 @@ static void AlertAddAppLayer(
             }
         }
         return;
+    }
+    void *state = FlowGetAppState(p->flow);
+    if (state) {
+        void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
+        if (tx) {
+            const int ts =
+                    AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOSERVER);
+            const int tc =
+                    AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOCLIENT);
+            SCJbSetString(jb, "ts_progress",
+                    AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
+            SCJbSetString(jb, "tc_progress",
+                    AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
+        }
     }
     switch (proto) {
         case ALPROTO_HTTP1:
@@ -409,7 +431,6 @@ static void AlertAddAppLayer(
             }
             break;
         case ALPROTO_DCERPC: {
-            void *state = FlowGetAppState(p->flow);
             if (state) {
                 void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
                 if (tx) {
