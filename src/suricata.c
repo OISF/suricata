@@ -2449,6 +2449,11 @@ static int ConfigGetCaptureValue(SCInstance *suri)
         int nlive;
         int strip_trailing_plus = 0;
         switch (suri->run_mode) {
+            case RUNMODE_AFP_DEV:
+                /* For AF_PACKET we delay setting the
+                 * default-packet-size until we know more about the
+                 * configuration. */
+                break;
 #ifdef WINDIVERT
             case RUNMODE_WINDIVERT: {
                 /* by default, WinDivert collects from all devices */
@@ -2469,7 +2474,6 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 strip_trailing_plus = 1;
                 /* fall through */
             case RUNMODE_PCAP_DEV:
-            case RUNMODE_AFP_DEV:
             case RUNMODE_AFXDP_DEV:
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();

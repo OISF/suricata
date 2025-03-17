@@ -1585,10 +1585,16 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     int snaplen = default_packet_size;
 
     if (snaplen == 0) {
-        snaplen = GetIfaceMaxPacketSize(ptv->livedev);
-        if (snaplen <= 0) {
-            SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
-            snaplen = 1514;
+        if (ptv->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) {
+            SCLogConfig("%s: defrag enabled, setting snaplen to %d", ptv->iface,
+                    DEFAULT_TPACKET_DEFRAG_SNAPLEN);
+            snaplen = DEFAULT_TPACKET_DEFRAG_SNAPLEN;
+        } else {
+            snaplen = GetIfaceMaxPacketSize(ptv->livedev);
+            if (snaplen <= 0) {
+                SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
+                snaplen = 1514;
+            }
         }
     }
 
@@ -1639,10 +1645,16 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     int snaplen = default_packet_size;
 
     if (snaplen == 0) {
-        snaplen = GetIfaceMaxPacketSize(ptv->livedev);
-        if (snaplen <= 0) {
-            SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
-            snaplen = 1514;
+        if (ptv->cluster_type & PACKET_FANOUT_FLAG_DEFRAG) {
+            SCLogConfig("%s: defrag enabled, setting snaplen to %d", ptv->iface,
+                    DEFAULT_TPACKET_DEFRAG_SNAPLEN);
+            snaplen = DEFAULT_TPACKET_DEFRAG_SNAPLEN;
+        } else {
+            snaplen = GetIfaceMaxPacketSize(ptv->livedev);
+            if (snaplen <= 0) {
+                SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
+                snaplen = 1514;
+            }
         }
     }
 
