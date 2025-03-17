@@ -230,6 +230,19 @@ int MacSetForEach(const MacSet *ms, MacSetIteratorFunc IterFunc, void *data)
     return MacSetIterateSide(ms, IterFunc, MAC_SET_DST, data);
 }
 
+uint8_t *MacSetGetFirst(const MacSet *ms, MacSetSide side)
+{
+    switch (ms->state[side]) {
+        case EMPTY_SET:
+            return NULL;
+        case SINGLE_MAC:
+            return (uint8_t *)ms->singles[side];
+        case MULTI_MAC:
+            return (uint8_t *)ms->buf[side][0];
+    }
+    return NULL;
+}
+
 int MacSetSize(const MacSet *ms)
 {
     int size = 0;
@@ -416,6 +429,39 @@ static int MacSetTest05(void)
     PASS;
 }
 
+static int MacSetTest06(void)
+{
+    SC_ATOMIC_SET(flow_config.memcap, 128);
+
+    MacSet *ms = MacSetInit(10);
+    FAIL_IF_NULL(ms);
+    FAIL_IF_NOT(MacSetSize(ms) == 0);
+
+    uint8_t *src0 = MacSetGetFirst(ms, MAC_SET_SRC);
+    uint8_t *dst0 = MacSetGetFirst(ms, MAC_SET_DST);
+
+    MacAddr addr1 = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x1 }, addr2 = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x2 },
+            addr3 = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x3 }, addr4 = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x4 };
+
+    MacSetAdd(ms, addr1, addr2);
+    uint8_t *src1 = MacSetGetFirst(ms, MAC_SET_SRC);
+    uint8_t *dst1 = MacSetGetFirst(ms, MAC_SET_DST);
+
+    MacSetAdd(ms, addr3, addr4);
+    uint8_t *src2 = MacSetGetFirst(ms, MAC_SET_SRC);
+    uint8_t *dst2 = MacSetGetFirst(ms, MAC_SET_DST);
+
+    FAIL_IF_NOT_NULL(src0);
+    FAIL_IF_NOT_NULL(dst0);
+    FAIL_IF_NOT(src1[5] == addr1[5]);
+    FAIL_IF_NOT(dst1[5] == addr2[5]);
+    FAIL_IF_NOT(src2[5] == addr1[5]);
+    FAIL_IF_NOT(dst2[5] == addr2[5]);
+
+    MacSetFree(ms);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void MacSetRegisterTests(void)
@@ -427,5 +473,6 @@ void MacSetRegisterTests(void)
     UtRegisterTest("MacSetTest03", MacSetTest03);
     UtRegisterTest("MacSetTest04", MacSetTest04);
     UtRegisterTest("MacSetTest05", MacSetTest05);
+    UtRegisterTest("MacSetTest06", MacSetTest06);
 #endif
 }
