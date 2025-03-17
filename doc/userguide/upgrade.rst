@@ -111,6 +111,8 @@ Major changes
   been added, ``v2-block-size`` which can be used to tune this value
   for TPACKET_V2. Due to the increased block size, memory usage has
   been increased, but should not be an issue in most cases.
+- Datasets now have a default max limit for hashsize of 65536. This is
+  configurable via the ``datasets.limits`` options.
 
 Removals
 ~~~~~~~~
