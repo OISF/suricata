@@ -113,6 +113,8 @@ Major changes
   been increased, but should not be an issue in most cases.
 - Datasets now have a default max limit for hashsize of 65536. This is
   configurable via the ``datasets.limits`` options.
+- For detect inspection recursion limits, if no value is provided, the default is
+  now set to 3000.
 
 Removals
 ~~~~~~~~
