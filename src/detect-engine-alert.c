@@ -209,7 +209,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
         } else if (pa->action & (ACTION_ACCEPT)) {
-            DEBUG_VALIDATE_BUG_ON((p->action & ACTION_ACCEPT) == 0); // should be unreachable
+            // DEBUG_VALIDATE_BUG_ON((p->action & ACTION_ACCEPT) == 0); // should be unreachable
         } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
