@@ -34,6 +34,17 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 7.0.9
+------------------
+- The AF_PACKET default block size for both TPACKET_V2 and TPACKET_V3
+  has been increased from 32k to 128k. This is to allow for full size
+  defragmented packets. For TPACKET_V3 the existing ``block-size``
+  parameter can be used to change this back to the old default of
+  32768 if needed. For TPACKET_V2 a new configuration parameter has
+  been added, ``v2-block-size`` which can be used to tune this value
+  for TPACKET_V2. Due to the increased block size, memory usage has
+  been increased, but should not be an issue in most cases.
+
 Upgrading to 7.0.8
 ------------------
 - Unknown requirements in the ``requires`` keyword will now be treated
