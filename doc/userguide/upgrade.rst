@@ -103,6 +103,14 @@ Major changes
   change, however if you run these tools from the source directory,
   patch them or use them as Python modules your workflows may need to
   be adapted.
+- The AF_PACKET default block size for both TPACKET_V2 and TPACKET_V3
+  has been increased from 32k to 128k. This is to allow for full size
+  defragmented packets. For TPACKET_V3 the existing ``block-size``
+  parameter can be used to change this back to the old default of
+  32768 if needed. For TPACKET_V2 a new configuration parameter has
+  been added, ``v2-block-size`` which can be used to tune this value
+  for TPACKET_V2. Due to the increased block size, memory usage has
+  been increased, but should not be an issue in most cases.
 
 Removals
 ~~~~~~~~
