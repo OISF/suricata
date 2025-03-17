@@ -66,6 +66,12 @@
         "payload": {
             "type": "string"
         },
+        "ts_progress": {
+            "type": "string"
+        },
+        "tc_progress": {
+            "type": "string"
+        },
         "payload_length": {
             "type": "integer"
         },
@@ -6195,7 +6201,7 @@
                             "type": "object",
                             "error": {
                                 "description":
-                                    "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                        "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         },
