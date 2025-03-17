@@ -80,6 +80,11 @@ struct ebpf_timeout_config {
 /* Set max packet size to 65561: IP + Ethernet + 3 VLAN tags. */
 #define MAX_PACKET_SIZE 65561
 
+/* Default snaplen to use when defrag enabled. 9k is somewhat
+ * arbitrary but is large enough for the common 9000 jumbo frame plus
+ * some extra headers including tpacket headers. */
+#define DEFAULT_TPACKET_DEFRAG_SNAPLEN 9216
+
 typedef struct AFPIfaceConfig_
 {
     char iface[AFP_IFACE_NAME_LENGTH];
