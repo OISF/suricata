@@ -1,3 +1,23 @@
+7.0.9 -- 2025-03-18
+
+Security #7616: datasets: hashsize setting via rules can cause high memory usage (7.0.x backport)(MODERATE - CVE 2025-29916)
+Security #7614: decode_base64: signature can do large memory allocation (7.0.x backport)(HIGH - CVE 2025-29917)
+Security #7527: detect: infinite loop with negated pcre and indefinite recursion limit setting (7.0.x backport)(HIGH - CVE 2025-29918)
+Security #7459: af-packet: defrag option can lead to truncated packets (7.0.x backport)(HIGH - CVE 2025-29915)
+Bug #7581: detect: missing file.data matches without filestore (7.0.x backport)
+Bug #7561: detect: integer underflow with krb5.ticket_encryption (7.0.x backport)
+Bug #7557: quic: valid traffic blocked in IPS mode (7.0.x backport)
+Bug #7555: tls: parser error on unACK'd data in FIN shutdown (7.0.x backport)
+Bug #7553: applayer: misdetection if response is seen first without request (7.0.x backport)
+Bug #7496: detect: protocol probing doesn't finish earlier if opposite dir already had a protocol  (7.0.x backport)
+Bug #7493: flow/var: memory leak in lua extension (7.0.x backport)
+Bug #7468: detect: checksum detection broken by stream.checksum-validation (7.0.x backport)
+Bug #7460: eve: empty src_ip and dest_ip values may be logged
+Bug #7448: log/file: nullptr dereference if file was opened more than once (7.0.x backport)
+Bug #7431: flow: multiple Flow Managers scan wrong hash slices (7.0.x backport)
+Bug #7428: tcp: GAP event set on unack'd data following a RST (7.0.x backport)
+Optimization #7088: applayer: track modified transactions to avoid walking all live transactions (7.0.x backport)
+
 7.0.8 -- 2024-12-12
 
 Security #7412: tcp: generic detection bypass using TCP urgent support (7.0.x backport)(HIGH - CVE 2024-55629)
