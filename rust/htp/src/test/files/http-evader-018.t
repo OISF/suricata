@@ -26,5 +26,3 @@ TIVIRUS-TEST-FI
 8
 LE!$H+H*
 0
-
-

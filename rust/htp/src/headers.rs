@@ -442,17 +442,8 @@ impl Parser {
     /// Parse multiple headers and indicate if end of headers or null was found
     pub(crate) fn headers(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedHeaders> + '_ {
         move |input| {
-            let (rest, head) = self.header()(input)?;
-            let is_null_terminated = head.value.flags.is_set(HeaderFlags::NULL_TERMINATED);
             let mut out = Vec::with_capacity(16);
-            out.push(head);
-            if is_null_terminated {
-                return Ok((rest, (out, true)));
-            }
-            if let Ok((rest, _eoh)) = self.complete_eol()(rest) {
-                return Ok((rest, (out, true)));
-            }
-            let mut i = rest;
+            let mut i = input;
             loop {
                 match self.header()(i) {
                     Ok((rest, head)) => {
@@ -467,10 +458,20 @@ impl Parser {
                             return Ok((rest2, (out, true)));
                         }
                     }
-                    Err(Incomplete(_)) => {
+                    Err(Incomplete(x)) => {
+                        if out.is_empty() {
+                            return Err(Incomplete(x));
+                        }
                         return Ok((i, (out, false)));
                     }
-                    Err(e) => return Err(e),
+                    Err(e) => {
+                        if out.is_empty() {
+                            if let Ok((rest2, _eoh)) = self.complete_eol()(i) {
+                                return Ok((rest2, (out, true)));
+                            }
+                        }
+                        return Err(e);
+                    }
                 }
             }
         }
