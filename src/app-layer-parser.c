@@ -1823,7 +1823,7 @@ void AppLayerParserRegisterUnittests(void)
 
     for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
         for (alproto = 0; alproto < g_alproto_max; alproto++) {
-            ctx = &alp_ctx.ctxs[alproto][ip];
+            ctx = &alp_ctx.ctxs[ip][alproto];
             if (ctx->RegisterUnittests == NULL)
                 continue;
             ctx->RegisterUnittests();
