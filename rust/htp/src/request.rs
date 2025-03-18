@@ -661,7 +661,6 @@ impl ConnectionParser {
         }
         // Process request line.
         let data = chomp(line);
-        req.request_line = Some(Bstr::from(data));
         self.parse_request_line(data)?;
         // Finalize request line parsing.
         self.state_request_line()?;
