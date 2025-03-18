@@ -1517,10 +1517,7 @@ impl ConnectionParser {
 
             if idx == 0 && resp.response_progress == HtpResponseProgress::NOT_STARTED {
                 // We have a leading gap on the first transaction.
-                // Force the parser to start if it hasn't already
-                resp.response_progress = HtpResponseProgress::GAP;
-                self.response_status = HtpStreamState::ERROR;
-                return HtpStreamState::ERROR;
+                return HtpStreamState::CLOSED;
             }
         }
 
