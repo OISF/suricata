@@ -39,10 +39,15 @@
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
+
+uint32_t dataset_max_one_hashsize = 65536;
+uint32_t dataset_max_total_hashsize = 16777216;
+uint32_t dataset_used_hashsize = 0;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
@@ -629,6 +634,34 @@ Dataset *DatasetFind(const char *name, enum DatasetTypes type)
     return set;
 }
 
+static bool DatasetCheckHashsize(const char *name, uint32_t hash_size)
+{
+    if (dataset_max_one_hashsize > 0 && hash_size > dataset_max_one_hashsize) {
+        SCLogError("hashsize %u in dataset '%s' exceeds configured 'single-hashsize' limit (%u)",
+                hash_size, name, dataset_max_one_hashsize);
+        return false;
+    }
+    // we cannot underflow as we know from conf loading that
+    // dataset_max_total_hashsize >= dataset_max_one_hashsize if dataset_max_total_hashsize > 0
+    if (dataset_max_total_hashsize > 0 &&
+            dataset_max_total_hashsize - hash_size < dataset_used_hashsize) {
+        SCLogError("hashsize %u in dataset '%s' exceeds configured 'total-hashsizes' limit (%u, in "
+                   "use %u)",
+                hash_size, name, dataset_max_total_hashsize, dataset_used_hashsize);
+        return false;
+    }
+
+    return true;
+}
+
+static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
+{
+    if (dataset_max_total_hashsize > 0) {
+        dataset_used_hashsize += hash_size;
+        SCLogDebug("set %s adding with hash_size %u", name, hash_size);
+    }
+}
+
 Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t memcap, uint32_t hashsize)
 {
@@ -680,6 +713,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     GetDefaultMemcap(&default_memcap, &default_hashsize);
     if (hashsize == 0) {
         hashsize = default_hashsize;
+    }
+
+    if (!DatasetCheckHashsize(name, hashsize)) {
+        goto out_err;
     }
 
     set = DatasetAlloc(name);
@@ -760,6 +797,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     set->next = sets;
     sets = set;
 
+    /* hash size accounting */
+    DEBUG_VALIDATE_BUG_ON(set->hash->config.hash_size != hashsize);
+    DatasetUpdateHashsize(set->name, set->hash->config.hash_size);
+
     SCMutexUnlock(&sets_lock);
     return set;
 out_err:
@@ -801,6 +842,9 @@ void DatasetReload(void)
             continue;
         }
         set->hidden = true;
+        if (dataset_max_total_hashsize > 0) {
+            dataset_used_hashsize -= set->hash->config.hash_size;
+        }
         SCLogDebug("Set %s at %p hidden successfully", set->name, set);
         set = set->next;
     }
@@ -868,6 +912,27 @@ int DatasetsInit(void)
     uint32_t default_hashsize = 0;
     GetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
+        const char *str = NULL;
+        if (ConfGet("datasets.limits.total-hashsizes", &str) == 1) {
+            if (ParseSizeStringU32(str, &dataset_max_total_hashsize) < 0) {
+                FatalError("failed to parse datasets.limits.total-hashsizes value: %s", str);
+            }
+        }
+        if (ConfGet("datasets.limits.single-hashsize", &str) == 1) {
+            if (ParseSizeStringU32(str, &dataset_max_one_hashsize) < 0) {
+                FatalError("failed to parse datasets.limits.single-hashsize value: %s", str);
+            }
+        }
+        if (dataset_max_total_hashsize > 0 &&
+                dataset_max_total_hashsize < dataset_max_one_hashsize) {
+            FatalError("total-hashsizes (%u) cannot be smaller than single-hashsize (%u)",
+                    dataset_max_total_hashsize, dataset_max_one_hashsize);
+        }
+        if (dataset_max_total_hashsize > 0 && dataset_max_one_hashsize == 0) {
+            // the total limit also applies for single limit
+            dataset_max_one_hashsize = dataset_max_total_hashsize;
+        }
+
         int list_pos = 0;
         ConfNode *iter = NULL;
         TAILQ_FOREACH(iter, &datasets->head, next) {
