@@ -367,24 +367,160 @@ impl Uri {
     }
 }
 
+enum NormUriState {
+    Start,
+    DotStart,
+    TwoDotStart,
+    Slash,
+    SlashDot,
+    SlashDotDot,
+    SlashDotDotSlash,
+    Regular,
+}
+
 /// Normalize URI path in place. This function implements the remove dot segments algorithm
 /// specified in RFC 3986, section 5.2.4.
 fn normalize_uri_path_inplace(s: &mut Bstr) {
-    let mut out = Vec::<&[u8]>::with_capacity(10);
-    s.as_slice()
-        .split(|c| *c == b'/')
-        .for_each(|segment| match segment {
-            b"." => {}
-            b".." => {
-                if !(out.len() == 1 && out[0] == b"") {
-                    out.pop();
+    let mut state = NormUriState::Start;
+    let slen = s.len();
+    let mut w = 0;
+    for i in 0..slen {
+        let c = s[i];
+        match state {
+            NormUriState::Start => match c {
+                b'.' => {
+                    state = NormUriState::DotStart;
+                }
+                b'/' => {
+                    state = NormUriState::Slash;
+                }
+                _ => {
+                    s[w] = c;
+                    w += 1;
+                    state = NormUriState::Regular;
+                }
+            },
+            NormUriState::DotStart => {
+                match c {
+                    b'.' => {
+                        state = NormUriState::TwoDotStart;
+                    }
+                    b'/' => {
+                        // If the input buffer begins with a prefix of "./", then remove that prefix
+                        state = NormUriState::Start;
+                    }
+                    _ => {
+                        s[w] = b'.';
+                        w += 1;
+                        s[w] = c;
+                        w += 1;
+                        state = NormUriState::Regular;
+                    }
                 }
             }
-            x => out.push(x),
-        });
-    let out = out.join(b"/" as &[u8]);
-    s.clear();
-    s.add(out.as_slice());
+            NormUriState::TwoDotStart => {
+                match c {
+                    b'/' => {
+                        // If the input buffer begins with a prefix of "../", then remove that prefix
+                        state = NormUriState::Start;
+                    }
+                    _ => {
+                        s[w] = b'.';
+                        w += 1;
+                        s[w] = b'.';
+                        w += 1;
+                        s[w] = c;
+                        w += 1;
+                        state = NormUriState::Regular;
+                    }
+                }
+            }
+            NormUriState::Slash | NormUriState::SlashDotDotSlash => match c {
+                b'.' => {
+                    state = NormUriState::SlashDot;
+                }
+                _ => {
+                    s[w] = b'/';
+                    w += 1;
+                    s[w] = c;
+                    w += 1;
+                    state = NormUriState::Regular;
+                }
+            },
+            NormUriState::SlashDot => match c {
+                b'/' => {
+                    // /./ turns into /
+                    state = NormUriState::SlashDotDotSlash;
+                }
+                b'.' => {
+                    state = NormUriState::SlashDotDot;
+                }
+                _ => {
+                    s[w] = b'/';
+                    w += 1;
+                    s[w] = b'.';
+                    w += 1;
+                    s[w] = c;
+                    w += 1;
+                    state = NormUriState::Regular;
+                }
+            },
+            NormUriState::SlashDotDot => match c {
+                b'/' => {
+                    while w > 0 && s[w - 1] != b'/' {
+                        w -= 1;
+                    }
+                    if w > 0 {
+                        w -= 1;
+                    }
+                    state = NormUriState::SlashDotDotSlash;
+                }
+                _ => {
+                    s[w] = b'/';
+                    w += 1;
+                    s[w] = b'.';
+                    w += 1;
+                    s[w] = b'.';
+                    w += 1;
+                    s[w] = c;
+                    w += 1;
+                    state = NormUriState::Regular;
+                }
+            },
+            NormUriState::Regular => match c {
+                b'/' => {
+                    state = NormUriState::Slash;
+                }
+                _ => {
+                    s[w] = c;
+                    w += 1;
+                }
+            },
+        }
+    }
+    match state {
+        NormUriState::Slash => {
+            s[w] = b'/';
+            w += 1;
+        }
+        // if the input buffer consists only of "." or "..", then remove that
+        NormUriState::DotStart | NormUriState::TwoDotStart => {}
+        // if the input buffer ends with "/." or "/..", remove that
+        NormUriState::SlashDot => {}
+        // we already erased the previous part, and do not add the trailing slash
+        NormUriState::SlashDotDotSlash => {}
+        NormUriState::SlashDotDot => {
+            while w > 0 && s[w - 1] != b'/' {
+                w -= 1;
+            }
+            if w > 0 {
+                w -= 1;
+            }
+        }
+        // nothing special to do
+        NormUriState::Start | NormUriState::Regular => {}
+    }
+    s.truncate(w);
 }
 
 //Tests
@@ -531,6 +667,7 @@ mod test {
     #[case(b"..", b"")]
     #[case(b"one/.", b"one")]
     #[case(b"one/..", b"")]
+    #[case(b"/", b"/")]
     #[case(b"one/../", b"")]
     #[case(b"/../../../images.gif", b"/images.gif")]
     fn test_normalize_uri_path(#[case] input: &[u8], #[case] expected: &[u8]) {
