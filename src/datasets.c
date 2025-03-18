@@ -369,6 +369,11 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         }
     }
 
+    GetDefaultMemcap(&default_memcap, &default_hashsize);
+    if (hashsize == 0) {
+        hashsize = default_hashsize;
+    }
+
     set = DatasetAlloc(name);
     if (set == NULL) {
         goto out_err;
@@ -388,13 +393,11 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     char cnf_name[128];
     snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
 
-    GetDefaultMemcap(&default_memcap, &default_hashsize);
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
                     Md5StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap > 0 ? memcap : default_memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
@@ -403,8 +406,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
                     StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap > 0 ? memcap : default_memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -413,28 +415,25 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet, Sha256StrFree,
                     Sha256StrHash, Sha256StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap > 0 ? memcap : default_memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
-            set->hash =
-                    THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash, IPv4Compare,
-                            NULL, NULL, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                            hashsize > 0 ? hashsize : default_hashsize);
+            set->hash = THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash,
+                    IPv4Compare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv4(set) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
-            set->hash =
-                    THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash, IPv6Compare,
-                            NULL, NULL, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                            hashsize > 0 ? hashsize : default_hashsize);
+            set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash,
+                    IPv6Compare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv6(set) < 0)
@@ -526,6 +525,10 @@ void DatasetPostReloadCleanup(void)
     SCMutexUnlock(&sets_lock);
 }
 
+/* Value reflects THASH_DEFAULT_HASHSIZE which is what the default was earlier,
+ * despite 2048 commented out in the default yaml. */
+#define DATASETS_HASHSIZE_DEFAULT 4096
+
 static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
@@ -537,12 +540,14 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
             *memcap = 0;
         }
     }
+
+    *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
     if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
+            *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
             SCLogWarning("hashsize value cannot be deduced: %s,"
-                         " resetting to default",
-                    str);
-            *hashsize = 0;
+                         " resetting to default: %u",
+                    str, *hashsize);
         }
     }
 }
