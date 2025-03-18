@@ -1235,6 +1235,14 @@ datasets:
     #memcap: 100 MiB
     #hashsize: 2048
 
+  # Limits for per rule dataset instances to avoid rules using too many
+  # resources.
+  limits:
+    # Max value for per dataset `hashsize` setting
+    #single-hashsize: 65536
+    # Max combined hashsize values for all datasets.
+    #total-hashsizes: 16777216
+
   rules:
     # Set to true to allow absolute filenames and filenames that use
     # ".." components to reference parent directories in rules that specify

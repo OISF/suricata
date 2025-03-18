@@ -324,16 +324,11 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
     ctx->config.hash_size = hashsize > 0 ? hashsize : THASH_DEFAULT_HASHSIZE;
     /* Reset memcap in case of loading from file to the highest possible value
      unless defined by the rule keyword */
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // limit memcap size to default when fuzzing
-    SC_ATOMIC_SET(ctx->config.memcap, THASH_DEFAULT_MEMCAP);
-#else
     if (memcap > 0) {
         SC_ATOMIC_SET(ctx->config.memcap, memcap);
     } else {
         SC_ATOMIC_SET(ctx->config.memcap, reset_memcap ? UINT64_MAX : THASH_DEFAULT_MEMCAP);
     }
-#endif
     ctx->config.prealloc = THASH_DEFAULT_PREALLOC;
 
     SC_ATOMIC_INIT(ctx->counter);
