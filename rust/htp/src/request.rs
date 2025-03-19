@@ -558,6 +558,8 @@ impl ConnectionParser {
             return self.state_request_headers(input);
         }
         let mut taken = false;
+        // libhtp.c did not take full data, but only till LF
+        self.check_request_buffer_limit(data.len())?;
         let request_header = if let Some(mut request_header) = self.request_header.take() {
             request_header.add(data);
             taken = true;
