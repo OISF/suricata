@@ -454,7 +454,7 @@ impl Parser {
                         if is_null_terminated {
                             return Ok((rest, (out, true)));
                         }
-                        if let Ok((rest2, _eoh)) = self.complete_eol()(rest) {
+                        if let Ok((rest2, _eoh)) = self.complete_eol_regular()(rest) {
                             return Ok((rest2, (out, true)));
                         }
                     }
