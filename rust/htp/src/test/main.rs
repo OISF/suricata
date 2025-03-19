@@ -1501,14 +1501,14 @@ fn TestGenericPersonality() {
 #[test]
 fn LongResponseHeader() {
     let mut cfg = TestConfig();
-    cfg.set_field_limit(18);
+    cfg.set_field_limit(30);
     let mut t = Test::new(cfg);
 
     assert!(t.run_file("69-long-response-header.t").is_err());
 
     let tx = t.connp.tx(0).unwrap();
 
-    //error first assert_eq!(HtpRequestProgress::COMPLETE, tx.request_progress);
+    assert_eq!(HtpRequestProgress::COMPLETE, tx.request_progress);
     assert_eq!(HtpResponseProgress::HEADERS, tx.response_progress);
 }
 

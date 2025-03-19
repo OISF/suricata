@@ -969,6 +969,9 @@ impl ConnectionParser {
             self.response_state = State::FINALIZE;
             return Ok(());
         }
+        if !self.response_header.is_some() {
+            self.check_response_buffer_limit(input.len())?;
+        }
         let response_header = if let Some(mut response_header) = self.response_header.take() {
             response_header.add(input.as_slice());
             response_header
