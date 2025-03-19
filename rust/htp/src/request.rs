@@ -558,6 +558,22 @@ impl ConnectionParser {
             return self.state_request_headers(input);
         }
         let mut taken = false;
+        // libhtp.c did not take full data, but only till LF
+        if let Ok((_, line)) = take_till_lf(data) {
+            if self.request_header.is_some() {
+                self.check_request_buffer_limit(line.len())?;
+            }
+        } else {
+            self.request_data_consume(input, data.len());
+            self.check_request_buffer_limit(data.len())?;
+            if let Some(rh) = &mut self.request_header {
+                rh.extend_from_slice(data);
+            } else {
+                self.request_header = Some(Bstr::from(data));
+            }
+            return Err(HtpStatus::DATA_BUFFER);
+        }
+
         let request_header = if let Some(mut request_header) = self.request_header.take() {
             request_header.add(data);
             taken = true;

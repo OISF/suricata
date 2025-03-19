@@ -1508,7 +1508,7 @@ fn LongResponseHeader() {
 
     let tx = t.connp.tx(0).unwrap();
 
-    //error first assert_eq!(HtpRequestProgress::COMPLETE, tx.request_progress);
+    assert_eq!(HtpRequestProgress::COMPLETE, tx.request_progress);
     assert_eq!(HtpResponseProgress::HEADERS, tx.response_progress);
 }
 
