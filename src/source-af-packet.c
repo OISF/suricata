@@ -352,6 +352,7 @@ typedef struct AFPThreadVars_
     unsigned int ring_buflen;
     uint8_t *ring_buf;
 
+    int snaplen; /**< snaplen in use for passing on to bpf */
 #ifdef HAVE_PACKET_EBPF
     uint8_t xdp_mode;
     int ebpf_lb_fd;
@@ -1594,6 +1595,7 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
             }
         }
     }
+    ptv->snaplen = snaplen;
 
     ptv->req.v2.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     ptv->req.v2.tp_block_size = getpagesize() << order;
@@ -1654,6 +1656,7 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
             }
         }
     }
+    ptv->snaplen = snaplen;
 
     ptv->req.v2.tp_frame_size = TPACKET_ALIGN(
             snaplen +
@@ -1691,6 +1694,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
             snaplen = 1514;
         }
     }
+    ptv->snaplen = snaplen;
 
     ptv->req.v3.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     frames_per_block = ptv->req.v3.tp_block_size / ptv->req.v3.tp_frame_size;
@@ -2150,14 +2154,13 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     SCLogInfo("%s: using BPF '%s'", ptv->iface, ptv->bpf_filter);
 
     char errbuf[PCAP_ERRBUF_SIZE];
-    if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
-                ptv->datalink,    /* linktype_arg */
-                &filter,       /* program */
-                ptv->bpf_filter, /* const char *buf */
-                1,             /* optimize */
-                0,              /* mask */
-                errbuf,
-                sizeof(errbuf)) == -1) {
+    if (SCBPFCompile(ptv->snaplen, /* snaplen_arg */
+                ptv->datalink,     /* linktype_arg */
+                &filter,           /* program */
+                ptv->bpf_filter,   /* const char *buf */
+                1,                 /* optimize */
+                0,                 /* mask */
+                errbuf, sizeof(errbuf)) == -1) {
         SCLogError("%s: failed to compile BPF \"%s\": %s", ptv->iface, ptv->bpf_filter, errbuf);
         return TM_ECODE_FAILED;
     }
