@@ -1147,8 +1147,6 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalRdata(
 }
 
 /// Get the DNS response flags for a transaction.
-///
-/// extern uint16_t SCDnsTxGetResponseFlags(RSDNSTransaction *);
 #[no_mangle]
 pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
