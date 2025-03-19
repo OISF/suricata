@@ -138,7 +138,6 @@ item_types = ["enums","structs","opaque","functions","constants"]
 # [export]
 # prefix = "capi_"
 [export.rename]
-"DNSTransaction" = "RSDNSTransaction"
 "JsonT" = "json_t"
 "CLuaState" = "lua_State"
 

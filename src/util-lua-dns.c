@@ -32,7 +32,7 @@
 static const char dns_tx[] = "suricata:dns:tx";
 
 struct LuaTx {
-    RSDNSTransaction *tx;
+    DNSTransaction *tx;
 };
 
 static int LuaDnsGetTx(lua_State *L)
@@ -40,7 +40,7 @@ static int LuaDnsGetTx(lua_State *L)
     if (!(LuaStateNeedProto(L, ALPROTO_DNS))) {
         return LuaCallbackError(L, "error: protocol not dns");
     }
-    RSDNSTransaction *tx = LuaStateGetTX(L);
+    DNSTransaction *tx = LuaStateGetTX(L);
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
