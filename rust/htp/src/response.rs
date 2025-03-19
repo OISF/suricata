@@ -969,6 +969,21 @@ impl ConnectionParser {
             self.response_state = State::FINALIZE;
             return Ok(());
         }
+        if let Ok((_, line)) = take_till_lf(input.as_slice()) {
+            if self.response_header.is_some() {
+                self.check_response_buffer_limit(line.len())?;
+            }
+        } else {
+            let data = input.as_slice();
+            self.response_data_consume(input, data.len());
+            self.check_response_buffer_limit(data.len())?;
+            if let Some(rh) = &mut self.response_header {
+                rh.extend_from_slice(data);
+            } else {
+                self.response_header = Some(Bstr::from(data));
+            }
+            return Err(HtpStatus::DATA_BUFFER);
+        }
         let response_header = if let Some(mut response_header) = self.response_header.take() {
             response_header.add(input.as_slice());
             response_header
