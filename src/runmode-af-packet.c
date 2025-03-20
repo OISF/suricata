@@ -278,13 +278,6 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", &boolval) == 1) {
-        if (!boolval) {
-            SCLogWarning(
-                    "%s: \"use-mmap\" option is obsolete: mmap is always enabled", aconf->iface);
-        }
-    }
-
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", &boolval);
     if (boolval) {
         SCLogConfig("%s: enabling locked memory for mmap", aconf->iface);

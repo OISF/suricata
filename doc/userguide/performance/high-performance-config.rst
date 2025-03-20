@@ -225,7 +225,6 @@ In the af-packet section of suricata.yaml config :
     cluster-id: 99
     cluster-type: cluster_qm
     defrag: no
-    use-mmap: yes
     mmap-locked: yes
     tpacket-v3: yes
     ring-size: 100000
@@ -236,7 +235,6 @@ In the af-packet section of suricata.yaml config :
     cluster-id: 99
     cluster-type: cluster_qm
     defrag: no
-    use-mmap: yes
     mmap-locked: yes
     tpacket-v3: yes
     ring-size: 100000
@@ -347,7 +345,6 @@ In the af-packet section of suricata.yaml config:
     cluster-id: 99
     cluster-type: cluster_flow
     defrag: no
-    use-mmap: yes
     mmap-locked: yes
     tpacket-v3: yes
     ring-size: 100000
