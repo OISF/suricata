@@ -663,12 +663,10 @@ af-packet:
     # In some fragmentation cases, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
-    # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
-    #use-mmap: yes
     # Lock memory map to avoid it being swapped. Be careful that over
     # subscribing could lock your system
     #mmap-locked: yes
-    # Use tpacket_v3 capture mode, only active if use-mmap is true
+    # Use tpacket_v3 capture mode.
     # Don't use it in IPS or TAP mode as it causes severe latency
     #tpacket-v3: yes
     # Ring size will be computed with respect to "max-pending-packets" and number
@@ -722,7 +720,6 @@ af-packet:
   # in the list above.
   - interface: default
     #threads: auto
-    #use-mmap: no
     #tpacket-v3: yes
 
 # Linux high speed af-xdp capture support

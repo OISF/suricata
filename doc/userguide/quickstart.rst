@@ -67,7 +67,6 @@ Capture settings::
           cluster-id: 99
           cluster-type: cluster_flow
           defrag: yes
-          use-mmap: yes
           tpacket-v3: yes
 
 This configuration uses the most recent recommended settings for the IDS
