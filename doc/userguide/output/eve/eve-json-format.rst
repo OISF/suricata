@@ -1149,6 +1149,21 @@ SMB Fields
 * "response.native_os" (string): SMB1 native OS string
 * "response.native_lm" (string): SMB1 native Lan Manager string
 
+One can restrict which transactions are logged by using the "types" field in the
+suricata.yaml file. If this field is not specified, all transactions types are logged.
+9 values can be specified with this field as shown below:
+
+Configuration::
+
+    - eve-log:
+        enabled: yes
+        type: file
+        filename: eve.json
+        types:
+          - smb:
+              types: [file, tree_connect, negotiate, dcerpc, create,
+              session_setup, ioctl, rename, set_file_path_info, generic]
+
 Examples of SMB logging:
 
 Pipe open::

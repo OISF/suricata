@@ -18,6 +18,8 @@
 use std::str;
 use std::string::String;
 use uuid;
+use suricata_sys::sys::SCConfNode;
+use crate::conf::ConfNode;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::smb::smb::*;
 use crate::smb::smb1::*;
@@ -25,6 +27,8 @@ use crate::smb::smb2::*;
 use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
 use crate::smb::smb_status::*;
+use std::error::Error;
+use std::fmt;
 
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> { Ok(()) }
@@ -65,8 +69,36 @@ fn guid_to_string(guid: &[u8]) -> String {
     }
 }
 
-fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction) -> Result<(), JsonError>
-{
+// Wrapping error for either jsonbuilder error or our own custom error if
+// tx is not to be logged due to config
+#[derive(Debug)]
+enum SmbLogError {
+    SkippedByConf,
+    Json(JsonError),
+}
+
+impl Error for SmbLogError {}
+
+impl fmt::Display for SmbLogError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SmbLogError::SkippedByConf => {
+                write!(f, "skipped by configuration")
+            }
+            SmbLogError::Json(j) => j.fmt(f),
+        }
+    }
+}
+
+impl From<JsonError> for SmbLogError {
+    fn from(err: JsonError) -> SmbLogError {
+        SmbLogError::Json(err)
+    }
+}
+
+fn smb_common_header(
+    jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction, flags: u64,
+) -> Result<(), SmbLogError> {
     jsb.set_uint("id", tx.id)?;
 
     if state.dialect != 0 {
@@ -144,6 +176,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 
     match tx.type_data {
         Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_SESSIONSETUP) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             if let Some(ref ntlmssp) = x.ntlmssp {
                 jsb.open_object("ntlmssp")?;
                 let domain = String::from_utf8_lossy(&ntlmssp.domain);
@@ -191,6 +226,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             }
         },
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_CREATE) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
             if !name_raw.is_empty() {
@@ -230,6 +268,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.set_string("fuid", &gs)?;
         },
         Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_NEGOTIATE) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             if x.smb_ver == 1 {
                 jsb.open_array("client_dialects")?;
                 for d in &x.dialects {
@@ -260,6 +301,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             }
         },
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_TREECONNECT) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             let share_name = String::from_utf8_lossy(&x.share_name);
             if x.is_pipe {
                 jsb.set_string("named_pipe", &share_name)?;
@@ -292,6 +336,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             }
         },
         Some(SMBTransactionTypeData::FILE(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_FILE) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             let file_name = String::from_utf8_lossy(&x.file_name);
             jsb.set_string("filename", &file_name)?;
             let share_name = String::from_utf8_lossy(&x.share_name);
@@ -300,6 +347,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.set_string("fuid", &gs)?;
         },
         Some(SMBTransactionTypeData::RENAME(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_RENAME) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             if tx.vercmd.get_version() == 2 {
                 jsb.open_object("set_info")?;
                 jsb.set_string("class", "FILE_INFO")?;
@@ -317,6 +367,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.set_string("fuid", &gs)?;
         },
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_DCERPC) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             jsb.open_object("dcerpc")?;
             if x.req_set {
                 jsb.set_string("request", &dcerpc_type_string(x.req_cmd))?;
@@ -400,9 +453,15 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.close()?;
         }
         Some(SMBTransactionTypeData::IOCTL(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_IOCTL) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             jsb.set_string("function", &fsctl_func_to_string(x.func))?;
         },
         Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_SETFILEPATHINFO) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
             if !name_raw.is_empty() {
@@ -439,14 +498,74 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             let gs = fuid_to_string(&x.fid);
             jsb.set_string("fuid", &gs)?;
         },
-        _ => {  },
+        None => {
+            if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_GENERIC) == 0 {
+                return Err(SmbLogError::SkippedByConf);
+            }
+        },
     }
     return Ok(());
 }
 
 #[no_mangle]
-pub extern "C" fn SCSmbLogJsonResponse(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
-{
-    smb_common_header(jsb, state, tx).is_ok()
+pub extern "C" fn SCSmbLogJsonResponse(
+    jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction, flags: u64,
+) -> bool {
+    smb_common_header(jsb, state, tx, flags).is_ok()
 }
 
+// Flag constants for logging types
+const SMB_LOG_TYPE_FILE: u64 = BIT_U64!(0);
+const SMB_LOG_TYPE_TREECONNECT: u64 = BIT_U64!(1);
+const SMB_LOG_TYPE_NEGOTIATE: u64 = BIT_U64!(2);
+const SMB_LOG_TYPE_DCERPC: u64 = BIT_U64!(3);
+const SMB_LOG_TYPE_CREATE: u64 = BIT_U64!(4);
+const SMB_LOG_TYPE_SESSIONSETUP: u64 = BIT_U64!(5);
+const SMB_LOG_TYPE_IOCTL: u64 = BIT_U64!(6);
+const SMB_LOG_TYPE_RENAME: u64 = BIT_U64!(7);
+const SMB_LOG_TYPE_SETFILEPATHINFO: u64 = BIT_U64!(8);
+const SMB_LOG_TYPE_GENERIC: u64 = BIT_U64!(9);
+const SMB_LOG_DEFAULT_ALL: u64 = 0;
+
+fn get_smb_log_type_from_str(s: &str) -> Option<u64> {
+    match s {
+        "file" => Some(SMB_LOG_TYPE_FILE),
+        "tree_connect" => Some(SMB_LOG_TYPE_TREECONNECT),
+        "negotiate" => Some(SMB_LOG_TYPE_NEGOTIATE),
+        "dcerpc" => Some(SMB_LOG_TYPE_DCERPC),
+        "create" => Some(SMB_LOG_TYPE_CREATE),
+        "session_setup" => Some(SMB_LOG_TYPE_SESSIONSETUP),
+        "ioctl" => Some(SMB_LOG_TYPE_IOCTL),
+        "rename" => Some(SMB_LOG_TYPE_RENAME),
+        "set_file_path_info" => Some(SMB_LOG_TYPE_SETFILEPATHINFO),
+        "generic" => Some(SMB_LOG_TYPE_GENERIC),
+        _ => None,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn SCSmbLogParseConfig(conf: *const SCConfNode) -> u64 {
+    let conf = ConfNode::wrap(conf);
+    if let Some(node) = conf.get_child_node("types") {
+        // iterate smb.types list of types
+        let mut r = SMB_LOG_DEFAULT_ALL;
+        let mut node = node.first();
+        loop {
+            if node.is_none() {
+                break;
+            }
+            let nodeu = node.unwrap();
+            if let Some(f) = get_smb_log_type_from_str(nodeu.value()) {
+                r |= f;
+            } else {
+                SCLogWarning!("unknown type for smb logging: {}", nodeu.value());
+            }
+            node = nodeu.next();
+        }
+        if r == SMB_LOG_DEFAULT_ALL {
+            SCLogWarning!("empty types list for smb is interpreted as logging all");
+        }
+        return r;
+    }
+    return SMB_LOG_DEFAULT_ALL;
+}
