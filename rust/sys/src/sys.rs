@@ -328,3 +328,12 @@ extern "C" {
         parent: *mut SCConfNode, name: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
     ) -> *mut SCConfNode;
 }
+extern "C" {
+    pub fn SCConfGetFirstNode(parent: *const SCConfNode) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetNextNode(node: *const SCConfNode) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
+}
