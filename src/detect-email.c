@@ -23,6 +23,7 @@
 #include "rust.h"
 
 static int g_mime_email_from_buffer_id = 0;
+static int g_mime_email_subject_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -61,6 +62,43 @@ static InspectionBuffer *GetMimeEmailFromData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectMimeEmailSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_subject_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailSubjectData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+        const uint8_t *b_email_sub = NULL;
+        uint32_t b_email_sub_len = 0;
+
+        if ((tx->mime_state != NULL)) {
+            if (SCDetectMimeEmailGetData(
+                        tx->mime_state, &b_email_sub, &b_email_sub_len, "subject") != 1)
+                return NULL;
+        }
+
+        if (b_email_sub == NULL || b_email_sub_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b_email_sub, b_email_sub_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -75,4 +113,15 @@ void DetectEmailRegister(void)
             DetectHelperBufferMpmRegister("email.from", "MIME EMAIL FROM", ALPROTO_SMTP, false,
                     true, // to server
                     GetMimeEmailFromData);
+
+    kw.name = "email.subject";
+    kw.desc = "'Subject' field from an email";
+    kw.url = "/rules/email-keywords.html#email.subject";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailSubjectSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_subject_buffer_id = DetectHelperBufferMpmRegister("email.subject",
+            "MIME EMAIL SUBJECT", ALPROTO_SMTP, false,
+            true, // to server
+            GetMimeEmailSubjectData);
 }
