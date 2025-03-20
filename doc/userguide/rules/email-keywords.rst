@@ -26,3 +26,27 @@ Example of a signature that would alert if a packet contains the MIME field ``fr
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email from"; :example-rule-emphasis:`email.from; content:"toto <toto@gmail.com>";` sid:1;)
+
+email.subject
+-------------
+
+Matches the MIME ``Subject`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.subject; content:"<content to match against>";
+
+``email.subject`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.subject``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``subject`` with the value ``This is a test email``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email subject"; :example-rule-emphasis:`email.subject; content:"This is a test email";` sid:1;)
