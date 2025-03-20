@@ -3057,3 +3057,39 @@ Example of ARP logging: request and response
     "dest_mac": "00:1d:09:f0:92:ab",
     "dest_ip": "10.10.10.1"
   }
+
+Event type: POP3
+----------------
+
+Fields
+~~~~~~
+
+* "command" (optional): a request (aka command) sent by the pop3 client
+  * "command.keyword" (string): pop3 keyword, if unknown but valid `error_flags` will be have `UnknownKeyword` flag set
+  * "command.args" (array of strings)
+* "response": a response sent by the pop3 server
+  * "response.success" (boolean): whether the response is successful, ie. +OK
+  * "response.status" (string): the response status, one of "OK" or "ERR"
+  * "response.header" (string): the content of the first line of the reponse
+  * "response.data" (array of strings): the response data, which may contain multiple lines
+* "errors" (string): non-critical parsing errors
+* "error_flags" (integer): non-critical parsing errors as a bit-flag
+
+Example of POP3 logging:
+
+::
+
+  "pop3": {
+      "command": {
+          "keyword": "USER",
+          "args": ["user@example.com"],
+      },
+      "response": {
+          "success": true,
+          "status": "OK",
+          "header": "+OK password required for \"user@example.com\"",
+          "data": []
+      },
+      "errors": "NONE",
+      "error_flags": 0
+   }
