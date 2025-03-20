@@ -203,7 +203,6 @@ between interface ``eth0`` and ``eth1``: ::
      copy-mode: ips
      copy-iface: eth1
      buffer-size: 64535
-     use-mmap: yes
    - interface: eth1
      threads: 1
      cluster-id: 97
@@ -212,7 +211,6 @@ between interface ``eth0`` and ``eth1``: ::
      copy-mode: ips
      copy-iface: eth0
      buffer-size: 64535
-     use-mmap: yes
 
 This is a basic af-packet configuration using two interfaces. Interface
 ``eth0`` will copy all received packets to ``eth1`` because of the `copy-*`
@@ -228,8 +226,6 @@ The configuration on ``eth1`` is symmetric ::
 
 There are some important points to consider when setting up this mode:
 
-- The implementation of this mode is dependent of the zero copy mode of
-  AF_PACKET. Thus you need to set `use-mmap` to `yes` on both interface.
 - MTU on both interfaces have to be equal: the copy from one interface to
   the other is direct and packets bigger then the MTU will be dropped by kernel.
 - Set different values of `cluster-id` on both interfaces to avoid conflict.
@@ -264,7 +260,6 @@ and eBPF load balancing looks like the following: ::
      copy-mode: ips
      copy-iface: eth1
      buffer-size: 64535
-     use-mmap: yes
    - interface: eth1
      threads: 16
      cluster-id: 97
@@ -274,7 +269,6 @@ and eBPF load balancing looks like the following: ::
      copy-mode: ips
      copy-iface: eth0
      buffer-size: 64535
-     use-mmap: yes
 
 The eBPF file ``/usr/libexec/suricata/ebpf/lb.bpf`` may not be present on disk.
 See :ref:`ebpf-xdp` for more information.
