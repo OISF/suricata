@@ -472,6 +472,32 @@ the option is lower than 536. The `tcp.mss` option will be more efficient,
 so this keyword is meant to be used in cases where no specific keyword
 is available.
 
+stream_size
+^^^^^^^^^^^
+
+The ``stream_size`` option matches on traffic according to the registered
+amount of bytes by the sequence numbers. There are several modifiers
+to this keyword:
+
+::
+
+  >      greater than
+  <      less than
+  =      equal
+  !=     not equal
+  >=    greater than or equal
+  <=    less than or equal
+
+Format::
+
+  stream_size:<server|client|both|either>, <modifier>, <number>;
+
+Example rule:
+
+.. container:: example-rule
+
+    alert tcp any any -> any any (stream_size:both, >, 5000; sid:1;)
+
 UDP keywords
 ------------
 
