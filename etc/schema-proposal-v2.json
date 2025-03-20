@@ -1,0 +1,95 @@
+# Schema.json fields:
+
+stats:
+{
+  "detect-keywords": [
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/ignored"
+      },
+      "exact-match": true
+    }
+  ]
+}
+
+http.url:
+{
+  "detect-keywords": [
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.uri.raw"
+      },
+      "exact-match": true
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.uri"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/urilen"
+      },
+      "exact-match": false
+    }
+  ]
+}
+
+fileinfo.filename:
+{
+  "detect-keywords": [
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.request.file.name"
+      },
+      "exact-match": true
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.response.file.name"
+      },
+      "exact-match": true
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.request.filename"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.response.filename"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.request.fileext"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/http.response.fileext"
+      },
+      "exact-match": false
+    },
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/smb.toserver.file.name"
+      },
+      "exact-match": true
+    },
+    ... 6 times
+    {
+      "keyword-object": {
+        "$ref": "#/$keywords/nfs.toserver.file.name"
+      },
+      "exact-match": true
+    },
+    ... 6 times
+    ... etc.
+  ]
+}
+
