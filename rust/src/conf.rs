@@ -32,13 +32,17 @@ use nom7::{
 };
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
     fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
                          vptr: *mut *const c_char) -> i8;
     fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
                              vptr: *mut c_int) -> i8;
     fn ConfGetNode(key: *const c_char) -> *const c_void;
+    fn ConfNodeLookupChild(conf: *const c_void, key: *const c_char) -> *const c_void;
+    pub fn ConfGetFirstNode(parent: *const c_void) -> *const c_void;
+    pub fn ConfGetNextNode(parent: *const c_void) -> *const c_void;
+    pub fn ConfGetValueNode(node: *const c_void) -> *const c_char;
 }
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
@@ -99,6 +103,42 @@ impl ConfNode {
 
     pub fn wrap(conf: *const c_void) -> Self {
         return Self { conf }
+    }
+
+    pub fn get_child_node(&self, key: &str) -> Option<ConfNode> {
+        let node = unsafe {
+            let s = CString::new(key).unwrap();
+            ConfNodeLookupChild(self.conf, s.as_ptr())
+        };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn first(&self) -> Option<ConfNode> {
+        let node = unsafe { ConfGetFirstNode(self.conf) };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn next(&self) -> Option<ConfNode> {
+        let node = unsafe { ConfGetNextNode(self.conf) };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        let vptr = unsafe { ConfGetValueNode(self.conf) };
+        let value = std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
+        return value;
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
