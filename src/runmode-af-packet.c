@@ -294,13 +294,8 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
         if (boolval) {
             if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
-#ifdef HAVE_TPACKET_V3
                 SCLogConfig("%s: enabling tpacket v3", aconf->iface);
                 aconf->flags |= AFP_TPACKET_V3;
-#else
-                SCLogWarning("%s: system too old for tpacket v3 switching to v2", iface);
-                aconf->flags &= ~AFP_TPACKET_V3;
-#endif
             } else {
                 SCLogWarning("%s: tpacket v3 is only implemented for 'workers' runmode."
                              " Switching to tpacket v2.",
