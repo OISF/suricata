@@ -665,7 +665,7 @@ pub fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlPars
 pub fn pgsql_parse_startup_packet(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
-    let (i, length) = verify(be_u32, |&x| x >= 8)(i)?;
+    let (i, length) = parse_gte_length(i, 8)?;
     let (i, proto_major) = peek(be_u16)(i)?;
     let (i, b) = take(length - PGSQL_LENGTH_FIELD)(i)?;
     let (_, message) = match proto_major {
