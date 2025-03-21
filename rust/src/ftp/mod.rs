@@ -29,6 +29,7 @@ use std::str::FromStr;
 pub mod constant;
 pub mod event;
 pub mod ftp;
+pub mod response;
 
 // We transform an integer string into a i64, ignoring surrounding whitespaces
 // We look for a digit suite, and try to convert it.
