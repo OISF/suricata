@@ -41,12 +41,10 @@ typedef struct FtpLineState_ {
     bool lf_found;
 } FtpLineState;
 
-typedef struct FTPString_ {
-    uint8_t *str;
-    uint32_t len;
-    bool truncated;
-    TAILQ_ENTRY(FTPString_) next;
-} FTPString;
+typedef struct FTPResponseWrapper_ {
+    FTPResponseLine *response;
+    TAILQ_ENTRY(FTPResponseWrapper_) next;
+} FTPResponseWrapper;
 
 /*
  * These are the values for the table index value and the FTP command
@@ -80,7 +78,7 @@ typedef struct FTPTransaction_  {
     uint8_t direction;
 
     /* Handle multiple responses */
-    TAILQ_HEAD(, FTPString_) response_list;
+    TAILQ_HEAD(, FTPResponseWrapper_) response_list;
 
     TAILQ_ENTRY(FTPTransaction_) next;
 } FTPTransaction;
