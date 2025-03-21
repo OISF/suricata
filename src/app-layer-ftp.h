@@ -48,6 +48,11 @@ typedef struct FTPString_ {
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
+typedef struct FTPResponseWrapper_ {
+    FTPResponseLine *response;
+    TAILQ_ENTRY(FTPResponseWrapper_) next;
+} FTPResponseWrapper;
+
 /*
  * These are the values for the table index value and the FTP command
  * enum value. These *should* be the same if the enum and command insertion
@@ -80,7 +85,7 @@ typedef struct FTPTransaction_  {
     uint8_t direction;
 
     /* Handle multiple responses */
-    TAILQ_HEAD(, FTPString_) response_list;
+    TAILQ_HEAD(, FTPResponseWrapper_) response_list;
 
     TAILQ_ENTRY(FTPTransaction_) next;
 } FTPTransaction;
