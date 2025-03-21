@@ -87,43 +87,30 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
 
     if (!TAILQ_EMPTY(&tx->response_list)) {
         int resp_cnt = 0;
-        FTPString *response;
+        FTPResponseWrapper *wrapper;
         bool is_cc_array_open = false;
-        TAILQ_FOREACH(response, &tx->response_list, next) {
+        TAILQ_FOREACH (wrapper, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
-            uint8_t *where = response->str;
-            uint16_t length = 0;
-            uint16_t pos;
-            if (response->len > 0 && response->len <= UINT16_MAX) {
-                length = (uint16_t)response->len - 1;
-            } else if (response->len > UINT16_MAX) {
-                length = UINT16_MAX;
+            if (!wrapper->response) {
+                continue;
             }
+            FTPResponseLine *response = wrapper->response;
+
             if (!reply_truncated && response->truncated) {
                 reply_truncated = true;
             }
-            while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
-                uint16_t offset = 0;
-                /* Try to find a completion code for this line */
-                if (pos >= 3)  {
-                    /* Gather the completion code if present */
-                    if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
-                        if (!is_cc_array_open) {
-                            jb_open_array(jb, "completion_code");
-                            is_cc_array_open = true;
-                        }
-                        jb_append_string_from_bytes(jb, (const uint8_t *)where, 3);
-                        offset = 4;
-                    }
+            int code_len = strlen(response->code);
+            if (code_len > 0) {
+                if (!is_cc_array_open) {
+                    jb_open_array(jb, "completion_code");
+                    is_cc_array_open = true;
                 }
-                /* move past 3 character completion code */
-                if (pos >= offset) {
-                    jb_append_string_from_bytes(js_resplist, (const uint8_t *)where + offset, pos - offset);
-                    resp_cnt++;
-                }
-
-                where += pos;
-                length -= pos;
+                jb_append_string_from_bytes(jb, (const uint8_t *)response->code, code_len);
+            }
+            if (response->length) {
+                jb_append_string_from_bytes(js_resplist, (const uint8_t *)response->response,
+                        strlen(response->response));
+                resp_cnt++;
             }
         }
 
