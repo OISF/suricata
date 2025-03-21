@@ -1643,6 +1643,9 @@ flow-timeouts:
 #                               # is used or when stream-event:reassembly_overlap_different_data;
 #                               # is used in a rule.
 #
+#     max-regions: 8            # maximum number of concurrent regions per streaming buffer
+#                               # defaults to 8, if no configuration was provided. 0 means no limit.
+
 stream:
   memcap: 64 MiB
   #memcap-policy: ignore
