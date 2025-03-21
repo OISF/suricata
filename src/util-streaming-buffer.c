@@ -213,7 +213,7 @@ static StreamingBufferRegion *FindRightEdge(const StreamingBufferConfig *cfg,
 static inline StreamingBufferRegion *InitBufferRegion(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, const uint32_t min_size)
 {
-    if (sb->regions == USHRT_MAX || (cfg->max_regions != 0 && sb->regions >= cfg->max_regions)) {
+    if ((cfg->max_regions != 0 && sb->regions >= cfg->max_regions) || (sb->regions == UINT16_MAX)) {
         SCLogDebug("max regions reached");
         sc_errno = SC_ELIMIT;
         return NULL;
