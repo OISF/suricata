@@ -651,12 +651,9 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
         if (sbb->offset >= sb->region.stream_offset) {
             sb->head = sbb;
             if (sbb->offset == sb->region.stream_offset) {
-                SCLogDebug("set buf_offset?");
-                if (sbb->offset == sb->region.stream_offset) {
-                    SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
-                    DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
-                    sb->region.buf_offset = sbb->len;
-                }
+                SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
+                DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
+                sb->region.buf_offset = sbb->len;
             }
             break;
         }
