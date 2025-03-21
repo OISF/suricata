@@ -1362,7 +1362,7 @@
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),
                         [enable_af_packet=$enableval],[enable_af_packet=yes])
     AS_IF([test "x$enable_af_packet" = "xyes"], [
-        AC_CHECK_DECL([TPACKET_V2],
+        AC_CHECK_DECLS([TPACKET_V2, TPACKET_V3],
             AC_DEFINE([HAVE_AF_PACKET],[1],[AF_PACKET support is available]),
             [enable_af_packet="no"],
             [[#include <sys/socket.h>
@@ -1371,11 +1371,6 @@
             AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
-        AC_CHECK_DECL([TPACKET_V3],
-            AC_DEFINE([HAVE_TPACKET_V3],[1],[AF_PACKET tpcket_v3 support is available]),
-            [],
-            [[#include <sys/socket.h>
-              #include <linux/if_packet.h>]])
         AC_CHECK_DECL([SOF_TIMESTAMPING_RAW_HARDWARE],
             AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
             [],
