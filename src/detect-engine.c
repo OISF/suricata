@@ -2208,6 +2208,7 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
+    int result = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     SigMatchData *smd = engine->smd;
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
@@ -2223,13 +2224,17 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
                 return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
             }
 
+            /* return the higher match variant */
+            result = MAX(result, match);
+
             if (smd->is_last)
                 break;
             smd++;
         }
     }
 
-    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    DEBUG_VALIDATE_BUG_ON(!(result >= 0 && result < UINT8_MAX));
+    return (uint8_t)result;
 }
 
 
