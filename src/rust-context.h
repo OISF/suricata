@@ -27,6 +27,7 @@
 
 #include "util-debug.h"
 #include "util-file.h"
+#include "util-var.h"
 
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
@@ -56,6 +57,8 @@ typedef struct SuricataContext_ {
     int (*FileAppendGAPById)(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len);
     void (*FileContainerRecycle)(FileContainer *ffc, const StreamingBufferConfig *);
+
+    void (*GenericVarFree)(GenericVar *);
 } SuricataContext;
 
 extern const SuricataContext suricata_context;
