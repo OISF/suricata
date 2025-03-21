@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType};
+use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -147,6 +147,7 @@ pub struct AppLayerTxData {
 
     de_state: *mut DetectEngineState,
     pub events: *mut core::AppLayerDecoderEvents,
+    txbits: *mut GenericVar,
 }
 
 impl Default for AppLayerTxData {
@@ -175,6 +176,9 @@ impl AppLayerTxData {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if !self.txbits.is_null() {
+            core::sc_generic_var_free(self.txbits);
+        }
     }
 
     /// Create new AppLayerTxData for a transaction that covers both
@@ -196,6 +200,7 @@ impl AppLayerTxData {
             detect_progress_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
@@ -222,6 +227,7 @@ impl AppLayerTxData {
             flags,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
