@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2024 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
 
 //! PostgreSQL parser
 
+use super::parser::PgsqlParseError;
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
@@ -34,6 +35,14 @@ pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
+
+#[derive(AppLayerEvent, Debug, PartialEq, Eq)]
+pub enum PgsqlEvent {
+    InvalidLength,     // Can't parse the length field
+    MalformedRequest,  // Enough data, but unexpected request format
+    MalformedResponse, // Enough data, but unexpected response format
+    TooManyTransactions,
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -215,7 +224,7 @@ impl PgsqlState {
                     // when they're parsed, as of now
                     tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
                     tx_old.tx_res_state = PgsqlTxProgress::TxFlushedOut;
-                    //TODO set event
+                    tx_old.tx_data.set_event(PgsqlEvent::TooManyTransactions as u8);
                     break;
                 }
             }
@@ -278,7 +287,7 @@ impl PgsqlState {
                 Some(PgsqlStateProgress::ConnectionTerminated)
             }
             PgsqlFEMessage::UnknownMessageType(_) => {
-                SCLogDebug!("Match: Unknown message type");
+                SCLogDebug!("Match: Unknown request message type");
                 // Not changing state when we don't know the message
                 None
             }
@@ -287,7 +296,7 @@ impl PgsqlState {
 
     fn state_based_req_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> IResult<&[u8], parser::PgsqlFEMessage> {
+    ) -> IResult<&[u8], parser::PgsqlFEMessage, PgsqlParseError<&[u8]>> {
         match state {
             PgsqlStateProgress::SASLAuthenticationReceived => {
                 parser::parse_sasl_initial_response(input)
@@ -396,7 +405,29 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(err)) => {
+                    let mut tx = self.new_tx();
+                    match err {
+                        PgsqlParseError::InvalidLength => {
+                            tx.tx_data.set_event(PgsqlEvent::InvalidLength as u8);
+                            self.transactions.push_back(tx);
+                            // If we don't get a valid length, we can't know how to proceed
+                            return AppLayerResult::err();
+                        }
+                        PgsqlParseError::NomError(_i, error_kind) => {
+                            if error_kind == nom7::error::ErrorKind::Switch {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedRequest as u8);
+                                self.transactions.push_back(tx);
+                            }
+                            SCLogDebug!("Parsing error: {:?}", error_kind);
+                        }
+                    }
+                    // If we have parsed the message length, let's assume we can
+                    // move onto the next PDU even if we can't parse the current message
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
+                    SCLogDebug!("Error while parsing PGSQL request");
                     return AppLayerResult::err();
                 }
             }
@@ -461,6 +492,11 @@ impl PgsqlState {
                 // query was sent with what we received here?
                 Some(PgsqlStateProgress::CommandCompletedReceived)
             }
+            PgsqlBEMessage::UnknownMessageType(_) => {
+                SCLogDebug!("Match: Unknown response message type");
+                // Not changing state when we don't know the message
+                None
+            }
             PgsqlBEMessage::ErrorResponse(_) => Some(PgsqlStateProgress::ErrorMessageReceived),
             _ => {
                 // We don't always have to change current state when we see a response...
@@ -471,7 +507,7 @@ impl PgsqlState {
 
     fn state_based_resp_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> IResult<&[u8], parser::PgsqlBEMessage> {
+    ) -> IResult<&[u8], parser::PgsqlBEMessage, PgsqlParseError<&[u8]>> {
         if state == PgsqlStateProgress::SSLRequestReceived {
             parser::parse_ssl_response(input)
         } else {
@@ -570,8 +606,29 @@ impl PgsqlState {
                     );
                     return AppLayerResult::incomplete(consumed as u32, needed_estimation as u32);
                 }
+                Err(Err::Error(err)) => {
+                    let mut tx = self.new_tx();
+                    match err {
+                        PgsqlParseError::InvalidLength => {
+                            tx.tx_data.set_event(PgsqlEvent::InvalidLength as u8);
+                            self.transactions.push_back(tx);
+                            // If we don't get a valid length, we can't know how to proceed
+                            return AppLayerResult::err();
+                        }
+                        PgsqlParseError::NomError(_i, error_kind) => {
+                            if error_kind == nom7::error::ErrorKind::Switch {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                                self.transactions.push_back(tx);
+                            }
+                            SCLogDebug!("Parsing error: {:?}", error_kind);
+                        }
+                    }
+                    // If we have parsed the message length, let's assume we can
+                    // move onto the next PDU even if we can't parse the current message
+                    return AppLayerResult::ok();
+                }
                 Err(_) => {
-                    SCLogDebug!("Error while parsing PostgreSQL response");
+                    SCLogDebug!("Error while parsing PGSQL response");
                     return AppLayerResult::err();
                 }
             }
@@ -631,10 +688,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTS(
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
-            Ok((_, request)) => {
-                if let PgsqlFEMessage::UnknownMessageType(_) = request {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
@@ -662,10 +716,7 @@ pub unsafe extern "C" fn SCPgsqlProbingParserTC(
         }
 
         match parser::pgsql_parse_response(slice) {
-            Ok((_, response)) => {
-                if let PgsqlBEMessage::UnknownMessageType(_) = response {
-                    return ALPROTO_FAILED;
-                }
+            Ok((_, _)) => {
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
@@ -815,8 +866,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
         tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
         tx_get_progress: SCPgsqlTxGetALStateProgress,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_eventinfo: Some(PgsqlEvent::get_event_info),
+        get_eventinfo_byid: Some(PgsqlEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,

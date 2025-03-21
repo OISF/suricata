@@ -33,9 +33,8 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
         js.set_object("request", &log_request(request, flags)?)?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");
-        // TODO Log anomaly event instead?
-        js.set_bool("request", false)?;
-        js.set_bool("response", false)?;
+        // TODO Log anomaly event?
+        // if there are no transactions, there's nothing more to be logged
         js.close()?;
         return Ok(());
     }
