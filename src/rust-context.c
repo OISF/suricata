@@ -21,6 +21,7 @@
 #include "app-layer-register.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-file.h"
+#include "util-var.h"
 
 const SuricataContext suricata_context = {
     SCLogMessage,
@@ -37,6 +38,8 @@ const SuricataContext suricata_context = {
     FileAppendDataById,
     FileAppendGAPById,
     FileContainerRecycle,
+
+    GenericVarFree,
 };
 
 const SuricataContext *SCGetContext(void)
