@@ -19,6 +19,7 @@
 
 //! PostgreSQL parser
 
+use super::parser::PgsqlParseError;
 use super::parser::{self, ConsolidatedDataRowPacket, PgsqlBEMessage, PgsqlFEMessage};
 use crate::applayer::*;
 use crate::conf::*;
@@ -287,7 +288,7 @@ impl PgsqlState {
 
     fn state_based_req_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> IResult<&[u8], parser::PgsqlFEMessage> {
+    ) -> IResult<&[u8], parser::PgsqlFEMessage, PgsqlParseError<&[u8]>> {
         match state {
             PgsqlStateProgress::SASLAuthenticationReceived => {
                 parser::parse_sasl_initial_response(input)
@@ -471,7 +472,7 @@ impl PgsqlState {
 
     fn state_based_resp_parsing(
         state: PgsqlStateProgress, input: &[u8],
-    ) -> IResult<&[u8], parser::PgsqlBEMessage> {
+    ) -> IResult<&[u8], parser::PgsqlBEMessage, PgsqlParseError<&[u8]>> {
         if state == PgsqlStateProgress::SSLRequestReceived {
             parser::parse_ssl_response(input)
         } else {
