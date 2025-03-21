@@ -110,7 +110,6 @@ const char *ExceptionPolicyTargetFlagToString(uint8_t target_flag)
         default:
             return "none";
     }
-    return "none";
 }
 
 enum ExceptionPolicy ExceptionPolicyTargetPolicy(uint8_t target_flag)
