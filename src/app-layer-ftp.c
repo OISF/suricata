@@ -20,7 +20,7 @@
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  * \author Eric Leblond <eric@regit.org>
- * \author Jeff Lucovsky <jeff@lucovsky.org>
+ * \author Jeff Lucovsky <jlucovsky@oisf.net>
  *
  * App Layer Parser for FTP
  */
@@ -130,14 +130,13 @@ static void *FTPCalloc(size_t n, size_t size)
 
 static void *FTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
-    void *rptr = NULL;
-
+    DEBUG_VALIDATE_BUG_ON(size == 0);
     if (FTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
         sc_errno = SC_ELIMIT;
         return NULL;
     }
 
-    rptr = SCRealloc(ptr, size);
+    void *rptr = SCRealloc(ptr, size);
     if (rptr == NULL) {
         sc_errno = SC_ENOMEM;
         return NULL;
@@ -159,18 +158,24 @@ static void FTPFree(void *ptr, size_t size)
     FTPDecrMemuse((uint64_t)size);
 }
 
-static FTPString *FTPStringAlloc(void)
+static FTPResponseWrapper *FTPResponseWrapperAlloc(FTPResponseLine *response)
 {
-    return FTPCalloc(1, sizeof(FTPString));
+    FTPResponseWrapper *wrapper = FTPCalloc(1, sizeof(FTPResponseWrapper));
+    if (likely(wrapper)) {
+        FTPIncrMemuse(response->total_size);
+        wrapper->response = response;
+    }
+    return wrapper;
 }
 
-static void FTPStringFree(FTPString *str)
+static void FTPResponseWrapperFree(FTPResponseWrapper *wrapper)
 {
-    if (str->str) {
-        FTPFree(str->str, str->len);
+    if (wrapper->response) {
+        FTPDecrMemuse(wrapper->response->total_size);
+        SCFTPFreeResponseLine(wrapper->response);
     }
 
-    FTPFree(str, sizeof(FTPString));
+    FTPFree(wrapper, sizeof(FTPResponseWrapper));
 }
 
 static void *FTPLocalStorageAlloc(void)
@@ -244,10 +249,10 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPFree(tx->request, tx->request_length);
     }
 
-    FTPString *str = NULL;
-    while ((str = TAILQ_FIRST(&tx->response_list))) {
-        TAILQ_REMOVE(&tx->response_list, str, next);
-        FTPStringFree(str);
+    FTPResponseWrapper *wrapper;
+    while ((wrapper = TAILQ_FIRST(&tx->response_list))) {
+        TAILQ_REMOVE(&tx->response_list, wrapper, next);
+        FTPResponseWrapperFree(wrapper);
     }
 
     FTPFree(tx, sizeof(*tx));
@@ -693,18 +698,24 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
 
         if (likely(line.len)) {
-            FTPString *response = FTPStringAlloc();
+            FTPResponseLine *response = SCFTPParseResponseLine((const char *)line.buf, line.len);
             if (likely(response)) {
-                response->len = CopyCommandLine(&response->str, &line);
-                response->truncated = state->current_line_truncated_tc;
-                if (response->truncated) {
-                    AppLayerDecoderEventsSetEventRaw(
-                            &tx->tx_data.events, FtpEventResponseCommandTooLong);
+                FTPResponseWrapper *wrapper = FTPResponseWrapperAlloc(response);
+                if (likely(wrapper)) {
+                    response->truncated = state->current_line_truncated_tc;
+                    if (response->truncated) {
+                        AppLayerDecoderEventsSetEventRaw(
+                                &tx->tx_data.events, FtpEventResponseCommandTooLong);
+                    }
+                    if (line.lf_found) {
+                        state->current_line_truncated_tc = false;
+                    }
+                    TAILQ_INSERT_TAIL(&tx->response_list, wrapper, next);
+                } else {
+                    SCFTPFreeResponseLine(response);
                 }
-                if (line.lf_found) {
-                    state->current_line_truncated_tc = false;
-                }
-                TAILQ_INSERT_TAIL(&tx->response_list, response, next);
+            } else {
+                SCLogDebug("unable to parse FTP response line \"%s\"", line.buf);
             }
         }
 
