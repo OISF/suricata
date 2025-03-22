@@ -267,33 +267,6 @@ Here are some other general examples:
         flowint: cntpackets, isset;                                             \
         flowint: maxvar,isset; flowint: cntpackets, ==, maxvar;)
 
-
-stream_size
------------
-
-The stream size option matches on traffic according to the registered
-amount of bytes by the sequence numbers.  There are several modifiers
-to this keyword:
-
-::
-
-  >      greater than
-  <      less than
-  =      equal
-  !=     not equal
-  >=    greater than or equal
-  <=    less than or equal
-
-Format
-
-::
-
-  stream_size:<server|client|both|either>, <modifier>, <number>;
-
-Example of the stream-size keyword in a rule::
-
-    alert tcp any any -> any any (stream_size:both, >, 5000; sid:1;)
-
 flow.age
 --------
 
