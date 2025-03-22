@@ -780,8 +780,8 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_TLS;
-            om->tc_log_progress = TLS_HANDSHAKE_DONE;
-            om->ts_log_progress = TLS_HANDSHAKE_DONE;
+            om->tc_log_progress = TLS_STATE_SERVER_HANDSHAKE_DONE;
+            om->ts_log_progress = TLS_STATE_CLIENT_HANDSHAKE_DONE;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
         } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;

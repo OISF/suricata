@@ -168,7 +168,7 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
             if (action & ACTION_PASS) {
                 f->flags |= FLOW_ACTION_PASS;
                 SCLogDebug("setting flow action pass");
-                FlowSetNoPacketInspectionFlag(f);
+                // FlowSetNoPacketInspectionFlag(f);
             }
         }
     }
@@ -208,6 +208,8 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             // nothing to set in the packet
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
+        } else if (pa->action & (ACTION_ACCEPT)) {
+            DEBUG_VALIDATE_BUG_ON((p->action & ACTION_ACCEPT) == 0); // should be unreachable
         } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
@@ -342,12 +344,17 @@ static inline void FlowApplySignatureActions(
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_NOT_SET);
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_MAX);
 
-        enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
-        if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
+        if (s->action_scope == ACTION_SCOPE_FLOW) {
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
-        } else if (flow_action == SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL) {
-            if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) {
+        } else if (s->action_scope == ACTION_SCOPE_AUTO) {
+            enum SignaturePropertyFlowAction flow_action =
+                    signature_properties[s->type].flow_action;
+            if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
                 pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+            } else if (flow_action == SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL) {
+                if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) {
+                    pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+                }
             }
         }
 
@@ -368,6 +375,7 @@ static inline void PacketAlertFinalizeProcessQueue(
                 AlertQueueSortHelper);
     }
 
+    bool dropped = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = de_ctx->sig_array[pa->num];
@@ -399,8 +407,12 @@ static inline void PacketAlertFinalizeProcessQueue(
             PacketApplySignatureActions(p, s, pa);
         }
 
-        /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+        /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */
+        if ((s->flags & SIG_FLAG_FIREWALL) && dropped) {
+            p->alerts.discarded++;
+
+            /* Thresholding removes this alert */
+        } else if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
             SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
                     s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
@@ -420,6 +432,11 @@ static inline void PacketAlertFinalizeProcessQueue(
             if (pa->action & ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
                 break;
+            }
+
+            // TODO we can also drop if alert is suppressed, right?
+            if (s->action & ACTION_DROP) {
+                dropped = true;
             }
         } else {
             p->alerts.discarded++;

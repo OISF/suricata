@@ -1105,6 +1105,228 @@ error:
     return -1;
 }
 
+static bool IsBuiltIn(const char *n)
+{
+    if (strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0) {
+        return true;
+    }
+    return false;
+}
+
+/** \brief register app hooks as generic lists
+ *
+ *  Register each hook in each app protocol as:
+ *  <alproto>:<hook name>:generic
+ *  These lists can be used by lua scripts to hook into.
+ *
+ *  \todo move elsewhere? maybe a detect-engine-hook.c?
+ */
+void DetectRegisterAppLayerHookLists(void)
+{
+    for (AppProto a = ALPROTO_FAILED + 1; a < g_alproto_max; a++) {
+        const char *alproto_name = AppProtoToString(a);
+        if (strcmp(alproto_name, "http") == 0)
+            alproto_name = "http1";
+        SCLogDebug("alproto %u/%s", a, alproto_name);
+
+        const int max_progress_ts =
+                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+        const int max_progress_tc =
+                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
+
+        char ts_tx_complete[64];
+        snprintf(ts_tx_complete, sizeof(ts_tx_complete), "%s:request_complete:generic",
+                alproto_name);
+        DetectAppLayerInspectEngineRegister(ts_tx_complete, a, SIG_FLAG_TOSERVER, max_progress_ts,
+                DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_complete,
+                (uint32_t)strlen(ts_tx_complete));
+
+        char tc_tx_complete[64];
+        snprintf(tc_tx_complete, sizeof(tc_tx_complete), "%s:response_complete:generic",
+                alproto_name);
+        DetectAppLayerInspectEngineRegister(tc_tx_complete, a, SIG_FLAG_TOCLIENT, max_progress_tc,
+                DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_complete,
+                (uint32_t)strlen(tc_tx_complete));
+
+        for (int p = 0; p <= max_progress_ts; p++) {
+            const char *name = AppLayerParserGetStateNameById(
+                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
+            if (name != NULL && !IsBuiltIn(name)) {
+                char list_name[64];
+                snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
+                SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
+                        (uint32_t)strlen(list_name));
+
+                DetectAppLayerInspectEngineRegister(
+                        list_name, a, SIG_FLAG_TOSERVER, p, DetectEngineInspectGenericList, NULL);
+            }
+        }
+        for (int p = 0; p <= max_progress_tc; p++) {
+            const char *name = AppLayerParserGetStateNameById(
+                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
+            if (name != NULL && !IsBuiltIn(name)) {
+                char list_name[64];
+                snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
+                SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
+                        (uint32_t)strlen(list_name));
+
+                DetectAppLayerInspectEngineRegister(
+                        list_name, a, SIG_FLAG_TOCLIENT, p, DetectEngineInspectGenericList, NULL);
+            }
+        }
+
+        char ts_tx_update[64];
+        snprintf(ts_tx_update, sizeof(ts_tx_update), "%s:request_update:generic", alproto_name);
+        DetectAppLayerInspectEngineRegister(
+                ts_tx_update, a, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_update,
+                (uint32_t)strlen(ts_tx_update));
+
+        char tc_tx_update[64];
+        snprintf(tc_tx_update, sizeof(tc_tx_update), "%s:response_update:generic", alproto_name);
+        DetectAppLayerInspectEngineRegister(
+                tc_tx_update, a, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_update,
+                (uint32_t)strlen(tc_tx_update));
+    }
+}
+
+#ifdef DEBUG
+static const char *SignatureHookTypeToString(enum SignatureHookType t)
+{
+    switch (t) {
+        case SIGNATURE_HOOK_TYPE_NOT_SET:
+            return "not_set";
+        case SIGNATURE_HOOK_TYPE_APP:
+            return "app";
+        case SIGNATURE_HOOK_TYPE_PKT:
+            return "pkt";
+    }
+    return "unknown";
+}
+#endif
+
+static enum SignatureHookPkt HookPktFromString(const char *str)
+{
+    if (strcmp(str, "flow_start") == 0) {
+        return SIGNATURE_HOOK_PKT_FLOW_START;
+    } else if (strcmp(str, "all") == 0) {
+        return SIGNATURE_HOOK_PKT_ALL;
+    }
+    return SIGNATURE_HOOK_PKT_NOT_SET;
+}
+
+#ifdef DEBUG
+static const char *HookPktToString(const enum SignatureHookPkt ph)
+{
+    switch (ph) {
+        case SIGNATURE_HOOK_PKT_NOT_SET:
+            return "not set";
+        case SIGNATURE_HOOK_PKT_FLOW_START:
+            return "flow_start";
+        case SIGNATURE_HOOK_PKT_ALL:
+            return "all";
+    }
+    return "error";
+}
+#endif
+
+static SignatureHook SetPktHook(const char *hook_str)
+{
+    SignatureHook h = {
+        .type = SIGNATURE_HOOK_TYPE_PKT,
+        .t.pkt.ph = HookPktFromString(hook_str),
+    };
+    return h;
+}
+
+/**
+ * \param proto_hook string of protocol and hook, e.g. dns:request_complete
+ */
+static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char *p, const char *h)
+{
+    enum SignatureHookPkt hook = HookPktFromString(h);
+    if (hook != SIGNATURE_HOOK_PKT_NOT_SET) {
+        s->init_data->hook = SetPktHook(h);
+        if (s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_NOT_SET) {
+            return -1; // TODO unreachable?
+        }
+    } else {
+        SCLogError("unknown pkt hook %s", h);
+        return -1;
+    }
+
+    SCLogDebug("protocol:%s hook:%s: type:%s parsed hook:%s", p, h,
+            SignatureHookTypeToString(s->init_data->hook.type),
+            HookPktToString(s->init_data->hook.t.pkt.ph));
+    return 0;
+}
+
+static SignatureHook SetAppHook(const AppProto alproto, int progress)
+{
+    SignatureHook h = {
+        .type = SIGNATURE_HOOK_TYPE_APP,
+        .t.app.alproto = alproto,
+        .t.app.app_progress = progress,
+    };
+    return h;
+}
+
+/**
+ * \param proto_hook string of protocol and hook, e.g. dns:request_complete
+ */
+static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char *p, const char *h)
+{
+    if (strcmp(h, "request_update") == 0) {
+        s->flags |= SIG_FLAG_TOSERVER;
+        s->init_data->hook = SetAppHook(s->alproto, 0);
+        s->flags |= SIG_FLAG_APP_UPDATE;
+    } else if (strcmp(h, "response_update") == 0) {
+        s->flags |= SIG_FLAG_TOCLIENT;
+        s->init_data->hook = SetAppHook(s->alproto, 0);
+        s->flags |= SIG_FLAG_APP_UPDATE;
+    } else if (strcmp(h, "request_complete") == 0) {
+        s->flags |= SIG_FLAG_TOSERVER;
+        s->init_data->hook = SetAppHook(s->alproto,
+                AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOSERVER));
+    } else if (strcmp(h, "response_complete") == 0) {
+        s->flags |= SIG_FLAG_TOCLIENT;
+        s->init_data->hook = SetAppHook(s->alproto,
+                AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOCLIENT));
+    } else {
+        const int progress_ts = AppLayerParserGetStateIdByName(
+                IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
+        if (progress_ts >= 0) {
+            s->flags |= SIG_FLAG_TOSERVER;
+            s->init_data->hook = SetAppHook(s->alproto, progress_ts);
+        } else {
+            const int progress_tc = AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
+            if (progress_tc < 0) {
+                return -1;
+            }
+            s->flags |= SIG_FLAG_TOCLIENT;
+            s->init_data->hook = SetAppHook(s->alproto, progress_tc);
+        }
+    }
+
+    char generic_hook_name[64];
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:generic", proto_hook);
+    int list = DetectBufferTypeGetByName(generic_hook_name);
+    if (list < 0) {
+        SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
+        return -1;
+    }
+    s->init_data->hook.sm_list = list;
+
+    SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
+            SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
+            s->init_data->hook.t.app.app_progress);
+    return 0;
+}
+
 /**
  * \brief Parses the protocol supplied by the Signature.
  *
@@ -1120,15 +1342,41 @@ error:
 static int SigParseProto(Signature *s, const char *protostr)
 {
     SCEnter();
+    if (strlen(protostr) > 32)
+        return -1;
 
-    int r = DetectProtoParse(&s->proto, (char *)protostr);
+    char proto[33];
+    strlcpy(proto, protostr, 33);
+    const char *p = proto;
+    const char *h = NULL;
+
+    bool has_hook = strchr(proto, ':') != NULL;
+    if (has_hook) {
+        char *xsaveptr = NULL;
+        p = strtok_r(proto, ":", &xsaveptr);
+        h = strtok_r(NULL, ":", &xsaveptr);
+        SCLogDebug("p: '%s' h: '%s'", p, h);
+    }
+    if (p == NULL) {
+        SCLogError("invalid protocol specification '%s'", proto);
+        return -1;
+    }
+
+    int r = DetectProtoParse(&s->proto, p);
     if (r < 0) {
-        s->alproto = AppLayerGetProtoByName((char *)protostr);
+        s->alproto = AppLayerGetProtoByName(p);
         /* indicate that the signature is app-layer */
         if (s->alproto != ALPROTO_UNKNOWN) {
             s->flags |= SIG_FLAG_APPLAYER;
 
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
+
+            if (h) {
+                if (SigParseProtoHookApp(s, protostr, p, h) < 0) {
+                    SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
+                    SCReturnInt(-1);
+                }
+            }
         }
         else {
             SCLogError("protocol \"%s\" cannot be used "
@@ -1136,7 +1384,14 @@ static int SigParseProto(Signature *s, const char *protostr)
                        "is not yet supported OR detection has been disabled for "
                        "protocol through the yaml option "
                        "app-layer.protocols.%s.detection-enabled",
-                    protostr, protostr);
+                    p, p);
+            SCReturnInt(-1);
+        }
+    } else if (h != NULL) {
+        SCLogDebug("non-app-layer rule with %s:%s", p, h);
+
+        if (SigParseProtoHookPkt(s, protostr, p, h) < 0) {
+            SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
             SCReturnInt(-1);
         }
     }
@@ -1241,6 +1496,8 @@ static uint8_t ActionStringToFlags(const char *action)
         return ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "config") == 0) {
         return ACTION_CONFIG;
+    } else if (strcasecmp(action, "accept") == 0) {
+        return ACTION_ACCEPT;
     } else {
         SCLogError("An invalid action \"%s\" was given", action);
         return 0;
@@ -1258,11 +1515,81 @@ static uint8_t ActionStringToFlags(const char *action)
  *            Signature.
  * \retval -1 On failure.
  */
-static int SigParseAction(Signature *s, const char *action)
+static int SigParseAction(Signature *s, const char *action_in)
 {
-    uint8_t flags = ActionStringToFlags(action);
+    char action[32];
+    strlcpy(action, action_in, sizeof(action));
+    const char *a = action;
+    const char *o = NULL;
+
+    bool has_scope = strchr(action, ':') != NULL;
+    if (has_scope) {
+        char *xsaveptr = NULL;
+        a = strtok_r(action, ":", &xsaveptr);
+        o = strtok_r(NULL, ":", &xsaveptr);
+        SCLogNotice("a: '%s' o: '%s'", a, o);
+    }
+    if (a == NULL) {
+        SCLogError("invalid protocol specification '%s'", action_in);
+        return -1;
+    }
+
+    uint8_t flags = ActionStringToFlags(a);
     if (flags == 0)
         return -1;
+
+    /* parse scope, if any */
+    if (o) {
+        uint8_t scope_flags = 0;
+        if (flags & (ACTION_DROP | ACTION_PASS)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else if (strcmp(o, "flow") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
+            } else {
+                SCLogError("invalid action scope '%s' in action '%s': only 'packet' and 'flow' "
+                           "allowed",
+                        o, action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
+        } else if (flags & (ACTION_ACCEPT)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else if (strcmp(o, "hook") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_HOOK;
+            } else if (strcmp(o, "flow") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
+            } else {
+                SCLogError("invalid action scope '%s' in action '%s': only 'packet', 'flow' and "
+                           "'hook' allowed",
+                        o, action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
+        } else {
+            SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
+                       "'drop', 'pass' and 'reject'",
+                    o, action_in);
+            return -1;
+        }
+    }
+
+    /* require explicit action scope for fw rules */
+    if (s->init_data->firewall_rule && s->action_scope == 0) {
+        SCLogError("firewall rules require setting an explicit action scope");
+        return -1;
+    }
+
+    if (!s->init_data->firewall_rule && (flags & ACTION_ACCEPT)) {
+        SCLogError("'accept' action only supported for firewall rules");
+        return -1;
+    }
+
+    if (s->init_data->firewall_rule && (flags & ACTION_PASS)) {
+        SCLogError("'pass' action not supported for firewall rules");
+        return -1;
+    }
 
     s->action = flags;
     return 0;
@@ -1990,6 +2317,17 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCReturn;
 }
 
+static bool DetectFilewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
+{
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
+        SCLogError("rule %u is loaded as a firewall rule, but does not specify and "
+                   "explicit hook",
+                s->id);
+        return false;
+    }
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
@@ -2002,6 +2340,11 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     SCEnter();
+
+    if (s->init_data->firewall_rule) {
+        if (!DetectFilewallRuleValidate(de_ctx, s))
+            SCReturnInt(0);
+    }
 
     uint32_t sig_flags = 0;
     int nlists = 0;
@@ -2075,6 +2418,22 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 SCLogDebug("b->id %d nlists %d", b->id, nlists);
                 bufdir[b->id].ts += (app->dir == 0);
                 bufdir[b->id].tc += (app->dir == 1);
+
+                /* only allow rules to use the hook for engines at that
+                 * exact progress for now. */
+                if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                    if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
+                            app->progress != s->init_data->hook.t.app.app_progress) {
+                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
+                                s->init_data->hook.t.app.app_progress);
+                        SCReturnInt(0);
+                    }
+                    if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
+                            app->progress != s->init_data->hook.t.app.app_progress) {
+                        SCLogError("engine progress value doesn't match hook");
+                        SCReturnInt(0);
+                    }
+                }
             }
         }
 
@@ -2211,8 +2570,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
  * \internal
  * \brief Helper function for SigInit().
  */
-static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
-                                uint8_t dir)
+static Signature *SigInitHelper(
+        DetectEngineCtx *de_ctx, const char *sigstr, uint8_t dir, const bool firewall_rule)
 {
     SignatureParser parser;
     memset(&parser, 0x00, sizeof(parser));
@@ -2220,6 +2579,11 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
+    if (firewall_rule) {
+        sig->init_data->firewall_rule = true;
+        sig->flags |= SIG_FLAG_FIREWALL;
+        de_ctx->flags |= DE_HAS_FIREWALL;
+    }
 
     sig->sig_str = SCStrdup(sigstr);
     if (unlikely(sig->sig_str == NULL)) {
@@ -2310,6 +2674,14 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
         }
     }
 
+    if (sig->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT) {
+        if (sig->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_FLOW_START) {
+            if ((sig->flags & SIG_FLAG_TOSERVER) != 0) {
+                sig->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
+            }
+        }
+    }
+
     if (!(sig->init_data->init_flags & SIG_FLAG_INIT_FLOW)) {
         if ((sig->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) {
             sig->flags |= SIG_FLAG_TOSERVER;
@@ -2392,16 +2764,7 @@ static bool SigHasSameSourceAndDestination(const Signature *s)
     return true;
 }
 
-/**
- * \brief Parses a signature and adds it to the Detection Engine Context.
- *
- * \param de_ctx Pointer to the Detection Engine Context.
- * \param sigstr Pointer to a character string containing the signature to be
- *               parsed.
- *
- * \retval Pointer to the Signature instance on success; NULL on failure.
- */
-Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
+static Signature *SigInitDo(DetectEngineCtx *de_ctx, const char *sigstr, const bool firewall_rule)
 {
     SCEnter();
 
@@ -2410,9 +2773,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
     de_ctx->sigerror_silent = false;
     de_ctx->sigerror_requires = false;
 
-    Signature *sig;
-
-    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL)) == NULL) {
+    Signature *sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL, firewall_rule);
+    if (sig == NULL) {
         goto error;
     }
 
@@ -2423,7 +2785,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
 
             sig->init_data->init_flags &= ~SIG_FLAG_INIT_BIDIREC;
         } else {
-            sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+            sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED, firewall_rule);
             if (sig->next == NULL) {
                 goto error;
             }
@@ -2441,6 +2803,25 @@ error:
     de_ctx->signum = oldsignum;
 
     SCReturnPtr(NULL, "Signature");
+}
+
+/**
+ * \brief Parses a signature and adds it to the Detection Engine Context.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed.
+ *
+ * \retval Pointer to the Signature instance on success; NULL on failure.
+ */
+Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    return SigInitDo(de_ctx, sigstr, false);
+}
+
+static Signature *DetectFirewallRuleNew(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    return SigInitDo(de_ctx, sigstr, true);
 }
 
 /**
@@ -2681,6 +3062,78 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
 
 end:
     return ret;
+}
+
+/**
+ * \brief Parse and append a Signature into the Detection Engine Context
+ *        signature list.
+ *
+ *        If the signature is bidirectional it should append two signatures
+ *        (with the addresses switched) into the list.  Also handle duplicate
+ *        signatures.  In case of duplicate sigs, use the ones that have the
+ *        latest revision.  We use the sid and the msg to identify duplicate
+ *        sigs.  If 2 sigs have the same sid and gid, they are duplicates.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed.
+ * \param sig_file Pointer to a character string containing the filename from
+ *                 which signature is read
+ * \param lineno Line number from where signature is read
+ *
+ * \retval Pointer to the head Signature in the detection engine ctx sig_list
+ *         on success; NULL on failure.
+ */
+Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *de_ctx, const char *sigstr)
+{
+    Signature *sig = DetectFirewallRuleNew(de_ctx, sigstr);
+    if (sig == NULL) {
+        return NULL;
+    }
+
+    /* checking for the status of duplicate signature */
+    int dup_sig = DetectEngineSignatureIsDuplicate(de_ctx, sig);
+    /* a duplicate signature that should be chucked out.  Check the previously
+     * called function details to understand the different return values */
+    if (dup_sig == 1) {
+        SCLogError("Duplicate signature \"%s\"", sigstr);
+        goto error;
+    } else if (dup_sig == 2) {
+        SCLogWarning("Signature with newer revision,"
+                     " so the older sig replaced by this new signature \"%s\"",
+                sigstr);
+    }
+
+    if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
+        if (sig->next != NULL) {
+            sig->next->next = de_ctx->sig_list;
+        } else {
+            goto error;
+        }
+    } else {
+        /* if this sig is the first one, sig_list should be null */
+        sig->next = de_ctx->sig_list;
+    }
+
+    de_ctx->sig_list = sig;
+
+    /**
+     * In DetectEngineAppendSig(), the signatures are prepended and we always return the first one
+     * so if the signature is bidirectional, the returned sig will point through "next" ptr
+     * to the cloned signatures with the switched addresses
+     */
+    return (dup_sig == 0 || dup_sig == 2) ? sig : NULL;
+
+error:
+    /* free the 2nd sig bidir may have set up */
+    if (sig != NULL && sig->next != NULL) {
+        SigFree(de_ctx, sig->next);
+        sig->next = NULL;
+    }
+    if (sig != NULL) {
+        SigFree(de_ctx, sig);
+    }
+    return NULL;
 }
 
 /**

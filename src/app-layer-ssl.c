@@ -43,6 +43,58 @@
 #include "util-enum.h"
 #include "util-validate.h"
 
+static SCEnumCharMap tls_state_client_table[] = {
+    {
+            "client_in_progress",
+            TLS_STATE_CLIENT_IN_PROGRESS,
+    },
+    {
+            "client_hello_done",
+            TLS_STATE_CLIENT_HELLO_DONE,
+    },
+    {
+            "client_cert_done",
+            TLS_STATE_CLIENT_CERT_DONE,
+    },
+    {
+            "client_handshake_done",
+            TLS_STATE_CLIENT_HANDSHAKE_DONE,
+    },
+    {
+            "client_finished",
+            TLS_STATE_CLIENT_FINISHED,
+    },
+    { NULL, -1 },
+};
+
+static SCEnumCharMap tls_state_server_table[] = {
+    {
+            "server_in_progress",
+            TLS_STATE_SERVER_IN_PROGRESS,
+    },
+    {
+            "server_hello",
+            TLS_STATE_SERVER_HELLO,
+    },
+    {
+            "server_cert_done",
+            TLS_STATE_SERVER_CERT_DONE,
+    },
+    {
+            "server_hello_done",
+            TLS_STATE_SERVER_HELLO_DONE,
+    },
+    {
+            "server_handshake_done",
+            TLS_STATE_SERVER_HANDSHAKE_DONE,
+    },
+    {
+            "server_finished",
+            TLS_STATE_SERVER_FINISHED,
+    },
+    { NULL, -1 },
+};
+
 SCEnumCharMap tls_frame_table[] = {
     {
             "pdu",
@@ -292,30 +344,36 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
+static void UpdateClientState(SSLState *ssl_state, enum TlsStateClient s)
+{
+#ifdef DEBUG
+    enum TlsStateClient old = ssl_state->client_state;
+#endif
+    ssl_state->client_state = s;
+#ifdef DEBUG
+    SCLogDebug("toserver: state updated to %u from %u", s, old);
+#endif
+}
+
+static void UpdateServerState(SSLState *ssl_state, enum TlsStateServer s)
+{
+#ifdef DEBUG
+    enum TlsStateServer old = ssl_state->server_state;
+#endif
+    ssl_state->server_state = s;
+#ifdef DEBUG
+    SCLogDebug("toclient: state updated to %u from %u", s, old);
+#endif
+}
+
 static int SSLGetAlstateProgress(void *tx, uint8_t direction)
 {
     SSLState *ssl_state = (SSLState *)tx;
-
-    /* we don't care about direction, only that app-layer parser is done
-       and have sent an EOF */
-    if (ssl_state->flags & SSL_AL_FLAG_STATE_FINISHED) {
-        return TLS_STATE_FINISHED;
+    if (direction & STREAM_TOCLIENT) {
+        return ssl_state->server_state;
+    } else {
+        return ssl_state->client_state;
     }
-
-    /* we want the logger to log when the handshake is done, even if the
-       state is not finished */
-    if (ssl_state->flags & SSL_AL_FLAG_HANDSHAKE_DONE) {
-        return TLS_HANDSHAKE_DONE;
-    }
-
-    if (direction == STREAM_TOSERVER &&
-        (ssl_state->server_connp.cert0_subject != NULL ||
-         ssl_state->server_connp.cert0_issuerdn != NULL))
-    {
-        return TLS_STATE_CERT_READY;
-    }
-
-    return TLS_STATE_IN_PROGRESS;
 }
 
 static AppLayerTxData *SSLGetTxData(void *vtx)
@@ -1610,6 +1668,11 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
         ssl_state->curr_connp->ja3_hash = Ja3GenerateHash(ssl_state->curr_connp->ja3_str);
     }
 
+    if (ssl_state->curr_connp == &ssl_state->client_connp) {
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO_DONE);
+    } else {
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
+    }
 end:
     return 0;
 }
@@ -1635,6 +1698,11 @@ static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state, SSLSta
         SCLogDebug("error parsing cert, reset state");
         SSLParserHSReset(connp);
         /* fall through to still consume the cert bytes */
+    }
+    if (connp == &ssl_state->client_connp) {
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_CERT_DONE);
+    } else {
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT_DONE);
     }
     return input_len;
 }
@@ -1704,7 +1772,6 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             break;
 
         case SSLV3_HS_CERTIFICATE:
-
             rc = SSLv3ParseHandshakeTypeCertificate(ssl_state,
                     direction ? &ssl_state->server_connp : &ssl_state->client_connp, initial_input,
                     input_len);
@@ -1728,6 +1795,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             SCLogDebug("new session ticket");
             break;
         case SSLV3_HS_SERVER_HELLO_DONE:
+            if (direction) {
+                UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO_DONE);
+            }
             break;
         default:
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
@@ -2323,6 +2393,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
 
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
             ssl_state->current_flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
+            UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO_DONE);
 
             const uint16_t version = (uint16_t)(input[0] << 8) | input[1];
             SCLogDebug("SSLv2: version %04x", version);
@@ -2352,6 +2423,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
             } else {
                 ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_KEYX;
             }
+            UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT_DONE);
 
             /* fall through */
         case SSLV2_MT_SERVER_VERIFY:
@@ -2404,6 +2476,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
         case SSLV2_MT_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
             ssl_state->current_flags |= SSL_AL_FLAG_SSL_SERVER_HS;
+            UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
 
             break;
     }
@@ -2595,7 +2668,11 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
 
             /* if we see (encrypted) application data, then this means the
                handshake must be done */
-            ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+            if (ssl_state->curr_connp == &ssl_state->client_connp) {
+                UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+            } else {
+                UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
+            }
 
             if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
                 SCLogDebug("setting APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD");
@@ -2723,7 +2800,10 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                     (direction == 1 &&
                             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
-        ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
+        if (direction == 0)
+            UpdateClientState(ssl_state, TLS_STATE_CLIENT_FINISHED);
+        else
+            UpdateServerState(ssl_state, TLS_STATE_SERVER_FINISHED);
         SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -2831,19 +2911,22 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     /* mark handshake as done if we have subject and issuer */
     if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) &&
             ssl_state->client_connp.cert0_subject && ssl_state->client_connp.cert0_issuerdn) {
-        SCLogDebug("SSL_AL_FLAG_HANDSHAKE_DONE");
-        ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+        /* update both sides to keep existing behavior */
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
     } else if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) == 0 &&
                ssl_state->server_connp.cert0_subject && ssl_state->server_connp.cert0_issuerdn) {
-        SCLogDebug("SSL_AL_FLAG_HANDSHAKE_DONE");
-        ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+        /* update both sides to keep existing behavior */
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
     }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
         AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
-        SCLogDebug("SSL_AL_FLAG_STATE_FINISHED");
-        ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
+        /* update both sides to keep existing behavior */
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_FINISHED);
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_FINISHED);
     }
 
     return APP_LAYER_OK;
@@ -3002,6 +3085,26 @@ static AppProto SSLProbingParser(Flow *f, uint8_t direction,
     }
 
     return ALPROTO_FAILED;
+}
+
+static int SSLStateGetStateIdByName(const char *name, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? tls_state_client_table : tls_state_server_table;
+
+    int id = SCMapEnumNameToValue(name, map);
+    if (id < 0) {
+        return -1;
+    }
+    return id;
+}
+
+static const char *SSLStateGetStateNameById(const int id, const uint8_t direction)
+{
+    SCEnumCharMap *map =
+            direction == STREAM_TOSERVER ? tls_state_client_table : tls_state_server_table;
+    const char *name = SCMapEnumValueToName(id, map);
+    return name;
 }
 
 static int SSLStateGetFrameIdByName(const char *frame_name)
@@ -3290,7 +3393,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOCLIENT,
                                      SSLParseServerRecord);
-
+        AppLayerParserRegisterGetStateFuncs(
+                IPPROTO_TCP, ALPROTO_TLS, SSLStateGetStateIdByName, SSLStateGetStateNameById);
         AppLayerParserRegisterGetFrameFuncs(
                 IPPROTO_TCP, ALPROTO_TLS, SSLStateGetFrameIdByName, SSLStateGetFrameNameById);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfo);
@@ -3311,7 +3415,7 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
 
         AppLayerParserRegisterStateProgressCompletionStatus(
-                ALPROTO_TLS, TLS_STATE_FINISHED, TLS_STATE_FINISHED);
+                ALPROTO_TLS, TLS_STATE_CLIENT_FINISHED, TLS_STATE_SERVER_FINISHED);
 
         ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {
