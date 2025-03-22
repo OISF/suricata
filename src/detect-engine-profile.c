@@ -47,7 +47,6 @@ void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupH
     jb_set_uint(js, "rule_group_id", sgh->id);
     jb_set_uint(js, "rule_cnt", rule_cnt);
     jb_set_uint(js, "pkt_rule_cnt", pkt_prefilter_cnt);
-    jb_set_uint(js, "non_pf_rule_cnt", det_ctx->non_pf_store_cnt);
 
     jb_open_array(js, "rules");
     for (uint32_t x = 0; x < rule_cnt; x++) {
@@ -91,7 +90,8 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
     jb_set_string(js, "inspect_type", "packet");
     jb_set_uint(js, "rule_group_id", sgh->id);
     jb_set_uint(js, "rule_cnt", det_ctx->match_array_cnt);
-    jb_set_uint(js, "non_pf_rule_cnt", det_ctx->non_pf_store_cnt);
+    // TODO
+    // jb_set_uint(js, "non_pf_rule_cnt", det_ctx->non_pf_store_cnt);
 
     jb_open_array(js, "rules");
     for (uint32_t x = 0; x < det_ctx->match_array_cnt; x++) {
