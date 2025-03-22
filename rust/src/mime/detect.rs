@@ -20,6 +20,8 @@ use super::smtp::MimeStateSMTP;
 use std::ffi::CStr;
 use std::ptr;
 
+/// Intermediary function used in detect-email.c to access data from the MimeStateSMTP structure.
+/// The hname parameter determines which data will be returned.
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectMimeEmailGetData(
     ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
