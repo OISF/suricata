@@ -328,6 +328,7 @@ outputs:
         - sip
         - quic
         - ldap
+        - pop3
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
@@ -1022,7 +1023,13 @@ app-layer:
     imap:
       enabled: detection-only
     pop3:
-      enabled: detection-only
+      enabled: yes
+      detection-ports:
+        dp: 110
+      # Stream reassembly size for POP3. By default, track it completely.
+      stream-depth: 0
+      # Maximum number of live POP3 transactions per flow
+      # max-tx: 256
     smb:
       enabled: yes
       detection-ports:
