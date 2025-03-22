@@ -92,7 +92,7 @@ pub unsafe extern "C" fn SCMimeSmtpLogFieldArray(
     return false;
 }
 
-enum FieldCommaState {
+pub enum FieldCommaState {
     Start = 0, // skip leading spaces
     Field = 1,
     Quoted = 2, // do not take comma for split in quote

@@ -17,6 +17,7 @@
 
 use super::mime;
 use super::smtp::MimeStateSMTP;
+use crate::mime::smtp_log::FieldCommaState;
 use std::ffi::CStr;
 use std::ptr;
 
@@ -37,6 +38,71 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetData(
     }
 
     *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMimeEmailGetMultiData(
+    ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
+    hname: *const std::os::raw::c_char, idx: u32,
+) -> u8 {
+    let c_str = CStr::from_ptr(hname); // unsafe
+    let str = c_str.to_str().unwrap_or("");
+
+    for h in &ctx.headers[..ctx.main_headers_nb] {
+        if mime::slice_equals_lowercase(&h.name, str.as_bytes()) {
+            let mut start = 0;
+            let mut state = FieldCommaState::Start;
+            let mut current_idx = 0;
+
+            for i in 0..h.value.len() {
+                match state {
+                    FieldCommaState::Start => {
+                        if h.value[i] == b' ' || h.value[i] == b'\t' {
+                            start += 1;
+                        } else if h.value[i] == b'"' {
+                            state = FieldCommaState::Quoted;
+                        } else {
+                            state = FieldCommaState::Field;
+                        }
+                    }
+                    FieldCommaState::Field => {
+                        if h.value[i] == b',' {
+                            if i > start {
+                                if current_idx == idx {
+                                    let slice = &h.value[start..i];
+                                    *buffer = slice.as_ptr();
+                                    *buffer_len = slice.len() as u32;
+                                    return 1;
+                                }
+                                current_idx += 1;
+                            }
+                            start = i + 1;
+                            state = FieldCommaState::Start;
+                        } else if h.value[i] == b'"' {
+                            state = FieldCommaState::Quoted;
+                        }
+                    }
+                    FieldCommaState::Quoted => {
+                        if h.value[i] == b'"' {
+                            state = FieldCommaState::Field;
+                        }
+                    }
+                }
+            }
+            if h.value.len() > start && current_idx == idx {
+                let slice = &h.value[start..];
+                *buffer = slice.as_ptr();
+                *buffer_len = slice.len() as u32;
+                return 1;
+            }
+            break;
+        }
+    }
+
+    *buffer = std::ptr::null();
     *buffer_len = 0;
 
     return 0;

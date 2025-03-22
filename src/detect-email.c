@@ -21,9 +21,11 @@
 #include "app-layer-smtp.h"
 #include "detect-email.h"
 #include "rust.h"
+#include "detect-engine-content-inspection.h"
 
 static int g_mime_email_from_buffer_id = 0;
 static int g_mime_email_subject_buffer_id = 0;
+static int g_mime_email_cc_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -94,6 +96,46 @@ static InspectionBuffer *GetMimeEmailSubjectData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectMimeEmailCcSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_cc_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailCcData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id, uint32_t idx)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
+    if (buffer == NULL || buffer->initialized)
+        return buffer;
+
+    SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+    const uint8_t *b_email_cc = NULL;
+    uint32_t b_email_cc_len = 0;
+
+    if (tx->mime_state == NULL) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    if (SCDetectMimeEmailGetMultiData(tx->mime_state, &b_email_cc, &b_email_cc_len, "cc", idx) !=
+            1) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    InspectionBufferSetupMulti(buffer, transforms, b_email_cc, b_email_cc_len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -119,4 +161,15 @@ void DetectEmailRegister(void)
             "MIME EMAIL SUBJECT", ALPROTO_SMTP, false,
             true, // to server
             GetMimeEmailSubjectData);
+
+    kw.name = "email.cc";
+    kw.desc = "'Cc' field from an email";
+    kw.url = "/rules/email-keywords.html#email.cc";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailCcSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_cc_buffer_id =
+            DetectHelperMultiBufferMpmRegister("email.cc", "MIME EMAIL CC", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetMimeEmailCcData);
 }
