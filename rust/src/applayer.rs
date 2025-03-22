@@ -31,6 +31,14 @@ use crate::core::StreamingBufferConfig;
 pub use suricata_derive::AppLayerEvent;
 use suricata_sys::sys::AppProto;
 
+/// Cast pointer to a variable, as a mutable reference to an object
+///
+/// UNSAFE !
+#[macro_export]
+macro_rules! cast_pointer {
+    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
+}
+
 #[repr(C)]
 pub struct StreamSlice {
     input: *const u8,
@@ -142,6 +150,18 @@ impl Default for AppLayerTxData {
 
 impl Drop for AppLayerTxData {
     fn drop(&mut self) {
+        self.cleanup();
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
+    let txd = cast_pointer!(txd, AppLayerTxData);
+    txd.cleanup()
+}
+
+impl AppLayerTxData {
+    pub fn cleanup(&mut self) {
         if !self.de_state.is_null() {
             core::sc_detect_engine_state_free(self.de_state);
         }
@@ -149,9 +169,7 @@ impl Drop for AppLayerTxData {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
     }
-}
 
-impl AppLayerTxData {
     /// Create new AppLayerTxData for a transaction that covers both
     /// directions.
     pub fn new() -> Self {
@@ -419,14 +437,6 @@ pub struct RustParser {
 #[macro_export]
 macro_rules! build_slice {
     ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
-}
-
-/// Cast pointer to a variable, as a mutable reference to an object
-///
-/// UNSAFE !
-#[macro_export]
-macro_rules! cast_pointer {
-    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
 
 /// helper for the GetTxFilesFn. Not meant to be embedded as the config
