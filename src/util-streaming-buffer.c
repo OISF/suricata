@@ -213,7 +213,7 @@ static StreamingBufferRegion *FindRightEdge(const StreamingBufferConfig *cfg,
 static inline StreamingBufferRegion *InitBufferRegion(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, const uint32_t min_size)
 {
-    if (sb->regions == USHRT_MAX || (cfg->max_regions != 0 && sb->regions >= cfg->max_regions)) {
+    if ((cfg->max_regions != 0 && sb->regions >= cfg->max_regions) || (sb->regions >= UINT16_MAX)) {
         SCLogDebug("max regions reached");
         sc_errno = SC_ELIMIT;
         return NULL;
@@ -651,13 +651,10 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
         if (sbb->offset >= sb->region.stream_offset) {
             sb->head = sbb;
             if (sbb->offset == sb->region.stream_offset) {
-                SCLogDebug("set buf_offset?");
-                if (sbb->offset == sb->region.stream_offset) {
-                    SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
-                    DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
-                    sb->region.buf_offset = sbb->len;
-                }
-            }
+                SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
+                DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
+                sb->region.buf_offset = sbb->len;
+        }
             break;
         }
 
