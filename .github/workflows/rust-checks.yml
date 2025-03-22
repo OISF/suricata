@@ -76,7 +76,6 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Configure Suricata
         run: |
-          ./scripts/bundle.sh libhtp
           ./autogen.sh
           ./configure --enable-warnings
       - name: Run Cargo Audit
@@ -151,7 +150,6 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configure Suricata
         run: |
-          ./scripts/bundle.sh libhtp
           ./autogen.sh
           ./configure --enable-warnings
       - name: Cargo Update and Build
