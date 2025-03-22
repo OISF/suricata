@@ -159,18 +159,19 @@ static void FTPFree(void *ptr, size_t size)
     FTPDecrMemuse((uint64_t)size);
 }
 
-static FTPString *FTPStringAlloc(void)
+static FTPResponseWrapper *FTPResponseWrapperAlloc(void)
 {
-    return FTPCalloc(1, sizeof(FTPString));
+    return FTPCalloc(1, sizeof(FTPResponseWrapper));
 }
 
-static void FTPStringFree(FTPString *str)
+static void FTPResponseWrapperFree(FTPResponseWrapper *wrapper)
 {
-    if (str->str) {
-        FTPFree(str->str, str->len);
+    if (wrapper->response) {
+        FTPDecrMemuse(wrapper->response->total_size);
+        SCFreeFTPResponse(wrapper->response);
     }
 
-    FTPFree(str, sizeof(FTPString));
+    FTPFree(wrapper, sizeof(FTPResponseWrapper));
 }
 
 static void *FTPLocalStorageAlloc(void)
@@ -246,10 +247,10 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPFree(tx->request, tx->request_length);
     }
 
-    FTPString *str = NULL;
-    while ((str = TAILQ_FIRST(&tx->response_list))) {
-        TAILQ_REMOVE(&tx->response_list, str, next);
-        FTPStringFree(str);
+    FTPResponseWrapper *wrapper;
+    while ((wrapper = TAILQ_FIRST(&tx->response_list))) {
+        TAILQ_REMOVE(&tx->response_list, wrapper, next);
+        FTPResponseWrapperFree(wrapper);
     }
 
     if (tx->tx_data.events) {
@@ -377,6 +378,19 @@ static void FtpTransferCmdFree(void *data)
     }
     SCFTPTransferCmdFree(cmd);
     FTPDecrMemuse((uint64_t)sizeof(FtpTransferCmd));
+}
+
+static uint32_t GetCommandLineLength(FtpLineState *line)
+{
+    int length = line->len;
+    if (likely(length)) {
+        /* Remove trailing newlines/carriage returns */
+        while (length && isspace((unsigned char)line->buf[length - 1])) {
+            length--;
+        }
+    }
+    /* either 0 or actual */
+    return length ? length + 1 : 0;
 }
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
@@ -699,18 +713,25 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
 
         if (likely(line.len)) {
-            FTPString *response = FTPStringAlloc();
-            if (likely(response)) {
-                response->len = CopyCommandLine(&response->str, &line);
-                response->truncated = state->current_line_truncated_tc;
-                if (response->truncated) {
-                    AppLayerDecoderEventsSetEventRaw(
-                            &tx->tx_data.events, FtpEventResponseCommandTooLong);
+            FTPResponseWrapper *wrapper = FTPResponseWrapperAlloc();
+            if (likely(wrapper)) {
+                wrapper->response =
+                        SCParseFTPResponseLine((const char *)line.buf, GetCommandLineLength(&line));
+                if (likely(wrapper->response)) {
+                    wrapper->response[0].truncated = state->current_line_truncated_tc;
+                    FTPIncrMemuse(wrapper->response->total_size);
+                    if (wrapper->response[0].truncated) {
+                        AppLayerDecoderEventsSetEventRaw(
+                                &tx->tx_data.events, FtpEventResponseCommandTooLong);
+                    }
+                    if (line.lf_found) {
+                        state->current_line_truncated_tc = false;
+                    }
+                    TAILQ_INSERT_TAIL(&tx->response_list, wrapper, next);
+                } else {
+                    SCLogDebug("unable to parse FTP response line \"%s\"", line.buf);
+                    FTPResponseWrapperFree(wrapper);
                 }
-                if (line.lf_found) {
-                    state->current_line_truncated_tc = false;
-                }
-                TAILQ_INSERT_TAIL(&tx->response_list, response, next);
             }
         }
 
