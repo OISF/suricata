@@ -364,12 +364,9 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
-        AppLayerDecoderEventsFreeEvents(&htud->tx_data.events);
         if (htud->mime_state)
             SCMimeStateFree(htud->mime_state);
-        if (htud->tx_data.de_state != NULL) {
-            DetectEngineStateFree(htud->tx_data.de_state);
-        }
+        SCAppLayerTxDataCleanup(&htud->tx_data);
         if (htud->file_range) {
             HTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
             HttpRangeFreeBlock(htud->file_range);

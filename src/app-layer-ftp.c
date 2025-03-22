@@ -238,9 +238,7 @@ static void FTPTransactionFree(FTPTransaction *tx)
 {
     SCEnter();
 
-    if (tx->tx_data.de_state != NULL) {
-        DetectEngineStateFree(tx->tx_data.de_state);
-    }
+    SCAppLayerTxDataCleanup(&tx->tx_data);
 
     if (tx->request) {
         FTPFree(tx->request, tx->request_length);
@@ -250,10 +248,6 @@ static void FTPTransactionFree(FTPTransaction *tx)
     while ((str = TAILQ_FIRST(&tx->response_list))) {
         TAILQ_REMOVE(&tx->response_list, str, next);
         FTPStringFree(str);
-    }
-
-    if (tx->tx_data.events) {
-        AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
     }
 
     FTPFree(tx, sizeof(*tx));
@@ -1137,9 +1131,8 @@ static void FTPDataStateFree(void *s)
 {
     FtpDataState *fstate = (FtpDataState *) s;
 
-    if (fstate->tx_data.de_state != NULL) {
-        DetectEngineStateFree(fstate->tx_data.de_state);
-    }
+    SCAppLayerTxDataCleanup(&fstate->tx_data);
+
     if (fstate->file_name != NULL) {
         FTPFree(fstate->file_name, fstate->file_len + 1);
     }
