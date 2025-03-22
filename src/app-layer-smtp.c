@@ -1573,11 +1573,7 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
         SCMimeSmtpStateFree(tx->mime_state);
     }
 
-    if (tx->tx_data.events != NULL)
-        AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
-
-    if (tx->tx_data.de_state != NULL)
-        DetectEngineStateFree(tx->tx_data.de_state);
+    SCAppLayerTxDataCleanup(&tx->tx_data);
 
     if (tx->mail_from)
         SCFree(tx->mail_from);

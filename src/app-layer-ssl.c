@@ -2945,11 +2945,7 @@ static void SSLStateFree(void *p)
     SSLStateCertSANFree(&ssl_state->server_connp);
     SSLStateCertSANFree(&ssl_state->client_connp);
 
-    AppLayerDecoderEventsFreeEvents(&ssl_state->tx_data.events);
-
-    if (ssl_state->tx_data.de_state != NULL) {
-        DetectEngineStateFree(ssl_state->tx_data.de_state);
-    }
+    SCAppLayerTxDataCleanup(&ssl_state->tx_data);
 
     /* Free certificate chain */
     if (ssl_state->server_connp.certs_buffer)
