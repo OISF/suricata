@@ -74,3 +74,27 @@ Example of a signature that would alert if a packet contains the MIME field ``to
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email to"; :example-rule-emphasis:`email.to; content:"172.16.92.2@linuxbox";` sid:1;)
+
+email.cc
+--------
+
+Matches the MIME ``Cc`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.cc; content:"<content to match against>";
+
+``email.cc`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.cc[]``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``cc`` with the value ``Emily <emily.roberts@example.com>, Ava <ava.johnson@example.com>, Sophia Wilson <sophia.wilson@example.com>``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email cc"; :example-rule-emphasis:`email.cc; content:"Emily <emily.roberts@example.com>, Ava <ava.johnson@example.com>, Sophia Wilson <sophia.wilson@example.com>";` sid:1;)
