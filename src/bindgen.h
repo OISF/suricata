@@ -31,5 +31,6 @@
 
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
+#include "output-public.h"
 
 #endif
