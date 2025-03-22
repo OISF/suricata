@@ -97,6 +97,7 @@ exclude = [
     "AppLayerParserState",
     "CLuaState",
     "DetectEngineState",
+    "GenericVar",
     "Flow",
     "StreamingBufferConfig",
     "HttpRangeContainerBlock",

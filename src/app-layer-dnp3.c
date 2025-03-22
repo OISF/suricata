@@ -1327,11 +1327,7 @@ static void DNP3TxFree(DNP3Transaction *tx)
         SCFree(tx->buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&tx->tx_data.events);
-
-    if (tx->tx_data.de_state != NULL) {
-        DetectEngineStateFree(tx->tx_data.de_state);
-    }
+    SCAppLayerTxDataCleanup(&tx->tx_data);
 
     DNP3TxFreeObjectList(&tx->objects);
 

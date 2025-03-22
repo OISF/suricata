@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType};
+use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -30,6 +30,14 @@ use crate::core::StreamingBufferConfig;
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
 use suricata_sys::sys::AppProto;
+
+/// Cast pointer to a variable, as a mutable reference to an object
+///
+/// UNSAFE !
+#[macro_export]
+macro_rules! cast_pointer {
+    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
+}
 
 #[repr(C)]
 pub struct StreamSlice {
@@ -132,6 +140,7 @@ pub struct AppLayerTxData {
 
     de_state: *mut DetectEngineState,
     pub events: *mut core::AppLayerDecoderEvents,
+    txbits: *mut GenericVar,
 }
 
 impl Default for AppLayerTxData {
@@ -142,16 +151,29 @@ impl Default for AppLayerTxData {
 
 impl Drop for AppLayerTxData {
     fn drop(&mut self) {
+        self.cleanup();
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
+    let txd = cast_pointer!(txd, AppLayerTxData);
+    txd.cleanup()
+}
+
+impl AppLayerTxData {
+    pub fn cleanup(&mut self) {
         if !self.de_state.is_null() {
             core::sc_detect_engine_state_free(self.de_state);
         }
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if !self.txbits.is_null() {
+            core::sc_generic_var_free(self.txbits);
+        }
     }
-}
 
-impl AppLayerTxData {
     /// Create new AppLayerTxData for a transaction that covers both
     /// directions.
     pub fn new() -> Self {
@@ -170,6 +192,7 @@ impl AppLayerTxData {
             detect_flags_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
@@ -195,6 +218,7 @@ impl AppLayerTxData {
             detect_flags_tc,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
@@ -411,6 +435,9 @@ pub struct RustParser {
 
     pub get_frame_id_by_name: Option<GetFrameIdByName>,
     pub get_frame_name_by_id: Option<GetFrameNameById>,
+
+    pub get_state_id_by_name: Option<GetStateIdByName>,
+    pub get_state_name_by_id: Option<GetStateNameById>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -419,14 +446,6 @@ pub struct RustParser {
 #[macro_export]
 macro_rules! build_slice {
     ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
-}
-
-/// Cast pointer to a variable, as a mutable reference to an object
-///
-/// UNSAFE !
-#[macro_export]
-macro_rules! cast_pointer {
-    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
 
 /// helper for the GetTxFilesFn. Not meant to be embedded as the config
@@ -471,6 +490,8 @@ pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStat
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
+pub type GetStateIdByName = unsafe extern "C" fn(*const c_char, u8) -> c_int;
+pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
