@@ -1,9 +1,5 @@
-use crate::log::{Log, Message};
-use std::{
-    net::IpAddr,
-    sync::mpsc::{channel, Receiver, Sender},
-    time::SystemTime,
-};
+use crate::log::Log;
+use std::{cell::RefCell, collections::VecDeque, net::IpAddr, rc::Rc, time::SystemTime};
 use time::OffsetDateTime;
 
 /// Export Connection ConnectionFlags
@@ -30,7 +26,7 @@ pub struct Connection {
     pub(crate) server_port: Option<u16>,
 
     /// Messages channel associated with this connection.
-    log_channel: (Sender<Message>, Receiver<Message>),
+    log_channel: Rc<RefCell<VecDeque<Log>>>,
 
     /// Parsing flags.
     pub(crate) flags: u8,
@@ -52,7 +48,7 @@ impl Default for Connection {
             client_port: None,
             server_addr: None,
             server_port: None,
-            log_channel: channel(),
+            log_channel: Rc::new(RefCell::new(VecDeque::new())),
             flags: 0,
             open_timestamp: OffsetDateTime::from(SystemTime::now()),
             close_timestamp: OffsetDateTime::from(SystemTime::now()),
@@ -99,27 +95,25 @@ impl Connection {
     }
 
     /// Return the log channel sender
-    pub(crate) fn get_sender(&self) -> &Sender<Message> {
-        &self.log_channel.0
+    pub(crate) fn get_sender(&self) -> &Rc<RefCell<VecDeque<Log>>> {
+        &self.log_channel
     }
 
     /// Drains and returns a vector of all current logs received by the log channel
     #[cfg(test)]
     pub(crate) fn get_logs(&self) -> Vec<Log> {
-        let mut logs = Vec::with_capacity(8);
-        while let Ok(message) = self.log_channel.1.try_recv() {
-            logs.push(Log::new(message))
+        let mut lc = self.log_channel.borrow_mut();
+        let mut r = Vec::with_capacity(lc.len());
+        while let Some(e) = lc.pop_front() {
+            r.push(e)
         }
-        logs
+        return r;
     }
 
     /// Returns the next logged message received by the log channel
     pub(crate) fn get_next_log(&self) -> Option<Log> {
-        self.log_channel
-            .1
-            .try_recv()
-            .map(|message| Log::new(message))
-            .ok()
+        let mut lc = self.log_channel.borrow_mut();
+        lc.pop_front()
     }
 }
 

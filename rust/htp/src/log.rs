@@ -1,4 +1,6 @@
-use std::sync::mpsc::Sender;
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
 
 /// Different codes used for logging.
 #[repr(C)]
@@ -185,7 +187,7 @@ pub(crate) enum HtpLogLevel {
 /// Logger struct
 pub(crate) struct Logger {
     /// The sender half of a logging channel
-    pub(crate) sender: Sender<Message>,
+    pub(crate) sender: Rc<RefCell<VecDeque<Log>>>,
     /// Log level used when deciding whether to store or
     /// ignore the messages issued by the parser.
     pub(crate) level: HtpLogLevel,
@@ -193,7 +195,7 @@ pub(crate) struct Logger {
 
 impl Logger {
     /// Returns a new logger instance
-    pub(crate) fn new(sender: &Sender<Message>) -> Logger {
+    pub(crate) fn new(sender: &Rc<RefCell<VecDeque<Log>>>) -> Logger {
         Self {
             sender: sender.clone(),
             level: HtpLogLevel::NOTICE,
@@ -205,7 +207,8 @@ impl Logger {
     ) {
         // Ignore messages below our log level.
         if level <= self.level {
-            let _ = self.sender.send(Message::new(code, msg));
+            let mut sender = self.sender.borrow_mut();
+            let _ = sender.push_back(Log::new(Message::new(code, msg)));
         }
     }
 }
