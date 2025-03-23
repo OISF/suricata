@@ -1373,13 +1373,6 @@ impl ConnectionParser {
 
         if data.is_empty() {
             //closing
-            if has_lf {
-                self.request_data_consume(input, 1);
-                data.add(b"\n");
-                let rc = self.request_body_data(Some(&data));
-                self.request_buf.clear();
-                return rc;
-            }
             return self.state_request_complete(input);
         }
         let res = tuple((take_is_space, take_not_is_space))(&data);
@@ -1387,6 +1380,11 @@ impl ConnectionParser {
         if let Ok((_, (_, method))) = res {
             if method.is_empty() {
                 // empty whitespace line
+                if has_lf {
+                    //Adds linefeed to the buffer if there was one
+                    self.request_data_consume(input, 1);
+                    data.add(b"\n");
+                }
                 let rc = self.request_body_data(Some(&data));
                 self.request_buf.clear();
                 return rc;
