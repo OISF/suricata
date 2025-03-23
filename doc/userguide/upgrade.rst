@@ -115,6 +115,10 @@ Major changes
   configurable via the ``datasets.limits`` options.
 - For detect inspection recursion limits, if no value is provided, the default is
   now set to 3000.
+- AF_PACKET will now default to tpacket-v3 for non-inline modes, it
+  remains disabled for inline modes. To keep tpacket-v2 for non-inline
+  modes, the existing ``tpacket-v3`` configuration parameter can be
+  set to ``false``.
 
 Removals
 ~~~~~~~~
