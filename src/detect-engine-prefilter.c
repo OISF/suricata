@@ -102,8 +102,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
 
-    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->prefilter_flags %" PRIx64, p->pcap_cnt,
-            tx->tx_ptr, tx->tx_progress, tx->prefilter_flags);
+    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", p->pcap_cnt,
+            tx->tx_ptr, tx->tx_progress, tx->detect_progress);
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
@@ -116,7 +116,11 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
         if (tx->tx_progress > engine->ctx.tx_min_progress) {
-            if (tx->prefilter_flags & BIT_U64(engine->ctx.tx_min_progress)) {
+            /* if state value is at or beyond engine state, we can skip it. It means we ran at
+             * least once already. */
+            if (tx->detect_progress > engine->ctx.tx_min_progress) {
+                SCLogDebug("tx already marked progress as beyond engine: %u > %u",
+                        tx->detect_progress, engine->ctx.tx_min_progress);
                 goto next;
             }
         }
@@ -127,7 +131,14 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
-            tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
+            /* track with an offset of one, so that tx->progress 0 complete is tracked
+             * as 1, progress 1 as 2, etc. This is to allow 0 to mean: nothing tracked, even
+             * though a parser may use 0 as a valid value. */
+            tx->detect_progress = engine->ctx.tx_min_progress + 1;
+            SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
+                       "engine->is_last_for_progress %d => tx->detect_progress updated to %02x",
+                    tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress,
+                    tx->detect_progress);
         }
     next:
         if (engine->is_last)

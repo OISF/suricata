@@ -33,10 +33,13 @@ typedef struct DetectTransaction_ {
     const uint64_t tx_id;
     struct AppLayerTxData *tx_data_ptr;
     DetectEngineStateDirection *de_state;
-    const uint64_t detect_flags; /* detect flags get/set from/to applayer */
-    uint64_t prefilter_flags; /* prefilter flags for direction, to be updated by prefilter code */
-    const uint64_t
-            prefilter_flags_orig; /* prefilter flags for direction, before prefilter has run */
+
+    /* tracking detect progress. Holds the value of
+     * the last completed "progress" + 1. */
+    uint8_t detect_progress;
+    /* original value to track changes. */
+    const uint8_t detect_progress_orig;
+
     const int tx_progress;
     const int tx_end_state;
 } DetectTransaction;
