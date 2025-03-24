@@ -224,19 +224,20 @@ There are stats counters for each supported exception policy scenario:
    :stub-columns: 1
 
    * - Setting
-     - Counter
+     - Counters
    * - stream.memcap
-     - tcp.ssn_memcap_exception_policy
+     - exception_policy.tcp.ssn_memcap
    * - stream.reassembly.memcap
-     - tcp.reassembly_memcap_exception_policy
+     - exception_policy.tcp.reassembly
    * - stream.midstream
-     - tcp.midstream_exception_policy
+     - exception_policy.tcp.midstream
    * - defrag.memcap
-     - defrag.memcap_exception_policy
+     - exception_policy.defrag.memcap
    * - flow.memcap
-     - flow.memcap_exception_policy
+     - exception_policy.flow.memcap
    * - app-layer.error
-     - app_layer.error.exception_policy
+     - * exception_policy.app_layer.error
+       * app_layer.error.exception_policy
 
 If a given exception policy does not apply for a setting, no related counter
 is logged.
