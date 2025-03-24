@@ -261,7 +261,7 @@ You can specify several states with ``|`` (OR) to check for any of the specified
 tls.random
 ----------
 
-Matches on the 32 bytes of the TLS random field.
+Matches on the 32 bytes of the TLS random field from the client hello or server hello records.
 
 Example::
 
@@ -273,7 +273,7 @@ Example::
 tls.random_time
 ---------------
 
-Matches on the first 4 bytes of the TLS random field.
+Matches on the first 4 bytes of the TLS random field from the client hello or server hello records.
 
 Example::
 
@@ -285,7 +285,7 @@ Example::
 tls.random_bytes
 ----------------
 
-Matches on the last 28 bytes of the TLS random field.
+Matches on the last 28 bytes of the TLS random field from the client hello or server hello records.
 
 Example::
 
