@@ -1213,7 +1213,7 @@ void AppLayerSetupCounters(void)
     /* We don't log stats counters if exception policy is `ignore`/`not set` */
     if (g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
         /* Register global counters for app layer error exception policy summary */
-        const char *eps_default_str = "app_layer.error.exception_policy.";
+        const char *eps_default_str = "exception_policy.app_layer.error.";
         for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
             if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
                 snprintf(app_layer_error_eps_stats.eps_name[i],

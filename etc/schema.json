@@ -4672,11 +4672,6 @@
                         "error": {
                             "type": "object",
                             "properties": {
-                                "exception_policy": {
-                                    "description":
-                                            "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
-                                    "$ref": "#/$defs/exceptionPolicy"
-                                },
                                 "bittorrent-dht": {
                                     "description":
                                             "Errors encountered parsing BitTorrent DHT protocol",
@@ -6152,6 +6147,19 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "exception_policy": {
+                    "type": "object",
+                    "properties": {
+                        "app_layer": {
+                            "type": "object",
+                            "error": {
+                                "description":
+                                    "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        }
+                    }
                 },
                 "file_store": {
                     "type": "object",
