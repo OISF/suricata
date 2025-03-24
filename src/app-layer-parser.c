@@ -710,20 +710,10 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(0ULL, "uint64_t");
 }
 
-inline uint64_t AppLayerParserGetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir)
+inline uint8_t AppLayerParserGetTxDetectProgress(AppLayerTxData *txd, const uint8_t dir)
 {
-    uint64_t detect_flags =
-        (dir & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
-    return detect_flags;
-}
-
-static inline void SetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir, const uint64_t detect_flags)
-{
-    if (dir & STREAM_TOSERVER) {
-        txd->detect_flags_ts = detect_flags;
-    } else {
-        txd->detect_flags_tc = detect_flags;
-    }
+    uint8_t p = (dir & STREAM_TOSERVER) ? txd->detect_progress_ts : txd->detect_progress_tc;
+    return p;
 }
 
 static inline uint32_t GetTxLogged(AppLayerTxData *txd)
@@ -766,12 +756,12 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (txd && tag_txs_as_inspected) {
-            uint64_t detect_flags = AppLayerParserGetTxDetectFlags(txd, flags);
-            if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
-                detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
-                SetTxDetectFlags(txd, flags, detect_flags);
-                SCLogDebug("%p/%"PRIu64" in-order tx is done for direction %s. Flag %016"PRIx64,
-                        tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+            const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
+                                                                     : APP_LAYER_TX_INSPECTED_TC;
+            if (txd->flags & inspected_flag) {
+                txd->flags |= inspected_flag;
+                SCLogDebug("%p/%" PRIu64 " in-order tx is done for direction %s. Flags %02x", tx,
+                        idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
             }
         }
         idx++;
@@ -806,12 +796,13 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             /* txd can be NULL for HTTP sessions where the user data alloc failed */
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
             if (likely(txd)) {
-                uint64_t detect_flags = AppLayerParserGetTxDetectFlags(txd, flags);
-                if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
-                    detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
-                    SetTxDetectFlags(txd, flags, detect_flags);
-                    SCLogDebug("%p/%"PRIu64" out of order tx is done for direction %s. Flag %016"PRIx64,
-                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+                const uint8_t inspected_flag = (flags & STREAM_TOSERVER)
+                                                       ? APP_LAYER_TX_INSPECTED_TS
+                                                       : APP_LAYER_TX_INSPECTED_TC;
+                if (txd->flags & inspected_flag) {
+                    txd->flags |= inspected_flag;
+                    SCLogDebug("%p/%" PRIu64 " out of order tx is done for direction %s. Flag %02x",
+                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
 
                     SCLogDebug("%p/%"PRIu64" out of order tx. Update inspect_id? %"PRIu64,
                             tx, idx, pstate->inspect_id[direction]);
@@ -965,21 +956,19 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         if (txd && has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) &&
                     (f->sgh_toserver != NULL || (f->flags & FLOW_SGH_TOSERVER) == 0)) {
-                uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(txd, STREAM_TOSERVER);
-                if (!(detect_flags_ts &
-                            (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {
-                    SCLogDebug("%p/%" PRIu64 " skipping: TS inspect not done: ts:%" PRIx64, tx, i,
-                            detect_flags_ts);
+                if ((txd->flags & (APP_LAYER_TX_INSPECTED_TS | APP_LAYER_TX_SKIP_INSPECT_TS)) ==
+                        0) {
+                    SCLogDebug("%p/%" PRIu64 " skipping: TS inspect not done: ts:%02x", tx, i,
+                            txd->flags);
                     tx_skipped = true;
                 }
             }
             if (!IS_DISRUPTED(tc_disrupt_flags) &&
                     (f->sgh_toclient != NULL || (f->flags & FLOW_SGH_TOCLIENT) == 0)) {
-                uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(txd, STREAM_TOCLIENT);
-                if (!(detect_flags_tc &
-                            (APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_SKIP_INSPECT_FLAG))) {
-                    SCLogDebug("%p/%" PRIu64 " skipping: TC inspect not done: ts:%" PRIx64, tx, i,
-                            detect_flags_tc);
+                if ((txd->flags & (APP_LAYER_TX_INSPECTED_TC | APP_LAYER_TX_SKIP_INSPECT_TC)) ==
+                        0) {
+                    SCLogDebug("%p/%" PRIu64 " skipping: TC inspect not done: ts:%02x", tx, i,
+                            txd->flags);
                     tx_skipped = true;
                 }
             }
