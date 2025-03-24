@@ -113,7 +113,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (f == NULL) {
         return 0;
     }
-    f->flags |= FLOW_IPV4;
+    f->flags |= FLOW_IPV4 | FLOW_SGH_TOCLIENT | FLOW_SGH_TOSERVER;
     f->src.addr_data32[0] = 0x01020304;
     f->dst.addr_data32[0] = 0x05060708;
     f->sp = (uint16_t)((data[2] << 8) | data[3]);
