@@ -48,13 +48,10 @@ static InspectionBuffer *GetMimeEmailFromData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b_email_from = NULL;
         uint32_t b_email_from_len = 0;
 
-        if ((tx->mime_state != NULL)) {
-            if (SCDetectMimeEmailGetData(
-                        tx->mime_state, &b_email_from, &b_email_from_len, "from") != 1)
-                return NULL;
-        }
+        if (tx->mime_state == NULL)
+            return NULL;
 
-        if (b_email_from == NULL || b_email_from_len == 0)
+        if (SCDetectMimeEmailGetData(tx->mime_state, &b_email_from, &b_email_from_len, "from") != 1)
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_from, b_email_from_len);
@@ -85,13 +82,11 @@ static InspectionBuffer *GetMimeEmailSubjectData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b_email_sub = NULL;
         uint32_t b_email_sub_len = 0;
 
-        if ((tx->mime_state != NULL)) {
-            if (SCDetectMimeEmailGetData(
-                        tx->mime_state, &b_email_sub, &b_email_sub_len, "subject") != 1)
-                return NULL;
-        }
+        if (tx->mime_state == NULL)
+            return NULL;
 
-        if (b_email_sub == NULL || b_email_sub_len == 0)
+        if (SCDetectMimeEmailGetData(tx->mime_state, &b_email_sub, &b_email_sub_len, "subject") !=
+                1)
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_sub, b_email_sub_len);
