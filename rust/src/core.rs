@@ -50,11 +50,11 @@ pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;
 pub const IPPROTO_TCP : u8 = 6;
 pub const IPPROTO_UDP : u8 = 17;
 
-/*
+
 macro_rules!BIT_U8 {
     ($x:expr) => (1 << $x);
 }
-*/
+
 macro_rules!BIT_U16 {
     ($x:expr) => (1 << $x);
 }

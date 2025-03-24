@@ -494,9 +494,9 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
     tx->tx_num = dnp3->transaction_max;
     tx->is_request = request;
     if (tx->is_request) {
-        tx->tx_data.detect_flags_tc |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        tx->tx_data.flags = APP_LAYER_TX_SKIP_INSPECT_TC;
     } else {
-        tx->tx_data.detect_flags_ts |= APP_LAYER_TX_SKIP_INSPECT_FLAG;
+        tx->tx_data.flags = APP_LAYER_TX_SKIP_INSPECT_TS;
     }
     TAILQ_INIT(&tx->objects);
     TAILQ_INSERT_TAIL(&dnp3->tx_list, tx, next);
