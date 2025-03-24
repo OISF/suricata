@@ -4855,11 +4855,6 @@
                         "max_frag_hits": {
                             "type": "integer"
                         },
-                        "memcap_exception_policy": {
-                            "description":
-                                    "How many times defrag memcap exception policy was applied, and which one",
-                            "$ref": "#/$defs/exceptionPolicy"
-                        },
                         "ipv4": {
                             "type": "object",
                             "properties": {
@@ -4953,6 +4948,14 @@
                             "error": {
                                 "description":
                                     "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        },
+                        "defrag": {
+                            "type": "object",
+                            "memcap": {
+                                "description":
+                                        "How many times defrag memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         }
