@@ -912,6 +912,7 @@ void OutputRegisterRootLoggers(void)
     RegisterSimpleJsonApplayerLogger(ALPROTO_WEBSOCKET, rs_websocket_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_LDAP, rs_ldap_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, AlertJsonDoh2, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_POP3, SCPop3LoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_TEMPLATE, rs_template_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json, NULL);
     // special case : http2 is logged in http object
@@ -1127,6 +1128,10 @@ void OutputRegisterLoggers(void)
             JsonLogThreadDeinit);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
+    /* POP3 JSON logger */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPop3Log", "eve-log.pop3",
+            OutputJsonLogInitSub, ALPROTO_POP3, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,
