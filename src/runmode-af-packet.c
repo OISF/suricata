@@ -344,39 +344,38 @@ static void *ParseAFPConfig(const char *iface)
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
-        /* Default to our safest choice: flow hashing + defrag
-         * enabled, unless defrag has been disabled by the user. */
-        uint16_t defrag = PACKET_FANOUT_FLAG_DEFRAG;
-        int conf_val = 0;
-        SCLogConfig("%s: using flow cluster mode for AF_PACKET", aconf->iface);
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val)) {
-            if (!conf_val) {
-                SCLogConfig(
-                        "%s: disabling defrag kernel functionality for AF_PACKET", aconf->iface);
-                defrag = 0;
-            }
-        }
-        aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
-        cluster_type = PACKET_FANOUT_HASH;
-    } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
+        SCLogConfig("%s: using default cluster-type of \"cluster_flow\"", aconf->iface);
+        tmpctype = "cluster_flow";
+    }
+
+    if (strcmp(tmpctype, "cluster_rollover") == 0) {
+        SCLogWarning(
+                "%s: cluster_rollover deprecated; using \"cluster_flow\" instead. See ticket #6128",
+                aconf->iface);
+        tmpctype = "cluster_flow";
+    }
+
+    if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogConfig("%s: using round-robin cluster mode for AF_PACKET", aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_LB;
         cluster_type = PACKET_FANOUT_LB;
-    } else if (strcmp(tmpctype, "cluster_flow") == 0 || strcmp(tmpctype, "cluster_rollover") == 0) {
-        if (strcmp(tmpctype, "cluster_rollover") == 0) {
-            SCLogWarning("%s: cluster_rollover deprecated; using \"cluster_flow\" instead. See "
-                         "ticket #6128",
-                    aconf->iface);
-        }
-        /* In hash mode, we also ask for defragmentation needed to
-         * compute the hash */
+    } else if (strcmp(tmpctype, "cluster_flow") == 0) {
+        /* Check for defrag. If not set by the user enable it when not
+         * inline. */
         uint16_t defrag = 0;
         int conf_val = 0;
         SCLogConfig("%s: using flow cluster mode for AF_PACKET", aconf->iface);
-        ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val);
-        if (conf_val) {
-            SCLogConfig("%s: using defrag kernel functionality for AF_PACKET", aconf->iface);
-            defrag = PACKET_FANOUT_FLAG_DEFRAG;
+        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val)) {
+            if (conf_val) {
+                SCLogConfig("%s: using defrag kernel functionality for AF_PACKET", aconf->iface);
+                defrag = PACKET_FANOUT_FLAG_DEFRAG;
+            }
+        } else {
+            /* "defrag" not provided in config, default to true if not inline. */
+            if (aconf->copy_mode == 0) {
+                SCLogConfig("%s: enabling defrag for AF_PACKET cluster_flow", aconf->iface);
+                defrag = PACKET_FANOUT_FLAG_DEFRAG;
+            }
         }
         aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
         cluster_type = PACKET_FANOUT_HASH;
