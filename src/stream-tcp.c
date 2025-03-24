@@ -5995,7 +5995,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ExceptionPolicySetStatsCounters(tv, &stt->ra_ctx->counter_tcp_reas_eps,
             &stream_reassembly_memcap_eps_stats, stream_config.reassembly_memcap_policy,
-            "tcp.reassembly_exception_policy.", IsReassemblyMemcapExceptionPolicyStatsValid);
+            "exception_policy.tcp.reassembly.", IsReassemblyMemcapExceptionPolicyStatsValid);
 
     stt->ra_ctx->counter_tcp_segment_from_cache =
             StatsRegisterCounter("tcp.segment_from_cache", tv);
