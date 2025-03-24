@@ -74,6 +74,8 @@ not be met.
 Multiple buffer matching is currently enabled for use with the
 following keywords:
 
+* ``dns.answer.name``
+* ``dns.query.name``
 * ``dns.query``
 * ``file.data``
 * ``file.magic``
@@ -84,10 +86,20 @@ following keywords:
 * ``ike.vendor``
 * ``krb5_cname``
 * ``krb5_sname``
+* ``ldap.responses.dn``
+* ``ldap.responses.message``
 * ``mqtt.subscribe.topic``
 * ``mqtt.unsubscribe.topic``
 * ``quic.cyu.hash``
 * ``quic.cyu.string``
-* ``tls.certs``
+* ``sip.content_length``
+* ``sip.content_type``
+* ``sip.from``
+* ``sip.to``
+* ``sip.ua``
+* ``sip.via``
+* ``smtp.rcpt_to``
+* ``tls.alpn``
 * ``tls.cert_subject``
+* ``tls.certs``
 * ``tls.subjectaltname``
