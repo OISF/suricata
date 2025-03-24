@@ -683,7 +683,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_tracker_timeout = StatsRegisterCounter("defrag.wrk.tracker_timeout", tv);
 
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_defrag_memcap_eps, &defrag_memcap_eps_stats,
-            DefragGetMemcapExceptionPolicy(), "defrag.memcap_exception_policy.",
+            DefragGetMemcapExceptionPolicy(), "exception_policy.defrag.memcap.",
             IsDefragMemcapExceptionPolicyStatsValid);
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
