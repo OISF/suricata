@@ -5976,11 +5976,11 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     if (stream_config.midstream) {
         ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_midstream_eps,
                 &stream_midstream_enabled_eps_stats, stream_config.midstream_policy,
-                "tcp.midstream_exception_policy.", IsMidstreamExceptionPolicyStatsValid);
+                "exception_policy.tcp.midstream.", IsMidstreamExceptionPolicyStatsValid);
     } else {
         ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_midstream_eps,
                 &stream_midstream_disabled_eps_stats, stream_config.midstream_policy,
-                "tcp.midstream_exception_policy.", IsMidstreamExceptionPolicyStatsValid);
+                "exception_policy.tcp.midstream.", IsMidstreamExceptionPolicyStatsValid);
     }
 
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
