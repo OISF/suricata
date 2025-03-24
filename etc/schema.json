@@ -3786,6 +3786,52 @@
             },
             "additionalProperties": false
         },
+        "pop3": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "command": {
+                            "description": "a pop3 command, for example `USER` or `STAT`",
+                            "type": "string"
+                        },
+                        "args": {
+                            "description": "pop3 request arguments",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "response": {
+                    "type": "object",
+                    "optional": true,
+                    "properties": {
+                        "success": {
+                            "description": "response indicated positive status ie +OK",
+                            "type": "boolean"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "header": {
+                            "description": "first line of response",
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "quic": {
             "type": "object",
             "optional": true,

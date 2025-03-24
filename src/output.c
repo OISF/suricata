@@ -908,6 +908,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_DHCP TODO missing
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, (EveJsonSimpleTxLogFunc)rs_rfb_logger_log, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_POP3, (EveJsonSimpleTxLogFunc)SCPop3LoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_MQTT, (EveJsonSimpleTxLogFunc)JsonMQTTAddMetadata, NULL);
     RegisterSimpleJsonApplayerLogger(
@@ -1138,6 +1139,10 @@ void OutputRegisterLoggers(void)
             JsonLogThreadDeinit);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
+    /* POP3 JSON logger */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPop3Log", "eve-log.pop3",
+            OutputJsonLogInitSub, ALPROTO_POP3, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,

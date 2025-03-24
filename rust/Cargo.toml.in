@@ -59,6 +59,7 @@ der-parser = { version = "~9.0.0", default-features = false }
 kerberos-parser = { version = "~0.8.0", default-features = false }
 
 sawp-modbus = "~0.13.1"
+sawp-pop3 = "~0.13.1"
 sawp = "~0.13.1"
 ntp-parser = "~0.6.0"
 ipsec-parser = "~0.7.0"
