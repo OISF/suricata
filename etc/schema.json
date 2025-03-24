@@ -4959,6 +4959,11 @@
                         },
                         "tcp": {
                             "type": "object",
+                            "midstream": {
+                                "description":
+                                        "How many times midstream exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            },
                             "ssn_memcap": {
                                 "description":
                                         "How many times session memcap exception policy was applied, and which one",
@@ -5313,11 +5318,6 @@
                         },
                         "midstream_pickups": {
                             "type": "integer"
-                        },
-                        "midstream_exception_policy": {
-                            "description":
-                                    "How many times midstream exception policy was applied, and which one",
-                            "$ref": "#/$defs/exceptionPolicy"
                         },
                         "no_flow": {
                             "type": "integer"
