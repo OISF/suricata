@@ -1397,6 +1397,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sawp-pop3"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef576aa71811070479508d762e810d036b775f3629970901d082b4c9085d96da"
+dependencies = [
+ "nom",
+ "sawp",
+ "sawp-flags",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1560,6 +1571,7 @@ dependencies = [
  "regex",
  "sawp",
  "sawp-modbus",
+ "sawp-pop3",
  "sha1",
  "sha2",
  "snmp-parser",
