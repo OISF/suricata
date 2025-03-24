@@ -47,40 +47,12 @@
 
 #define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
-/* applies to DetectFlags uint64_t field */
-
-/** reserved for future use */
-#define APP_LAYER_TX_RESERVED1_FLAG  BIT_U64(48)
-#define APP_LAYER_TX_RESERVED2_FLAG  BIT_U64(49)
-#define APP_LAYER_TX_RESERVED3_FLAG  BIT_U64(50)
-#define APP_LAYER_TX_RESERVED4_FLAG  BIT_U64(51)
-#define APP_LAYER_TX_RESERVED5_FLAG  BIT_U64(52)
-#define APP_LAYER_TX_RESERVED6_FLAG  BIT_U64(53)
-#define APP_LAYER_TX_RESERVED7_FLAG  BIT_U64(54)
-#define APP_LAYER_TX_RESERVED8_FLAG  BIT_U64(55)
-#define APP_LAYER_TX_RESERVED9_FLAG  BIT_U64(56)
-#define APP_LAYER_TX_RESERVED10_FLAG BIT_U64(57)
-#define APP_LAYER_TX_RESERVED11_FLAG BIT_U64(58)
-#define APP_LAYER_TX_RESERVED12_FLAG BIT_U64(59)
-#define APP_LAYER_TX_RESERVED13_FLAG BIT_U64(60)
-#define APP_LAYER_TX_RESERVED14_FLAG BIT_U64(61)
-
-#define APP_LAYER_TX_RESERVED_FLAGS                                                                \
-    (APP_LAYER_TX_RESERVED1_FLAG | APP_LAYER_TX_RESERVED2_FLAG | APP_LAYER_TX_RESERVED3_FLAG |     \
-            APP_LAYER_TX_RESERVED4_FLAG | APP_LAYER_TX_RESERVED5_FLAG |                            \
-            APP_LAYER_TX_RESERVED6_FLAG | APP_LAYER_TX_RESERVED7_FLAG |                            \
-            APP_LAYER_TX_RESERVED8_FLAG | APP_LAYER_TX_RESERVED9_FLAG |                            \
-            APP_LAYER_TX_RESERVED10_FLAG | APP_LAYER_TX_RESERVED11_FLAG |                          \
-            APP_LAYER_TX_RESERVED12_FLAG | APP_LAYER_TX_RESERVED13_FLAG |                          \
-            APP_LAYER_TX_RESERVED14_FLAG)
+/* for use with the detect_progress_ts|detect_progress_tc fields */
 
 /** should inspection be skipped in that direction */
-#define APP_LAYER_TX_SKIP_INSPECT_FLAG BIT_U64(62)
+#define APP_LAYER_TX_SKIP_INSPECT 255
 /** is tx fully inspected? */
-#define APP_LAYER_TX_INSPECTED_FLAG             BIT_U64(63)
-/** other 63 bits are for tracking which prefilter engine is already
- *  completely inspected */
-#define APP_LAYER_TX_PREFILTER_MASK ~(APP_LAYER_TX_INSPECTED_FLAG | APP_LAYER_TX_RESERVED_FLAGS)
+#define APP_LAYER_TX_INSPECTED 254
 
 /** parser has successfully processed in the input, and has consumed
  *  all of it. */
@@ -267,7 +239,7 @@ uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 bool AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);
-uint64_t AppLayerParserGetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir);
+uint8_t AppLayerParserGetTxDetectProgress(AppLayerTxData *txd, const uint8_t dir);
 AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto, void *state);
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig);

@@ -582,8 +582,7 @@ static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
         if (tx) {
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
             // test if the other tx is unidirectional in the other way
-            if (txd &&
-                    (AppLayerParserGetTxDetectFlags(txd, dir) & APP_LAYER_TX_SKIP_INSPECT_FLAG)) {
+            if (txd && (AppLayerParserGetTxDetectProgress(txd, dir) == APP_LAYER_TX_SKIP_INSPECT)) {
                 return true;
             }
         }
@@ -1252,8 +1251,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
 #define NO_TX                                                                                      \
     {                                                                                              \
-        NULL, 0, NULL, NULL, 0, 0, 0, 0, 0,                                                        \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0,                                                           \
     }
+
+#define TX_INSPECTED    APP_LAYER_TX_INSPECTED
+#define TX_SKIP_INSPECT APP_LAYER_TX_SKIP_INSPECT
 
 /** \internal
  *  \brief get a DetectTransaction object
@@ -1273,51 +1275,47 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
-    uint64_t detect_flags =
-            (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
-    if (unlikely(detect_flags & APP_LAYER_TX_INSPECTED_FLAG)) {
-        SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
-                tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
-                detect_flags);
+    uint8_t detect_progress =
+            (flow_flags & STREAM_TOSERVER) ? txd->detect_progress_ts : txd->detect_progress_tc;
+    if (unlikely(detect_progress == TX_INSPECTED)) {
+        SCLogDebug("%" PRIu64 " tx already fully inspected for %s. Progress %02x", tx_id,
+                flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_progress);
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
-    if (unlikely(detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG)) {
-        SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Flags %016" PRIx64,
-                tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+    if (unlikely(detect_progress == TX_SKIP_INSPECT)) {
+        SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Progress %02x", tx_id,
+                flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_progress);
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
 
     const int dir_int = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     DetectEngineState *tx_de_state = txd->de_state;
-    DetectEngineStateDirection *tx_dir_state = tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
-    uint64_t prefilter_flags = detect_flags & APP_LAYER_TX_PREFILTER_MASK;
-    DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);
-
+    DetectEngineStateDirection *tx_dir_state =
+            tx_de_state ? &tx_de_state->dir_state[dir_int] : NULL;
     DetectTransaction tx = {
-                            .tx_ptr = tx_ptr,
-                            .tx_id = tx_id,
-                            .tx_data_ptr = (struct AppLayerTxData *)txd,
-                            .de_state = tx_dir_state,
-                            .detect_flags = detect_flags,
-                            .prefilter_flags = prefilter_flags,
-                            .prefilter_flags_orig = prefilter_flags,
-                            .tx_progress = tx_progress,
-                            .tx_end_state = tx_end_state,
-                           };
+        .tx_ptr = tx_ptr,
+        .tx_id = tx_id,
+        .tx_data_ptr = (struct AppLayerTxData *)txd,
+        .de_state = tx_dir_state,
+        .prefilter_progress = detect_progress,
+        .prefilter_progress_orig = detect_progress,
+        .tx_progress = tx_progress,
+        .tx_end_state = tx_end_state,
+    };
     return tx;
 }
 
 static inline void StoreDetectFlags(
-        DetectTransaction *tx, const uint8_t flow_flags, const uint64_t detect_flags)
+        DetectTransaction *tx, const uint8_t flow_flags, const uint8_t progress)
 {
     AppLayerTxData *txd = (AppLayerTxData *)tx->tx_data_ptr;
     if (likely(txd != NULL)) {
         if (flow_flags & STREAM_TOSERVER) {
-            txd->detect_flags_ts = detect_flags;
+            txd->detect_progress_ts = progress;
         } else {
-            txd->detect_flags_tc = detect_flags;
+            txd->detect_progress_tc = progress;
         }
     }
 }
@@ -1651,34 +1649,21 @@ static void DetectRunTx(ThreadVars *tv,
 
         /* see if we have any updated state to store in the tx */
 
-        uint64_t new_detect_flags = 0;
         /* this side of the tx is done */
         if (tx.tx_progress >= tx.tx_end_state) {
-            new_detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
-            SCLogDebug("%p/%"PRIu64" tx is done for direction %s. Flag %016"PRIx64,
-                    tx.tx_ptr, tx.tx_id,
-                    flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
-                    new_detect_flags);
+            tx.prefilter_progress = TX_INSPECTED;
+            SCLogDebug("%p/%" PRIu64 " tx is done for direction %s. Progress %02x", tx.tx_ptr,
+                    tx.tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
+                    tx.prefilter_progress);
         }
-        if (tx.prefilter_flags != tx.prefilter_flags_orig) {
-            new_detect_flags |= tx.prefilter_flags;
-            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
-            SCLogDebug("%p/%"PRIu64" updated prefilter flags %016"PRIx64" "
-                    "(was: %016"PRIx64") for direction %s. Flag %016"PRIx64,
-                    tx.tx_ptr, tx.tx_id, tx.prefilter_flags, tx.prefilter_flags_orig,
-                    flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
-                    new_detect_flags);
-        }
-        if (new_detect_flags != 0 &&
-                (new_detect_flags | tx.detect_flags) != tx.detect_flags)
-        {
-            new_detect_flags |= tx.detect_flags;
-            DEBUG_VALIDATE_BUG_ON(new_detect_flags & APP_LAYER_TX_RESERVED_FLAGS);
-            SCLogDebug("%p/%"PRIu64" Storing new flags %016"PRIx64" (was %016"PRIx64")",
-                    tx.tx_ptr, tx.tx_id, new_detect_flags, tx.detect_flags);
 
-            StoreDetectFlags(&tx, flow_flags, new_detect_flags);
+        if (tx.prefilter_progress != tx.prefilter_progress_orig) {
+            SCLogDebug("%p/%" PRIu64 " Storing new progress %08" PRIx8 " (was %08" PRIx8 ")",
+                    tx.tx_ptr, tx.tx_id, tx.prefilter_progress, tx.prefilter_progress_orig);
+
+            StoreDetectFlags(&tx, flow_flags, tx.prefilter_progress);
         }
+
         InspectionBufferClean(det_ctx);
 
     next:
