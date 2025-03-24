@@ -4948,6 +4948,14 @@
                                         "How many times defrag memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
+                        },
+                        "flow": {
+                            "type": "object",
+                            "memcap": {
+                                "description":
+                                        "How many times flow memcap exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
                         }
                     }
                 },
@@ -5001,11 +5009,6 @@
                         },
                         "memcap": {
                             "type": "integer"
-                        },
-                        "memcap_exception_policy": {
-                            "description":
-                                    "How many times flow memcap exception policy was applied, and which one",
-                            "$ref": "#/$defs/exceptionPolicy"
                         },
                         "memuse": {
                             "type": "integer"
