@@ -5999,7 +5999,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
     stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
     ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_ssn_memcap_eps, &stream_memcap_eps_stats,
-            stream_config.ssn_memcap_policy, "tcp.ssn_memcap_exception_policy.",
+            stream_config.ssn_memcap_policy, "exception_policy.tcp.ssn_memcap.",
             IsStreamTcpSessionMemcapExceptionPolicyStatsValid);
 
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
