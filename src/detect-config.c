@@ -98,9 +98,9 @@ static void ConfigApplyTx(Flow *f,
             SCLogDebug("tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
             txd->config.log_flags |= BIT_U8(config->type);
 
-            uint64_t unidir = ((AppLayerParserGetTxDetectFlags(txd, STREAM_TOSERVER) |
-                                       AppLayerParserGetTxDetectFlags(txd, STREAM_TOCLIENT)) &
-                                      APP_LAYER_TX_SKIP_INSPECT_FLAG) != 0;
+            const bool unidir =
+                    (txd->flags & (APP_LAYER_TX_SKIP_INSPECT_TS | APP_LAYER_TX_SKIP_INSPECT_TC)) !=
+                    0;
             if (unidir) {
                 SCLogDebug("handle unidir tx");
                 AppLayerTxConfig req;

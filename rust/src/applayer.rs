@@ -114,6 +114,8 @@ pub struct AppLayerTxData {
     pub updated_tc: bool,
     pub updated_ts: bool,
 
+    flags: u8,
+
     /// logger flags for tx logging api
     logged: LoggerFlags,
 
@@ -134,9 +136,14 @@ pub struct AppLayerTxData {
     /// not using application layer keywords
     pub guessed_applayer_logged: u8,
 
-    /// detection engine flags for use by detection engine
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
+    /// detection engine progress tracking for use by detection engine
+    /// Reflects the "progress" of prefilter engines into this TX, where
+    /// the value is offset by 1. So if for progress state 0 the engines
+    /// are done, the value here will be 1. So a value of 0 means, no
+    /// progress tracked yet.
+    ///
+    detect_progress_ts: u8,
+    detect_progress_tc: u8,
 
     de_state: *mut DetectEngineState,
     pub events: *mut core::AppLayerDecoderEvents,
@@ -184,8 +191,9 @@ impl AppLayerTxData {
             guessed_applayer_logged: 0,
             updated_tc: true,
             updated_ts: true,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
+            flags: 0,
+            detect_progress_ts: 0,
+            detect_progress_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
         }
@@ -194,9 +202,9 @@ impl AppLayerTxData {
     /// Create new AppLayerTxData for a transaction in a single
     /// direction.
     pub fn for_direction(direction: Direction) -> Self {
-        let (detect_flags_ts, detect_flags_tc, updated_ts, updated_tc) = match direction {
-            Direction::ToServer => (0, APP_LAYER_TX_SKIP_INSPECT_FLAG, true, false),
-            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_FLAG, 0, false, true),
+        let (flags, updated_ts, updated_tc) = match direction {
+            Direction::ToServer => (APP_LAYER_TX_SKIP_INSPECT_TC, true, false),
+            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_TS, false, true),
         };
         Self {
             config: AppLayerTxConfig::new(),
@@ -209,8 +217,9 @@ impl AppLayerTxData {
             guessed_applayer_logged: 0,
             updated_tc,
             updated_ts,
-            detect_flags_ts,
-            detect_flags_tc,
+            detect_progress_ts: 0,
+            detect_progress_tc: 0,
+            flags,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
         }
@@ -528,7 +537,10 @@ pub const APP_LAYER_PARSER_EOF_TC : u16 = BIT_U16!(6);
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 
-pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
+pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = BIT_U8!(0);
+pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = BIT_U8!(1);
+pub const _APP_LAYER_TX_INSPECTED_TS: u8 = BIT_U8!(2);
+pub const _APP_LAYER_TX_INSPECTED_TC: u8 = BIT_U8!(3);
 
 /// cbindgen:ignore
 extern {
