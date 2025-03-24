@@ -644,7 +644,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_flow_memcap_eps, &flow_memcap_eps_stats,
-            FlowGetMemcapExceptionPolicy(), "flow.memcap_exception_policy.",
+            FlowGetMemcapExceptionPolicy(), "exception_policy.flow.memcap.",
             IsFlowMemcapExceptionPolicyStatsValid);
 
     dtv->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
