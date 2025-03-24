@@ -90,11 +90,11 @@ void DetectTlsJa3SStringRegister(void)
     sigmatch_table[DETECT_TLS_JA3S_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
 #ifdef HAVE_JA3
-    DetectAppLayerInspectEngineRegister("ja3s.string", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister("ja3s.string", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_SERVER_HELLO, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, 0);
+            GetData, ALPROTO_TLS, TLS_STATE_SERVER_HELLO);
 
     DetectAppLayerMpmRegister("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             Ja3DetectGetString, ALPROTO_QUIC, 1);
