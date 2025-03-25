@@ -1324,6 +1324,8 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
             SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
             s->init_data->hook.t.app.app_progress);
+
+    s->app_progress_hook = (uint8_t)s->init_data->hook.t.app.app_progress;
     return 0;
 }
 

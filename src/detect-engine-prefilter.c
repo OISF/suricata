@@ -117,12 +117,20 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         if (engine->ctx.tx_min_progress != -1) {
+#ifdef DEBUG
+            const char *pname = AppLayerParserGetStateNameById(ipproto, engine->alproto,
+                    engine->ctx.tx_min_progress, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+            SCLogDebug("engine %p min_progress %d %s:%s", engine, engine->ctx.tx_min_progress,
+                    AppProtoToString(engine->alproto), pname);
+#endif
             /* if engine needs tx state to be higher, break out. */
             if (engine->ctx.tx_min_progress > tx->tx_progress)
                 break;
 
             /* if tx state is beyond what we need, we need to make sure we ran at least once */
             if (tx->tx_progress > engine->ctx.tx_min_progress) {
+                SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d", tx->tx_progress,
+                        engine->ctx.tx_min_progress);
 
                 /* if state value is at or beyond engine state, we can skip it. It means we ran at
                  * least once already. */
@@ -130,13 +138,22 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                     SCLogDebug("tx already marked progress as beyond engine: %u > %u",
                             tx->detect_progress, engine->ctx.tx_min_progress);
                     goto next;
+                } else {
+                    SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d: "
+                               "tx->detect_progress %u",
+                            tx->tx_progress, engine->ctx.tx_min_progress, tx->detect_progress);
                 }
             }
-
+#ifdef DEBUG
+            uint32_t old = det_ctx->pmq.rule_id_array_cnt;
+#endif
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
                     tx->tx_data_ptr, flow_flags);
             PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            SCLogDebug("engine %p min_progress %d %s:%s: results %u", engine,
+                    engine->ctx.tx_min_progress, AppProtoToString(engine->alproto), pname,
+                    det_ctx->pmq.rule_id_array_cnt - old);
 
             if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
                 /* track with an offset of one, so that tx->progress 0 complete is tracked
@@ -648,6 +665,89 @@ static void TxNonPFFree(void *data)
     SCFree(d);
 }
 
+static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
+
+        const AppProto alproto, const int dir, const int16_t progress, const int sig_list,
+        const char *name, const Signature *s)
+{
+    const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
+
+    struct TxNonPFData lookup = {
+        .alproto = alproto,
+        .dir = dir,
+        .progress = progress,
+        .sig_list = sig_list,
+        .sigs_cnt = 0,
+        .sigs = NULL,
+        .engine_name = NULL,
+    };
+    struct TxNonPFData *e = HashListTableLookup(tx_engines_hash, &lookup, 0);
+    if (e != NULL) {
+        bool found = false;
+        // avoid adding same sid multiple times
+        for (uint32_t y = 0; y < e->sigs_cnt; y++) {
+            if (e->sigs[y].sid == s->num) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            BUG_ON(e->sigs_cnt == max_sids);
+            e->sigs[e->sigs_cnt].sid = s->num;
+            e->sigs[e->sigs_cnt].value = alproto;
+            e->sigs_cnt++;
+        }
+        return 0;
+    }
+
+    struct TxNonPFData *add = SCCalloc(1, sizeof(*add));
+    if (add == NULL) {
+        return -1;
+    }
+    add->dir = dir;
+    add->alproto = alproto;
+    add->progress = progress;
+    add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
+    if (add->sigs == NULL) {
+        SCFree(add);
+        return -1;
+    }
+    add->sig_list = sig_list;
+    add->sigs_cnt = 0;
+    add->sigs[add->sigs_cnt].sid = s->num;
+    add->sigs[add->sigs_cnt].value = alproto;
+    add->sigs_cnt++;
+
+    char engine_name[128];
+    snprintf(engine_name, sizeof(engine_name), "%s:%s:non_pf:%s", AppProtoToString(alproto), name,
+            dir == 0 ? "toserver" : "toclient");
+    char *engine_name_heap = SCStrdup(engine_name);
+    if (engine_name_heap == NULL) {
+        SCFree(add->sigs);
+        SCFree(add);
+        return -1;
+    }
+    int result = HashTableAdd(
+            de_ctx->non_pf_engine_names, engine_name_heap, (uint16_t)strlen(engine_name_heap));
+    if (result != 0) {
+        SCFree(add->sigs);
+        SCFree(add);
+        return -1;
+    }
+
+    add->engine_name = engine_name_heap;
+    SCLogDebug("engine_name_heap %s", engine_name_heap);
+
+    int ret = HashListTableAdd(tx_engines_hash, add, 0);
+    if (ret != 0) {
+        SCFree(add->sigs);
+        SCFree(add);
+        return -1;
+    }
+
+    return 0;
+}
+
 /** \internal
  *  \brief setup non-prefilter rules in special "non-prefilter" engines that are registered in the
  * prefilter logic.
@@ -824,81 +924,28 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     int sig_list = 0;
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
-                    struct TxNonPFData lookup = {
-                        .alproto = app->alproto,
-                        .dir = app->dir,
-                        .progress = app->progress,
-                        .sig_list = sig_list,
-                        .sigs_cnt = 0,
-                        .sigs = NULL,
-                        .engine_name = NULL,
-                    };
-                    struct TxNonPFData *e = HashListTableLookup(tx_engines_hash, &lookup, 0);
-                    if (e != NULL) {
-                        bool found = false;
-                        // avoid adding same sid multiple times
-                        for (uint32_t y = 0; y < e->sigs_cnt; y++) {
-                            if (e->sigs[y].sid == s->num) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            BUG_ON(e->sigs_cnt == max_sids);
-                            e->sigs[e->sigs_cnt].sid = s->num;
-                            e->sigs[e->sigs_cnt].value = app->alproto;
-                            e->sigs_cnt++;
-                        }
-                    } else {
-                        struct TxNonPFData *add = SCCalloc(1, sizeof(*add));
-                        if (add == NULL) {
-                            goto error;
-                        }
-                        add->dir = app->dir;
-                        add->alproto = app->alproto;
-                        add->progress = app->progress;
-                        add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
-                        if (add->sigs == NULL) {
-                            SCFree(add);
-                            goto error;
-                        }
-                        add->sig_list = sig_list;
-                        add->sigs_cnt = 0;
-                        add->sigs[add->sigs_cnt].sid = s->num;
-                        add->sigs[add->sigs_cnt].value = app->alproto;
-                        add->sigs_cnt++;
 
-                        char engine_name[128];
-                        snprintf(engine_name, sizeof(engine_name), "%s:%s:non_pf:%s",
-                                AppProtoToString(app->alproto), buf->name,
-                                app->dir == 0 ? "toserver" : "toclient");
-                        char *engine_name_heap = SCStrdup(engine_name);
-                        if (engine_name_heap == NULL) {
-                            SCFree(add->sigs);
-                            SCFree(add);
-                            goto error;
-                        }
-                        int result = HashTableAdd(de_ctx->non_pf_engine_names, engine_name_heap,
-                                (uint16_t)strlen(engine_name_heap));
-                        if (result != 0) {
-                            SCFree(add->sigs);
-                            SCFree(add);
-                            goto error;
-                        }
-
-                        add->engine_name = engine_name_heap;
-                        SCLogDebug("engine_name_heap %s", engine_name_heap);
-
-                        int ret = HashListTableAdd(tx_engines_hash, add, 0);
-                        if (ret != 0) {
-                            SCFree(add->sigs);
-                            SCFree(add);
-                            goto error;
-                        }
+                    if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
+                                app->progress, sig_list, buf->name, s) != 0) {
+                        goto error;
                     }
                     tx_non_pf = true;
                 }
             }
+        }
+        /* handle hook only rules */
+        if (!tx_non_pf && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+            const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
+            const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                    s->alproto, s->init_data->hook.t.app.app_progress,
+                    dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+
+            if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir,
+                        (int16_t)s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list,
+                        pname, s) != 0) {
+                goto error;
+            }
+            tx_non_pf = true;
         }
         /* mark as prefiltered as the sig is now part of a engine */
         // s->flags |= SIG_FLAG_PREFILTER;

@@ -681,6 +681,9 @@ typedef struct Signature_ {
     /** classification id **/
     uint16_t class_id;
 
+    /** firewall: progress value for this signature */
+    uint8_t app_progress_hook;
+
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
     /** ipv6 match arrays */
