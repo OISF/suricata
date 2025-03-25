@@ -11,6 +11,7 @@ use std::{
     iter::IntoIterator,
     net::{IpAddr, Ipv4Addr},
     path::PathBuf,
+    rc::Rc,
     time::SystemTime,
 };
 use time::OffsetDateTime;
@@ -170,7 +171,7 @@ impl Test {
             None
         };
 
-        let connp = ConnectionParser::new(cfg);
+        let connp = ConnectionParser::new(&Rc::new(cfg));
         Test { connp, basedir }
     }
 

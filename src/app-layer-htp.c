@@ -2356,6 +2356,7 @@ void HTPConfigure(void)
                 &cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), &cfgtree);
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
+    cfglist.cfg = htp_config_make_readonly(cfglist.cfg);
 
     HTPParseMemcap();
 
@@ -2398,6 +2399,7 @@ void HTPConfigure(void)
         HTPConfigSetDefaultsPhase1(htprec);
         HTPConfigParseParameters(htprec, s, &cfgtree);
         HTPConfigSetDefaultsPhase2(s->name, htprec);
+        cfglist.next->cfg = htp_config_make_readonly(cfglist.next->cfg);
     }
 
     SCReturn;
@@ -4706,6 +4708,8 @@ static int HTPBodyReassemblyTest01(void)
     memset(&flow, 0x00, sizeof(flow));
     AppLayerParserState *parser = AppLayerParserStateAlloc();
     htp_cfg_t *cfg = htp_config_create();
+    BUG_ON(cfg == NULL);
+    cfg = htp_config_make_readonly(cfg);
     BUG_ON(cfg == NULL);
     htp_connp_t *connp = htp_connp_create(cfg);
     BUG_ON(connp == NULL);

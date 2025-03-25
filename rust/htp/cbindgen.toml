@@ -29,6 +29,7 @@ after_includes = """
 [export.rename]
 "HtpFlags" = "HTP_FLAGS"
 "Config" = "htp_cfg_t"
+"Rc_Config" = "htp_cfg_t"
 "Connection" = "htp_conn_t"
 "ConnectionParser" = "htp_connp_t"
 "Header" = "htp_header_t"

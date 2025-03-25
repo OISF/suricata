@@ -11,6 +11,7 @@ use crate::{
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::net::{IpAddr, Ipv4Addr};
+use std::rc::Rc;
 
 use super::common::{assert_header_eq, assert_request_header_eq, assert_response_header_eq};
 
@@ -192,7 +193,7 @@ struct HybridParsingTest {
 
 impl HybridParsingTest {
     fn new(cfg: Config) -> Self {
-        let mut connp = ConnectionParser::new(cfg);
+        let mut connp = ConnectionParser::new(&Rc::new(cfg));
         connp.open(
             Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
             Some(32768),

@@ -5,6 +5,7 @@ use crate::{
     HtpStatus,
 };
 use std::convert::TryInto;
+use std::rc::Rc;
 
 /// Creates a new configuration structure. Configuration structures created at
 /// configuration time must not be changed afterwards in order to support lock-less
@@ -16,11 +17,18 @@ pub extern "C" fn htp_config_create() -> *mut Config {
     Box::into_raw(b)
 }
 
+/// Consumes a Config to turn it into a read-only object (aka immutable)
+#[no_mangle]
+pub unsafe extern "C" fn htp_config_make_readonly(cfg: *mut Config) -> *mut Rc<Config> {
+    let cfg = *(Box::from_raw(cfg));
+    return Box::into_raw(Box::new(Rc::new(cfg)));
+}
+
 /// Destroy a configuration structure.
 /// # Safety
 /// This function is unsafe because improper use may lead to memory problems. For example, a double-free may occur if the function is called twice on the same raw pointer.
 #[no_mangle]
-pub unsafe extern "C" fn htp_config_destroy(cfg: *mut Config) {
+pub unsafe extern "C" fn htp_config_destroy(cfg: *mut Rc<Config>) {
     if !cfg.is_null() {
         drop(Box::from_raw(cfg));
     }
