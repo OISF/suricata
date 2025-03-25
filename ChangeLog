@@ -1,3 +1,7 @@
+7.0.10 -- 2025-03-25
+
+Bug #7619: af-packet: setting bpf fails (7.0.x backport)
+
 7.0.9 -- 2025-03-18
 
 Security #7616: datasets: hashsize setting via rules can cause high memory usage (7.0.x backport)(MODERATE - CVE 2025-29916)
