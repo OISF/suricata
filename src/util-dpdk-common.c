@@ -47,21 +47,22 @@ int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
     SCReturnInt(0);
 }
 
-void DPDKDeviceResourcesDeinit(DPDKDeviceResources *dpdk_vars)
+void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
 {
-    if (dpdk_vars != NULL) {
-        if (dpdk_vars->pkt_mp != NULL) {
-            for (int j = 0; j < dpdk_vars->pkt_mp_capa; j++) {
-                if (dpdk_vars->pkt_mp[j] != NULL) {
-                    rte_mempool_free(dpdk_vars->pkt_mp[j]);
+    if ((*dpdk_vars) != NULL) {
+        if ((*dpdk_vars)->pkt_mp != NULL) {
+            for (int j = 0; j < (*dpdk_vars)->pkt_mp_capa; j++) {
+                if ((*dpdk_vars)->pkt_mp[j] != NULL) {
+                    rte_mempool_free((*dpdk_vars)->pkt_mp[j]);
                 }
             }
-            SCFree(dpdk_vars->pkt_mp);
-            dpdk_vars->pkt_mp_capa = 0;
-            dpdk_vars->pkt_mp_cnt = 0;
-            dpdk_vars->pkt_mp = NULL;
+            SCFree((*dpdk_vars)->pkt_mp);
+            (*dpdk_vars)->pkt_mp_capa = 0;
+            (*dpdk_vars)->pkt_mp_cnt = 0;
+            (*dpdk_vars)->pkt_mp = NULL;
         }
-        SCFree(dpdk_vars);
+        SCFree(*dpdk_vars);
+        *dpdk_vars = NULL;
     }
 }
 
