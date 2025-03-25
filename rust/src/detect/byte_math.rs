@@ -213,7 +213,7 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                 let (_, res) = parse_var(val)?;
                 match res {
                     ResultValue::Numeric(val) => {
-                        if val >= u32::MIN.into() && val <= u32::MAX.into() {
+                        if val >= u32::MIN as u64 && val <= u32::MAX as u64 {
                             byte_math.rvalue = val as u32
                         } else {
                             return Err(make_error(format!(

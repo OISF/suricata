@@ -104,7 +104,7 @@ pub unsafe extern "C" fn rs_x509_get_subjectaltname_len(ptr: *const X509) -> u16
     if let Ok(Some(sans)) = san_list {
         // SAN length in a certificate is kept u16 following discussions at
         // https://community.letsencrypt.org/t/why-sans-are-limited-to-100-domains-only
-        debug_validate_bug_on!(sans.value.general_names.len() == u16::MAX.into());
+        debug_validate_bug_on!(sans.value.general_names.len() == u16::MAX as usize);
         return sans.value.general_names.len() as u16;
     }
     return 0;

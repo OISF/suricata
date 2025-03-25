@@ -460,7 +460,7 @@ pub unsafe extern "C" fn SCSshTxGetFlags(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
-    if direction == Direction::ToServer.into() {
+    if Direction::from(direction) == Direction::ToServer {
         return tx.cli_hdr.flags;
     } else {
         return tx.srv_hdr.flags;
@@ -479,7 +479,7 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
         return SSHConnectionState::SshStateFinished as i32;
     }
 
-    if direction == Direction::ToServer.into() {
+    if Direction::from(direction) == Direction::ToServer {
         if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
             return SSHConnectionState::SshStateBannerDone as i32;
         }

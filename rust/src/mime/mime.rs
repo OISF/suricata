@@ -470,7 +470,7 @@ pub unsafe extern "C" fn SCMimeStateGetFilename(
 ) {
     if !ctx.filename.is_empty() {
         *buffer = ctx.filename.as_ptr();
-        if ctx.filename.len() < u16::MAX.into() {
+        if ctx.filename.len() < u16::MAX as usize {
             *filename_len = ctx.filename.len() as u16;
         } else {
             *filename_len = u16::MAX;

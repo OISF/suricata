@@ -124,14 +124,14 @@ fn enip_cip_has_attribute(cipdir: &CipDir, attr: u32) -> std::os::raw::c_int {
         match &req.payload {
             EnipCipRequestPayload::GetAttributeList(ga) => {
                 for attrg in ga.attr_list.iter() {
-                    if attr == (*attrg).into() {
+                    if attr == *attrg as u32 {
                         return 1;
                     }
                 }
             }
             EnipCipRequestPayload::SetAttributeList(sa) => {
                 if let Some(val) = sa.first_attr {
-                    if attr == val.into() {
+                    if attr == val as u32 {
                         return 1;
                     }
                 }

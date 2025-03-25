@@ -77,7 +77,7 @@ asn1-rs = { version = "~0.6.1" }
 ldap-parser = { version = "~0.4.1" }
 hex = "~0.4.3"
 
-time = "~0.3.36"
+time = "~0.3.41"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }

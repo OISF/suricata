@@ -36,7 +36,7 @@ fn xor_parse_do(i: &str) -> Option<DetectTransformXorData> {
         SCLogError!("XOR transform key's length must be an even number");
         return None;
     }
-    if i.len() / 2 > u8::MAX.into() {
+    if i.len() / 2 > u8::MAX as usize {
         SCLogError!("Key length too big for XOR transform");
         return None;
     }

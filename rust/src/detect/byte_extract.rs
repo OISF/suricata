@@ -205,7 +205,7 @@ fn parse_byteextract(input: &str) -> IResult<&str, SCDetectByteExtractData, Rule
                 let mult = val
                     .parse::<u32>()
                     .map_err(|_| make_error(format!("invalid multiplier value: {}", val)))?;
-                if mult == 0 || mult > u16::MAX.into() {
+                if mult == 0 || mult > u16::MAX as u32 {
                     return Err(make_error(format!(
                         "invalid multiplier value: must be between 0 and {}: {}",
                         u16::MAX,

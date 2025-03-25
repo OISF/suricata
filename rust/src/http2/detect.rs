@@ -697,7 +697,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_status(
 pub unsafe extern "C" fn rs_http2_tx_get_cookie(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    if direction == Direction::ToServer.into() {
+    if Direction::from(direction) == Direction::ToServer {
         if let Ok(value) = http2_frames_get_header_value(tx, Direction::ToServer, "cookie") {
             *buffer = value.as_ptr(); //unsafe
             *buffer_len = value.len() as u32;

@@ -142,7 +142,7 @@ fn parse_transform_base64(
                 let (_, res) = parse_var(val)?;
                 match res {
                     ResultValue::Numeric(val) => {
-                        if val <= u16::MAX.into() {
+                        if val <= u16::MAX as u64 {
                             transform_base64.offset = val as u32
                         } else {
                             return Err(make_error(format!(
@@ -174,7 +174,7 @@ fn parse_transform_base64(
                 let (_, res) = parse_var(val)?;
                 match res {
                     ResultValue::Numeric(val) => {
-                        if val as u32 <= u16::MAX.into() {
+                        if val as u32 <= u16::MAX as u32 {
                             transform_base64.nbytes = val as u32
                         } else {
                             return Err(make_error(format!(
