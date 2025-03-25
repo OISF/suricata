@@ -169,7 +169,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     if offset < tdf.file_tracker.tracked {
                         set_event_fileoverlap = true;
                     }
-                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
+                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > u64::from(max_queue_size) {
                         state.set_event(SMBEvent::ReadQueueSizeExceeded);
                         state.set_skip(Direction::ToClient, nbss_remaining);
                     } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
@@ -242,7 +242,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > max_queue_size.into() {
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > u64::from(max_queue_size) {
                             state.set_event(SMBEvent::ReadQueueSizeExceeded);
                             state.set_skip(Direction::ToClient, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
@@ -313,7 +313,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     if wr.wr_offset < tdf.file_tracker.tracked {
                         set_event_fileoverlap = true;
                     }
-                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > u64::from(max_queue_size) {
                         state.set_event(SMBEvent::WriteQueueSizeExceeded);
                         state.set_skip(Direction::ToServer, nbss_remaining);
                     } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
@@ -381,7 +381,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                             set_event_fileoverlap = true;
                         }
 
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > max_queue_size.into() {
+                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > u64::from(max_queue_size) {
                             state.set_event(SMBEvent::WriteQueueSizeExceeded);
                             state.set_skip(Direction::ToServer, nbss_remaining);
                         } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
