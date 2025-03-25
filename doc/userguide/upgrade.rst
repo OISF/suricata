@@ -72,11 +72,13 @@ Major changes
   <upgrade/8.0-pfring-plugin>`.
 - LDAP parser and logger have been introduced.
 - The following sticky buffers for matching SIP headers have been implemented:
-    - sip.via
-    - sip.from
-    - sip.to
-    - sip.content_type
-    - sip.content_length
+
+  - sip.via
+  - sip.from
+  - sip.to
+  - sip.content_type
+  - sip.content_length
+
 - Napatech support has been moved to a capture plugin. See :doc:`Napatech plugin
   <upgrade/8.0-napatech-plugin>`.
 - Unknown requirements in the ``requires`` keyword will now be treated
@@ -103,25 +105,29 @@ Major changes
   change, however if you run these tools from the source directory,
   patch them or use them as Python modules your workflows may need to
   be adapted.
-- The AF_PACKET default block size for both TPACKET_V2 and TPACKET_V3
-  has been increased from 32k to 128k. This is to allow for full size
-  defragmented packets. For TPACKET_V3 the existing ``block-size``
-  parameter can be used to change this back to the old default of
-  32768 if needed. For TPACKET_V2 a new configuration parameter has
-  been added, ``v2-block-size`` which can be used to tune this value
-  for TPACKET_V2. Due to the increased block size, memory usage has
-  been increased, but should not be an issue in most cases.
 - Datasets now have a default max limit for hashsize of 65536. This is
   configurable via the ``datasets.limits`` options.
 - For detect inspection recursion limits, if no value is provided, the default is
   now set to 3000.
-- AF_PACKET will now default to tpacket-v3 for non-inline modes, it
-  remains disabled for inline modes. To keep tpacket-v2 for non-inline
-  modes, the existing ``tpacket-v3`` configuration parameter can be
-  set to ``false``.
-- AF_PACKET will now default to defrag off for inline mode with
-  ``cluster_flow`` as its not recommended for inline use. However it
-  can still be enabled with the ``defrag`` configuration parameter.
+- AF_PACKET now has better defaults:
+
+  - AF_PACKET will now default to defrag off for inline mode with
+    ``cluster_flow`` as its not recommended for inline use. However
+    it can still be enabled with the ``defrag`` configuration
+    parameter.
+  - AF_PACKET will now default to tpacket-v3 for non-inline modes,
+    it remains disabled for inline modes. To keep tpacket-v2 for
+    non-inline modes, the existing ``tpacket-v3`` configuration
+    parameter can be set to ``false``.
+  - The AF_PACKET default block size for both TPACKET_V2 and
+    TPACKET_V3 has been increased from 32k to 128k. This is to allow
+    for full size defragmented packets. For TPACKET_V3 the existing
+    ``block-size`` parameter can be used to change this back to the
+    old default of 32768 if needed. For TPACKET_V2 a new
+    configuration parameter has been added, ``v2-block-size`` which
+    can be used to tune this value for TPACKET_V2. Due to the
+    increased block size, memory usage has been increased, but
+    should not be an issue in most cases.
 
 Removals
 ~~~~~~~~
