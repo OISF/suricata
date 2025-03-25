@@ -336,7 +336,7 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
-        DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
+        DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
         SCFree(iconf);
     }
     SCReturn;
@@ -1464,6 +1464,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         if (retval < 0) {
             SCLogError("%s: failed to setup TX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
+            retval = -1; // the error code explained, informing about failure
             goto cleanup;
         }
     }
@@ -1471,7 +1472,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     SCReturnInt(0);
 
 cleanup:
-    DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
+    DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
     SCReturnInt(retval);
 }
 
