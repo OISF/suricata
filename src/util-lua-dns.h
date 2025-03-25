@@ -28,4 +28,4 @@
 
 int SCLuaLoadDnsLib(lua_State *L);
 
-#endif /* __UTIL_LUA_HTTP_H__ */
+#endif /* SURICATA_UTIL_LUA_DNS */

@@ -22,4 +22,4 @@
 
 int LuaLoadPacketLib(lua_State *luastate);
 
-#endif /* SURICATA_UTIL_LUA_DATASET_H */
+#endif /* SURICATA_UTIL_LUA_PACKET_H */
