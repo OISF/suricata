@@ -1113,10 +1113,10 @@ unsafe extern "C" fn get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
 pub(super) unsafe extern "C" fn get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
                                                  )-> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DCERPCTransaction);
-    if direction == Direction::ToServer.into() && tx.req_done {
+    if direction == u8::from(Direction::ToServer) && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
         return 1;
-    } else if direction == Direction::ToClient.into() && tx.resp_done {
+    } else if direction == u8::from(Direction::ToClient) && tx.resp_done {
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.call_id, tx);
         return 1;
     }

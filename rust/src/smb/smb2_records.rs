@@ -695,7 +695,7 @@ mod tests {
         let record: Smb2CreateRequestRecord = result.1;
         assert_eq!(record.disposition, 2); // FILE_CREATE: 2
         assert_eq!(record.create_options, 0x200021);
-        assert_eq!(record.data, &[]);
+        assert_eq!(record.data, &[] as &[u8]);
         let del = record.create_options & 0x0000_1000 != 0;
         let dir = record.create_options & 0x0000_0001 != 0;
         assert!(!del);
@@ -893,6 +893,6 @@ mod tests {
         );
         assert!(!record.is_pipe);
         assert_eq!(record.function, 0x1401fc);
-        assert_eq!(record.data, &[]);
+        assert_eq!(record.data, &[] as &[u8]);
     }
 }
