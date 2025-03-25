@@ -1187,7 +1187,7 @@ unsafe extern "C" fn c_probe_tcp(
         } else {
             Direction::ToClient
         };
-        if (direction & DIR_BOTH) != dir.into() {
+        if (direction & DIR_BOTH) != u8::from(dir) {
             *rdir = dir as u8;
         }
         return ALPROTO_DNS;

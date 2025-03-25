@@ -70,7 +70,7 @@ pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu>
     };
     // we limit payload_len to u32, so as to build on 32-bit system
     // where we cannot take(usize) with a u64
-    let (to_skip, payload_len) = if payload_len < max_pl_size.into() {
+    let (to_skip, payload_len) = if payload_len < u64::from(max_pl_size) {
         (0, payload_len as u32)
     } else {
         (payload_len - (max_pl_size as u64), max_pl_size)
