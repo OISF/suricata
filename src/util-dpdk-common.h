@@ -124,7 +124,7 @@ typedef struct {
 } DPDKDeviceResources;
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt);
-void DPDKDeviceResourcesDeinit(DPDKDeviceResources *dpdk_vars);
+void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars);
 
 #endif /* HAVE_DPDK */
 
