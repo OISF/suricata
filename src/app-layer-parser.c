@@ -1813,8 +1813,7 @@ void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
                                   void (*RegisterUnittests)(void))
 {
     SCEnter();
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-        RegisterUnittests = RegisterUnittests;
+    alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].RegisterUnittests = RegisterUnittests;
     SCReturn;
 }
 
