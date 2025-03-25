@@ -119,6 +119,9 @@ Major changes
   remains disabled for inline modes. To keep tpacket-v2 for non-inline
   modes, the existing ``tpacket-v3`` configuration parameter can be
   set to ``false``.
+- AF_PACKET will now default to defrag off for inline mode with
+  ``cluster_flow`` as its not recommended for inline use. However it
+  can still be enabled with the ``defrag`` configuration parameter.
 
 Removals
 ~~~~~~~~
