@@ -11,7 +11,7 @@ use crate::{
     util::{FlagOperations, HtpFlags},
     HtpStatus,
 };
-use std::{any::Any, borrow::Cow, cell::Cell, net::IpAddr, rc::Rc, time::SystemTime};
+use std::{any::Any, borrow::Cow, cell::Cell, net::IpAddr, time::SystemTime};
 use time::OffsetDateTime;
 
 /// Enumerates parsing state.
@@ -278,7 +278,7 @@ pub struct ConnectionParser {
     /// The logger structure associated with this parser
     pub(crate) logger: Logger,
     /// A reference to the current parser configuration structure.
-    pub(crate) cfg: Rc<&'static Config>,
+    pub(crate) cfg: *const Config,
     /// The connection structure associated with this parser.
     pub(crate) conn: Connection,
     /// Opaque user data associated with this parser.
@@ -369,13 +369,12 @@ impl std::fmt::Debug for ConnectionParser {
 
 impl ConnectionParser {
     /// Creates a new ConnectionParser with a preconfigured `Config` struct.
-    pub(crate) fn new(cfg: &'static Config) -> Self {
-        let cfg = Rc::new(cfg);
+    pub(crate) fn new(cfg: *const Config) -> Self {
         let conn = Connection::default();
         let logger = Logger::new(conn.get_sender());
         Self {
             logger: logger.clone(),
-            cfg: Rc::clone(&cfg),
+            cfg: cfg,
             conn,
             user_data: None,
             request_status: HtpStreamState::NEW,
@@ -403,7 +402,7 @@ impl ConnectionParser {
             response_state: State::IDLE,
             response_state_previous: State::NONE,
             response_data_receiver_hook: None,
-            transactions: Transactions::new(&cfg, &logger),
+            transactions: Transactions::new(cfg, &logger),
         }
     }
 
@@ -537,7 +536,8 @@ impl ConnectionParser {
         self.request_data(ParserData::default(), timestamp);
         self.response_data(ParserData::default(), timestamp);
 
-        if self.cfg.flush_incomplete {
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        if cfg.flush_incomplete {
             self.flush_incomplete_transactions()
         }
     }
@@ -647,8 +647,8 @@ impl ConnectionParser {
         }
         req.unwrap().request_progress = HtpRequestProgress::LINE;
         // Run hook REQUEST_START.
-        self.cfg
-            .hook_request_start
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_request_start
             .clone()
             .run_all(self, self.request_index())?;
         Ok(())
@@ -670,11 +670,11 @@ impl ConnectionParser {
             return Err(HtpStatus::ERROR);
         }
         let request_progress = req.unwrap().request_progress;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
         if request_progress > HtpRequestProgress::HEADERS {
             // Request trailers.
             // Run hook HTP_REQUEST_TRAILER.
-            self.cfg
-                .hook_request_trailer
+            cfg.hook_request_trailer
                 .clone()
                 .run_all(self, self.request_index())?;
             // Completed parsing this request; finalize it now.
@@ -688,8 +688,7 @@ impl ConnectionParser {
             }
             req.process_request_headers()?;
             // Run hook REQUEST_HEADERS.
-            self.cfg
-                .hook_request_headers
+            cfg.hook_request_headers
                 .clone()
                 .run_all(self, self.request_index())?;
             self.request_initialize_decompressors()?;
@@ -722,13 +721,12 @@ impl ConnectionParser {
         }
         req.unwrap().parse_request_line()?;
         // Run hook REQUEST_URI_NORMALIZE.
-        self.cfg
-            .hook_request_uri_normalize
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_request_uri_normalize
             .clone()
             .run_all(self, self.request_index())?;
         // Run hook REQUEST_LINE.
-        self.cfg
-            .hook_request_line
+        cfg.hook_request_line
             .clone()
             .run_all(self, self.request_index())?;
         let logger = self.logger.clone();
@@ -761,8 +759,8 @@ impl ConnectionParser {
             }
             self.request_mut().unwrap().request_progress = HtpRequestProgress::COMPLETE;
             // Run hook REQUEST_COMPLETE.
-            self.cfg
-                .hook_request_complete
+            let cfg = unsafe { self.cfg.as_ref().unwrap() };
+            cfg.hook_request_complete
                 .clone()
                 .run_all(self, self.request_index())?;
 
@@ -789,8 +787,8 @@ impl ConnectionParser {
             }
             // Disconnect transaction from the parser.
             // Run hook TRANSACTION_COMPLETE.
-            self.cfg
-                .hook_transaction_complete
+            let cfg = unsafe { self.cfg.as_ref().unwrap() };
+            cfg.hook_transaction_complete
                 .clone()
                 .run_all(self, tx_index)?;
         }
@@ -821,8 +819,8 @@ impl ConnectionParser {
             self.response_state = State::LINE
         }
         // Run hook RESPONSE_START.
-        self.cfg
-            .hook_response_start
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_response_start
             .clone()
             .run_all(self, self.response_index())?;
         // If at this point we have no method and no uri and our status
@@ -850,8 +848,8 @@ impl ConnectionParser {
         // Finalize sending raw header data.
         self.response_receiver_finalize_clear(input)?;
         // Run hook RESPONSE_HEADERS.
-        self.cfg
-            .hook_response_headers
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_response_headers
             .clone()
             .run_all(self, self.response_index())?;
         self.response_initialize_decompressors()
@@ -872,7 +870,8 @@ impl ConnectionParser {
         tx.validate_response_line();
         let index = tx.index;
         // Run hook HTP_RESPONSE_LINE
-        self.cfg.hook_response_line.clone().run_all(self, index)
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_response_line.clone().run_all(self, index)
     }
 
     /// Change transaction state to COMPLETE and invoke registered callbacks.
@@ -893,8 +892,8 @@ impl ConnectionParser {
                 let _ = self.response_body_data(None);
             }
             // Run hook RESPONSE_COMPLETE.
-            self.cfg
-                .hook_response_complete
+            let cfg = unsafe { self.cfg.as_ref().unwrap() };
+            cfg.hook_response_complete
                 .clone()
                 .run_all(self, response_index)?;
 
@@ -962,14 +961,11 @@ impl ConnectionParser {
             }
         }
         for index in to_remove {
-            self.cfg
-                .hook_transaction_complete
+            let cfg = unsafe { self.cfg.as_ref().unwrap() };
+            cfg.hook_transaction_complete
                 .clone()
                 .run_all(self, index)
                 .ok();
-            if self.cfg.tx_auto_destroy {
-                self.transactions.remove(index);
-            }
         }
     }
 }

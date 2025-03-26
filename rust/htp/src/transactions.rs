@@ -1,13 +1,12 @@
 use crate::{config::Config, log::Logger, transaction::Transaction};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
-use std::rc::Rc;
 
 /// Transaction is a structure which tracks request and response
 /// transactions, and guarantees that the current request or
 /// response transaction will always exist.
 pub(crate) struct Transactions {
-    config: Rc<&'static Config>,
+    config: *const Config,
     logger: Logger,
     request: usize,
     response: usize,
@@ -16,9 +15,9 @@ pub(crate) struct Transactions {
 
 impl Transactions {
     /// Make a new Transactions struct with the given config
-    pub(crate) fn new(cfg: &Rc<&'static Config>, logger: &Logger) -> Self {
+    pub(crate) fn new(cfg: *const Config, logger: &Logger) -> Self {
         Self {
-            config: Rc::clone(cfg),
+            config: cfg,
             logger: logger.clone(),
             request: 0,
             response: 0,
@@ -58,17 +57,17 @@ impl Transactions {
 
     /// Get the current request transaction
     pub(crate) fn request_mut(&mut self) -> Option<&mut Transaction> {
-        let cfg = &self.config;
         let logger = &self.logger;
         let request = self.request;
         let nbtx = self.transactions.len();
         match self.transactions.entry(request) {
             Entry::Occupied(entry) => Some(entry.into_mut()),
             Entry::Vacant(entry) => {
+                let cfg = unsafe { self.config.as_ref().unwrap() };
                 if nbtx >= cfg.max_tx as usize {
                     return None;
                 }
-                Some(entry.insert(Transaction::new(cfg, logger, request)))
+                Some(entry.insert(Transaction::new(self.config, logger, request)))
             }
         }
     }
@@ -88,17 +87,17 @@ impl Transactions {
 
     /// Get the current response transaction
     pub(crate) fn response_mut(&mut self) -> Option<&mut Transaction> {
-        let cfg = &self.config;
         let logger = &self.logger;
         let response = self.response;
         let nbtx = self.transactions.len();
         match self.transactions.entry(response) {
             Entry::Occupied(entry) => Some(entry.into_mut()),
             Entry::Vacant(entry) => {
+                let cfg = unsafe { self.config.as_ref().unwrap() };
                 if nbtx >= cfg.max_tx as usize {
                     return None;
                 }
-                Some(entry.insert(Transaction::new(cfg, logger, response)))
+                Some(entry.insert(Transaction::new(self.config, logger, response)))
             }
         }
     }
@@ -107,7 +106,6 @@ impl Transactions {
     /// May cause the previous transaction to be freed if configured to auto-destroy.
     /// Returns the new request transaction index
     pub(crate) fn request_next(&mut self) -> usize {
-        self.check_free(self.request);
         self.request = self.request.wrapping_add(1);
         self.request
     }
@@ -116,21 +114,8 @@ impl Transactions {
     /// May cause the previous transaction to be freed if configured to auto-destroy.
     /// Returns the new response transaction index
     pub(crate) fn response_next(&mut self) -> usize {
-        self.check_free(self.response);
         self.response = self.response.wrapping_add(1);
         self.response
-    }
-
-    /// Check if any old transactions can be freed
-    fn check_free(&mut self, index: usize) {
-        if self.config.tx_auto_destroy {
-            if let Some(tx) = self.transactions.get(&index) {
-                if !tx.is_complete() {
-                    return;
-                }
-            }
-            self.transactions.remove(&index);
-        }
     }
 
     /// Remove the transaction at the given index. If the transaction

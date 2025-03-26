@@ -75,8 +75,9 @@ impl ConnectionParser {
                 return Err(HtpStatus::ERROR);
             }
             let resp = resp.unwrap();
-            let header_fn = Some(resp.cfg.hook_response_header_data.clone());
-            let trailer_fn = Some(resp.cfg.hook_response_trailer_data.clone());
+            let cfg = unsafe { resp.cfg.as_ref().unwrap() };
+            let header_fn = Some(cfg.hook_response_header_data.clone());
+            let trailer_fn = Some(cfg.hook_response_trailer_data.clone());
             input.reset_callback_start();
 
             match resp.response_progress {
@@ -109,7 +110,8 @@ impl ConnectionParser {
         if let Some(response_header) = &self.response_header {
             newlen = newlen.wrapping_add(response_header.len());
         }
-        let field_limit = self.cfg.field_limit;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let field_limit = cfg.field_limit;
         if newlen > field_limit {
             htp_error!(
                 self.logger,
@@ -673,7 +675,8 @@ impl ConnectionParser {
         if response_tx.is_none() {
             return Err(HtpStatus::ERROR);
         }
-        if is_line_ignorable(self.cfg.server_personality, line) {
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        if is_line_ignorable(cfg.server_personality, line) {
             if self.response_status == HtpStreamState::CLOSED {
                 self.response_state = State::FINALIZE
             }
@@ -874,7 +877,8 @@ impl ConnectionParser {
     /// into a single buffer before invoking the parsing function.
     fn process_response_header(&mut self, header: Header) -> Result<()> {
         let mut repeated = false;
-        let hl = self.cfg.number_headers_limit as usize;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let hl = cfg.number_headers_limit as usize;
         let resp = self.response_mut();
         if resp.is_none() {
             return Err(HtpStatus::ERROR);
@@ -948,6 +952,7 @@ impl ConnectionParser {
     /// Returns HtpStatus::OK on state change, HtpStatus::ERROR on error, or HtpStatus::DATA when more data is needed.
     pub(crate) fn response_headers(&mut self, input: &mut ParserData) -> Result<()> {
         let response_index = self.response_index();
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
         if self.response_status == HtpStreamState::CLOSED {
             let resp = self.response_mut();
             if resp.is_none() {
@@ -962,8 +967,7 @@ impl ConnectionParser {
             // Finalize sending raw trailer data.
             self.response_receiver_finalize_clear(input)?;
             // Run hook response_TRAILER
-            self.cfg
-                .hook_response_trailer
+            cfg.hook_response_trailer
                 .clone()
                 .run_all(self, response_index)?;
             self.response_state = State::FINALIZE;
@@ -1014,8 +1018,7 @@ impl ConnectionParser {
                     // Finalize sending raw trailer data.
                     self.response_receiver_finalize_clear(input)?;
                     // Run hook response_TRAILER.
-                    self.cfg
-                        .hook_response_trailer
+                    cfg.hook_response_trailer
                         .clone()
                         .run_all(self, response_index)?;
                     // The next step is to finalize this response.
@@ -1071,9 +1074,8 @@ impl ConnectionParser {
                 if let Some(data) = data {
                     let _ = decompressor.decompress(data);
 
-                    if decompressor.time_spent()
-                        > self.cfg.compression_options.get_time_limit() as u64
-                    {
+                    let cfg = unsafe { self.cfg.as_ref().unwrap() };
+                    if decompressor.time_spent() > cfg.compression_options.get_time_limit() as u64 {
                         htp_log!(
                             self.logger,
                             HtpLogLevel::ERROR,
@@ -1121,7 +1123,8 @@ impl ConnectionParser {
     ///    forces decompression by setting response_content_encoding to one of the
     ///    supported algorithms.
     pub(crate) fn response_initialize_decompressors(&mut self) -> Result<()> {
-        let response_decompression_enabled = self.cfg.response_decompression_enabled;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let response_decompression_enabled = cfg.response_decompression_enabled;
         let resp = self.response_mut();
         if resp.is_none() {
             return Err(HtpStatus::ERROR);
@@ -1168,7 +1171,7 @@ impl ConnectionParser {
         };
 
         let response_content_encoding_processing = resp.response_content_encoding_processing;
-        let compression_options = self.cfg.compression_options;
+        let compression_options = cfg.compression_options;
         match &response_content_encoding_processing {
             HtpContentEncoding::GZIP
             | HtpContentEncoding::DEFLATE
@@ -1262,7 +1265,8 @@ impl ConnectionParser {
         // If no data is passed, call the hooks with NULL to signify the end of the
         // response body.
         let parser_data = ParserData::from(data);
-        let compression_options = self.cfg.compression_options;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let compression_options = cfg.compression_options;
         let resp = self.response_mut().unwrap();
         let mut tx_data = Data::new(resp, &parser_data);
 
@@ -1322,7 +1326,8 @@ impl ConnectionParser {
 
     /// Prepend response decompressor
     fn response_prepend_decompressor(&mut self, encoding: HtpContentEncoding) -> Result<()> {
-        let compression_options = self.cfg.compression_options;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let compression_options = cfg.compression_options;
         if encoding != HtpContentEncoding::NONE {
             // ensured by caller
             let resp = self.response_mut().unwrap();
@@ -1465,7 +1470,8 @@ impl ConnectionParser {
         // Run transaction hooks first
         resp.hook_response_body_data.clone().run_all(self, d)?;
         // Run configuration hooks second
-        self.cfg.hook_response_body_data.run_all(self, d)?;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_response_body_data.run_all(self, d)?;
         Ok(())
     }
 

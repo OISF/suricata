@@ -21,7 +21,7 @@ pub unsafe extern "C" fn htp_tx_destroy(connp: *mut ConnectionParser, tx: *const
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_tx_normalized_uri(tx: *const Transaction) -> *const Bstr {
-    if (*tx).cfg.decoder_cfg.normalized_uri_include_all {
+    if (*(*tx).cfg).decoder_cfg.normalized_uri_include_all {
         tx.as_ref()
             .and_then(|tx| tx.complete_normalized_uri.as_ref())
             .map(|uri| uri as *const Bstr)

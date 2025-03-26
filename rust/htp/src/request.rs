@@ -174,8 +174,9 @@ impl ConnectionParser {
         if self.request_state == State::HEADERS {
             // ensured by caller
             let req = self.request().unwrap();
-            let header_fn = Some(req.cfg.hook_request_header_data.clone());
-            let trailer_fn = Some(req.cfg.hook_request_trailer_data.clone());
+            let cfg = unsafe { req.cfg.as_ref().unwrap() };
+            let header_fn = Some(cfg.hook_request_header_data.clone());
+            let trailer_fn = Some(cfg.hook_request_trailer_data.clone());
             input.reset_callback_start();
 
             match req.request_progress {
@@ -208,7 +209,8 @@ impl ConnectionParser {
         if let Some(header) = &self.request_header {
             newlen = newlen.wrapping_add(header.len())
         }
-        let field_limit = self.cfg.field_limit;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let field_limit = cfg.field_limit;
         if newlen > field_limit {
             htp_error!(
                 self.logger,
@@ -662,7 +664,8 @@ impl ConnectionParser {
         if line.is_empty() {
             return Err(HtpStatus::DATA);
         }
-        let perso = self.cfg.server_personality;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let perso = cfg.server_personality;
         let req = self.request_mut();
         if req.is_none() {
             return Err(HtpStatus::ERROR);
@@ -715,7 +718,8 @@ impl ConnectionParser {
     fn process_request_header(&mut self, header: Header) -> Result<()> {
         // Try to parse the header.
         // ensured by caller
-        let hl = self.cfg.number_headers_limit as usize;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let hl = cfg.number_headers_limit as usize;
         let req = self.request_mut().unwrap();
         let mut repeated = false;
         let reps = req.request_header_repetitions;
@@ -881,7 +885,8 @@ impl ConnectionParser {
         req.request_line = Some(Bstr::from(request_line));
         let mut mstart: bool = false;
         let mut data: &[u8] = request_line;
-        if self.cfg.server_personality == HtpServerPersonality::APACHE_2 {
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        if cfg.server_personality == HtpServerPersonality::APACHE_2 {
             //Null terminates
             if let Ok((_, before_null)) = take_until_null(data) {
                 data = before_null
@@ -909,7 +914,7 @@ impl ConnectionParser {
                 );
 
                 let requestline_leading_whitespace_unwanted =
-                    self.cfg.requestline_leading_whitespace_unwanted;
+                    cfg.requestline_leading_whitespace_unwanted;
                 if requestline_leading_whitespace_unwanted != HtpUnwanted::IGNORE {
                     // reset mstart so that we copy the whitespace into the method
                     mstart = true;
@@ -957,7 +962,7 @@ impl ConnectionParser {
             let remaining = trimmed(remaining);
 
             let (mut uri, mut protocol) =
-                split_on_predicate(remaining, self.cfg.decoder_cfg.allow_space_uri, true, |c| {
+                split_on_predicate(remaining, cfg.decoder_cfg.allow_space_uri, true, |c| {
                     *c == 0x20
                 });
 
@@ -969,12 +974,10 @@ impl ConnectionParser {
                     "Request line: URI contains non-compliant delimiter"
                 );
                 // if we've seen some 'bad' delimiters, we retry with those
-                let uri_protocol = split_on_predicate(
-                    remaining,
-                    self.cfg.decoder_cfg.allow_space_uri,
-                    true,
-                    |c| is_space(*c),
-                );
+                let uri_protocol =
+                    split_on_predicate(remaining, cfg.decoder_cfg.allow_space_uri, true, |c| {
+                        is_space(*c)
+                    });
                 uri = uri_protocol.0;
                 protocol = uri_protocol.1;
             }
@@ -1049,9 +1052,8 @@ impl ConnectionParser {
                 let mut decompressor = req.request_decompressor.take().ok_or(HtpStatus::ERROR)?;
                 if let Some(data) = data {
                     let _ = decompressor.decompress(data);
-                    if decompressor.time_spent()
-                        > self.cfg.compression_options.get_time_limit() as u64
-                    {
+                    let cfg = unsafe { self.cfg.as_ref().unwrap() };
+                    if decompressor.time_spent() > cfg.compression_options.get_time_limit() as u64 {
                         htp_log!(
                             self.logger,
                             HtpLogLevel::ERROR,
@@ -1143,9 +1145,10 @@ impl ConnectionParser {
         };
 
         // Configure decompression, if enabled in the configuration.
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
         self.request_mut()
             .unwrap()
-            .request_content_encoding_processing = if self.cfg.request_decompression_enabled {
+            .request_content_encoding_processing = if cfg.request_decompression_enabled {
             self.request().unwrap().request_content_encoding
         } else {
             slow_path = false;
@@ -1154,7 +1157,7 @@ impl ConnectionParser {
 
         let req = self.request_mut().unwrap();
         let request_content_encoding_processing = req.request_content_encoding_processing;
-        let compression_options = self.cfg.compression_options;
+        let compression_options = cfg.compression_options;
         match &request_content_encoding_processing {
             HtpContentEncoding::GZIP
             | HtpContentEncoding::DEFLATE
@@ -1243,7 +1246,8 @@ impl ConnectionParser {
 
     /// Prepend a decompressor to the request
     fn request_prepend_decompressor(&mut self, encoding: HtpContentEncoding) -> Result<()> {
-        let compression_options = self.cfg.compression_options;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let compression_options = cfg.compression_options;
         if encoding != HtpContentEncoding::NONE {
             // ensured by caller
             let req = self.request_mut().unwrap();
@@ -1290,7 +1294,8 @@ impl ConnectionParser {
         self.request_run_hook_body_data(&mut tx_data)
             .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "body data hook failed"))?;
 
-        let compression_options = self.cfg.compression_options;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let compression_options = cfg.compression_options;
         let req = self.request_mut().unwrap();
         if let Some(decompressor) = &mut req.request_decompressor {
             if decompressor.callback_inc() % compression_options.get_time_test_freq() == 0 {
@@ -1471,7 +1476,8 @@ impl ConnectionParser {
         }
         req.hook_request_body_data.clone().run_all(self, d)?;
         // Run configuration hooks second
-        self.cfg.hook_request_body_data.run_all(self, d)?;
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        cfg.hook_request_body_data.run_all(self, d)?;
         Ok(())
     }
 

@@ -15,7 +15,7 @@ use crate::{
     HtpStatus,
 };
 
-use std::{any::Any, cmp::Ordering, rc::Rc};
+use std::{any::Any, cmp::Ordering};
 
 #[derive(Debug, Clone)]
 /// This structure is used to pass transaction data (for example
@@ -301,7 +301,7 @@ pub struct Transaction {
     /// The logger structure associated with this transaction
     pub(crate) logger: Logger,
     /// The configuration structure associated with this transaction.
-    pub(crate) cfg: Rc<&'static Config>,
+    pub(crate) cfg: *const Config,
     /// The user data associated with this transaction.
     pub(crate) user_data: Option<Box<dyn Any>>,
     // Request fields
@@ -599,10 +599,10 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     /// Construct a new transaction.
-    pub(crate) fn new(cfg: &Rc<&'static Config>, logger: &Logger, index: usize) -> Self {
+    pub(crate) fn new(cfg: *const Config, logger: &Logger, index: usize) -> Self {
         Self {
             logger: logger.clone(),
-            cfg: Rc::clone(cfg),
+            cfg: cfg,
             user_data: None,
             request_ignored_lines: 0,
             request_line: None,
@@ -833,7 +833,8 @@ impl Transaction {
             self.request_content_type = Some(parse_content_type(ct.value.as_slice())?);
         }
         // Parse authentication information.
-        if self.cfg.parse_request_auth {
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        if cfg.parse_request_auth {
             parse_authorization(self).or_else(|rc| {
                 if rc == HtpStatus::DECLINED {
                     // Don't fail the stream if an authorization header is invalid, just set a flag.
@@ -872,7 +873,8 @@ impl Transaction {
     /// Parse the raw request line
     pub(crate) fn parse_request_line(&mut self) -> Result<()> {
         // Determine how to process the request URI.
-        let mut parsed_uri = Uri::with_config(self.cfg.decoder_cfg);
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let mut parsed_uri = Uri::with_config(cfg.decoder_cfg);
         if self.request_method_number == HtpMethod::CONNECT {
             // When CONNECT is used, the request URI contains an authority string.
             parsed_uri.parse_uri_hostport(
@@ -889,14 +891,14 @@ impl Transaction {
             // Keep the original URI components, but create a copy which we can normalize and use internally.
             self.normalize_parsed_uri();
         }
-        if self.cfg.parse_urlencoded {
+        if cfg.parse_urlencoded {
             if let Some(query) = self
                 .parsed_uri
                 .as_ref()
                 .and_then(|parsed_uri| parsed_uri.query.clone())
             {
                 // We have a non-zero length query string.
-                let mut urlenp = UrlEncodedParser::new(self.cfg.decoder_cfg);
+                let mut urlenp = UrlEncodedParser::new(cfg.decoder_cfg);
                 urlenp.parse_complete(query.as_slice());
             }
         }
@@ -935,7 +937,8 @@ impl Transaction {
 
     /// Normalize a previously-parsed request URI.
     pub(crate) fn normalize_parsed_uri(&mut self) {
-        let mut uri = Uri::with_config(self.cfg.decoder_cfg);
+        let cfg = unsafe { self.cfg.as_ref().unwrap() };
+        let mut uri = Uri::with_config(cfg.decoder_cfg);
         if let Some(incomplete) = &self.parsed_uri_raw {
             uri.scheme = incomplete.normalized_scheme();
             uri.username = incomplete.normalized_username(&mut self.flags);

@@ -16,9 +16,6 @@ pub struct Config {
     /// input chunk does not contain all the necessary data (e.g., a header
     /// line that spans several packets).
     pub(crate) field_limit: usize,
-    /// Whether to delete each transaction after the last hook is invoked. This
-    /// feature should be used when parsing traffic streams in real time.
-    pub(crate) tx_auto_destroy: bool,
     /// Server personality identifier.
     pub(crate) server_personality: HtpServerPersonality,
     /// Decoder configuration for url path.
@@ -111,7 +108,6 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             field_limit: 18000,
-            tx_auto_destroy: false,
             server_personality: HtpServerPersonality::MINIMAL,
             decoder_cfg: Default::default(),
             response_decompression_enabled: true,
