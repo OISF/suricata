@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_LUA_HTTP_H
 #define SURICATA_UTIL_LUA_HTTP_H
 
-int LuaRegisterHttpFunctions(lua_State *luastate);
+#include "lua.h"
+
+int SCLuaLoadHttpLib(lua_State *);
 
 #endif /* SURICATA_UTIL_LUA_HTTP_H */

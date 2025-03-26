@@ -591,9 +591,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
 
     /* register functions common to all */
     LuaRegisterFunctions(luastate);
-    /* unconditionally register http function. They will only work
-     * if the tx is registered in the state at runtime though. */
-    LuaRegisterHttpFunctions(luastate);
     LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSshFunctions(luastate);
