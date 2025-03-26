@@ -643,7 +643,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     }
 
     lua_pushnil(luastate);
-    const char *k, *v;
+    const char *k;
     while (lua_next(luastate, -2)) {
         k = lua_tostring(luastate, -2);
         if (k == NULL)
@@ -724,17 +724,17 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             continue;
         }
 
-        v = lua_tostring(luastate, -1);
+        bool required = lua_toboolean(luastate, -1);
         lua_pop(luastate, 1);
-        if (v == NULL)
+        if (!required) {
             continue;
+        }
 
-        SCLogDebug("k='%s', v='%s'", k, v);
-        if (strcmp(k, "packet") == 0 && strcmp(v, "true") == 0) {
+        if (strcmp(k, "packet") == 0) {
             ld->flags |= FLAG_DATATYPE_PACKET;
-        } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
+        } else if (strcmp(k, "payload") == 0) {
             ld->flags |= FLAG_DATATYPE_PAYLOAD;
-        } else if (strcmp(k, "buffer") == 0 && strcmp(v, "true") == 0) {
+        } else if (strcmp(k, "buffer") == 0) {
             ld->flags |= FLAG_DATATYPE_BUFFER;
 
             ld->buffername = SCStrdup("buffer");
@@ -742,7 +742,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 SCLogError("alloc error");
                 goto error;
             }
-        } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
+        } else if (strcmp(k, "stream") == 0) {
             ld->flags |= FLAG_DATATYPE_STREAM;
 
             ld->buffername = SCStrdup("stream");
@@ -751,7 +751,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 goto error;
             }
 
-        } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "http", 4) == 0) {
             if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP1) {
                 SCLogError(
                         "can just inspect script against one app layer proto like HTTP at a time");
@@ -811,7 +811,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 SCLogError("alloc error");
                 goto error;
             }
-        } else if (strncmp(k, "dns", 3) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "dns", 3) == 0) {
 
             ld->alproto = ALPROTO_DNS;
 
@@ -831,23 +831,23 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 SCLogError("alloc error");
                 goto error;
             }
-        } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "tls", 3) == 0) {
 
             ld->alproto = ALPROTO_TLS;
 
-        } else if (strncmp(k, "ssh", 3) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "ssh", 3) == 0) {
 
             ld->alproto = ALPROTO_SSH;
 
             ld->flags |= FLAG_DATATYPE_SSH;
 
-        } else if (strncmp(k, "smtp", 4) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "smtp", 4) == 0) {
 
             ld->alproto = ALPROTO_SMTP;
 
             ld->flags |= FLAG_DATATYPE_SMTP;
 
-        } else if (strncmp(k, "dnp3", 4) == 0 && strcmp(v, "true") == 0) {
+        } else if (strncmp(k, "dnp3", 4) == 0) {
 
             ld->alproto = ALPROTO_DNP3;
 
