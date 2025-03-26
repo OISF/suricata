@@ -113,7 +113,7 @@ void StreamTcpReassembleInitMemuse(void)
  *
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
-void StreamTcpReassembleIncrMemuse(uint64_t size)
+static void StreamTcpReassembleIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(ra_memuse, size);
     SCLogDebug("REASSEMBLY %" PRIu64 ", incr %" PRIu64, StreamTcpReassembleMemuseGlobalCounter(),
@@ -126,7 +126,7 @@ void StreamTcpReassembleIncrMemuse(uint64_t size)
  *
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
-void StreamTcpReassembleDecrMemuse(uint64_t size)
+static void StreamTcpReassembleDecrMemuse(uint64_t size)
 {
 #ifdef UNITTESTS
     uint64_t presize = SC_ATOMIC_GET(ra_memuse);
