@@ -7,7 +7,7 @@ use std::rc::Rc;
 /// transactions, and guarantees that the current request or
 /// response transaction will always exist.
 pub(crate) struct Transactions {
-    config: Rc<Config>,
+    config: Rc<&'static Config>,
     logger: Logger,
     request: usize,
     response: usize,
@@ -16,7 +16,7 @@ pub(crate) struct Transactions {
 
 impl Transactions {
     /// Make a new Transactions struct with the given config
-    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger) -> Self {
+    pub(crate) fn new(cfg: &Rc<&'static Config>, logger: &Logger) -> Self {
         Self {
             config: Rc::clone(cfg),
             logger: logger.clone(),

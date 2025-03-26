@@ -301,7 +301,7 @@ pub struct Transaction {
     /// The logger structure associated with this transaction
     pub(crate) logger: Logger,
     /// The configuration structure associated with this transaction.
-    pub(crate) cfg: Rc<Config>,
+    pub(crate) cfg: Rc<&'static Config>,
     /// The user data associated with this transaction.
     pub(crate) user_data: Option<Box<dyn Any>>,
     // Request fields
@@ -599,7 +599,7 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     /// Construct a new transaction.
-    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger, index: usize) -> Self {
+    pub(crate) fn new(cfg: &Rc<&'static Config>, logger: &Logger, index: usize) -> Self {
         Self {
             logger: logger.clone(),
             cfg: Rc::clone(cfg),

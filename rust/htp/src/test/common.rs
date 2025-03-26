@@ -170,7 +170,7 @@ impl Test {
             None
         };
 
-        let connp = ConnectionParser::new(cfg);
+        let connp = ConnectionParser::new(Box::leak(Box::new(cfg)));
         Test { connp, basedir }
     }
 

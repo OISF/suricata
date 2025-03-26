@@ -278,7 +278,7 @@ pub struct ConnectionParser {
     /// The logger structure associated with this parser
     pub(crate) logger: Logger,
     /// A reference to the current parser configuration structure.
-    pub(crate) cfg: Rc<Config>,
+    pub(crate) cfg: Rc<&'static Config>,
     /// The connection structure associated with this parser.
     pub(crate) conn: Connection,
     /// Opaque user data associated with this parser.
@@ -369,7 +369,7 @@ impl std::fmt::Debug for ConnectionParser {
 
 impl ConnectionParser {
     /// Creates a new ConnectionParser with a preconfigured `Config` struct.
-    pub(crate) fn new(cfg: Config) -> Self {
+    pub(crate) fn new(cfg: &'static Config) -> Self {
         let cfg = Rc::new(cfg);
         let conn = Connection::default();
         let logger = Logger::new(conn.get_sender());

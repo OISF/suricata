@@ -33,7 +33,7 @@ impl Test {
             .unwrap();
         // The default bomb limit may be slow in some development environments causing tests to fail.
         cfg.compression_options.set_time_limit(std::u32::MAX);
-        let mut connp = ConnectionParser::new(cfg);
+        let mut connp = ConnectionParser::new(Box::leak(Box::new(cfg)));
 
         let expected = Bstr::from("The five boxing wizards jump quickly.");
         let tx = connp.request_mut().unwrap() as *mut Transaction;

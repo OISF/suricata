@@ -48,9 +48,8 @@ pub unsafe extern "C" fn htp_connp_close(
 /// When calling this method, you have to ensure that connp is either properly initialized or NULL
 #[no_mangle]
 pub unsafe extern "C" fn htp_connp_create(cfg: *mut Config) -> *mut ConnectionParser {
-    Box::into_raw(Box::new(ConnectionParser::new(
-        cfg.as_ref().cloned().unwrap_or_default(),
-    )))
+    let cfg = &mut (*cfg);
+    Box::into_raw(Box::new(ConnectionParser::new(cfg)))
 }
 
 /// Destroys the connection parser, its data structures, as well

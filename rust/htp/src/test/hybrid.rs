@@ -192,7 +192,7 @@ struct HybridParsingTest {
 
 impl HybridParsingTest {
     fn new(cfg: Config) -> Self {
-        let mut connp = ConnectionParser::new(cfg);
+        let mut connp = ConnectionParser::new(Box::leak(Box::new(cfg)));
         connp.open(
             Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
             Some(32768),
