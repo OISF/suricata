@@ -492,7 +492,7 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         if (prefix < (offset - *len)) {
             goto error;
         }
-        object->{{field.len_field}} = (uint16_t) (prefix - (offset - *len));
+        object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
 {% endif %}
         if (object->{{field.len_field}} > 0) {
             if (*len < object->{{field.len_field}}) {
@@ -513,9 +513,9 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
             goto error;
         }
 {% if field.size == 255 %}
-        object->{{field.len_field}} = (uint8_t) (prefix - (offset - *len));
+        object->{{field.len_field}} = (uint8_t)(prefix - (offset - *len));
 {% else %}
-        object->{{field.len_field}} = (uint16_t) (prefix - (offset - *len));
+        object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
 {% endif %}
 {% endif %}
         if (object->{{field.len_field}} > 0) {
