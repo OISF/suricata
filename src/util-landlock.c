@@ -22,6 +22,7 @@
  */
 
 #include "suricata.h"
+#include "detect-engine.h"
 #include "feature.h"
 #include "util-conf.h"
 #include "util-file.h"
@@ -199,6 +200,10 @@ void LandlockSandboxing(SCInstance *suri)
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
+                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+    }
+    if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
+        LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
                 _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
