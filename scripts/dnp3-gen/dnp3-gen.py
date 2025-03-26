@@ -710,7 +710,7 @@ def main():
         print("error: jinja2 v2.10 or great required")
         return 1
 
-    definitions = yaml.load(open("scripts/dnp3-gen/dnp3-objects.yaml"))
+    definitions = yaml.load(open("scripts/dnp3-gen/dnp3-objects.yaml"), yaml.Loader)
     print("Loaded %s objects." % (len(definitions["objects"])))
     definitions["objects"] = map(preprocess_object, definitions["objects"])
 
