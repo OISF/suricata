@@ -114,7 +114,6 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_HTTP_RESPONSE_BODY        BIT_U32(12)
 #define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS     BIT_U32(13)
 #define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW BIT_U32(14)
-#define FLAG_DATATYPE_DNS_RRNAME                BIT_U32(15)
 #define FLAG_DATATYPE_DNS_REQUEST               BIT_U32(16)
 #define FLAG_DATATYPE_DNS_RESPONSE              BIT_U32(17)
 #define FLAG_DATATYPE_SSH                       BIT_U32(19)
@@ -815,9 +814,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
             ld->alproto = ALPROTO_DNS;
 
-            if (strcmp(k, "dns.rrname") == 0)
-                ld->flags |= FLAG_DATATYPE_DNS_RRNAME;
-            else if (strcmp(k, "dns.request") == 0)
+            if (strcmp(k, "dns.request") == 0)
                 ld->flags |= FLAG_DATATYPE_DNS_REQUEST;
             else if (strcmp(k, "dns.response") == 0)
                 ld->flags |= FLAG_DATATYPE_DNS_RESPONSE;
@@ -966,9 +963,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
             list = DetectBufferTypeGetByName("http_request_line");
         }
     } else if (lua->alproto == ALPROTO_DNS) {
-        if (lua->flags & FLAG_DATATYPE_DNS_RRNAME) {
-            list = DetectBufferTypeGetByName("dns_query");
-        } else if (lua->flags & FLAG_DATATYPE_DNS_REQUEST) {
+        if (lua->flags & FLAG_DATATYPE_DNS_REQUEST) {
             list = DetectBufferTypeGetByName("dns_request");
         } else if (lua->flags & FLAG_DATATYPE_DNS_RESPONSE) {
             list = DetectBufferTypeGetByName("dns_response");
