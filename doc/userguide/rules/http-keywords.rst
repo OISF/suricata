@@ -796,6 +796,9 @@ http.stat_msg
 The ``http.stat_msg`` keyword is used to match on the HTTP status message
 that can be present in an HTTP response.
 
+For HTTP/2, an empty buffer is returned by Suricata.
+See rfc 7540 section 8.1.2.4. about Response Pseudo-Header Fields.
+
 It is possible to use any of the :doc:`payload-keywords` with the
 ``http.stat_msg`` keyword.
 
@@ -1215,6 +1218,9 @@ http.protocol
 
 The ``http.protocol`` keyword is used to match on the protocol field that is
 contained in HTTP requests and responses.
+
+For HTTP/2, the constant string "HTTP/2" is used.
+See rfc 7540 section 8.1.2.4. about Response Pseudo-Header Fields.
 
 It is possible to use any of the :doc:`payload-keywords` with the
 ``http.protocol`` keyword.
