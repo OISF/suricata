@@ -1373,7 +1373,7 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
 
     switch (set->type) {
         case DATASET_TYPE_STRING: {
-            uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(string));
+            uint32_t decoded_size = SCBase64DecodeBufferSize((uint32_t)strlen(string));
             uint8_t decoded[decoded_size];
             uint32_t num_decoded = SCBase64Decode(
                     (const uint8_t *)string, strlen(string), SCBase64ModeStrict, decoded);
