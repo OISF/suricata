@@ -254,7 +254,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* Adjust the detection context to the jump location. */
     DEBUG_VALIDATE_BUG_ON(jumpptr < payload);
-    det_ctx->buffer_offset = jumpptr - payload;
+    det_ctx->buffer_offset = (uint32_t)(jumpptr - payload);
 
     SCReturnBool(true);
 }

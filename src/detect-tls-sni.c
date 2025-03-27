@@ -120,7 +120,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = strlen(ssl_state->client_connp.sni);
+        const uint32_t data_len = (uint32_t)strlen(ssl_state->client_connp.sni);
         const uint8_t *data = (uint8_t *)ssl_state->client_connp.sni;
 
         InspectionBufferSetupAndApplyTransforms(
