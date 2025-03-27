@@ -38,6 +38,13 @@
         lua_settable(luastate, -3);             \
     } while (0);
 
+static void SCLuaPushBoolean(lua_State *L, const char *key, bool val)
+{
+    lua_pushstring(L, key);
+    lua_pushboolean(L, val);
+    lua_settable(L, -3);
+}
+
 static void DNP3PushPoints(lua_State *luastate, DNP3Object *object)
 {
     DNP3Point *point;
@@ -165,7 +172,7 @@ static int DNP3GetTx(lua_State *luastate)
     lua_pushinteger(luastate, tx->tx_num);
     lua_settable(luastate, -3);
 
-    LUA_PUSHT_INT(luastate, "has_request", tx->is_request ? 1 : 0);
+    SCLuaPushBoolean(luastate, "is_request", tx->is_request);
     if (tx->is_request) {
         lua_pushliteral(luastate, "request");
         lua_newtable(luastate);
@@ -173,10 +180,7 @@ static int DNP3GetTx(lua_State *luastate)
         LUA_PUSHT_INT(luastate, "complete", tx->complete);
         DNP3PushRequest(luastate, tx);
         lua_settable(luastate, -3);
-    }
-
-    LUA_PUSHT_INT(luastate, "has_response", tx->is_request ? 0 : 1);
-    if (!tx->is_request) {
+    } else {
         lua_pushliteral(luastate, "response");
         lua_newtable(luastate);
         LUA_PUSHT_INT(luastate, "done", tx->done);
