@@ -901,8 +901,10 @@ jobs:
   # This job builds and tests Suricata as a non-root user as some
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
+  # Also ja3 and ja4 are disabled to run SV tests that require
+  # the absence of these features
   fedora-non-root:
-    name: Fedora (non-root, debug, clang, asan, wshadow, rust-strict)
+    name: Fedora (non-root, debug, clang, asan, wshadow, rust-strict, no-ja)
     runs-on: ubuntu-latest
     container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
@@ -963,7 +965,10 @@ jobs:
       - run: sudo -u suricata -s ./autogen.sh
         working-directory: /home/suricata/suricata
 
-      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: >-
+          sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-warnings
+          --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
+          --enable-nfqueue --disable-ja3 --disable-ja4
         working-directory: /home/suricata/suricata
         env:
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -976,6 +981,12 @@ jobs:
         working-directory: /home/suricata/suricata
 
       - run: sudo -u suricata -s make check
+        working-directory: /home/suricata/suricata
+
+      - run: src/suricata --build-info | grep -E "JA3 support:\s+no" &> /dev/null
+        working-directory: /home/suricata/suricata
+
+      - run: src/suricata --build-info | grep -E "JA4 support:\s+no" &> /dev/null
         working-directory: /home/suricata/suricata
 
       - run: sudo -u suricata -s python3 ./suricata-verify/run.py -q --debug-failed
