@@ -1842,7 +1842,7 @@ port independent.
         dp: 443
 
       # What to do when the encrypted communications start:
-      # - default: keep tracking TLS session, check for protocol anomalies,
+      # - track-only: keep tracking TLS session, check for protocol anomalies,
       #            inspect tls_* keywords. Disables inspection of unmodified
       #            'content' signatures.
       # - bypass:  stop processing this flow as much as possible. No further
@@ -1853,7 +1853,7 @@ port independent.
       #
       # For best performance, select 'bypass'.
       #
-      #encryption-handling: default
+      #encryption-handling: track-only
 
 
 Encrypted traffic
@@ -1879,7 +1879,7 @@ flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
 present, and ``encryption-handling`` is not, ``false`` is interpreted as
-``encryption-handling: default`` and ``true`` is interpreted as
+``encryption-handling: track-only`` and ``true`` is interpreted as
 ``encryption-handling: bypass``.
 
 
