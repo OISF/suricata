@@ -128,6 +128,9 @@ Major changes
     can be used to tune this value for TPACKET_V2. Due to the
     increased block size, memory usage has been increased, but
     should not be an issue in most cases.
+- Encryption handling keyword ``default`` has been deprecated and is replaced
+  by ``track-only`` keyword in ``app-layer.protocols.tls.encryption-handling``
+  setting. The ``default`` keyword will be removed in Suricata 9.0.
 
 Removals
 ~~~~~~~~
@@ -140,6 +143,9 @@ Deprecations
 - The ``syslog`` output is now deprecated and will be removed in
   Suricata 9.0. Note that this is the standalone ``syslog`` output and
   does affect the ``eve`` outputs ability to send to syslog.
+- The ``default`` option in ``app-layer.protocols.tls.encryption-handling`` is
+  now deprecated and will be removed in Suricata 9.0. The ``track-only`` option
+  should be used instead.
 
 Logging changes
 ~~~~~~~~~~~~~~~
