@@ -153,6 +153,9 @@ Deprecations
 - The ``syslog`` output is now deprecated and will be removed in
   Suricata 9.0. Note that this is the standalone ``syslog`` output and
   does affect the ``eve`` outputs ability to send to syslog.
+- The ``default`` option in ``app-layer.protocols.tls.encryption-handling`` is
+  now deprecated and will be removed in Suricata 9.0. The ``track-only`` option
+  should be used instead.
 
 Keyword changes
 ~~~~~~~~~~~~~~~
