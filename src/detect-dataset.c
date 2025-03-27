@@ -118,7 +118,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
     if (data == NULL || data_len == 0)
         return 0;
 
-    if (sd->format == DATASET_FORMAT_JSON) {
+    if ((sd->format == DATASET_FORMAT_JSON) || (sd->format == DATASET_FORMAT_JSONLINE)) {
         return DetectDatajsonBufferMatch(det_ctx, sd, data, data_len);
     }
 
@@ -265,6 +265,8 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 SCLogDebug("format %s", val);
                 if (strcmp(val, "csv") == 0) {
                     *format = DATASET_FORMAT_CSV;
+                } else if (strcmp(val, "jsonline") == 0) {
+                    *format = DATASET_FORMAT_JSONLINE;
                 } else if (strcmp(val, "json") == 0) {
                     *format = DATASET_FORMAT_JSON;
                 } else {
@@ -477,13 +479,13 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     } else if (strcmp(cmd_str,"isnotset") == 0) {
         cmd = DETECT_DATASET_CMD_ISNOTSET;
     } else if (strcmp(cmd_str,"set") == 0) {
-        if (format == DATASET_FORMAT_JSON) {
+        if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_JSONLINE)) {
             SCLogError("json format is not supported for 'set' command");
             return -1;
         }
         cmd = DETECT_DATASET_CMD_SET;
     } else if (strcmp(cmd_str,"unset") == 0) {
-        if (format == DATASET_FORMAT_JSON) {
+        if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_JSONLINE)) {
             SCLogError("json format is not supported for 'unset' command");
             return -1;
         }
@@ -493,7 +495,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         return -1;
     }
 
-    if (format == DATASET_FORMAT_JSON) {
+    if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_JSONLINE)) {
         if (strlen(save) != 0) {
             SCLogError("json format is not supported with 'save' or 'state' option");
             return -1;
@@ -527,7 +529,11 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     Dataset *set = NULL;
 
     if (format == DATASET_FORMAT_JSON) {
-        set = DatajsonGet(name, type, load, memcap, hashsize, value_key, array_key);
+        set = DatajsonGet(
+                name, type, load, memcap, hashsize, value_key, array_key, DATASET_FORMAT_JSON);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        set = DatajsonGet(
+                name, type, load, memcap, hashsize, value_key, NULL, DATASET_FORMAT_JSONLINE);
     } else {
         set = DatasetGet(name, type, save, load, memcap, hashsize);
     }
@@ -543,7 +549,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     cd->set = set;
     cd->cmd = cmd;
     cd->format = format;
-    if (format == DATASET_FORMAT_JSON) {
+    if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_JSONLINE)) {
         strlcpy(cd->json_key, enrichment_key, sizeof(cd->json_key));
     }
     cd->id = s;

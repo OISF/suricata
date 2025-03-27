@@ -42,7 +42,7 @@ typedef struct DataJsonResultType {
 /* Common functions */
 
 Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value, char *json_array_key);
+        uint32_t hashsize, char *json_key_value, char *json_array_key, DatasetFormats format);
 
 DataJsonResultType DatajsonLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 
