@@ -342,7 +342,7 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
     }
 }
 
-static void SigMultilinePrint(int i, const char *prefix)
+static void SigMultilinePrint(size_t i, const char *prefix)
 {
     if (sigmatch_table[i].desc) {
         printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
