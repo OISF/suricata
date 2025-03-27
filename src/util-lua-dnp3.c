@@ -188,10 +188,15 @@ static int DNP3GetTx(lua_State *luastate)
     return 1;
 }
 
-int LuaRegisterDNP3Functions(lua_State *luastate)
-{
-    lua_pushcfunction(luastate, DNP3GetTx);
-    lua_setglobal(luastate, "DNP3GetTx");
+static const struct luaL_Reg dnp3lib[] = {
+    // clang-format off
+    { "get_tx", DNP3GetTx, },
+    { NULL, NULL, }
+    // clang-format on
+};
 
-    return 0;
+int SCLuaLoadDnp3Lib(lua_State *L)
+{
+    luaL_newlib(L, dnp3lib);
+    return 1;
 }

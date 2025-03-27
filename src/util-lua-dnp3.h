@@ -18,6 +18,6 @@
 #ifndef SURICATA_UTIL_LUA_DNP3_H
 #define SURICATA_UTIL_LUA_DNP3_H
 
-int LuaRegisterDNP3Functions(lua_State *);
+int SCLuaLoadDnp3Lib(lua_State *L);
 
 #endif /* !SURICATA_UTIL_LUA_DNP3_H */
