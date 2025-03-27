@@ -137,9 +137,9 @@ enum {
 #define SSL_CONFIG_DEFAULT_JA4 0
 
 enum SslConfigEncryptHandling {
-    SSL_CNF_ENC_HANDLE_DEFAULT = 0, /**< disable raw content, continue tracking */
-    SSL_CNF_ENC_HANDLE_BYPASS = 1,  /**< skip processing of flow, bypass if possible */
-    SSL_CNF_ENC_HANDLE_FULL = 2,    /**< handle fully like any other proto */
+    SSL_CNF_ENC_HANDLE_TRACK_ONLY = 0, /**< disable raw content, continue tracking */
+    SSL_CNF_ENC_HANDLE_BYPASS = 1,     /**< skip processing of flow, bypass if possible */
+    SSL_CNF_ENC_HANDLE_FULL = 2,       /**< handle fully like any other proto */
 };
 
 typedef struct SslConfig_ {
@@ -3316,10 +3316,15 @@ void RegisterSSLParsers(void)
                 ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_FULL;
             } else if (strcmp(enc_handle->val, "bypass") == 0) {
                 ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
+            } else if (strcmp(enc_handle->val, "track-only") == 0) {
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_TRACK_ONLY;
             } else if (strcmp(enc_handle->val, "default") == 0) {
-                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_DEFAULT;
+                SCLogWarning("app-layer.protocols.tls.encryption-handling = default is deprecated "
+                             "and will be removed in Suricata 9, use \"track-only\" instead, "
+                             "(see ticket #7642)");
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_TRACK_ONLY;
             } else {
-                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_DEFAULT;
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_TRACK_ONLY;
             }
         } else {
             /* Get the value of no reassembly option from the config file */

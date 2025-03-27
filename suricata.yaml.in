@@ -933,9 +933,9 @@ app-layer:
       #ja4-fingerprints: auto
 
       # What to do when the encrypted communications start:
-      # - default: keep tracking TLS session, check for protocol anomalies,
+      # - track-only: keep tracking TLS session, check for protocol anomalies,
       #            inspect tls_* keywords. Disables inspection of unmodified
-      #            'content' signatures.
+      #            'content' signatures. (default)
       # - bypass:  stop processing this flow as much as possible. No further
       #            TLS parsing and inspection. Offload flow bypass to kernel
       #            or hardware if possible.
@@ -944,7 +944,7 @@ app-layer:
       #
       # For best performance, select 'bypass'.
       #
-      #encryption-handling: default
+      #encryption-handling: track-only
 
     pgsql:
       enabled: no
