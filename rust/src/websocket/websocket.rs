@@ -200,6 +200,7 @@ impl WebSocketState {
                     } else {
                         &mut self.c2s_buf
                     };
+                    let mut compress = pdu.compress;
                     if !buf.data.is_empty() || !pdu.fin {
                         if buf.data.is_empty() {
                             buf.compress = pdu.compress;
@@ -216,10 +217,11 @@ impl WebSocketState {
                     tx.pdu = pdu;
                     if tx.pdu.fin && !buf.data.is_empty() {
                         // the final PDU gets the full reassembled payload
+                        compress = buf.compress;
                         std::mem::swap(&mut tx.pdu.payload, &mut buf.data);
                         buf.data.clear();
                     }
-                    if buf.compress && tx.pdu.fin {
+                    if compress && tx.pdu.fin {
                         buf.compress = false;
                         // cf RFC 7692 section-7.2.2
                         tx.pdu.payload.extend_from_slice(&[0, 0, 0xFF, 0xFF]);
