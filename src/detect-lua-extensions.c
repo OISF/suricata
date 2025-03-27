@@ -556,6 +556,5 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterSshFunctions(lua_state);
     LuaRegisterHasshFunctions(lua_state);
     LuaRegisterSmtpFunctions(lua_state);
-    LuaRegisterDNP3Functions(lua_state);
     return 0;
 }
