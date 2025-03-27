@@ -100,7 +100,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        uint32_t data_len = bstr_size(str);
+        uint32_t data_len = (uint32_t)bstr_size(str);
         uint8_t *data = bstr_ptr(str);
         if (data == NULL || data_len == 0) {
             SCLogDebug("HTTP protocol not present");

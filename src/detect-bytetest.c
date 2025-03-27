@@ -401,7 +401,7 @@ static DetectBytetestData *DetectBytetestParse(
             data->neg_op = true;
             op_ptr = &args[1][1];
             while (isspace((char)*op_ptr) || (*op_ptr == ',')) op_ptr++;
-            op_offset = op_ptr - &args[1][0];
+            op_offset = (uint32_t)(op_ptr - &args[1][0]);
         } else {
             data->neg_op = false;
         }
