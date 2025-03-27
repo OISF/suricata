@@ -550,7 +550,6 @@ int LuaRegisterExtensions(lua_State *lua_state)
     lua_setglobal(lua_state, "SCByteVarGet");
 
     LuaRegisterFunctions(lua_state);
-    LuaRegisterHttpFunctions(lua_state);
     LuaRegisterJa3Functions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
     LuaRegisterSshFunctions(lua_state);

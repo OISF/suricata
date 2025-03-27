@@ -63,12 +63,12 @@ int LuaCallbackError(lua_State *luastate, const char *msg)
     return 2;
 }
 
-const char *LuaGetStringArgument(lua_State *luastate, int argc)
+const char *LuaGetStringArgument(lua_State *luastate, int idx)
 {
     /* get argument */
-    if (!lua_isstring(luastate, argc))
+    if (!lua_isstring(luastate, idx))
         return NULL;
-    const char *str = lua_tostring(luastate, argc);
+    const char *str = lua_tostring(luastate, idx);
     if (str == NULL)
         return NULL;
     if (strlen(str) == 0)
