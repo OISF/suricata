@@ -162,7 +162,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         if (unlikely(htp_tx_request_line(tx) == NULL)) {
             return NULL;
         }
-        const uint32_t data_len = bstr_len(htp_tx_request_line(tx));
+        const uint32_t data_len = (uint32_t)bstr_len(htp_tx_request_line(tx));
         const uint8_t *data = bstr_ptr(htp_tx_request_line(tx));
 
         InspectionBufferSetupAndApplyTransforms(

@@ -45,7 +45,6 @@ void HttpHeaderThreadDataFree(void *data);
 HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
         const int keyword_id, HttpHeaderThreadData **ret_hdr_td);
 
-int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
-        HttpHeaderBuffer *buf, uint32_t size);
+int HttpHeaderExpandBuffer(HttpHeaderThreadData *td, HttpHeaderBuffer *buf, size_t size);
 
 #endif /* SURICATA_DETECT_HTTP_HEADER_COMMON_H */

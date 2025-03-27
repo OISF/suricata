@@ -68,7 +68,7 @@ static bool TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx, const void 
     }
 
     *buf = (const uint8_t *)connp->cert0_sans[idx];
-    *buf_len = strlen(connp->cert0_sans[idx]);
+    *buf_len = (uint32_t)strlen(connp->cert0_sans[idx]);
     return true;
 }
 

@@ -408,7 +408,7 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  - Negated content values are checked but not accumulated for the required size.
  */
 void SigParseRequiredContentSize(
-        const Signature *s, const int max_size, const SigMatch *sm, int *len, int *offset)
+        const Signature *s, const uint64_t max_size, const SigMatch *sm, int *len, int *offset)
 {
     int max_offset = 0, total_len = 0;
     bool first = true;
@@ -430,7 +430,7 @@ void SigParseRequiredContentSize(
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 /* Check if distance/within cause max to be exceeded */
                 int check = total_len + cd->distance + cd->within;
-                if (max_size < check) {
+                if (max_size < (uint64_t)check) {
                     *len = check;
                     return;
                 }
@@ -459,12 +459,11 @@ bool DetectContentPMATCHValidateCallback(const Signature *s)
         return true;
     }
 
-    int max_right_edge_i = SigParseGetMaxDsize(s);
-    if (max_right_edge_i < 0) {
+    uint16_t max_right_edge_i;
+    if (SigParseGetMaxDsize(s, &max_right_edge_i) < 0) {
         return true;
     }
-
-    uint32_t max_right_edge = (uint32_t)max_right_edge_i;
+    uint32_t max_right_edge = max_right_edge_i;
 
     int min_dsize_required = SigParseMaxRequiredDsize(s);
     if (min_dsize_required >= 0) {

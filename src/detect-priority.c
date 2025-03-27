@@ -84,7 +84,7 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     pcre2_match_data_free(match);
     char *endptr = NULL;
-    long prio = strtol(copy_str, &endptr, 10);
+    int prio = (int)strtol(copy_str, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
         SCLogError("Saw an invalid character as arg "
                    "to priority keyword");
