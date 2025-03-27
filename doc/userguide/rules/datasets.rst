@@ -80,7 +80,7 @@ Syntax::
 
     dataset:<set|unset|isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
-         , format <csv|json>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>];
+         , format <csv|json|jsonline>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>];
 
 type <type>
   the data type: string, md5, sha256, ipv4, ip
@@ -98,7 +98,7 @@ hashsize <size>
 format <type>
   the format of the file: csv, json. Defaut to csv. See
   :ref:`dataset with json format <datasets_json>` for json
-  option
+  and jsonline option
 enrichment_key <key>
   the key to use for the enrichment of the alert event
   for json format
@@ -169,12 +169,17 @@ dataset with json
 DataJSON allows matching data against a set and output data attached to the matching
 value in the event.
 
+There is two format supported: ``json`` and ``jsonline``. The difference is that
+``json`` format is a single JSON object, while ``jsonline`` is handling file with
+one JSON object per line. The ``jsonline`` format is useful for large files
+as the parsing is done line by line.
+
 Syntax::
 
     dataset:<cmd>,<name>,<options>;
 
     dataset:<isset|isnotset>,<name> \
-        [, type <string|md5|sha256|ipv4|ip>, load <file name>, format json, memcap <size>, hashsize <size>, enrichment_key <json_key> \
+        [, type <string|md5|sha256|ipv4|ip>, load <file name>, format <json|jsonline>, memcap <size>, hashsize <size>, enrichment_key <json_key> \
          , value_key <json_key>, array_key <json_path>];
 
 Example rules could look like::
@@ -188,7 +193,7 @@ data associated to the value.
 If ``json_key`` is present then the data file has to contains a valid JSON object containing an array
 where every elemeents have to contain a key equal to ``json_key``.
 If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
-a JSON array.
+a JSON array. This is only valid for ``json`` format.
 
 See :ref:`Datajson format <datajson_data>` for more information.
 
