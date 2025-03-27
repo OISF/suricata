@@ -101,6 +101,12 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         return;
     }
 
+    /* Ignore packets that have a different protocol than the
+     * flow. This can happen with ICMP unreachable packets. */
+    if (p->proto != f->proto) {
+        return;
+    }
+
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
         ip_len = IPV4_GET_RAW_IPLEN(ip4h);
