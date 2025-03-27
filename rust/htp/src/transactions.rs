@@ -1,13 +1,12 @@
 use crate::{config::Config, log::Logger, transaction::Transaction};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
-use std::rc::Rc;
 
 /// Transaction is a structure which tracks request and response
 /// transactions, and guarantees that the current request or
 /// response transaction will always exist.
 pub(crate) struct Transactions {
-    config: Rc<Config>,
+    config: &'static Config,
     logger: Logger,
     request: usize,
     response: usize,
@@ -16,9 +15,9 @@ pub(crate) struct Transactions {
 
 impl Transactions {
     /// Make a new Transactions struct with the given config
-    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger) -> Self {
+    pub(crate) fn new(cfg: &'static Config, logger: &Logger) -> Self {
         Self {
-            config: Rc::clone(cfg),
+            config: cfg,
             logger: logger.clone(),
             request: 0,
             response: 0,

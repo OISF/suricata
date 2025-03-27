@@ -11,7 +11,7 @@ use crate::{
     util::{FlagOperations, HtpFlags},
     HtpStatus,
 };
-use std::{any::Any, borrow::Cow, cell::Cell, net::IpAddr, rc::Rc, time::SystemTime};
+use std::{any::Any, borrow::Cow, cell::Cell, net::IpAddr, time::SystemTime};
 use time::OffsetDateTime;
 
 /// Enumerates parsing state.
@@ -278,7 +278,7 @@ pub struct ConnectionParser {
     /// The logger structure associated with this parser
     pub(crate) logger: Logger,
     /// A reference to the current parser configuration structure.
-    pub(crate) cfg: Rc<Config>,
+    pub(crate) cfg: &'static Config,
     /// The connection structure associated with this parser.
     pub(crate) conn: Connection,
     /// Opaque user data associated with this parser.
@@ -369,13 +369,12 @@ impl std::fmt::Debug for ConnectionParser {
 
 impl ConnectionParser {
     /// Creates a new ConnectionParser with a preconfigured `Config` struct.
-    pub(crate) fn new(cfg: Config) -> Self {
-        let cfg = Rc::new(cfg);
+    pub(crate) fn new(cfg: &'static Config) -> Self {
         let conn = Connection::default();
         let logger = Logger::new(conn.get_sender());
         Self {
             logger: logger.clone(),
-            cfg: Rc::clone(&cfg),
+            cfg,
             conn,
             user_data: None,
             request_status: HtpStreamState::NEW,
@@ -403,7 +402,7 @@ impl ConnectionParser {
             response_state: State::Idle,
             response_state_previous: State::None,
             response_data_receiver_hook: None,
-            transactions: Transactions::new(&cfg, &logger),
+            transactions: Transactions::new(cfg, &logger),
         }
     }
 

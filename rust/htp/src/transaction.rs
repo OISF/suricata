@@ -14,7 +14,7 @@ use crate::{
     HtpStatus,
 };
 
-use std::{any::Any, cmp::Ordering, rc::Rc};
+use std::{any::Any, cmp::Ordering};
 
 #[derive(Debug, Clone)]
 /// This structure is used to pass transaction data (for example
@@ -300,7 +300,7 @@ pub struct Transaction {
     /// The logger structure associated with this transaction
     pub(crate) logger: Logger,
     /// The configuration structure associated with this transaction.
-    pub(crate) cfg: Rc<Config>,
+    pub(crate) cfg: &'static Config,
     /// The user data associated with this transaction.
     pub(crate) user_data: Option<Box<dyn Any>>,
     // Request fields
@@ -598,10 +598,10 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     /// Construct a new transaction.
-    pub(crate) fn new(cfg: &Rc<Config>, logger: &Logger, index: usize) -> Self {
+    pub(crate) fn new(cfg: &'static Config, logger: &Logger, index: usize) -> Self {
         Self {
             logger: logger.clone(),
-            cfg: Rc::clone(cfg),
+            cfg,
             user_data: None,
             request_ignored_lines: 0,
             request_line: None,
