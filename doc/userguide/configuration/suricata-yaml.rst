@@ -1849,7 +1849,7 @@ port independent.
       #
       # For best performance, select 'bypass'.
       #
-      #encryption-handling: default
+      #encryption-handling: track-only
 
 
 Encrypted traffic
@@ -1875,7 +1875,7 @@ flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
 present, and ``encryption-handling`` is not, ``false`` is interpreted as
-``encryption-handling: default`` and ``true`` is interpreted as
+``encryption-handling: track-only`` and ``true`` is interpreted as
 ``encryption-handling: bypass``.
 
 
