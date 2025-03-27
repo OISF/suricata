@@ -259,6 +259,36 @@ static int DatajsonAdd(
     return -1;
 }
 
+static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json_key, bool *found)
+{
+    json_t *key = GetSubObjectByKey(value, json_key);
+    if (key == NULL) {
+        /* ignore error as it can be a working mode where some entries
+           are not in the same format */
+        return 0;
+    }
+
+    *found = true;
+
+    const char *val = json_string_value(key);
+    DataJsonType elt = { .value = NULL, .len = 0 };
+    elt.value = json_dumps(value, JSON_COMPACT);
+    elt.len = strlen(elt.value);
+
+    int add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &elt);
+    if (add_ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+    if (add_ret == 0) {
+        SCFree(elt.value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
 {
     if (strlen(set->load) == 0)
@@ -275,35 +305,10 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
         return -1;
     }
 
-    int add_ret;
     size_t index;
     json_t *value;
     json_array_foreach (json, index, value) {
-        json_t *key = GetSubObjectByKey(value, json_key);
-        if (key == NULL) {
-            /* ignore error as it can be a working mode where some entries
-               are not in the same format */
-            continue;
-        }
-
-        found = true;
-
-        const char *val = json_string_value(key);
-
-        DataJsonType elt = { .value = NULL, .len = 0 };
-        elt.value = json_dumps(value, JSON_COMPACT);
-        elt.len = strlen(elt.value);
-
-        add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &elt);
-        if (add_ret < 0) {
-            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-            continue;
-        }
-        if (add_ret == 0) {
-            SCFree(elt.value);
-        } else {
-            cnt++;
-        }
+        cnt += DatajsonAddStringElement(set, value, json_key, &found);
     }
     json_decref(json);
 
@@ -318,9 +323,48 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
+static uint32_t DatajsonAddMd5Element(Dataset *set, json_t *value, char *json_key, bool *found)
+{
+    json_t *key = GetSubObjectByKey(value, json_key);
+    if (key == NULL) {
+        /* ignore error as it can be a working mode where some entries
+           are not in the same format */
+        return 0;
+    }
+
+    *found = true;
+
+    const char *hash_string = json_string_value(key);
+    if (strlen(hash_string) != SC_MD5_HEX_LEN) {
+        FatalErrorOnInit("Not correct length for a hash");
+        return 0;
+    }
+
+    uint8_t hash[SC_MD5_LEN];
+    if (HexToRaw((const uint8_t *)hash_string, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
+        FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+        return 0;
+    }
+    DataJsonType elt = { .value = NULL, .len = 0 };
+    elt.value = json_dumps(value, JSON_COMPACT);
+    elt.len = strlen(elt.value);
+
+    int add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_MD5_LEN, &elt);
+    if (add_ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+    if (add_ret == 0) {
+        SCFree(elt.value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char *array_key, char *json_key)
 {
-    int add_ret;
     uint32_t cnt = 0;
     json_t *json;
     bool found = false;
@@ -331,41 +375,7 @@ static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char *array_key, char *jso
     size_t index;
     json_t *value;
     json_array_foreach (json, index, value) {
-        json_t *key = GetSubObjectByKey(value, json_key);
-        if (key == NULL) {
-            /* ignore error as it can be a working mode where some entries
-               are not in the same format */
-            continue;
-        }
-
-        found = true;
-
-        const char *hash_string = json_string_value(key);
-        if (strlen(hash_string) != SC_MD5_HEX_LEN) {
-            FatalErrorOnInit("Not correct length for a hash");
-            continue;
-        }
-
-        uint8_t hash[SC_MD5_LEN];
-        if (HexToRaw((const uint8_t *)hash_string, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0) {
-            FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-            continue;
-        }
-
-        DataJsonType elt = { .value = NULL, .len = 0 };
-        elt.value = json_dumps(value, JSON_COMPACT);
-        elt.len = strlen(elt.value);
-
-        add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_MD5_LEN, &elt);
-        if (add_ret < 0) {
-            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-            continue;
-        }
-        if (add_ret == 0) {
-            SCFree(elt.value);
-        } else {
-            cnt++;
-        }
+        cnt += DatajsonAddMd5Element(set, value, json_key, &found);
     }
     json_decref(json);
 
@@ -392,9 +402,48 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
+static uint32_t DatajsonAddSha256Element(Dataset *set, json_t *value, char *json_key, bool *found)
+{
+    json_t *key = GetSubObjectByKey(value, json_key);
+    if (key == NULL) {
+        /* ignore error as it can be a working mode where some entries
+           are not in the same format */
+        return 0;
+    }
+
+    *found = true;
+
+    const char *hash_string = json_string_value(key);
+    if (strlen(hash_string) != SC_SHA256_HEX_LEN) {
+        FatalErrorOnInit("Not correct length for a hash");
+        return 0;
+    }
+
+    uint8_t hash[SC_SHA256_LEN];
+    if (HexToRaw((const uint8_t *)hash_string, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
+        FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
+        return 0;
+    }
+    DataJsonType elt = { .value = NULL, .len = 0 };
+    elt.value = json_dumps(value, JSON_COMPACT);
+    elt.len = strlen(elt.value);
+
+    int add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_SHA256_LEN, &elt);
+    if (add_ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+    if (add_ret == 0) {
+        SCFree(elt.value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char *array_key, char *json_key)
 {
-    int add_ret;
     uint32_t cnt = 0;
     json_t *json;
     bool found = false;
@@ -405,41 +454,7 @@ static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char *array_key, char *
     size_t index;
     json_t *value;
     json_array_foreach (json, index, value) {
-        json_t *key = GetSubObjectByKey(value, json_key);
-        if (key == NULL) {
-            /* ignore error as it can be a working mode where some entries
-               are not in the same format */
-            continue;
-        }
-
-        found = true;
-
-        const char *hash_string = json_string_value(key);
-        if (strlen(hash_string) != SC_SHA256_HEX_LEN) {
-            FatalErrorOnInit("Not correct length for a hash");
-            continue;
-        }
-
-        uint8_t hash[SC_SHA256_LEN];
-        if (HexToRaw((const uint8_t *)hash_string, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0) {
-            FatalErrorOnInit("bad hash for dataset %s/%s", set->name, set->load);
-            continue;
-        }
-
-        DataJsonType elt = { .value = NULL, .len = 0 };
-        elt.value = json_dumps(value, JSON_COMPACT);
-        elt.len = strlen(elt.value);
-
-        add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_SHA256_LEN, &elt);
-        if (add_ret < 0) {
-            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-            continue;
-        }
-        if (add_ret == 0) {
-            SCFree(elt.value);
-        } else {
-            cnt++;
-        }
+        cnt += DatajsonAddSha256Element(set, value, json_key, &found);
     }
     json_decref(json);
 
@@ -465,10 +480,45 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
+static uint32_t DatajsonAddIpv4Element(Dataset *set, json_t *value, char *json_key, bool *found)
+{
+    json_t *key = GetSubObjectByKey(value, json_key);
+    if (key == NULL) {
+        /* ignore error as it can be a working mode where some entries
+           are not in the same format */
+        return 0;
+    }
+
+    *found = true;
+
+    const char *ip_string = json_string_value(key);
+    struct in_addr in;
+    if (inet_pton(AF_INET, ip_string, &in) != 1) {
+        FatalErrorOnInit("datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
+        return 0;
+    }
+    DataJsonType elt = { .value = NULL, .len = 0 };
+    elt.value = json_dumps(value, JSON_COMPACT);
+    elt.len = strlen(elt.value);
+
+    int add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &elt);
+    if (add_ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+
+    if (add_ret == 0) {
+        SCFree(elt.value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     uint32_t cnt = 0;
-    int add_ret;
     json_t *json;
     bool found = false;
 
@@ -478,36 +528,7 @@ static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char *array_key, char *js
     size_t index;
     json_t *value;
     json_array_foreach (json, index, value) {
-        json_t *key = GetSubObjectByKey(value, json_key);
-        if (key == NULL) {
-            /* ignore error as it can be a working mode where some entries
-               are not in the same format */
-            continue;
-        }
-
-        found = true;
-
-        const char *ip_string = json_string_value(key);
-        struct in_addr in;
-        if (inet_pton(AF_INET, ip_string, &in) != 1) {
-            FatalErrorOnInit(
-                    "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, ip_string);
-            continue;
-        }
-        DataJsonType elt = { .value = NULL, .len = 0 };
-        elt.value = json_dumps(value, JSON_COMPACT);
-        elt.len = strlen(elt.value);
-
-        add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &elt);
-        if (add_ret < 0) {
-            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-            continue;
-        }
-        if (add_ret == 0) {
-            SCFree(elt.value);
-        } else {
-            cnt++;
-        }
+        cnt += DatajsonAddIpv4Element(set, value, json_key, &found);
     }
     json_decref(json);
 
@@ -533,10 +554,45 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
     return 0;
 }
 
+static uint32_t DatajsonAddIPv6Element(Dataset *set, json_t *value, char *json_key, bool *found)
+{
+    json_t *key = GetSubObjectByKey(value, json_key);
+    if (key == NULL) {
+        /* ignore error as it can be a working mode where some entries
+           are not in the same format */
+        return 0;
+    }
+
+    *found = true;
+
+    const char *ip_string = json_string_value(key);
+    struct in6_addr in6;
+    int ret = DatasetParseIpv6String(set, ip_string, &in6);
+    if (ret < 0) {
+        FatalErrorOnInit("unable to parse IP address");
+        return 0;
+    }
+    DataJsonType elt = { .value = NULL, .len = 0 };
+    elt.value = json_dumps(value, JSON_COMPACT);
+    elt.len = strlen(elt.value);
+
+    int add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &elt);
+    if (add_ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+    if (add_ret == 0) {
+        SCFree(elt.value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char *array_key, char *json_key)
 {
     uint32_t cnt = 0;
-    int add_ret;
     json_t *json;
     bool found = false;
 
@@ -546,36 +602,7 @@ static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char *array_key, char *js
     size_t index;
     json_t *value;
     json_array_foreach (json, index, value) {
-        json_t *key = GetSubObjectByKey(value, json_key);
-        if (key == NULL) {
-            /* ignore error as it can be a working mode where some entries
-               are not in the same format */
-            continue;
-        }
-
-        found = true;
-
-        const char *ip_string = json_string_value(key);
-        struct in6_addr in6;
-        int ret = DatasetParseIpv6String(set, ip_string, &in6);
-        if (ret < 0) {
-            FatalErrorOnInit("unable to parse IP address");
-            continue;
-        }
-        DataJsonType elt = { .value = NULL, .len = 0 };
-        elt.value = json_dumps(value, JSON_COMPACT);
-        elt.len = strlen(elt.value);
-
-        add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &elt);
-        if (add_ret < 0) {
-            FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
-            continue;
-        }
-        if (add_ret == 0) {
-            SCFree(elt.value);
-        } else {
-            cnt++;
-        }
+        cnt += DatajsonAddIPv6Element(set, value, json_key, &found);
     }
     json_decref(json);
 
