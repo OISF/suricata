@@ -482,7 +482,7 @@ void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_
     }
 
     ea->file_prefix = NULL;
-    int cfg_prefix_len = strlen(de_ctx->config_prefix);
+    size_t cfg_prefix_len = strlen(de_ctx->config_prefix);
     if (cfg_prefix_len > 0) {
         /* length of prefix + NULL + "." */
         ea->file_prefix = SCCalloc(1, cfg_prefix_len + 1 + 1);

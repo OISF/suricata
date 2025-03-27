@@ -382,7 +382,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         }
     }
 
-    det_ctx->match_array_cnt = match_array - det_ctx->match_array;
+    det_ctx->match_array_cnt = (uint32_t)(match_array - det_ctx->match_array);
     DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
     PMQ_RESET(&det_ctx->pmq);
 }

@@ -78,8 +78,7 @@ void HttpHeaderThreadDataFree(void *data)
     SCFree(hdrnames);
 }
 
-int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
-        HttpHeaderBuffer *buf, uint32_t size)
+int HttpHeaderExpandBuffer(HttpHeaderThreadData *td, HttpHeaderBuffer *buf, size_t size)
 {
     size_t extra = td->size_step;
     while ((buf->size + extra) < (size + buf->len)) {
