@@ -259,6 +259,83 @@ static int DatajsonAdd(
     return -1;
 }
 
+static int DatajsonLoadTypeFromJSON(Dataset *set, char *json_key, char *array_key,
+        uint32_t (*DatajsonAddTypeElement)(Dataset *, json_t *, char *, bool *))
+{
+    if (strlen(set->load) == 0)
+        return 0;
+
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+
+    uint32_t cnt = 0;
+    json_t *json;
+    bool found = false;
+    SCLogDebug("dataset: array_key '%s' %p", array_key, array_key);
+    if (ParseJsonFile(set->load, &json, array_key) == -1) {
+        SCLogError("dataset: %s failed to parse from '%s'", set->name, set->load);
+        return -1;
+    }
+
+    size_t index;
+    json_t *value;
+    json_array_foreach (json, index, value) {
+        cnt += DatajsonAddTypeElement(set, value, json_key, &found);
+    }
+    json_decref(json);
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return -1;
+    }
+    THashConsolidateMemcap(set->hash);
+
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
+    return 0;
+}
+
+static uint32_t DatajsonLoadTypeFromJsonline(Dataset *set, char *json_key,
+        uint32_t (*DatajsonAddTypeElement)(Dataset *, json_t *, char *, bool *))
+{
+    uint32_t cnt = 0;
+    FILE *fp = fopen(set->load, "r");
+    bool found = false;
+
+    if (fp == NULL) {
+        SCLogError("dataset: %s failed to open file '%s'", set->name, set->load);
+        return 0;
+    }
+
+    char line[DATAJSON_JSON_LENGTH];
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        json_t *json = json_loads(line, 0, NULL);
+        if (json == NULL) {
+            SCLogError("dataset: %s failed to parse line '%s'", set->name, line);
+            goto out_err;
+        }
+        cnt += DatajsonAddTypeElement(set, json, json_key, &found);
+        json_decref(json);
+    }
+    int close_op = fclose(fp);
+    if (close_op != 0) {
+        SCLogError("dataset: %s failed to close file '%s'", set->name, set->load);
+        return 0;
+    }
+
+    if (found == false) {
+        FatalErrorOnInit(
+                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
+        return 0;
+    }
+    return cnt;
+out_err:
+    close_op = fclose(fp);
+    if (close_op != 0) {
+        SCLogError("dataset: %s failed to close file '%s'", set->name, set->load);
+    }
+    return 0;
+}
+
 static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json_key, bool *found)
 {
     json_t *key = GetSubObjectByKey(value, json_key);
@@ -289,7 +366,7 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
     return 0;
 }
 
-static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
 {
     if (strlen(set->load) == 0)
         return 0;
@@ -297,25 +374,10 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key)
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
     uint32_t cnt = 0;
-    json_t *json;
-    bool found = false;
-    SCLogDebug("dataset: array_key '%s' %p", array_key, array_key);
-    if (ParseJsonFile(set->load, &json, array_key) == -1) {
-        SCLogError("dataset: %s failed to parse from '%s'", set->name, set->load);
-        return -1;
-    }
-
-    size_t index;
-    json_t *value;
-    json_array_foreach (json, index, value) {
-        cnt += DatajsonAddStringElement(set, value, json_key, &found);
-    }
-    json_decref(json);
-
-    if (found == false) {
-        FatalErrorOnInit(
-                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-        return -1;
+    if (format == DATASET_FORMAT_JSON) {
+        cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddStringElement);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddStringElement);
     }
     THashConsolidateMemcap(set->hash);
 
@@ -363,39 +425,19 @@ static uint32_t DatajsonAddMd5Element(Dataset *set, json_t *value, char *json_ke
     return 0;
 }
 
-static uint32_t DatajsonLoadMd5FromJSON(Dataset *set, char *array_key, char *json_key)
-{
-    uint32_t cnt = 0;
-    json_t *json;
-    bool found = false;
-
-    if (ParseJsonFile(set->load, &json, array_key) == -1)
-        return -1;
-
-    size_t index;
-    json_t *value;
-    json_array_foreach (json, index, value) {
-        cnt += DatajsonAddMd5Element(set, value, json_key, &found);
-    }
-    json_decref(json);
-
-    if (found == false) {
-        FatalErrorOnInit(
-                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-        return -1;
-    }
-
-    return cnt;
-}
-
-static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
 {
     if (strlen(set->load) == 0)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
-    uint32_t cnt = DatajsonLoadMd5FromJSON(set, array_key, json_key);
+    uint32_t cnt = 0;
+    if (format == DATASET_FORMAT_JSON) {
+        cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddMd5Element);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddMd5Element);
+    }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -442,38 +484,19 @@ static uint32_t DatajsonAddSha256Element(Dataset *set, json_t *value, char *json
     return 0;
 }
 
-static uint32_t DatajsonLoadSHA256FromJSON(Dataset *set, char *array_key, char *json_key)
-{
-    uint32_t cnt = 0;
-    json_t *json;
-    bool found = false;
-
-    if (ParseJsonFile(set->load, &json, array_key) == -1)
-        return -1;
-
-    size_t index;
-    json_t *value;
-    json_array_foreach (json, index, value) {
-        cnt += DatajsonAddSha256Element(set, value, json_key, &found);
-    }
-    json_decref(json);
-
-    if (found == false) {
-        FatalErrorOnInit(
-                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-        return -1;
-    }
-    return cnt;
-}
-
-static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
 {
     if (strlen(set->load) == 0)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
-    uint32_t cnt = DatajsonLoadSHA256FromJSON(set, array_key, json_key);
+    uint32_t cnt = 0;
+    if (format == DATASET_FORMAT_JSON) {
+        cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddSha256Element);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddSha256Element);
+    }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -516,38 +539,19 @@ static uint32_t DatajsonAddIpv4Element(Dataset *set, json_t *value, char *json_k
     return 0;
 }
 
-static uint32_t DatajsonLoadIPv4FromJSON(Dataset *set, char *array_key, char *json_key)
-{
-    uint32_t cnt = 0;
-    json_t *json;
-    bool found = false;
-
-    if (ParseJsonFile(set->load, &json, array_key) == -1)
-        return -1;
-
-    size_t index;
-    json_t *value;
-    json_array_foreach (json, index, value) {
-        cnt += DatajsonAddIpv4Element(set, value, json_key, &found);
-    }
-    json_decref(json);
-
-    if (found == false) {
-        FatalErrorOnInit(
-                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-        return 0;
-    }
-
-    return cnt;
-}
-
-static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
 {
     if (strlen(set->load) == 0)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
-    uint32_t cnt = DatajsonLoadIPv4FromJSON(set, array_key, json_key);
+    uint32_t cnt = 0;
+
+    if (format == DATASET_FORMAT_JSON) {
+        cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddIpv4Element);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddIpv4Element);
+    }
     THashConsolidateMemcap(set->hash);
 
     SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
@@ -590,38 +594,20 @@ static uint32_t DatajsonAddIPv6Element(Dataset *set, json_t *value, char *json_k
     return 0;
 }
 
-static uint32_t DatajsonLoadIPv6FromJSON(Dataset *set, char *array_key, char *json_key)
-{
-    uint32_t cnt = 0;
-    json_t *json;
-    bool found = false;
-
-    if (ParseJsonFile(set->load, &json, array_key) == -1)
-        return -1;
-
-    size_t index;
-    json_t *value;
-    json_array_foreach (json, index, value) {
-        cnt += DatajsonAddIPv6Element(set, value, json_key, &found);
-    }
-    json_decref(json);
-
-    if (found == false) {
-        FatalErrorOnInit(
-                "No valid entries for key '%s' found in the file '%s'", json_key, set->load);
-        return 0;
-    }
-    return cnt;
-}
-
-static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
+static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
 {
     if (strlen(set->load) == 0)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
-    uint32_t cnt = DatajsonLoadIPv6FromJSON(set, array_key, json_key);
+    uint32_t cnt = 0;
+
+    if (format == DATASET_FORMAT_JSON) {
+        cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddIPv6Element);
+    } else if (format == DATASET_FORMAT_JSONLINE) {
+        cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddIPv6Element);
+    }
 
     THashConsolidateMemcap(set->hash);
 
@@ -630,7 +616,7 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key)
 }
 
 Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value, char *json_array_key)
+        uint32_t hashsize, char *json_key_value, char *json_array_key, DatasetFormats format)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -701,7 +687,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatajsonLoadMd5(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadMd5(set, json_key_value, json_array_key, format) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
@@ -711,7 +697,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatajsonLoadString(set, json_key_value, json_array_key) < 0) {
+            if (DatajsonLoadString(set, json_key_value, json_array_key, format) < 0) {
                 SCLogError("dataset %s loading failed", name);
                 goto out_err;
             }
@@ -723,7 +709,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatajsonLoadSha256(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadSha256(set, json_key_value, json_array_key, format) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
@@ -733,7 +719,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatajsonLoadIPv4(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadIPv4(set, json_key_value, json_array_key, format) < 0)
                 goto out_err;
             break;
         case DATASET_TYPE_IPV6:
@@ -743,7 +729,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
-            if (DatajsonLoadIPv6(set, json_key_value, json_array_key) < 0)
+            if (DatajsonLoadIPv6(set, json_key_value, json_array_key, format) < 0)
                 goto out_err;
             break;
     }
