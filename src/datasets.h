@@ -31,6 +31,7 @@ void DatasetPostReloadCleanup(void);
 typedef enum {
     DATASET_FORMAT_CSV = 0,
     DATASET_FORMAT_JSON,
+    DATASET_FORMAT_JSONLINE,
 } DatasetFormats;
 
 enum DatasetTypes {
