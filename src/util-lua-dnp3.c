@@ -38,7 +38,7 @@
         lua_settable(luastate, -3);             \
     } while (0);
 
-static void SCLuaPushBoolean(lua_State *L, const char *key, bool val)
+static void SCLuaPushTableBoolean(lua_State *L, const char *key, bool val)
 {
     lua_pushstring(L, key);
     lua_pushboolean(L, val);
@@ -172,19 +172,19 @@ static int DNP3GetTx(lua_State *luastate)
     lua_pushinteger(luastate, tx->tx_num);
     lua_settable(luastate, -3);
 
-    SCLuaPushBoolean(luastate, "is_request", tx->is_request);
+    SCLuaPushTableBoolean(luastate, "is_request", tx->is_request);
     if (tx->is_request) {
         lua_pushliteral(luastate, "request");
         lua_newtable(luastate);
-        LUA_PUSHT_INT(luastate, "done", tx->done);
-        LUA_PUSHT_INT(luastate, "complete", tx->complete);
+        SCLuaPushTableBoolean(luastate, "done", tx->done);
+        SCLuaPushTableBoolean(luastate, "complete", tx->complete);
         DNP3PushRequest(luastate, tx);
         lua_settable(luastate, -3);
     } else {
         lua_pushliteral(luastate, "response");
         lua_newtable(luastate);
-        LUA_PUSHT_INT(luastate, "done", tx->done);
-        LUA_PUSHT_INT(luastate, "complete", tx->complete);
+        SCLuaPushTableBoolean(luastate, "done", tx->done);
+        SCLuaPushTableBoolean(luastate, "complete", tx->complete);
         DNP3PushResponse(luastate, tx);
         lua_settable(luastate, -3);
     }
