@@ -83,8 +83,8 @@ static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
             r--;
         }
     }
-    QuickSortSigIntId(sids, r - sids + 1);
-    QuickSortSigIntId(l, sids + n - l);
+    QuickSortSigIntId(sids, (uint32_t)(r - sids) + 1);
+    QuickSortSigIntId(l, (uint32_t)(sids + n - l));
 }
 
 /**
@@ -597,7 +597,7 @@ static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t d
 {
     PrefilterStore *ctx = data;
 
-    uint32_t hash = strlen(ctx->name);
+    uint32_t hash = (uint32_t)strlen(ctx->name);
 
     for (size_t u = 0; u < strlen(ctx->name); u++) {
         hash += ctx->name[u];

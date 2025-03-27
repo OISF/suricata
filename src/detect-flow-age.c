@@ -29,10 +29,13 @@ static int DetectFlowAgeMatch(
     if (p->flow == NULL) {
         return 0;
     }
-    uint32_t age = SCTIME_SECS(p->flow->lastts) - SCTIME_SECS(p->flow->startts);
+    uint64_t age = SCTIME_SECS(p->flow->lastts) - SCTIME_SECS(p->flow->startts);
+    if (age > UINT32_MAX) {
+        age = UINT32_MAX;
+    }
 
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    return DetectU32Match(age, du32);
+    return DetectU32Match((uint32_t)age, du32);
 }
 
 static void DetectFlowAgeFree(DetectEngineCtx *de_ctx, void *ptr)

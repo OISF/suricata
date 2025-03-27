@@ -58,7 +58,7 @@ typedef struct XBit_ {
     uint8_t pad[2];
     uint32_t idx;       /* name idx */
     GenericVar *next;
-    uint32_t expire;
+    uint64_t expire;
 } XBit;
 
 void XBitFree(XBit *);

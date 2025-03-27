@@ -329,10 +329,13 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, data,
-            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    if (match) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    if (offset <= UINT32_MAX) {
+        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                data, data_len, (uint32_t)offset, ci_flags,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
     }
 
     if (flags & STREAM_TOSERVER) {
