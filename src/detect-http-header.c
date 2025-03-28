@@ -204,11 +204,13 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-            (uint8_t *)data, data_len, offset, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    if (match) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    if (offset <= UINT32_MAX) {
+        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                (uint8_t *)data, data_len, (uint32_t)offset, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
     }
 end:
     if (eof) {
@@ -599,8 +601,8 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     // hdr_td->len is the number of header buffers
     if (local_id < hdr_td->len) {
         // we have one valid header buffer
-        InspectionBufferSetupMulti(
-                buffer, transforms, hdr_td->items[local_id].buffer, hdr_td->items[local_id].len);
+        InspectionBufferSetupMulti(buffer, transforms, hdr_td->items[local_id].buffer,
+                (uint32_t)hdr_td->items[local_id].len);
         buffer->flags = DETECT_CI_FLAGS_SINGLE;
         SCReturnPtr(buffer, "InspectionBuffer");
     } // else there are no more header buffer to get

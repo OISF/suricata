@@ -2230,8 +2230,11 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
+    if (offset > UINT32_MAX) {
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
     const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, data,
-            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+            data_len, (uint32_t)offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     if (match) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
@@ -3683,9 +3686,10 @@ static uint32_t DetectKeywordCtxHashFunc(HashListTable *ht, void *data, uint16_t
 {
     DetectEngineThreadKeywordCtxItem *ctx = data;
     const char *name = ctx->name;
-    uint64_t hash = StringHashDjb2((const uint8_t *)name, strlen(name)) + (ptrdiff_t)ctx->data;
+    uint64_t hash =
+            StringHashDjb2((const uint8_t *)name, (uint32_t)strlen(name)) + (ptrdiff_t)ctx->data;
     hash %= ht->array_size;
-    return hash;
+    return (uint32_t)hash;
 }
 
 static char DetectKeywordCtxCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)

@@ -425,8 +425,12 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
         if (buffer->inspect_offset == 0)
             ciflags |= DETECT_CI_FLAGS_START;
 
+        if (buffer->inspect_offset > UINT32_MAX) {
+            local_file_id++;
+            continue;
+        }
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                buffer->inspect, buffer->inspect_len, buffer->inspect_offset, ciflags,
+                buffer->inspect, buffer->inspect_len, (uint32_t)buffer->inspect_offset, ciflags,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;

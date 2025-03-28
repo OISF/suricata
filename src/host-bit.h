@@ -33,11 +33,11 @@ void HostBitRegisterTests(void);
 int HostHasHostBits(Host *host);
 int HostBitsTimedoutCheck(Host *h, SCTime_t ts);
 
-void HostBitSet(Host *, uint32_t, uint32_t);
+void HostBitSet(Host *, uint32_t, uint64_t);
 void HostBitUnset(Host *, uint32_t);
-void HostBitToggle(Host *, uint32_t, uint32_t);
-int HostBitIsset(Host *, uint32_t, uint32_t);
-int HostBitIsnotset(Host *, uint32_t, uint32_t);
+void HostBitToggle(Host *, uint32_t, uint64_t);
+int HostBitIsset(Host *, uint32_t, uint64_t);
+int HostBitIsnotset(Host *, uint32_t, uint64_t);
 int HostBitList(Host *, XBit **);
 
 #endif /* SURICATA_HOST_BIT_H */

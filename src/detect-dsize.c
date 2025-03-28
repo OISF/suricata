@@ -208,7 +208,7 @@ static bool PrefilterDsizeIsPrefilterable(const Signature *s)
  *  \param s signature to get dsize value from
  *  \retval depth or negative value
  */
-int SigParseGetMaxDsize(const Signature *s)
+int SigParseGetMaxDsize(const Signature *s, uint16_t *dsize)
 {
     if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
         const DetectU16Data *dd = (const DetectU16Data *)s->init_data->dsize_sm->ctx;
@@ -217,9 +217,11 @@ int SigParseGetMaxDsize(const Signature *s)
             case DETECT_UINT_LT:
             case DETECT_UINT_EQ:
             case DETECT_UINT_NE:
-                return dd->arg1;
+                *dsize = dd->arg1;
+                SCReturnInt(0);
             case DETECT_UINT_RA:
-                return dd->arg2;
+                *dsize = dd->arg2;
+                SCReturnInt(0);
             case DETECT_UINT_GT:
             default:
                 SCReturnInt(-2);
@@ -293,8 +295,8 @@ int SigParseMaxRequiredDsize(const Signature *s)
         SCReturnInt(-1);
     }
 
-    const int dsize = SigParseGetMaxDsize(s);
-    if (dsize < 0) {
+    uint16_t dsize;
+    if (SigParseGetMaxDsize(s, &dsize) < 0) {
         /* nothing to do */
         SCReturnInt(-1);
     }
@@ -328,8 +330,8 @@ void SigParseApplyDsizeToContent(Signature *s)
     if (s->flags & SIG_FLAG_DSIZE) {
         SigParseSetDsizePair(s);
 
-        int dsize = SigParseGetMaxDsize(s);
-        if (dsize < 0) {
+        uint16_t dsize;
+        if (SigParseGetMaxDsize(s, &dsize) < 0) {
             /* nothing to do */
             return;
         }

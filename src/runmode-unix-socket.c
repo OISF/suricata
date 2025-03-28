@@ -1428,7 +1428,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 
     struct Bit {
         uint32_t id;
-        uint32_t expire;
+        uint64_t expire;
     } bits[256];
     memset(&bits, 0, sizeof(bits));
     int i = 0, use = 0;
@@ -1463,7 +1463,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
         json_t *bitobject = json_object();
         if (bitobject == NULL)
             continue;
-        uint32_t expire = 0;
+        uint64_t expire = 0;
         if ((uint32_t)SCTIME_SECS(ts) < bits[i].expire)
             expire = bits[i].expire - (uint32_t)SCTIME_SECS(ts);
 
