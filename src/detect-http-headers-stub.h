@@ -29,8 +29,7 @@
 #include "suricata-common.h"
 #include "flow.h"
 
-#include <htp/htp.h>
-#include "app-layer-htp-libhtp.h"
+#include "htp/htp_rs.h"
 
 #include "detect.h"
 #include "detect-parse.h"
