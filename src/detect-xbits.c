@@ -418,7 +418,6 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
         case DETECT_XBITS_CMD_ISSET: {
             int list = DETECT_SM_LIST_MATCH;
             if (cd->tracker == DETECT_XBITS_TRACK_TX) {
-                list = -1;
                 SCLogDebug("tx xbit isset");
                 if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_APP) {
                     SCLogError("tx xbits require an explicit rule hook");
