@@ -206,7 +206,10 @@ void PluginInit(void)
 }
 
 const SCPlugin PluginRegistration = {
+    .version = SC_API_VERSION,
+    .suricata_version = SC_PACKAGE_VERSION,
     .name = FILETYPE_NAME,
+    .plugin_version = "0.1.0",
     .author = "FirstName LastName <name@example.org>",
     .license = "GPL-2.0-only",
     .Init = PluginInit,
