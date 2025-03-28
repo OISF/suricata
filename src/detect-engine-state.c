@@ -231,6 +231,11 @@ void DetectRunStoreStateTx(
         SCLogDebug("destate created for %"PRIu64, tx_id);
     }
     DeStateSignatureAppend(tx_data->de_state, s, inspect_flags, flow_flags);
+    if (s->flags & SIG_FLAG_TXBOTHDIR) {
+        // add also in the other DetectEngineStateDirection
+        DeStateSignatureAppend(tx_data->de_state, s, inspect_flags,
+                flow_flags ^ (STREAM_TOSERVER | STREAM_TOCLIENT));
+    }
     StoreStateTxHandleFiles(sgh, f, tx_data->de_state, flow_flags, tx, tx_id, file_no_match);
 
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
