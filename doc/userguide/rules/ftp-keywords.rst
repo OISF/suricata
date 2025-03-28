@@ -71,3 +71,36 @@ Examples of commands are:
 * PASV
 * RETR
 
+
+ftp.reply
+---------
+
+This keyword matches on a FTP reply string. Note that there may be multiple reply strings for
+an FTP command. ``ftp.reply`` is a sticky buffer and can be used as a fast pattern. Do not
+include the completion code.
+
+Syntax::
+
+  ftp.reply; content: <reply-string>;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Please specify the password.";` sid: 1;)
+
+.. note ::
+   FTP commands can return multiple reply strings. Specify a single reply for each ``ftp.reply`` keyword.
+
+::
+
+    RETR temp.txt
+    150 Opening BINARY mode data connection for temp.txt (1164 bytes).
+    226 Transfer complete.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Opening BINARY mode data connection for temp.";` sid: 1;)
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Transfer complete.";` sid: 2;)
