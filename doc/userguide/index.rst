@@ -29,6 +29,7 @@ This is the documentation for Suricata |version|.
    public-data-sets
    capture-hardware/index.rst
    unix-socket.rst
+   firewall/index.rst
    3rd-party-integration/index.rst
    manpages/index.rst
    acknowledgements
