@@ -130,7 +130,6 @@ static void *FTPCalloc(size_t n, size_t size)
 
 static void *FTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
-    DEBUG_VALIDATE_BUG_ON(size == 0);
     if (FTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
         sc_errno = SC_ELIMIT;
         return NULL;
@@ -475,7 +474,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             case FTP_COMMAND_PORT:
                 if (line.len + 1 > state->port_line_size) {
                     /* Allocate an extra byte for a NULL terminator */
-                    ptmp = FTPRealloc(state->port_line, state->port_line_size, line.len);
+                    ptmp = FTPRealloc(state->port_line, state->port_line_size, line.len + 1);
                     if (ptmp == NULL) {
                         if (state->port_line) {
                             FTPFree(state->port_line, state->port_line_size);
@@ -486,7 +485,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                         SCReturnStruct(APP_LAYER_OK);
                     }
                     state->port_line = ptmp;
-                    state->port_line_size = line.len;
+                    state->port_line_size = line.len + 1;
                 }
                 memcpy(state->port_line, line.buf, line.len);
                 state->port_line_len = line.len;
