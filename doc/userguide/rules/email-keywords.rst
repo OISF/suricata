@@ -98,3 +98,27 @@ Example of a signature that would alert if a packet contains the MIME field ``cc
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email cc"; :example-rule-emphasis:`email.cc; content:"Emily <emily.roberts@example.com>, Ava <ava.johnson@example.com>, Sophia Wilson <sophia.wilson@example.com>";` sid:1;)
+
+email.date
+----------
+
+Matches the MIME ``Date`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.date; content:"<content to match against>";
+
+``email.date`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.date``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``date`` with the value ``Fri, 21 Apr 2023 05:10:36 +0000``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email date"; :example-rule-emphasis:`email.date; content:"Fri, 21 Apr 2023 05:10:36 +0000";` sid:1;)
