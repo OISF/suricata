@@ -49,8 +49,6 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp-util.h"
 
-#define MAX_ALPROTO_NAME 50
-
 typedef struct DetectAppLayerStateData_ {
     uint8_t progress;
     int8_t mode;
