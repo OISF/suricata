@@ -294,33 +294,39 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     ip4h->s_ip_src.s_addr = p->src.addr_data32[0];
     ip4h->s_ip_dst.s_addr = p->dst.addr_data32[0];
     ip4h->ip_proto = ipproto;
-    ip4h->ip_verhl = sizeof(IPV4Hdr);
+    ip4h->ip_verhl = 0x40 | (sizeof(IPV4Hdr) / 4);
     p->proto = ipproto;
 
     int hdr_offset = sizeof(IPV4Hdr);
     switch (ipproto) {
         case IPPROTO_UDP: {
-            UDPHdr *udph = PacketSetUDP(p, (GET_PKT_DATA(p) + sizeof(IPV4Hdr)));
+            UDPHdr *udph = PacketSetUDP(p, (GET_PKT_DATA(p) + hdr_offset));
             if (udph == NULL)
                 goto error;
 
-            udph->uh_sport = sport;
-            udph->uh_dport = dport;
+            udph->uh_sport = htons(sport);
+            udph->uh_dport = htons(dport);
+            udph->uh_len = htons(payload_len + sizeof(UDPHdr));
+            ip4h->ip_len = htons(payload_len + sizeof(IPV4Hdr) + sizeof(UDPHdr));
             hdr_offset += sizeof(UDPHdr);
             break;
         }
         case IPPROTO_TCP: {
-            TCPHdr *tcph = PacketSetTCP(p, GET_PKT_DATA(p) + sizeof(IPV4Hdr));
+            TCPHdr *tcph = PacketSetTCP(p, GET_PKT_DATA(p) + hdr_offset);
             if (tcph == NULL)
                 goto error;
 
             tcph->th_sport = htons(sport);
             tcph->th_dport = htons(dport);
+            tcph->th_offx2 = (sizeof(TCPHdr) / 4) << 4;
+            tcph->th_win = 0x4444; // non-zero window
+            tcph->th_flags = TH_ACK;
+            ip4h->ip_len = htons(payload_len + sizeof(IPV4Hdr) + sizeof(TCPHdr));
             hdr_offset += sizeof(TCPHdr);
             break;
         }
         case IPPROTO_ICMP: {
-            ICMPV4Hdr *icmpv4h = PacketSetICMPv4(p, (GET_PKT_DATA(p) + sizeof(IPV4Hdr)));
+            ICMPV4Hdr *icmpv4h = PacketSetICMPv4(p, (GET_PKT_DATA(p) + hdr_offset));
             if (icmpv4h == NULL)
                 goto error;
 
@@ -939,9 +945,9 @@ static int CheckUTHTestPacket(Packet *p, uint8_t ipproto)
             const UDPHdr *udph = PacketGetUDP(p);
             if (udph == NULL)
                 return 0;
-            if (udph->uh_sport != sport)
+            if (SCNtohs(udph->uh_sport) != sport)
                 return 0;
-            if (udph->uh_dport != dport)
+            if (SCNtohs(udph->uh_dport) != dport)
                 return 0;
         break;
         }
