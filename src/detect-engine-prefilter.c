@@ -117,22 +117,41 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         if (engine->ctx.tx_min_progress != -1) {
+#ifdef DEBUG
+            const char *pname = AppLayerParserGetStateNameById(ipproto, engine->alproto,
+                    engine->ctx.tx_min_progress, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+            SCLogDebug("engine %p min_progress %d %s:%s", engine, engine->ctx.tx_min_progress,
+                    AppProtoToString(engine->alproto), pname);
+#endif
+            /* if engine needs tx state to be higher, break out. */
             if (engine->ctx.tx_min_progress > tx->tx_progress)
                 break;
             if (tx->tx_progress > engine->ctx.tx_min_progress) {
+                SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d", tx->tx_progress,
+                        engine->ctx.tx_min_progress);
+
                 /* if state value is at or beyond engine state, we can skip it. It means we ran at
                  * least once already. */
                 if (tx->detect_progress > engine->ctx.tx_min_progress) {
                     SCLogDebug("tx already marked progress as beyond engine: %u > %u",
                             tx->detect_progress, engine->ctx.tx_min_progress);
                     goto next;
+                } else {
+                    SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d: "
+                               "tx->detect_progress %u",
+                            tx->tx_progress, engine->ctx.tx_min_progress, tx->detect_progress);
                 }
             }
-
+#ifdef DEBUG
+            uint32_t old = det_ctx->pmq.rule_id_array_cnt;
+#endif
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
                     tx->tx_data_ptr, flow_flags);
             PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            SCLogDebug("engine %p min_progress %d %s:%s: results %u", engine,
+                    engine->ctx.tx_min_progress, AppProtoToString(engine->alproto), pname,
+                    det_ctx->pmq.rule_id_array_cnt - old);
 
             if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
                 /* track with an offset of one, so that tx->progress 0 complete is tracked
@@ -909,6 +928,20 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     tx_non_pf = true;
                 }
             }
+        }
+        /* handle hook only rules */
+        if (!tx_non_pf && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+            const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
+            const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                    s->alproto, s->init_data->hook.t.app.app_progress,
+                    dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+
+            if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir,
+                        (int16_t)s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list,
+                        pname, s) != 0) {
+                goto error;
+            }
+            tx_non_pf = true;
         }
         /* mark as prefiltered as the sig is now part of a engine */
         // s->flags |= SIG_FLAG_PREFILTER;
