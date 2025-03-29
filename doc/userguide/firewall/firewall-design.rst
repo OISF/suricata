@@ -11,7 +11,15 @@ properties than the default "threat detection" rulesets:
 2. firewall rules are loaded from separate files
 3. firewall rules use a new action ``accept``
 4. firewall rules are required to use explicit action scopes and rule hooks (see below)
+5. evaluation order is as rules are in the file(s), per protocol state
 
+Concepts
+--------
+
+* ``table`` collection of rules with different properties: ``packet_filter``, ``packet_td``,
+  ``app_filter``, ``app_td``. These are built-in. No custom tables can be created.
+* ``state`` controls a specific protocol state at which a rule is evaluated. Examples are
+  ``tcp.flow_start`` or ``tls.client_body_done``.
 
 
 Actions and Action Scopes
@@ -27,6 +35,8 @@ accept
 * ``packet`` accept this packet
 * ``flow`` accept the rest of the packets in this flow
 * ``hook`` accept rules for the current hook/state, evaluate the next hooks
+
+The ``accept`` action is only available in firewall rules.
 
 drop
 ~~~~
@@ -45,7 +55,7 @@ Explicit rule hook (states)
 
 In the regular IDS/IPS rules the engine infers from the rule's matching logic where the
 rule should be "hooked" into the engine. While this works well for these types of rules,
-it does lead to many edge cases that are not acceptable in an firewall ruleset. For this
+it does lead to many edge cases that are not acceptable in a firewall ruleset. For this
 reason in the firewall rules the hook needs to be explicitly set.
 
 This is done in the protocol field of the rule. Where in threat detection a rule might look like::
@@ -56,8 +66,8 @@ In the firewall case it will be::
 
     accept:hook http1:request_line ... http.uri; ...
 
-The application layer states / hooks are defined per protocol. Each of the hooks has it's own
-default-``drop`` policy, so a ruleset needs a ``accept`` rule for each of the states to allow
+The application layer states / hooks are defined per protocol. Each of the hooks has its own
+default-``drop`` policy, so a ruleset needs an ``accept`` rule for each of the states to allow
 the traffic to flow through.
 
 
@@ -65,7 +75,7 @@ http
 ^^^^
 
 For the HTTP protocol there are a number of states to hook into. These apply to HTTP 0.9, 1.0
-and 1.1. HTTP/2 uses it's own state machine.
+and 1.1. HTTP/2 uses its own state machine.
 
 Available states:
 
@@ -125,7 +135,7 @@ If the packet has been marked internally as a packet with an application layer u
 next table is ``app_filter``.
 
 In ``app_filter`` the per application layer states are all evaluated at least once. At each of
-these states an ``accept:hook`` required to progress to the next state. When all available states
+these states an ``accept:hook`` is required to progress to the next state. When all available states
 have been accepted, the pipeline moves to the final table ``app_td`` (application layer threat
 detection). A ``drop`` in the ``app_filter`` table is immediate, however and ``accept`` is
 conditional on the verdict of the ``app_td`` table.
@@ -133,7 +143,7 @@ conditional on the verdict of the ``app_td`` table.
 In ``app_td`` the IDS/IPS rules for the application layer are evaluated. ``drop`` actions in this
 table are queued in the alert queue.
 
-Then all tables have been evaluated, the alert finalize process orders threat detection alerts
+When all tables have been evaluated, the alert finalize process orders threat detection alerts
 by ``action-order`` logic. It can then apply a ``drop`` or default to ``accept``-ing.
 
 
@@ -149,10 +159,3 @@ do not affect firewall rules. So the detection engine is still invoked on packet
 but the ``packet_td`` and ``app_td`` tables are skipped.
 
 
-Concepts
-~~~~~~~~
-
-* ``table`` collection of rules with different properties: ``packet_filter``, ``packet_td``,
-  ``app_filter``, ``app_td``.
-* ``hook``  / ``state`` controls a specific state at which a rule is evaluated. Examples are
-  ``tcp.flow_start`` or ``tls.client_body_done``.

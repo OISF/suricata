@@ -58,7 +58,7 @@ Each state needs an ``accept`` rule. Each state is evaluated at least once.
 TLS SNI with complex TCP rules
 ------------------------------
 
-In this example the ``packet_filter`` rules will be more opiniated about the traffic::
+In this example the ``packet_filter`` rules will be more opinionated about the traffic::
 
     # allow 3-way handshake
     accept:hook tcp:all $HOME_NET any -> $EXTERNAL_NET 443 (flags:S; \
