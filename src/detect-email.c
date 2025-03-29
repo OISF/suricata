@@ -26,6 +26,7 @@ static int g_mime_email_from_buffer_id = 0;
 static int g_mime_email_subject_buffer_id = 0;
 static int g_mime_email_to_buffer_id = 0;
 static int g_mime_email_cc_buffer_id = 0;
+static int g_mime_email_date_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -166,6 +167,40 @@ static InspectionBuffer *GetMimeEmailCcData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectMimeEmailDateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_date_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailDateData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+        const uint8_t *b_email_date = NULL;
+        uint32_t b_email_date_len = 0;
+
+        if (tx->mime_state == NULL)
+            return NULL;
+
+        if (SCDetectMimeEmailGetData(tx->mime_state, &b_email_date, &b_email_date_len, "date") != 1)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b_email_date, b_email_date_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -213,4 +248,15 @@ void DetectEmailRegister(void)
             DetectHelperBufferMpmRegister("email.cc", "MIME EMAIL CC", ALPROTO_SMTP, false,
                     true, // to server
                     GetMimeEmailCcData);
+
+    kw.name = "email.date";
+    kw.desc = "'Date' field from an email";
+    kw.url = "/rules/email-keywords.html#email.date";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailDateSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_date_buffer_id =
+            DetectHelperBufferMpmRegister("email.date", "MIME EMAIL DATE", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetMimeEmailDateData);
 }
