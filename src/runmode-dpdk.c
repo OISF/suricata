@@ -79,11 +79,13 @@ static void InitEal(void);
 static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues);
-static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues);
+static int ConfigSetTxQueues(
+        DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues, bool iface_sends_pkts);
 static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
-static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
+static int ConfigSetTxDescriptors(
+        DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc, bool iface_sends_pkts);
 static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int);
 static bool ConfigSetPromiscuousMode(DPDKIfaceConfig *iconf, int entry_bool);
 static bool ConfigSetMulticast(DPDKIfaceConfig *iconf, int entry_bool);
@@ -483,10 +485,20 @@ static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_
     SCReturnInt(0);
 }
 
-static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues)
+static bool ConfigIfaceSendsPkts(const char *mode)
 {
     SCEnter();
-    if (nb_queues == 0) {
+    if (strcmp(mode, "ips") == 0 || strcmp(mode, "tap") == 0) {
+        SCReturnBool(true);
+    }
+    SCReturnBool(false);
+}
+
+static int ConfigSetTxQueues(
+        DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues, bool iface_sends_pkts)
+{
+    SCEnter();
+    if (nb_queues == 0 && iface_sends_pkts) {
         SCLogInfo("%s: positive number of TX queues is required", iconf->iface);
         SCReturnInt(-ERANGE);
     }
@@ -631,7 +643,8 @@ static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str,
     SCReturnInt(0);
 }
 
-static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc)
+static int ConfigSetTxDescriptors(
+        DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc, bool iface_sends_pkts)
 {
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0') {
@@ -641,7 +654,11 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str,
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        iconf->nb_tx_desc = GreatestPowOf2UpTo(max_desc);
+        if (iface_sends_pkts) {
+            iconf->nb_tx_desc = GreatestPowOf2UpTo(max_desc);
+        } else {
+            iconf->nb_tx_desc = 0;
+        }
         SCReturnInt(0);
     }
 
@@ -651,7 +668,7 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str,
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->nb_tx_desc == 0) {
+    if (iconf->nb_tx_desc == 0 && iface_sends_pkts) {
         SCLogError("%s: positive number of TX descriptors is required", iconf->iface);
         SCReturnInt(-ERANGE);
     } else if (iconf->nb_tx_desc > max_desc) {
@@ -866,20 +883,9 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval != true)
         SCReturnInt(-EINVAL);
 
-    // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_rx_queues);
-    if (retval < 0) {
-        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
-                iconf->iface, dev_info.max_rx_queues);
-        SCReturnInt(retval);
-    }
-
-    // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    retval = ConfigSetTxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_tx_queues);
-    if (retval < 0) {
-        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
-                iconf->iface, dev_info.max_tx_queues);
-        SCReturnInt(retval);
+    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
+    if (retval != 1) {
+        copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
     }
 
     retval = ConfGetChildValueWithDefault(
@@ -890,13 +896,32 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
+    bool iface_sends_pkts = ConfigIfaceSendsPkts(copy_mode_str);
     retval = ConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.tx_descriptors, &entry_str) != 1
                      ? ConfigSetTxDescriptors(iconf, DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS,
-                               dev_info.tx_desc_lim.nb_max)
-                     : ConfigSetTxDescriptors(iconf, entry_str, dev_info.tx_desc_lim.nb_max);
+                               dev_info.tx_desc_lim.nb_max, iface_sends_pkts)
+                     : ConfigSetTxDescriptors(
+                               iconf, entry_str, dev_info.tx_desc_lim.nb_max, iface_sends_pkts);
     if (retval < 0)
         SCReturnInt(retval);
+
+    // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
+    retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_rx_queues);
+    if (retval < 0) {
+        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
+                iconf->iface, dev_info.max_rx_queues);
+        SCReturnInt(retval);
+    }
+
+    // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
+    uint16_t tx_queues = iconf->nb_tx_desc > 0 ? (uint16_t)iconf->threads : 0;
+    retval = ConfigSetTxQueues(iconf, tx_queues, dev_info.max_tx_queues, iface_sends_pkts);
+    if (retval < 0) {
+        SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
+                iconf->iface, dev_info.max_tx_queues);
+        SCReturnInt(retval);
+    }
 
     retval = ConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
@@ -967,11 +992,6 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
                      : ConfigSetLinkupTimeout(iconf, entry_int);
     if (retval < 0)
         SCReturnInt(retval);
-
-    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
-    if (retval != 1) {
-        copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
-    }
 
     retval = ConfGetChildValueWithDefault(
             if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
