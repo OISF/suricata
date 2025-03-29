@@ -24,13 +24,34 @@ use crate::frames::Frame;
 use nom7::Err;
 use suricata_sys::sys::AppProto;
 use std::ffi::CString;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering, AtomicU8};
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[allow(non_camel_case_types)]
+pub enum SshEncryptionHandling {
+    SSH_HANDLE_ENCRYPTION_TRACK_ONLY = 0, // Disable raw content inspection, continue tracking
+    SSH_HANDLE_ENCRYPTION_BYPASS = 1,  // Skip processing of flow, bypass if possible
+    SSH_HANDLE_ENCRYPTION_FULL = 2,    // Handle fully like any other protocol
+}
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
+static mut ENCRYPTION_BYPASS_ENABLED: AtomicU8 = AtomicU8::new(SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY as u8);
+
 fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
+}
+
+fn encryption_bypass_mode() -> SshEncryptionHandling {
+    let mode_val = unsafe { ENCRYPTION_BYPASS_ENABLED.load(Ordering::Relaxed) };
+    match mode_val {
+        0 => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY,
+        1 => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS,
+        2 => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_FULL,
+        _ => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY,
+    }
 }
 
 #[derive(AppLayerFrameType)]
@@ -203,13 +224,24 @@ impl SSHState {
                         parser::MessageCode::NewKeys => {
                             hdr.flags = SSHConnectionState::SshStateFinished;
                             if ohdr.flags >= SSHConnectionState::SshStateFinished {
-                                unsafe {
-                                    AppLayerParserStateSetFlag(
-                                        pstate,
-                                        APP_LAYER_PARSER_NO_INSPECTION
+                                let mut flags = 0;
+
+                                match encryption_bypass_mode() {
+                                    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS => {
+                                        flags |= APP_LAYER_PARSER_NO_INSPECTION
                                             | APP_LAYER_PARSER_NO_REASSEMBLY
-                                            | APP_LAYER_PARSER_BYPASS_READY,
-                                    );
+                                            | APP_LAYER_PARSER_BYPASS_READY;
+                                    }
+                                    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY => {
+                                        flags |= APP_LAYER_PARSER_NO_INSPECTION;
+                                    }
+                                    _ => {}
+                                }
+
+                                if flags != 0 {
+                                    unsafe {
+                                        AppLayerParserStateSetFlag(pstate, flags);
+                                    }
                                 }
                             }
                         }
@@ -551,6 +583,13 @@ pub extern "C" fn SCSshEnableHassh() {
 #[no_mangle]
 pub extern "C" fn SCSshHasshIsEnabled() -> bool {
     hassh_is_enabled()
+}
+
+#[no_mangle]
+pub extern "C" fn SCSshEnableBypass(mode: SshEncryptionHandling) {
+    unsafe {
+        ENCRYPTION_BYPASS_ENABLED.store(mode as u8, Ordering::Relaxed);
+    }
 }
 
 #[no_mangle]
