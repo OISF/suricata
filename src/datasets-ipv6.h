@@ -25,15 +25,22 @@
 #define SURICATA_DATASETS_IPV6_H
 
 #include "datasets-reputation.h"
+#include "datajson.h"
 
 typedef struct IPv6Type {
     uint8_t ipv6[16];
-    DataRepType rep;
+    union {
+        DataRepType rep;
+        DataJsonType json;
+    };
 } IPv6Type;
 
 int IPv6Set(void *dst, void *src);
+int IPv6JsonSet(void *dst, void *src);
 bool IPv6Compare(void *a, void *b);
 uint32_t IPv6Hash(uint32_t hash_seed, void *s);
 void IPv6Free(void *s);
+void IPv6JsonFree(void *s);
+uint32_t IPv6JsonGetLength(void *s);
 
 #endif /* __DATASETS_IPV4_H__ */
