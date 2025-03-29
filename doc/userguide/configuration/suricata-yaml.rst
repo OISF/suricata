@@ -2263,6 +2263,10 @@ Individual Suricata workers then poll packets from the NIC queues.
 Internally, DPDK runmode uses a `symmetric hash (0x6d5a)
 <https://www.ran-lifshitz.com/2014/08/28/symmetric-rss-receive-side-scaling/>`_
 that redirects bi-flows to specific workers.
+Each worker operates on 1 RX (and 1 TX) queue. The number of RX queues is always
+equal to the number of threads/workers. The number of TX queues is the same as
+the number of RX queues or can be set to 0 if Suricata runs in IDS mode by
+configuring ``tx-descriptors`` to 0 or ``auto`` in the interface configuration node.
 
 Before Suricata can be run, it is required to allocate a sufficient number of
 hugepages. For efficiency, hugepages are continuous chunks of memory (pages)
