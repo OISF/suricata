@@ -159,7 +159,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
         enum DatasetTypes *type, char *load, size_t load_size, char *save, size_t save_size,
         uint64_t *memcap, uint32_t *hashsize, DatasetFormats *format, char *value_key,
         size_t value_key_size, char *array_key, size_t array_key_size, char *enrichment_key,
-        size_t enrichment_key_size)
+        size_t enrichment_key_size, bool *remove_key)
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -206,10 +206,12 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
             name_set = true;
         } else {
             if (val == NULL) {
-                return -1;
-            }
-
-            if (strcmp(key, "type") == 0) {
+                /* only non fixed place option without value is remove_key */
+                if (strcmp(key, "remove_key") == 0) {
+                    *remove_key = true;
+                } else
+                    return -1;
+            } else if (strcmp(key, "type") == 0) {
                 SCLogDebug("type %s", val);
 
                 if (strcmp(val, "md5") == 0) {
@@ -452,6 +454,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     char value_key[SIG_JSON_CONTENT_KEY_LEN] = "";
     char array_key[SIG_JSON_CONTENT_KEY_LEN] = "";
     char enrichment_key[SIG_JSON_CONTENT_KEY_LEN] = "";
+    bool remove_key = false;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
         SCLogError("datasets are only supported for sticky buffers");
@@ -467,7 +470,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (!DetectDatasetParse(rawstr, cmd_str, sizeof(cmd_str), name, sizeof(name), &type, load,
                 sizeof(load), save, sizeof(save), &memcap, &hashsize, &format, value_key,
                 sizeof(value_key), array_key, sizeof(array_key), enrichment_key,
-                sizeof(enrichment_key))) {
+                sizeof(enrichment_key), &remove_key)) {
         return -1;
     }
 
@@ -526,11 +529,11 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     Dataset *set = NULL;
 
     if (format == DATASET_FORMAT_JSON) {
-        set = DatajsonGet(
-                name, type, load, memcap, hashsize, value_key, array_key, DATASET_FORMAT_JSON);
+        set = DatajsonGet(name, type, load, memcap, hashsize, value_key, array_key,
+                DATASET_FORMAT_JSON, remove_key);
     } else if (format == DATASET_FORMAT_JSONLINE) {
-        set = DatajsonGet(
-                name, type, load, memcap, hashsize, value_key, NULL, DATASET_FORMAT_JSONLINE);
+        set = DatajsonGet(name, type, load, memcap, hashsize, value_key, NULL,
+                DATASET_FORMAT_JSONLINE, remove_key);
     } else {
         set = DatasetGet(name, type, save, load, memcap, hashsize);
     }
