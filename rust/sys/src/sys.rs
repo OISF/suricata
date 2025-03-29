@@ -133,3 +133,40 @@ pub type SCAppLayerPlugin = SCAppLayerPlugin_;
 extern "C" {
     pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCOutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW = 1,
+    LOG_DIR_FLOW_TOCLIENT = 2,
+    LOG_DIR_FLOW_TOSERVER = 3,
+}
+pub type EveJsonSimpleTxLogFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const ::std::os::raw::c_void,
+        arg2: *mut ::std::os::raw::c_void,
+    ) -> bool,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonSimpleAppLayerLogger {
+    pub LogTx: EveJsonSimpleTxLogFunc,
+    pub name: *const ::std::os::raw::c_char,
+}
+extern "C" {
+    pub fn SCEveJsonSimpleGetLogger(alproto: AppProto) -> *mut EveJsonSimpleAppLayerLogger;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonTxLoggerRegistrationData {
+    pub confname: *const ::std::os::raw::c_char,
+    pub logname: *const ::std::os::raw::c_char,
+    pub alproto: AppProto,
+    pub dir: u8,
+    pub LogTx: EveJsonSimpleTxLogFunc,
+}
+extern "C" {
+    pub fn SCOutputPreRegisterLogger(
+        reg_data: EveJsonTxLoggerRegistrationData,
+    ) -> ::std::os::raw::c_int;
+}
