@@ -55,7 +55,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toclient direction will act on updated app-layer state */
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
-// vacancy bit 3
+/** Flow is marked an elephant flow */
+#define FLOW_IS_ELEPHANT BIT_U32(3)
 
 // vacancy bit 4
 

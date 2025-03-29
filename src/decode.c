@@ -659,6 +659,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", tv);
     dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", tv);
     dtv->counter_flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", tv);
+    dtv->counter_flow_elephant = StatsRegisterCounter("flow.elephant", tv);
     dtv->counter_flow_get_used = StatsRegisterCounter("flow.get_used", tv);
     dtv->counter_flow_get_used_eval = StatsRegisterCounter("flow.get_used_eval", tv);
     dtv->counter_flow_get_used_eval_reject = StatsRegisterCounter("flow.get_used_eval_reject", tv);
