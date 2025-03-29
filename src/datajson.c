@@ -347,8 +347,12 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
 
     *found = true;
 
-    const char *val = json_string_value(key);
+    char val[DATAJSON_JSON_LENGTH];
+    strlcpy(val, json_string_value(key), DATAJSON_JSON_LENGTH - 1);
     DataJsonType elt = { .value = NULL, .len = 0 };
+    if (set->remove_key) {
+        json_object_del(value, json_key);
+    }
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -408,6 +412,9 @@ static uint32_t DatajsonAddMd5Element(Dataset *set, json_t *value, char *json_ke
         return 0;
     }
     DataJsonType elt = { .value = NULL, .len = 0 };
+    if (set->remove_key) {
+        json_object_del(value, json_key);
+    }
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -467,6 +474,9 @@ static uint32_t DatajsonAddSha256Element(Dataset *set, json_t *value, char *json
         return 0;
     }
     DataJsonType elt = { .value = NULL, .len = 0 };
+    if (set->remove_key) {
+        json_object_del(value, json_key);
+    }
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -521,6 +531,9 @@ static uint32_t DatajsonAddIpv4Element(Dataset *set, json_t *value, char *json_k
         return 0;
     }
     DataJsonType elt = { .value = NULL, .len = 0 };
+    if (set->remove_key) {
+        json_object_del(value, json_key);
+    }
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -577,6 +590,9 @@ static uint32_t DatajsonAddIPv6Element(Dataset *set, json_t *value, char *json_k
         return 0;
     }
     DataJsonType elt = { .value = NULL, .len = 0 };
+    if (set->remove_key) {
+        json_object_del(value, json_key);
+    }
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -616,7 +632,8 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key, Datas
 }
 
 Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
-        uint32_t hashsize, char *json_key_value, char *json_array_key, DatasetFormats format)
+        uint32_t hashsize, char *json_key_value, char *json_array_key, DatasetFormats format,
+        bool remove_key)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -665,6 +682,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
 
     strlcpy(set->name, name, sizeof(set->name));
     set->type = type;
+    set->remove_key = remove_key;
     if (load && strlen(load)) {
         strlcpy(set->load, load, sizeof(set->load));
         SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);

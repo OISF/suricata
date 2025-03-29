@@ -50,6 +50,7 @@ typedef struct Dataset {
     uint32_t id;
     bool from_yaml;                     /* Mark whether the set was retrieved from YAML */
     bool hidden;                        /* Mark the old sets hidden in case of reload */
+    bool remove_key;                    /* Mark that value key should be removed from extra data */
     THashTableContext *hash;
 
     char load[PATH_MAX];
