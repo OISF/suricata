@@ -118,8 +118,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         SCReturnInt(-1);
     }
 
+    if (smd == NULL) {
+        KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+        SCReturnInt(0);
+    }
+
     // we want the ability to match on bsize: 0
-    if (smd == NULL || buffer == NULL) {
+    if (buffer == NULL && smd->type != DETECT_ABSENT) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
@@ -384,11 +389,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_ABSENT) {
         const DetectAbsentData *id = (DetectAbsentData *)smd->ctx;
-        if (!id->or_else) {
+        if (id->or_else || buffer_len == 0) {
             // we match only on absent buffer
-            goto no_match;
+            goto match;
         }
-        goto match;
+        goto no_match;
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
