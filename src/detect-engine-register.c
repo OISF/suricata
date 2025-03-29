@@ -212,6 +212,7 @@
 #include "detect-ftp-command.h"
 #include "detect-entropy.h"
 #include "detect-ftp-command-data.h"
+#include "detect-ftp-completion-code.h"
 #include "detect-ftp-reply.h"
 #include "detect-ftp-mode.h"
 #include "detect-ftp-reply-received.h"
@@ -727,6 +728,7 @@ void SigTableSetup(void)
     DetectJa4HashRegister();
     DetectFtpCommandRegister();
     DetectFtpCommandDataRegister();
+    DetectFtpCompletionCodeRegister();
     DetectFtpReplyRegister();
     DetectFtpModeRegister();
     DetectFtpReplyReceivedRegister();
