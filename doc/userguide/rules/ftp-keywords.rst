@@ -71,7 +71,6 @@ Examples of commands are:
 * PASV
 * RETR
 
-
 ftp.reply
 ---------
 
@@ -106,3 +105,42 @@ Signature Example:
 
   alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Opening BINARY mode data connection for temp.";` sid: 1;)
   alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Transfer complete.";` sid: 2;)
+
+ftp.completion_code
+-------------------
+
+This keyword matches on an FTP completion code string. Note that there may be multiple reply strings for
+an FTP command and hence, multiple completion code values to check.. ``ftp.completion_code`` is a sticky buffer
+and can be used as a fast pattern. Do not include the response string in the `content` to match upon (see examples).
+
+Syntax::
+
+  ftp.completion_code; content: <quoted-completion-code>;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.completion_code; content:"226";` sid: 1;)
+
+.. note ::
+   FTP commands can return multiple reply strings. Specify a single completion code for each ``ftp.completion_code`` keyword.
+
+
+This example shows an FTP command (``RETR``) followed by an FTP reply with multiple response strings.
+::
+
+    RETR temp.txt
+    150 Opening BINARY mode data connection for temp.txt (1164 bytes).
+    226 Transfer complete.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.reply; content:"Opening BINARY mode data connection for temp."; \
+  :example-rule-options:`ftp.completion_code; content: "150";` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.completion_code; content: "226";` sid: 2;)
