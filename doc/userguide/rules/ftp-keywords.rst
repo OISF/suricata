@@ -49,7 +49,7 @@ For additional information on the ``file.name`` keyword, see :doc:`file-keywords
 ftp.command
 -----------
 
-This keyword matches on the command name from a FTP client request. ``ftp.command``
+This keyword matches on the command name from an FTP client request. ``ftp.command``
 is a sticky buffer and can be used as a fast pattern.
 
 Syntax::
@@ -75,9 +75,9 @@ Examples of commands are:
 ftp.reply
 ---------
 
-This keyword matches on a FTP reply string. Note that there may be multiple reply strings for
+This keyword matches on an FTP reply string. Note that there may be multiple reply strings for
 an FTP command. ``ftp.reply`` is a sticky buffer and can be used as a fast pattern. Do not
-include the completion code.
+include the completion code in the `content` to match upon (see examples)..
 
 Syntax::
 
@@ -92,6 +92,8 @@ Signature Example:
 .. note ::
    FTP commands can return multiple reply strings. Specify a single reply for each ``ftp.reply`` keyword.
 
+
+This example shows an FTP command (``RETR``) followed by an FTP reply with multiple response strings.
 ::
 
     RETR temp.txt
