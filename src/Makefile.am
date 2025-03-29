@@ -390,6 +390,7 @@ noinst_HEADERS = \
 	output-eve-syslog.h \
 	output-lua.h \
 	output-packet.h \
+	output-public.h \
 	output-stats.h \
 	output-streaming.h \
 	output-tx.h \

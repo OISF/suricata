@@ -71,7 +71,7 @@
 static void OutputJsonDeInitCtx(OutputCtx *);
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed);
 static int CreateJSONEther(
-        JsonBuilder *parent, const Packet *p, const Flow *f, enum OutputJsonLogDirection dir);
+        JsonBuilder *parent, const Packet *p, const Flow *f, enum SCOutputJsonLogDirection dir);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -396,7 +396,7 @@ void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
 }
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
-        JsonBuilder *js, enum OutputJsonLogDirection dir)
+        JsonBuilder *js, enum SCOutputJsonLogDirection dir)
 {
     if (cfg->include_metadata) {
         EveAddMetadata(p, f, js);
@@ -464,7 +464,7 @@ void EveTcpFlags(const uint8_t flags, JsonBuilder *js)
         JB_SET_TRUE(js, "cwr");
 }
 
-void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddrInfo *addr)
+void JsonAddrInfoInit(const Packet *p, enum SCOutputJsonLogDirection dir, JsonAddrInfo *addr)
 {
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
@@ -735,7 +735,7 @@ static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
 }
 
 static int CreateJSONEther(
-        JsonBuilder *js, const Packet *p, const Flow *f, enum OutputJsonLogDirection dir)
+        JsonBuilder *js, const Packet *p, const Flow *f, enum SCOutputJsonLogDirection dir)
 {
     if (p != NULL) {
         /* this is a packet context, so we need to add scalar fields */
@@ -828,7 +828,7 @@ static int CreateJSONEther(
     return 0;
 }
 
-JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
+JsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx)
 {
     char timebuf[64];
@@ -924,7 +924,7 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
     return js;
 }
 
-JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
+JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, uint64_t tx_id, OutputJsonCtx *eve_ctx)
 {
     JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr, eve_ctx);
