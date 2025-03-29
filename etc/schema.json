@@ -1893,6 +1893,9 @@
                 "alerted": {
                     "type": "boolean"
                 },
+                "elephant": {
+                    "type": "boolean"
+                },
                 "bypass": {
                     "type": "string"
                 },
@@ -6299,6 +6302,10 @@
                         },
                         "total": {
                             "description": "Total number of flows",
+                            "type": "integer"
+                        },
+                        "elephant": {
+                            "description": "Total number of elephant flows",
                             "type": "integer"
                         },
                         "udp": {
