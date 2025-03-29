@@ -1957,3 +1957,126 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         fprintf(fp, "\n");
     }
 }
+
+#include "app-layer-parser.h"
+
+static JsonBuilder *FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppProto a,
+        const uint8_t state, const uint8_t direction, RuleAnalyzer *ctx)
+{
+    uint32_t accept_rules = 0;
+    JsonBuilder *js = jb_new_object();
+    if (js == NULL)
+        return NULL;
+    jb_set_string(js, "policy", "drop");
+    jb_open_array(js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            break;
+        if (s->type != SIG_TYPE_APP_TX)
+            continue;
+        if (s->alproto != a)
+            continue;
+
+        if (direction == STREAM_TOSERVER) {
+            if (s->flags & SIG_FLAG_TOCLIENT) {
+                continue;
+            }
+        } else {
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                continue;
+            }
+        }
+
+        if (s->app_progress_hook == state) {
+            jb_append_string(js, s->sig_str);
+            accept_rules += ((s->action & ACTION_ACCEPT) != 0);
+        }
+    }
+    jb_close(js);
+    jb_close(js);
+
+    if (accept_rules == 0) {
+        AnalyzerWarning(ctx, (char *)"no accept rules for state, default policy will be applied");
+    }
+
+    return js;
+}
+
+int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
+{
+    RuleAnalyzer ctx = { NULL, NULL, NULL };
+    ctx.js = jb_new_object();
+    if (ctx.js == NULL)
+        return -1;
+
+    jb_open_object(ctx.js, "table");
+    jb_set_string(ctx.js, "name", "app_filter");
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        if (!AppProtoIsValid(a))
+            continue;
+
+        // HACK not all protocols have named states yet
+        const char *hack = AppLayerParserGetStateNameById(IPPROTO_TCP, a, 0, STREAM_TOSERVER);
+        if (!hack)
+            continue;
+
+        jb_open_object(ctx.js, AppProtoToString(a));
+        const uint8_t complete_state_ts =
+                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+        for (uint8_t state = 0; state < complete_state_ts; state++) {
+            const char *name =
+                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
+            jb_open_object(ctx.js, name);
+            JsonBuilder *o = FirewallAddRulesForState(de_ctx, a, state, STREAM_TOSERVER, &ctx);
+            if (o != NULL) {
+                jb_set_object(ctx.js, "policy", o);
+                jb_free(o);
+            }
+            if (ctx.js_warnings) {
+                jb_close(ctx.js_warnings);
+                jb_set_object(ctx.js, "warnings", ctx.js_warnings);
+                jb_free(ctx.js_warnings);
+                ctx.js_warnings = NULL;
+            }
+            jb_close(ctx.js);
+        }
+        const uint8_t complete_state_tc =
+                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
+        for (uint8_t state = 0; state < complete_state_tc; state++) {
+            const char *name =
+                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
+            jb_open_object(ctx.js, name);
+            JsonBuilder *o = FirewallAddRulesForState(de_ctx, a, state, STREAM_TOCLIENT, &ctx);
+            if (o != NULL) {
+                jb_set_object(ctx.js, "policy", o);
+                jb_free(o);
+            }
+            if (ctx.js_warnings) {
+                jb_close(ctx.js_warnings);
+                jb_set_object(ctx.js, "warnings", ctx.js_warnings);
+                jb_free(ctx.js_warnings);
+                ctx.js_warnings = NULL;
+            }
+            jb_close(ctx.js);
+        }
+        jb_close(ctx.js);
+    }
+    jb_close(ctx.js);
+    jb_close(ctx.js);
+
+    const char *filename = "firewall.json";
+    const char *log_dir = ConfigGetLogDirectory();
+    char json_path[PATH_MAX] = "";
+    snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
+
+    SCMutexLock(&g_rules_analyzer_write_m);
+    FILE *fp = fopen(json_path, "w");
+    if (fp != NULL) {
+        fwrite(jb_ptr(ctx.js), jb_len(ctx.js), 1, fp);
+        fprintf(fp, "\n");
+        fclose(fp);
+    }
+    SCMutexUnlock(&g_rules_analyzer_write_m);
+    jb_free(ctx.js);
+    return 0;
+}
