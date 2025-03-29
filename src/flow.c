@@ -53,6 +53,7 @@
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-macset.h"
+#include "util-flow-rate.h"
 
 #include "util-debug.h"
 
@@ -344,6 +345,30 @@ static inline void FlowUpdateTtlTC(Flow *f, uint8_t ttl)
     f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
 }
 
+static inline void FlowUpdateFlowRate(
+        ThreadVars *tv, DecodeThreadVars *dtv, Flow *f, const Packet *p, int dir)
+{
+    if (FlowRateStorageEnabled()) {
+        /* No need to update the struct if flow is already marked as elephant flow */
+        if (f->flags & FLOW_IS_ELEPHANT)
+            return;
+        FlowRateStore *frs = FlowGetStorageById(f, FlowRateGetStorageID());
+        if (frs != NULL) {
+            FlowRateStoreUpdate(frs, p->ts, GET_PKT_LEN(p), dir);
+            bool fr_exceeds = FlowRateIsExceeding(frs, dir);
+            if (fr_exceeds) {
+                SCLogDebug("Flow rate for flow %p exceeds the configured values, marking it as an "
+                           "elephant flow",
+                        f);
+                f->flags |= FLOW_IS_ELEPHANT;
+                if (tv != NULL) {
+                    StatsIncr(tv, dtv->counter_flow_elephant);
+                }
+            }
+        }
+    }
+}
+
 static inline void FlowUpdateEthernet(
         ThreadVars *tv, DecodeThreadVars *dtv, Flow *f, const Packet *p, bool toserver)
 {
@@ -407,6 +432,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (pkt_dir == TOSERVER) {
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
+        FlowUpdateFlowRate(tv, dtv, f, p, TOSERVER);
         p->flowflags = FLOW_PKT_TOSERVER;
         if (!(f->flags & FLOW_TO_DST_SEEN)) {
             if (FlowUpdateSeenFlag(p)) {
@@ -431,6 +457,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
+        FlowUpdateFlowRate(tv, dtv, f, p, TOCLIENT);
         p->flowflags = FLOW_PKT_TOCLIENT;
         if (!(f->flags & FLOW_TO_SRC_SEEN)) {
             if (FlowUpdateSeenFlag(p)) {
