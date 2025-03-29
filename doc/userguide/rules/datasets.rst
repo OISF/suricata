@@ -80,7 +80,8 @@ Syntax::
 
     dataset:<set|unset|isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
-         , format <csv|json|jsonline>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>];
+         , format <csv|json|jsonline>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>,
+         remove_key];
 
 type <type>
   the data type: string, md5, sha256, ipv4, ip
@@ -108,6 +109,9 @@ value_key <key>
 array_key <key>
   the key to use for the array of the alert
   for json format
+remove_key
+  if set, the JSON object pointed by value key will be removed
+  from the alert event
 
 
 .. note:: 'type' is mandatory and needs to be set.
@@ -161,7 +165,7 @@ The rules will only match if the data is in the list and the reputation
 value is higher than 200.
 
 
-.. _datasets_datajson:
+.. _datasets_json:
 
 dataset with json
 ~~~~~~~~~~~~~~~~~
@@ -188,12 +192,17 @@ Example rules could look like::
 
 In this example, the match will occur if the destination IP is in the set and the
 alert will have an ``alert.extra.bad_ones`` subobject that will contain the JSON
-data associated to the value.
+data associated to the value (``bad_ones`` coming from ``enrichment_key`` option).
 
-If ``json_key`` is present then the data file has to contains a valid JSON object containing an array
-where every elemeents have to contain a key equal to ``json_key``.
+When format is ``json`` or ``jsonline``, the ``value_key`` is used to get
+the value in the line (``jsonline`` format) or in the array (``json`` format).
+At least one single element needs to be have the ``value_key`` present in the data file to
+have a successful load.
 If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
-a JSON array. This is only valid for ``json`` format.
+a JSON array and search for element to add to the set in this array. This is only valid for ``json`` format.
+
+If you don't want to have the ``value_key`` in the alert, you can use the
+``remove_key`` option. This will remove the key from the alert event.
 
 See :ref:`Datajson format <datajson_data>` for more information.
 
