@@ -515,7 +515,11 @@ static int ConfigSetTxQueues(
 static uint32_t MempoolSizeCalculate(
         uint32_t rx_queues, uint32_t rx_desc, uint32_t tx_queues, uint32_t tx_desc)
 {
-    return rx_queues * rx_desc + tx_queues * tx_desc;
+    uint32_t sz = rx_queues * rx_desc + tx_queues * tx_desc;
+    if (!tx_queues || !tx_desc)
+        sz *= 2; // double to have enough space for RX descriptors
+
+    return sz;
 }
 
 static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
