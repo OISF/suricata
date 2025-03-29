@@ -25,6 +25,7 @@
 #define SURICATA_SOURCE_DPDK_H
 
 #include "suricata-common.h"
+#include "util-dpdk.h"
 
 #ifdef HAVE_DPDK
 #include <rte_ethdev.h>
@@ -73,7 +74,8 @@ typedef struct DPDKIfaceConfig_ {
     uint16_t nb_tx_desc;
     uint32_t mempool_size;
     uint32_t mempool_cache_size;
-    struct rte_mempool *pkt_mempool;
+    DPDKDeviceResources *pkt_mempools;
+    uint16_t linkup_timeout; // in seconds how long to wait for link to come up
     SC_ATOMIC_DECLARE(unsigned int, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);

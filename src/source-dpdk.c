@@ -134,7 +134,6 @@ typedef struct DPDKThreadVars_ {
     uint16_t port_id;
     uint16_t queue_id;
     int32_t port_socket_id;
-    struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
     DPDKWorkerSync *workers_sync;
 } DPDKThreadVars;
@@ -609,9 +608,6 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
-    // pass the pointer to the mempool and then forget about it. Mempool is freed in thread deinit.
-    ptv->pkt_mempool = dpdk_config->pkt_mempool;
-    dpdk_config->pkt_mempool = NULL;
 
     thread_numa = GetNumaNode();
     if (thread_numa >= 0 && ptv->port_socket_id != SOCKET_ID_ANY &&
@@ -640,6 +636,45 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogError("%s: error (%s) when getting device info", dpdk_config->iface,
                     rte_strerror(-retval));
             goto fail;
+        }
+
+        uint32_t timeout = dpdk_config->linkup_timeout * 10;
+        while (timeout > 0) {
+            struct rte_eth_link link = { 0 };
+            retval = rte_eth_link_get_nowait(ptv->port_id, &link);
+            if (retval != 0) {
+                if (retval == -ENOTSUP) {
+                    SCLogInfo("%s: link status not supported, skipping", dpdk_config->iface);
+                } else {
+                    SCLogInfo("%s: error (%s) when getting link status, skipping",
+                            dpdk_config->iface, rte_strerror(-retval));
+                }
+                break;
+            }
+            if (link.link_status) {
+                char link_status_str[RTE_ETH_LINK_MAX_STR_LEN];
+#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+                rte_eth_link_to_str(link_status_str, sizeof(link_status_str), &link);
+#pragma GCC diagnostic pop
+#else
+                snprintf(link_status_str, sizeof(link_status_str),
+                        "Link Up, speed %u Mbps, %s", // 22 chars + 10 for digits + 11 for duplex
+                        link.link_speed,
+                        (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? "full-duplex" : "half-duplex");
+#endif
+
+                SCLogInfo("%s: %s", dpdk_config->iface, link_status_str);
+                break;
+            }
+
+            rte_delay_ms(100);
+            timeout--;
+        }
+
+        if (dpdk_config->linkup_timeout && timeout == 0) {
+            SCLogWarning("%s: link is down, trying to continue anyway", dpdk_config->iface);
         }
 
         // some PMDs requires additional actions only after the device has started
@@ -770,8 +805,6 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
             SCFree(ptv->workers_sync);
         }
     }
-
-    ptv->pkt_mempool = NULL; // MP is released when device is closed
 
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
