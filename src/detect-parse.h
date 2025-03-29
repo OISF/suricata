@@ -73,6 +73,7 @@ Signature *SigInit(DetectEngineCtx *, const char *sigstr);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
+Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *, const char *);
 
 SigMatch *SigMatchAppendSMToList(DetectEngineCtx *, Signature *, uint16_t, SigMatchCtx *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
@@ -120,5 +121,7 @@ int SC_Pcre2SubstringCopy(
         pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen);
 int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,
         PCRE2_SIZE *bufflen);
+
+void DetectRegisterAppLayerHookLists(void);
 
 #endif /* SURICATA_DETECT_PARSE_H */
