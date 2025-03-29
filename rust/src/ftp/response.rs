@@ -15,18 +15,18 @@
  * 02110-1301, USA.
  */
 
-use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 
 #[repr(C)]
 pub struct FTPResponseLine {
-    code: *mut u8,     // Response code as a string (may be null)
-    response: *mut u8, // Response string
-    length: usize,     // Length of the response string
-    truncated: bool,   // Uses TX/state value.
-    total_size: usize, // Total allocated size in bytes
+    code: *mut u8,      // Response code as a string (may be null)
+    response: *mut u8,  // Response string
+    length: usize,      // Length of the response string
+    code_length: usize, // Length of the response code string
+    truncated: bool,    // Uses TX/state value.
+    total_size: usize,  // Total allocated size in bytes
 }
 
 /// Parses a single FTP response line and returns an FTPResponseLine struct.
@@ -34,38 +34,34 @@ pub struct FTPResponseLine {
 /// - (single response) "530 Login incorrect"
 /// - (single response, no code) "Login incorrect"
 fn parse_response_line(input: &str) -> Option<FTPResponseLine> {
-    // Find the first complete response line (delimited by `\r\n`)
-    let mut split = input.splitn(2, "\r\n");
-    let response_line = split.next().unwrap_or("").trim_end();
+    // Split the input on the first \r\n to get the response line
+    let response_line = input.split("\r\n").next().unwrap_or("").trim_end();
 
     if response_line.is_empty() {
-        return None; // Ignore empty input
+        return None;
     }
 
-    // Extract response code as a string
-    let mut parts = response_line.splitn(2, ' ');
-    let (code, response) = match (parts.next(), parts.next()) {
-        (Some(num_str), Some(rest))
-            if num_str.len() == 3 && num_str.chars().all(|c| c.is_ascii_digit()) =>
-        {
-            (num_str.to_string(), rest)
+    // Try to split off the 3-digit FTP status code
+    let (code_str, response_str) = match response_line.split_once(' ') {
+        Some((prefix, rest)) if prefix.len() == 3 && prefix.chars().all(|c| c.is_ascii_digit()) => {
+            (prefix, rest)
         }
-        _ => ("".to_string(), response_line), // No valid numeric code found
+        _ => ("", response_line),
     };
 
-    // Convert response and code to C strings
-    let c_code = CString::new(code).ok()?;
-    let c_response = CString::new(response).ok()?;
+    let code_bytes = code_str.as_bytes().to_vec();
+    let response_bytes = response_str.as_bytes().to_vec();
 
-    // Compute memory usage
-    let total_size = std::mem::size_of::<FTPResponseLine>()
-        + c_code.as_bytes_with_nul().len()
-        + c_response.as_bytes_with_nul().len();
+    let code_len = code_bytes.len();
+    let response_len = response_bytes.len();
+
+    let total_size = std::mem::size_of::<FTPResponseLine>() + code_len + response_len;
 
     Some(FTPResponseLine {
-        code: c_code.into_raw() as *mut u8,
-        response: c_response.into_raw() as *mut u8,
-        length: response.len(),
+        code: Box::into_raw(code_bytes.into_boxed_slice()) as *mut u8,
+        response: Box::into_raw(response_bytes.into_boxed_slice()) as *mut u8,
+        length: response_len,
+        code_length: code_len,
         truncated: false,
         total_size,
     })
@@ -99,30 +95,36 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
 
     let response = Box::from_raw(response);
 
-    if !response.code.is_null() {
-        let _ = CString::from_raw(response.code as *mut c_char);
+    if !response.response.is_null() {
+        let _ = Vec::from_raw_parts(
+            response.code,
+            response.code_length,
+            response.code_length,
+        );
     }
 
     if !response.response.is_null() {
-        let _ = CString::from_raw(response.response as *mut c_char);
+        let _ = Box::from_raw(std::slice::from_raw_parts_mut(
+            response.response,
+            response.length,
+        ));
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CStr;
 
     #[test]
     fn test_parse_valid_response() {
         let input = "220 Welcome to FTP\r\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "220");
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "Welcome to FTP");
         assert_eq!(parsed.length, "Welcome to FTP".len());
     }
@@ -132,12 +134,12 @@ mod tests {
         let input = "Some random text\r\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "");
 
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "Some random text");
         assert_eq!(parsed.length, "Some random text".len());
     }
@@ -147,11 +149,11 @@ mod tests {
         let input = "331  Password required  \r\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "331");
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, " Password required");
         assert_eq!(parsed.length, " Password required".len());
     }
@@ -161,11 +163,11 @@ mod tests {
         let input = "220 Hello FTP Server\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "220");
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "Hello FTP Server");
         assert_eq!(parsed.length, "Hello FTP Server".len());
     }
@@ -187,11 +189,11 @@ mod tests {
         let input = "99 Incorrect code\r\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "");
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "99 Incorrect code");
         assert_eq!(parsed.length, "99 Incorrect code".len());
     }
@@ -201,12 +203,12 @@ mod tests {
         let input = "500 '🌍 ABOR': unknown command\r\n";
         let parsed = parse_response_line(input).unwrap();
 
-        let code_cstr = unsafe { CStr::from_ptr(parsed.code as *mut c_char) };
-        let code_str = code_cstr.to_str().unwrap();
+        let code_slice = unsafe { slice::from_raw_parts(parsed.code, parsed.code_length) };
+        let code_str = std::str::from_utf8(code_slice).expect("Invalid UTF-8");
         assert_eq!(code_str, "500");
 
-        let response_cstr = unsafe { CStr::from_ptr(parsed.response as *mut c_char) };
-        let response_str = response_cstr.to_str().unwrap();
+        let response_slice = unsafe { slice::from_raw_parts(parsed.response, parsed.length) };
+        let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "'🌍 ABOR': unknown command");
         assert_eq!(parsed.length, "'🌍 ABOR': unknown command".len());
     }
