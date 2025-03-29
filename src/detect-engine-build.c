@@ -2190,6 +2190,10 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     if (!DetectEngineMultiTenantEnabled()) {
         VarNameStoreActivate();
     }
+
+    if (de_ctx->flags & DE_HAS_FIREWALL) {
+        FirewallAnalyzer(de_ctx);
+    }
     return 0;
 }
 
