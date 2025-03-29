@@ -2167,8 +2167,8 @@ Support for DPDK can be enabled in configure step of the build process such as:
     ./configure --enable-dpdk
 
 Suricata makes use of DPDK for packet acquisition in workers runmode.
-The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
-2 main subnodes, and those are eal-params and interfaces.
+The whole DPDK configuration resides in the ``dpdk:`` node. This node
+encapsulates 2 main subnodes, and those are eal-params and interfaces.
 
 ::
 
@@ -2197,26 +2197,27 @@ The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
 The `DPDK arguments
 <https://doc.dpdk.org/guides/linux_gsg/linux_eal_parameters.html>`_, which
 are typically provided through the command line, are contained in the node
-`dpdk.eal-params`. EAL is configured and initialized using these
+``dpdk.eal-params``. EAL is configured and initialized using these
 parameters. There are two ways to specify arguments: lengthy and short.
 Dashes are omitted when describing the arguments. This setup node can be
 used to set up the memory configuration, accessible NICs, and other EAL-related
-parameters, among other things. The node `dpdk.eal-params` also supports 
-multiple arguments of the same type. This can be useful for EAL arguments 
-such as `--vdev`, `--allow`, or `--block`. Values for these EAL arguments 
-are specified as a comma-separated list. 
-An example of such usage can be found in the example above where the `allow` 
-argument only makes `0000:3b:00.0` and `0000:3b:00.1` accessible to Suricata. 
+parameters, among other things. The node ``dpdk.eal-params`` also supports
+multiple arguments of the same type. This can be useful for EAL arguments
+such as ``--vdev``, ``--allow``, or ``--block``. Values for these EAL arguments
+are specified as a comma-separated list.
+An example of such usage can be found in the example above where the ``allow``
+argument only makes ``0000:3b:00.0`` and ``0000:3b:00.1`` accessible to
+Suricata.
 arguments with list node. such as --vdev, --allow, --block eal options.
 The definition of lcore affinity as an EAL
-parameter is a standard practice. However, lcore parameters like `-l`, `-c`,
-and `--lcores`` are specified within the `suricata-yaml-threading`_ section
+parameter is a standard practice. However, lcore parameters like ``-l``, ``-c``,
+and ``--lcores`` are specified within the `suricata-yaml-threading`_ section
 to prevent configuration overlap.
 
-The node `dpdk.interfaces` wraps a list of interface configurations. Items on
+The node ``dpdk.interfaces`` wraps a list of interface configurations. Items on
 the list follow the structure that can be found in other capture interfaces.
 The individual items contain the usual configuration options
-such as `threads`/`copy-mode`/`checksum-checks` settings. Other capture
+such as ``threads`` / ``copy-mode`` / ``checksum-checks`` settings. Other capture
 interfaces, such as AF_PACKET, rely on the user to ensure that NICs are
 appropriately configured.
 Configuration through the kernel does not apply to applications running under
@@ -2224,28 +2225,28 @@ DPDK. The application is solely responsible for the initialization of the NICs
 it is using. So, before the start of Suricata, the NICs that Suricata uses,
 must undergo the process of initialization.
 As a result, there are extra configuration options (how NICs can be
-configured) in the items (interfaces) of the `dpdk.interfaces` list.
+configured) in the items (interfaces) of the ``dpdk.interfaces`` list.
 At the start of the configuration process, all NIC offloads are disabled to
 prevent any packet modification. According to the configuration, checksum
 validation offload can be enabled to drop invalid packets. Other offloads can
 not currently be enabled.
-Additionally, the list items in `dpdk.interfaces` contain DPDK specific
-settings such as `mempool-size` or `rx-descriptors`. These settings adjust
-individual parameters of EAL. One of the entries in `dpdk.interfaces` is
-the `default` interface. When loading interface configuration and some entry is
-missing, the corresponding value of the `default` interface is used.
+Additionally, the list items in ``dpdk.interfaces`` contain DPDK specific
+settings such as ``mempool-size`` or ``rx-descriptors``. These settings adjust
+individual parameters of EAL. One of the entries in ``dpdk.interfaces`` is
+the ``default`` interface. When loading interface configuration and some entry
+is missing, the corresponding value of the ``default`` interface is used.
 
 The worker threads must be assigned to specific cores. The configuration
-module `threading` must be used to set thread affinity.
+module ``threading`` must be used to set thread affinity.
 Worker threads can be pinned to cores in the array configured in
-`threading.cpu-affinity["worker-cpu-set"]`. Performance-oriented setups have
+``threading.cpu-affinity["worker-cpu-set"]``. Performance-oriented setups have
 everything (the NIC, memory, and CPU cores interacting with the NIC) based on
 one NUMA node.
 It is therefore required to know the layout of the server architecture to get the
 best results. The CPU core ids and NUMA locations can be determined for example
-from the output of `/proc/cpuinfo` where `physical id` described the NUMA
+from the output of ``/proc/cpuinfo`` where ``physical id`` described the NUMA
 number. The NUMA node to which the NIC is connected to can be determined from
-the file `/sys/class/net/<KERNEL NAME OF THE NIC>/device/numa_node`.
+the file ``/sys/class/net/<KERNEL NAME OF THE NIC>/device/numa_node``.
 
 ::
 
@@ -2309,9 +2310,9 @@ were recently processed. The recommended size of the cache can be
 auto-calculated by setting ``mempool-cache-size: auto``.
 
 To be able to run DPDK on Intel cards, it is required to change the default
-Intel driver to either `vfio-pci` or `igb_uio` driver. The process is
+Intel driver to either ``vfio-pci`` or ``igb_uio`` driver. The process is
 described in `DPDK manual page regarding Linux drivers
-<https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_. 
+<https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_.
 The Intel NICs have the amount of RX/TX descriptors capped at 4096.
 This should be possible to change by manually compiling the DPDK while
 changing the value of respective macros for the desired drivers
@@ -2337,9 +2338,9 @@ interfaces nor in the virtual environments like VMs, Docker or similar.
 
 The minimal supported DPDK is version 19.11 which should be available in most
 repositories of major distributions.
-Alternatively, it is also possible to use `meson` and `ninja` to build and
+Alternatively, it is also possible to use ``meson`` and ``ninja`` to build and
 install DPDK from source files.
-It is required to have correctly configured tool `pkg-config` as it is used to
+It is required to have correctly configured tool ``pkg-config`` as it is used to
 load libraries and CFLAGS during the Suricata configuration and compilation.
 This can be tested by querying DPDK version as:
 
