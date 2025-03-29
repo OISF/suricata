@@ -39,4 +39,6 @@ void EngineAnalysisRulesFailure(
 
 void EngineAnalysisRules2(const struct DetectEngineCtx_ *de_ctx, const Signature *s);
 
+int FirewallAnalyzer(const struct DetectEngineCtx_ *de_ctx);
+
 #endif /* SURICATA_DETECT_ENGINE_ANALYZER_H */

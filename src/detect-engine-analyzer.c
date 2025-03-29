@@ -1959,3 +1959,221 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         fprintf(fp, "\n");
     }
 }
+
+#include "app-layer-parser.h"
+
+static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppProto a,
+        const uint8_t state, const uint8_t direction, RuleAnalyzer *ctx)
+{
+    uint32_t accept_rules = 0;
+    SCJbSetString(ctx->js, "policy", "drop:packet");
+    SCJbOpenArray(ctx->js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            break;
+        if (s->type != SIG_TYPE_APP_TX)
+            continue;
+        if (s->alproto != a)
+            continue;
+
+        if (direction == STREAM_TOSERVER) {
+            if (s->flags & SIG_FLAG_TOCLIENT) {
+                continue;
+            }
+        } else {
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                continue;
+            }
+        }
+
+        if (s->app_progress_hook == state) {
+            SCJbAppendString(ctx->js, s->sig_str);
+            accept_rules += ((s->action & ACTION_ACCEPT) != 0);
+        }
+    }
+    SCJbClose(ctx->js);
+
+    if (accept_rules == 0) {
+        AnalyzerWarning(ctx, (char *)"no accept rules for state, default policy will be applied");
+    }
+}
+
+int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
+{
+    RuleAnalyzer ctx = { NULL, NULL, NULL };
+    ctx.js = SCJbNewObject();
+    if (ctx.js == NULL)
+        return -1;
+
+    SCJbOpenObject(ctx.js, "tables");
+    SCJbOpenObject(ctx.js, "packet:filter");
+    SCJbSetString(ctx.js, "policy", "drop:packet");
+    SCJbOpenArray(ctx.js, "rules");
+    uint32_t accept_rules = 0;
+    uint32_t last_sid = 0;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            break;
+        if (s->type != SIG_TYPE_PKT)
+            continue;
+        /* don't double list <> sigs */
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+        accept_rules += ((s->action & ACTION_ACCEPT) != 0);
+    }
+    SCJbClose(ctx.js);
+    if (accept_rules == 0) {
+        AnalyzerWarning(&ctx,
+                (char *)"no accept rules for \'packet_filter\', default policy will be applied");
+    }
+    if (ctx.js_warnings) {
+        SCJbClose(ctx.js_warnings);
+        SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+        SCJbFree(ctx.js_warnings);
+        ctx.js_warnings = NULL;
+    }
+    SCJbClose(ctx.js); // packet_filter
+
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        if (!AppProtoIsValid(a))
+            continue;
+
+        // HACK not all protocols have named states yet
+        const char *hack = AppLayerParserGetStateNameById(IPPROTO_TCP, a, 0, STREAM_TOSERVER);
+        if (!hack)
+            continue;
+
+        SCJbOpenObject(ctx.js, AppProtoToString(a));
+        const uint8_t complete_state_ts =
+                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+        for (uint8_t state = 0; state < complete_state_ts; state++) {
+            const char *name =
+                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
+            char table_name[128];
+            snprintf(table_name, sizeof(table_name), "app:%s:%s", AppProtoToString(a), name);
+            SCJbOpenObject(ctx.js, table_name);
+            FirewallAddRulesForState(de_ctx, a, state, STREAM_TOSERVER, &ctx);
+            if (ctx.js_warnings) {
+                SCJbClose(ctx.js_warnings);
+                SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+                SCJbFree(ctx.js_warnings);
+                ctx.js_warnings = NULL;
+            }
+            SCJbClose(ctx.js);
+        }
+        const uint8_t complete_state_tc =
+                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
+        for (uint8_t state = 0; state < complete_state_tc; state++) {
+            const char *name =
+                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
+            char table_name[128];
+            snprintf(table_name, sizeof(table_name), "app:%s:%s", AppProtoToString(a), name);
+            SCJbOpenObject(ctx.js, table_name);
+            FirewallAddRulesForState(de_ctx, a, state, STREAM_TOCLIENT, &ctx);
+            if (ctx.js_warnings) {
+                SCJbClose(ctx.js_warnings);
+                SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+                SCJbFree(ctx.js_warnings);
+                ctx.js_warnings = NULL;
+            }
+            SCJbClose(ctx.js);
+        }
+        SCJbClose(ctx.js); // app layer
+    }
+    SCJbOpenObject(ctx.js, "packet:td");
+    SCJbSetString(ctx.js, "policy", "accept:hook");
+    last_sid = 0;
+    SCJbOpenArray(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) != 0)
+            continue;
+        if (s->type == SIG_TYPE_APP_TX)
+            continue;
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+    }
+    SCJbClose(ctx.js); // rules
+    SCJbClose(ctx.js); // packet:td
+    SCJbOpenObject(ctx.js, "app:td");
+    SCJbSetString(ctx.js, "policy", "accept:hook");
+    last_sid = 0;
+    SCJbOpenArray(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) != 0)
+            continue;
+        if (s->type != SIG_TYPE_APP_TX)
+            continue;
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+    }
+    SCJbClose(ctx.js); // rules
+    SCJbClose(ctx.js); // app:td
+    SCJbClose(ctx.js); // tables
+
+    SCJbOpenObject(ctx.js, "lists");
+    SCJbOpenObject(ctx.js, "firewall");
+    last_sid = 0;
+    SCJbOpenArray(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            continue;
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+    }
+    SCJbClose(ctx.js); // rules
+    SCJbClose(ctx.js); // firewall
+
+    SCJbOpenObject(ctx.js, "td");
+    last_sid = 0;
+    SCJbOpenArray(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) != 0)
+            continue;
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+    }
+    SCJbClose(ctx.js); // rules
+    SCJbClose(ctx.js); // td
+
+    SCJbOpenObject(ctx.js, "all");
+    last_sid = 0;
+    SCJbOpenArray(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        SCJbAppendString(ctx.js, s->sig_str);
+    }
+    SCJbClose(ctx.js); // rules
+    SCJbClose(ctx.js); // all
+
+    SCJbClose(ctx.js); // lists
+
+    SCJbClose(ctx.js); // top level object
+
+    const char *filename = "firewall.json";
+    const char *log_dir = SCConfigGetLogDirectory();
+    char json_path[PATH_MAX] = "";
+    snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
+
+    SCMutexLock(&g_rules_analyzer_write_m);
+    FILE *fp = fopen(json_path, "w");
+    if (fp != NULL) {
+        fwrite(SCJbPtr(ctx.js), SCJbLen(ctx.js), 1, fp);
+        fprintf(fp, "\n");
+        fclose(fp);
+    }
+    SCMutexUnlock(&g_rules_analyzer_write_m);
+    SCJbFree(ctx.js);
+    return 0;
+}
