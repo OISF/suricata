@@ -71,3 +71,46 @@ Examples of commands are:
 * PASV
 * RETR
 
+ftp.command_data
+----------------
+
+This keyword matches on the command data from a FTP client request.
+``ftp.command_data`` is a sticky buffer and can be used as a fast pattern.
+
+Syntax::
+
+  ftp.command_data; content: <command_data>;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.command_data; content:"anonymous";` sid: 1;)
+
+
+The ``ftp.command_data`` matches the data associated with an FTP command. Consider the following FTP command
+examples::
+
+    USER anonymous
+    RETR temp.txt
+    PORT 192,168,0,13,234,10
+
+
+Example rules for each of the preceding FTP commands and command data.
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.command; content: "USER"; :example-rule-options:`ftp.command_data; content:"anonymous";` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.command_data; content:"anonymous";` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.command_data; content:"temp.txt";` sid: 2;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.command_data; content:"192,168,0,13,234,10";` sid: 3;)
+
