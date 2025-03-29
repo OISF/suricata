@@ -531,6 +531,7 @@ noinst_HEADERS = \
 	util-lua-smtp.h \
 	util-lua-ssh.h \
 	util-lua-tls.h \
+	util-flow-rate.h \
 	util-macset.h \
 	util-magic.h \
 	util-memcmp.h \
@@ -1093,6 +1094,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-ssh.c \
 	util-lua-tls.c \
 	util-macset.c \
+	util-flow-rate.c \
 	util-magic.c \
 	util-mem.c \
 	util-memcmp.c \

@@ -125,6 +125,7 @@
 #include "util-ioctl.h"
 #include "util-landlock.h"
 #include "util-macset.h"
+#include "util-flow-rate.h"
 #include "util-misc.h"
 #include "util-mpm-hs.h"
 #include "util-path.h"
@@ -2672,6 +2673,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     RegisterFlowBypassInfo();
 
     MacSetRegisterFlowStorage();
+    FlowRateRegisterFlowStorage();
 
     SigTableInit();
 
