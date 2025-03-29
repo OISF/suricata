@@ -89,6 +89,7 @@
 #include "util-byte.h"
 #include "util-proto-name.h"
 #include "util-macset.h"
+#include "util-flow-rate.h"
 #include "util-memrchr.h"
 
 #include "util-mpm-ac.h"
@@ -205,6 +206,7 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     StreamingBufferRegisterTests();
     MacSetRegisterTests();
+    FlowRateRegisterTests();
 #ifdef OS_WIN32
     Win32SyscallRegisterTests();
 #endif

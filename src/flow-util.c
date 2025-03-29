@@ -36,6 +36,7 @@
 #include "util-var.h"
 #include "util-debug.h"
 #include "util-macset.h"
+#include "util-flow-rate.h"
 #include "flow-storage.h"
 
 #include "detect.h"
@@ -200,6 +201,12 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
         DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);
         MacSet *ms = MacSetInit(10);
         FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
+    }
+
+    if (FlowRateStorageEnabled()) {
+        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
+        FlowRateStore *frs = FlowRateStoreInit();
+        FlowSetStorageById(f, FlowRateGetStorageID(), frs);
     }
 
     SCFlowRunInitCallbacks(tv, f, p);
