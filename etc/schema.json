@@ -4369,30 +4369,6 @@
                         "type": "string"
                     }
                 },
-                "set_info": {
-                    "type": "object",
-                    "optional": true,
-                    "properties": {
-                        "class": {
-                            "type": "string"
-                        },
-                        "info_level": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "rename": {
-                    "type": "object",
-                    "optional": true,
-                    "properties": {
-                        "from": {
-                            "type": "string"
-                        },
-                        "to": {
-                            "type": "string"
-                        }
-                    }
-                },
                 "dcerpc": {
                     "type": "object",
                     "optional": true,
