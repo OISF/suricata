@@ -1676,6 +1676,7 @@ Fields
 * "reason": mechanism that did trigger the end of the flow (include "timeout", "forced" and "shutdown")
 * "alerted": "true" or "false" depending if an alert has been seen on flow
 * "action": "pass" or "drop" depending if flow was PASS'ed or DROP'ed (no present if none)
+* "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
 * "exception_policy": array consisting of exception policies that have been triggered by
   the flow:
 
