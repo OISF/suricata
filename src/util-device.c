@@ -24,6 +24,7 @@
 
 #include "device-storage.h"
 #include "util-debug.h"
+#include "util-affinity.h"
 
 #define MAX_DEVNAME 10
 
@@ -168,6 +169,20 @@ int LiveGetDeviceCount(void)
 
     TAILQ_FOREACH(pd, &live_devices, next) {
         i++;
+    }
+
+    return i;
+}
+
+int LiveGetDeviceCountWithoutAssignedThreading(void)
+{
+    int i = 0;
+    LiveDevice *pd;
+
+    TAILQ_FOREACH (pd, &live_devices, next) {
+        if (GetAffinityTypeForNameAndIface("worker-cpu-set", pd->dev) == NULL) {
+            i++;
+        }
     }
 
     return i;
