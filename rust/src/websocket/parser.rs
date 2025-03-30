@@ -105,5 +105,5 @@ pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu>
 pub(super) fn parse_max_win(i: &[u8]) -> IResult<&[u8], u8> {
     let (i, _space) = space0(i)?;
     let (i, _name) = tag("client_max_window_bits=")(i)?;
-    verify(nomu8, |&v| v >= 9 && v <= 15)(i)
+    verify(nomu8, |&v| (9..=15).contains(&v))(i)
 }
