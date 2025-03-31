@@ -125,7 +125,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
             NULL) {
-        rs_detect_u8_free(icd);
+        SCDetectU8Free(icd);
         return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
@@ -140,7 +140,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
  */
 void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u8_free(ptr);
+    SCDetectU8Free(ptr);
 }
 
 /* prefilter code */

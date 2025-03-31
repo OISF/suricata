@@ -141,5 +141,5 @@ error:
  */
 static void DetectIkeKeyExchangePayloadLengthFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }

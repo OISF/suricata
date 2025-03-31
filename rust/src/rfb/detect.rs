@@ -20,7 +20,7 @@
 use super::parser::RFBSecurityResultStatus;
 use super::rfb::{RFBTransaction, ALPROTO_RFB};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, rs_detect_u32_free, rs_detect_u32_parse,
+    detect_match_uint, detect_parse_uint_enum, SCDetectU32Free, SCDetectU32Parse,
     DetectUintData,
 };
 use crate::detect::{
@@ -89,7 +89,7 @@ unsafe extern "C" fn rfb_sec_type_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -121,7 +121,7 @@ unsafe extern "C" fn rfb_sec_type_match(
 
 unsafe extern "C" fn rfb_sec_type_free(_de: *mut c_void, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn rfb_parse_sec_result(
@@ -183,7 +183,7 @@ unsafe extern "C" fn rfb_sec_result_match(
 unsafe extern "C" fn rfb_sec_result_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 #[no_mangle]

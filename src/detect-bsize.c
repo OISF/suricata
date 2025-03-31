@@ -219,7 +219,7 @@ void DetectBsizeFree(DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     DetectU64Data *bsz = (DetectU64Data *)ptr;
-    rs_detect_u64_free(bsz);
+    SCDetectU64Free(bsz);
 }
 
 #ifdef UNITTESTS

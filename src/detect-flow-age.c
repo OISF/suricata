@@ -37,7 +37,7 @@ static int DetectFlowAgeMatch(
 
 static void DetectFlowAgeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }
 
 static int DetectFlowAgeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)

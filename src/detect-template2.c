@@ -127,7 +127,7 @@ static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 void DetectTemplate2Free(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u8_free(ptr);
+    SCDetectU8Free(ptr);
 }
 
 /* prefilter code */

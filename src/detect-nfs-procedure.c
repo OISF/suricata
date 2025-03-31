@@ -133,7 +133,7 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
  */
 static DetectU32Data *DetectNfsProcedureParse(const char *rawstr)
 {
-    return rs_detect_u32_parse_inclusive(rawstr);
+    return SCDetectU32ParseInclusive(rawstr);
 }
 
 
@@ -185,7 +185,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
  */
 void DetectNfsProcedureFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }
 
 #ifdef UNITTESTS

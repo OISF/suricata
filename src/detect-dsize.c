@@ -137,7 +137,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SigMatch *sm = SigMatchAppendSMToList(
             de_ctx, s, DETECT_DSIZE, (SigMatchCtx *)dd, DETECT_SM_LIST_MATCH);
     if (sm == NULL) {
-        rs_detect_u16_free(dd);
+        SCDetectU16Free(dd);
         return -1;
     }
 
@@ -162,7 +162,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
  */
 void DetectDsizeFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    rs_detect_u16_free(de_ptr);
+    SCDetectU16Free(de_ptr);
 }
 
 /* prefilter code */

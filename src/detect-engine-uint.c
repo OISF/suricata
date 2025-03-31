@@ -30,7 +30,7 @@
 
 int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32)
 {
-    return rs_detect_u32_match(parg, du32);
+    return SCDetectU32Match(parg, du32);
 }
 
 /**
@@ -44,7 +44,7 @@ int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32)
 
 DetectUintData_u32 *DetectU32Parse(const char *u32str)
 {
-    return rs_detect_u32_parse(u32str);
+    return SCDetectU32Parse(u32str);
 }
 
 void
@@ -70,7 +70,7 @@ PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx)
 //same as u32 but with u8
 int DetectU8Match(const uint8_t parg, const DetectUintData_u8 *du8)
 {
-    return rs_detect_u8_match(parg, du8);
+    return SCDetectU8Match(parg, du8);
 }
 
 /**
@@ -84,7 +84,7 @@ int DetectU8Match(const uint8_t parg, const DetectUintData_u8 *du8)
 
 DetectUintData_u8 *DetectU8Parse(const char *u8str)
 {
-    return rs_detect_u8_parse(u8str);
+    return SCDetectU8Parse(u8str);
 }
 
 void PrefilterPacketU8Set(PrefilterPacketHeaderValue *v, void *smctx)
@@ -106,7 +106,7 @@ bool PrefilterPacketU8Compare(PrefilterPacketHeaderValue v, void *smctx)
 // same as u32 but with u16
 int DetectU16Match(const uint16_t parg, const DetectUintData_u16 *du16)
 {
-    return rs_detect_u16_match(parg, du16);
+    return SCDetectU16Match(parg, du16);
 }
 
 /**
@@ -120,7 +120,7 @@ int DetectU16Match(const uint16_t parg, const DetectUintData_u16 *du16)
 
 DetectUintData_u16 *DetectU16Parse(const char *u16str)
 {
-    return rs_detect_u16_parse(u16str);
+    return SCDetectU16Parse(u16str);
 }
 
 void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx)
@@ -141,10 +141,10 @@ bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx)
 
 int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64)
 {
-    return rs_detect_u64_match(parg, du64);
+    return SCDetectU64Match(parg, du64);
 }
 
 DetectUintData_u64 *DetectU64Parse(const char *u64str)
 {
-    return rs_detect_u64_parse(u64str);
+    return SCDetectU64Parse(u64str);
 }

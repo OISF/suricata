@@ -54,7 +54,7 @@ static void DetectDnsRrtypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_detect_u16_free(ptr);
+        SCDetectU16Free(ptr);
     }
     SCReturn;
 }

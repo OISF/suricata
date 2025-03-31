@@ -402,7 +402,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_PRIORITY, (SigMatchCtx *)prio,
                 g_http2_match_buffer_id) == NULL) {
-        rs_detect_u8_free(prio);
+        SCDetectU8Free(prio);
         return -1;
     }
 
@@ -416,7 +416,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
  */
 void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u8_free(ptr);
+    SCDetectU8Free(ptr);
 }
 
 /**
@@ -464,7 +464,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_WINDOW, (SigMatchCtx *)wu,
                 g_http2_match_buffer_id) == NULL) {
-        rs_detect_u32_free(wu);
+        SCDetectU32Free(wu);
         return -1;
     }
 
@@ -478,7 +478,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }
 
 /**
@@ -510,7 +510,7 @@ static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, co
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    void *su = rs_detect_u64_parse(str);
+    void *su = SCDetectU64Parse(str);
     if (su == NULL)
         return -1;
 
@@ -530,7 +530,7 @@ static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, co
  */
 void DetectHTTP2sizeUpdateFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u64_free(ptr);
+    SCDetectU64Free(ptr);
 }
 
 /**

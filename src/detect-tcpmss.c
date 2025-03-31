@@ -121,7 +121,7 @@ static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
  */
 void DetectTcpmssFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u16_free(ptr);
+    SCDetectU16Free(ptr);
 }
 
 /* prefilter code */
