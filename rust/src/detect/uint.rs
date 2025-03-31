@@ -384,7 +384,7 @@ pub fn detect_parse_uint_inclusive<T: DetectIntType>(i: &str) -> IResult<&str, D
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_parse(
+pub unsafe extern "C" fn SCDetectU64Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u64> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -398,7 +398,7 @@ pub unsafe extern "C" fn rs_detect_u64_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_match(
+pub unsafe extern "C" fn SCDetectU64Match(
     arg: u64, ctx: &DetectUintData<u64>,
 ) -> std::os::raw::c_int {
     if detect_match_uint(ctx, arg) {
@@ -408,13 +408,13 @@ pub unsafe extern "C" fn rs_detect_u64_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u64_free(ctx: &mut DetectUintData<u64>) {
+pub unsafe extern "C" fn SCDetectU64Free(ctx: &mut DetectUintData<u64>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u32_parse(
+pub unsafe extern "C" fn SCDetectU32Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -428,7 +428,7 @@ pub unsafe extern "C" fn rs_detect_u32_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u32_parse_inclusive(
+pub unsafe extern "C" fn SCDetectU32ParseInclusive(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -442,7 +442,7 @@ pub unsafe extern "C" fn rs_detect_u32_parse_inclusive(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u32_match(
+pub unsafe extern "C" fn SCDetectU32Match(
     arg: u32, ctx: &DetectUintData<u32>,
 ) -> std::os::raw::c_int {
     if detect_match_uint(ctx, arg) {
@@ -452,13 +452,13 @@ pub unsafe extern "C" fn rs_detect_u32_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u32_free(ctx: &mut DetectUintData<u32>) {
+pub unsafe extern "C" fn SCDetectU32Free(ctx: &mut DetectUintData<u32>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u8_parse(
+pub unsafe extern "C" fn SCDetectU8Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -472,7 +472,7 @@ pub unsafe extern "C" fn rs_detect_u8_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u8_match(
+pub unsafe extern "C" fn SCDetectU8Match(
     arg: u8, ctx: &DetectUintData<u8>,
 ) -> std::os::raw::c_int {
     if detect_match_uint(ctx, arg) {
@@ -482,13 +482,13 @@ pub unsafe extern "C" fn rs_detect_u8_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u8_free(ctx: &mut DetectUintData<u8>) {
+pub unsafe extern "C" fn SCDetectU8Free(ctx: &mut DetectUintData<u8>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u16_parse(
+pub unsafe extern "C" fn SCDetectU16Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u16> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -502,7 +502,7 @@ pub unsafe extern "C" fn rs_detect_u16_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u16_match(
+pub unsafe extern "C" fn SCDetectU16Match(
     arg: u16, ctx: &DetectUintData<u16>,
 ) -> std::os::raw::c_int {
     if detect_match_uint(ctx, arg) {
@@ -512,7 +512,7 @@ pub unsafe extern "C" fn rs_detect_u16_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_u16_free(ctx: &mut DetectUintData<u16>) {
+pub unsafe extern "C" fn SCDetectU16Free(ctx: &mut DetectUintData<u16>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }

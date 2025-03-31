@@ -30,9 +30,9 @@ use super::parser::{
 };
 
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, rs_detect_u16_free, rs_detect_u16_match,
-    rs_detect_u16_parse, rs_detect_u32_free, rs_detect_u32_match, rs_detect_u32_parse,
-    rs_detect_u8_free, rs_detect_u8_match, rs_detect_u8_parse, DetectUintData,
+    detect_match_uint, detect_parse_uint_enum, SCDetectU16Free, SCDetectU16Match,
+    SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse,
+    SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse, DetectUintData,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
@@ -490,7 +490,7 @@ unsafe extern "C" fn capabilities_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -529,7 +529,7 @@ unsafe extern "C" fn capabilities_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(v) = tx_get_capabilities(tx) {
-        return rs_detect_u16_match(v, ctx);
+        return SCDetectU16Match(v, ctx);
     }
     return 0;
 }
@@ -537,7 +537,7 @@ unsafe extern "C" fn capabilities_match(
 unsafe extern "C" fn capabilities_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn cip_attribute_setup(
@@ -546,7 +546,7 @@ unsafe extern "C" fn cip_attribute_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -577,7 +577,7 @@ unsafe extern "C" fn cip_attribute_match(
 unsafe extern "C" fn cip_attribute_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn cip_class_setup(
@@ -586,7 +586,7 @@ unsafe extern "C" fn cip_class_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -617,7 +617,7 @@ unsafe extern "C" fn cip_class_match(
 unsafe extern "C" fn cip_class_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn vendor_id_setup(
@@ -626,7 +626,7 @@ unsafe extern "C" fn vendor_id_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -665,7 +665,7 @@ unsafe extern "C" fn vendor_id_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(val) = tx_get_vendor_id(tx) {
-        return rs_detect_u16_match(val, ctx);
+        return SCDetectU16Match(val, ctx);
     }
     return 0;
 }
@@ -673,7 +673,7 @@ unsafe extern "C" fn vendor_id_match(
 unsafe extern "C" fn vendor_id_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn status_setup(
@@ -700,7 +700,7 @@ unsafe extern "C" fn status_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     if let Some(x) = enip_get_status(tx, flags.into()) {
-        return rs_detect_u32_match(x, ctx);
+        return SCDetectU32Match(x, ctx);
     }
     return 0;
 }
@@ -708,7 +708,7 @@ unsafe extern "C" fn status_match(
 unsafe extern "C" fn status_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn state_setup(
@@ -717,7 +717,7 @@ unsafe extern "C" fn state_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -748,7 +748,7 @@ unsafe extern "C" fn state_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     if let Some(val) = tx_get_state(tx) {
-        return rs_detect_u8_match(val, ctx);
+        return SCDetectU8Match(val, ctx);
     }
     return 0;
 }
@@ -756,7 +756,7 @@ unsafe extern "C" fn state_match(
 unsafe extern "C" fn state_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn serial_setup(
@@ -765,7 +765,7 @@ unsafe extern "C" fn serial_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -796,7 +796,7 @@ unsafe extern "C" fn serial_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     if let Some(val) = tx_get_serial(tx) {
-        return rs_detect_u32_match(val, ctx);
+        return SCDetectU32Match(val, ctx);
     }
     return 0;
 }
@@ -804,7 +804,7 @@ unsafe extern "C" fn serial_match(
 unsafe extern "C" fn serial_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn revision_setup(
@@ -813,7 +813,7 @@ unsafe extern "C" fn revision_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -846,7 +846,7 @@ unsafe extern "C" fn revision_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(val) = tx_get_revision(tx) {
-        return rs_detect_u16_match(val, ctx);
+        return SCDetectU16Match(val, ctx);
     }
     return 0;
 }
@@ -854,7 +854,7 @@ unsafe extern "C" fn revision_match(
 unsafe extern "C" fn revision_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn protocol_version_setup(
@@ -863,7 +863,7 @@ unsafe extern "C" fn protocol_version_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -889,7 +889,7 @@ unsafe extern "C" fn protocol_version_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(val) = tx_get_protocol_version(tx, flags.into()) {
-        return rs_detect_u16_match(val, ctx);
+        return SCDetectU16Match(val, ctx);
     }
     return 0;
 }
@@ -897,7 +897,7 @@ unsafe extern "C" fn protocol_version_match(
 unsafe extern "C" fn protocol_version_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn product_code_setup(
@@ -906,7 +906,7 @@ unsafe extern "C" fn product_code_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -945,7 +945,7 @@ unsafe extern "C" fn product_code_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(v) = tx_get_product_code(tx) {
-        return rs_detect_u16_match(v, ctx);
+        return SCDetectU16Match(v, ctx);
     }
     return 0;
 }
@@ -953,7 +953,7 @@ unsafe extern "C" fn product_code_match(
 unsafe extern "C" fn product_code_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn identity_status_setup(
@@ -962,7 +962,7 @@ unsafe extern "C" fn identity_status_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1001,7 +1001,7 @@ unsafe extern "C" fn identity_status_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(v) = tx_get_identity_status(tx) {
-        return rs_detect_u16_match(v, ctx);
+        return SCDetectU16Match(v, ctx);
     }
     return 0;
 }
@@ -1009,7 +1009,7 @@ unsafe extern "C" fn identity_status_match(
 unsafe extern "C" fn identity_status_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn device_type_setup(
@@ -1018,7 +1018,7 @@ unsafe extern "C" fn device_type_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1057,7 +1057,7 @@ unsafe extern "C" fn device_type_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(v) = tx_get_device_type(tx) {
-        return rs_detect_u16_match(v, ctx);
+        return SCDetectU16Match(v, ctx);
     }
     return 0;
 }
@@ -1065,7 +1065,7 @@ unsafe extern "C" fn device_type_match(
 unsafe extern "C" fn device_type_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn command_setup(
@@ -1105,7 +1105,7 @@ unsafe extern "C" fn command_match(
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     if let Some(v) = tx_get_command(tx, flags) {
-        return rs_detect_u16_match(v, ctx);
+        return SCDetectU16Match(v, ctx);
     }
     return 0;
 }
@@ -1113,7 +1113,7 @@ unsafe extern "C" fn command_match(
 unsafe extern "C" fn command_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 unsafe extern "C" fn cip_status_setup(
@@ -1122,7 +1122,7 @@ unsafe extern "C" fn cip_status_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1153,7 +1153,7 @@ unsafe extern "C" fn cip_status_match(
 unsafe extern "C" fn cip_status_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn cip_instance_setup(
@@ -1162,7 +1162,7 @@ unsafe extern "C" fn cip_instance_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1193,7 +1193,7 @@ unsafe extern "C" fn cip_instance_match(
 unsafe extern "C" fn cip_instance_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn cip_extendedstatus_setup(
@@ -1202,7 +1202,7 @@ unsafe extern "C" fn cip_extendedstatus_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u16_parse(raw) as *mut c_void;
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1233,7 +1233,7 @@ unsafe extern "C" fn cip_extendedstatus_match(
 unsafe extern "C" fn cip_extendedstatus_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    rs_detect_u16_free(ctx);
+    SCDetectU16Free(ctx);
 }
 
 pub unsafe extern "C" fn product_name_setup(

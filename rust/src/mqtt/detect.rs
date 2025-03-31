@@ -18,8 +18,8 @@
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint, detect_parse_uint_enum, rs_detect_u8_free,
-    rs_detect_u8_parse, DetectUintData, DetectUintMode,
+    detect_match_uint, detect_parse_uint, detect_parse_uint_enum, SCDetectU8Free,
+    SCDetectU8Parse, DetectUintData, DetectUintMode,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
@@ -450,7 +450,7 @@ unsafe extern "C" fn mqtt_type_match(
 unsafe extern "C" fn mqtt_type_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn mqtt_reason_code_setup(
@@ -459,7 +459,7 @@ unsafe extern "C" fn mqtt_reason_code_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -495,7 +495,7 @@ unsafe extern "C" fn mqtt_reason_code_match(
 unsafe extern "C" fn mqtt_reason_code_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn mqtt_parse_qos(ustr: *const std::os::raw::c_char) -> *mut u8 {
@@ -672,7 +672,7 @@ unsafe extern "C" fn mqtt_protocol_version_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u8_parse(raw) as *mut c_void;
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -705,7 +705,7 @@ unsafe extern "C" fn mqtt_protocol_version_match(
 
 unsafe extern "C" fn mqtt_protocol_version_free(_de: *mut c_void, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 // maybe to factor with websocket.flags
@@ -817,7 +817,7 @@ unsafe extern "C" fn mqtt_flags_match(
 
 unsafe extern "C" fn mqtt_flags_free(_de: *mut c_void, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 fn parse_conn_flag_list_item(s: &str) -> IResult<&str, MqttParsedFlagItem> {
@@ -933,7 +933,7 @@ unsafe extern "C" fn mqtt_conn_flags_match(
 
 unsafe extern "C" fn mqtt_conn_flags_free(_de: *mut c_void, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn mqtt_conn_willtopic_setup(

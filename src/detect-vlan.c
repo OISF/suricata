@@ -152,7 +152,7 @@ static int DetectVlanLayersMatch(
 
 static void DetectVlanLayersFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u8_free(ptr);
+    SCDetectU8Free(ptr);
 }
 
 static int DetectVlanLayersSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)

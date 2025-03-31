@@ -210,7 +210,7 @@ static int DetectTLSCertChainLenMatch(DetectEngineThreadCtx *det_ctx, Flow *f, u
  */
 static void DetectTLSCertChainLenFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }
 
 /**
@@ -237,7 +237,7 @@ static int DetectTLSCertChainLenSetup(DetectEngineCtx *de_ctx, Signature *s, con
 
     if (SigMatchAppendSMToList(de_ctx, s, KEYWORD_ID, (SigMatchCtx *)dd, g_tls_cert_buffer_id) ==
             NULL) {
-        rs_detect_u32_free(dd);
+        SCDetectU32Free(dd);
         return -1;
     }
     return 0;

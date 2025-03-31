@@ -131,7 +131,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tt
  */
 void DetectTtlFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u8_free(ptr);
+    SCDetectU8Free(ptr);
 }
 
 /* prefilter code */

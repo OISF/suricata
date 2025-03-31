@@ -58,7 +58,7 @@ static void DetectDnsOpcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_detect_u8_free(ptr);
+        SCDetectU8Free(ptr);
     }
     SCReturn;
 }
