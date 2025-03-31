@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2016 Open Information Security Foundation
+/* Copyright (C) 2011-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,6 +20,7 @@
 
 #ifdef HAVE_DPDK
 #include <rte_mempool.h>
+#include <rte_flow.h>
 #endif /* HAVE_DPDK */
 
 #include "queue.h"
@@ -43,6 +44,9 @@ int LiveGetOffload(void);
 #ifdef HAVE_DPDK
 typedef struct {
     struct rte_mempool *pkt_mp;
+    struct rte_flow **rte_flow_rule_handlers;
+    uint16_t rte_flow_rule_cnt;
+    uint16_t rte_flow_rule_size;
 } DPDKDeviceResources;
 #endif /* HAVE_DPDK */
 
