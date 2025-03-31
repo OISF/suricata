@@ -1643,12 +1643,30 @@ static void DetectRunTx(ThreadVars *tv,
         uint8_t skip_before_progress = 0;
         bool fw_next_progress_missing = false;
 
+        /* if there are no rules / rule candidates, make sure we don't
+         * invoke the default drop */
+        if (have_fw_rules && array_idx == 0 && (tx.tx_data_ptr->flags & APP_LAYER_TX_ACCEPT)) {
+            fw_verdict = true;
+            goto next;
+        }
+
         /* run rules: inspect the match candidates */
         for (uint32_t i = 0; i < array_idx; i++) {
             RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
             const Signature *s = det_ctx->tx_candidates[i].s;
             uint32_t *inspect_flags = det_ctx->tx_candidates[i].flags;
             bool break_out_of_app_filter = false;
+
+            /* skip fw rules if we're in accept:tx mode */
+            if (have_fw_rules && (tx.tx_data_ptr->flags & APP_LAYER_TX_ACCEPT)) {
+                fw_verdict = true;
+
+                if (s->flags & SIG_FLAG_FIREWALL) {
+                    SCLogDebug("APP_LAYER_TX_ACCEPT, so skip rule");
+                    continue;
+                }
+                /* threat detect rules will be inspected */
+            }
 
             SCLogDebug("%" PRIu64 ": sid:%u: %s tx %u/%u/%u sig %u", p->pcap_cnt, s->id,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
@@ -1727,6 +1745,12 @@ static void DetectRunTx(ThreadVars *tv,
                                 PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
                                 break_out_of_app_filter = true;
                             }
+                        } else if (as == ACTION_SCOPE_TX) {
+                            tx.tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
+                            skip_fw_hook = true;
+                            skip_before_progress = (uint8_t)tx_end_state + 1; // skip all hooks
+                            SCLogDebug("accept:tx applied, skip_fw_hook, skip_before_progress %u",
+                                    skip_before_progress);
                         } else if (as == ACTION_SCOPE_PACKET) {
                             break_out_of_app_filter = true;
                         } else if (as == ACTION_SCOPE_FLOW) {

@@ -1071,6 +1071,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             case ACTION_SCOPE_HOOK:
                 jb_set_string(ctx.js, "scope", "hook");
                 break;
+            case ACTION_SCOPE_TX:
+                jb_set_string(ctx.js, "scope", "tx");
+                break;
             case ACTION_SCOPE_AUTO: /* should be unreachable */
                 break;
         }

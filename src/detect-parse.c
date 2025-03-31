@@ -1560,11 +1560,14 @@ static int SigParseAction(Signature *s, const char *action_in)
                 scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
             } else if (strcmp(o, "hook") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_HOOK;
+            } else if (strcmp(o, "tx") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_TX;
             } else if (strcmp(o, "flow") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
             } else {
-                SCLogError("invalid action scope '%s' in action '%s': only 'packet', 'flow' and "
-                           "'hook' allowed",
+                SCLogError(
+                        "invalid action scope '%s' in action '%s': only 'packet', 'flow', 'tx' and "
+                        "'hook' allowed",
                         o, action_in);
                 return -1;
             }
