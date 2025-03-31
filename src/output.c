@@ -904,7 +904,7 @@ void OutputRegisterRootLoggers(void)
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
     RegisterSimpleJsonApplayerLogger(
-            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)rs_snmp_log_json_response, NULL);
+            ALPROTO_SNMP, (EveJsonSimpleTxLogFunc)SCSnmpLogJsonResponse, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, rs_rfb_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_MQTT, JsonMQTTAddMetadata, NULL);
