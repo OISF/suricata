@@ -69,7 +69,7 @@ macro_rules!BIT_U64 {
 
 // Defined in app-layer-protos.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
 
@@ -181,7 +181,7 @@ pub struct SuricataFileContext {
 }
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn SCGetContext() -> &'static mut SuricataContext;
 }
 

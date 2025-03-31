@@ -24,7 +24,7 @@ use crate::core::*;
 
 // Defined in util-file.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn FileFlowFlagsToFlags(flow_file_flags: u16, flags: u8) -> u16;
 }
 
