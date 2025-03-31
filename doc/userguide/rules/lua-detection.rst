@@ -50,13 +50,10 @@ inspection. Currently the following are available:
 * http.request_line
 * http.request_headers
 * http.request_headers.raw
-* http.request_cookie
-* http.request_user_agent
 * http.request_body
 * http.response_headers
 * http.response_headers.raw
 * http.response_body
-* http.response_cookie
 
 All the HTTP buffers have a limitation: only one can be inspected by a
 script at a time.
