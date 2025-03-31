@@ -252,8 +252,7 @@ impl<'a> SNMPTransaction<'a> {
 }
 
 /// Returns *mut SNMPState
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SNMPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -261,14 +260,12 @@ pub extern "C" fn rs_snmp_state_new(_orig_state: *mut std::os::raw::c_void, _ori
 
 /// Params:
 /// - state: *mut SNMPState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_snmp_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn snmp_state_free(state: *mut std::os::raw::c_void) {
     let mut snmp_state = unsafe{ Box::from_raw(state as *mut SNMPState) };
     snmp_state.free();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const Flow,
+unsafe extern "C" fn snmp_parse_request(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -278,8 +275,7 @@ pub unsafe extern "C" fn rs_snmp_parse_request(_flow: *const Flow,
     state.parse(stream_slice.as_slice(), Direction::ToServer).into()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const Flow,
+unsafe extern "C" fn snmp_parse_response(_flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -289,8 +285,7 @@ pub unsafe extern "C" fn rs_snmp_parse_response(_flow: *const Flow,
     state.parse(stream_slice.as_slice(), Direction::ToClient).into()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn snmp_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -301,24 +296,21 @@ pub unsafe extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
+unsafe extern "C" fn snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,SNMPState);
     state.tx_id
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_state_tx_free(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn snmp_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,SNMPState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
+extern "C" fn snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
                                                  _direction: u8)
                                                  -> std::os::raw::c_int
 {
@@ -354,8 +346,7 @@ fn parse_pdu_envelope_version(i:&[u8]) -> IResult<&[u8],u32> {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
+unsafe extern "C" fn snmp_probing_parser(_flow: *const Flow,
                                          _direction: u8,
                                          input:*const u8,
                                          input_len: u32,
@@ -379,26 +370,26 @@ export_state_data_get!(snmp_get_state_data, SNMPState);
 const PARSER_NAME : &[u8] = b"snmp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_snmp_parser() {
+pub unsafe extern "C" fn SCRegisterSnmpParser() {
     let default_port = CString::new("161").unwrap();
     let mut parser = RustParser {
         name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port       : default_port.as_ptr(),
         ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(rs_snmp_probing_parser),
-        probe_tc           : Some(rs_snmp_probing_parser),
+        probe_ts           : Some(snmp_probing_parser),
+        probe_tc           : Some(snmp_probing_parser),
         min_depth          : 0,
         max_depth          : 16,
-        state_new          : rs_snmp_state_new,
-        state_free         : rs_snmp_state_free,
-        tx_free            : rs_snmp_state_tx_free,
-        parse_ts           : rs_snmp_parse_request,
-        parse_tc           : rs_snmp_parse_response,
-        get_tx_count       : rs_snmp_state_get_tx_count,
-        get_tx             : rs_snmp_state_get_tx,
+        state_new          : snmp_state_new,
+        state_free         : snmp_state_free,
+        tx_free            : snmp_state_tx_free,
+        parse_ts           : snmp_parse_request,
+        parse_tc           : snmp_parse_response,
+        get_tx_count       : snmp_state_get_tx_count,
+        get_tx             : snmp_state_get_tx,
         tx_comp_st_ts      : 1,
         tx_comp_st_tc      : 1,
-        tx_get_progress    : rs_snmp_tx_get_alstate_progress,
+        tx_get_progress    : snmp_tx_get_alstate_progress,
         get_eventinfo      : Some(SNMPEvent::get_event_info),
         get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
         localstorage_new   : None,
