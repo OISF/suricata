@@ -2040,7 +2040,7 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
         jb_free(ctx.js_warnings);
         ctx.js_warnings = NULL;
     }
-    jb_close(ctx.js);
+    jb_close(ctx.js); // packet_filter
 
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (!AppProtoIsValid(a))
@@ -2090,9 +2090,36 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             }
             jb_close(ctx.js);
         }
-        jb_close(ctx.js);
+        jb_close(ctx.js); // app layer
     }
-    jb_close(ctx.js);
+
+    jb_open_object(ctx.js, "firewall-all");
+    last_sid = 0;
+    jb_open_array(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            continue;
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        jb_append_string(ctx.js, s->sig_str);
+    }
+    jb_close(ctx.js); // rules
+    jb_close(ctx.js); // all
+
+    jb_open_object(ctx.js, "all");
+    last_sid = 0;
+    jb_open_array(ctx.js, "rules");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        jb_append_string(ctx.js, s->sig_str);
+    }
+    jb_close(ctx.js); // rules
+    jb_close(ctx.js); // all
+
+    jb_close(ctx.js); // top level object
 
     const char *filename = "firewall.json";
     const char *log_dir = ConfigGetLogDirectory();
