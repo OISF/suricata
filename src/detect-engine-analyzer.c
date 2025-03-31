@@ -2012,8 +2012,36 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
     if (ctx.js == NULL)
         return -1;
 
-    jb_open_object(ctx.js, "table");
-    jb_set_string(ctx.js, "name", "app_filter");
+    jb_open_object(ctx.js, "packet_filter");
+    jb_set_string(ctx.js, "policy", "drop");
+    jb_open_array(ctx.js, "rules");
+    uint32_t accept_rules = 0;
+    uint32_t last_sid = 0;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if ((s->flags & SIG_FLAG_FIREWALL) == 0)
+            break;
+        if (s->type != SIG_TYPE_PKT)
+            continue;
+        /* don't double list <> sigs */
+        if (last_sid == s->id)
+            continue;
+        last_sid = s->id;
+        jb_append_string(ctx.js, s->sig_str);
+        accept_rules += ((s->action & ACTION_ACCEPT) != 0);
+    }
+    jb_close(ctx.js);
+    if (accept_rules == 0) {
+        AnalyzerWarning(&ctx,
+                (char *)"no accept rules for \'packet_filter\', default policy will be applied");
+    }
+    if (ctx.js_warnings) {
+        jb_close(ctx.js_warnings);
+        jb_set_object(ctx.js, "warnings", ctx.js_warnings);
+        jb_free(ctx.js_warnings);
+        ctx.js_warnings = NULL;
+    }
+    jb_close(ctx.js);
+
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (!AppProtoIsValid(a))
             continue;
@@ -2064,7 +2092,6 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
         }
         jb_close(ctx.js);
     }
-    jb_close(ctx.js);
     jb_close(ctx.js);
 
     const char *filename = "firewall.json";
