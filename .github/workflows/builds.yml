@@ -202,12 +202,20 @@ jobs:
         working-directory: examples/lib/simple
         run: PATH=/usr/local/bin:$PATH make -f Makefile.example clean all
 
+      - name: Test custom lib example
+        run: |
+          make
+          ./custom -- ../../../qa/docker/pcaps/tls.pcap
+          test $(cat eve.json |jq 'select(.stats) | .stats.decoder.pkts') = 110
+        working-directory: examples/lib/custom
+
       - name: Cleaning source directory for standalone plugin test.
         run: make clean
+
       - name: Test plugin against installed headers
         working-directory: examples/plugins/c-json-filetype
         run: |
-          # First use sed to pretend we are q user following our
+          # First use sed to pretend we are a user following our
           # directions for building a standalone plugin.
           sed -i 's/^#LIBSURICATA_CONFIG/LIBSURICATA_CONFIG/' Makefile
           sed -i 's/^#CPPFLAGS/CPPFLAGS/' Makefile
