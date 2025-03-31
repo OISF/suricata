@@ -143,7 +143,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
  */
 static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u64_free(ptr);
+    SCDetectU64Free(ptr);
 }
 
 #ifdef UNITTESTS

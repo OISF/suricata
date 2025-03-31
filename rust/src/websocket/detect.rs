@@ -17,8 +17,8 @@
 
 use super::websocket::{WebSocketTransaction, ALPROTO_WEBSOCKET};
 use crate::detect::uint::{
-    detect_parse_uint, detect_parse_uint_enum, rs_detect_u32_free, rs_detect_u32_match,
-    rs_detect_u32_parse, rs_detect_u8_free, rs_detect_u8_match, DetectUintData, DetectUintMode,
+    detect_parse_uint, detect_parse_uint_enum, SCDetectU32Free, SCDetectU32Match,
+    SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match, DetectUintData, DetectUintMode,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
@@ -148,13 +148,13 @@ unsafe extern "C" fn websocket_detect_opcode_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    return rs_detect_u8_match(tx.pdu.opcode, ctx);
+    return SCDetectU8Match(tx.pdu.opcode, ctx);
 }
 
 unsafe extern "C" fn websocket_detect_opcode_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn websocket_detect_mask_setup(
@@ -163,7 +163,7 @@ unsafe extern "C" fn websocket_detect_mask_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -189,7 +189,7 @@ unsafe extern "C" fn websocket_detect_mask_match(
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     if let Some(xorkey) = tx.pdu.mask {
-        return rs_detect_u32_match(xorkey, ctx);
+        return SCDetectU32Match(xorkey, ctx);
     }
     return 0;
 }
@@ -197,7 +197,7 @@ unsafe extern "C" fn websocket_detect_mask_match(
 unsafe extern "C" fn websocket_detect_mask_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn websocket_detect_flags_setup(
@@ -231,13 +231,13 @@ unsafe extern "C" fn websocket_detect_flags_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    return rs_detect_u8_match(tx.pdu.flags, ctx);
+    return SCDetectU8Match(tx.pdu.flags, ctx);
 }
 
 unsafe extern "C" fn websocket_detect_flags_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    rs_detect_u8_free(ctx);
+    SCDetectU8Free(ctx);
 }
 
 pub unsafe extern "C" fn websocket_detect_payload_setup(

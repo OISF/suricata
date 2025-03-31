@@ -118,7 +118,7 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
  */
 static DetectU32Data *DetectNfsVersionParse(const char *rawstr)
 {
-    return rs_detect_u32_parse_inclusive(rawstr);
+    return SCDetectU32ParseInclusive(rawstr);
 }
 
 
@@ -171,5 +171,5 @@ error:
  */
 void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }

@@ -19,7 +19,7 @@
 
 use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
 use crate::detect::uint::{
-    rs_detect_u32_free, rs_detect_u32_match, rs_detect_u32_parse, DetectUintData,
+    SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, DetectUintData,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
@@ -41,7 +41,7 @@ unsafe extern "C" fn snmp_detect_version_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -59,13 +59,13 @@ unsafe extern "C" fn snmp_detect_version_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, SNMPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    return rs_detect_u32_match(tx.version, ctx);
+    return SCDetectU32Match(tx.version, ctx);
 }
 
 unsafe extern "C" fn snmp_detect_version_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 unsafe extern "C" fn snmp_detect_pdutype_setup(
@@ -74,7 +74,7 @@ unsafe extern "C" fn snmp_detect_pdutype_setup(
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
     }
-    let ctx = rs_detect_u32_parse(raw) as *mut c_void;
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -94,7 +94,7 @@ unsafe extern "C" fn snmp_detect_pdutype_match(
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     if let Some(ref info) = tx.info {
         let pdu_type = info.pdu_type.0;
-        return rs_detect_u32_match(pdu_type, ctx);
+        return SCDetectU32Match(pdu_type, ctx);
     }
     return 0;
 }
@@ -102,7 +102,7 @@ unsafe extern "C" fn snmp_detect_pdutype_match(
 unsafe extern "C" fn snmp_detect_pdutype_free(_de: *mut c_void, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    rs_detect_u32_free(ctx);
+    SCDetectU32Free(ctx);
 }
 
 pub unsafe extern "C" fn snmp_detect_usm_setup(

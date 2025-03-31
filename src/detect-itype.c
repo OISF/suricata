@@ -138,7 +138,7 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 void DetectITypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectU8Data *itd = (DetectU8Data *)ptr;
-    rs_detect_u8_free(itd);
+    SCDetectU8Free(itd);
 }
 
 /* prefilter code

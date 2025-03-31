@@ -134,7 +134,7 @@ static int DetectICMPv6mtuSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 void DetectICMPv6mtuFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_u32_free(ptr);
+    SCDetectU32Free(ptr);
 }
 
 /* prefilter code */
