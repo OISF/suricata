@@ -723,8 +723,33 @@ static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
     return 0;
 }
 
-static int SCSigOrderByIIdCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
+static int SCSigOrderByIId(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
+    if (sw1->sig->num > sw2->sig->num) {
+        return -1;
+    } else if (sw1->sig->num < sw2->sig->num) {
+        return 1;
+    }
+    return 0;
+}
+
+/* sort by:
+ * alproto, progress, iid
+ */
+static int SCSigOrderByAppFirewall(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
+{
+    if (sw1->sig->alproto > sw2->sig->alproto) {
+        return -1;
+    } else if (sw1->sig->alproto < sw2->sig->alproto) {
+        return 1;
+    }
+
+    if (sw1->sig->app_progress_hook > sw2->sig->app_progress_hook) {
+        return -1;
+    } else if (sw1->sig->app_progress_hook < sw2->sig->app_progress_hook) {
+        return 1;
+    }
+
     if (sw1->sig->num > sw2->sig->num) {
         return -1;
     } else if (sw1->sig->num < sw2->sig->num) {
@@ -776,10 +801,6 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     SCLogDebug("ordering signatures in memory");
     SCSigSignatureWrapper *sigw = NULL;
-#if 0
-    SCSigSignatureWrapper *pt_sigw_list = NULL; /* hook: packet_td */
-    SCSigSignatureWrapper *at_sigw_list = NULL; /* hook: app_td */
-#endif
     SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
 
     SCSigSignatureWrapper *fw_pf_sigw_list = NULL; /* hook: packet_filter */
@@ -801,15 +822,6 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         } else {
             sigw->next = td_sigw_list;
             td_sigw_list = sigw;
-#if 0
-            if (sig->type == SIG_TYPE_APP_TX || sig->type == SIG_TYPE_APPLAYER) {
-                sigw->next = at_sigw_list;
-                at_sigw_list = sigw;
-            } else {
-                sigw->next = pt_sigw_list;
-                pt_sigw_list = sigw;
-            }
-#endif
         }
         sig = sig->next;
     }
@@ -818,32 +830,23 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
      * logic around bidir sigs. So to respect the firewall rule order, we sort this part of the list
      * by the add order. */
     if (fw_pf_sigw_list) {
-        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
+        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIId, .next = NULL };
         fw_pf_sigw_list = SCSigOrder(fw_pf_sigw_list, &OrderFn);
     }
     if (fw_af_sigw_list) {
-        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByIIdCompare, .next = NULL };
+        SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByAppFirewall, .next = NULL };
         fw_af_sigw_list = SCSigOrder(fw_af_sigw_list, &OrderFn);
     }
     if (td_sigw_list) {
         /* Sort the list */
         td_sigw_list = SCSigOrder(td_sigw_list, de_ctx->sc_sig_order_funcs);
     }
-#if 0
-    if (pt_sigw_list) {
-        /* Sort the list */
-        pt_sigw_list = SCSigOrder(pt_sigw_list, de_ctx->sc_sig_order_funcs);
-    }
-    if (at_sigw_list) {
-        /* Sort the list */
-        at_sigw_list = SCSigOrder(at_sigw_list, de_ctx->sc_sig_order_funcs);
-    }
-#endif
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
 
     /* firewall list for hook packet_filter */
     for (sigw = fw_pf_sigw_list; sigw != NULL;) {
+        SCLogDebug("post-sort packet_filter: sid %u", sigw->sig->id);
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
@@ -858,26 +861,9 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
-#if 0
-    /* threat detect list for hook packet_td */
-    for (sigw = pt_sigw_list; sigw != NULL;) {
-        sigw->sig->next = NULL;
-        if (de_ctx->sig_list == NULL) {
-            /* First entry on the list */
-            de_ctx->sig_list = sigw->sig;
-            sig = de_ctx->sig_list;
-        } else {
-            sig->next = sigw->sig;
-            sig = sig->next;
-        }
-
-        SCSigSignatureWrapper *sigw_to_free = sigw;
-        sigw = sigw->next;
-        SCFree(sigw_to_free);
-    }
-#endif
     /* firewall list for hook app_filter */
     for (sigw = fw_af_sigw_list; sigw != NULL;) {
+        SCLogDebug("post-sort app_filter: sid %u", sigw->sig->id);
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
@@ -892,24 +878,6 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
-#if 0
-    /* threat detect list for hook app_td */
-    for (sigw = at_sigw_list; sigw != NULL;) {
-        sigw->sig->next = NULL;
-        if (de_ctx->sig_list == NULL) {
-            /* First entry on the list */
-            de_ctx->sig_list = sigw->sig;
-            sig = de_ctx->sig_list;
-        } else {
-            sig->next = sigw->sig;
-            sig = sig->next;
-        }
-
-        SCSigSignatureWrapper *sigw_to_free = sigw;
-        sigw = sigw->next;
-        SCFree(sigw_to_free);
-    }
-#endif
     /* threat detect list for hook app_td */
     for (sigw = td_sigw_list; sigw != NULL;) {
         sigw->sig->next = NULL;
