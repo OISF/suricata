@@ -1751,6 +1751,11 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
     } else if (strcmp(parser->direction, "=>") == 0) {
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            SCLogError("transactional bidirectional rules not supported for firewall rules");
+            goto error;
+        }
+
         s->flags |= SIG_FLAG_TXBOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
