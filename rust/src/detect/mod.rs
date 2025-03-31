@@ -84,7 +84,7 @@ pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.
 pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
     pub fn DetectHelperGetData(
         de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
