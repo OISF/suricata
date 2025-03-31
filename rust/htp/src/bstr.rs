@@ -45,39 +45,48 @@ impl Bstr {
     }
 
     /// Compare bstr with the given slice, ingnoring ascii case.
-    pub(crate) fn cmp_nocase<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
-        let lefts = &self.as_slice();
-        let rights = &other.as_ref();
-        let left = LowercaseIterator::new(lefts);
-        let right = LowercaseIterator::new(rights);
-        left.cmp(right)
-    }
-
-    /// Compare trimmed bstr with the given slice, ingnoring ascii case.
-    pub(crate) fn cmp_nocase_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
-        let lefts = &self.trim_with(|c| c.is_ascii_whitespace());
-        let rights = &other.as_ref();
-        let left = LowercaseIterator::new(lefts);
-        let right = LowercaseIterator::new(rights);
-        left.cmp(right)
+    pub(crate) fn cmp_nocase<B: AsRef<[u8]>>(&self, other: B) -> bool {
+        let lefts: &[u8] = self.as_ref();
+        let mut lefts = lefts.iter();
+        let mut rights = other.as_ref().iter();
+        loop {
+            match (lefts.next(), rights.next()) {
+                (None, None) => {
+                    return true;
+                }
+                (Some(l), Some(r)) => {
+                    if !l.eq_ignore_ascii_case(r) {
+                        return false;
+                    }
+                }
+                _ => {
+                    return false;
+                }
+            }
+        }
     }
 
     /// Case insensitive comparison between self and other, ignoring any zeros in self
-    pub(crate) fn cmp_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
-        let lefts = &self.as_slice();
-        let rights = &other.as_ref();
-        let left = LowercaseNoZeroIterator::new(lefts);
-        let right = LowercaseIterator::new(rights);
-        left.cmp(right)
-    }
-
-    /// Case insensitive comparison between trimmed self and other, ignoring any zeros in self
-    pub(crate) fn cmp_nocase_nozero_trimmed<B: AsRef<[u8]>>(&self, other: B) -> Ordering {
-        let lefts = &self.trim();
-        let rights = &other.as_ref();
-        let left = LowercaseNoZeroIterator::new(lefts);
-        let right = LowercaseIterator::new(rights);
-        left.cmp(right)
+    pub(crate) fn cmp_nocase_nozero<B: AsRef<[u8]>>(&self, other: B) -> bool {
+        let lefts: &[u8] = self.as_ref();
+        let mut lefts = lefts.iter().filter(|c| (**c) > 0);
+        let mut rights = other.as_ref().iter();
+        loop {
+            match (lefts.next(), rights.next()) {
+                (None, None) => {
+                    return true;
+                }
+                (Some(l), Some(r)) => {
+                    if !l.eq_ignore_ascii_case(r) {
+                        return false;
+                    }
+                }
+                _ => {
+                    // TODO trim ?
+                    return false;
+                }
+            }
+        }
     }
 
     /// Extend this bstr with the given slice
@@ -357,11 +366,11 @@ mod tests {
     #[test]
     fn CompareNocase() {
         let b = Bstr::from("ABCDefgh");
-        assert_eq!(Ordering::Equal, b.cmp_nocase("ABCDefgh"));
-        assert_eq!(Ordering::Equal, b.cmp_nocase("abcdefgh"));
-        assert_eq!(Ordering::Equal, b.cmp_nocase("ABCDEFGH"));
-        assert_eq!(Ordering::Less, b.cmp_nocase("ABCDefghi"));
-        assert_eq!(Ordering::Greater, b.cmp_nocase("ABCDefg"));
+        assert!(b.cmp_nocase("ABCDefgh"));
+        assert!(b.cmp_nocase("abcdefgh"));
+        assert!(b.cmp_nocase("ABCDEFGH"));
+        assert!(!b.cmp_nocase("ABCDefghi"));
+        assert!(!b.cmp_nocase("ABCDefg"));
     }
 
     #[test]
@@ -369,11 +378,11 @@ mod tests {
         // nocase_nozero only applies to the source string. The caller
         // is not expected to pass in a search string with nulls in it.
         let b = Bstr::from("A\x00B\x00\x00C\x00Defg\x00h");
-        assert_eq!(Ordering::Equal, b.cmp_nocase_nozero("ABCDefgh"));
-        assert_eq!(Ordering::Equal, b.cmp_nocase_nozero("abcdefgh"));
-        assert_eq!(Ordering::Equal, b.cmp_nocase_nozero("ABCDEFGH"));
-        assert_eq!(Ordering::Less, b.cmp_nocase_nozero("ABCDefghi"));
-        assert_eq!(Ordering::Greater, b.cmp_nocase_nozero("ABCDefg"));
+        assert!(b.cmp_nocase_nozero("ABCDefgh"));
+        assert!(b.cmp_nocase_nozero("abcdefgh"));
+        assert!(b.cmp_nocase_nozero("ABCDEFGH"));
+        assert!(!b.cmp_nocase_nozero("ABCDefghi"));
+        assert!(!b.cmp_nocase_nozero("ABCDefg"));
     }
 
     #[rstest]

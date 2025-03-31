@@ -332,7 +332,7 @@ static void EveHttpLogJSONHeaders(
                     if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
                             ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
                                     (http_fields[f].flags & LOG_HTTP_EXTENDED))) {
-                        if (bstr_cmp_c_nocase(htp_header_name(h), http_fields[f].htp_field) == 0) {
+                        if (bstr_cmp_c_nocase(htp_header_name(h), http_fields[f].htp_field)) {
                             tolog = true;
                             break;
                         }

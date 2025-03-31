@@ -82,9 +82,7 @@ impl<T> Table<T> {
     /// Returns None if no match is found.
     #[cfg(test)]
     pub(crate) fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&(Bstr, T)> {
-        self.elements
-            .iter()
-            .find(|x| x.0.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
+        self.elements.iter().find(|x| x.0.cmp_nocase(key.as_ref()))
     }
 
     #[cfg(test)]

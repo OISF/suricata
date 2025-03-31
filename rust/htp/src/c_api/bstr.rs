@@ -68,13 +68,9 @@ pub unsafe extern "C" fn bstr_cmp_c(b: *const Bstr, c: *const libc::c_char) -> l
 /// b and c must be properly intialized: not NULL, dangling, or misaligned.
 /// c must point to memory that contains a valid nul terminator byte at the end of the string
 #[no_mangle]
-pub unsafe extern "C" fn bstr_cmp_c_nocase(b: *const Bstr, c: *const libc::c_char) -> libc::c_int {
+pub unsafe extern "C" fn bstr_cmp_c_nocase(b: *const Bstr, c: *const libc::c_char) -> bool {
     let cs = CStr::from_ptr(c);
-    match (*b).cmp_nocase(cs.to_bytes()) {
-        Ordering::Less => -1,
-        Ordering::Equal => 0,
-        Ordering::Greater => 1,
-    }
+    (*b).cmp_nocase(cs.to_bytes())
 }
 
 /// Create a new bstring by copying the provided NUL-terminated string

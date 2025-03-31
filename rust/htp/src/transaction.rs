@@ -14,7 +14,9 @@ use crate::{
     HtpStatus,
 };
 
-use std::{any::Any, cmp::Ordering};
+use std::any::Any;
+#[cfg(test)]
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
 /// This structure is used to pass transaction data (for example
@@ -138,7 +140,7 @@ impl Headers {
     pub(crate) fn get_nocase_nozero<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
         self.elements
             .iter()
-            .find(|x| x.name.cmp_nocase_nozero_trimmed(key.as_ref()) == Ordering::Equal)
+            .find(|x| x.name.cmp_nocase_nozero(key.as_ref()))
     }
 
     /// Search the Headers table for the first tuple with a tuple key matching the given slice, ignoring ascii case and any zeros in self
@@ -147,7 +149,7 @@ impl Headers {
     pub(crate) fn get_nocase_nozero_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
         self.elements
             .iter_mut()
-            .find(|x| x.name.cmp_nocase_nozero_trimmed(key.as_ref()) == Ordering::Equal)
+            .find(|x| x.name.cmp_nocase_nozero(key.as_ref()))
     }
 
     /// Search the Headers table for the first tuple with a key matching the given slice, ingnoring ascii case in self
@@ -156,7 +158,7 @@ impl Headers {
     pub(crate) fn get_nocase_mut<K: AsRef<[u8]>>(&mut self, key: K) -> Option<&mut Header> {
         self.elements
             .iter_mut()
-            .find(|x| x.name.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
+            .find(|x| x.name.cmp_nocase(key.as_ref()))
     }
 
     /// Search the Headers table for the first tuple with a key matching the given slice, ingnoring ascii case in self
@@ -165,7 +167,7 @@ impl Headers {
     pub(crate) fn get_nocase<K: AsRef<[u8]>>(&self, key: K) -> Option<&Header> {
         self.elements
             .iter()
-            .find(|x| x.name.cmp_nocase_trimmed(key.as_ref()) == Ordering::Equal)
+            .find(|x| x.name.cmp_nocase(key.as_ref()))
     }
 
     /// Returns the number of elements in the Headers table
@@ -803,7 +805,7 @@ impl Transaction {
                     // HTTP RFC states that we should ignore the header copy.
                     // Check for different hostnames.
                     if let Some(host) = &self.request_hostname {
-                        if host.cmp_nocase(hostname) != Ordering::Equal {
+                        if !host.cmp_nocase(hostname) {
                             self.flags.set(HtpFlags::HOST_AMBIGUOUS)
                         }
                     }

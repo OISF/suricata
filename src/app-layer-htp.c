@@ -864,7 +864,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                             SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
                         }
                         SCReturnStruct(APP_LAYER_OK);
-                    } else if (bstr_cmp_c_nocase(htp_header_value(h), "WebSocket") == 0) {
+                    } else if (bstr_cmp_c_nocase(htp_header_value(h), "WebSocket")) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_WEBSOCKET) == NULL) {
                             // if WS is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;

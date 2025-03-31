@@ -734,7 +734,7 @@ impl ConnectionParser {
             h_existing.flags.set(HeaderFlags::FIELD_REPEATED);
             // Having multiple C-L headers is against the RFC but
             // servers may ignore the subsequent headers if the values are the same.
-            if header.name.cmp_nocase("Content-Length") == Ordering::Equal {
+            if header.name.cmp_nocase("Content-Length") {
                 // Don't use string comparison here because we want to
                 // ignore small formatting differences.
                 let existing_cl = parse_content_length(&h_existing.value, None);
@@ -1119,19 +1119,13 @@ impl ConnectionParser {
 
         // Fast path - try to match directly on the encoding value
         req.request_content_encoding = if let Some(ce) = &ce {
-            if ce.cmp_nocase_nozero(b"gzip") == Ordering::Equal
-                || ce.cmp_nocase_nozero(b"x-gzip") == Ordering::Equal
-            {
+            if ce.cmp_nocase_nozero(b"gzip") || ce.cmp_nocase_nozero(b"x-gzip") {
                 HtpContentEncoding::Gzip
-            } else if ce.cmp_nocase_nozero(b"deflate") == Ordering::Equal
-                || ce.cmp_nocase_nozero(b"x-deflate") == Ordering::Equal
-            {
+            } else if ce.cmp_nocase_nozero(b"deflate") || ce.cmp_nocase_nozero(b"x-deflate") {
                 HtpContentEncoding::Deflate
-            } else if ce.cmp_nocase_nozero(b"lzma") == Ordering::Equal {
+            } else if ce.cmp_nocase_nozero(b"lzma") {
                 HtpContentEncoding::Lzma
-            } else if ce.cmp_nocase_nozero(b"inflate") == Ordering::Equal
-                || ce.cmp_nocase_nozero(b"none") == Ordering::Equal
-            {
+            } else if ce.cmp_nocase_nozero(b"inflate") || ce.cmp_nocase_nozero(b"none") {
                 HtpContentEncoding::None
             } else {
                 slow_path = true;
