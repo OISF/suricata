@@ -2216,11 +2216,7 @@ jobs:
 
       - name: Checkout Netmap repository
         if: steps.netmap-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          repository: luigirizzo/netmap
-          # gets cloned to $GITHUB_WORKSPACE/netmap/
-          path: netmap/
+        run: git clone --depth 1 https://github.com/luigirizzo/netmap
 
       - name: Save Netmap Cache
         if: steps.netmap-cache.outputs.cache-hit != 'true'
