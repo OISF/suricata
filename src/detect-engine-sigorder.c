@@ -738,6 +738,15 @@ static int SCSigOrderByIId(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw
  */
 static int SCSigOrderByAppFirewall(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
+    int sw1dir = (sw1->sig->flags & SIG_FLAG_TOSERVER) != 0 ? 0 : 1;
+    int sw2dir = (sw2->sig->flags & SIG_FLAG_TOSERVER) != 0 ? 0 : 1;
+
+    if (sw1dir > sw2dir) {
+        return -1;
+    } else if (sw1dir < sw2dir) {
+        return 1;
+    }
+
     if (sw1->sig->alproto > sw2->sig->alproto) {
         return -1;
     } else if (sw1->sig->alproto < sw2->sig->alproto) {
