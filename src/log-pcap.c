@@ -140,6 +140,7 @@ typedef struct PcapLogCompressionData_ {
 typedef struct PcapLogData_ {
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     int honor_pass_rules;       /**< don't log if pass rules have matched */
+    char *bpf_filter;           /**< bpf filter to apply to output */
     SCMutex plog_lock;
     uint64_t pkt_cnt;		    /**< total number of packets */
     struct pcap_pkthdr *h;      /**< pcap header struct */
@@ -150,6 +151,7 @@ typedef struct PcapLogData_ {
     uint64_t size_limit;        /**< file size limit */
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
+    struct bpf_program *bpfp;   /**< compiled bpf program */
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
     uint32_t file_cnt;          /**< count of pcap files we currently have */
     uint32_t max_files;         /**< maximum files to use in ring buffer mode */
@@ -391,6 +393,18 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
             SCLogDebug("Error opening dead pcap handle");
             return TM_ECODE_FAILED;
         }
+
+        if (pl->bpfp == NULL && pl->bpf_filter) {
+            struct bpf_program bpfp;
+            if (pcap_compile(pl->pcap_dead_handle, &bpfp, pl->bpf_filter, 0,
+                        PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
+                FatalError("Failed to compile BPF filter, aborting: %s: %s", pl->bpf_filter,
+                        pcap_geterr(pl->pcap_dead_handle));
+            } else {
+                pl->bpfp = SCCalloc(1, sizeof(*pl->bpfp));
+                *pl->bpfp = bpfp;
+            }
+        }
     }
 
     if (pl->pcap_dumper == NULL) {
@@ -483,6 +497,14 @@ static inline int PcapWrite(
 {
     struct timeval current_dump;
     gettimeofday(&current_dump, NULL);
+
+    if (pl->bpfp) {
+        if (pcap_offline_filter(pl->bpfp, pl->h, data) == 0) {
+            SCLogDebug("Packet doesn't match filter, will not be logged.");
+            return TM_ECODE_OK;
+        }
+    }
+
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, data);
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
         pl->size_current += len;
@@ -1142,6 +1164,11 @@ static void PcapLogDataFree(PcapLogData *pl)
         pcap_close(pl->pcap_dead_handle);
     }
 
+    if (pl->bpfp) {
+        pcap_freecode(pl->bpfp);
+        SCFree(pl->bpfp);
+    }
+
 #ifdef HAVE_LIBLZ4
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         SCFree(pl->compression.buffer);
@@ -1607,6 +1634,8 @@ static OutputInitResult PcapLogInitCtx(SCConfNode *conf)
             FatalError("log-pcap honor-pass-rules specified is invalid");
         }
     }
+
+    pl->bpf_filter = conf == NULL ? NULL : (char *)SCConfNodeLookupChildValue(conf, "bpf-filter");
 
     /* create the output ctx and send it back */
 
