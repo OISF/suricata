@@ -580,7 +580,7 @@ void DatasetPostReloadCleanup(void)
 static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
-    if (ConfGet("datasets.defaults.memcap", &str) == 1) {
+    if (SCConfGet("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
             SCLogWarning("memcap value cannot be deduced: %s,"
                          " resetting to default",
@@ -590,7 +590,7 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
     }
 
     *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
-    if (ConfGet("datasets.defaults.hashsize", &str) == 1) {
+    if (SCConfGet("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
             *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
             SCLogWarning("hashsize value cannot be deduced: %s,"
@@ -603,18 +603,18 @@ static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 int DatasetsInit(void)
 {
     SCLogDebug("datasets start");
-    ConfNode *datasets = ConfGetNode("datasets");
+    SCConfNode *datasets = SCConfGetNode("datasets");
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
     GetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
         const char *str = NULL;
-        if (ConfGet("datasets.limits.total-hashsizes", &str) == 1) {
+        if (SCConfGet("datasets.limits.total-hashsizes", &str) == 1) {
             if (ParseSizeStringU32(str, &dataset_max_total_hashsize) < 0) {
                 FatalError("failed to parse datasets.limits.total-hashsizes value: %s", str);
             }
         }
-        if (ConfGet("datasets.limits.single-hashsize", &str) == 1) {
+        if (SCConfGet("datasets.limits.single-hashsize", &str) == 1) {
             if (ParseSizeStringU32(str, &dataset_max_one_hashsize) < 0) {
                 FatalError("failed to parse datasets.limits.single-hashsize value: %s", str);
             }
@@ -630,7 +630,7 @@ int DatasetsInit(void)
         }
 
         int list_pos = 0;
-        ConfNode *iter = NULL;
+        SCConfNode *iter = NULL;
         TAILQ_FOREACH(iter, &datasets->head, next) {
             if (iter->name == NULL) {
                 list_pos++;
@@ -649,27 +649,24 @@ int DatasetsInit(void)
                 continue;
             }
 
-            ConfNode *set_type =
-                ConfNodeLookupChild(iter, "type");
+            SCConfNode *set_type = SCConfNodeLookupChild(iter, "type");
             if (set_type == NULL) {
                 list_pos++;
                 continue;
             }
 
-            ConfNode *set_save =
-                ConfNodeLookupChild(iter, "state");
+            SCConfNode *set_save = SCConfNodeLookupChild(iter, "state");
             if (set_save) {
                 DatasetGetPath(set_save->val, save, sizeof(save), TYPE_STATE);
                 strlcpy(load, save, sizeof(load));
             } else {
-                ConfNode *set_load =
-                    ConfNodeLookupChild(iter, "load");
+                SCConfNode *set_load = SCConfNodeLookupChild(iter, "load");
                 if (set_load) {
                     DatasetGetPath(set_load->val, load, sizeof(load), TYPE_LOAD);
                 }
             }
 
-            ConfNode *set_memcap = ConfNodeLookupChild(iter, "memcap");
+            SCConfNode *set_memcap = SCConfNodeLookupChild(iter, "memcap");
             if (set_memcap) {
                 if (ParseSizeStringU64(set_memcap->val, &memcap) < 0) {
                     SCLogWarning("memcap value cannot be"
@@ -678,7 +675,7 @@ int DatasetsInit(void)
                     memcap = 0;
                 }
             }
-            ConfNode *set_hashsize = ConfNodeLookupChild(iter, "hashsize");
+            SCConfNode *set_hashsize = SCConfNodeLookupChild(iter, "hashsize");
             if (set_hashsize) {
                 if (ParseSizeStringU32(set_hashsize->val, &hashsize) < 0) {
                     SCLogWarning("hashsize value cannot be"

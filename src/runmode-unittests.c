@@ -165,8 +165,8 @@ static void RegisterUnittests(void)
     DecodeMPLSRegisterTests();
     DecodeNSHRegisterTests();
     AppLayerProtoDetectUnittestsRegister();
-    ConfRegisterTests();
-    ConfYamlRegisterTests();
+    SCConfRegisterTests();
+    SCConfYamlRegisterTests();
     TmqhFlowRegisterTests();
     FlowRegisterTests();
     HostRegisterUnittests();

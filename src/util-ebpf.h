@@ -86,7 +86,7 @@ int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void
 
 void EBPFRegisterExtension(void);
 
-void EBPFBuildCPUSet(ConfNode *node, char *iface);
+void EBPFBuildCPUSet(SCConfNode *node, char *iface);
 
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 

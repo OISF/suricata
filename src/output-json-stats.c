@@ -421,7 +421,7 @@ static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputStatsLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -447,29 +447,29 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     stats_ctx->flags = JSON_STATS_TOTALS;
 
     if (conf != NULL) {
-        const char *totals = ConfNodeLookupChildValue(conf, "totals");
-        const char *threads = ConfNodeLookupChildValue(conf, "threads");
-        const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
-        const char *zero_counters = ConfNodeLookupChildValue(conf, "null-values");
+        const char *totals = SCConfNodeLookupChildValue(conf, "totals");
+        const char *threads = SCConfNodeLookupChildValue(conf, "threads");
+        const char *deltas = SCConfNodeLookupChildValue(conf, "deltas");
+        const char *zero_counters = SCConfNodeLookupChildValue(conf, "null-values");
         SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
-        if ((totals != NULL && ConfValIsFalse(totals)) &&
-                (threads != NULL && ConfValIsFalse(threads))) {
+        if ((totals != NULL && SCConfValIsFalse(totals)) &&
+                (threads != NULL && SCConfValIsFalse(threads))) {
             SCFree(stats_ctx);
             SCLogError("Cannot disable both totals and threads in stats logging");
             return result;
         }
 
-        if (totals != NULL && ConfValIsFalse(totals)) {
+        if (totals != NULL && SCConfValIsFalse(totals)) {
             stats_ctx->flags &= ~JSON_STATS_TOTALS;
         }
-        if (threads != NULL && ConfValIsTrue(threads)) {
+        if (threads != NULL && SCConfValIsTrue(threads)) {
             stats_ctx->flags |= JSON_STATS_THREADS;
         }
-        if (deltas != NULL && ConfValIsTrue(deltas)) {
+        if (deltas != NULL && SCConfValIsTrue(deltas)) {
             stats_ctx->flags |= JSON_STATS_DELTAS;
         }
-        if (zero_counters != NULL && ConfValIsFalse(zero_counters)) {
+        if (zero_counters != NULL && SCConfValIsFalse(zero_counters)) {
             stats_ctx->flags |= JSON_STATS_NO_ZEROES;
         }
         SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);

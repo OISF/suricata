@@ -132,12 +132,12 @@ static void FormatNumber(uint64_t num, char *str, size_t size)
 void
 SCProfilingInit(void)
 {
-    ConfNode *conf;
+    SCConfNode *conf;
 
     SC_ATOMIC_INIT(samples);
 
     intmax_t rate_v = 0;
-    (void)ConfGetInt("profiling.sample-rate", &rate_v);
+    (void)SCConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
         rate = (int)rate_v;
         if (rate != 1)
@@ -146,9 +146,9 @@ SCProfilingInit(void)
             SCLogInfo("profiling runs for every packet");
     }
 
-    conf = ConfGetNode("profiling.packets");
+    conf = SCConfGetNode("profiling.packets");
     if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+        if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
             profiling_packets_enabled = 1;
 
             if (pthread_mutex_init(&packet_profile_lock, NULL) != 0) {
@@ -174,19 +174,19 @@ SCProfilingInit(void)
             memset(&packet_profile_log_data6, 0, sizeof(packet_profile_log_data6));
             memset(&packet_profile_flowworker_data, 0, sizeof(packet_profile_flowworker_data));
 
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            const char *filename = SCConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
                 if (PathIsAbsolute(filename)) {
                     strlcpy(profiling_packets_file_name, filename,
                             sizeof(profiling_packets_file_name));
                 } else {
-                    const char *log_dir = ConfigGetLogDirectory();
+                    const char *log_dir = SCConfigGetLogDirectory();
                     snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
                             "%s/%s", log_dir, filename);
                 }
 
-                const char *v = ConfNodeLookupChildValue(conf, "append");
-                if (v == NULL || ConfValIsTrue(v)) {
+                const char *v = SCConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || SCConfValIsTrue(v)) {
                     profiling_packets_file_mode = "a";
                 } else {
                     profiling_packets_file_mode = "w";
@@ -196,10 +196,10 @@ SCProfilingInit(void)
             }
         }
 
-        conf = ConfGetNode("profiling.packets.csv");
+        conf = SCConfGetNode("profiling.packets.csv");
         if (conf != NULL) {
-            if (ConfNodeChildValueIsTrue(conf, "enabled")) {
-                const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
+                const char *filename = SCConfNodeLookupChildValue(conf, "filename");
                 if (filename == NULL) {
                     filename = "packet_profile.csv";
                 }
@@ -214,7 +214,7 @@ SCProfilingInit(void)
                         FatalError("out of memory");
                     }
 
-                    const char *log_dir = ConfigGetLogDirectory();
+                    const char *log_dir = SCConfigGetLogDirectory();
                     snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
                 }
 
@@ -232,9 +232,9 @@ SCProfilingInit(void)
         }
     }
 
-    conf = ConfGetNode("profiling.locks");
+    conf = SCConfGetNode("profiling.locks");
     if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+        if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
 #ifndef PROFILE_LOCKING
             SCLogWarning(
                     "lock profiling not compiled in. Add --enable-profiling-locks to configure.");
@@ -243,9 +243,9 @@ SCProfilingInit(void)
 
             LockRecordInitHash();
 
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            const char *filename = SCConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-                const char *log_dir = ConfigGetLogDirectory();
+                const char *log_dir = SCConfigGetLogDirectory();
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_locks_file_name == NULL)) {
@@ -254,8 +254,8 @@ SCProfilingInit(void)
 
                 snprintf(profiling_locks_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
-                const char *v = ConfNodeLookupChildValue(conf, "append");
-                if (v == NULL || ConfValIsTrue(v)) {
+                const char *v = SCConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || SCConfValIsTrue(v)) {
                     profiling_locks_file_mode = "a";
                 } else {
                     profiling_locks_file_mode = "w";
@@ -1436,9 +1436,9 @@ void SCProfilingInit(void)
     SC_ATOMIC_INIT(profiling_rules_active);
     SC_ATOMIC_INIT(samples);
     intmax_t rate_v = 0;
-    ConfNode *conf;
+    SCConfNode *conf;
 
-    (void)ConfGetInt("profiling.sample-rate", &rate_v);
+    (void)SCConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
         int literal_rate = (int)rate_v;
         for (int i = literal_rate; i >= 1; i--) {
@@ -1454,8 +1454,8 @@ void SCProfilingInit(void)
             SCLogInfo("profiling runs for every packet");
     }
 
-    conf = ConfGetNode("profiling.rules");
-    if (ConfNodeChildValueIsTrue(conf, "active")) {
+    conf = SCConfGetNode("profiling.rules");
+    if (SCConfNodeChildValueIsTrue(conf, "active")) {
         SC_ATOMIC_SET(profiling_rules_active, 1);
     }
 }

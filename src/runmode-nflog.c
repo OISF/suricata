@@ -44,9 +44,9 @@ static void NflogDerefConfig(void *data)
 
 static void *ParseNflogConfig(const char *group)
 {
-    ConfNode *group_root;
-    ConfNode *group_default = NULL;
-    ConfNode *nflog_node;
+    SCConfNode *group_root;
+    SCConfNode *group_default = NULL;
+    SCConfNode *nflog_node;
     NflogGroupConfig *nflogconf = SCMalloc(sizeof(*nflogconf));
     intmax_t bufsize;
     intmax_t bufsize_max;
@@ -63,16 +63,16 @@ static void *ParseNflogConfig(const char *group)
     }
 
     nflogconf->DerefFunc = NflogDerefConfig;
-    nflog_node = ConfGetNode("nflog");
+    nflog_node = SCConfGetNode("nflog");
 
     if (nflog_node == NULL) {
         SCLogInfo("Unable to find nflog config using default value");
         return nflogconf;
     }
 
-    group_root = ConfNodeLookupKeyValue(nflog_node, "group", group);
+    group_root = SCConfNodeLookupKeyValue(nflog_node, "group", group);
 
-    group_default = ConfNodeLookupKeyValue(nflog_node, "group", "default");
+    group_default = SCConfNodeLookupKeyValue(nflog_node, "group", "default");
 
     if (group_root == NULL && group_default == NULL) {
         SCLogInfo("Unable to find nflog config for "
@@ -88,8 +88,7 @@ static void *ParseNflogConfig(const char *group)
         FatalError("NFLOG's group number invalid.");
     }
 
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "buffer-size", &bufsize);
+    boolval = SCConfGetChildValueIntWithDefault(group_root, group_default, "buffer-size", &bufsize);
 
     if (boolval)
         nflogconf->nlbufsiz = bufsize;
@@ -99,8 +98,8 @@ static void *ParseNflogConfig(const char *group)
         return NULL;
     }
 
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "max-size", &bufsize_max);
+    boolval =
+            SCConfGetChildValueIntWithDefault(group_root, group_default, "max-size", &bufsize_max);
 
     if (boolval)
         nflogconf->nlbufsiz_max = bufsize_max;
@@ -116,8 +115,8 @@ static void *ParseNflogConfig(const char *group)
         nflogconf->nlbufsiz = nflogconf->nlbufsiz_max;
     }
 
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "qthreshold", &qthreshold);
+    boolval =
+            SCConfGetChildValueIntWithDefault(group_root, group_default, "qthreshold", &qthreshold);
 
     if (boolval)
         nflogconf->qthreshold = qthreshold;
@@ -127,8 +126,7 @@ static void *ParseNflogConfig(const char *group)
         return NULL;
     }
 
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "qtimeout", &qtimeout);
+    boolval = SCConfGetChildValueIntWithDefault(group_root, group_default, "qtimeout", &qtimeout);
 
     if (boolval)
         nflogconf->qtimeout = qtimeout;

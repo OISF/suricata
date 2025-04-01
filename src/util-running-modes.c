@@ -44,7 +44,7 @@ int ListKeywords(const char *keyword_info)
 int ListAppLayerProtocols(const char *conf_filename)
 {
     EngineModeSetIDS();
-    if (ConfYamlLoadFile(conf_filename) != -1)
+    if (SCConfYamlLoadFile(conf_filename) != -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();

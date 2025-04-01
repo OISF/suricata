@@ -107,9 +107,9 @@ int DefragPolicyGetHostTimeout(Packet *p)
     return timeout;
 }
 
-static void DefragParseParameters(ConfNode *n)
+static void DefragParseParameters(SCConfNode *n)
 {
-    ConfNode *si;
+    SCConfNode *si;
     uint64_t timeout = 0;
 
     TAILQ_FOREACH(si, &n->head, next) {
@@ -121,7 +121,7 @@ static void DefragParseParameters(ConfNode *n)
             }
         }
         if (strcasecmp("address", si->name) == 0) {
-            ConfNode *pval;
+            SCConfNode *pval;
             TAILQ_FOREACH(pval, &si->head, next) {
                 DefragPolicyAddHostInfo(pval->val, timeout);
             }
@@ -139,17 +139,17 @@ void DefragPolicyLoadFromConfig(void)
 {
     SCEnter();
 
-    ConfNode *server_config = ConfGetNode("defrag.host-config");
+    SCConfNode *server_config = SCConfGetNode("defrag.host-config");
     if (server_config == NULL) {
         SCLogDebug("failed to read host config");
         SCReturn;
     }
 
     SCLogDebug("configuring host config %p", server_config);
-    ConfNode *sc;
+    SCConfNode *sc;
 
     TAILQ_FOREACH(sc, &server_config->head, next) {
-        ConfNode *p = NULL;
+        SCConfNode *p = NULL;
 
         TAILQ_FOREACH(p, &sc->head, next) {
             SCLogDebug("parsing configuration for %s", p->name);

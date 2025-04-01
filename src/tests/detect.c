@@ -943,9 +943,9 @@ static int SigTest15 (void)
     p->proto = IPPROTO_TCP;
     p->dp = 80;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -974,8 +974,8 @@ static int SigTest15 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     return result;
 }
@@ -995,9 +995,9 @@ static int SigTest16 (void)
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 1234);
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1024,8 +1024,8 @@ static int SigTest16 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
     return result;
 }
@@ -1048,9 +1048,9 @@ static int SigTest17 (void)
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 80);
     FAIL_IF_NULL(p);
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1071,8 +1071,8 @@ static int SigTest17 (void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
 
     PASS;
@@ -1154,9 +1154,9 @@ static int SigTest19 (void)
     p->sp = 21;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1184,8 +1184,8 @@ static int SigTest19 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     return result;
 }
@@ -1214,9 +1214,9 @@ static int SigTest20 (void)
     p->sp = 21;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1245,8 +1245,8 @@ static int SigTest20 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     return result;
 }
@@ -4789,9 +4789,9 @@ static int DetectAddressYamlParsing01 (void)
 {
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string2, strlen(dummy_conf_string2));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string2, strlen(dummy_conf_string2));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4811,8 +4811,8 @@ static int DetectAddressYamlParsing01 (void)
 
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     return result;
 }
 
@@ -4836,9 +4836,9 @@ static int DetectAddressYamlParsing02 (void)
 {
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string3, strlen(dummy_conf_string3));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string3, strlen(dummy_conf_string3));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4858,8 +4858,8 @@ static int DetectAddressYamlParsing02 (void)
 
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     return result;
 }
 
@@ -4883,9 +4883,9 @@ static int DetectAddressYamlParsing03 (void)
 {
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string4, strlen(dummy_conf_string4));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string4, strlen(dummy_conf_string4));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4905,8 +4905,8 @@ static int DetectAddressYamlParsing03 (void)
 
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     return result;
 }
 
@@ -4931,9 +4931,9 @@ static int DetectAddressYamlParsing04 (void)
 {
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string5, strlen(dummy_conf_string5));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string5, strlen(dummy_conf_string5));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4953,8 +4953,8 @@ static int DetectAddressYamlParsing04 (void)
 
     DetectEngineCtxFree(de_ctx);
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     return result;
 }
 

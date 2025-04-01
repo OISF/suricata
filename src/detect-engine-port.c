@@ -1109,12 +1109,12 @@ int DetectPortTestConfVars(void)
 
     ResolvedVariablesList var_list = TAILQ_HEAD_INITIALIZER(var_list);
 
-    ConfNode *port_vars_node = ConfGetNode("vars.port-groups");
+    SCConfNode *port_vars_node = SCConfGetNode("vars.port-groups");
     if (port_vars_node == NULL) {
         return 0;
     }
 
-    ConfNode *seq_node;
+    SCConfNode *seq_node;
     TAILQ_FOREACH(seq_node, &port_vars_node->head, next) {
         SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
 

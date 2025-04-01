@@ -61,17 +61,18 @@ FlowStorageId g_macset_storage_id = { .id = -1 };
 
 void MacSetRegisterFlowStorage(void)
 {
-    ConfNode *root = ConfGetNode("outputs");
-    ConfNode *node = NULL;
+    SCConfNode *root = SCConfGetNode("outputs");
+    SCConfNode *node = NULL;
     /* we only need to register if at least one enabled 'eve-log' output
        has the ethernet setting enabled */
     if (root != NULL) {
         TAILQ_FOREACH(node, &root->head, next) {
             if (node->val && strcmp(node->val, "eve-log") == 0) {
-                const char *enabled = ConfNodeLookupChildValue(node->head.tqh_first, "enabled");
-                if (enabled != NULL && ConfValIsTrue(enabled)) {
-                    const char *ethernet = ConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
-                    if (ethernet != NULL && ConfValIsTrue(ethernet)) {
+                const char *enabled = SCConfNodeLookupChildValue(node->head.tqh_first, "enabled");
+                if (enabled != NULL && SCConfValIsTrue(enabled)) {
+                    const char *ethernet =
+                            SCConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
+                    if (ethernet != NULL && SCConfValIsTrue(ethernet)) {
                         g_macset_storage_id = FlowStorageRegister("macset", sizeof(void *),
                                                                   NULL, (void(*)(void *)) MacSetFree);
                         return;

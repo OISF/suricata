@@ -425,11 +425,11 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
 /**
  *  \brief Create a new LogFileCtx for alert debug logging.
  *
- *  \param ConfNode containing configuration for this logger.
+ *  \param SCConfNode containing configuration for this logger.
  *
  *  \return output_ctx if succesful, NULL otherwise
  */
-static OutputInitResult AlertDebugLogInitCtx(ConfNode *conf)
+static OutputInitResult AlertDebugLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = NULL;

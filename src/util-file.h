@@ -232,7 +232,7 @@ int FileForceSha256(void);
 
 void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction);
 
-void FileForceHashParseCfg(ConfNode *);
+void FileForceHashParseCfg(SCConfNode *);
 
 void FileForceTrackingEnable(void);
 

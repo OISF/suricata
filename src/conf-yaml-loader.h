@@ -26,11 +26,11 @@
 
 #include "conf.h"
 
-int ConfYamlLoadFile(const char *);
-int ConfYamlLoadString(const char *, size_t);
-int ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix);
-int ConfYamlHandleInclude(ConfNode *parent, const char *filename);
+int SCConfYamlLoadFile(const char *);
+int SCConfYamlLoadString(const char *, size_t);
+int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix);
+int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename);
 
-void ConfYamlRegisterTests(void);
+void SCConfYamlRegisterTests(void);
 
 #endif /* !SURICATA_CONF_YAML_LOADER_H */

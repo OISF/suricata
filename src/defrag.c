@@ -162,13 +162,13 @@ DefragContextNew(void)
 
     /* Initialize the pool of trackers. */
     intmax_t tracker_pool_size;
-    if (!ConfGetInt("defrag.trackers", &tracker_pool_size) || tracker_pool_size == 0) {
+    if (!SCConfGetInt("defrag.trackers", &tracker_pool_size) || tracker_pool_size == 0) {
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
 
     /* Initialize the pool of frags. */
     intmax_t frag_pool_size;
-    if (!ConfGetInt("defrag.max-frags", &frag_pool_size) || frag_pool_size == 0 ||
+    if (!SCConfGetInt("defrag.max-frags", &frag_pool_size) || frag_pool_size == 0 ||
             frag_pool_size > UINT32_MAX) {
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
@@ -184,10 +184,9 @@ DefragContextNew(void)
 
     /* Set the default timeout. */
     intmax_t timeout;
-    if (!ConfGetInt("defrag.timeout", &timeout)) {
+    if (!SCConfGetInt("defrag.timeout", &timeout)) {
         dc->timeout = TIMEOUT_DEFAULT;
-    }
-    else {
+    } else {
         if (timeout < TIMEOUT_MIN) {
             FatalError("defrag: Timeout less than minimum allowed value.");
         }
@@ -1113,7 +1112,7 @@ void
 DefragInit(void)
 {
     intmax_t tracker_pool_size;
-    if (!ConfGetInt("defrag.trackers", &tracker_pool_size)) {
+    if (!SCConfGetInt("defrag.trackers", &tracker_pool_size)) {
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
 
@@ -2309,7 +2308,7 @@ static int DefragTimeoutTest(void)
     memset(&dtv, 0, sizeof(dtv));
 
     /* Setup a small number of trackers. */
-    FAIL_IF_NOT(ConfSet("defrag.trackers", "16"));
+    FAIL_IF_NOT(SCConfSet("defrag.trackers", "16"));
 
     DefragInit();
 

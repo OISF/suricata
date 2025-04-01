@@ -512,7 +512,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
     do {                                                                                           \
         SC_ATOMIC_EXTERN(unsigned int, engine_stage);                                              \
         int init_errors_fatal = 0;                                                                 \
-        (void)ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);                        \
+        (void)SCConfGetBool("engine.init-failure-fatal", &init_errors_fatal);                      \
         if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT)) {                 \
             SCLogError(__VA_ARGS__);                                                               \
             exit(EXIT_FAILURE);                                                                    \

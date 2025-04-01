@@ -3192,14 +3192,14 @@ static void CheckJA3Enabled(void)
     const char *strval = NULL;
     /* Check if we should generate JA3 fingerprints */
     int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-    if (ConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
+    if (SCConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
         enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
     } else if (strcmp(strval, "auto") == 0) {
         enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-    } else if (ConfValIsFalse(strval)) {
+    } else if (SCConfValIsFalse(strval)) {
         enable_ja3 = 0;
         ssl_config.disable_ja3 = true;
-    } else if (ConfValIsTrue(strval)) {
+    } else if (SCConfValIsTrue(strval)) {
         enable_ja3 = true;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
@@ -3217,14 +3217,14 @@ static void CheckJA4Enabled(void)
     const char *strval = NULL;
     /* Check if we should generate JA4 fingerprints */
     int enable_ja4 = SSL_CONFIG_DEFAULT_JA4;
-    if (ConfGet("app-layer.protocols.tls.ja4-fingerprints", &strval) != 1) {
+    if (SCConfGet("app-layer.protocols.tls.ja4-fingerprints", &strval) != 1) {
         enable_ja4 = SSL_CONFIG_DEFAULT_JA4;
     } else if (strcmp(strval, "auto") == 0) {
         enable_ja4 = SSL_CONFIG_DEFAULT_JA4;
-    } else if (ConfValIsFalse(strval)) {
+    } else if (SCConfValIsFalse(strval)) {
         enable_ja4 = 0;
         ssl_config.disable_ja4 = true;
-    } else if (ConfValIsTrue(strval)) {
+    } else if (SCConfValIsTrue(strval)) {
         enable_ja4 = true;
     }
     SC_ATOMIC_SET(ssl_config.enable_ja4, enable_ja4);
@@ -3309,7 +3309,7 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterStateProgressCompletionStatus(
                 ALPROTO_TLS, TLS_STATE_FINISHED, TLS_STATE_FINISHED);
 
-        ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
+        SCConfNode *enc_handle = SCConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {
             SCLogDebug("have app-layer.protocols.tls.encryption-handling = %s", enc_handle->val);
             if (strcmp(enc_handle->val, "full") == 0) {
@@ -3323,13 +3323,14 @@ void RegisterSSLParsers(void)
             }
         } else {
             /* Get the value of no reassembly option from the config file */
-            if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
+            if (SCConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
                 int value = 0;
-                if (ConfGetBool("tls.no-reassemble", &value) == 1 && value == 1)
+                if (SCConfGetBool("tls.no-reassemble", &value) == 1 && value == 1)
                     ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
             } else {
                 int value = 0;
-                if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &value) == 1 && value == 1)
+                if (SCConfGetBool("app-layer.protocols.tls.no-reassemble", &value) == 1 &&
+                        value == 1)
                     ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
             }
         }

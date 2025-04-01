@@ -49,7 +49,7 @@ void SCRConfReferenceHashFree(void *ch);
 /* used to get the reference.config file path */
 static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
-void SCReferenceConfInit(DetectEngineCtx *de_ctx)
+void SCReferenceSCConfInit(DetectEngineCtx *de_ctx)
 {
     int en;
     PCRE2_SIZE eo;
@@ -150,13 +150,13 @@ static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
-        if (ConfGet(config_value, &path) != 1) {
-            if (ConfGet("reference-config-file", &path) != 1) {
+        if (SCConfGet(config_value, &path) != 1) {
+            if (SCConfGet("reference-config-file", &path) != 1) {
                 return (char *)SC_RCONF_DEFAULT_FILE_PATH;
             }
         }
     } else {
-        if (ConfGet("reference-config-file", &path) != 1) {
+        if (SCConfGet("reference-config-file", &path) != 1) {
             return (char *)SC_RCONF_DEFAULT_FILE_PATH;
         }
     }

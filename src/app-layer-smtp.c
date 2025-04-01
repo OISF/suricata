@@ -316,27 +316,27 @@ static void SMTPConfigure(void) {
     uint32_t content_inspect_min_size = 0;
     uint32_t content_inspect_window = 0;
 
-    ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
+    SCConfNode *config = SCConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
-        ConfNode *extract_urls_schemes = NULL;
+        SCConfNode *extract_urls_schemes = NULL;
 
         int val;
-        int ret = ConfGetChildValueBool(config, "decode-mime", &val);
+        int ret = SCConfGetChildValueBool(config, "decode-mime", &val);
         if (ret) {
             smtp_config.decode_mime = val;
         }
 
-        ret = ConfGetChildValueBool(config, "decode-base64", &val);
+        ret = SCConfGetChildValueBool(config, "decode-base64", &val);
         if (ret) {
             SCMimeSmtpConfigDecodeBase64(val);
         }
 
-        ret = ConfGetChildValueBool(config, "decode-quoted-printable", &val);
+        ret = SCConfGetChildValueBool(config, "decode-quoted-printable", &val);
         if (ret) {
             SCMimeSmtpConfigDecodeQuoted(val);
         }
 
-        ret = ConfGetChildValueInt(config, "header-value-depth", &imval);
+        ret = SCConfGetChildValueInt(config, "header-value-depth", &imval);
         if (ret) {
             if (imval < 0 || imval > UINT32_MAX) {
                 FatalError("Invalid value for header-value-depth");
@@ -344,7 +344,7 @@ static void SMTPConfigure(void) {
             SCMimeSmtpConfigHeaderValueDepth((uint32_t)imval);
         }
 
-        ret = ConfGetChildValueBool(config, "extract-urls", &val);
+        ret = SCConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
             SCMimeSmtpConfigExtractUrls(val);
         }
@@ -352,9 +352,9 @@ static void SMTPConfigure(void) {
         /* Parse extract-urls-schemes from mime config, add '://' suffix to found schemes,
          * and provide a default value of 'http' for the schemes to be extracted
          * if no schemes are found in the config */
-        extract_urls_schemes = ConfNodeLookupChild(config, "extract-urls-schemes");
+        extract_urls_schemes = SCConfNodeLookupChild(config, "extract-urls-schemes");
         if (extract_urls_schemes) {
-            ConfNode *scheme = NULL;
+            SCConfNode *scheme = NULL;
 
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
                 size_t scheme_len = strlen(scheme->val);
@@ -385,19 +385,19 @@ static void SMTPConfigure(void) {
             SCMimeSmtpConfigExtractUrlsSchemeAdd("http://");
         }
 
-        ret = ConfGetChildValueBool(config, "log-url-scheme", &val);
+        ret = SCConfGetChildValueBool(config, "log-url-scheme", &val);
         if (ret) {
             SCMimeSmtpConfigLogUrlScheme(val);
         }
 
-        ret = ConfGetChildValueBool(config, "body-md5", &val);
+        ret = SCConfGetChildValueBool(config, "body-md5", &val);
         if (ret) {
             SCMimeSmtpConfigBodyMd5(val);
         }
     }
 
-    ConfNode *t = ConfGetNode("app-layer.protocols.smtp.inspected-tracker");
-    ConfNode *p = NULL;
+    SCConfNode *t = SCConfGetNode("app-layer.protocols.smtp.inspected-tracker");
+    SCConfNode *p = NULL;
 
     if (t != NULL) {
         TAILQ_FOREACH(p, &t->head, next) {
@@ -429,7 +429,7 @@ static void SMTPConfigure(void) {
 
     smtp_config.sbcfg.buf_size = content_limit ? content_limit : 256;
 
-    if (ConfGetBool("app-layer.protocols.smtp.raw-extraction",
+    if (SCConfGetBool("app-layer.protocols.smtp.raw-extraction",
                 (int *)&smtp_config.raw_extraction) != 1) {
         smtp_config.raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE;
     }
@@ -443,7 +443,7 @@ static void SMTPConfigure(void) {
     uint64_t value = SMTP_DEFAULT_MAX_TX;
     smtp_config.max_tx = SMTP_DEFAULT_MAX_TX;
     const char *str = NULL;
-    if (ConfGet("app-layer.protocols.smtp.max-tx", &str) == 1) {
+    if (SCConfGet("app-layer.protocols.smtp.max-tx", &str) == 1) {
         if (ParseSizeStringU64(str, &value) < 0) {
             SCLogWarning("max-tx value cannot be deduced: %s,"
                          " keeping default",

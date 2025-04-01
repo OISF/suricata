@@ -109,11 +109,11 @@ int ActionInitConfig(void)
     uint8_t actions_config[4] = {0, 0, 0, 0};
     int order = 0;
 
-    ConfNode *action_order;
-    ConfNode *action = NULL;
+    SCConfNode *action_order;
+    SCConfNode *action = NULL;
 
     /* Let's load the order of actions from the general config */
-    action_order = ConfGetNode("action-order");
+    action_order = SCConfGetNode("action-order");
     if (action_order == NULL) {
         /* No configuration, use defaults. */
         return 0;
@@ -189,16 +189,16 @@ action-order:\n\
   - reject\n\
   - alert\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -223,16 +223,16 @@ action-order:\n\
   - reject\n\
   - ftw\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -256,16 +256,16 @@ action-order:\n\
   - drop\n\
   - reject\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -286,16 +286,16 @@ static int UtilActionTest04(void)
 ---\n\
 action-order:\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -322,16 +322,16 @@ action-order:\n\
   - pass\n\
   - whatever\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -355,16 +355,16 @@ action-order:\n\
   - reject\n\
   - pass\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_ALERT);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_PASS);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -388,16 +388,16 @@ action-order:\n\
   - drop\n\
   - reject\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     ActionInitConfig();
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_ALERT);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_REJECT);
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     /* Restore default values */
     action_order_sigs[0] = ACTION_PASS;
@@ -416,9 +416,9 @@ static int UtilActionTest08(void)
     char config[] = "%YAML 1.1\n"
         "---\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     FAIL_IF_NOT(ActionInitConfig() == 0);
     FAIL_IF_NOT(action_order_sigs[0] == ACTION_PASS);
@@ -426,7 +426,7 @@ static int UtilActionTest08(void)
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
 
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
     PASS;
 }
 

@@ -721,7 +721,7 @@ static void RecommendNUMAConfig(void)
         FatalError("Failed to allocate memory for temporary buffer: %s", strerror(errno));
     }
 
-    if (ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
+    if (SCConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
         set_cpu_affinity = 0;
     }
 
@@ -774,7 +774,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     }
 #endif
 
-    if (ConfGetBool("napatech.auto-config", &is_autoconfig) == 0) {
+    if (SCConfGetBool("napatech.auto-config", &is_autoconfig) == 0) {
         is_autoconfig = 0;
     }
 
@@ -785,7 +785,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             SC_ATOMIC_ADD(numa_detect[numa_node].count, 1);
         }
 
-        if (ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
+        if (SCConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
             set_cpu_affinity = 0;
         }
 
@@ -800,7 +800,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             RecommendNUMAConfig();
 
 #ifdef NAPATECH_ENABLE_BYPASS
-            if (ConfGetBool("napatech.inline", &is_inline) == 0) {
+            if (SCConfGetBool("napatech.inline", &is_inline) == 0) {
                 is_inline = 0;
             }
 

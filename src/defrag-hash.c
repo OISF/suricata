@@ -190,8 +190,7 @@ void DefragInitConfig(bool quiet)
 
     uint64_t defrag_memcap;
     /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("defrag.memcap", &conf_val)) == 1)
-    {
+    if ((SCConfGet("defrag.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &defrag_memcap) < 0) {
             SCLogError("Error parsing defrag.memcap "
                        "from conf file - %s.  Killing engine",
@@ -201,8 +200,7 @@ void DefragInitConfig(bool quiet)
             SC_ATOMIC_SET(defrag_config.memcap, defrag_memcap);
         }
     }
-    if ((ConfGet("defrag.hash-size", &conf_val)) == 1)
-    {
+    if ((SCConfGet("defrag.hash-size", &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.hash_size = configval;
@@ -211,9 +209,7 @@ void DefragInitConfig(bool quiet)
         }
     }
 
-
-    if ((ConfGet("defrag.trackers", &conf_val)) == 1)
-    {
+    if ((SCConfGet("defrag.trackers", &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.prealloc = configval;
@@ -256,9 +252,8 @@ void DefragInitConfig(bool quiet)
                   (uintmax_t)sizeof(DefragTrackerHashRow));
     }
 
-    if ((ConfGet("defrag.prealloc", &conf_val)) == 1)
-    {
-        if (ConfValIsTrue(conf_val)) {
+    if ((SCConfGet("defrag.prealloc", &conf_val)) == 1) {
+        if (SCConfValIsTrue(conf_val)) {
             /* pre allocate defrag trackers */
             for (i = 0; i < defrag_config.prealloc; i++) {
                 if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {

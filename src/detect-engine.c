@@ -2580,11 +2580,11 @@ retry:
 bool DetectEngineMpmCachingEnabled(void)
 {
     const char *strval = NULL;
-    if (ConfGet("detect.sgh-mpm-caching", &strval) != 1)
+    if (SCConfGet("detect.sgh-mpm-caching", &strval) != 1)
         return false;
 
     int sgh_mpm_caching = 0;
-    (void)ConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    (void)SCConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
     return (bool)sgh_mpm_caching;
 }
 
@@ -2596,7 +2596,7 @@ const char *DetectEngineMpmCachingGetPath(void)
 
     char yamlpath[] = "detect.sgh-mpm-caching-path";
     const char *strval = NULL;
-    ConfGet(yamlpath, &strval);
+    SCConfGet(yamlpath, &strval);
 
     if (strval != NULL) {
         return strval;
@@ -2635,7 +2635,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     }
 
     int failure_fatal = 0;
-    if (ConfGetBool("engine.init-failure-fatal", (int *)&failure_fatal) != 1) {
+    if (SCConfGetBool("engine.init-failure-fatal", (int *)&failure_fatal) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
     }
     de_ctx->failure_fatal = (failure_fatal == 1);
@@ -2686,7 +2686,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
-    SCClassConfInit(de_ctx);
+    SCClassSCConfInit(de_ctx);
     if (!SCClassConfLoadClassificationConfigFile(de_ctx, NULL)) {
         if (SCRunmodeGet() == RUNMODE_CONF_TEST)
             goto error;
@@ -2695,7 +2695,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     if (ActionInitConfig() < 0) {
         goto error;
     }
-    SCReferenceConfInit(de_ctx);
+    SCReferenceSCConfInit(de_ctx);
     if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
         if (SCRunmodeGet() == RUNMODE_CONF_TEST)
             goto error;
@@ -2822,9 +2822,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {
         /* remove config */
-        ConfNode *node = ConfGetNode(de_ctx->config_prefix);
+        SCConfNode *node = SCConfGetNode(de_ctx->config_prefix);
         if (node != NULL) {
-            ConfNodeRemove(node); /* frees node */
+            SCConfNodeRemove(node); /* frees node */
         }
 #if 0
         ConfDump();
@@ -2865,11 +2865,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     const char *sgh_mpm_context = NULL;
     const char *de_ctx_profile = NULL;
 
-    (void)ConfGet("detect.profile", &de_ctx_profile);
-    (void)ConfGet("detect.sgh-mpm-context", &sgh_mpm_context);
+    (void)SCConfGet("detect.profile", &de_ctx_profile);
+    (void)SCConfGet("detect.sgh-mpm-context", &sgh_mpm_context);
 
-    ConfNode *de_ctx_custom = ConfGetNode("detect-engine");
-    ConfNode *opt = NULL;
+    SCConfNode *de_ctx_custom = SCConfGetNode("detect-engine");
+    SCConfNode *opt = NULL;
 
     if (de_ctx_custom != NULL) {
         TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
@@ -2953,29 +2953,27 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             break;
 
         case ENGINE_PROFILE_CUSTOM:
-            (void)ConfGet("detect.custom-values.toclient-groups",
-                    &max_uniq_toclient_groups_str);
-            (void)ConfGet("detect.custom-values.toserver-groups",
-                    &max_uniq_toserver_groups_str);
+            (void)SCConfGet("detect.custom-values.toclient-groups", &max_uniq_toclient_groups_str);
+            (void)SCConfGet("detect.custom-values.toserver-groups", &max_uniq_toserver_groups_str);
 
             if (de_ctx_custom != NULL) {
                 TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
                     if (opt->val && strcmp(opt->val, "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
-                            max_uniq_toclient_groups_str = (char *)ConfNodeLookupChildValue
-                                (opt->head.tqh_first, "toclient-sp-groups");
+                            max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
+                                    opt->head.tqh_first, "toclient-sp-groups");
                         }
                         if (max_uniq_toclient_groups_str == NULL) {
-                            max_uniq_toclient_groups_str = (char *)ConfNodeLookupChildValue
-                                (opt->head.tqh_first, "toclient-groups");
+                            max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
+                                    opt->head.tqh_first, "toclient-groups");
                         }
                         if (max_uniq_toserver_groups_str == NULL) {
-                            max_uniq_toserver_groups_str = (char *)ConfNodeLookupChildValue
-                                (opt->head.tqh_first, "toserver-dp-groups");
+                            max_uniq_toserver_groups_str = (char *)SCConfNodeLookupChildValue(
+                                    opt->head.tqh_first, "toserver-dp-groups");
                         }
                         if (max_uniq_toserver_groups_str == NULL) {
-                            max_uniq_toserver_groups_str = (char *)ConfNodeLookupChildValue
-                                (opt->head.tqh_first, "toserver-groups");
+                            max_uniq_toserver_groups_str = (char *)SCConfNodeLookupChildValue(
+                                    opt->head.tqh_first, "toserver-groups");
                         }
                     }
                 }
@@ -3022,15 +3020,14 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     intmax_t value = 0;
     de_ctx->inspection_recursion_limit = DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
-    if (ConfGetInt("detect.inspection-recursion-limit", &value) == 1)
-    {
+    if (SCConfGetInt("detect.inspection-recursion-limit", &value) == 1) {
         if (value >= 0 && value <= INT_MAX) {
             de_ctx->inspection_recursion_limit = (int)value;
         }
 
     /* fall back to old config parsing */
     } else {
-        ConfNode *insp_recursion_limit_node = NULL;
+        SCConfNode *insp_recursion_limit_node = NULL;
         char *insp_recursion_limit = NULL;
 
         if (de_ctx_custom != NULL) {
@@ -3039,7 +3036,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                 if (opt->val && strcmp(opt->val, "inspection-recursion-limit") != 0)
                     continue;
 
-                insp_recursion_limit_node = ConfNodeLookupChild(opt, opt->val);
+                insp_recursion_limit_node = SCConfNodeLookupChild(opt, opt->val);
                 if (insp_recursion_limit_node == NULL) {
                     SCLogError("Error retrieving conf "
                                "entry for detect-engine:inspection-recursion-limit");
@@ -3073,7 +3070,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     // default value is 4
     de_ctx->guess_applayer_log_limit = 4;
-    if (ConfGetInt("detect.stream-tx-log-limit", &value) == 1) {
+    if (SCConfGetInt("detect.stream-tx-log-limit", &value) == 1) {
         if (value >= 0 && value <= UINT8_MAX) {
             de_ctx->guess_applayer_log_limit = (uint8_t)value;
         } else {
@@ -3082,7 +3079,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         }
     }
     int guess_applayer = 0;
-    if ((ConfGetBool("detect.guess-applayer-tx", &guess_applayer)) == 1) {
+    if ((SCConfGetBool("detect.guess-applayer-tx", &guess_applayer)) == 1) {
         if (guess_applayer == 1) {
             de_ctx->guess_applayer = true;
         }
@@ -3091,11 +3088,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     /* parse port grouping priority settings */
 
     const char *ports = NULL;
-    (void)ConfGet("detect.grouping.tcp-priority-ports", &ports);
+    (void)SCConfGet("detect.grouping.tcp-priority-ports", &ports);
     if (ports) {
         SCLogConfig("grouping: tcp-priority-ports %s", ports);
     } else {
-        (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
+        (void)SCConfGet("detect.grouping.tcp-whitelist", &ports);
         if (ports) {
             SCLogConfig(
                     "grouping: tcp-priority-ports from legacy 'tcp-whitelist' setting: %s", ports);
@@ -3122,11 +3119,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     ports = NULL;
-    (void)ConfGet("detect.grouping.udp-priority-ports", &ports);
+    (void)SCConfGet("detect.grouping.udp-priority-ports", &ports);
     if (ports) {
         SCLogConfig("grouping: udp-priority-ports %s", ports);
     } else {
-        (void)ConfGet("detect.grouping.udp-whitelist", &ports);
+        (void)SCConfGet("detect.grouping.udp-whitelist", &ports);
         if (ports) {
             SCLogConfig(
                     "grouping: udp-priority-ports from legacy 'udp-whitelist' setting: %s", ports);
@@ -3153,7 +3150,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
     const char *pf_setting = NULL;
-    if (ConfGet("detect.prefilter.default", &pf_setting) == 1 && pf_setting) {
+    if (SCConfGet("detect.prefilter.default", &pf_setting) == 1 && pf_setting) {
         if (strcasecmp(pf_setting, "mpm") == 0) {
             de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
         } else if (strcasecmp(pf_setting, "auto") == 0) {
@@ -4024,7 +4021,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         goto error;
     }
 
-    ConfNode *node = ConfGetNode(prefix);
+    SCConfNode *node = SCConfGetNode(prefix);
     if (node == NULL) {
         SCLogError("failed to properly setup yaml %s", filename);
         goto error;
@@ -4079,12 +4076,12 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     reload_cnt++;
     SCLogDebug("prefix %s", prefix);
 
-    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+    if (SCConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
         SCLogError("failed to load yaml");
         goto error;
     }
 
-    ConfNode *node = ConfGetNode(prefix);
+    SCConfNode *node = SCConfGetNode(prefix);
     if (node == NULL) {
         SCLogError("failed to properly setup yaml %s", filename);
         goto error;
@@ -4285,18 +4282,18 @@ int DetectEngineReloadTenantsBlocking(const int reload_cnt)
     return 0;
 }
 
-static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappings_root_node,
-        bool failure_fatal)
+static int DetectEngineMultiTenantSetupLoadLivedevMappings(
+        const SCConfNode *mappings_root_node, bool failure_fatal)
 {
-    ConfNode *mapping_node = NULL;
+    SCConfNode *mapping_node = NULL;
 
     int mapping_cnt = 0;
     if (mappings_root_node != NULL) {
         TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
-            ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+            SCConfNode *tenant_id_node = SCConfNodeLookupChild(mapping_node, "tenant-id");
             if (tenant_id_node == NULL)
                 goto bad_mapping;
-            ConfNode *device_node = ConfNodeLookupChild(mapping_node, "device");
+            SCConfNode *device_node = SCConfNodeLookupChild(mapping_node, "device");
             if (device_node == NULL)
                 goto bad_mapping;
 
@@ -4344,18 +4341,18 @@ error:
     return 0;
 }
 
-static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings_root_node,
-        bool failure_fatal)
+static int DetectEngineMultiTenantSetupLoadVlanMappings(
+        const SCConfNode *mappings_root_node, bool failure_fatal)
 {
-    ConfNode *mapping_node = NULL;
+    SCConfNode *mapping_node = NULL;
 
     int mapping_cnt = 0;
     if (mappings_root_node != NULL) {
         TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
-            ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+            SCConfNode *tenant_id_node = SCConfNodeLookupChild(mapping_node, "tenant-id");
             if (tenant_id_node == NULL)
                 goto bad_mapping;
-            ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+            SCConfNode *vlan_id_node = SCConfNodeLookupChild(mapping_node, "vlan-id");
             if (vlan_id_node == NULL)
                 goto bad_mapping;
 
@@ -4413,10 +4410,10 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
     enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     int failure_fatal = 0;
-    (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
+    (void)SCConfGetBool("engine.init-failure-fatal", &failure_fatal);
 
     int enabled = 0;
-    (void)ConfGetBool("multi-detect.enabled", &enabled);
+    (void)SCConfGetBool("multi-detect.enabled", &enabled);
     if (enabled == 1) {
         DetectLoadersInit();
         TmModuleDetectLoaderRegister();
@@ -4427,14 +4424,14 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         master->multi_tenant_enabled = 1;
 
         const char *handler = NULL;
-        if (ConfGet("multi-detect.selector", &handler) == 1) {
+        if (SCConfGet("multi-detect.selector", &handler) == 1) {
             SCLogConfig("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
 
                 int vlanbool = 0;
-                if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+                if ((SCConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
                     SCLogError("vlan tracking is disabled, "
                                "can't use multi-detect selector 'vlan'");
                     SCMutexUnlock(&master->lock);
@@ -4463,7 +4460,7 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         SCLogConfig("multi-detect is enabled (multi tenancy). Selector: %s", handler);
 
         /* traffic -- tenant mappings */
-        ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
+        SCConfNode *mappings_root_node = SCConfGetNode("multi-detect.mappings");
 
         if (tenant_selector == TENANT_SELECTOR_VLAN) {
             int mapping_cnt = DetectEngineMultiTenantSetupLoadVlanMappings(mappings_root_node,
@@ -4499,23 +4496,23 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         }
 
         /* tenants */
-        ConfNode *tenants_root_node = ConfGetNode("multi-detect.tenants");
-        ConfNode *tenant_node = NULL;
+        SCConfNode *tenants_root_node = SCConfGetNode("multi-detect.tenants");
+        SCConfNode *tenant_node = NULL;
 
         if (tenants_root_node != NULL) {
             const char *path = NULL;
-            ConfNode *path_node = ConfGetNode("multi-detect.config-path");
+            SCConfNode *path_node = SCConfGetNode("multi-detect.config-path");
             if (path_node) {
                 path = path_node->val;
                 SCLogConfig("tenants config path: %s", path);
             }
 
             TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
-                ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
+                SCConfNode *id_node = SCConfNodeLookupChild(tenant_node, "id");
                 if (id_node == NULL) {
                     goto bad_tenant;
                 }
-                ConfNode *yaml_node = ConfNodeLookupChild(tenant_node, "yaml");
+                SCConfNode *yaml_node = SCConfNodeLookupChild(tenant_node, "yaml");
                 if (yaml_node == NULL) {
                     goto bad_tenant;
                 }
@@ -4539,10 +4536,10 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                 SCLogDebug("tenant path: %s", yaml_path);
 
                 /* setup the yaml in this loop so that it's not done by the loader
-                 * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
+                 * threads. SCConfYamlLoadFileWithPrefix is not thread safe. */
                 char prefix[64];
                 snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
-                if (ConfYamlLoadFileWithPrefix(yaml_path, prefix) != 0) {
+                if (SCConfYamlLoadFileWithPrefix(yaml_path, prefix) != 0) {
                     SCLogError("failed to load yaml %s", yaml_path);
                     goto bad_tenant;
                 }
@@ -4911,12 +4908,12 @@ int DetectEngineReload(const SCInstance *suri)
     if (suri->conf_filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
         SCLogConfig("Reloading %s", suri->conf_filename);
-        if (ConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
+        if (SCConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
             SCLogError("failed to load yaml %s", suri->conf_filename);
             return -1;
         }
 
-        ConfNode *node = ConfGetNode(prefix);
+        SCConfNode *node = SCConfGetNode(prefix);
         if (node == NULL) {
             SCLogError("failed to properly setup yaml %s", suri->conf_filename);
             return -1;
@@ -4925,7 +4922,7 @@ int DetectEngineReload(const SCInstance *suri)
         if (suri->additional_configs) {
             for (int i = 0; suri->additional_configs[i] != NULL; i++) {
                 SCLogConfig("Reloading %s", suri->additional_configs[i]);
-                ConfYamlHandleInclude(node, suri->additional_configs[i]);
+                SCConfYamlHandleInclude(node, suri->additional_configs[i]);
             }
         }
 
@@ -5131,15 +5128,15 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
 
 static int DetectEngineInitYamlConf(const char *conf)
 {
-    ConfCreateContextBackup();
-    ConfInit();
-    return ConfYamlLoadString(conf, strlen(conf));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    return SCConfYamlLoadString(conf, strlen(conf));
 }
 
 static void DetectEngineDeInitYamlConf(void)
 {
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 }
 
 static int DetectEngineTest01(void)

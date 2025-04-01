@@ -92,7 +92,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
         // disables checksums validation for fuzzing
-        if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
+        if (SCConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
         // do not load rules before reproducible DetectEngineReload

@@ -522,7 +522,7 @@ static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
@@ -542,15 +542,15 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     http_ctx->eve_ctx = ojc;
 
     if (conf) {
-        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+        const char *extended = SCConfNodeLookupChildValue(conf, "extended");
 
         if (extended != NULL) {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 http_ctx->flags = LOG_HTTP_EXTENDED;
             }
         }
 
-        const char *all_headers = ConfNodeLookupChildValue(conf, "dump-all-headers");
+        const char *all_headers = SCConfNodeLookupChildValue(conf, "dump-all-headers");
         if (all_headers != NULL) {
             if (strncmp(all_headers, "both", 4) == 0) {
                 http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
@@ -561,13 +561,13 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
                 http_ctx->flags |= LOG_HTTP_RES_HEADERS;
             }
         }
-        ConfNode *custom;
-        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
+        SCConfNode *custom;
+        if ((custom = SCConfNodeLookupChild(conf, "custom")) != NULL) {
             if ((http_ctx->flags & (LOG_HTTP_REQ_HEADERS | LOG_HTTP_RES_HEADERS)) ==
                     (LOG_HTTP_REQ_HEADERS | LOG_HTTP_RES_HEADERS)) {
                 SCLogWarning("No need for custom as dump-all-headers is already present");
             }
-            ConfNode *field;
+            SCConfNode *field;
             TAILQ_FOREACH (field, &custom->head, next) {
                 HttpField f;
                 for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
@@ -581,7 +581,7 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
         }
     }
 
-    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+    if (conf != NULL && SCConfNodeLookupChild(conf, "xff") != NULL) {
         http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
         if (http_ctx->xff_cfg != NULL) {
             HttpXFFGetCfg(conf, http_ctx->xff_cfg);

@@ -1220,7 +1220,7 @@ int DetectAddressTestConfVars(void)
 
     ResolvedVariablesList var_list = TAILQ_HEAD_INITIALIZER(var_list);
 
-    ConfNode *address_vars_node = ConfGetNode("vars.address-groups");
+    SCConfNode *address_vars_node = SCConfGetNode("vars.address-groups");
     if (address_vars_node == NULL) {
         return 0;
     }
@@ -1228,7 +1228,7 @@ int DetectAddressTestConfVars(void)
     DetectAddressHead *gh = NULL;
     DetectAddressHead *ghn = NULL;
 
-    ConfNode *seq_node;
+    SCConfNode *seq_node;
     TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
         SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
 
@@ -4666,15 +4666,15 @@ static int AddressConfVarsTest01(void)
 
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
         result = 1;
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     return result;
 }
@@ -4702,15 +4702,15 @@ static int AddressConfVarsTest02(void)
 
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() < 0)
         result = 1;
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     return result;
 }
@@ -4738,15 +4738,15 @@ static int AddressConfVarsTest03(void)
 
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
         result = 1;
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     return result;
 }
@@ -4774,15 +4774,15 @@ static int AddressConfVarsTest04(void)
 
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() == 0)
         result = 1;
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     return result;
 }
@@ -4810,9 +4810,9 @@ static int AddressConfVarsTest05(void)
 
     int result = 0;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     if (DetectAddressTestConfVars() != -1 && DetectPortTestConfVars() != -1)
         goto end;
@@ -4820,10 +4820,10 @@ static int AddressConfVarsTest05(void)
     result = 1;
 
  end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+     SCConfDeInit();
+     SCConfRestoreContextBackup();
 
-    return result;
+     return result;
 }
 
 static int AddressConfVarsTest06(void)
@@ -4977,14 +4977,14 @@ static int AddressConfVarsTest06(void)
             "    EXTERNAL_NET: \"any\"\n"
             "\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     FAIL_IF(0 != DetectAddressTestConfVars());
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }

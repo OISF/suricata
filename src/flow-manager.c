@@ -1000,7 +1000,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 void FlowManagerThreadSpawn(void)
 {
     intmax_t setting = 1;
-    (void)ConfGetInt("flow.managers", &setting);
+    (void)SCConfGetInt("flow.managers", &setting);
 
     if (setting < 1 || setting > 1024) {
         FatalError("invalid flow.managers setting %" PRIdMAX, setting);
@@ -1195,7 +1195,7 @@ static bool FlowRecyclerReadyToShutdown(void)
 void FlowRecyclerThreadSpawn(void)
 {
     intmax_t setting = 1;
-    (void)ConfGetInt("flow.recyclers", &setting);
+    (void)SCConfGetInt("flow.recyclers", &setting);
 
     if (setting < 1 || setting > 1024) {
         FatalError("invalid flow.recyclers setting %" PRIdMAX, setting);

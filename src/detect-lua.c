@@ -881,7 +881,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
     int enabled = 0;
-    (void)ConfGetBool("security.lua.allow-rules", &enabled);
+    (void)SCConfGetBool("security.lua.allow-rules", &enabled);
     if (!enabled) {
         SCLogError("Lua rules disabled by security configuration: security.lua.allow-rules");
         return -1;
@@ -894,13 +894,13 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     /* Load lua sandbox configurations */
     intmax_t lua_alloc_limit = DEFAULT_LUA_ALLOC_LIMIT;
     intmax_t lua_instruction_limit = DEFAULT_LUA_INSTRUCTION_LIMIT;
-    (void)ConfGetInt("security.lua.max-bytes", &lua_alloc_limit);
-    (void)ConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
+    (void)SCConfGetInt("security.lua.max-bytes", &lua_alloc_limit);
+    (void)SCConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
     lua->alloc_limit = lua_alloc_limit;
     lua->instruction_limit = lua_instruction_limit;
 
     int allow_restricted_functions = 0;
-    (void)ConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
+    (void)SCConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
     lua->allow_restricted_functions = allow_restricted_functions;
 
     if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
@@ -1053,7 +1053,7 @@ static void DetectLuaFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \test http buffer */
 static int LuaMatchTest01(void)
 {
-    ConfSetFinal("security.lua.allow-rules", "true");
+    SCConfSetFinal("security.lua.allow-rules", "true");
 
     const char script[] =
         "function init (args)\n"

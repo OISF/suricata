@@ -28,6 +28,6 @@
 #include "output.h"
 
 void LogTcpDataLogRegister(void);
-OutputInitResult LogTcpDataLogInitCtx(ConfNode *);
+OutputInitResult LogTcpDataLogInitCtx(SCConfNode *);
 
 #endif /* SURICATA_LOG_TCPDATALOG_H */

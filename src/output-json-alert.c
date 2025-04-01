@@ -918,12 +918,12 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
+static void SetFlag(const SCConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
 {
     DEBUG_VALIDATE_BUG_ON(conf == NULL);
-    const char *setting = ConfNodeLookupChildValue(conf, name);
+    const char *setting = SCConfNodeLookupChildValue(conf, name);
     if (setting != NULL) {
-        if (ConfValIsTrue(setting)) {
+        if (SCConfValIsTrue(setting)) {
             *out_flags |= flag;
         } else {
             *out_flags &= ~flag;
@@ -931,8 +931,7 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
     }
 }
 
-static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
-        ConfNode *conf)
+static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCConfNode *conf)
 {
     static bool warn_no_meta = false;
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
@@ -940,12 +939,12 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
 
     if (conf != NULL) {
         /* Check for metadata to enable/disable. */
-        ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
+        SCConfNode *metadata = SCConfNodeLookupChild(conf, "metadata");
         if (metadata != NULL) {
-            if (metadata->val != NULL && ConfValIsFalse(metadata->val)) {
+            if (metadata->val != NULL && SCConfValIsFalse(metadata->val)) {
                 flags &= ~METADATA_DEFAULTS;
-            } else if (ConfNodeHasChildren(metadata)) {
-                ConfNode *rule_metadata = ConfNodeLookupChild(metadata, "rule");
+            } else if (SCConfNodeHasChildren(metadata)) {
+                SCConfNode *rule_metadata = SCConfNodeLookupChild(metadata, "rule");
                 if (rule_metadata) {
                     SetFlag(rule_metadata, "raw", LOG_JSON_RULE, &flags);
                     SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA,
@@ -973,13 +972,13 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
             "flow", NULL };
         for (int i = 0; deprecated_flags[i] != NULL; i++) {
-            if (ConfNodeLookupChildValue(conf, deprecated_flags[i]) != NULL) {
+            if (SCConfNodeLookupChildValue(conf, deprecated_flags[i]) != NULL) {
                 SCLogWarning("Found deprecated eve-log.alert flag \"%s\", this flag has no effect",
                         deprecated_flags[i]);
             }
         }
 
-        const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
+        const char *payload_buffer_value = SCConfNodeLookupChildValue(conf, "payload-buffer-size");
 
         if (payload_buffer_value != NULL) {
             uint32_t value;
@@ -1012,10 +1011,10 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
     json_output_ctx->flags |= flags;
 }
 
-static HttpXFFCfg *JsonAlertLogGetXffCfg(ConfNode *conf)
+static HttpXFFCfg *JsonAlertLogGetXffCfg(SCConfNode *conf)
 {
     HttpXFFCfg *xff_cfg = NULL;
-    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+    if (conf != NULL && SCConfNodeLookupChild(conf, "xff") != NULL) {
         xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
         if (likely(xff_cfg != NULL)) {
             HttpXFFGetCfg(conf, xff_cfg);
@@ -1029,7 +1028,7 @@ static HttpXFFCfg *JsonAlertLogGetXffCfg(ConfNode *conf)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonAlertLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;

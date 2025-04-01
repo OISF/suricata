@@ -2178,17 +2178,17 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 }
 
-static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HTPConfigTree *tree)
+static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct HTPConfigTree *tree)
 {
     if (cfg_prec == NULL || s == NULL || tree == NULL)
         return;
 
-    ConfNode *p = NULL;
+    SCConfNode *p = NULL;
 
     /* Default Parameters */
     TAILQ_FOREACH (p, &s->head, next) {
         if (strcasecmp("address", p->name) == 0) {
-            ConfNode *pval;
+            SCConfNode *pval;
             /* Addresses */
             TAILQ_FOREACH(pval, &p->head, next) {
                 SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name, pval->val);
@@ -2274,13 +2274,13 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             }
 
         } else if (strcasecmp("double-decode-query", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
+            if (SCConfValIsTrue(p->val)) {
                 htp_config_register_request_line(cfg_prec->cfg,
                                                  HTPCallbackDoubleDecodeQuery);
             }
 
         } else if (strcasecmp("double-decode-path", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
+            if (SCConfValIsTrue(p->val)) {
                 htp_config_register_request_line(cfg_prec->cfg,
                                                  HTPCallbackDoubleDecodePath);
             }
@@ -2317,9 +2317,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                     value);
 #endif
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
-            htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
-                                                     HTP_DECODER_URL_PATH,
-                                                     ConfValIsTrue(p->val));
+            htp_config_set_backslash_convert_slashes(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-bestfit-replacement-char", p->name) == 0) {
             if (strlen(p->val) == 1) {
                 htp_config_set_bestfit_replacement_byte(cfg_prec->cfg,
@@ -2330,29 +2329,23 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                            "for libhtp param path-bestfit-replacement-char");
             }
         } else if (strcasecmp("path-convert-lowercase", p->name) == 0) {
-            htp_config_set_convert_lowercase(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
-                                             ConfValIsTrue(p->val));
+            htp_config_set_convert_lowercase(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-encoded-terminates", p->name) == 0) {
-            htp_config_set_nul_encoded_terminates(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
-                                                  ConfValIsTrue(p->val));
+            htp_config_set_nul_encoded_terminates(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-raw-terminates", p->name) == 0) {
-            htp_config_set_nul_raw_terminates(cfg_prec->cfg,
-                                              HTP_DECODER_URL_PATH,
-                                              ConfValIsTrue(p->val));
+            htp_config_set_nul_raw_terminates(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-compress", p->name) == 0) {
-            htp_config_set_path_separators_compress(cfg_prec->cfg,
-                                                    HTP_DECODER_URL_PATH,
-                                                    ConfValIsTrue(p->val));
+            htp_config_set_path_separators_compress(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-decode", p->name) == 0) {
-            htp_config_set_path_separators_decode(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
-                                                  ConfValIsTrue(p->val));
+            htp_config_set_path_separators_decode(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-u-encoding-decode", p->name) == 0) {
-            htp_config_set_u_encoding_decode(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
-                                             ConfValIsTrue(p->val));
+            htp_config_set_u_encoding_decode(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("path-url-encoding-invalid-handling", p->name) == 0) {
             enum htp_url_encoding_handling_t handling;
             if (strcasecmp(p->val, "preserve_percent") == 0) {
@@ -2370,17 +2363,15 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                                                          HTP_DECODER_URL_PATH,
                                                          handling);
         } else if (strcasecmp("path-utf8-convert-bestfit", p->name) == 0) {
-            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
-                                                HTP_DECODER_URL_PATH,
-                                                ConfValIsTrue(p->val));
+            htp_config_set_utf8_convert_bestfit(
+                    cfg_prec->cfg, HTP_DECODER_URL_PATH, SCConfValIsTrue(p->val));
         } else if (strcasecmp("uri-include-all", p->name) == 0) {
-            cfg_prec->uri_include_all = (1 == ConfValIsTrue(p->val));
+            cfg_prec->uri_include_all = (1 == SCConfValIsTrue(p->val));
             SCLogDebug("uri-include-all %s",
                     cfg_prec->uri_include_all ? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
-            htp_config_set_plusspace_decode(cfg_prec->cfg,
-                                                HTP_DECODER_URLENCODED,
-                                                ConfValIsTrue(p->val));
+            htp_config_set_plusspace_decode(
+                    cfg_prec->cfg, HTP_DECODER_URLENCODED, SCConfValIsTrue(p->val));
         } else if (strcasecmp("meta-field-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2415,9 +2406,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
 #endif
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
         } else if (strcasecmp("lzma-enabled", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
+            if (SCConfValIsTrue(p->val)) {
                 htp_config_set_lzma_layers(cfg_prec->cfg, 1);
-            } else if (!ConfValIsFalse(p->val)) {
+            } else if (!SCConfValIsFalse(p->val)) {
                 int8_t limit;
                 if (StringParseInt8(&limit, 10, 0, (const char *)p->val) < 0) {
                     FatalError("failed to parse 'lzma-enabled' "
@@ -2481,7 +2472,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
-                cfg_prec->randomize = ConfValIsTrue(p->val);
+                cfg_prec->randomize = SCConfValIsTrue(p->val);
             }
         } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
             uint32_t range;
@@ -2496,9 +2487,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             }
             cfg_prec->randomize_range = range;
         } else if (strcasecmp("http-body-inline", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
+            if (SCConfValIsTrue(p->val)) {
                 cfg_prec->http_body_inline = 1;
-            } else if (ConfValIsFalse(p->val)) {
+            } else if (SCConfValIsFalse(p->val)) {
                 cfg_prec->http_body_inline = 0;
             } else {
                 if (strcmp("auto", p->val) != 0) {
@@ -2511,13 +2502,13 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                 }
             }
         } else if (strcasecmp("swf-decompression", p->name) == 0) {
-            ConfNode *pval;
+            SCConfNode *pval;
 
             TAILQ_FOREACH(pval, &p->head, next) {
                 if (strcasecmp("enabled", pval->name) == 0) {
-                    if (ConfValIsTrue(pval->val)) {
+                    if (SCConfValIsTrue(pval->val)) {
                         cfg_prec->swf_decompression_enabled = 1;
-                    } else if (ConfValIsFalse(pval->val)) {
+                    } else if (SCConfValIsFalse(pval->val)) {
                         cfg_prec->swf_decompression_enabled = 0;
                     } else {
                         WarnInvalidConfEntry("swf-decompression.enabled", "%s", "no");
@@ -2581,20 +2572,20 @@ void HTPConfigure(void)
     }
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
     HTPConfigSetDefaultsPhase1(&cfglist);
-    if (ConfGetNode("app-layer.protocols.http.libhtp") == NULL) {
-        HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"), &cfgtree);
+    if (SCConfGetNode("app-layer.protocols.http.libhtp") == NULL) {
+        HTPConfigParseParameters(&cfglist, SCConfGetNode("libhtp.default-config"), &cfgtree);
     } else {
-        HTPConfigParseParameters(
-                &cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), &cfgtree);
+        HTPConfigParseParameters(&cfglist,
+                SCConfGetNode("app-layer.protocols.http.libhtp.default-config"), &cfgtree);
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
 
     HTPParseMemcap();
 
     /* Read server config and create a parser for each IP in radix tree */
-    ConfNode *server_config = ConfGetNode("app-layer.protocols.http.libhtp.server-config");
+    SCConfNode *server_config = SCConfGetNode("app-layer.protocols.http.libhtp.server-config");
     if (server_config == NULL) {
-        server_config = ConfGetNode("libhtp.server-config");
+        server_config = SCConfGetNode("libhtp.server-config");
         if (server_config == NULL) {
             SCLogDebug("LIBHTP Configuring %p", server_config);
             SCReturn;
@@ -2602,11 +2593,11 @@ void HTPConfigure(void)
     }
     SCLogDebug("LIBHTP Configuring %p", server_config);
 
-    ConfNode *si;
+    SCConfNode *si;
     /* Server Nodes */
     TAILQ_FOREACH(si, &server_config->head, next) {
         /* Need the named node, not the index */
-        ConfNode *s = TAILQ_FIRST(&si->head);
+        SCConfNode *s = TAILQ_FIRST(&si->head);
         if (NULL == s) {
             SCLogDebug("LIBHTP s NULL");
             continue;
@@ -3473,11 +3464,11 @@ libhtp:\n\
     personality: IDS\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     HtpState *htp_state = NULL;
@@ -3510,8 +3501,8 @@ libhtp:\n\
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     UTHFreeFlow(f);
     PASS;
@@ -3536,11 +3527,11 @@ libhtp:\n\
     personality: Apache_2_2\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     HtpState *htp_state = NULL;
@@ -3575,8 +3566,8 @@ libhtp:\n\
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     UTHFreeFlow(f);
     PASS;
@@ -3845,19 +3836,19 @@ libhtp:\n\
         personality: IIS_7_0\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
 
-    ConfNode *outputs;
-    outputs = ConfGetNode("libhtp.default-config.personality");
+    SCConfNode *outputs;
+    outputs = SCConfGetNode("libhtp.default-config.personality");
     FAIL_IF_NULL(outputs);
 
-    outputs = ConfGetNode("libhtp.server-config");
+    outputs = SCConfGetNode("libhtp.server-config");
     FAIL_IF_NULL(outputs);
 
-    ConfNode *node = TAILQ_FIRST(&outputs->head);
+    SCConfNode *node = TAILQ_FIRST(&outputs->head);
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "0") != 0);
     node = TAILQ_FIRST(&node->head);
@@ -3865,13 +3856,13 @@ libhtp:\n\
     FAIL_IF(strcmp(node->name, "apache-tomcat") != 0);
 
     int i = 0;
-    ConfNode *n;
+    SCConfNode *n;
 
-    ConfNode *node2 = ConfNodeLookupChild(node, "personality");
+    SCConfNode *node2 = SCConfNodeLookupChild(node, "personality");
     FAIL_IF_NULL(node2);
     FAIL_IF(strcmp(node2->val, "Tomcat_6_0") != 0);
 
-    node = ConfNodeLookupChild(node, "address");
+    node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
 
     TAILQ_FOREACH (n, &node->head, next) {
@@ -3895,7 +3886,7 @@ libhtp:\n\
         i++;
     }
 
-    outputs = ConfGetNode("libhtp.server-config");
+    outputs = SCConfGetNode("libhtp.server-config");
     FAIL_IF_NULL(outputs);
     node = TAILQ_FIRST(&outputs->head);
     node = TAILQ_NEXT(node, next);
@@ -3905,11 +3896,11 @@ libhtp:\n\
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "iis7") != 0);
 
-    node2 = ConfNodeLookupChild(node, "personality");
+    node2 = SCConfNodeLookupChild(node, "personality");
     FAIL_IF_NULL(node2);
     FAIL_IF(strcmp(node2->val, "IIS_7_0") != 0);
 
-    node = ConfNodeLookupChild(node, "address");
+    node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
 
     i = 0;
@@ -3931,8 +3922,8 @@ libhtp:\n\
         i++;
     }
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -3961,10 +3952,10 @@ libhtp:\n\
         personality: IIS_7_0\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     FAIL_IF_NULL(cfglist.cfg);
     FAIL_IF_NULL(cfgtree.ipv4.head);
@@ -3995,8 +3986,8 @@ libhtp:\n\
     SCLogDebug("LIBHTP using config: %p", htp);
 
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     PASS;
@@ -4034,11 +4025,11 @@ libhtp:\n\
         personality: IIS_7_0\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
 
     HTPConfigure();
 
@@ -4093,8 +4084,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4128,10 +4119,10 @@ libhtp:\n\
     personality: Apache_2\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4197,8 +4188,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4225,10 +4216,10 @@ libhtp:\n\
     personality: Apache_2\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4288,8 +4279,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4326,10 +4317,10 @@ libhtp:\n\
     double-decode-query: no\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4396,8 +4387,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4432,10 +4423,10 @@ libhtp:\n\
     double-decode-query: yes\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4491,8 +4482,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4523,10 +4514,10 @@ libhtp:\n\
     double-decode-query: yes\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4569,8 +4560,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4601,10 +4592,10 @@ libhtp:\n\
     double-decode-query: yes\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4647,8 +4638,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4679,10 +4670,10 @@ libhtp:\n\
     double-decode-query: yes\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4725,8 +4716,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4758,10 +4749,10 @@ libhtp:\n\
     query-plusspace-decode: yes\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4804,8 +4795,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4834,10 +4825,10 @@ libhtp:\n\
     personality: IDS\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4880,8 +4871,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -4911,10 +4902,10 @@ libhtp:\n\
     uri-include-all: true\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
     const char *addr = "4.3.2.1";
     memset(&ssn, 0, sizeof(ssn));
@@ -4957,8 +4948,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(true);
@@ -5033,10 +5024,10 @@ libhtp:\n\
     response-body-limit: 0\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     TcpSession ssn;
@@ -5069,8 +5060,8 @@ libhtp:\n\
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     StreamTcpFreeConfig(true);
     UTHFreeFlow(f);
@@ -5099,10 +5090,10 @@ libhtp:\n\
 
     memset(&ssn, 0, sizeof(ssn));
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     char *httpbuf = SCMalloc(len);
@@ -5166,8 +5157,8 @@ libhtp:\n\
     UTHFreeFlow(f);
     SCFree(httpbuf);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     PASS;
 }
@@ -5198,10 +5189,10 @@ libhtp:\n\
 
     memset(&ssn, 0, sizeof(ssn));
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     httpbuf = SCMalloc(len);
@@ -5265,8 +5256,8 @@ libhtp:\n\
     UTHFreeFlow(f);
     SCFree(httpbuf);
     HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     PASS;
 }
@@ -5732,10 +5723,10 @@ libhtp:\n\
     request-body-limit: 1\n\
     response-body-limit: 1\n\
 ";
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
     Packet *p1 = NULL;
@@ -5850,8 +5841,8 @@ libhtp:\n\
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     PASS;
 }

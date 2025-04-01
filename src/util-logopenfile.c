@@ -417,7 +417,7 @@ static FILE *SCLogOpenFileFp(
         return NULL;
     }
 
-    if (ConfValIsTrue(append_setting)) {
+    if (SCConfValIsTrue(append_setting)) {
         ret = fopen(filename, "a");
     } else {
         ret = fopen(filename, "w");
@@ -463,11 +463,8 @@ error_exit:
  *  \retval 0 on success
  *  \retval -1 on error
  */
-int
-SCConfLogOpenGeneric(ConfNode *conf,
-                     LogFileCtx *log_ctx,
-                     const char *default_filename,
-                     int rotate)
+int SCConfLogOpenGeneric(
+        SCConfNode *conf, LogFileCtx *log_ctx, const char *default_filename, int rotate)
 {
     char log_path[PATH_MAX];
     const char *log_dir;
@@ -487,11 +484,11 @@ SCConfLogOpenGeneric(ConfNode *conf,
     }
 
     // Resolve the given config
-    filename = ConfNodeLookupChildValue(conf, "filename");
+    filename = SCConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
         filename = default_filename;
 
-    log_dir = ConfigGetLogDirectory();
+    log_dir = SCConfigGetLogDirectory();
 
     if (PathIsAbsolute(filename)) {
         snprintf(log_path, PATH_MAX, "%s", filename);
@@ -500,7 +497,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     }
 
     /* Rotate log file based on time */
-    const char *rotate_int = ConfNodeLookupChildValue(conf, "rotate-interval");
+    const char *rotate_int = SCConfNodeLookupChildValue(conf, "rotate-interval");
     if (rotate_int != NULL) {
         time_t now = time(NULL);
         log_ctx->flags |= LOGFILE_ROTATE_INTERVAL;
@@ -527,7 +524,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
         }
     }
 
-    filetype = ConfNodeLookupChildValue(conf, "filetype");
+    filetype = SCConfNodeLookupChildValue(conf, "filetype");
     if (filetype == NULL)
         filetype = DEFAULT_LOG_FILETYPE;
 
@@ -536,7 +533,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
      * The default value is 0 (no buffering)
      */
     uint32_t buffer_size = LOGFILE_EVE_BUFFER_SIZE;
-    const char *buffer_size_value = ConfNodeLookupChildValue(conf, "buffer-size");
+    const char *buffer_size_value = SCConfNodeLookupChildValue(conf, "buffer-size");
     if (buffer_size_value != NULL) {
         uint32_t value;
         if (ParseSizeStringU32(buffer_size_value, &value) < 0) {
@@ -548,13 +545,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
     }
 
     SCLogDebug("buffering: %s -> %d", buffer_size_value, buffer_size);
-    const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
+    const char *filemode = SCConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
     if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
         log_ctx->filemode = mode;
     }
 
-    const char *append = ConfNodeLookupChildValue(conf, "append");
+    const char *append = SCConfNodeLookupChildValue(conf, "append");
     if (append == NULL)
         append = DEFAULT_LOG_MODE_APPEND;
 
@@ -562,26 +559,23 @@ SCConfLogOpenGeneric(ConfNode *conf,
     log_ctx->json_flags = JSON_PRESERVE_ORDER|JSON_COMPACT|
                           JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH;
 
-    ConfNode *json_flags = ConfNodeLookupChild(conf, "json");
+    SCConfNode *json_flags = SCConfNodeLookupChild(conf, "json");
 
     if (json_flags != 0) {
-        const char *preserve_order = ConfNodeLookupChildValue(json_flags,
-                                                              "preserve-order");
-        if (preserve_order != NULL && ConfValIsFalse(preserve_order))
+        const char *preserve_order = SCConfNodeLookupChildValue(json_flags, "preserve-order");
+        if (preserve_order != NULL && SCConfValIsFalse(preserve_order))
             log_ctx->json_flags &= ~(JSON_PRESERVE_ORDER);
 
-        const char *compact = ConfNodeLookupChildValue(json_flags, "compact");
-        if (compact != NULL && ConfValIsFalse(compact))
+        const char *compact = SCConfNodeLookupChildValue(json_flags, "compact");
+        if (compact != NULL && SCConfValIsFalse(compact))
             log_ctx->json_flags &= ~(JSON_COMPACT);
 
-        const char *ensure_ascii = ConfNodeLookupChildValue(json_flags,
-                                                            "ensure-ascii");
-        if (ensure_ascii != NULL && ConfValIsFalse(ensure_ascii))
+        const char *ensure_ascii = SCConfNodeLookupChildValue(json_flags, "ensure-ascii");
+        if (ensure_ascii != NULL && SCConfValIsFalse(ensure_ascii))
             log_ctx->json_flags &= ~(JSON_ENSURE_ASCII);
 
-        const char *escape_slash = ConfNodeLookupChildValue(json_flags,
-                                                            "escape-slash");
-        if (escape_slash != NULL && ConfValIsFalse(escape_slash))
+        const char *escape_slash = SCConfNodeLookupChildValue(json_flags, "escape-slash");
+        if (escape_slash != NULL && SCConfValIsFalse(escape_slash))
             log_ctx->json_flags &= ~(JSON_ESCAPE_SLASH);
     }
 

@@ -64,7 +64,7 @@ typedef struct Context_ {
  * configuration for the eve instance, not just a node named after the plugin.
  * This allows the plugin to get more context about what it is logging.
  */
-static int FiletypeInit(const ConfNode *conf, const bool threaded, void **data)
+static int FiletypeInit(const SCConfNode *conf, const bool threaded, void **data)
 {
     SCLogNotice("Initializing template eve output plugin: threaded=%d", threaded);
     Context *context = SCCalloc(1, sizeof(Context));
@@ -77,8 +77,8 @@ static int FiletypeInit(const ConfNode *conf, const bool threaded, void **data)
 
     /* An example of how you can access configuration data from a
      * plugin. */
-    if (conf && (conf = ConfNodeLookupChild(conf, "eve-template")) != NULL) {
-        if (!ConfGetChildValueBool(conf, "verbose", &verbose)) {
+    if (conf && (conf = SCConfNodeLookupChild(conf, "eve-template")) != NULL) {
+        if (!SCConfGetChildValueBool(conf, "verbose", &verbose)) {
             verbose = 1;
         } else {
             SCLogNotice("Read verbose configuration value of %d", verbose);

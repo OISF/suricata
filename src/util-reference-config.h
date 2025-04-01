@@ -53,7 +53,7 @@ FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void);
 FILE *SCRConfGenerateInvalidDummyReferenceConfigFD02(void);
 FILE *SCRConfGenerateInvalidDummyReferenceConfigFD03(void);
 
-void SCReferenceConfInit(DetectEngineCtx *de_ctx);
+void SCReferenceSCConfInit(DetectEngineCtx *de_ctx);
 void SCReferenceConfDeinit(DetectEngineCtx *de_ctx);
 
 #endif /* SURICATA_UTIL_REFERENCE_CONFIG_H */

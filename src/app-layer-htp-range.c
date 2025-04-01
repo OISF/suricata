@@ -174,7 +174,7 @@ void HttpRangeContainersInit(void)
     const char *str = NULL;
     uint64_t memcap = HTTP_RANGE_DEFAULT_MEMCAP;
     uint32_t timeout = HTTP_RANGE_DEFAULT_TIMEOUT;
-    if (ConfGet("app-layer.protocols.http.byterange.memcap", &str) == 1) {
+    if (SCConfGet("app-layer.protocols.http.byterange.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogWarning("memcap value cannot be deduced: %s,"
                          " resetting to default",
@@ -182,7 +182,7 @@ void HttpRangeContainersInit(void)
             memcap = 0;
         }
     }
-    if (ConfGet("app-layer.protocols.http.byterange.timeout", &str) == 1) {
+    if (SCConfGet("app-layer.protocols.http.byterange.timeout", &str) == 1) {
         size_t slen = strlen(str);
         if (slen > UINT16_MAX || StringParseUint32(&timeout, 10, (uint16_t)slen, str) <= 0) {
             SCLogWarning("timeout value cannot be deduced: %s,"

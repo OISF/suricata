@@ -107,7 +107,7 @@ static void OutputIKELogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputIKELogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -125,9 +125,9 @@ static OutputInitResult OutputIKELogInitSub(ConfNode *conf, OutputCtx *parent_ct
     }
 
     ikelog_ctx->flags = LOG_IKE_DEFAULT;
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    const char *extended = SCConfNodeLookupChildValue(conf, "extended");
     if (extended) {
-        if (ConfValIsTrue(extended)) {
+        if (SCConfValIsTrue(extended)) {
             ikelog_ctx->flags = LOG_IKE_EXTENDED;
         }
     }

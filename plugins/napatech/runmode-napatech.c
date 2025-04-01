@@ -96,16 +96,16 @@ static int NapatechRegisterDeviceStreams(void)
     /* Display the configuration mode */
     int use_all_streams;
 
-    if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0) {
+    if (SCConfGetBool("napatech.use-all-streams", &use_all_streams) == 0) {
         SCLogInfo("Could not find napatech.use-all-streams in config file.  Defaulting to \"no\".");
         use_all_streams = 0;
     }
 
-    if (ConfGetBool("napatech.auto-config", &auto_config) == 0) {
+    if (SCConfGetBool("napatech.auto-config", &auto_config) == 0) {
         SCLogInfo("napatech.auto-config not found in config file.  Defaulting to disabled.");
     }
 
-    if (ConfGetBool("napatech.hardware-bypass", &use_hw_bypass) == 0) {
+    if (SCConfGetBool("napatech.hardware-bypass", &use_hw_bypass) == 0) {
         SCLogInfo("napatech.hardware-bypass not found in config file.  Defaulting to disabled.");
     }
 

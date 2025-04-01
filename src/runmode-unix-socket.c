@@ -469,7 +469,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     unix_manager_pcap_task_running = 1;
     this->running = 1;
 
-    if (ConfSetFinal("pcap-file.file", cfile->filename) != 1) {
+    if (SCConfSetFinal("pcap-file.file", cfile->filename) != 1) {
         SCLogError("Can not set working file to '%s'", cfile->filename);
         PcapFilesFree(cfile);
         return TM_ECODE_FAILED;
@@ -477,9 +477,9 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     int set_res = 0;
     if (cfile->continuous) {
-        set_res = ConfSetFinal("pcap-file.continuous", "true");
+        set_res = SCConfSetFinal("pcap-file.continuous", "true");
     } else {
-        set_res = ConfSetFinal("pcap-file.continuous", "false");
+        set_res = SCConfSetFinal("pcap-file.continuous", "false");
     }
     if (set_res != 1) {
         SCLogError("Can not set continuous mode for pcap processing");
@@ -487,9 +487,9 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         return TM_ECODE_FAILED;
     }
     if (cfile->should_delete) {
-        set_res = ConfSetFinal("pcap-file.delete-when-done", "true");
+        set_res = SCConfSetFinal("pcap-file.delete-when-done", "true");
     } else {
-        set_res = ConfSetFinal("pcap-file.delete-when-done", "false");
+        set_res = SCConfSetFinal("pcap-file.delete-when-done", "false");
     }
     if (set_res != 1) {
         SCLogError("Can not set delete mode for pcap processing");
@@ -500,7 +500,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if (cfile->delay > 0) {
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->delay);
-        if (ConfSetFinal("pcap-file.delay", tstr) != 1) {
+        if (SCConfSetFinal("pcap-file.delay", tstr) != 1) {
             SCLogError("Can not set delay to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
@@ -510,7 +510,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if (cfile->poll_interval > 0) {
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->poll_interval);
-        if (ConfSetFinal("pcap-file.poll-interval", tstr) != 1) {
+        if (SCConfSetFinal("pcap-file.poll-interval", tstr) != 1) {
             SCLogError("Can not set poll-interval to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
@@ -520,7 +520,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if (cfile->tenant_id > 0) {
         char tstr[16];
         snprintf(tstr, sizeof(tstr), "%u", cfile->tenant_id);
-        if (ConfSetFinal("pcap-file.tenant-id", tstr) != 1) {
+        if (SCConfSetFinal("pcap-file.tenant-id", tstr) != 1) {
             SCLogError("Can not set working tenant-id to '%s'", tstr);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
@@ -530,7 +530,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     }
 
     if (cfile->output_dir) {
-        if (ConfSetFinal("default-log-dir", cfile->output_dir) != 1) {
+        if (SCConfSetFinal("default-log-dir", cfile->output_dir) != 1) {
             SCLogError("Can not set output dir to '%s'", cfile->output_dir);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
@@ -1035,10 +1035,10 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     SCLogDebug("add-tenant: %d %s", tenant_id, filename);
 
     /* setup the yaml in this loop so that it's not done by the loader
-     * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
+     * threads. SCConfYamlLoadFileWithPrefix is not thread safe. */
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
-    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+    if (SCConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
         SCLogError("failed to load yaml %s", filename);
         json_object_set_new(answer, "message", json_string("failed to load yaml"));
         return TM_ECODE_FAILED;

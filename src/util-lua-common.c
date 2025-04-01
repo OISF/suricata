@@ -289,7 +289,7 @@ static int LuaCallbackRuleClass(lua_State *luastate)
 
 static int LuaCallbackLogPath(lua_State *luastate)
 {
-    const char *ld = ConfigGetLogDirectory();
+    const char *ld = SCConfigGetLogDirectory();
     if (ld == NULL)
         return LuaCallbackError(luastate, "internal error: no log dir");
 

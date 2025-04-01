@@ -480,11 +480,11 @@ static void *NapatechStatsLoop(void *arg)
     int enable_stream_stats = 0;
     PacketCounters stream_counters[MAX_STREAMS];
 
-    if (ConfGetBool("napatech.inline", &is_inline) == 0) {
+    if (SCConfGetBool("napatech.inline", &is_inline) == 0) {
         is_inline = 0;
     }
 
-    if (ConfGetBool("napatech.enable-stream-stats", &enable_stream_stats) == 0) {
+    if (SCConfGetBool("napatech.enable-stream-stats", &enable_stream_stats) == 0) {
         /* default is "no" */
         enable_stream_stats = 0;
     }
@@ -710,8 +710,8 @@ static uint32_t CountWorkerThreads(void)
 {
     int worker_count = 0;
 
-    ConfNode *affinity;
-    ConfNode *root = ConfGetNode("threading.cpu-affinity");
+    SCConfNode *affinity;
+    SCConfNode *root = SCConfGetNode("threading.cpu-affinity");
 
     if (root != NULL) {
 
@@ -724,8 +724,8 @@ static uint32_t CountWorkerThreads(void)
             }
 
             if (strcmp(affinity->val, "worker-cpu-set") == 0) {
-                ConfNode *node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
-                ConfNode *lnode;
+                SCConfNode *node = SCConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+                SCConfNode *lnode;
 
                 enum CONFIG_SPECIFIER cpu_spec = CONFIG_SPECIFIER_UNDEFINED;
 
@@ -800,7 +800,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
     uint16_t instance_cnt = 0;
     int use_all_streams = 0;
     int set_cpu_affinity = 0;
-    ConfNode *ntstreams;
+    SCConfNode *ntstreams;
     uint16_t stream_id = 0;
     uint8_t start = 0;
     uint8_t end = 0;
@@ -811,7 +811,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
         stream_config[i].initialized = false;
     }
 
-    if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0) {
+    if (SCConfGetBool("napatech.use-all-streams", &use_all_streams) == 0) {
         /* default is "no" */
         use_all_streams = 0;
     }
@@ -866,14 +866,14 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
         }
 
     } else {
-        (void)ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity);
+        (void)SCConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity);
         if (NapatechIsAutoConfigEnabled() && (set_cpu_affinity == 1)) {
             start = 0;
             end = CountWorkerThreads() - 1;
         } else {
             /* When not using the default streams we need to
              * parse the array of streams from the conf */
-            if ((ntstreams = ConfGetNode("napatech.streams")) == NULL) {
+            if ((ntstreams = SCConfGetNode("napatech.streams")) == NULL) {
                 SCLogError("Failed retrieving napatech.streams from Config");
                 if (NapatechIsAutoConfigEnabled() && (set_cpu_affinity == 0)) {
                     SCLogError("if set-cpu-affinity: no in conf then napatech.streams must be "
@@ -883,7 +883,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
             }
 
             /* Loop through all stream numbers in the array and register the devices */
-            ConfNode *stream;
+            SCConfNode *stream;
             enum CONFIG_SPECIFIER stream_spec = CONFIG_SPECIFIER_UNDEFINED;
             instance_cnt = 0;
 
@@ -1246,7 +1246,7 @@ static uint32_t NapatechSetHashmode(void)
     uint32_t filter_id = 0;
 
     /* Get the hashmode from the conf file. */
-    ConfGet("napatech.hashmode", &hash_mode);
+    SCConfGet("napatech.hashmode", &hash_mode);
 
     snprintf(ntpl_cmd, 64, "hashmode = %s", hash_mode);
 
@@ -1358,7 +1358,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
 
     ports_spec.all = false;
 
-    ConfNode *ntports;
+    SCConfNode *ntports;
     int iteration = 0;
     int status = 0;
     NtConfigStream_t hconfig;
@@ -1371,7 +1371,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     char span_ports[128];
     memset(span_ports, 0, sizeof(span_ports));
 
-    if (ConfGetBool("napatech.inline", &is_inline) == 0) {
+    if (SCConfGetBool("napatech.inline", &is_inline) == 0) {
         is_inline = 0;
     }
 
@@ -1414,12 +1414,12 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     /* When not using the default streams we need to parse
      * the array of streams from the conf
      */
-    if ((ntports = ConfGetNode("napatech.ports")) == NULL) {
+    if ((ntports = SCConfGetNode("napatech.ports")) == NULL) {
         FatalError("Failed retrieving napatech.ports from Conf");
     }
 
     /* Loop through all ports in the array */
-    ConfNode *port;
+    SCConfNode *port;
     enum CONFIG_SPECIFIER stream_spec = CONFIG_SPECIFIER_UNDEFINED;
 
     if (NapatechUseHWBypass()) {

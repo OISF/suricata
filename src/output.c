@@ -1142,7 +1142,7 @@ void OutputRegisterLoggers(void)
     /* app layer frames */
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
-    if (ConfGetNode("app-layer.protocols.bittorrent-dht") != NULL) {
+    if (SCConfGetNode("app-layer.protocols.bittorrent-dht") != NULL) {
         /* Register as an eve sub-module. */
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonBitTorrentDHTLog",
                 "eve-log.bittorrent-dht", OutputJsonLogInitSub, ALPROTO_BITTORRENT_DHT,

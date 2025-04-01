@@ -532,7 +532,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
+OutputInitResult LogHttpLogInitCtx(SCConfNode *conf)
 {
     SCLogWarning("The http-log output has been deprecated and will be removed in Suricata 9.0.");
     OutputInitResult result = { NULL, false };
@@ -555,12 +555,12 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
 
     httplog_ctx->file_ctx = file_ctx;
 
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
-    const char *custom = ConfNodeLookupChildValue(conf, "custom");
-    const char *customformat = ConfNodeLookupChildValue(conf, "customformat");
+    const char *extended = SCConfNodeLookupChildValue(conf, "extended");
+    const char *custom = SCConfNodeLookupChildValue(conf, "custom");
+    const char *customformat = SCConfNodeLookupChildValue(conf, "customformat");
 
     /* If custom logging format is selected, lets parse it */
-    if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
+    if (custom != NULL && customformat != NULL && SCConfValIsTrue(custom)) {
 
         httplog_ctx->cf = LogCustomFormatAlloc();
         if (!httplog_ctx->cf) {
@@ -577,7 +577,7 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
         if (extended == NULL) {
             httplog_ctx->flags |= LOG_HTTP_DEFAULT;
         } else {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 httplog_ctx->flags |= LOG_HTTP_EXTENDED;
             }
         }

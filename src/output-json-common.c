@@ -79,7 +79,7 @@ int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p)
     return 0;
 }
 
-OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+OutputInitResult OutputJsonLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
 

@@ -90,13 +90,13 @@ void RegisterSSHParsers(void)
         /* Check if we should generate Hassh fingerprints */
         int enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
         const char *strval = NULL;
-        if (ConfGet("app-layer.protocols.ssh.hassh", &strval) != 1) {
+        if (SCConfGet("app-layer.protocols.ssh.hassh", &strval) != 1) {
             enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
         } else if (strcmp(strval, "auto") == 0) {
             enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        } else if (ConfValIsFalse(strval)) {
+        } else if (SCConfValIsFalse(strval)) {
             enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        } else if (ConfValIsTrue(strval)) {
+        } else if (SCConfValIsTrue(strval)) {
             enable_hassh = true;
         }
 

@@ -167,19 +167,19 @@ void FileForceTrackingEnable(void)
 /**
  * \brief Function to parse forced file hashing configuration.
  */
-void FileForceHashParseCfg(ConfNode *conf)
+void FileForceHashParseCfg(SCConfNode *conf)
 {
     BUG_ON(conf == NULL);
 
-    ConfNode *forcehash_node = NULL;
+    SCConfNode *forcehash_node = NULL;
 
     /* legacy option */
-    const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
+    const char *force_md5 = SCConfNodeLookupChildValue(conf, "force-md5");
     if (force_md5 != NULL) {
         SCLogWarning("deprecated 'force-md5' option "
                      "found. Please use 'force-hash: [md5]' instead");
 
-        if (ConfValIsTrue(force_md5)) {
+        if (SCConfValIsTrue(force_md5)) {
             if (g_disable_hashing) {
                 SCLogInfo(
                         "not forcing md5 calculation for logged files: hashing globally disabled");
@@ -191,10 +191,10 @@ void FileForceHashParseCfg(ConfNode *conf)
     }
 
     if (conf != NULL)
-        forcehash_node = ConfNodeLookupChild(conf, "force-hash");
+        forcehash_node = SCConfNodeLookupChild(conf, "force-hash");
 
     if (forcehash_node != NULL) {
-        ConfNode *field = NULL;
+        SCConfNode *field = NULL;
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
             if (strcasecmp("md5", field->val) == 0) {

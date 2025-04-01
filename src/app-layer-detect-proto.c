@@ -1574,8 +1574,8 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 
     char param[100];
     int r;
-    ConfNode *node;
-    ConfNode *port_node = NULL;
+    SCConfNode *node;
+    SCConfNode *port_node = NULL;
     int config = 0;
 
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
@@ -1585,7 +1585,7 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     } else if (r > (int)sizeof(param)) {
         FatalError("buffer not big enough to write param.");
     }
-    node = ConfGetNode(param);
+    node = SCConfGetNode(param);
     if (node == NULL) {
         SCLogDebug("Entry for %s not found.", param);
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
@@ -1595,15 +1595,15 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         } else if (r > (int)sizeof(param)) {
             FatalError("buffer not big enough to write param.");
         }
-        node = ConfGetNode(param);
+        node = SCConfGetNode(param);
         if (node == NULL)
             goto end;
     }
 
     /* detect by destination port of the flow (e.g. port 53 for DNS) */
-    port_node = ConfNodeLookupChild(node, "dp");
+    port_node = SCConfNodeLookupChild(node, "dp");
     if (port_node == NULL)
-        port_node = ConfNodeLookupChild(node, "toserver");
+        port_node = SCConfNodeLookupChild(node, "toserver");
 
     if (port_node != NULL && port_node->val != NULL) {
         AppLayerProtoDetectPPRegister(ipproto,
@@ -1615,9 +1615,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     }
 
     /* detect by source port of flow */
-    port_node = ConfNodeLookupChild(node, "sp");
+    port_node = SCConfNodeLookupChild(node, "sp");
     if (port_node == NULL)
-        port_node = ConfNodeLookupChild(node, "toclient");
+        port_node = SCConfNodeLookupChild(node, "toclient");
 
     if (port_node != NULL && port_node->val != NULL) {
         AppLayerProtoDetectPPRegister(ipproto,
@@ -1885,7 +1885,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
 
     int enabled = 1;
     char param[100];
-    ConfNode *node;
+    SCConfNode *node;
     int r;
 
     if (RunmodeIsUnittests())
@@ -1904,7 +1904,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
         FatalError("buffer not big enough to write param.");
     }
 
-    node = ConfGetNode(param);
+    node = SCConfGetNode(param);
     if (node == NULL) {
         SCLogDebug("Entry for %s not found.", param);
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
@@ -1915,7 +1915,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
             FatalError("buffer not big enough to write param.");
         }
 
-        node = ConfGetNode(param);
+        node = SCConfGetNode(param);
         if (node == NULL) {
             SCLogDebug("Entry for %s not found.", param);
             if (default_enabled) {
@@ -1927,9 +1927,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
     }
 
     if (node->val) {
-        if (ConfValIsTrue(node->val)) {
+        if (SCConfValIsTrue(node->val)) {
             goto enabled;
-        } else if (ConfValIsFalse(node->val)) {
+        } else if (SCConfValIsFalse(node->val)) {
             goto disabled;
         } else if (strcasecmp(node->val, "detection-only") == 0) {
             goto enabled;

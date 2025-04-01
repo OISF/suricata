@@ -98,7 +98,7 @@ static void DecodeVXLANConfigPorts(const char *pstr)
 void DecodeVXLANConfig(void)
 {
     int enabled = 0;
-    if (ConfGetBool("decoder.vxlan.enabled", &enabled) == 1) {
+    if (SCConfGetBool("decoder.vxlan.enabled", &enabled) == 1) {
         if (enabled) {
             g_vxlan_enabled = true;
         } else {
@@ -107,7 +107,7 @@ void DecodeVXLANConfig(void)
     }
 
     if (g_vxlan_enabled) {
-        ConfNode *node = ConfGetNode("decoder.vxlan.ports");
+        SCConfNode *node = SCConfGetNode("decoder.vxlan.ports");
         if (node && node->val) {
             DecodeVXLANConfigPorts(node->val);
         } else {

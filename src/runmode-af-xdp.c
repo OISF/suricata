@@ -156,9 +156,9 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
 static void *ParseAFXDPConfig(const char *iface)
 {
     const char *confstr = NULL;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *af_xdp_node = NULL;
+    SCConfNode *if_root;
+    SCConfNode *if_default = NULL;
+    SCConfNode *af_xdp_node = NULL;
     int conf_val = 0;
     intmax_t conf_val_int = 0;
     int boolval = 0;
@@ -186,7 +186,7 @@ static void *ParseAFXDPConfig(const char *iface)
     aconf->mem_alignment = XSK_UMEM__DEFAULT_FLAGS;
 
     /* Find initial node */
-    af_xdp_node = ConfGetNode("af-xdp");
+    af_xdp_node = SCConfGetNode("af-xdp");
     if (af_xdp_node == NULL) {
         SCLogInfo("unable to find af-xdp config using default values");
         goto finalize;
@@ -210,7 +210,7 @@ static void *ParseAFXDPConfig(const char *iface)
 
     /* Threading */
     confstr = "auto";
-    (void)ConfGetChildValueWithDefault(if_root, if_default, "threads", &confstr);
+    (void)SCConfGetChildValueWithDefault(if_root, if_default, "threads", &confstr);
     if (ConfigSetThreads(aconf, confstr) != TM_ECODE_OK) {
         aconf->DerefFunc(aconf);
         return NULL;
@@ -220,7 +220,7 @@ static void *ParseAFXDPConfig(const char *iface)
     (void)SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     /* Promisc Mode */
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
+    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
     if (boolval) {
         SCLogConfig("Disabling promiscuous mode on iface %s", aconf->iface);
         aconf->promisc = 0;
@@ -228,7 +228,7 @@ static void *ParseAFXDPConfig(const char *iface)
 
 #ifdef HAVE_AF_XDP
     /* AF_XDP socket mode options */
-    if (ConfGetChildValueWithDefault(if_root, if_default, "force-xdp-mode", &confstr) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "force-xdp-mode", &confstr) == 1) {
         if (strncasecmp(confstr, "drv", 3) == 0) {
             aconf->mode |= XDP_FLAGS_DRV_MODE;
         } else if (strncasecmp(confstr, "skb", 3) == 0) {
@@ -240,7 +240,7 @@ static void *ParseAFXDPConfig(const char *iface)
     }
 
     /* copy and zerocopy binding options */
-    if (ConfGetChildValueWithDefault(if_root, if_default, "force-bind-mode", &confstr) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "force-bind-mode", &confstr) == 1) {
         if (strncasecmp(confstr, "zero", 4) == 0) {
             aconf->bind_flags |= XDP_ZEROCOPY;
         } else if (strncasecmp(confstr, "copy", 4) == 0) {
@@ -252,28 +252,29 @@ static void *ParseAFXDPConfig(const char *iface)
     }
 
     /* memory alignment mode selection */
-    if (ConfGetChildValueWithDefault(if_root, if_default, "mem-unaligned", &confstr) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "mem-unaligned", &confstr) == 1) {
         if (strncasecmp(confstr, "yes", 3) == 0) {
             aconf->mem_alignment = XDP_UMEM_UNALIGNED_CHUNK_FLAG;
         }
     }
 
     /* Busy polling options */
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "enable-busy-poll", &conf_val) == 1) {
+    if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "enable-busy-poll", &conf_val) ==
+            1) {
         if (conf_val == 0) {
             aconf->enable_busy_poll = false;
         }
     }
 
     if (aconf->enable_busy_poll) {
-        if (ConfGetChildValueIntWithDefault(if_root, if_default, "busy-poll-time", &conf_val_int) ==
-                1) {
+        if (SCConfGetChildValueIntWithDefault(
+                    if_root, if_default, "busy-poll-time", &conf_val_int) == 1) {
             if (conf_val_int) {
                 aconf->busy_poll_time = conf_val_int;
             }
         }
 
-        if (ConfGetChildValueIntWithDefault(
+        if (SCConfGetChildValueIntWithDefault(
                     if_root, if_default, "busy-poll-budget", &conf_val_int) == 1) {
             if (conf_val_int) {
                 aconf->busy_poll_budget = conf_val_int;
@@ -281,12 +282,12 @@ static void *ParseAFXDPConfig(const char *iface)
         }
 
         /* 0 value is valid for these Linux tunable's */
-        if (ConfGetChildValueIntWithDefault(
+        if (SCConfGetChildValueIntWithDefault(
                     if_root, if_default, "gro-flush-timeout", &conf_val_int) == 1) {
             aconf->gro_flush_timeout = conf_val_int;
         }
 
-        if (ConfGetChildValueIntWithDefault(
+        if (SCConfGetChildValueIntWithDefault(
                     if_root, if_default, "napi-defer-hard-irq", &conf_val_int) == 1) {
             aconf->napi_defer_hard_irqs = conf_val_int;
         }
@@ -329,7 +330,7 @@ int RunModeIdsAFXDPSingle(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-xdp.live-interface", &live_dev);
+    (void)SCConfGet("af-xdp.live-interface", &live_dev);
 
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
         FatalError("Unable to init AF_XDP queue protection.");
@@ -363,7 +364,7 @@ int RunModeIdsAFXDPWorkers(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-xdp.live-interface", &live_dev);
+    (void)SCConfGet("af-xdp.live-interface", &live_dev);
 
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
         FatalError("Unable to init AF_XDP queue protection.");

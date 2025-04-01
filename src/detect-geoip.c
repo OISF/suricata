@@ -100,7 +100,7 @@ static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
     const char *filename = NULL;
 
     /* Get location and name of GeoIP2 database from YAML conf */
-    (void)ConfGet("geoip-database", &filename);
+    (void)SCConfGet("geoip-database", &filename);
 
     if (filename == NULL) {
         SCLogWarning("Unable to locate a GeoIP2"

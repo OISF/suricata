@@ -122,7 +122,7 @@ error:
 static int OutputFlushInterval(void)
 {
     intmax_t output_flush_interval = 0;
-    if (ConfGetInt("heartbeat.output-flush-interval", &output_flush_interval) == 0) {
+    if (SCConfGetInt("heartbeat.output-flush-interval", &output_flush_interval) == 0) {
         output_flush_interval = 0;
     }
     if (output_flush_interval < 0 || output_flush_interval > 60) {

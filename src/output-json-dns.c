@@ -489,13 +489,12 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
-                                  const char *query_key, const char *answer_key,
-                                  const char *answer_types_key)
+static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf,
+        const char *query_key, const char *answer_key, const char *answer_types_key)
 {
-    const char *query = ConfNodeLookupChildValue(conf, query_key);
+    const char *query = SCConfNodeLookupChildValue(conf, query_key);
     if (query != NULL) {
-        if (ConfValIsTrue(query)) {
+        if (SCConfValIsTrue(query)) {
             dnslog_ctx->flags |= LOG_QUERIES;
         } else {
             dnslog_ctx->flags &= ~LOG_QUERIES;
@@ -504,9 +503,9 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
         dnslog_ctx->flags |= LOG_QUERIES;
     }
 
-    const char *response = ConfNodeLookupChildValue(conf, answer_key);
+    const char *response = SCConfNodeLookupChildValue(conf, answer_key);
     if (response != NULL) {
-        if (ConfValIsTrue(response)) {
+        if (SCConfValIsTrue(response)) {
             dnslog_ctx->flags |= LOG_ANSWERS;
         } else {
             dnslog_ctx->flags &= ~LOG_ANSWERS;
@@ -515,10 +514,10 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
         dnslog_ctx->flags |= LOG_ANSWERS;
     }
 
-    ConfNode *custom;
-    if ((custom = ConfNodeLookupChild(conf, answer_types_key)) != NULL) {
+    SCConfNode *custom;
+    if ((custom = SCConfNodeLookupChild(conf, answer_types_key)) != NULL) {
         dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
-        ConfNode *field;
+        SCConfNode *field;
         TAILQ_FOREACH (field, &custom->head, next) {
             DnsRRTypes f;
             for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++) {
@@ -533,14 +532,14 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
     }
 }
 
-static uint8_t GetDnsLogVersion(ConfNode *conf)
+static uint8_t GetDnsLogVersion(SCConfNode *conf)
 {
     if (conf == NULL) {
         return DNS_LOG_VERSION_DEFAULT;
     }
 
     char *version_string = NULL;
-    const ConfNode *version_node = ConfNodeLookupChild(conf, "version");
+    const SCConfNode *version_node = SCConfNodeLookupChild(conf, "version");
     if (version_node != NULL) {
         version_string = version_node->val;
     }
@@ -561,7 +560,7 @@ static uint8_t GetDnsLogVersion(ConfNode *conf)
     return DNS_LOG_VERSION_DEFAULT;
 }
 
-static uint8_t JsonDnsCheckVersion(ConfNode *conf)
+static uint8_t JsonDnsCheckVersion(SCConfNode *conf)
 {
     const uint8_t default_version = DNS_LOG_VERSION_DEFAULT;
     const uint8_t version = GetDnsLogVersion(conf);
@@ -593,17 +592,17 @@ static uint8_t JsonDnsCheckVersion(ConfNode *conf)
     return default_version;
 }
 
-static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
+static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
 {
     dnslog_ctx->flags = ~0ULL;
 
     if (conf) {
         JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
         if (dnslog_ctx->flags & LOG_ANSWERS) {
-            ConfNode *format;
-            if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
+            SCConfNode *format;
+            if ((format = SCConfNodeLookupChild(conf, "formats")) != NULL) {
                 uint64_t flags = 0;
-                ConfNode *field;
+                SCConfNode *field;
                 TAILQ_FOREACH (field, &format->head, next) {
                     if (strcasecmp(field->val, "detailed") == 0) {
                         flags |= LOG_FORMAT_DETAILED;
@@ -626,11 +625,11 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
     }
 }
 
-static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
-    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
-    if (enabled != NULL && !ConfValIsTrue(enabled)) {
+    const char *enabled = SCConfNodeLookupChildValue(conf, "enabled");
+    if (enabled != NULL && !SCConfValIsTrue(enabled)) {
         result.ok = true;
         return result;
     }
