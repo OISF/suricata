@@ -396,13 +396,15 @@ static void *TmThreadsLib(void *td)
         goto error;
     }
 
-    TmThreadsWaitForUnpause(tv);
+    if (!TmThreadsWaitForUnpause(tv)) {
+        goto error;
+    }
 
     return NULL;
 
 error:
     tv->stream_pq = NULL;
-    return NULL;
+    return (void *)-1;
 }
 
 static void *TmThreadsSlotVar(void *td)
@@ -1751,7 +1753,9 @@ TmEcode TmThreadLibSpawn(ThreadVars *tv)
         return TM_ECODE_FAILED;
     }
 
-    tv->tm_func((void *)tv);
+    if (tv->tm_func((void *)tv) == (void *)-1) {
+        return TM_ECODE_FAILED;
+    }
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
