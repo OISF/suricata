@@ -116,11 +116,11 @@ jobs:
               zlib1g-dev
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
         with:
           name: prep
           path: prep
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
         with:
           name: cbindgen
           path: prep
