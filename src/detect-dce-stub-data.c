@@ -75,7 +75,7 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
         uint8_t dir = flow_flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-        if (rs_smb_tx_get_stub_data(txv, dir, &data, &data_len) != 1)
+        if (SCSmbTxGetStubData(txv, dir, &data, &data_len) != 1)
             return NULL;
         SCLogDebug("have data!");
 

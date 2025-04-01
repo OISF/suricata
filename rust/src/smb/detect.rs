@@ -25,7 +25,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_share(
+pub unsafe extern "C" fn SCSmbTxGetShare(
     tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_share(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(
+pub unsafe extern "C" fn SCSmbTxGetNamedPipe(
     tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_stub_data(
+pub unsafe extern "C" fn SCSmbTxGetStubData(
     tx: &SMBTransaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
@@ -83,10 +83,10 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_match_dce_opnum(
+pub extern "C" fn SCSmbTxMatchDceOpnum(
     tx: &SMBTransaction, dce_data: &mut DCEOpnumData,
 ) -> u8 {
-    SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
+    SCLogDebug!("SCSmbTxMatchDceOpnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {
             for range in dce_data.data.iter() {
@@ -109,7 +109,7 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(
  *                     dce_opnum and dce_stub_data)
  * - only match on approved ifaces (so ack_result == 0) */
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_dce_iface(
+pub extern "C" fn SCSmbTxGetDceIface(
     state: &mut SMBState, tx: &SMBTransaction, dce_data: &mut DCEIfaceData,
 ) -> u8 {
     let if_uuid = dce_data.if_uuid.as_slice();
@@ -151,7 +151,7 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(
+pub unsafe extern "C" fn SCSmbTxGetNtlmsspUser(
     tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
+pub unsafe extern "C" fn SCSmbTxGetNtlmsspDomain(
     tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
@@ -185,7 +185,7 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_version_match(tx: &SMBTransaction, version_data: &mut u8) -> u8 {
+pub unsafe extern "C" fn SCSmbVersionMatch(tx: &SMBTransaction, version_data: &mut u8) -> u8 {
     let version = tx.vercmd.get_version();
     SCLogDebug!("smb_version: version returned: {}", version);
     if version == *version_data {
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn rs_smb_version_match(tx: &SMBTransaction, version_data:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_void {
+pub unsafe extern "C" fn SCSmbVersionParse(carg: *const c_char) -> *mut c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -224,7 +224,7 @@ fn parse_version_data(arg: &str) -> Result<u8, ()> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
+pub unsafe extern "C" fn SCSmbVersionFree(ptr: *mut c_void) {
     std::mem::drop(Box::from_raw(ptr as *mut u8));
 }
 

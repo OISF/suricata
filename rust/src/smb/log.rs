@@ -445,13 +445,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_request(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
-{
-    smb_common_header(jsb, state, tx).is_ok()
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_log_json_response(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
+pub extern "C" fn SCSmbLogJsonResponse(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &SMBTransaction) -> bool
 {
     smb_common_header(jsb, state, tx).is_ok()
 }

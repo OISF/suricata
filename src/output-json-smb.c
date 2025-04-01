@@ -37,7 +37,7 @@ bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
     if (state) {
         SMBTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SMB, state, tx_id);
         if (tx) {
-            return rs_smb_log_json_response(jb, state, tx);
+            return SCSmbLogJsonResponse(jb, state, tx);
         }
     }
     return false;
@@ -54,7 +54,7 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
     }
 
     jb_open_object(jb, "smb");
-    if (!rs_smb_log_json_response(jb, state, tx)) {
+    if (!SCSmbLogJsonResponse(jb, state, tx)) {
         goto error;
     }
     jb_close(jb);

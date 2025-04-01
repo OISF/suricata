@@ -64,7 +64,7 @@ static InspectionBuffer *GetNamedPipeData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_smb_tx_get_named_pipe(txv, &b, &b_len) != 1)
+        if (SCSmbTxGetNamedPipe(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -124,7 +124,7 @@ static InspectionBuffer *GetShareData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_smb_tx_get_share(txv, &b, &b_len) != 1)
+        if (SCSmbTxGetShare(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
