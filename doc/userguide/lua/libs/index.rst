@@ -12,4 +12,5 @@ environment without access to additional modules.
    dns
    flowlib
    hashlib
+   http
    packetlib
