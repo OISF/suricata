@@ -122,3 +122,27 @@ Example of a signature that would alert if a packet contains the MIME field ``da
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email date"; :example-rule-emphasis:`email.date; content:"Fri, 21 Apr 2023 05:10:36 +0000";` sid:1;)
+
+email.message_id
+----------------
+
+Matches the MIME ``Message-Id`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.message_id; content:"<content to match against>";
+
+``email.message_id`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.message_id``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``message id`` with the value ``<alpine.DEB.2.00.1311261630120.9535@sd-26634.dedibox.fr>``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email message id"; :example-rule-emphasis:`email.message_id; content:"<alpine.DEB.2.00.1311261630120.9535@sd-26634.dedibox.fr>";` sid:1;)
