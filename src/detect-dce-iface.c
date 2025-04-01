@@ -112,10 +112,10 @@ static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
 
     int ret = 0;
 
-    if (rs_smb_tx_get_dce_iface(f->alstate, txv, (void *)m) != 1) {
-        SCLogDebug("rs_smb_tx_get_dce_iface: didn't match");
+    if (SCSmbTxGetDceIface(f->alstate, txv, (void *)m) != 1) {
+        SCLogDebug("SCSmbTxGetDceIface: didn't match");
     } else {
-        SCLogDebug("rs_smb_tx_get_dce_iface: matched!");
+        SCLogDebug("SCSmbTxGetDceIface: matched!");
         ret = 1;
         // TODO validate frag
     }

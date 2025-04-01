@@ -47,12 +47,12 @@ static void DetectSmbVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
 
     SCLogDebug("smb_version: DetectSmbVersionFree");
-    rs_smb_version_free(ptr);
+    SCSmbVersionFree(ptr);
 }
 
 /**
  * \brief Creates a SigMatch for the "smb.version" keyword being sent as argument,
- *        and appends it to the rs_smb_version_match Signature(s).
+ *        and appends it to the SCSmbVersionMatch Signature(s).
  *
  * \param de_ctx Pointer to the detection engine context.
  * \param s      Pointer to signature for the current Signature being parsed
@@ -80,7 +80,7 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
     }
 
-    void *dod = rs_smb_version_parse(arg);
+    void *dod = SCSmbVersionParse(arg);
 
     if (dod == NULL) {
         SCLogError("Error parsing smb.version option in signature");
@@ -117,13 +117,13 @@ static int DetectSmbVersionMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, ui
 
     SCLogDebug("smb_version: DetectSmbVersionMatchRust");
 
-    int matchvalue = rs_smb_version_match(txv, (void *)m);
+    int matchvalue = SCSmbVersionMatch(txv, (void *)m);
 
     if (matchvalue != 1) {
-        SCLogDebug("rs_smb_version_match: didn't match");
+        SCLogDebug("SCSmbVersionMatch: didn't match");
         SCReturnInt(0);
     } else {
-        SCLogDebug("rs_smb_version_match: matched!");
+        SCLogDebug("SCSmbVersionMatch: matched!");
         return matchvalue;
     }
 }
