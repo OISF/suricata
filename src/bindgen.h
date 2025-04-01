@@ -32,4 +32,6 @@
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
 
+#include "conf.h"
+
 #endif

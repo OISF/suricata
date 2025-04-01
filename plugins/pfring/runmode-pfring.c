@@ -292,8 +292,8 @@ static void *ParsePfringConfig(const char *iface)
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
             SCLogInfo("%s: DNA interface detected, not setting cluster-id for PF_RING",
                     pfconf->iface);
-        } else if (SCConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) !=
-                   1) {
+        } else if (SCConfGetChildValueWithDefault(
+                           if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
             SCLogError("Could not get cluster-id from config");
         } else {
             if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
