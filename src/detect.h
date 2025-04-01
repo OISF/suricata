@@ -242,11 +242,15 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_SP_ANY                 BIT_U32(2)  /**< source port is any */
 #define SIG_FLAG_DP_ANY                 BIT_U32(3)  /**< destination port is any */
 
-// vacancy
+#define SIG_FLAG_FIREWALL BIT_U32(4) /**< sig is a firewall rule */
 
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_TXBOTHDIR              BIT_U32(7) /**< signature needs tx with both directions to match */
+
+#define SIG_FLAG_APP_UPDATE                                                                        \
+    BIT_U32(8) /**< sig uses <alproto>:(request|response)_update, meaning it should match applayer \
+                  for each update. */
 
 // vacancy
 
@@ -316,9 +320,6 @@ typedef struct DetectPort_ {
 // vacancy 1x
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       BIT_U8(7)
 
-/* for now a uint8_t is enough */
-#define SignatureMask uint8_t
-
 #define FILE_SIG_NEED_FILE          0x01
 #define FILE_SIG_NEED_FILENAME      0x02
 #define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
@@ -330,6 +331,7 @@ typedef struct DetectPort_ {
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
+#define DE_HAS_FIREWALL    0x02     /**< firewall rules loaded, default policies active */
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
@@ -463,7 +465,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
 } DetectEngineAppInspectionEngine;
 
 typedef struct DetectBufferType_ {
-    char name[32];
+    char name[64];
     char description[128];
     int id;
     int parent_id;
@@ -549,9 +551,41 @@ typedef struct SignatureInitDataBuffer_ {
     SigMatch *tail;
 } SignatureInitDataBuffer;
 
+enum SignatureHookPkt {
+    SIGNATURE_HOOK_PKT_NOT_SET,
+    SIGNATURE_HOOK_PKT_FLOW_START,
+    SIGNATURE_HOOK_PKT_ALL, /**< match each packet */
+};
+
+enum SignatureHookType {
+    SIGNATURE_HOOK_TYPE_NOT_SET,
+    SIGNATURE_HOOK_TYPE_PKT,
+    SIGNATURE_HOOK_TYPE_APP,
+};
+
+// dns:request_complete should add DetectBufferTypeGetByName("dns:request_complete");
+// TODO to json
+typedef struct SignatureHook_ {
+    enum SignatureHookType type;
+    int sm_list; /**< list id for the hook's generic list. e.g. for dns:request_complete:generic */
+    union {
+        struct {
+            AppProto alproto;
+            /** progress value of the app-layer hook specified in the rule. Sets the app_proto
+             *  specific progress value. */
+            int app_progress;
+        } app;
+        struct {
+            enum SignatureHookPkt ph;
+        } pkt;
+    } t;
+} SignatureHook;
+
 #define SIG_ALPROTO_MAX 4
 
 typedef struct SignatureInitData_ {
+    SignatureHook hook;
+
     /** Number of sigmatches. Used for assigning SigMatch::idx */
     uint16_t sm_cnt;
 
@@ -622,6 +656,9 @@ typedef struct SignatureInitData_ {
     uint32_t rule_state_dependant_sids_idx;
     uint32_t *rule_state_flowbits_ids_array;
     uint32_t rule_state_flowbits_ids_size;
+
+    /* Signature is a "firewall" rule. */
+    bool firewall_rule;
 } SignatureInitData;
 
 /** \brief Signature container */
@@ -646,6 +683,9 @@ typedef struct Signature_ {
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
 
+    /* scope setting for the action: enum ActionScope */
+    uint8_t action_scope;
+
     /** ipv4 match arrays */
     uint16_t addr_dst_match4_cnt;
     uint16_t addr_src_match4_cnt;
@@ -654,6 +694,9 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint16_t class_id;
+
+    /** firewall: progress value for this signature */
+    uint8_t app_progress_hook;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
@@ -890,10 +933,6 @@ typedef struct DetectEngineCtx_ {
 
     uint32_t signum;
 
-    /** Maximum value of all our sgh's non_mpm_store_cnt setting,
-     *  used to alloc det_ctx::non_mpm_id_array */
-    uint32_t non_pf_store_cnt_max;
-
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
@@ -1078,6 +1117,12 @@ typedef struct DetectEngineCtx_ {
 
     /* number of signatures using filestore, limited as u16 */
     uint16_t filestore_cnt;
+
+    /* name store for non-prefilter engines. Used in profiling but
+     * part of the API, so hash is always used. */
+    HashTable *non_pf_engine_names;
+
+    const char *firewall_rule_file_exclusive;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1132,11 +1177,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
-
-    /** Array of non-prefiltered sigs that need to be evaluated. Updated
-     *  per packet based on the rule group and traffic properties. */
-    SigIntId *non_pf_id_array;
-    uint32_t non_pf_id_cnt; // size is cnt * sizeof(uint32_t)
 
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
@@ -1224,9 +1264,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
-
-    SignatureNonPrefilterStore *non_pf_store_ptr;
-    uint32_t non_pf_store_cnt;
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     PrefilterRuleStore pmq;
@@ -1406,12 +1443,14 @@ typedef struct PrefilterEngineList_ {
     /** App Proto this engine applies to: only used with Tx Engines */
     AppProto alproto;
     /** Minimal Tx progress we need before running the engine. Only used
-     *  with Tx Engine */
-    uint8_t tx_min_progress;
+     *  with Tx Engine. Set to -1 for all states. */
+    int8_t tx_min_progress;
 
     uint8_t frame_type;
 
     SignatureMask pkt_mask; /**< mask for pkt engines */
+
+    enum SignatureHookPkt pkt_hook;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1438,12 +1477,18 @@ typedef struct PrefilterEngine_ {
     AppProto alproto;
 
     union {
-        SignatureMask pkt_mask; /**< mask for pkt engines */
+        struct {
+            SignatureMask mask; /**< mask for pkt engines */
+            uint8_t hook;       /**< enum SignatureHookPkt */
+        } pkt;
         /** Minimal Tx progress we need before running the engine. Only used
-         *  with Tx Engine */
-        uint8_t tx_min_progress;
+         *  with Tx Engine. Set to -1 for all states. */
+        int8_t tx_min_progress;
         uint8_t frame_type;
     } ctx;
+
+    bool is_last;
+    bool is_last_for_progress;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1457,8 +1502,6 @@ typedef struct PrefilterEngine_ {
 
     /* global id for this prefilter */
     uint32_t gid;
-    bool is_last;
-    bool is_last_for_progress;
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {
@@ -1498,13 +1541,6 @@ typedef struct SigGroupHead_ {
     uint16_t filestore_cnt;
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
-
-    /* non prefilter list excluding SYN rules */
-    uint32_t non_pf_other_store_cnt;
-    uint32_t non_pf_syn_store_cnt;
-    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
-    /* non mpm list including SYN rules */
-    SignatureNonPrefilterStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonPrefilterStore)
 
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;

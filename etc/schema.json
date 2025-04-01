@@ -66,6 +66,12 @@
         "payload": {
             "type": "string"
         },
+        "ts_progress": {
+            "type": "string"
+        },
+        "tc_progress": {
+            "type": "string"
+        },
         "payload_length": {
             "type": "integer"
         },
@@ -5291,6 +5297,16 @@
                                 "tunnel_packet_drop": {
                                     "description":
                                             "Number of packets dropped due to inner tunnel packet being dropped",
+                                    "type": "integer"
+                                },
+                                "default_packet_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default packet policy",
+                                    "type": "integer"
+                                },
+                                "default_app_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default app policy",
                                     "type": "integer"
                                 }
                             },

@@ -156,7 +156,7 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
             if (p->flow) {
                 p->flow->flags |= FLOW_ACTION_DROP;
                 FlowSetNoPayloadInspectionFlag(p->flow);
-                FlowSetNoPacketInspectionFlag(p->flow);
+                // FlowSetNoPacketInspectionFlag(p->flow);
                 StreamTcpDisableAppLayer(p->flow);
             }
             /* fall through */
@@ -173,7 +173,7 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
             SCLogDebug("EXCEPTION_POLICY_PASS_FLOW");
             if (p->flow) {
                 p->flow->flags |= FLOW_ACTION_PASS;
-                FlowSetNoPacketInspectionFlag(p->flow); // TODO util func
+                // FlowSetNoPacketInspectionFlag(p->flow); // TODO util func
             }
             /* fall through */
         case EXCEPTION_POLICY_PASS_PACKET:

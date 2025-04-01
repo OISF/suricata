@@ -2236,6 +2236,9 @@ napatech:
 
 default-rule-path: @e_defaultruledir@
 
+firewall-rule-files:
+  - fw.rules
+
 rule-files:
   - suricata.rules
 

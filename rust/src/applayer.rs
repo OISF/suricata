@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType};
+use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -147,6 +147,7 @@ pub struct AppLayerTxData {
 
     de_state: *mut DetectEngineState,
     pub events: *mut core::AppLayerDecoderEvents,
+    txbits: *mut GenericVar,
 }
 
 impl Default for AppLayerTxData {
@@ -175,6 +176,9 @@ impl AppLayerTxData {
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if !self.txbits.is_null() {
+            core::sc_generic_var_free(self.txbits);
+        }
     }
 
     /// Create new AppLayerTxData for a transaction that covers both
@@ -196,6 +200,7 @@ impl AppLayerTxData {
             detect_progress_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
@@ -222,6 +227,7 @@ impl AppLayerTxData {
             flags,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
+            txbits: std::ptr::null_mut(),
         }
     }
 
@@ -438,6 +444,9 @@ pub struct RustParser {
 
     pub get_frame_id_by_name: Option<GetFrameIdByName>,
     pub get_frame_name_by_id: Option<GetFrameNameById>,
+
+    pub get_state_id_by_name: Option<GetStateIdByName>,
+    pub get_state_name_by_id: Option<GetStateNameById>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -490,6 +499,8 @@ pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStat
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
+pub type GetStateIdByName = unsafe extern "C" fn(*const c_char, u8) -> c_int;
+pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 
 
 // Defined in app-layer-register.h
@@ -541,6 +552,7 @@ pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = BIT_U8!(0);
 pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = BIT_U8!(1);
 pub const _APP_LAYER_TX_INSPECTED_TS: u8 = BIT_U8!(2);
 pub const _APP_LAYER_TX_INSPECTED_TC: u8 = BIT_U8!(3);
+pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
 /// cbindgen:ignore
 extern {

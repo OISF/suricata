@@ -122,10 +122,10 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            TlsCertsGetData, 2, 1);
-    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER, TLS_STATE_CERT_READY,
-            TlsCertsGetData, 2, 1);
+    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2, 1);
+    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CLIENT_CERT_DONE, TlsCertsGetData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
@@ -157,7 +157,7 @@ static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static int g_tls_cert_buffer_id = 0;
-#define BUFFER_NAME  "tls_validity"
+#define BUFFER_NAME  "tls:server_cert_done:generic"
 #define KEYWORD_ID   DETECT_TLS_CHAIN_LEN
 #define KEYWORD_NAME "tls.cert_chain_len"
 #define KEYWORD_DESC "match TLS certificate chain length"
@@ -251,9 +251,6 @@ void DetectTlsCertChainLenRegister(void)
     sigmatch_table[KEYWORD_ID].AppLayerTxMatch = DetectTLSCertChainLenMatch;
     sigmatch_table[KEYWORD_ID].Setup = DetectTLSCertChainLenSetup;
     sigmatch_table[KEYWORD_ID].Free = DetectTLSCertChainLenFree;
-
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 
     g_tls_cert_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
