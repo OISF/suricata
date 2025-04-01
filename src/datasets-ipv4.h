@@ -25,15 +25,22 @@
 #define SURICATA_DATASETS_IPV4_H
 
 #include "datasets-reputation.h"
+#include "datajson.h"
 
 typedef struct IPv4Type {
     uint8_t ipv4[4];
-    DataRepType rep;
+    union {
+        DataRepType rep;
+        DataJsonType json;
+    };
 } IPv4Type;
 
 int IPv4Set(void *dst, void *src);
+int IPv4JsonSet(void *dst, void *src);
 bool IPv4Compare(void *a, void *b);
 uint32_t IPv4Hash(uint32_t hash_seed, void *s);
 void IPv4Free(void *s);
+void IPv4JsonFree(void *s);
+uint32_t IPv4JsonGetLength(void *s);
 
 #endif /* SURICATA_DATASETS_IPV4_H */
