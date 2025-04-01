@@ -189,6 +189,8 @@ typedef struct PcapLogData_ {
 typedef struct PcapLogThreadData_ {
     PcapLogData *pcap_log;
     MemBuffer *buf;
+    uint16_t couter_written;       /**< Counter for number of packets written */
+    uint16_t counter_filtered_bpf; /**< Counter for number of packets filtered out and not writen */
 } PcapLogThreadData;
 
 /* Pattern for extracting timestamp from pcap log files. */
@@ -493,24 +495,29 @@ static void PcapLogUnlock(PcapLogData *pl)
 }
 
 static inline int PcapWrite(
-        PcapLogData *pl, PcapLogCompressionData *comp, const uint8_t *data, const size_t len)
+        ThreadVars *tv, PcapLogThreadData *td, const uint8_t *data, const size_t len)
 {
     struct timeval current_dump;
     gettimeofday(&current_dump, NULL);
+    PcapLogData *pl = td->pcap_log;
 
     if (pl->bpfp) {
         if (pcap_offline_filter(pl->bpfp, pl->h, data) == 0) {
             SCLogDebug("Packet doesn't match filter, will not be logged.");
+            StatsIncr(tv, td->counter_filtered_bpf);
             return TM_ECODE_OK;
         }
     }
+
+    StatsIncr(tv, td->couter_written);
 
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, data);
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
         pl->size_current += len;
     }
 #ifdef HAVE_LIBLZ4
-    else if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
+    else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
+        PcapLogCompressionData *comp = &pl->compression;
         pcap_dump_flush(pl->pcap_dumper);
         long in_size = ftell(comp->pcap_buf_wrapper);
         if (in_size < 0) {
@@ -547,9 +554,8 @@ static inline int PcapWrite(
 }
 
 struct PcapLogCallbackContext {
-    PcapLogData *pl;
-    PcapLogCompressionData *comp;
-    MemBuffer *buf;
+    ThreadVars *tv;
+    PcapLogThreadData *td;
 };
 
 static int PcapLogSegmentCallback(
@@ -560,26 +566,26 @@ static int PcapLogSegmentCallback(
     if (seg->pcap_hdr_storage->pktlen) {
         struct timeval tv;
         SCTIME_TO_TIMEVAL(&tv, seg->pcap_hdr_storage->ts);
-        pctx->pl->h->ts.tv_sec = tv.tv_sec;
-        pctx->pl->h->ts.tv_usec = tv.tv_usec;
-        pctx->pl->h->len = seg->pcap_hdr_storage->pktlen + buflen;
-        pctx->pl->h->caplen = seg->pcap_hdr_storage->pktlen + buflen;
-        MemBufferReset(pctx->buf);
-        MemBufferWriteRaw(pctx->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
-        MemBufferWriteRaw(pctx->buf, buf, buflen);
+        pctx->td->pcap_log->h->ts.tv_sec = tv.tv_sec;
+        pctx->td->pcap_log->h->ts.tv_usec = tv.tv_usec;
+        pctx->td->pcap_log->h->len = seg->pcap_hdr_storage->pktlen + buflen;
+        pctx->td->pcap_log->h->caplen = seg->pcap_hdr_storage->pktlen + buflen;
+        MemBufferReset(pctx->td->buf);
+        MemBufferWriteRaw(
+                pctx->td->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
+        MemBufferWriteRaw(pctx->td->buf, buf, buflen);
 
-        PcapWrite(pctx->pl, pctx->comp, (uint8_t *)pctx->buf->buffer, pctx->pl->h->len);
+        PcapWrite(pctx->tv, pctx->td, (uint8_t *)pctx->td->buf->buffer, pctx->td->pcap_log->h->len);
     }
     return 1;
 }
 
-static void PcapLogDumpSegments(
-        PcapLogThreadData *td, PcapLogCompressionData *comp, const Packet *p)
+static void PcapLogDumpSegments(ThreadVars *tv, PcapLogThreadData *td, const Packet *p)
 {
     uint8_t flag = STREAM_DUMP_HEADERS;
 
     /* Loop on segment from this side */
-    struct PcapLogCallbackContext data = { td->pcap_log, comp, td->buf };
+    struct PcapLogCallbackContext data = { tv, td };
     StreamSegmentForSession(p, flag, PcapLogSegmentCallback, (void *)&data);
 }
 
@@ -593,7 +599,7 @@ static void PcapLogDumpSegments(
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
  */
-static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
+static int PcapLog(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     size_t len;
     int ret = 0;
@@ -635,7 +641,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     PcapLogCompressionData *comp = &pl->compression;
     if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
         if ((pl->size_current + len) > pl->size_limit) {
-            if (PcapLogRotateFile(t,pl) < 0) {
+            if (PcapLogRotateFile(tv, pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
                 return TM_ECODE_FAILED;
@@ -651,7 +657,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
          * act as if they would be written uncompressed. */
 
         if ((pl->size_current + comp->bytes_in_block + len) > pl->size_limit) {
-            if (PcapLogRotateFile(t,pl) < 0) {
+            if (PcapLogRotateFile(tv, pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
                 return TM_ECODE_FAILED;
@@ -676,7 +682,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     if ((p->flags & PKT_FIRST_ALERTS) && (td->pcap_log->conditional != LOGMODE_COND_ALL)) {
         if (PacketIsTCP(p)) {
             /* dump fake packets for all segments we have on acked by packet */
-            PcapLogDumpSegments(td, comp, p);
+            PcapLogDumpSegments(tv, td, p);
 
             if (p->flags & PKT_PSEUDO_STREAM_END) {
                 PcapLogUnlock(pl);
@@ -701,9 +707,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     if (p->ttype == PacketTunnelChild) {
         rp = p->root;
-        ret = PcapWrite(pl, comp, GET_PKT_DATA(rp), len);
+        ret = PcapWrite(tv, td, GET_PKT_DATA(rp), len);
     } else {
-        ret = PcapWrite(pl, comp, GET_PKT_DATA(p), len);
+        ret = PcapWrite(tv, td, GET_PKT_DATA(p), len);
     }
     if (ret != TM_ECODE_OK) {
         PCAPLOG_PROFILE_END(pl->profile_write);
@@ -1032,6 +1038,9 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
     PcapLogThreadData *td = SCCalloc(1, sizeof(*td));
     if (unlikely(td == NULL))
         return TM_ECODE_FAILED;
+
+    td->couter_written = StatsRegisterCounter("pcap_log.written", t);
+    td->counter_filtered_bpf = StatsRegisterCounter("pcap_log.filtered_bpf", t);
 
     if (pl->mode == LOGMODE_MULTI)
         td->pcap_log = PcapLogDataCopy(pl);
