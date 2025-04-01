@@ -448,6 +448,11 @@ outputs:
       # to log only flow tagged via the "tag" keyword
       #conditional: all
 
+      # A BPF filter that will be applied to all packets being
+      # logged. If set, packets must match this filter otherwise they
+      # will not be logged.
+      #bpf-filter:
+
   # a full alert log containing much information for signature writers
   # or for investigating suspected false positives.
   - alert-debug:
