@@ -1420,6 +1420,9 @@ impl ConnectionParser {
                 HtpLogCode::UNABLE_TO_MATCH_RESPONSE_TO_REQUEST,
                 "Unable to match response to request"
             );
+            if self.request_state == State::Finalize {
+                let _ = self.state_request_complete(&mut ParserData::from(None));
+            }
             let tx = self.response_mut();
             if tx.is_none() {
                 return Err(HtpStatus::ERROR);
