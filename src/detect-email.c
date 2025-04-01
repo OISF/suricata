@@ -28,6 +28,7 @@ static int g_mime_email_to_buffer_id = 0;
 static int g_mime_email_cc_buffer_id = 0;
 static int g_mime_email_date_buffer_id = 0;
 static int g_mime_email_message_id_buffer_id = 0;
+static int g_mime_email_x_mailer_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -237,6 +238,41 @@ static InspectionBuffer *GetMimeEmailMessageIdData(DetectEngineThreadCtx *det_ct
     return buffer;
 }
 
+static int DetectMimeEmailXMailerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_x_mailer_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailXMailerData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+        const uint8_t *b_email_x_mailer = NULL;
+        uint32_t b_email_x_mailer_len = 0;
+
+        if (tx->mime_state == NULL)
+            return NULL;
+
+        if (SCDetectMimeEmailGetData(
+                    tx->mime_state, &b_email_x_mailer, &b_email_x_mailer_len, "x-mailer") != 1)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b_email_x_mailer, b_email_x_mailer_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -306,4 +342,15 @@ void DetectEmailRegister(void)
             "MIME EMAIL Message-Id", ALPROTO_SMTP, false,
             true, // to server
             GetMimeEmailMessageIdData);
+
+    kw.name = "email.x_mailer";
+    kw.desc = "'X-Mailer' field from an email";
+    kw.url = "/rules/email-keywords.html#email.x_mailer";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailXMailerSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_x_mailer_buffer_id = DetectHelperBufferMpmRegister("email.x_mailer",
+            "MIME EMAIL X-Mailer", ALPROTO_SMTP, false,
+            true, // to server
+            GetMimeEmailXMailerData);
 }
