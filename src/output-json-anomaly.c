@@ -357,12 +357,12 @@ static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
     JsonAnomalyLogDeInitCtxSubHelper(output_ctx);
 }
 
-static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
+static void SetFlag(const SCConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
 {
     DEBUG_VALIDATE_BUG_ON(conf == NULL);
-    const char *setting = ConfNodeLookupChildValue(conf, name);
+    const char *setting = SCConfNodeLookupChildValue(conf, name);
     if (setting != NULL) {
-        if (ConfValIsTrue(setting)) {
+        if (SCConfValIsTrue(setting)) {
             *out_flags |= flag;
         } else {
             *out_flags &= ~flag;
@@ -370,15 +370,14 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
     }
 }
 
-static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
-        ConfNode *conf)
+static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx, SCConfNode *conf)
 {
     static bool warn_no_flags = false;
     static bool warn_no_packet = false;
     uint16_t flags = ANOMALY_DEFAULTS;
     if (conf != NULL) {
         /* Check for metadata to enable/disable. */
-        ConfNode *typeconf = ConfNodeLookupChild(conf, "types");
+        SCConfNode *typeconf = SCConfNodeLookupChild(conf, "types");
         if (typeconf != NULL) {
             SetFlag(typeconf, "applayer", LOG_JSON_APPLAYER_TYPE, &flags);
             SetFlag(typeconf, "stream", LOG_JSON_STREAM_TYPE, &flags);
@@ -401,7 +400,7 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
     json_output_ctx->flags |= flags;
 }
 
-static OutputInitResult JsonAnomalyLogInitCtxHelper(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonAnomalyLogInitCtxHelper(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -437,7 +436,7 @@ error:
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonAnomalyLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
 
     if (!OutputAnomalyLoggerEnable()) {

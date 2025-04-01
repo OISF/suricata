@@ -60,24 +60,24 @@ static const char *profiling_file_mode = "a";
 
 void SCProfilingKeywordsGlobalInit(void)
 {
-    ConfNode *conf;
+    SCConfNode *conf;
 
-    conf = ConfGetNode("profiling.keywords");
+    conf = SCConfGetNode("profiling.keywords");
     if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+        if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
             profiling_keyword_enabled = 1;
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            const char *filename = SCConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
                 if (PathIsAbsolute(filename)) {
                     strlcpy(profiling_file_name, filename, sizeof(profiling_file_name));
                 } else {
-                    const char *log_dir = ConfigGetLogDirectory();
+                    const char *log_dir = SCConfigGetLogDirectory();
                     snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s", log_dir,
                             filename);
                 }
 
-                const char *v = ConfNodeLookupChildValue(conf, "append");
-                if (v == NULL || ConfValIsTrue(v)) {
+                const char *v = SCConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || SCConfValIsTrue(v)) {
                     profiling_file_mode = "a";
                 } else {
                     profiling_file_mode = "w";

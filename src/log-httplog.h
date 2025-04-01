@@ -25,6 +25,6 @@
 #define SURICATA_LOG_HTTPLOG_H
 
 void LogHttpLogRegister(void);
-OutputInitResult LogHttpLogInitCtx(ConfNode *);
+OutputInitResult LogHttpLogInitCtx(SCConfNode *);
 
 #endif /* SURICATA_LOG_HTTPLOG_H */

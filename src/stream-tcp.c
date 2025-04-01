@@ -497,20 +497,20 @@ void StreamTcpInitConfig(bool quiet)
     SC_ATOMIC_INIT(stream_config.memcap);
     SC_ATOMIC_INIT(stream_config.reassembly_memcap);
 
-    if ((ConfGetInt("stream.max-sessions", &value)) == 1) {
+    if ((SCConfGetInt("stream.max-sessions", &value)) == 1) {
         SCLogWarning("max-sessions is obsolete. "
                      "Number of concurrent sessions is now only limited by Flow and "
                      "TCP stream engine memcaps.");
     }
 
-    if ((ConfGetInt("stream.prealloc-sessions", &value)) == 1) {
+    if ((SCConfGetInt("stream.prealloc-sessions", &value)) == 1) {
         stream_config.prealloc_sessions = (uint32_t)value;
     } else {
         if (RunmodeIsUnittests()) {
             stream_config.prealloc_sessions = 128;
         } else {
             stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
-            if (ConfGetNode("stream.prealloc-sessions") != NULL) {
+            if (SCConfGetNode("stream.prealloc-sessions") != NULL) {
                 WarnInvalidConfEntry("stream.prealloc_sessions",
                                      "%"PRIu32,
                                      stream_config.prealloc_sessions);
@@ -523,7 +523,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_memcap_str;
-    if (ConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
+    if (SCConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
         uint64_t stream_memcap_copy;
         if (ParseSizeStringU64(temp_stream_memcap_str, &stream_memcap_copy) < 0) {
             SCLogError("Error parsing stream.memcap "
@@ -542,7 +542,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int imidstream;
-    (void)ConfGetBool("stream.midstream", &imidstream);
+    (void)SCConfGetBool("stream.midstream", &imidstream);
     stream_config.midstream = imidstream != 0;
 
     if (!quiet) {
@@ -550,7 +550,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int async_oneside;
-    (void)ConfGetBool("stream.async-oneside", &async_oneside);
+    (void)SCConfGetBool("stream.async-oneside", &async_oneside);
     stream_config.async_oneside = async_oneside != 0;
 
     if (!quiet) {
@@ -559,7 +559,7 @@ void StreamTcpInitConfig(bool quiet)
 
     int csum = 0;
 
-    if ((ConfGetBool("stream.checksum-validation", &csum)) == 1) {
+    if ((SCConfGetBool("stream.checksum-validation", &csum)) == 1) {
         if (csum == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
         }
@@ -575,7 +575,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_inline_str;
-    if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
+    if (SCConfGet("stream.inline", &temp_stream_inline_str) == 1) {
         int inl = 0;
 
         /* checking for "auto" and falling back to boolean to provide
@@ -584,7 +584,7 @@ void StreamTcpInitConfig(bool quiet)
             if (EngineModeIsIPS()) {
                 stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
             }
-        } else if (ConfGetBool("stream.inline", &inl) == 1) {
+        } else if (SCConfGetBool("stream.inline", &inl) == 1) {
             if (inl) {
                 stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
             }
@@ -607,7 +607,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int bypass = 0;
-    if ((ConfGetBool("stream.bypass", &bypass)) == 1) {
+    if ((SCConfGetBool("stream.bypass", &bypass)) == 1) {
         if (bypass == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_BYPASS;
         }
@@ -620,7 +620,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int drop_invalid = 0;
-    if ((ConfGetBool("stream.drop-invalid", &drop_invalid)) == 1) {
+    if ((SCConfGetBool("stream.drop-invalid", &drop_invalid)) == 1) {
         if (drop_invalid == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
         }
@@ -629,7 +629,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_urgpol = NULL;
-    if (ConfGet("stream.reassembly.urgent.policy", &temp_urgpol) == 1 && temp_urgpol != NULL) {
+    if (SCConfGet("stream.reassembly.urgent.policy", &temp_urgpol) == 1 && temp_urgpol != NULL) {
         if (strcmp(temp_urgpol, "inline") == 0) {
             stream_config.urgent_policy = TCP_STREAM_URGENT_INLINE;
         } else if (strcmp(temp_urgpol, "drop") == 0) {
@@ -649,7 +649,7 @@ void StreamTcpInitConfig(bool quiet)
     }
     if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
         const char *temp_urgoobpol = NULL;
-        if (ConfGet("stream.reassembly.urgent.oob-limit-policy", &temp_urgoobpol) == 1 &&
+        if (SCConfGet("stream.reassembly.urgent.oob-limit-policy", &temp_urgoobpol) == 1 &&
                 temp_urgoobpol != NULL) {
             if (strcmp(temp_urgoobpol, "inline") == 0) {
                 stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_INLINE;
@@ -668,7 +668,7 @@ void StreamTcpInitConfig(bool quiet)
         }
     }
 
-    if ((ConfGetInt("stream.max-syn-queued", &value)) == 1) {
+    if ((SCConfGetInt("stream.max-syn-queued", &value)) == 1) {
         if (value >= 0 && value <= 255) {
             stream_config.max_syn_queued = (uint8_t)value;
         } else {
@@ -681,7 +681,7 @@ void StreamTcpInitConfig(bool quiet)
         SCLogConfig("stream \"max-syn-queued\": %" PRIu8, stream_config.max_syn_queued);
     }
 
-    if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
+    if ((SCConfGetInt("stream.max-synack-queued", &value)) == 1) {
         if (value >= 0 && value <= 255) {
             stream_config.max_synack_queued = (uint8_t)value;
         } else {
@@ -695,7 +695,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_memcap_str;
-    if (ConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
+    if (SCConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
         uint64_t stream_reassembly_memcap_copy;
         if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
                                &stream_reassembly_memcap_copy) < 0) {
@@ -717,7 +717,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_depth_str;
-    if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
+    if (SCConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
         if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
                                &stream_config.reassembly_depth) < 0) {
             SCLogError("Error parsing "
@@ -735,7 +735,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int randomize = 0;
-    if ((ConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
+    if ((SCConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
         /* randomize by default if value not set
          * In ut mode we disable, to get predictable test results */
         if (!(RunmodeIsUnittests()))
@@ -744,7 +744,7 @@ void StreamTcpInitConfig(bool quiet)
 
     if (randomize) {
         const char *temp_rdrange;
-        if (ConfGet("stream.reassembly.randomize-chunk-range", &temp_rdrange) == 1) {
+        if (SCConfGet("stream.reassembly.randomize-chunk-range", &temp_rdrange) == 1) {
             if (ParseSizeStringU16(temp_rdrange, &rdrange) < 0) {
                 SCLogError("Error parsing "
                            "stream.reassembly.randomize-chunk-range "
@@ -759,7 +759,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_toserver_chunk_size_str;
-    if (ConfGet("stream.reassembly.toserver-chunk-size",
+    if (SCConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
                                &stream_config.reassembly_toserver_chunk_size) < 0) {
@@ -781,7 +781,7 @@ void StreamTcpInitConfig(bool quiet)
                         rdrange / 100);
     }
     const char *temp_stream_reassembly_toclient_chunk_size_str;
-    if (ConfGet("stream.reassembly.toclient-chunk-size",
+    if (SCConfGet("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
                                &stream_config.reassembly_toclient_chunk_size) < 0) {
@@ -810,7 +810,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     int enable_raw = 1;
-    if (ConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
+    if (SCConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
         if (!enable_raw) {
             stream_config.stream_init_flags = STREAMTCP_STREAM_FLAG_DISABLE_RAW;
         }
@@ -823,7 +823,7 @@ void StreamTcpInitConfig(bool quiet)
     /* default to true. Not many ppl (correctly) set up host-os policies, so be permissive. */
     stream_config.liberal_timestamps = true;
     int liberal_timestamps = 0;
-    if (ConfGetBool("stream.liberal-timestamps", &liberal_timestamps) == 1) {
+    if (SCConfGetBool("stream.liberal-timestamps", &liberal_timestamps) == 1) {
         stream_config.liberal_timestamps = liberal_timestamps;
     }
     if (!quiet)

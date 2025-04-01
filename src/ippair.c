@@ -187,8 +187,7 @@ void IPPairInitConfig(bool quiet)
 
     /** set config values for memcap, prealloc and hash_size */
     uint64_t ippair_memcap;
-    if ((ConfGet("ippair.memcap", &conf_val)) == 1)
-    {
+    if ((SCConfGet("ippair.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &ippair_memcap) < 0) {
             SCLogError("Error parsing ippair.memcap "
                        "from conf file - %s.  Killing engine",
@@ -198,16 +197,14 @@ void IPPairInitConfig(bool quiet)
             SC_ATOMIC_SET(ippair_config.memcap, ippair_memcap);
         }
     }
-    if ((ConfGet("ippair.hash-size", &conf_val)) == 1)
-    {
+    if ((SCConfGet("ippair.hash-size", &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ippair_config.hash_size = configval;
         }
     }
 
-    if ((ConfGet("ippair.prealloc", &conf_val)) == 1)
-    {
+    if ((SCConfGet("ippair.prealloc", &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ippair_config.prealloc = configval;

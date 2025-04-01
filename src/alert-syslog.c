@@ -85,12 +85,12 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A OutputCtx pointer on success, NULL on failure.
  */
-static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
+static OutputInitResult AlertSyslogInitCtx(SCConfNode *conf)
 {
     SCLogWarning("The syslog output has been deprecated and will be removed in Suricata 9.0.");
 
     OutputInitResult result = { NULL, false };
-    const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
+    const char *facility_s = SCConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
         facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
     }
@@ -109,7 +109,7 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
         facility = DEFAULT_ALERT_SYSLOG_FACILITY;
     }
 
-    const char *level_s = ConfNodeLookupChildValue(conf, "level");
+    const char *level_s = SCConfNodeLookupChildValue(conf, "level");
     if (level_s != NULL) {
         int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
         if (level != -1) {
@@ -117,7 +117,7 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
         }
     }
 
-    const char *ident = ConfNodeLookupChildValue(conf, "identity");
+    const char *ident = SCConfNodeLookupChildValue(conf, "identity");
     /* if null we just pass that to openlog, which will then
      * figure it out by itself. */
 

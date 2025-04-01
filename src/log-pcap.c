@@ -203,7 +203,7 @@ static int PcapLog(ThreadVars *, void *, const Packet *);
 static TmEcode PcapLogDataInit(ThreadVars *, const void *, void **);
 static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
-static OutputInitResult PcapLogInitCtx(ConfNode *);
+static OutputInitResult PcapLogInitCtx(SCConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
 static bool PcapLogCondition(ThreadVars *, void *, const Packet *);
 
@@ -1301,7 +1301,7 @@ error:
  *  \param conf The configuration node for this output.
  *  \retval output_ctx
  * */
-static OutputInitResult PcapLogInitCtx(ConfNode *conf)
+static OutputInitResult PcapLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     int en;
@@ -1346,7 +1346,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     const char *filename = NULL;
 
     if (conf != NULL) { /* To facilitate unit tests. */
-        filename = ConfNodeLookupChildValue(conf, "filename");
+        filename = SCConfNodeLookupChildValue(conf, "filename");
     }
 
     if (filename == NULL)
@@ -1361,7 +1361,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     pl->size_limit = DEFAULT_LIMIT;
     if (conf != NULL) {
         const char *s_limit = NULL;
-        s_limit = ConfNodeLookupChildValue(conf, "limit");
+        s_limit = SCConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
             if (ParseSizeStringU64(s_limit, &pl->size_limit) < 0) {
                 SCLogError("Failed to initialize pcap output, invalid limit: %s", s_limit);
@@ -1382,7 +1382,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     if (conf != NULL) {
         const char *s_mode = NULL;
-        s_mode = ConfNodeLookupChildValue(conf, "mode");
+        s_mode = SCConfNodeLookupChildValue(conf, "mode");
         if (s_mode != NULL) {
             if (strcasecmp(s_mode, "multi") == 0) {
                 pl->mode = LOGMODE_MULTI;
@@ -1394,10 +1394,10 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         }
 
         const char *s_dir = NULL;
-        s_dir = ConfNodeLookupChildValue(conf, "dir");
+        s_dir = SCConfNodeLookupChildValue(conf, "dir");
         if (s_dir == NULL) {
             const char *log_dir = NULL;
-            log_dir = ConfigGetLogDirectory();
+            log_dir = SCConfigGetLogDirectory();
 
             strlcpy(pl->dir, log_dir, sizeof(pl->dir));
             SCLogInfo("Using log dir %s", pl->dir);
@@ -1407,7 +1407,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                         s_dir, sizeof(pl->dir));
             } else {
                 const char *log_dir = NULL;
-                log_dir = ConfigGetLogDirectory();
+                log_dir = SCConfigGetLogDirectory();
 
                 snprintf(pl->dir, sizeof(pl->dir), "%s/%s",
                     log_dir, s_dir);
@@ -1422,8 +1422,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             SCLogInfo("Using log dir %s", pl->dir);
         }
 
-        const char *compression_str = ConfNodeLookupChildValue(conf,
-                "compression");
+        const char *compression_str = SCConfNodeLookupChildValue(conf, "compression");
 
         PcapLogCompressionData *comp = &pl->compression;
         if (compression_str == NULL || strcmp(compression_str, "none") == 0) {
@@ -1459,14 +1458,13 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             memset(&comp->lz4f_prefs, '\0', sizeof(comp->lz4f_prefs));
             comp->lz4f_prefs.frameInfo.blockSizeID = LZ4F_max4MB;
             comp->lz4f_prefs.frameInfo.blockMode = LZ4F_blockLinked;
-            if (ConfNodeChildValueIsTrue(conf, "lz4-checksum")) {
+            if (SCConfNodeChildValueIsTrue(conf, "lz4-checksum")) {
                 comp->lz4f_prefs.frameInfo.contentChecksumFlag = 1;
-            }
-            else {
+            } else {
                 comp->lz4f_prefs.frameInfo.contentChecksumFlag = 0;
             }
             intmax_t lvl = 0;
-            if (ConfGetChildValueInt(conf, "lz4-level", &lvl)) {
+            if (SCConfGetChildValueInt(conf, "lz4-level", &lvl)) {
                 if (lvl > 16) {
                     lvl = 16;
                 } else if (lvl < 0) {
@@ -1522,7 +1520,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         SCLogInfo("Selected pcap-log compression method: %s",
                 compression_str ? compression_str : "none");
 
-        const char *s_conditional = ConfNodeLookupChildValue(conf, "conditional");
+        const char *s_conditional = SCConfNodeLookupChildValue(conf, "conditional");
         if (s_conditional != NULL) {
             if (strcasecmp(s_conditional, "alerts") == 0) {
                 pl->conditional = LOGMODE_COND_ALERTS;
@@ -1549,7 +1547,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     uint32_t max_file_limit = DEFAULT_FILE_LIMIT;
     if (conf != NULL) {
         const char *max_number_of_files_s = NULL;
-        max_number_of_files_s = ConfNodeLookupChildValue(conf, "max-files");
+        max_number_of_files_s = SCConfNodeLookupChildValue(conf, "max-files");
         if (max_number_of_files_s != NULL) {
             if (StringParseUint32(&max_file_limit, 10, 0,
                                         max_number_of_files_s) == -1) {
@@ -1569,7 +1567,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     const char *ts_format = NULL;
     if (conf != NULL) { /* To facilitate unit tests. */
-        ts_format = ConfNodeLookupChildValue(conf, "ts-format");
+        ts_format = SCConfNodeLookupChildValue(conf, "ts-format");
     }
     if (ts_format != NULL) {
         if (strcasecmp(ts_format, "usec") == 0) {
@@ -1584,12 +1582,12 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     const char *use_stream_depth = NULL;
     if (conf != NULL) { /* To facilitate unit tests. */
-        use_stream_depth = ConfNodeLookupChildValue(conf, "use-stream-depth");
+        use_stream_depth = SCConfNodeLookupChildValue(conf, "use-stream-depth");
     }
     if (use_stream_depth != NULL) {
-        if (ConfValIsFalse(use_stream_depth)) {
+        if (SCConfValIsFalse(use_stream_depth)) {
             pl->use_stream_depth = USE_STREAM_DEPTH_DISABLED;
-        } else if (ConfValIsTrue(use_stream_depth)) {
+        } else if (SCConfValIsTrue(use_stream_depth)) {
             pl->use_stream_depth = USE_STREAM_DEPTH_ENABLED;
         } else {
             FatalError("log-pcap use_stream_depth specified is invalid must be");
@@ -1598,12 +1596,12 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     const char *honor_pass_rules = NULL;
     if (conf != NULL) { /* To facilitate unit tests. */
-        honor_pass_rules = ConfNodeLookupChildValue(conf, "honor-pass-rules");
+        honor_pass_rules = SCConfNodeLookupChildValue(conf, "honor-pass-rules");
     }
     if (honor_pass_rules != NULL) {
-        if (ConfValIsFalse(honor_pass_rules)) {
+        if (SCConfValIsFalse(honor_pass_rules)) {
             pl->honor_pass_rules = HONOR_PASS_RULES_DISABLED;
-        } else if (ConfValIsTrue(honor_pass_rules)) {
+        } else if (SCConfValIsTrue(honor_pass_rules)) {
             pl->honor_pass_rules = HONOR_PASS_RULES_ENABLED;
         } else {
             FatalError("log-pcap honor-pass-rules specified is invalid");
@@ -1897,15 +1895,15 @@ static void PcapLogProfilingDump(PcapLogData *pl)
 
 void PcapLogProfileSetup(void)
 {
-    ConfNode *conf = ConfGetNode("profiling.pcap-log");
-    if (conf != NULL && ConfNodeChildValueIsTrue(conf, "enabled")) {
+    SCConfNode *conf = SCConfGetNode("profiling.pcap-log");
+    if (conf != NULL && SCConfNodeChildValueIsTrue(conf, "enabled")) {
         profiling_pcaplog_enabled = 1;
         SCLogInfo("pcap-log profiling enabled");
 
-        const char *filename = ConfNodeLookupChildValue(conf, "filename");
+        const char *filename = SCConfNodeLookupChildValue(conf, "filename");
         if (filename != NULL) {
             const char *log_dir;
-            log_dir = ConfigGetLogDirectory();
+            log_dir = SCConfigGetLogDirectory();
 
             profiling_pcaplog_file_name = SCMalloc(PATH_MAX);
             if (unlikely(profiling_pcaplog_file_name == NULL)) {
@@ -1914,8 +1912,8 @@ void PcapLogProfileSetup(void)
 
             snprintf(profiling_pcaplog_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
-            const char *v = ConfNodeLookupChildValue(conf, "append");
-            if (v == NULL || ConfValIsTrue(v)) {
+            const char *v = SCConfNodeLookupChildValue(conf, "append");
+            if (v == NULL || SCConfValIsTrue(v)) {
                 profiling_pcaplog_file_mode = "a";
             } else {
                 profiling_pcaplog_file_mode = "w";

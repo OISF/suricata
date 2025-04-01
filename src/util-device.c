@@ -278,15 +278,15 @@ int LiveBuildDeviceList(const char *runmode)
 
 int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
 {
-    ConfNode *base = ConfGetNode(runmode);
-    ConfNode *child;
+    SCConfNode *base = SCConfGetNode(runmode);
+    SCConfNode *child;
     int i = 0;
 
     if (base == NULL)
         return 0;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        ConfNode *subchild;
+        SCConfNode *subchild;
         TAILQ_FOREACH(subchild, &child->head, next) {
             if ((!strcmp(subchild->name, itemname))) {
                 if (!strcmp(subchild->val, "default"))

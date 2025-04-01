@@ -342,7 +342,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
     int enabled = 1;
     char param[100];
-    ConfNode *node;
+    SCConfNode *node;
     int r;
 
     if (RunmodeIsUnittests())
@@ -356,7 +356,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
         FatalError("buffer not big enough to write param.");
     }
 
-    node = ConfGetNode(param);
+    node = SCConfGetNode(param);
     if (node == NULL) {
         SCLogDebug("Entry for %s not found.", param);
         r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
@@ -367,16 +367,16 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
             FatalError("buffer not big enough to write param.");
         }
 
-        node = ConfGetNode(param);
+        node = SCConfGetNode(param);
         if (node == NULL) {
             SCLogDebug("Entry for %s not found.", param);
             goto enabled;
         }
     }
 
-    if (ConfValIsTrue(node->val)) {
+    if (SCConfValIsTrue(node->val)) {
         goto enabled;
-    } else if (ConfValIsFalse(node->val)) {
+    } else if (SCConfValIsFalse(node->val)) {
         goto disabled;
     } else if (strcasecmp(node->val, "detection-only") == 0) {
         goto disabled;

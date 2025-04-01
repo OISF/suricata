@@ -55,7 +55,7 @@ int RunModeFilePcapSingle(void)
     const char *file = NULL;
     char tname[TM_THREAD_NAME_MAX];
 
-    if (ConfGet("pcap-file.file", &file) == 0) {
+    if (SCConfGet("pcap-file.file", &file) == 0) {
         FatalError("Failed retrieving pcap-file from Conf");
     }
 
@@ -125,7 +125,7 @@ int RunModeFilePcapAutoFp(void)
     uint16_t thread;
 
     const char *file = NULL;
-    if (ConfGet("pcap-file.file", &file) == 0) {
+    if (SCConfGet("pcap-file.file", &file) == 0) {
         FatalError("Failed retrieving pcap-file from Conf");
     }
     SCLogDebug("file %s", file);

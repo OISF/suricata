@@ -195,7 +195,7 @@ static int ThresholdsInit(struct Thresholds *t)
     uint64_t memcap = 16 * 1024 * 1024;
 
     const char *str;
-    if (ConfGet("detect.thresholds.memcap", &str) == 1) {
+    if (SCConfGet("detect.thresholds.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogError("Error parsing detect.thresholds.memcap from conf file - %s", str);
             return -1;
@@ -203,7 +203,7 @@ static int ThresholdsInit(struct Thresholds *t)
     }
 
     intmax_t value = 0;
-    if ((ConfGetInt("detect.thresholds.hash-size", &value)) == 1) {
+    if ((SCConfGetInt("detect.thresholds.hash-size", &value)) == 1) {
         if (value < 256 || value > INT_MAX) {
             SCLogError("'detect.thresholds.hash-size' value %" PRIiMAX
                        " out of range. Valid range 256-2147483647.",

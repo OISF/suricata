@@ -48,7 +48,8 @@ static int mangle_errors = 0;
 
 static char *conf_dirname = NULL;
 
-static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel, int state);
+static int ConfYamlParse(
+        yaml_parser_t *parser, SCConfNode *parent, int inseq, int rlevel, int state);
 
 /* Configuration processing states. */
 enum conf_state {
@@ -111,7 +112,7 @@ ConfYamlSetConfDirname(const char *filename)
  *
  * \retval 0 on success, -1 on failure.
  */
-int ConfYamlHandleInclude(ConfNode *parent, const char *filename)
+int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
     char include_filename[PATH_MAX];
@@ -164,9 +165,10 @@ done:
  *
  * \retval 0 on success, -1 on failure.
  */
-static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel, int state)
+static int ConfYamlParse(
+        yaml_parser_t *parser, SCConfNode *parent, int inseq, int rlevel, int state)
 {
-    ConfNode *node = parent;
+    SCConfNode *node = parent;
     yaml_event_t event;
     memset(&event, 0, sizeof(event));
     int done = 0;
@@ -235,7 +237,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                 if (state == CONF_INCLUDE) {
                     if (value != NULL) {
                         SCLogInfo("Including configuration file %s.", value);
-                        if (ConfYamlHandleInclude(parent, value) != 0) {
+                        if (SCConfYamlHandleInclude(parent, value) != 0) {
                             goto fail;
                         }
                     }
@@ -243,7 +245,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                 }
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                ConfNode *seq_node = NULL;
+                SCConfNode *seq_node = NULL;
                 if (was_empty < 0) {
                     // initialize was_empty
                     if (TAILQ_EMPTY(&parent->head)) {
@@ -254,7 +256,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                 }
                 // we only check if the node's list was not empty at first
                 if (was_empty == 0) {
-                    seq_node = ConfNodeLookupChild(parent, sequence_node_name);
+                    seq_node = SCConfNodeLookupChild(parent, sequence_node_name);
                 }
                 if (seq_node != NULL) {
                     /* The sequence node has already been set, probably
@@ -264,7 +266,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                     TAILQ_REMOVE(&parent->head, seq_node, next);
                 }
                 else {
-                    seq_node = ConfNodeNew();
+                    seq_node = SCConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
                         goto fail;
                     }
@@ -288,7 +290,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
             else {
                 if (state == CONF_INCLUDE) {
                     SCLogInfo("Including configuration file %s.", value);
-                    if (ConfYamlHandleInclude(parent, value) != 0) {
+                    if (SCConfYamlHandleInclude(parent, value) != 0) {
                         goto fail;
                     }
                     state = CONF_KEY;
@@ -315,21 +317,21 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                     }
 
                     if (strchr(value, '.') != NULL) {
-                        node = ConfNodeGetNodeOrCreate(parent, value, 0);
+                        node = SCConfNodeGetNodeOrCreate(parent, value, 0);
                         if (node == NULL) {
                             /* Error message already logged. */
                             goto fail;
                         }
                     } else {
-                        ConfNode *existing = ConfNodeLookupChild(parent, value);
+                        SCConfNode *existing = SCConfNodeLookupChild(parent, value);
                         if (existing != NULL) {
                             if (!existing->final) {
                                 SCLogInfo("Configuration node '%s' redefined.", existing->name);
-                                ConfNodePrune(existing);
+                                SCConfNodePrune(existing);
                             }
                             node = existing;
                         } else {
-                            node = ConfNodeNew();
+                            node = SCConfNodeNew();
                             if (unlikely(node == NULL)) {
                                 goto fail;
                             }
@@ -362,7 +364,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                     if (value != NULL && (tag != NULL) && (strcmp(tag, "!include") == 0)) {
                         SCLogInfo("Including configuration file %s at "
                             "parent node %s.", value, node->name);
-                        if (ConfYamlHandleInclude(node, value) != 0)
+                        if (SCConfYamlHandleInclude(node, value) != 0)
                             goto fail;
                     } else if (!node->final && value != NULL) {
                         if (node->val != NULL)
@@ -395,7 +397,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                ConfNode *seq_node = NULL;
+                SCConfNode *seq_node = NULL;
                 if (was_empty < 0) {
                     // initialize was_empty
                     if (TAILQ_EMPTY(&node->head)) {
@@ -406,7 +408,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                 }
                 // we only check if the node's list was not empty at first
                 if (was_empty == 0) {
-                    seq_node = ConfNodeLookupChild(node, sequence_node_name);
+                    seq_node = SCConfNodeLookupChild(node, sequence_node_name);
                 }
                 if (seq_node != NULL) {
                     /* The sequence node has already been set, probably
@@ -416,7 +418,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
                     TAILQ_REMOVE(&node->head, seq_node, next);
                 }
                 else {
-                    seq_node = ConfNodeNew();
+                    seq_node = SCConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
                         goto fail;
                     }
@@ -472,13 +474,12 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
  *
  * \retval 0 on success, -1 on failure.
  */
-int
-ConfYamlLoadFile(const char *filename)
+int SCConfYamlLoadFile(const char *filename)
 {
     FILE *infile;
     yaml_parser_t parser;
     int ret;
-    ConfNode *root = ConfGetRootNode();
+    SCConfNode *root = SCConfGetRootNode();
 
     if (yaml_parser_initialize(&parser) != 1) {
         SCLogError("failed to initialize yaml parser.");
@@ -519,10 +520,9 @@ ConfYamlLoadFile(const char *filename)
 /**
  * \brief Load configuration from a YAML string.
  */
-int
-ConfYamlLoadString(const char *string, size_t len)
+int SCConfYamlLoadString(const char *string, size_t len)
 {
-    ConfNode *root = ConfGetRootNode();
+    SCConfNode *root = SCConfGetRootNode();
     yaml_parser_t parser;
     int ret;
 
@@ -550,13 +550,12 @@ ConfYamlLoadString(const char *string, size_t len)
  *
  * \retval 0 on success, -1 on failure.
  */
-int
-ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
+int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 {
     FILE *infile;
     yaml_parser_t parser;
     int ret;
-    ConfNode *root = ConfGetNode(prefix);
+    SCConfNode *root = SCConfGetNode(prefix);
 
     struct stat stat_buf;
     /* coverity[toctou] */
@@ -588,8 +587,8 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 
     if (root == NULL) {
         /* if node at 'prefix' doesn't yet exist, add a place holder */
-        ConfSet(prefix, "<prefix root node>");
-        root = ConfGetNode(prefix);
+        SCConfSet(prefix, "<prefix root node>");
+        root = SCConfGetNode(prefix);
         if (root == NULL) {
             fclose(infile);
             yaml_parser_delete(&parser);
@@ -619,34 +618,34 @@ rule-files:\n\
 default-log-dir: /tmp\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
 
-    ConfNode *node;
-    node = ConfGetNode("rule-files");
+    SCConfNode *node;
+    node = SCConfGetNode("rule-files");
     FAIL_IF_NULL(node);
-    FAIL_IF_NOT(ConfNodeIsSequence(node));
+    FAIL_IF_NOT(SCConfNodeIsSequence(node));
     FAIL_IF(TAILQ_EMPTY(&node->head));
     int i = 0;
-    ConfNode *filename;
+    SCConfNode *filename;
     TAILQ_FOREACH(filename, &node->head, next) {
         if (i == 0) {
             FAIL_IF(strcmp(filename->val, "netbios.rules") != 0);
-            FAIL_IF(ConfNodeIsSequence(filename));
+            FAIL_IF(SCConfNodeIsSequence(filename));
             FAIL_IF(filename->is_seq != 0);
         }
         else if (i == 1) {
             FAIL_IF(strcmp(filename->val, "x11.rules") != 0);
-            FAIL_IF(ConfNodeIsSequence(filename));
+            FAIL_IF(SCConfNodeIsSequence(filename));
         }
         FAIL_IF(i > 1);
         i++;
     }
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -665,17 +664,17 @@ logging:\n\
       log-level: info\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    ConfYamlLoadString(input, strlen(input));
+    SCConfYamlLoadString(input, strlen(input));
 
-    ConfNode *outputs;
-    outputs = ConfGetNode("logging.output");
+    SCConfNode *outputs;
+    outputs = SCConfGetNode("logging.output");
     FAIL_IF_NULL(outputs);
 
-    ConfNode *output;
-    ConfNode *output_param;
+    SCConfNode *output;
+    SCConfNode *output_param;
 
     output = TAILQ_FIRST(&outputs->head);
     FAIL_IF_NULL(output);
@@ -707,8 +706,8 @@ logging:\n\
     FAIL_IF(strcmp(output_param->name, "log-level") != 0);
     FAIL_IF(strcmp(output_param->val, "info") != 0);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -719,13 +718,13 @@ logging:\n\
 static int
 ConfYamlNonYamlFileTest(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    FAIL_IF(ConfYamlLoadFile("/etc/passwd") != -1);
+    FAIL_IF(SCConfYamlLoadFile("/etc/passwd") != -1);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -745,13 +744,13 @@ logging:\n\
       log-level: info\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    FAIL_IF(ConfYamlLoadString(input, strlen(input)) != -1);
+    FAIL_IF(SCConfYamlLoadString(input, strlen(input)) != -1);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -780,16 +779,16 @@ libhtp:\n\
           - compress_separators\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    FAIL_IF(ConfYamlLoadString(input, strlen(input)) != 0);
+    FAIL_IF(SCConfYamlLoadString(input, strlen(input)) != 0);
 
-    ConfNode *outputs;
-    outputs = ConfGetNode("libhtp.server-config");
+    SCConfNode *outputs;
+    outputs = SCConfGetNode("libhtp.server-config");
     FAIL_IF_NULL(outputs);
 
-    ConfNode *node;
+    SCConfNode *node;
 
     node = TAILQ_FIRST(&outputs->head);
     FAIL_IF_NULL(node);
@@ -799,7 +798,7 @@ libhtp:\n\
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "apache-php") != 0);
 
-    node = ConfNodeLookupChild(node, "address");
+    node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
 
     node = TAILQ_FIRST(&node->head);
@@ -807,8 +806,8 @@ libhtp:\n\
     FAIL_IF(strcmp(node->name, "0") != 0);
     FAIL_IF(strcmp(node->val, "192.168.1.0/24") != 0);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -838,8 +837,8 @@ ConfYamlFileIncludeTest(void)
         "unix-command:\n"
         "  enabled: no\n";
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
     /* Write out the test files. */
     FAIL_IF_NULL((config_file = fopen(config_filename, "w")));
@@ -856,30 +855,30 @@ ConfYamlFileIncludeTest(void)
         conf_dirname = NULL;
     }
 
-    FAIL_IF(ConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0);
+    FAIL_IF(SCConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0);
 
     /* Check values that should have been loaded into the root of the
      * configuration. */
-    ConfNode *node;
-    node = ConfGetNode("host-mode");
+    SCConfNode *node;
+    node = SCConfGetNode("host-mode");
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->val, "auto") != 0);
 
-    node = ConfGetNode("unix-command.enabled");
+    node = SCConfGetNode("unix-command.enabled");
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->val, "no") != 0);
 
     /* Check for values that were included under a mapping. */
-    node = ConfGetNode("mapping.host-mode");
+    node = SCConfGetNode("mapping.host-mode");
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->val, "auto") != 0);
 
-    node = ConfGetNode("mapping.unix-command.enabled");
+    node = SCConfGetNode("mapping.unix-command.enabled");
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->val, "no") != 0);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     unlink(config_filename);
     unlink(include_filename);
@@ -912,38 +911,39 @@ ConfYamlOverrideTest(void)
                     "vars.address-groups.HOME_NET: \"10.10.10.10/32\"\n";
     const char *value;
 
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
-    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
-    FAIL_IF_NOT(ConfGet("some-log-dir", &value));
+    FAIL_IF(SCConfYamlLoadString(config, strlen(config)) != 0);
+    FAIL_IF_NOT(SCConfGet("some-log-dir", &value));
     FAIL_IF(strcmp(value, "/tmp") != 0);
 
     /* Test that parent.child0 does not exist, but child1 does. */
-    FAIL_IF_NOT_NULL(ConfGetNode("parent.child0"));
-    FAIL_IF_NOT(ConfGet("parent.child1.key", &value));
+    FAIL_IF_NOT_NULL(SCConfGetNode("parent.child0"));
+    FAIL_IF_NOT(SCConfGet("parent.child1.key", &value));
     FAIL_IF(strcmp(value, "value") != 0);
 
     /* First check that vars.address-groups.EXTERNAL_NET has the
      * expected parent of vars.address-groups and save this
      * pointer. We want to make sure that the overrided value has the
      * same parent later on. */
-    ConfNode *vars_address_groups = ConfGetNode("vars.address-groups");
+    SCConfNode *vars_address_groups = SCConfGetNode("vars.address-groups");
     FAIL_IF_NULL(vars_address_groups);
-    ConfNode *vars_address_groups_external_net = ConfGetNode("vars.address-groups.EXTERNAL_NET");
+    SCConfNode *vars_address_groups_external_net =
+            SCConfGetNode("vars.address-groups.EXTERNAL_NET");
     FAIL_IF_NULL(vars_address_groups_external_net);
     FAIL_IF_NOT(vars_address_groups_external_net->parent == vars_address_groups);
 
     /* Now check that HOME_NET has the overrided value. */
-    ConfNode *vars_address_groups_home_net = ConfGetNode("vars.address-groups.HOME_NET");
+    SCConfNode *vars_address_groups_home_net = SCConfGetNode("vars.address-groups.HOME_NET");
     FAIL_IF_NULL(vars_address_groups_home_net);
     FAIL_IF(strcmp(vars_address_groups_home_net->val, "10.10.10.10/32") != 0);
 
     /* And check that it has the correct parent. */
     FAIL_IF_NOT(vars_address_groups_home_net->parent == vars_address_groups);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
@@ -955,8 +955,8 @@ ConfYamlOverrideTest(void)
 static int
 ConfYamlOverrideFinalTest(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
     char config[] =
         "%YAML 1.1\n"
@@ -964,24 +964,24 @@ ConfYamlOverrideFinalTest(void)
         "default-log-dir: /var/log\n";
 
     /* Set the log directory as if it was set on the command line. */
-    FAIL_IF_NOT(ConfSetFinal("default-log-dir", "/tmp"));
-    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
+    FAIL_IF_NOT(SCConfSetFinal("default-log-dir", "/tmp"));
+    FAIL_IF(SCConfYamlLoadString(config, strlen(config)) != 0);
 
     const char *default_log_dir;
 
-    FAIL_IF_NOT(ConfGet("default-log-dir", &default_log_dir));
+    FAIL_IF_NOT(SCConfGet("default-log-dir", &default_log_dir));
     FAIL_IF(strcmp(default_log_dir, "/tmp") != 0);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
 
 static int ConfYamlNull(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
 
     char config[] = "%YAML 1.1\n"
                     "---\n"
@@ -996,65 +996,64 @@ static int ConfYamlNull(void)
                     "empty-quoted: \"\"\n"
                     "empty-unquoted: \n"
                     "list: [\"null\", null, \"Null\", Null, \"NULL\", NULL, \"~\", ~]\n";
-    FAIL_IF(ConfYamlLoadString(config, strlen(config)) != 0);
+    FAIL_IF(SCConfYamlLoadString(config, strlen(config)) != 0);
 
     const char *val;
 
-    FAIL_IF_NOT(ConfGet("quoted-tilde", &val));
+    FAIL_IF_NOT(SCConfGet("quoted-tilde", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("unquoted-tilde", &val));
+    FAIL_IF_NOT(SCConfGet("unquoted-tilde", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("quoted-null", &val));
+    FAIL_IF_NOT(SCConfGet("quoted-null", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("unquoted-null", &val));
+    FAIL_IF_NOT(SCConfGet("unquoted-null", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("quoted-Null", &val));
+    FAIL_IF_NOT(SCConfGet("quoted-Null", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("unquoted-Null", &val));
+    FAIL_IF_NOT(SCConfGet("unquoted-Null", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("quoted-NULL", &val));
+    FAIL_IF_NOT(SCConfGet("quoted-NULL", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("unquoted-NULL", &val));
+    FAIL_IF_NOT(SCConfGet("unquoted-NULL", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("empty-quoted", &val));
+    FAIL_IF_NOT(SCConfGet("empty-quoted", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("empty-unquoted", &val));
+    FAIL_IF_NOT(SCConfGet("empty-unquoted", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("list.0", &val));
+    FAIL_IF_NOT(SCConfGet("list.0", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("list.1", &val));
+    FAIL_IF_NOT(SCConfGet("list.1", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("list.2", &val));
+    FAIL_IF_NOT(SCConfGet("list.2", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("list.3", &val));
+    FAIL_IF_NOT(SCConfGet("list.3", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("list.4", &val));
+    FAIL_IF_NOT(SCConfGet("list.4", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("list.5", &val));
+    FAIL_IF_NOT(SCConfGet("list.5", &val));
     FAIL_IF_NOT_NULL(val);
 
-    FAIL_IF_NOT(ConfGet("list.6", &val));
+    FAIL_IF_NOT(SCConfGet("list.6", &val));
     FAIL_IF_NULL(val);
-    FAIL_IF_NOT(ConfGet("list.7", &val));
+    FAIL_IF_NOT(SCConfGet("list.7", &val));
     FAIL_IF_NOT_NULL(val);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     PASS;
 }
 
 #endif /* UNITTESTS */
 
-void
-ConfYamlRegisterTests(void)
+void SCConfYamlRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("ConfYamlSequenceTest", ConfYamlSequenceTest);

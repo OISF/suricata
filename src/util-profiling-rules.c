@@ -93,15 +93,15 @@ void SCProfilingRulesGlobalInit(void)
         profiling_rules_sort_orders[1] = -1;  \
     }
 
-    ConfNode *conf;
+    SCConfNode *conf;
     const char *val;
 
-    conf = ConfGetNode("profiling.rules");
+    conf = SCConfGetNode("profiling.rules");
     if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+        if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
             profiling_rules_enabled = 1;
 
-            val = ConfNodeLookupChildValue(conf, "sort");
+            val = SCConfNodeLookupChildValue(conf, "sort");
             if (val != NULL) {
                 if (strcmp(val, "ticks") == 0) {
                     SET_ONE(SC_PROFILING_RULES_SORT_BY_TICKS);
@@ -130,7 +130,7 @@ void SCProfilingRulesGlobalInit(void)
                 }
             }
 
-            val = ConfNodeLookupChildValue(conf, "limit");
+            val = SCConfNodeLookupChildValue(conf, "limit");
             if (val != NULL) {
                 if (StringParseUint32(&profiling_rules_limit, 10,
                             (uint16_t)strlen(val), val) <= 0) {
@@ -138,18 +138,18 @@ void SCProfilingRulesGlobalInit(void)
                     exit(EXIT_FAILURE);
                 }
             }
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            const char *filename = SCConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
                 if (PathIsAbsolute(filename)) {
                     strlcpy(profiling_file_name, filename, sizeof(profiling_file_name));
                 } else {
-                    const char *log_dir = ConfigGetLogDirectory();
+                    const char *log_dir = SCConfigGetLogDirectory();
                     snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s", log_dir,
                             filename);
                 }
 
-                const char *v = ConfNodeLookupChildValue(conf, "append");
-                if (v == NULL || ConfValIsTrue(v)) {
+                const char *v = SCConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || SCConfValIsTrue(v)) {
                     profiling_file_mode = "a";
                 } else {
                     profiling_file_mode = "w";
@@ -157,7 +157,7 @@ void SCProfilingRulesGlobalInit(void)
 
                 profiling_output_to_file = 1;
             }
-            if (ConfNodeChildValueIsTrue(conf, "json")) {
+            if (SCConfNodeChildValueIsTrue(conf, "json")) {
                 profiling_rule_json = 1;
             }
         }

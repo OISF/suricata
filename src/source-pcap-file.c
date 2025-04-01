@@ -152,7 +152,7 @@ void PcapFileGlobalInit(void)
     pcap_g.read_buffer_size = PCAP_FILE_BUFFER_SIZE_DEFAULT;
 
     const char *str = NULL;
-    if (ConfGet("pcap-file.buffer-size", &str) == 1) {
+    if (SCConfGet("pcap-file.buffer-size", &str) == 1) {
         uint32_t value = 0;
         if (ParseSizeStringU32(str, &value) < 0) {
             SCLogWarning("failed to parse pcap-file.buffer-size %s", str);
@@ -239,7 +239,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     memset(&ptv->shared.last_processed, 0, sizeof(struct timespec));
 
     intmax_t tenant = 0;
-    if (ConfGetInt("pcap-file.tenant-id", &tenant) == 1) {
+    if (SCConfGetInt("pcap-file.tenant-id", &tenant) == 1) {
         if (tenant > 0 && tenant < UINT_MAX) {
             ptv->shared.tenant_id = (uint32_t)tenant;
             SCLogInfo("tenant %u", ptv->shared.tenant_id);
@@ -248,7 +248,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
-    if (ConfGet("bpf-filter", &(tmp_bpf_string)) != 1) {
+    if (SCConfGet("bpf-filter", &(tmp_bpf_string)) != 1) {
         SCLogDebug("could not get bpf or none specified");
     } else {
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
@@ -263,7 +263,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
     int should_delete = 0;
     ptv->shared.should_delete = false;
-    if (ConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
+    if (SCConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
         ptv->shared.should_delete = should_delete == 1;
     }
 
@@ -324,13 +324,13 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         int should_recurse;
         pv->should_recurse = false;
-        if (ConfGetBool("pcap-file.recursive", &should_recurse) == 1) {
+        if (SCConfGetBool("pcap-file.recursive", &should_recurse) == 1) {
             pv->should_recurse = (should_recurse == 1);
         }
 
         int should_loop = 0;
         pv->should_loop = false;
-        if (ConfGetBool("pcap-file.continuous", &should_loop) == 1) {
+        if (SCConfGetBool("pcap-file.continuous", &should_loop) == 1) {
             pv->should_loop = (should_loop == 1);
         }
 
@@ -345,7 +345,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->delay = 30;
         intmax_t delay = 0;
-        if (ConfGetInt("pcap-file.delay", &delay) == 1) {
+        if (SCConfGetInt("pcap-file.delay", &delay) == 1) {
             if (delay > 0 && delay < UINT_MAX) {
                 pv->delay = (time_t)delay;
                 SCLogDebug("delay %lu", pv->delay);
@@ -356,7 +356,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->poll_interval = 5;
         intmax_t poll_interval = 0;
-        if (ConfGetInt("pcap-file.poll-interval", &poll_interval) == 1) {
+        if (SCConfGetInt("pcap-file.poll-interval", &poll_interval) == 1) {
             if (poll_interval > 0 && poll_interval < UINT_MAX) {
                 pv->poll_interval = (time_t)poll_interval;
                 SCLogDebug("poll-interval %lu", pv->delay);
@@ -373,14 +373,14 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         ptv->behavior.directory = pv;
     }
 
-    if (ConfGet("pcap-file.checksum-checks", &tmpstring) != 1) {
+    if (SCConfGet("pcap-file.checksum-checks", &tmpstring) != 1) {
         pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
     } else {
         if (strcmp(tmpstring, "auto") == 0) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpstring)){
+        } else if (SCConfValIsTrue(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (ConfValIsFalse(tmpstring)) {
+        } else if (SCConfValIsFalse(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         }
     }

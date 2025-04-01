@@ -301,15 +301,14 @@ static int SetupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
     int fp_engine_analysis_set = 0;
 
-    if ((ConfGetBool("engine-analysis.rules-fast-pattern",
-                     &fp_engine_analysis_set)) == 0) {
+    if ((SCConfGetBool("engine-analysis.rules-fast-pattern", &fp_engine_analysis_set)) == 0) {
         return false;
     }
 
     if (fp_engine_analysis_set == 0)
         return false;
 
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char *log_path = SCMalloc(PATH_MAX);
     if (log_path == NULL) {
         FatalError("Unable to allocate scratch memory for rule filename");
@@ -379,11 +378,11 @@ static bool PerCentEncodingSetup(EngineAnalysisCtx *ea_ctx)
  */
 static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
 {
-    ConfNode *conf = ConfGetNode("engine-analysis");
+    SCConfNode *conf = SCConfGetNode("engine-analysis");
     int enabled = 0;
     if (conf != NULL) {
-        const char *value = ConfNodeLookupChildValue(conf, "rules");
-        if (value && ConfValIsTrue(value)) {
+        const char *value = SCConfNodeLookupChildValue(conf, "rules");
+        if (value && SCConfValIsTrue(value)) {
             enabled = 1;
         } else if (value && strcasecmp(value, "warnings-only") == 0) {
             enabled = 1;
@@ -391,7 +390,7 @@ static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
         }
         if (enabled) {
             const char *log_dir;
-            log_dir = ConfigGetLogDirectory();
+            log_dir = SCConfigGetLogDirectory();
             char log_path[PATH_MAX];
             snprintf(log_path, sizeof(log_path), "%s/%s%s", log_dir,
                     de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", "rules_analysis.txt");
@@ -1369,7 +1368,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     jb_close(ctx.js);
 
     const char *filename = "rules.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char json_path[PATH_MAX] = "";
     snprintf(json_path, sizeof(json_path), "%s/%s%s", log_dir,
             de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", filename);
@@ -1447,7 +1446,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     jb_close(root_jb);
 
     const char *filename = "patterns.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char json_path[PATH_MAX] = "";
     snprintf(json_path, sizeof(json_path), "%s/%s%s", log_dir,
             de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", filename);

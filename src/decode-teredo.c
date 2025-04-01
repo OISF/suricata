@@ -104,7 +104,7 @@ static void DecodeTeredoConfigPorts(const char *pstr)
 void DecodeTeredoConfig(void)
 {
     int enabled = 0;
-    if (ConfGetBool("decoder.teredo.enabled", &enabled) == 1) {
+    if (SCConfGetBool("decoder.teredo.enabled", &enabled) == 1) {
         if (enabled) {
             g_teredo_enabled = true;
         } else {
@@ -112,7 +112,7 @@ void DecodeTeredoConfig(void)
         }
     }
     if (g_teredo_enabled) {
-        ConfNode *node = ConfGetNode("decoder.teredo.ports");
+        SCConfNode *node = SCConfGetNode("decoder.teredo.ports");
         if (node && node->val) {
             DecodeTeredoConfigPorts(node->val);
         }

@@ -69,7 +69,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult SMBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult SMBLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMB);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SMB);

@@ -94,11 +94,10 @@ static void AffinitySetupInit(void)
     }
 }
 
-void BuildCpusetWithCallback(const char *name, ConfNode *node,
-                             void (*Callback)(int i, void * data),
-                             void *data)
+void BuildCpusetWithCallback(
+        const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
-    ConfNode *lnode;
+    SCConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
         uint32_t i;
         uint32_t a, b;
@@ -149,7 +148,7 @@ static void AffinityCallback(int i, void *data)
     CPU_SET(i, (cpu_set_t *)data);
 }
 
-static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
+static void BuildCpuset(const char *name, SCConfNode *node, cpu_set_t *cpu)
 {
     BuildCpusetWithCallback(name, node, AffinityCallback, (void *) cpu);
 }
@@ -162,8 +161,8 @@ static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
 void AffinitySetupLoadFromConfig(void)
 {
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    ConfNode *root = ConfGetNode("threading.cpu-affinity");
-    ConfNode *affinity;
+    SCConfNode *root = SCConfGetNode("threading.cpu-affinity");
+    SCConfNode *affinity;
 
     if (thread_affinity_init_done == 0) {
         AffinitySetupInit();
@@ -189,8 +188,8 @@ void AffinitySetupLoadFromConfig(void)
             setname = "worker-cpu-set";
 
         ThreadsAffinityType *taf = GetAffinityTypeFromName(setname);
-        ConfNode *node = NULL;
-        ConfNode *nprio = NULL;
+        SCConfNode *node = NULL;
+        SCConfNode *nprio = NULL;
 
         if (taf == NULL) {
             FatalError("unknown cpu-affinity type");
@@ -199,7 +198,7 @@ void AffinitySetupLoadFromConfig(void)
         }
 
         CPU_ZERO(&taf->cpu_set);
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+        node = SCConfNodeLookupChild(affinity->head.tqh_first, "cpu");
         if (node == NULL) {
             SCLogInfo("unable to find 'cpu'");
         } else {
@@ -209,29 +208,29 @@ void AffinitySetupLoadFromConfig(void)
         CPU_ZERO(&taf->lowprio_cpu);
         CPU_ZERO(&taf->medprio_cpu);
         CPU_ZERO(&taf->hiprio_cpu);
-        nprio = ConfNodeLookupChild(affinity->head.tqh_first, "prio");
+        nprio = SCConfNodeLookupChild(affinity->head.tqh_first, "prio");
         if (nprio != NULL) {
-            node = ConfNodeLookupChild(nprio, "low");
+            node = SCConfNodeLookupChild(nprio, "low");
             if (node == NULL) {
                 SCLogDebug("unable to find 'low' prio using default value");
             } else {
                 BuildCpuset(setname, node, &taf->lowprio_cpu);
             }
 
-            node = ConfNodeLookupChild(nprio, "medium");
+            node = SCConfNodeLookupChild(nprio, "medium");
             if (node == NULL) {
                 SCLogDebug("unable to find 'medium' prio using default value");
             } else {
                 BuildCpuset(setname, node, &taf->medprio_cpu);
             }
 
-            node = ConfNodeLookupChild(nprio, "high");
+            node = SCConfNodeLookupChild(nprio, "high");
             if (node == NULL) {
                 SCLogDebug("unable to find 'high' prio using default value");
             } else {
                 BuildCpuset(setname, node, &taf->hiprio_cpu);
             }
-            node = ConfNodeLookupChild(nprio, "default");
+            node = SCConfNodeLookupChild(nprio, "default");
             if (node != NULL) {
                 if (!strcmp(node->val, "low")) {
                     taf->prio = PRIO_LOW;
@@ -247,7 +246,7 @@ void AffinitySetupLoadFromConfig(void)
             }
         }
 
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "mode");
+        node = SCConfNodeLookupChild(affinity->head.tqh_first, "mode");
         if (node != NULL) {
             if (!strcmp(node->val, "exclusive")) {
                 taf->mode_flag = EXCLUSIVE_AFFINITY;
@@ -258,7 +257,7 @@ void AffinitySetupLoadFromConfig(void)
             }
         }
 
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
+        node = SCConfNodeLookupChild(affinity->head.tqh_first, "threads");
         if (node != NULL) {
             if (StringParseUint32(&taf->nb_threads, 10, 0, (const char *)node->val) < 0) {
                 FatalError("invalid value for threads "

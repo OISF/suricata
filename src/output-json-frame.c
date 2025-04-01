@@ -506,7 +506,7 @@ static void JsonFrameLogDeInitCtxSub(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonFrameLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonFrameLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
@@ -523,7 +523,7 @@ static OutputInitResult JsonFrameLogInitCtxSub(ConfNode *conf, OutputCtx *parent
 
     uint32_t payload_buffer_size = 4096;
     if (conf != NULL) {
-        const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
+        const char *payload_buffer_value = SCConfNodeLookupChildValue(conf, "payload-buffer-size");
         if (payload_buffer_value != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {

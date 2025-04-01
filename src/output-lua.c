@@ -620,7 +620,7 @@ static void LogLuaSubFree(OutputCtx *oc) {
  *
  *  Runs script 'setup' function.
  */
-static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputLuaLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     if (conf == NULL)
@@ -691,14 +691,14 @@ static void LogLuaMasterFree(OutputCtx *oc)
  *  inspect, then fills the OutputCtx::submodules list with the
  *  proper Logger function for the data type the script needs.
  */
-static OutputInitResult OutputLuaLogInit(ConfNode *conf)
+static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    const char *dir = ConfNodeLookupChildValue(conf, "scripts-dir");
+    const char *dir = SCConfNodeLookupChildValue(conf, "scripts-dir");
     if (dir == NULL)
         dir = "";
 
-    ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
+    SCConfNode *scripts = SCConfNodeLookupChild(conf, "scripts");
     if (scripts == NULL) {
         /* No "outputs" section in the configuration. */
         SCLogInfo("scripts not defined");
@@ -719,12 +719,12 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
     LogLuaMasterCtx *master_config = output_ctx->data;
     strlcpy(master_config->script_dir, dir, sizeof(master_config->script_dir));
 
-    const char *lua_path = ConfNodeLookupChildValue(conf, "path");
+    const char *lua_path = SCConfNodeLookupChildValue(conf, "path");
     if (lua_path && strlen(lua_path) > 0) {
         strlcpy(master_config->path, lua_path, sizeof(master_config->path));
     }
 
-    const char *lua_cpath = ConfNodeLookupChildValue(conf, "cpath");
+    const char *lua_cpath = SCConfNodeLookupChildValue(conf, "cpath");
     if (lua_cpath && strlen(lua_cpath) > 0) {
         strlcpy(master_config->cpath, lua_cpath, sizeof(master_config->cpath));
     }
@@ -732,7 +732,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
     TAILQ_INIT(&output_ctx->submodules);
 
     /* check the enables scripts and set them up as submodules */
-    ConfNode *script;
+    SCConfNode *script;
     TAILQ_FOREACH(script, &scripts->head, next) {
         SCLogInfo("enabling script %s", script->val);
         LogLuaScriptOptions opts;
@@ -832,7 +832,7 @@ error:
         output_ctx->DeInit(output_ctx);
 
     int failure_fatal = 0;
-    if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
+    if (SCConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
     }
     if (failure_fatal) {

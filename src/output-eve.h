@@ -101,7 +101,7 @@ typedef struct SCEveFileType_ {
      *
      * \retval 0 on success, -1 on failure
      */
-    int (*Init)(const ConfNode *conf, const bool threaded, void **init_data);
+    int (*Init)(const SCConfNode *conf, const bool threaded, void **init_data);
 
     /**
      * \brief Initialize thread specific data.

@@ -139,13 +139,13 @@ static const char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
-        if (ConfGet(config_value, &log_filename) != 1) {
-            if (ConfGet("threshold-file", &log_filename) != 1) {
+        if (SCConfGet(config_value, &log_filename) != 1) {
+            if (SCConfGet("threshold-file", &log_filename) != 1) {
                 log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
             }
         }
     } else {
-        if (ConfGet("threshold-file", &log_filename) != 1) {
+        if (SCConfGet("threshold-file", &log_filename) != 1) {
             log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
         }
     }

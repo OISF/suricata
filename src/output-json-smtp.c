@@ -117,7 +117,7 @@ static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputSmtpLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;

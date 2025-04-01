@@ -224,13 +224,14 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     pca->head[id].updates++;
 }
 
-static ConfNode *GetConfig(void) {
-    ConfNode *stats = ConfGetNode("stats");
+static SCConfNode *GetConfig(void)
+{
+    SCConfNode *stats = SCConfGetNode("stats");
     if (stats != NULL)
         return stats;
 
-    ConfNode *root = ConfGetNode("outputs");
-    ConfNode *node = NULL;
+    SCConfNode *root = SCConfGetNode("outputs");
+    SCConfNode *node = NULL;
     if (root != NULL) {
         TAILQ_FOREACH(node, &root->head, next) {
             if (strcmp(node->val, "stats") == 0) {
@@ -247,16 +248,16 @@ static ConfNode *GetConfig(void) {
 static void StatsInitCtxPreOutput(void)
 {
     SCEnter();
-    ConfNode *stats = GetConfig();
+    SCConfNode *stats = GetConfig();
     if (stats != NULL) {
-        const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
-        if (enabled != NULL && ConfValIsFalse(enabled)) {
+        const char *enabled = SCConfNodeLookupChildValue(stats, "enabled");
+        if (enabled != NULL && SCConfValIsFalse(enabled)) {
             stats_enabled = false;
             SCLogDebug("Stats module has been disabled");
             SCReturn;
         }
         /* warn if we are using legacy config to enable stats */
-        ConfNode *gstats = ConfGetNode("stats");
+        SCConfNode *gstats = SCConfGetNode("stats");
         if (gstats == NULL) {
             SCLogWarning("global stats config is missing. "
                          "Stats enabled through legacy stats.log. "
@@ -264,7 +265,7 @@ static void StatsInitCtxPreOutput(void)
                     GetDocURL());
         }
 
-        const char *interval = ConfNodeLookupChildValue(stats, "interval");
+        const char *interval = SCConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             if (StringParseUint32(&stats_tts, 10, 0, interval) < 0) {
                 SCLogWarning("Invalid value for "
@@ -274,17 +275,17 @@ static void StatsInitCtxPreOutput(void)
             }
 
         int b;
-        int ret = ConfGetChildValueBool(stats, "decoder-events", &b);
+        int ret = SCConfGetChildValueBool(stats, "decoder-events", &b);
         if (ret) {
             stats_decoder_events = (b == 1);
         }
-        ret = ConfGetChildValueBool(stats, "stream-events", &b);
+        ret = SCConfGetChildValueBool(stats, "stream-events", &b);
         if (ret) {
             stats_stream_events = (b == 1);
         }
 
         const char *prefix = NULL;
-        if (ConfGet("stats.decoder-events-prefix", &prefix) != 1) {
+        if (SCConfGet("stats.decoder-events-prefix", &prefix) != 1) {
             prefix = "decoder.event";
         }
         stats_decoder_events_prefix = prefix;

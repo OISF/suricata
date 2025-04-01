@@ -125,11 +125,11 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
     memset(&ssn, 0, sizeof(ssn));
 
     if (yaml) {
-        ConfCreateContextBackup();
-        ConfInit();
+        SCConfCreateContextBackup();
+        SCConfInit();
         HtpConfigCreateBackup();
 
-        ConfYamlLoadString(yaml, strlen(yaml));
+        SCConfYamlLoadString(yaml, strlen(yaml));
         HTPConfigure();
     }
 
@@ -190,7 +190,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
 
     if (yaml) {
         HtpConfigRestoreBackup();
-        ConfRestoreContextBackup();
+        SCConfRestoreContextBackup();
     }
     PASS;
 }

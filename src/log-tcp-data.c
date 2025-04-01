@@ -208,7 +208,7 @@ TmEcode LogTcpDataLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
+OutputInitResult LogTcpDataLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     char filename[PATH_MAX] = "";
@@ -242,7 +242,7 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
             }
         }
 
-        const char *logtype = ConfNodeLookupChildValue(conf, "type");
+        const char *logtype = SCConfNodeLookupChildValue(conf, "type");
         if (logtype == NULL)
             logtype = "file";
 
@@ -269,7 +269,7 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
     }
 
     if (tcpdatalog_ctx->dir == 1) {
-        tcpdatalog_ctx->log_dir = ConfigGetLogDirectory();
+        tcpdatalog_ctx->log_dir = SCConfigGetLogDirectory();
         char dirfull[PATH_MAX];
 
         /* create the filename to use */

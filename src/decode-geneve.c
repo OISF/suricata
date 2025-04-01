@@ -128,7 +128,7 @@ static void DecodeGeneveConfigPorts(const char *pstr)
 void DecodeGeneveConfig(void)
 {
     int enabled = 0;
-    if (ConfGetBool("decoder.geneve.enabled", &enabled) == 1) {
+    if (SCConfGetBool("decoder.geneve.enabled", &enabled) == 1) {
         if (enabled) {
             g_geneve_enabled = true;
         } else {
@@ -137,7 +137,7 @@ void DecodeGeneveConfig(void)
     }
 
     if (g_geneve_enabled) {
-        ConfNode *node = ConfGetNode("decoder.geneve.ports");
+        SCConfNode *node = SCConfGetNode("decoder.geneve.ports");
         if (node && node->val) {
             DecodeGeneveConfigPorts(node->val);
         } else {

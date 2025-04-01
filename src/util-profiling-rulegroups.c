@@ -63,24 +63,24 @@ static int profiling_rulegroup_json = 0;
 
 void SCProfilingSghsGlobalInit(void)
 {
-    ConfNode *conf;
+    SCConfNode *conf;
 
-    conf = ConfGetNode("profiling.rulegroups");
+    conf = SCConfGetNode("profiling.rulegroups");
     if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+        if (SCConfNodeChildValueIsTrue(conf, "enabled")) {
             profiling_sghs_enabled = 1;
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            const char *filename = SCConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
                 if (PathIsAbsolute(filename)) {
                     strlcpy(profiling_file_name, filename, sizeof(profiling_file_name));
                 } else {
-                    const char *log_dir = ConfigGetLogDirectory();
+                    const char *log_dir = SCConfigGetLogDirectory();
                     snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s", log_dir,
                             filename);
                 }
 
-                const char *v = ConfNodeLookupChildValue(conf, "append");
-                if (v == NULL || ConfValIsTrue(v)) {
+                const char *v = SCConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || SCConfValIsTrue(v)) {
                     profiling_file_mode = "a";
                 } else {
                     profiling_file_mode = "w";
@@ -88,7 +88,7 @@ void SCProfilingSghsGlobalInit(void)
 
                 profiling_sghs_output_to_file = 1;
             }
-            if (ConfNodeChildValueIsTrue(conf, "json")) {
+            if (SCConfNodeChildValueIsTrue(conf, "json")) {
                 profiling_rulegroup_json = 1;
             }
         }

@@ -37,7 +37,7 @@ void NullLogInitialize(void)
 
 #define OUTPUT_NAME "nullsink"
 
-static int NullLogInit(const ConfNode *conf, const bool threaded, void **init_data)
+static int NullLogInit(const SCConfNode *conf, const bool threaded, void **init_data)
 {
     *init_data = NULL;
     return 0;

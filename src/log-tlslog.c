@@ -176,7 +176,7 @@ static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogTlsLogInitCtx(SCConfNode *conf)
 {
     SCLogWarning("The tls-log output has been deprecated and will be removed in Suricata 9.0.");
 
@@ -199,12 +199,12 @@ static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
     }
     tlslog_ctx->file_ctx = file_ctx;
 
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
-    const char *custom = ConfNodeLookupChildValue(conf, "custom");
-    const char *customformat = ConfNodeLookupChildValue(conf, "customformat");
+    const char *extended = SCConfNodeLookupChildValue(conf, "extended");
+    const char *custom = SCConfNodeLookupChildValue(conf, "custom");
+    const char *customformat = SCConfNodeLookupChildValue(conf, "customformat");
 
     /* If custom logging format is selected, lets parse it */
-    if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
+    if (custom != NULL && customformat != NULL && SCConfValIsTrue(custom)) {
         tlslog_ctx->cf = LogCustomFormatAlloc();
         if (!tlslog_ctx->cf) {
             goto tlslog_error;
@@ -219,15 +219,14 @@ static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
         if (extended == NULL) {
             tlslog_ctx->flags |= LOG_TLS_DEFAULT;
         } else {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 tlslog_ctx->flags |= LOG_TLS_EXTENDED;
             }
         }
     }
 
-    const char *resumption = ConfNodeLookupChildValue(conf,
-                                                      "session-resumption");
-    if (resumption == NULL || ConfValIsTrue(resumption)) {
+    const char *resumption = SCConfNodeLookupChildValue(conf, "session-resumption");
+    if (resumption == NULL || SCConfValIsTrue(resumption)) {
         tlslog_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
     }
 

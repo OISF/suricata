@@ -2409,10 +2409,10 @@ static const char *dummy_conf_string = "%YAML 1.1\n"
 
 static int StreamingBufferTest12(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
+    SCConfCreateContextBackup();
+    SCConfInit();
     HtpConfigCreateBackup();
-    ConfYamlLoadString((const char *)dummy_conf_string, strlen(dummy_conf_string));
+    SCConfYamlLoadString((const char *)dummy_conf_string, strlen(dummy_conf_string));
     HTPConfigure();
 
     StreamingBufferConfig cfg = { 8, 1, STREAMING_BUFFER_REGION_GAP_DEFAULT, HTPCalloc, HTPRealloc,
@@ -2431,7 +2431,7 @@ static int StreamingBufferTest12(void)
 
     StreamingBufferFree(sb, &cfg);
     HtpConfigRestoreBackup();
-    ConfRestoreContextBackup();
+    SCConfRestoreContextBackup();
 
     PASS;
 }

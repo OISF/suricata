@@ -419,7 +419,7 @@ void GlobalsDestroy(void)
     MpmHSGlobalCleanup();
 #endif
 
-    ConfDeInit();
+    SCConfDeInit();
 
     DetectParseFreeRegexes();
 
@@ -494,7 +494,7 @@ static int SetBpfString(int argc, char *argv[])
     }
 
     if(strlen(bpf_filter) > 0) {
-        if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
+        if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError("Failed to set bpf filter.");
             SCFree(bpf_filter);
             return TM_ECODE_FAILED;
@@ -569,7 +569,7 @@ static void SetBpfStringFromFile(char *filename)
             bpf_filter[strlen(bpf_filter)-1] = '\0';
         }
         if (strlen(bpf_filter) > 0) {
-            if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
+            if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
                 SCFree(bpf_filter);
                 FatalError("failed to set bpf filter");
             }
@@ -969,7 +969,7 @@ TmEcode SCLoadYamlConfig(void)
     if (suri->conf_filename == NULL)
         suri->conf_filename = DEFAULT_CONF_FILE;
 
-    if (ConfYamlLoadFile(suri->conf_filename) != 0) {
+    if (SCConfYamlLoadFile(suri->conf_filename) != 0) {
         /* Error already displayed. */
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -977,7 +977,7 @@ TmEcode SCLoadYamlConfig(void)
     if (suri->additional_configs) {
         for (int i = 0; suri->additional_configs[i] != NULL; i++) {
             SCLogConfig("Loading additional configuration file %s", suri->additional_configs[i]);
-            ConfYamlHandleInclude(ConfGetRootNode(), suri->additional_configs[i]);
+            SCConfYamlHandleInclude(SCConfGetRootNode(), suri->additional_configs[i]);
         }
     }
 
@@ -1001,7 +1001,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
         if (strcmp(suricata.capture_plugin_name, "pfring") == 0) {
             /* Special handling for pfring. */
             if (strlen(pcap_dev)) {
-                if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
+                if (SCConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
                     SCLogError("Failed to set pfring.live-interface");
                     SCReturnInt(TM_ECODE_FAILED);
                 }
@@ -1020,7 +1020,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
     } else if (runmode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
-            if (ConfSetFinal("af-packet.live-interface", pcap_dev) != 1) {
+            if (SCConfSetFinal("af-packet.live-interface", pcap_dev) != 1) {
                 SCLogError("Failed to set af-packet.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1036,7 +1036,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
     } else if (runmode == RUNMODE_AFXDP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
-            if (ConfSetFinal("af-xdp.live-interface", pcap_dev) != 1) {
+            if (SCConfSetFinal("af-xdp.live-interface", pcap_dev) != 1) {
                 SCLogError("Failed to set af-xdp.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1052,7 +1052,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
     } else if (runmode == RUNMODE_NETMAP) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
-            if (ConfSetFinal("netmap.live-interface", pcap_dev) != 1) {
+            if (SCConfSetFinal("netmap.live-interface", pcap_dev) != 1) {
                 SCLogError("Failed to set netmap.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1450,7 +1450,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSetFinal("pfring.cluster-id", optarg) != 1) {
+                if (SCConfSetFinal("pfring.cluster-id", optarg) != 1) {
                     SCLogError("failed to set pfring.cluster-id");
                     return TM_ECODE_FAILED;
                 }
@@ -1462,7 +1462,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSetFinal("pfring.cluster-type", optarg) != 1) {
+                if (SCConfSetFinal("pfring.cluster-type", optarg) != 1) {
                     SCLogError("failed to set pfring.cluster-type");
                     return TM_ECODE_FAILED;
                 }
@@ -1536,7 +1536,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 SCLogInfo("Setting IPS mode");
                 EngineModeSetIPS();
             } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
-                if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
+                if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     SCLogError("failed to set engine init-failure-fatal");
                     return TM_ECODE_FAILED;
                 }
@@ -1545,11 +1545,10 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
-                        if (ConfSetFinal("unix-command.filename", optarg) != 1) {
+                        if (SCConfSetFinal("unix-command.filename", optarg) != 1) {
                             SCLogError("failed to set unix-command.filename");
                             return TM_ECODE_FAILED;
                         }
-
                     }
                 } else {
                     SCLogError("more than one run mode "
@@ -1639,7 +1638,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
-                if (ConfSetFinal("erf-file.file", optarg) != 1) {
+                if (SCConfSetFinal("erf-file.file", optarg) != 1) {
                     SCLogError("failed to set erf-file.file");
                     return TM_ECODE_FAILED;
                 }
@@ -1669,7 +1668,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_NAPATECH */
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
-                if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
+                if (SCConfSetFinal("pcap.buffer-size", optarg) != 1) {
                     SCLogError("failed to set pcap-buffer-size");
                     return TM_ECODE_FAILED;
                 }
@@ -1741,30 +1740,30 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     if (val == NULL) {
                         FatalError("Invalid argument for --set, must be key=val.");
                     }
-                    if (!ConfSetFromString(optarg, 1)) {
+                    if (!SCConfSetFromString(optarg, 1)) {
                         FatalError("failed to set configuration value %s", optarg);
                     }
                 }
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
-                if (ConfSetFinal("pcap-file.continuous", "true") != 1) {
+                if (SCConfSetFinal("pcap-file.continuous", "true") != 1) {
                     SCLogError("Failed to set pcap-file.continuous");
                     return TM_ECODE_FAILED;
                 }
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-delete") == 0) {
-                if (ConfSetFinal("pcap-file.delete-when-done", "true") != 1) {
+                if (SCConfSetFinal("pcap-file.delete-when-done", "true") != 1) {
                     SCLogError("Failed to set pcap-file.delete-when-done");
                     return TM_ECODE_FAILED;
                 }
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-recursive") == 0) {
-                if (ConfSetFinal("pcap-file.recursive", "true") != 1) {
+                if (SCConfSetFinal("pcap-file.recursive", "true") != 1) {
                     SCLogError("failed to set pcap-file.recursive");
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "pcap-file-buffer-size") == 0) {
-                if (ConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
+                if (SCConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
                     SCLogError("failed to set pcap-file.buffer-size");
                     return TM_ECODE_FAILED;
                 }
@@ -1834,7 +1833,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             break;
         case 'T':
             conf_test = 1;
-            if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
+            if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                 SCLogError("failed to set engine init-failure-fatal");
                 return TM_ECODE_FAILED;
             }
@@ -1968,7 +1967,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 SCLogError("pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
-            if (ConfSetFinal("pcap-file.file", optarg) != 1) {
+            if (SCConfSetFinal("pcap-file.file", optarg) != 1) {
                 SCLogError("ERROR: Failed to set pcap-file.file\n");
                 return TM_ECODE_FAILED;
             }
@@ -2114,7 +2113,7 @@ static int MayDaemonize(SCInstance *suri)
     if (suri->daemon == 1 && suri->pid_filename == NULL) {
         const char *pid_filename;
 
-        if (ConfGet("pid-file", &pid_filename) == 1) {
+        if (SCConfGet("pid-file", &pid_filename) == 1) {
             SCLogInfo("Use pid file %s from config file.", pid_filename);
         } else {
             pid_filename = DEFAULT_PID_FILENAME;
@@ -2159,11 +2158,11 @@ static int InitRunAs(SCInstance *suri)
        command line as not decide of that */
     if (!suri->do_setuid && !suri->do_setgid) {
         const char *id;
-        if (ConfGet("run-as.user", &id) == 1) {
+        if (SCConfGet("run-as.user", &id) == 1) {
             suri->do_setuid = true;
             suri->user_name = id;
         }
-        if (ConfGet("run-as.group", &id) == 1) {
+        if (SCConfGet("run-as.group", &id) == 1) {
             suri->do_setgid = true;
             suri->group_name = id;
         }
@@ -2189,7 +2188,7 @@ static int InitSignalHandler(SCInstance *suri)
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
 #if HAVE_LIBUNWIND
     int enabled;
-    if (ConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
+    if (SCConfGetBool("logging.stacktrace-on-signal", &enabled) == 0) {
         enabled = 1;
     }
 
@@ -2391,13 +2390,14 @@ static void SetupDelayedDetect(SCInstance *suri)
     if (suri->offline) {
         suri->delayed_detect = 0;
     } else {
-        if (ConfGetBool("detect.delayed-detect", &suri->delayed_detect) != 1) {
-            ConfNode *denode = NULL;
-            ConfNode *decnf = ConfGetNode("detect-engine");
+        if (SCConfGetBool("detect.delayed-detect", &suri->delayed_detect) != 1) {
+            SCConfNode *denode = NULL;
+            SCConfNode *decnf = SCConfGetNode("detect-engine");
             if (decnf != NULL) {
                 TAILQ_FOREACH(denode, &decnf->head, next) {
                     if (strcmp(denode->val, "delayed-detect") == 0) {
-                        (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+                        (void)SCConfGetChildValueBool(
+                                denode, "delayed-detect", &suri->delayed_detect);
                     }
                 }
             }
@@ -2427,7 +2427,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     /* Pull the max pending packets from the config, if not found fall
      * back on a sane default. */
     intmax_t tmp_max_pending_packets;
-    if (ConfGetInt("max-pending-packets", &tmp_max_pending_packets) != 1)
+    if (SCConfGetInt("max-pending-packets", &tmp_max_pending_packets) != 1)
         tmp_max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
     if (tmp_max_pending_packets < 1 || tmp_max_pending_packets > 2147483648) {
         SCLogError("Maximum max-pending-packets setting is 2147483648 and must be greater than 0. "
@@ -2443,7 +2443,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */
     const char *temp_default_packet_size;
-    if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
+    if ((SCConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         int lthread;
         int nlive;
         int strip_trailing_plus = 0;
@@ -2544,10 +2544,10 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
     if (!suri->disabled_detect) {
         SetupDelayedDetect(suri);
         int mt_enabled = 0;
-        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
+        (void)SCConfGetBool("multi-detect.enabled", &mt_enabled);
         int default_tenant = 0;
         if (mt_enabled)
-            (void)ConfGetBool("multi-detect.default", &default_tenant);
+            (void)SCConfGetBool("multi-detect.default", &default_tenant);
         if (DetectEngineMultiTenantSetup(suri->unix_socket_enabled) == -1) {
             FatalError("initializing multi-detect "
                        "detection engine contexts failed.");
@@ -2578,7 +2578,7 @@ static void PostConfLoadedSetupHostMode(void)
 {
     const char *hostmode = NULL;
 
-    if (ConfGet("host-mode", &hostmode) == 1) {
+    if (SCConfGet("host-mode", &hostmode) == 1) {
         if (!strcmp(hostmode, "router")) {
             host_mode = SURI_HOST_IS_ROUTER;
         } else if (!strcmp(hostmode, "sniffer-only")) {
@@ -2636,7 +2636,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     SpmTableSetup();
 
     int disable_offloading;
-    if (ConfGetBool("capture.disable-offloading", &disable_offloading) == 0)
+    if (SCConfGetBool("capture.disable-offloading", &disable_offloading) == 0)
         disable_offloading = 1;
     if (disable_offloading) {
         LiveSetOffloadDisable();
@@ -2646,7 +2646,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     if (suri->checksum_validation == -1) {
         const char *cv = NULL;
-        if (ConfGet("capture.checksum-validation", &cv) == 1) {
+        if (SCConfGet("capture.checksum-validation", &cv) == 1) {
             if (strcmp(cv, "none") == 0) {
                 suri->checksum_validation = 0;
             } else if (strcmp(cv, "all") == 0) {
@@ -2656,15 +2656,15 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
     switch (suri->checksum_validation) {
         case 0:
-            ConfSet("stream.checksum-validation", "0");
+            SCConfSet("stream.checksum-validation", "0");
             break;
         case 1:
-            ConfSet("stream.checksum-validation", "1");
+            SCConfSet("stream.checksum-validation", "1");
             break;
     }
 
     if (suri->runmode_custom_mode) {
-        ConfSet("runmode", suri->runmode_custom_mode);
+        SCConfSet("runmode", suri->runmode_custom_mode);
     }
 
     StorageInit();
@@ -2698,9 +2698,9 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     SetMasterExceptionPolicy();
 
-    ConfNode *eps = ConfGetNode("stats.exception-policy");
+    SCConfNode *eps = SCConfGetNode("stats.exception-policy");
     if (eps != NULL) {
-        if (ConfNodeChildValueIsTrue(eps, "per-app-proto-errors")) {
+        if (SCConfNodeChildValueIsTrue(eps, "per-app-proto-errors")) {
             g_stats_eps_per_app_proto_errors = true;
         }
     }
@@ -2714,13 +2714,12 @@ int PostConfLoadedSetup(SCInstance *suri)
     /* Suricata will use this umask if provided. By default it will use the
        umask passed on from the shell. */
     const char *custom_umask;
-    if (ConfGet("umask", &custom_umask) == 1) {
+    if (SCConfGet("umask", &custom_umask) == 1) {
         uint16_t mask;
         if (StringParseUint16(&mask, 8, (uint16_t)strlen(custom_umask), custom_umask) > 0) {
             umask((mode_t)mask);
         }
     }
-
 
     if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -2737,7 +2736,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
         SCLogInfo("== Carrying out Engine Analysis ==");
         const char *temp = NULL;
-        if (ConfGet("engine-analysis", &temp) == 0) {
+        if (SCConfGet("engine-analysis", &temp) == 0) {
             SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
                       "Please define/enable them in the conf to use this "
                       "feature.");
@@ -2781,7 +2780,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* Check for the existence of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    suri->log_dir = ConfigGetLogDirectory();
+    suri->log_dir = SCConfigGetLogDirectory();
 
     if (ConfigCheckLogDirectoryExists(suri->log_dir) != TM_ECODE_OK) {
         SCLogError("The logging directory \"%s\" "
@@ -2801,7 +2800,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (suri->disabled_detect) {
         SCLogConfig("detection engine disabled");
         /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
+        (void)SCConfSetFinal("stream.reassembly.raw", "false");
     }
 
     HostInitConfig(HOST_VERBOSE);
@@ -2888,7 +2887,7 @@ int InitGlobal(void)
     RunModeRegisterRunModes();
 
     /* Initialize the configuration module. */
-    ConfInit();
+    SCConfInit();
     DatalinkTableInit();
 
     VarNameStoreInit();
@@ -2914,21 +2913,21 @@ void SuricataInit(void)
     GlobalsInitPreConfig();
 
     if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
-        ConfDump();
+        SCConfDump();
         exit(EXIT_SUCCESS);
     }
 
     int tracking = 1;
-    if (ConfGetBool("vlan.use-for-tracking", &tracking) == 1 && !tracking) {
+    if (SCConfGetBool("vlan.use-for-tracking", &tracking) == 1 && !tracking) {
         /* Ignore vlan_ids when comparing flows. */
         g_vlan_mask = 0x0000;
     }
     SCLogDebug("vlan tracking is %s", tracking == 1 ? "enabled" : "disabled");
-    if (ConfGetBool("livedev.use-for-tracking", &tracking) == 1 && !tracking) {
+    if (SCConfGetBool("livedev.use-for-tracking", &tracking) == 1 && !tracking) {
         /* Ignore livedev id when comparing flows. */
         g_livedev_mask = 0x0000;
     }
-    if (ConfGetBool("decoder.recursion-level.use-for-tracking", &tracking) == 1 && !tracking) {
+    if (SCConfGetBool("decoder.recursion-level.use-for-tracking", &tracking) == 1 && !tracking) {
         /* Ignore recursion level when comparing flows. */
         g_recurlvl_mask = 0x00;
     }
@@ -3015,7 +3014,7 @@ void SuricataPostInit(void)
     }
 
     int limit_nproc = 0;
-    if (ConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
+    if (SCConfGetBool("security.limit-noproc", &limit_nproc) == 0) {
         limit_nproc = 0;
     }
 

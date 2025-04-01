@@ -280,13 +280,13 @@ void SCHInfoCleanResources(void)
  */
 void SCHInfoLoadFromConfig(void)
 {
-    ConfNode *root = ConfGetNode("host-os-policy");
+    SCConfNode *root = SCConfGetNode("host-os-policy");
     if (root == NULL)
         return;
 
-    ConfNode *policy;
+    SCConfNode *policy;
     TAILQ_FOREACH(policy, &root->head, next) {
-        ConfNode *host;
+        SCConfNode *host;
         TAILQ_FOREACH(host, &policy->head, next) {
             int is_ipv4 = 1;
             if (host->val != NULL && strchr(host->val, ':') != NULL)
@@ -1212,9 +1212,9 @@ host-os-policy:\n\
 
     SCHInfoCreateContextBackup();
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
     SCHInfoLoadFromConfig();
     if (SCHInfoGetHostOSFlavour("10.0.0.4") != OS_POLICY_WINDOWS)
@@ -1229,12 +1229,12 @@ host-os-policy:\n\
     result = 1;
 
  end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+     SCConfDeInit();
+     SCConfRestoreContextBackup();
 
-    SCHInfoRestoreContextBackup();
+     SCHInfoRestoreContextBackup();
 
-    return result;
+     return result;
 }
 
 /**
@@ -1257,17 +1257,17 @@ host-os-policy:\n\
 
     SCHInfoCreateContextBackup();
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
-    ConfNode *root = ConfGetNode("host-os-policy");
+    SCConfNode *root = SCConfGetNode("host-os-policy");
     if (root == NULL)
         goto end;
 
     int count = 0;
 
-    ConfNode *policy;
+    SCConfNode *policy;
     TAILQ_FOREACH(policy, &root->head, next) {
         switch (count) {
             case 0:
@@ -1297,12 +1297,12 @@ host-os-policy:\n\
     result = 1;
 
  end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+     SCConfDeInit();
+     SCConfRestoreContextBackup();
 
-    SCHInfoRestoreContextBackup();
+     SCHInfoRestoreContextBackup();
 
-    return result;
+     return result;
 }
 
 /**
@@ -1325,15 +1325,15 @@ host-os-policy:\n\
 
     SCHInfoCreateContextBackup();
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
-    ConfNode *root = ConfGetNode("host-os-policy");
+    SCConfNode *root = SCConfGetNode("host-os-policy");
     if (root == NULL)
         goto end;
 
-    ConfNode *policy;
+    SCConfNode *policy;
     TAILQ_FOREACH(policy, &root->head, next) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
@@ -1344,11 +1344,11 @@ host-os-policy:\n\
     result = 1;
 
  end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+     SCConfDeInit();
+     SCConfRestoreContextBackup();
 
-    SCHInfoRestoreContextBackup();
-    return result;
+     SCHInfoRestoreContextBackup();
+     return result;
 }
 
 /**
@@ -1371,15 +1371,15 @@ host-os-policy:\n\
 
     SCHInfoCreateContextBackup();
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
 
-    ConfNode *root = ConfGetNode("host-os-policy");
+    SCConfNode *root = SCConfGetNode("host-os-policy");
     if (root == NULL)
         goto end;
 
-    ConfNode *policy;
+    SCConfNode *policy;
     TAILQ_FOREACH(policy, &root->head, next) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
@@ -1390,11 +1390,11 @@ host-os-policy:\n\
     result = 1;
 
  end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+     SCConfDeInit();
+     SCConfRestoreContextBackup();
 
-    SCHInfoRestoreContextBackup();
-    return result;
+     SCHInfoRestoreContextBackup();
+     return result;
 }
 
 /**
@@ -1415,9 +1415,9 @@ host-os-policy:\n\
 
     SCHInfoCreateContextBackup();
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(config, strlen(config));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
     SCHInfoLoadFromConfig();
 
     FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.1") != OS_POLICY_BSD_RIGHT);
@@ -1428,8 +1428,8 @@ host-os-policy:\n\
     FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.0") != -1);
     FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.6") != -1);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCHInfoRestoreContextBackup();
     PASS;
 }

@@ -310,9 +310,9 @@ static void OutputFilestoreLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void GetLogDirectory(const ConfNode *conf, char *out, size_t out_size)
+static void GetLogDirectory(const SCConfNode *conf, char *out, size_t out_size)
 {
-    const char *log_base_dir = ConfNodeLookupChildValue(conf, "dir");
+    const char *log_base_dir = SCConfNodeLookupChildValue(conf, "dir");
     if (log_base_dir == NULL) {
         SCLogConfig("Filestore (v2) default log directory %s", default_log_dir);
         log_base_dir = default_log_dir;
@@ -320,7 +320,7 @@ static void GetLogDirectory(const ConfNode *conf, char *out, size_t out_size)
     if (PathIsAbsolute(log_base_dir)) {
         strlcpy(out, log_base_dir, out_size);
     } else {
-        const char *default_log_prefix = ConfigGetLogDirectory();
+        const char *default_log_prefix = SCConfigGetLogDirectory();
         snprintf(out, out_size, "%s/%s", default_log_prefix, log_base_dir);
     }
 }
@@ -377,12 +377,12 @@ static bool InitFilestoreDirectory(const char *dir)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, OutputFilestoreCtx* to the file_ctx if succesful
  * */
-static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
+static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
 
     intmax_t version = 0;
-    if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
+    if (!SCConfGetChildValueInt(conf, "version", &version) || version < 2) {
         SCLogWarning("File-store v1 has been removed. Please update to file-store v2.");
         return result;
     }
@@ -427,22 +427,20 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     output_ctx->data = ctx;
     output_ctx->DeInit = OutputFilestoreLogDeInitCtx;
 
-    const char *write_fileinfo = ConfNodeLookupChildValue(conf,
-            "write-fileinfo");
-    if (write_fileinfo != NULL && ConfValIsTrue(write_fileinfo)) {
+    const char *write_fileinfo = SCConfNodeLookupChildValue(conf, "write-fileinfo");
+    if (write_fileinfo != NULL && SCConfValIsTrue(write_fileinfo)) {
         SCLogConfig("Filestore (v2) will output fileinfo records.");
         ctx->fileinfo = true;
     }
 
-    const char *force_filestore = ConfNodeLookupChildValue(conf,
-            "force-filestore");
-    if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
+    const char *force_filestore = SCConfNodeLookupChildValue(conf, "force-filestore");
+    if (force_filestore != NULL && SCConfValIsTrue(force_filestore)) {
         FileForceFilestoreEnable();
         SCLogInfo("forcing filestore of all files");
     }
 
-    const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
-    if (force_magic != NULL && ConfValIsTrue(force_magic)) {
+    const char *force_magic = SCConfNodeLookupChildValue(conf, "force-magic");
+    if (force_magic != NULL && SCConfValIsTrue(force_magic)) {
         FileForceMagicEnable();
         SCLogConfig("Filestore (v2) forcing magic lookup for stored files");
     }
@@ -454,8 +452,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     ProvidesFeature(FEATURE_OUTPUT_FILESTORE);
 
-    const char *stream_depth_str = ConfNodeLookupChildValue(conf,
-            "stream-depth");
+    const char *stream_depth_str = SCConfNodeLookupChildValue(conf, "stream-depth");
     if (stream_depth_str != NULL && strcmp(stream_depth_str, "no")) {
         uint32_t stream_depth = 0;
         if (ParseSizeStringU32(stream_depth_str,
@@ -478,8 +475,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
-    const char *file_count_str = ConfNodeLookupChildValue(conf,
-            "max-open-files");
+    const char *file_count_str = SCConfNodeLookupChildValue(conf, "max-open-files");
     if (file_count_str != NULL) {
         uint32_t file_count = 0;
         if (ParseSizeStringU32(file_count_str,

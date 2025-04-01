@@ -1008,7 +1008,7 @@ void DecodeGlobalConfig(void)
     DecodeVXLANConfig();
     DecodeERSPANConfig();
     intmax_t value = 0;
-    if (ConfGetInt("decoder.max-layers", &value) == 1) {
+    if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
             SCLogWarning("Invalid value for decoder.max-layers");
         } else {
@@ -1021,7 +1021,7 @@ void DecodeGlobalConfig(void)
 void PacketAlertGetMaxConfig(void)
 {
     intmax_t max = 0;
-    if (ConfGetInt("packet-alert-max", &max) == 1) {
+    if (SCConfGetInt("packet-alert-max", &max) == 1) {
         if (max <= 0 || max > UINT8_MAX) {
             SCLogWarning("Invalid value for packet-alert-max, default value set instead");
         } else {

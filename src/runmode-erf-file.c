@@ -53,7 +53,7 @@ int RunModeErfFileSingle(void)
 
     SCEnter();
 
-    if (ConfGet("erf-file.file", &file) == 0) {
+    if (SCConfGet("erf-file.file", &file) == 0) {
         FatalError("Failed to get erf-file.file from config.");
     }
 
@@ -110,7 +110,7 @@ int RunModeErfFileAutoFp(void)
     uint16_t thread;
 
     const char *file = NULL;
-    if (ConfGet("erf-file.file", &file) == 0) {
+    if (SCConfGet("erf-file.file", &file) == 0) {
         FatalError("Failed retrieving erf-file.file from config");
     }
 

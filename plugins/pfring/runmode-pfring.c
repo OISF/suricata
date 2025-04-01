@@ -111,7 +111,7 @@ static void *OldParsePfringConfig(const char *iface)
     (void)SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
-    if (ConfGet("pfring.threads", &threadsstr) != 1) {
+    if (SCConfGet("pfring.threads", &threadsstr) != 1) {
         pfconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
@@ -134,7 +134,7 @@ static void *OldParsePfringConfig(const char *iface)
         SCLogInfo("%s: ZC interface detected, not setting cluster-id", pfconf->iface);
     } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not setting cluster-id");
-    } else if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
+    } else if (SCConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
         SCLogError("Could not get cluster-id from config");
     } else {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
@@ -152,7 +152,7 @@ static void *OldParsePfringConfig(const char *iface)
     } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo(
                 "%s: DNA interface detected, not setting cluster type for PF_RING", pfconf->iface);
-    } else if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
+    } else if (SCConfGet("pfring.cluster-type", &tmpctype) != 1) {
         SCLogError("Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("%s: Using round-robin cluster mode for PF_RING", pfconf->iface);
@@ -185,9 +185,9 @@ static void *OldParsePfringConfig(const char *iface)
 static void *ParsePfringConfig(const char *iface)
 {
     const char *threadsstr = NULL;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *pf_ring_node;
+    SCConfNode *if_root;
+    SCConfNode *if_default = NULL;
+    SCConfNode *pf_ring_node;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     const char *tmpclusterid;
     const char *tmpctype = NULL;
@@ -215,7 +215,7 @@ static void *ParsePfringConfig(const char *iface)
     (void)SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
-    pf_ring_node = ConfGetNode("pfring");
+    pf_ring_node = SCConfGetNode("pfring");
     if (pf_ring_node == NULL) {
         SCLogInfo("Unable to find pfring config using default value");
         return pfconf;
@@ -241,7 +241,7 @@ static void *ParsePfringConfig(const char *iface)
 
     if (active_runmode && !strcmp("single", active_runmode)) {
         pfconf->threads = 1;
-    } else if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    } else if (SCConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         pfconf->threads = 1;
     } else if (threadsstr != NULL) {
         if (strcmp(threadsstr, "auto") == 0) {
@@ -275,7 +275,7 @@ static void *ParsePfringConfig(const char *iface)
     (void)SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     /* command line value has precedence */
-    if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
+    if (SCConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
             SCLogWarning("Invalid value for "
                          "pfring.cluster-id: '%s'. Resetting to 1.",
@@ -292,7 +292,7 @@ static void *ParsePfringConfig(const char *iface)
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
             SCLogInfo("%s: DNA interface detected, not setting cluster-id for PF_RING",
                     pfconf->iface);
-        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) !=
+        } else if (SCConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) !=
                    1) {
             SCLogError("Could not get cluster-id from config");
         } else {
@@ -313,7 +313,7 @@ static void *ParsePfringConfig(const char *iface)
         FatalError("IPS mode not supported in PF_RING.");
     }
 
-    if (ConfGet("pfring.cluster-type", &tmpctype) == 1) {
+    if (SCConfGet("pfring.cluster-type", &tmpctype) == 1) {
         SCLogDebug("Going to use command-line provided cluster-type");
         getctype = 1;
     } else {
@@ -323,7 +323,7 @@ static void *ParsePfringConfig(const char *iface)
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
             SCLogInfo("%s: DNA interface detected, not setting cluster type for PF_RING",
                     pfconf->iface);
-        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) !=
+        } else if (SCConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) !=
                    1) {
             SCLogError("Could not get cluster-type from config");
         } else {
@@ -358,12 +358,12 @@ static void *ParsePfringConfig(const char *iface)
             return NULL;
         }
     }
-    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpctype)) {
+        } else if (SCConfValIsTrue(tmpctype)) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (ConfValIsFalse(tmpctype)) {
+        } else if (SCConfValIsFalse(tmpctype)) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else if (strcmp(tmpctype, "rx-only") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
@@ -372,7 +372,7 @@ static void *ParsePfringConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &bool_val) == 1) {
+    if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &bool_val) == 1) {
         if (bool_val) {
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
             SCLogConfig("%s: Enabling bypass support in PF_RING (if supported by underlying hw)",
@@ -406,7 +406,7 @@ static int PfringConfLevel(void)
 {
     const char *def_dev = NULL;
     /* 1.0 config should return a string */
-    if (ConfGet("pfring.interface", &def_dev) != 1) {
+    if (SCConfGet("pfring.interface", &def_dev) != 1) {
         return PFRING_CONF_V2;
     } else {
         return PFRING_CONF_V1;
@@ -415,7 +415,7 @@ static int PfringConfLevel(void)
 
 static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
 {
-    ConfGet("pfring.live-interface", live_dev);
+    SCConfGet("pfring.live-interface", live_dev);
 
     /* determine which config type we have */
     if (PfringConfLevel() > PFRING_CONF_V1) {
@@ -425,7 +425,7 @@ static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
         *parser = OldParsePfringConfig;
         /* In v1: try to get interface name from config */
         if (*live_dev == NULL) {
-            if (ConfGet("pfring.interface", live_dev) == 1) {
+            if (SCConfGet("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
                 LiveRegisterDevice(*live_dev);
             } else {

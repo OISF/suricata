@@ -68,7 +68,7 @@ SpmTableElmt spm_table[SPM_TABLE_SIZE];
 uint8_t SinglePatternMatchDefaultMatcher(void)
 {
     const char *spm_algo;
-    if ((ConfGet("spm-algo", &spm_algo)) == 1) {
+    if ((SCConfGet("spm-algo", &spm_algo)) == 1) {
         if (spm_algo != NULL) {
             if (strcmp("auto", spm_algo) == 0) {
                 goto default_matcher;

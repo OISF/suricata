@@ -113,7 +113,7 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *con
     SCEnter();
 
     const char *legacy = NULL;
-    if (ConfGet("legacy.uricontent", &legacy) == 1) {
+    if (SCConfGet("legacy.uricontent", &legacy) == 1) {
         if (strcasecmp("disabled", legacy) == 0) {
             SCLogError("uricontent deprecated.  To "
                        "use a rule with \"uricontent\", either set the "

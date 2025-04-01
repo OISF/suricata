@@ -50,8 +50,7 @@ magic_t MagicInitContext(void)
         goto error;
     }
 
-    (void)ConfGet("magic-file", &filename);
-
+    (void)SCConfGet("magic-file", &filename);
 
     if (filename != NULL) {
         if (strlen(filename) == 0) {

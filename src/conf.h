@@ -29,7 +29,7 @@
 /**
  * Structure of a configuration parameter.
  */
-typedef struct ConfNode_ {
+typedef struct SCConfNode_ {
     char *name;
     char *val;
 
@@ -38,11 +38,10 @@ typedef struct ConfNode_ {
     /**< Flag that sets this nodes value as final. */
     int final;
 
-    struct ConfNode_ *parent;
-    TAILQ_HEAD(, ConfNode_) head;
-    TAILQ_ENTRY(ConfNode_) next;
-} ConfNode;
-
+    struct SCConfNode_ *parent;
+    TAILQ_HEAD(, SCConfNode_) head;
+    TAILQ_ENTRY(SCConfNode_) next;
+} SCConfNode;
 
 /**
  * The default log directory.
@@ -55,47 +54,50 @@ typedef struct ConfNode_ {
 #define DEFAULT_DATA_DIR DATA_DIR
 #endif /* OS_WIN32 */
 
-void ConfInit(void);
-void ConfDeInit(void);
-ConfNode *ConfGetRootNode(void);
-int ConfGet(const char *name, const char **vptr);
-int ConfGetInt(const char *name, intmax_t *val);
-int ConfGetBool(const char *name, int *val);
-int ConfGetDouble(const char *name, double *val);
-int ConfGetFloat(const char *name, float *val);
-int ConfSet(const char *name, const char *val);
-int ConfSetFromString(const char *input, int final);
-int ConfSetFinal(const char *name, const char *val);
-void ConfDump(void);
-void ConfNodeDump(const ConfNode *node, const char *prefix);
-ConfNode *ConfNodeNew(void);
-void ConfNodeFree(ConfNode *);
-ConfNode *ConfGetNode(const char *key);
-void ConfCreateContextBackup(void);
-void ConfRestoreContextBackup(void);
-ConfNode *ConfNodeLookupChild(const ConfNode *node, const char *key);
-const char *ConfNodeLookupChildValue(const ConfNode *node, const char *key);
-void ConfNodeRemove(ConfNode *);
-void ConfRegisterTests(void);
-int ConfNodeChildValueIsTrue(const ConfNode *node, const char *key);
-int ConfValIsTrue(const char *val);
-int ConfValIsFalse(const char *val);
-void ConfNodePrune(ConfNode *node);
-int ConfRemove(const char *name);
-bool ConfNodeHasChildren(const ConfNode *node);
+void SCConfInit(void);
+void SCConfDeInit(void);
+SCConfNode *SCConfGetRootNode(void);
+int SCConfGet(const char *name, const char **vptr);
+int SCConfGetInt(const char *name, intmax_t *val);
+int SCConfGetBool(const char *name, int *val);
+int SCConfGetDouble(const char *name, double *val);
+int SCConfGetFloat(const char *name, float *val);
+int SCConfSet(const char *name, const char *val);
+int SCConfSetFromString(const char *input, int final);
+int SCConfSetFinal(const char *name, const char *val);
+void SCConfDump(void);
+void SCConfNodeDump(const SCConfNode *node, const char *prefix);
+SCConfNode *SCConfNodeNew(void);
+void SCConfNodeFree(SCConfNode *);
+SCConfNode *SCConfGetNode(const char *key);
+void SCConfCreateContextBackup(void);
+void SCConfRestoreContextBackup(void);
+SCConfNode *SCConfNodeLookupChild(const SCConfNode *node, const char *key);
+const char *SCConfNodeLookupChildValue(const SCConfNode *node, const char *key);
+void SCConfNodeRemove(SCConfNode *);
+void SCConfRegisterTests(void);
+int SCConfNodeChildValueIsTrue(const SCConfNode *node, const char *key);
+int SCConfValIsTrue(const char *val);
+int SCConfValIsFalse(const char *val);
+void SCConfNodePrune(SCConfNode *node);
+int SCConfRemove(const char *name);
+bool SCConfNodeHasChildren(const SCConfNode *node);
 
-ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name);
-ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const char *value);
-int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr);
-int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val);
-int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val);
-int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr);
-int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val);
-int ConfGetChildValueBoolWithDefault(
-        const ConfNode *base, const ConfNode *dflt, const char *name, int *val);
-int ConfNodeIsSequence(const ConfNode *node);
-ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
-int ConfSetRootAndDefaultNodes(
-        const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default);
-ConfNode *ConfNodeGetNodeOrCreate(ConfNode *parent, const char *name, int final);
+SCConfNode *SCConfGetChildWithDefault(
+        const SCConfNode *base, const SCConfNode *dflt, const char *name);
+SCConfNode *SCConfNodeLookupKeyValue(const SCConfNode *base, const char *key, const char *value);
+int SCConfGetChildValue(const SCConfNode *base, const char *name, const char **vptr);
+int SCConfGetChildValueInt(const SCConfNode *base, const char *name, intmax_t *val);
+int SCConfGetChildValueBool(const SCConfNode *base, const char *name, int *val);
+int SCConfGetChildValueWithDefault(
+        const SCConfNode *base, const SCConfNode *dflt, const char *name, const char **vptr);
+int SCConfGetChildValueIntWithDefault(
+        const SCConfNode *base, const SCConfNode *dflt, const char *name, intmax_t *val);
+int SCConfGetChildValueBoolWithDefault(
+        const SCConfNode *base, const SCConfNode *dflt, const char *name, int *val);
+int SCConfNodeIsSequence(const SCConfNode *node);
+SCConfNode *SCConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
+int SCConfSetRootAndDefaultNodes(const char *ifaces_node_name, const char *iface,
+        SCConfNode **if_root, SCConfNode **if_default);
+SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int final);
 #endif /* ! SURICATA_CONF_H */

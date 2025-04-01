@@ -260,7 +260,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
         char confstring[256] = "detect.mpm.";
         strlcat(confstring, n->name, sizeof(confstring));
         strlcat(confstring, ".shared", sizeof(confstring));
-        if (ConfGetBool(confstring, &confshared) == 1)
+        if (SCConfGetBool(confstring, &confshared) == 1)
             shared = confshared;
 
         if (shared == 0) {
@@ -432,7 +432,7 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
     int shared = (de_ctx->sgh_mpm_ctx_cnf == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
     /* see if we use a unique or shared mpm ctx for this type */
     int confshared = 0;
-    if (ConfGetBool("detect.mpm.frame.shared", &confshared) == 1)
+    if (SCConfGetBool("detect.mpm.frame.shared", &confshared) == 1)
         shared = confshared;
 
     if (shared == 0) {
@@ -487,7 +487,7 @@ void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx)
         char confstring[256] = "detect.mpm.";
         strlcat(confstring, n->name, sizeof(confstring));
         strlcat(confstring, ".shared", sizeof(confstring));
-        if (ConfGetBool(confstring, &confshared) == 1)
+        if (SCConfGetBool(confstring, &confshared) == 1)
             shared = confshared;
 
         if (shared == 0) {
@@ -654,7 +654,7 @@ void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx)
         char confstring[256] = "detect.mpm.";
         strlcat(confstring, n->name, sizeof(confstring));
         strlcat(confstring, ".shared", sizeof(confstring));
-        if (ConfGetBool(confstring, &confshared) == 1)
+        if (SCConfGetBool(confstring, &confshared) == 1)
             shared = confshared;
 
         if (shared == 0) {
@@ -709,7 +709,7 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
     char confstring[256] = "detect.mpm.";
     strlcat(confstring, name, sizeof(confstring));
     strlcat(confstring, ".shared", sizeof(confstring));
-    if (ConfGetBool(confstring, &confshared) == 1)
+    if (SCConfGetBool(confstring, &confshared) == 1)
         shared = confshared;
 
     int32_t ctx;
@@ -857,7 +857,7 @@ uint8_t PatternMatchDefaultMatcher(void)
     uint8_t mpm_algo_val = mpm_default_matcher;
 
     /* Get the mpm algo defined in config file by the user */
-    if ((ConfGet("mpm-algo", &mpm_algo)) == 1) {
+    if ((SCConfGet("mpm-algo", &mpm_algo)) == 1) {
         if (mpm_algo != NULL) {
 #if __BYTE_ORDER == __BIG_ENDIAN
             if (strcmp(mpm_algo, "ac-ks") == 0) {

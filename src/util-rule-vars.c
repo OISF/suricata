@@ -97,7 +97,7 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
         }
     }
 
-    if (ConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
+    if (SCConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
         SCLogError("Variable \"%s\" is not defined in "
                    "configuration file",
                 conf_var_name);
@@ -187,9 +187,9 @@ static const char *dummy_conf_string =
  */
 static int SCRuleVarsPositiveTest01(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     /* check for address-groups */
     FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
@@ -238,8 +238,8 @@ static int SCRuleVarsPositiveTest01(void)
             SCRuleVarsGetConfVar(NULL, "$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
             strcmp(SCRuleVarsGetConfVar(NULL, "$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS), "22") == 0);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -249,17 +249,17 @@ static int SCRuleVarsPositiveTest01(void)
  */
 static int SCRuleVarsNegativeTest02(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$HOME_NETW", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
     FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$home_net", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
     FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$TOMCAT_PORTSW", SC_RULE_VARS_PORT_GROUPS) == NULL);
     FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$tomcat_ports", SC_RULE_VARS_PORT_GROUPS) == NULL);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -269,9 +269,9 @@ static int SCRuleVarsNegativeTest02(void)
  */
 static int SCRuleVarsPositiveTest03(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -282,8 +282,8 @@ static int SCRuleVarsPositiveTest03(void)
             "[80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -294,9 +294,9 @@ static int SCRuleVarsPositiveTest03(void)
  */
 static int SCRuleVarsNegativeTest04(void)
 {
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
@@ -315,8 +315,8 @@ static int SCRuleVarsNegativeTest04(void)
     FAIL_IF_NOT_NULL(s);
 
     DetectEngineCtxFree(de_ctx);
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -350,9 +350,9 @@ static int SCRuleVarsMTest01(void)
     int result = 0;
     DetectEngineCtx *de_ctx = NULL;
 
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_mt_conf_string, strlen(dummy_mt_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_mt_conf_string, strlen(dummy_mt_conf_string));
 
     if ( (de_ctx = DetectEngineCtxInit()) == NULL)
         return 0;
@@ -387,8 +387,8 @@ static int SCRuleVarsMTest01(void)
         goto end;
 
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);

@@ -457,7 +457,7 @@ int LogFileWriteRedis(void *lf_ctx, const char *string, size_t string_len)
  *  \param log_ctx Log file context allocated by caller
  *  \retval 0 on success
  */
-int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
+int SCConfLogOpenRedis(SCConfNode *redis_node, void *lf_ctx)
 {
     LogFileCtx *log_ctx = lf_ctx;
 
@@ -471,13 +471,13 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
     int is_async = 0;
 
     if (redis_node) {
-        log_ctx->redis_setup.server = ConfNodeLookupChildValue(redis_node, "server");
-        log_ctx->redis_setup.key =  ConfNodeLookupChildValue(redis_node, "key");
+        log_ctx->redis_setup.server = SCConfNodeLookupChildValue(redis_node, "server");
+        log_ctx->redis_setup.key = SCConfNodeLookupChildValue(redis_node, "key");
 
-        redis_port =  ConfNodeLookupChildValue(redis_node, "port");
-        redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
+        redis_port = SCConfNodeLookupChildValue(redis_node, "port");
+        redis_mode = SCConfNodeLookupChildValue(redis_node, "mode");
 
-        (void)ConfGetChildValueBool(redis_node, "async", &is_async);
+        (void)SCConfGetChildValueBool(redis_node, "async", &is_async);
     }
     if (!log_ctx->redis_setup.server) {
         log_ctx->redis_setup.server = redis_default_server;
@@ -501,14 +501,14 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
     log_ctx->redis_setup.is_async = is_async;
     log_ctx->redis_setup.batch_size = 0;
     if (redis_node) {
-        ConfNode *pipelining = ConfNodeLookupChild(redis_node, "pipelining");
+        SCConfNode *pipelining = SCConfNodeLookupChild(redis_node, "pipelining");
         if (pipelining) {
             int enabled = 0;
             int ret;
             intmax_t val;
-            ret = ConfGetChildValueBool(pipelining, "enabled", &enabled);
+            ret = SCConfGetChildValueBool(pipelining, "enabled", &enabled);
             if (ret && enabled) {
-                ret = ConfGetChildValueInt(pipelining, "batch-size", &val);
+                ret = SCConfGetChildValueInt(pipelining, "batch-size", &val);
                 if (ret) {
                     log_ctx->redis_setup.batch_size = val;
                 } else {
@@ -532,10 +532,10 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         intmax_t maxlen;
         log_ctx->redis_setup.command = redis_xadd_cmd;
         log_ctx->redis_setup.format = redis_stream_format;
-        if (ConfGetChildValueBool(redis_node, "stream-trim-exact", &exact) == 0) {
+        if (SCConfGetChildValueBool(redis_node, "stream-trim-exact", &exact) == 0) {
             exact = 0;
         }
-        if (ConfGetChildValueInt(redis_node, "stream-maxlen", &maxlen) == 0) {
+        if (SCConfGetChildValueInt(redis_node, "stream-maxlen", &maxlen) == 0) {
             maxlen = REDIS_MAX_STREAM_LENGTH_DEFAULT;
         }
         if (maxlen > 0) {

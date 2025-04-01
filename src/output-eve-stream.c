@@ -126,16 +126,16 @@ static void EveStreamLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static uint16_t SetFlag(ConfNode *conf, const char *opt, const uint16_t inflag)
+static uint16_t SetFlag(SCConfNode *conf, const char *opt, const uint16_t inflag)
 {
-    const char *v = ConfNodeLookupChildValue(conf, opt);
-    if (v != NULL && ConfValIsTrue(v)) {
+    const char *v = SCConfNodeLookupChildValue(conf, opt);
+    if (v != NULL && SCConfValIsTrue(v)) {
         return inflag;
     }
     return 0;
 }
 
-static OutputInitResult EveStreamLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult EveStreamLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;

@@ -106,9 +106,9 @@ JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirectio
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 void OutputJsonBuilderBuffer(
         ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *js, OutputJsonThreadCtx *ctx);
-OutputInitResult OutputJsonInitCtx(ConfNode *);
+OutputInitResult OutputJsonInitCtx(SCConfNode *);
 
-OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
+OutputInitResult OutputJsonLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx);
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 

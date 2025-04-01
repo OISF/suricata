@@ -290,8 +290,8 @@ static void InitEal(void)
 {
     SCEnter();
     int retval;
-    ConfNode *param;
-    const ConfNode *eal_params = ConfGetNode("dpdk.eal-params");
+    SCConfNode *param;
+    const SCConfNode *eal_params = SCConfGetNode("dpdk.eal-params");
     struct Arguments args;
     char **eal_argv;
 
@@ -303,9 +303,9 @@ static void InitEal(void)
     ArgumentsAdd(&args, AllocAndSetArgument("suricata"));
 
     TAILQ_FOREACH (param, &eal_params->head, next) {
-        if (ConfNodeIsSequence(param)) {
+        if (SCConfNodeIsSequence(param)) {
             const char *key = param->name;
-            ConfNode *val;
+            SCConfNode *val;
             TAILQ_FOREACH (val, &param->head, next) {
                 ArgumentsAddOptionAndArgument(&args, key, (const char *)val->val);
             }
@@ -849,8 +849,8 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
 {
     SCEnter();
     int retval;
-    ConfNode *if_root;
-    ConfNode *if_default;
+    SCConfNode *if_root;
+    SCConfNode *if_default;
     const char *entry_str = NULL;
     intmax_t entry_int = 0;
     int entry_bool = 0;
@@ -865,19 +865,19 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
     }
 
-    retval = ConfSetRootAndDefaultNodes("dpdk.interfaces", iconf->iface, &if_root, &if_default);
+    retval = SCConfSetRootAndDefaultNodes("dpdk.interfaces", iconf->iface, &if_root, &if_default);
     if (retval < 0) {
         FatalError("failed to find DPDK configuration for the interface %s", iconf->iface);
     }
 
-    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.threads, &entry_str) != 1
+    retval = SCConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.threads, &entry_str) != 1
                      ? ConfigSetThreads(iconf, DPDK_CONFIG_DEFAULT_THREADS)
                      : ConfigSetThreads(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
     bool irq_enable;
-    retval = ConfGetChildValueBoolWithDefault(if_root, if_default, dpdk_yaml.irq_mode, &entry_bool);
+    retval = SCConfGetChildValueBoolWithDefault(if_root, if_default, dpdk_yaml.irq_mode, &entry_bool);
     if (retval != 1) {
         irq_enable = DPDK_CONFIG_DEFAULT_INTERRUPT_MODE;
     } else {
@@ -887,12 +887,12 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval != true)
         SCReturnInt(-EINVAL);
 
-    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
+    retval = SCConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
     if (retval != 1) {
         copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
     }
 
-    retval = ConfGetChildValueWithDefault(
+    retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.rx_descriptors, &entry_str) != 1
                      ? ConfigSetRxDescriptors(iconf, DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS,
                                dev_info.rx_desc_lim.nb_max)
@@ -901,7 +901,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
 
     bool iface_sends_pkts = ConfigIfaceSendsPkts(copy_mode_str);
-    retval = ConfGetChildValueWithDefault(
+    retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.tx_descriptors, &entry_str) != 1
                      ? ConfigSetTxDescriptors(iconf, DPDK_CONFIG_DEFAULT_TX_DESCRIPTORS,
                                dev_info.tx_desc_lim.nb_max, iface_sends_pkts)
@@ -927,54 +927,54 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
     }
 
-    retval = ConfGetChildValueWithDefault(
+    retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
                      ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE)
                      : ConfigSetMempoolSize(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueWithDefault(
+    retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_cache_size, &entry_str) != 1
                      ? ConfigSetMempoolCacheSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE)
                      : ConfigSetMempoolCacheSize(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueIntWithDefault(if_root, if_default, dpdk_yaml.mtu, &entry_int) != 1
+    retval = SCConfGetChildValueIntWithDefault(if_root, if_default, dpdk_yaml.mtu, &entry_int) != 1
                      ? ConfigSetMtu(iconf, DPDK_CONFIG_DEFAULT_MTU)
                      : ConfigSetMtu(iconf, entry_int);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.rss_hf, &entry_str) != 1
+    retval = SCConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.rss_hf, &entry_str) != 1
                      ? ConfigSetRSSHashFunctions(iconf, NULL)
                      : ConfigSetRSSHashFunctions(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueBoolWithDefault(
+    retval = SCConfGetChildValueBoolWithDefault(
                      if_root, if_default, dpdk_yaml.promisc, &entry_bool) != 1
                      ? ConfigSetPromiscuousMode(iconf, DPDK_CONFIG_DEFAULT_PROMISCUOUS_MODE)
                      : ConfigSetPromiscuousMode(iconf, entry_bool);
     if (retval != true)
         SCReturnInt(-EINVAL);
 
-    retval = ConfGetChildValueBoolWithDefault(
+    retval = SCConfGetChildValueBoolWithDefault(
                      if_root, if_default, dpdk_yaml.multicast, &entry_bool) != 1
                      ? ConfigSetMulticast(iconf, DPDK_CONFIG_DEFAULT_MULTICAST_MODE)
                      : ConfigSetMulticast(iconf, entry_bool);
     if (retval != true)
         SCReturnInt(-EINVAL);
 
-    retval = ConfGetChildValueBoolWithDefault(
+    retval = SCConfGetChildValueBoolWithDefault(
                      if_root, if_default, dpdk_yaml.checksum_checks, &entry_bool) != 1
                      ? ConfigSetChecksumChecks(iconf, DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION)
                      : ConfigSetChecksumChecks(iconf, entry_bool);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueBoolWithDefault(
+    retval = SCConfGetChildValueBoolWithDefault(
                      if_root, if_default, dpdk_yaml.checksum_checks_offload, &entry_bool) != 1
                      ? ConfigSetChecksumOffload(
                                iconf, DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD)
@@ -982,7 +982,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueBoolWithDefault(
+    retval = SCConfGetChildValueBoolWithDefault(
             if_root, if_default, dpdk_yaml.vlan_strip_offload, &entry_bool);
     if (retval != 1) {
         ConfigSetVlanStrip(iconf, DPDK_CONFIG_DEFAULT_VLAN_STRIP);
@@ -990,14 +990,14 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         ConfigSetVlanStrip(iconf, entry_bool);
     }
 
-    retval = ConfGetChildValueIntWithDefault(
+    retval = SCConfGetChildValueIntWithDefault(
                      if_root, if_default, dpdk_yaml.linkup_timeout, &entry_int) != 1
                      ? ConfigSetLinkupTimeout(iconf, DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT)
                      : ConfigSetLinkupTimeout(iconf, entry_int);
     if (retval < 0)
         SCReturnInt(retval);
 
-    retval = ConfGetChildValueWithDefault(
+    retval = SCConfGetChildValueWithDefault(
             if_root, if_default, dpdk_yaml.copy_iface, &copy_iface_str);
     if (retval != 1) {
         copy_iface_str = DPDK_CONFIG_DEFAULT_COPY_INTERFACE;
@@ -1848,13 +1848,13 @@ static int DPDKRunModeIsIPS(void)
 {
     /* Find initial node */
     const char dpdk_node_query[] = "dpdk.interfaces";
-    ConfNode *dpdk_node = ConfGetNode(dpdk_node_query);
+    SCConfNode *dpdk_node = SCConfGetNode(dpdk_node_query);
     if (dpdk_node == NULL) {
         FatalError("Unable to get %s configuration node", dpdk_node_query);
     }
 
     const char default_iface[] = "default";
-    ConfNode *if_default = ConfNodeLookupKeyValue(dpdk_node, "interface", default_iface);
+    SCConfNode *if_default = SCConfNodeLookupKeyValue(dpdk_node, "interface", default_iface);
     int nlive = LiveGetDeviceCount();
     bool has_ips = false;
     bool has_ids = false;
@@ -1863,7 +1863,7 @@ static int DPDKRunModeIsIPS(void)
         if (live_dev == NULL)
             FatalError("Unable to get device id %d from LiveDevice list", ldev);
 
-        ConfNode *if_root = ConfFindDeviceConfig(dpdk_node, live_dev);
+        SCConfNode *if_root = ConfFindDeviceConfig(dpdk_node, live_dev);
         if (if_root == NULL) {
             if (if_default == NULL)
                 FatalError("Unable to get %s or %s  interface", live_dev, default_iface);
@@ -1873,8 +1873,8 @@ static int DPDKRunModeIsIPS(void)
 
         const char *copymodestr = NULL;
         const char *copyifacestr = NULL;
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
-                ConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
+        if (SCConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
+                SCConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
             if (strcmp(copymodestr, "ips") == 0) {
                 has_ips = true;
             } else {

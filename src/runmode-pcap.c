@@ -62,9 +62,9 @@ static void PcapDerefConfig(void *conf)
 static void *ParsePcapConfig(const char *iface)
 {
     const char *threadsstr = NULL;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *pcap_node;
+    SCConfNode *if_root;
+    SCConfNode *if_default = NULL;
+    SCConfNode *pcap_node;
     PcapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     const char *tmpbpf;
     const char *tmpctype;
@@ -86,7 +86,7 @@ static void *ParsePcapConfig(const char *iface)
 
     aconf->buffer_size = 0;
     /* If set command line option has precedence over config */
-    if ((ConfGetInt("pcap.buffer-size", &value)) == 1) {
+    if ((SCConfGetInt("pcap.buffer-size", &value)) == 1) {
         if (value >= 0 && value <= INT_MAX) {
             SCLogInfo("Pcap will use %d buffer size", (int)value);
             aconf->buffer_size = (int)value;
@@ -100,7 +100,7 @@ static void *ParsePcapConfig(const char *iface)
 
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     aconf->bpf_filter = NULL;
-    if ((ConfGet("bpf-filter", &tmpbpf)) == 1) {
+    if ((SCConfGet("bpf-filter", &tmpbpf)) == 1) {
         aconf->bpf_filter = tmpbpf;
     }
 
@@ -109,7 +109,7 @@ static void *ParsePcapConfig(const char *iface)
     aconf->threads = 1;
 
     /* Find initial node */
-    pcap_node = ConfGetNode("pcap");
+    pcap_node = SCConfGetNode("pcap");
     if (pcap_node == NULL) {
         SCLogInfo("Unable to find pcap config using default value");
         return aconf;
@@ -132,7 +132,7 @@ static void *ParsePcapConfig(const char *iface)
         if_default = NULL;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
@@ -152,7 +152,7 @@ static void *ParsePcapConfig(const char *iface)
     if (aconf->buffer_size == 0) {
         const char *s_limit = NULL;
         int ret;
-        ret = ConfGetChildValueWithDefault(if_root, if_default, "buffer-size", &s_limit);
+        ret = SCConfGetChildValueWithDefault(if_root, if_default, "buffer-size", &s_limit);
         if (ret == 1 && s_limit) {
             uint64_t bsize = 0;
 
@@ -176,7 +176,7 @@ static void *ParsePcapConfig(const char *iface)
 
     if (aconf->bpf_filter == NULL) {
         /* set bpf filter if we have one */
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &tmpbpf) != 1) {
+        if (SCConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &tmpbpf) != 1) {
             SCLogDebug("could not get bpf or none specified");
         } else {
             aconf->bpf_filter = tmpbpf;
@@ -185,12 +185,12 @@ static void *ParsePcapConfig(const char *iface)
         SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpctype)) {
+        } else if (SCConfValIsTrue(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (ConfValIsFalse(tmpctype)) {
+        } else if (SCConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
             SCLogError("Invalid value for checksum-checks for %s", aconf->iface);
@@ -198,14 +198,14 @@ static void *ParsePcapConfig(const char *iface)
     }
 
     aconf->promisc = LIBPCAP_PROMISC;
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "promisc", &promisc) != 1) {
+    if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "promisc", &promisc) != 1) {
         SCLogDebug("could not get promisc or none specified");
     } else {
         aconf->promisc = promisc;
     }
 
     aconf->snaplen = 0;
-    if (ConfGetChildValueIntWithDefault(if_root, if_default, "snaplen", &snaplen) != 1) {
+    if (SCConfGetChildValueIntWithDefault(if_root, if_default, "snaplen", &snaplen) != 1) {
         SCLogDebug("could not get snaplen or none specified");
     } else if (snaplen < INT_MIN || snaplen > INT_MAX) {
         SCLogDebug("snaplen value is not in the accepted range");
@@ -234,7 +234,7 @@ int RunModeIdsPcapSingle(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("pcap.single-pcap-dev", &live_dev);
+    (void)SCConfGet("pcap.single-pcap-dev", &live_dev);
 
     ret = RunModeSetLiveCaptureSingle(ParsePcapConfig,
                                     PcapConfigGeThreadsCount,
@@ -273,7 +273,7 @@ int RunModeIdsPcapAutoFp(void)
     SCEnter();
     TimeModeSetLive();
 
-    (void) ConfGet("pcap.single-pcap-dev", &live_dev);
+    (void)SCConfGet("pcap.single-pcap-dev", &live_dev);
 
     ret = RunModeSetLiveCaptureAutoFp(ParsePcapConfig, PcapConfigGeThreadsCount, "ReceivePcap",
             "DecodePcap", thread_name_autofp, live_dev);
@@ -300,7 +300,7 @@ int RunModeIdsPcapWorkers(void)
 
     TimeModeSetLive();
 
-    (void) ConfGet("pcap.single-pcap-dev", &live_dev);
+    (void)SCConfGet("pcap.single-pcap-dev", &live_dev);
 
     ret = RunModeSetLiveCaptureWorkers(ParsePcapConfig, PcapConfigGeThreadsCount, "ReceivePcap",
             "DecodePcap", thread_name_workers, live_dev);
