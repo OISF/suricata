@@ -73,8 +73,7 @@ impl RdpTransaction {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_get_tx(
+unsafe extern "C" fn rdp_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RdpState);
@@ -88,14 +87,12 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_rdp_tx_get_progress(
+extern "C" fn rdp_tx_get_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // tx complete when `rs_rdp_tx_get_progress(...) == rs_rdp_tx_get_progress_complete(...)`
@@ -376,20 +373,17 @@ impl RdpState {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn rdp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut RdpState) });
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -404,8 +398,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 }
 
 /// probe for T.123 message, whether to client or to server
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
+unsafe extern "C" fn rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if !input.is_null() {
@@ -431,8 +424,7 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 // parse
 //
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_parse_ts(
+unsafe extern "C" fn rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
@@ -443,8 +435,7 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
     return state.parse_ts(buf);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rdp_parse_tc(
+unsafe extern "C" fn rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
@@ -465,26 +456,26 @@ export_state_data_get!(rdp_get_state_data, RdpState);
 const PARSER_NAME: &[u8] = b"rdp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_register_parser() {
+pub unsafe extern "C" fn SCRegisterRdpParser() {
     let default_port = std::ffi::CString::new("[3389]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_rdp_probe_ts_tc),
-        probe_tc: Some(rs_rdp_probe_ts_tc),
+        probe_ts: Some(rdp_probe_ts_tc),
+        probe_tc: Some(rdp_probe_ts_tc),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_rdp_state_new,
-        state_free: rs_rdp_state_free,
-        tx_free: rs_rdp_state_tx_free,
-        parse_ts: rs_rdp_parse_ts,
-        parse_tc: rs_rdp_parse_tc,
-        get_tx_count: rs_rdp_state_get_tx_count,
-        get_tx: rs_rdp_state_get_tx,
+        state_new: rdp_state_new,
+        state_free: rdp_state_free,
+        tx_free: rdp_state_tx_free,
+        parse_ts: rdp_parse_ts,
+        parse_tc: rdp_parse_tc,
+        get_tx_count: rdp_state_get_tx_count,
+        get_tx: rdp_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_rdp_tx_get_progress,
+        tx_get_progress: rdp_tx_get_progress,
         get_eventinfo: None,
         get_eventinfo_byid: None,
         localstorage_new: None,
