@@ -1343,6 +1343,10 @@ static OutputInitResult PcapLogInitCtx(SCConfNode *conf)
     int en;
     PCRE2_SIZE eo = 0;
 
+    if (g_pcap_data) {
+        FatalError("A pcap-log instance is already active, only one can be enabled.");
+    }
+
     PcapLogData *pl = SCCalloc(1, sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
         FatalError("Failed to allocate Memory for PcapLogData");
