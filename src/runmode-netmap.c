@@ -224,9 +224,7 @@ static int ParseNetmapSettings(
     }
 
     const char *tmpctype;
-    if (SCConfGetChildValueWithDefault(if_root, if_default,
-                "checksum-checks", &tmpctype) == 1)
-    {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             ns->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (SCConfValIsTrue(tmpctype)) {
@@ -239,9 +237,7 @@ static int ParseNetmapSettings(
     }
 
     const char *copymodestr;
-    if (SCConfGetChildValueWithDefault(if_root, if_default,
-                "copy-mode", &copymodestr) == 1)
-    {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
         if (strcmp(copymodestr, "ips") == 0) {
             ns->copy_mode = NETMAP_COPY_MODE_IPS;
         } else if (strcmp(copymodestr, "tap") == 0) {
@@ -315,8 +311,7 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     /* if we have a copy iface, parse that as well */
     if (netmap_node != NULL &&
-            SCConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1)
-    {
+            SCConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
             if_root = ConfFindDeviceConfig(netmap_node, out_iface);
             ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);

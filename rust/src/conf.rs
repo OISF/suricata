@@ -18,7 +18,6 @@
 //! Module for retrieving configuration details.
 
 use std::os::raw::c_char;
-use std::os::raw::c_void;
 use std::os::raw::c_int;
 use std::ffi::{CString, CStr};
 use std::ptr;
@@ -30,16 +29,11 @@ use nom7::{
     combinator::verify,
     IResult,
 };
-
-/// cbindgen:ignore
-extern {
-    fn SCConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
-    fn SCConfGetChildValue(conf: *const c_void, key: *const c_char,
-                         vptr: *mut *const c_char) -> i8;
-    fn SCConfGetChildValueBool(conf: *const c_void, key: *const c_char,
-                             vptr: *mut c_int) -> i8;
-    fn SCConfGetNode(key: *const c_char) -> *const c_void;
-}
+use suricata_sys::sys::SCConfGet;
+use suricata_sys::sys::SCConfGetChildValue;
+use suricata_sys::sys::SCConfGetChildValueBool;
+use suricata_sys::sys::SCConfGetNode;
+use suricata_sys::sys::SCConfNode;
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
     let key = if let Ok(key) = CString::new(key) {
@@ -92,12 +86,12 @@ pub fn conf_get_bool(key: &str) -> bool {
 /// Wrap a Suricata ConfNode and expose some of its methods with a
 /// Rust friendly interface.
 pub struct ConfNode {
-    pub conf: *const c_void,
+    pub conf: *const SCConfNode,
 }
 
 impl ConfNode {
 
-    pub fn wrap(conf: *const c_void) -> Self {
+    pub fn wrap(conf: *const SCConfNode) -> Self {
         return Self { conf }
     }
 

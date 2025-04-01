@@ -16,7 +16,8 @@
  */
 
 use std;
-use std::os::raw::c_void;
+
+use suricata_sys::sys::SCConfNode;
 
 use crate::conf::ConfNode;
 use crate::dhcp::dhcp::*;
@@ -244,7 +245,7 @@ fn format_addr_hex(input: &[u8]) -> String {
 }
 
 #[no_mangle]
-pub extern "C" fn SCDhcpLoggerNew(conf: *const c_void) -> *mut std::os::raw::c_void {
+pub extern "C" fn SCDhcpLoggerNew(conf: *const SCConfNode) -> *mut std::os::raw::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
     return Box::into_raw(boxed) as *mut _;

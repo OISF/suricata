@@ -877,7 +877,8 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
 
     bool irq_enable;
-    retval = SCConfGetChildValueBoolWithDefault(if_root, if_default, dpdk_yaml.irq_mode, &entry_bool);
+    retval = SCConfGetChildValueBoolWithDefault(
+            if_root, if_default, dpdk_yaml.irq_mode, &entry_bool);
     if (retval != 1) {
         irq_enable = DPDK_CONFIG_DEFAULT_INTERRUPT_MODE;
     } else {
@@ -887,7 +888,8 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval != true)
         SCReturnInt(-EINVAL);
 
-    retval = SCConfGetChildValueWithDefault(if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
+    retval = SCConfGetChildValueWithDefault(
+            if_root, if_default, dpdk_yaml.copy_mode, &copy_mode_str);
     if (retval != 1) {
         copy_mode_str = DPDK_CONFIG_DEFAULT_COPY_MODE;
     }
