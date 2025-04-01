@@ -122,3 +122,27 @@ Example of a signature that would alert if a packet contains the MIME field ``da
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email date"; :example-rule-emphasis:`email.date; content:"Fri, 21 Apr 2023 05:10:36 +0000";` sid:1;)
+
+email.x_mailer
+--------------
+
+Matches the MIME ``X-Mailer`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.x_mailer; content:"<content to match against>";
+
+``email.x_mailer`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.x_mailer``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``x-mailer`` with the value ``Microsoft Office Outlook, Build 11.0.5510``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email x-mailer"; :example-rule-emphasis:`email.x_mailer; content:"Microsoft Office Outlook, Build 11.0.5510";` sid:1;)
