@@ -472,7 +472,7 @@ int StreamTcpAppLayerIsDisabled(Flow *f)
 static int StreamTcpReassemblyConfig(bool quiet)
 {
     uint32_t segment_prealloc = 2048;
-    ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
+    SCConfNode *seg = SCConfGetNode("stream.reassembly.segment-prealloc");
     if (seg) {
         uint32_t prealloc = 0;
         if (StringParseUint32(&prealloc, 10, (uint16_t)strlen(seg->val), seg->val) < 0) {
@@ -488,7 +488,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.prealloc_segments = segment_prealloc;
 
     int overlap_diff_data = 0;
-    (void)ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
+    (void)SCConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
     if (overlap_diff_data) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
@@ -497,7 +497,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     }
 
     uint16_t max_regions = 8;
-    ConfNode *mr = ConfGetNode("stream.reassembly.max-regions");
+    SCConfNode *mr = SCConfGetNode("stream.reassembly.max-regions");
     if (mr) {
         uint16_t max_r = 0;
         if (StringParseUint16(&max_r, 10, (uint16_t)strlen(mr->val), mr->val) < 0) {

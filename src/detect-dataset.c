@@ -313,7 +313,7 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     SCLogDebug("save %s", save);
 
     int allow_save = 1;
-    if (ConfGetBool("datasets.rules.allow-write", &allow_save)) {
+    if (SCConfGetBool("datasets.rules.allow-write", &allow_save)) {
         if (!allow_save) {
             SCLogError("Rules containing save/state datasets have been disabled");
             return -1;
@@ -321,7 +321,7 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     }
 
     int allow_absolute = 0;
-    (void)ConfGetBool("datasets.rules.allow-absolute-filenames", &allow_absolute);
+    (void)SCConfGetBool("datasets.rules.allow-absolute-filenames", &allow_absolute);
     if (allow_absolute) {
         SCLogNotice("Allowing absolute filename for dataset rule: %s", save);
     } else {

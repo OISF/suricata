@@ -1074,7 +1074,7 @@ static const char *StreamTcpParseOSPolicy(char *conf_var_name)
         goto end;
     }
 
-    if (ConfGet(conf_var_full_name, &conf_var_value) != 1) {
+    if (SCConfGet(conf_var_full_name, &conf_var_value) != 1) {
         SCLogError("Error in getting conf value for conf name %s", conf_var_full_name);
         goto end;
     }
@@ -1124,9 +1124,9 @@ static int StreamTcpTest14(void)
     StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -1242,8 +1242,8 @@ static int StreamTcpTest14(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
@@ -1514,9 +1514,9 @@ static int StreamTcpTest15(void)
     StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -1632,8 +1632,8 @@ static int StreamTcpTest15(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
@@ -1676,9 +1676,9 @@ static int StreamTcpTest16(void)
     StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -1794,8 +1794,8 @@ static int StreamTcpTest16(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
@@ -1839,9 +1839,9 @@ static int StreamTcpTest17(void)
     StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -1957,8 +1957,8 @@ static int StreamTcpTest17(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
@@ -1987,9 +1987,9 @@ static int StreamTcpTest18(void)
     SCHInfoCleanResources();
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -2006,8 +2006,8 @@ static int StreamTcpTest18(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2034,9 +2034,9 @@ static int StreamTcpTest19(void)
     SCHInfoCleanResources();
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -2056,8 +2056,8 @@ static int StreamTcpTest19(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2084,9 +2084,9 @@ static int StreamTcpTest20(void)
     SCHInfoCleanResources();
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -2106,8 +2106,8 @@ static int StreamTcpTest20(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2134,9 +2134,9 @@ static int StreamTcpTest21(void)
     SCHInfoCleanResources();
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -2156,8 +2156,8 @@ static int StreamTcpTest21(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2184,9 +2184,9 @@ static int StreamTcpTest22(void)
     SCHInfoCleanResources();
 
     /* Load the config string into parser */
-    ConfCreateContextBackup();
-    ConfInit();
-    ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
 
     /* Get the IP address as string and add it to Host info tree for lookups */
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
@@ -2206,8 +2206,8 @@ static int StreamTcpTest22(void)
 
     ret = 1;
 end:
-    ConfDeInit();
-    ConfRestoreContextBackup();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
     SCFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;

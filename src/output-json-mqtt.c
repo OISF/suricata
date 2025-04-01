@@ -102,11 +102,11 @@ static void OutputMQTTLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonMQTTLogParseConfig(ConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
+static void JsonMQTTLogParseConfig(SCConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
 {
-    const char *query = ConfNodeLookupChildValue(conf, "passwords");
+    const char *query = SCConfNodeLookupChildValue(conf, "passwords");
     if (query != NULL) {
-        if (ConfValIsTrue(query)) {
+        if (SCConfValIsTrue(query)) {
             mqttlog_ctx->flags |= MQTT_LOG_PASSWORDS;
         } else {
             mqttlog_ctx->flags &= ~MQTT_LOG_PASSWORDS;
@@ -115,7 +115,7 @@ static void JsonMQTTLogParseConfig(ConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
         mqttlog_ctx->flags |= MQTT_LOG_PASSWORDS;
     }
     uint32_t max_log_len = MQTT_DEFAULT_MAXLOGLEN;
-    query = ConfNodeLookupChildValue(conf, "string-log-limit");
+    query = SCConfNodeLookupChildValue(conf, "string-log-limit");
     if (query != NULL) {
         if (ParseSizeStringU32(query, &max_log_len) < 0) {
             SCLogError("Error parsing string-log-limit from config - %s, ", query);
@@ -125,8 +125,7 @@ static void JsonMQTTLogParseConfig(ConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
     mqttlog_ctx->max_log_len = max_log_len;
 }
 
-static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputMQTTLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;

@@ -299,7 +299,7 @@ static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputFileLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
@@ -315,14 +315,14 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     if (conf) {
-        const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
-        if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
+        const char *force_filestore = SCConfNodeLookupChildValue(conf, "force-filestore");
+        if (force_filestore != NULL && SCConfValIsTrue(force_filestore)) {
             FileForceFilestoreEnable();
             SCLogConfig("forcing filestore of all files");
         }
 
-        const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
-        if (force_magic != NULL && ConfValIsTrue(force_magic)) {
+        const char *force_magic = SCConfNodeLookupChildValue(conf, "force-magic");
+        if (force_magic != NULL && SCConfValIsTrue(force_magic)) {
             FileForceMagicEnable();
             SCLogConfig("forcing magic lookup for logged files");
         }
@@ -330,7 +330,7 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
         FileForceHashParseCfg(conf);
     }
 
-    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+    if (conf != NULL && SCConfNodeLookupChild(conf, "xff") != NULL) {
         output_file_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
         if (output_file_ctx->xff_cfg != NULL) {
             HttpXFFGetCfg(conf, output_file_ctx->xff_cfg);

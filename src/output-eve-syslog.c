@@ -41,14 +41,14 @@ typedef struct Context_ {
     int alert_syslog_level;
 } Context;
 
-static int SyslogInit(const ConfNode *conf, const bool threaded, void **init_data)
+static int SyslogInit(const SCConfNode *conf, const bool threaded, void **init_data)
 {
     Context *context = SCCalloc(1, sizeof(Context));
     if (context == NULL) {
         SCLogError("Unable to allocate context for %s", OUTPUT_NAME);
         return -1;
     }
-    const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
+    const char *facility_s = SCConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
         facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
     }
@@ -61,7 +61,7 @@ static int SyslogInit(const ConfNode *conf, const bool threaded, void **init_dat
         facility = DEFAULT_ALERT_SYSLOG_FACILITY;
     }
 
-    const char *level_s = ConfNodeLookupChildValue(conf, "level");
+    const char *level_s = SCConfNodeLookupChildValue(conf, "level");
     if (level_s != NULL) {
         int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
         if (level != -1) {
@@ -69,7 +69,7 @@ static int SyslogInit(const ConfNode *conf, const bool threaded, void **init_dat
         }
     }
 
-    const char *ident = ConfNodeLookupChildValue(conf, "identity");
+    const char *ident = SCConfNodeLookupChildValue(conf, "identity");
     /* if null we just pass that to openlog, which will then
      * figure it out by itself. */
 

@@ -43,7 +43,7 @@ typedef struct HttpXFFCfg_ {
     const char *header; /**< XFF header name */
 } HttpXFFCfg;
 
-void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result);
+void HttpXFFGetCfg(SCConfNode *conf, HttpXFFCfg *result);
 
 int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 

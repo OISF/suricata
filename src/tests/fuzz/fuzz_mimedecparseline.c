@@ -1,9 +1,8 @@
 /**
  * @file
  * @author Philippe Antoine <contact@catenacyber.fr>
- * fuzz target for ConfYamlLoadString
+ * fuzz target for SCConfYamlLoadString
  */
-
 
 #include "suricata-common.h"
 #include "suricata.h"

@@ -213,7 +213,7 @@ void NFQInitConfig(bool quiet)
 
     memset(&nfq_config,  0, sizeof(nfq_config));
 
-    if ((ConfGet("nfq.mode", &nfq_mode)) == 0) {
+    if ((SCConfGet("nfq.mode", &nfq_mode)) == 0) {
         nfq_config.mode = NFQ_ACCEPT_MODE;
     } else {
         if (!strcmp("accept", nfq_mode)) {
@@ -227,7 +227,7 @@ void NFQInitConfig(bool quiet)
         }
     }
 
-    (void)ConfGetBool("nfq.fail-open", &boolval);
+    (void)SCConfGetBool("nfq.fail-open", &boolval);
     if (boolval) {
 #ifdef HAVE_NFQ_SET_QUEUE_FLAGS
         SCLogInfo("Enabling fail-open on queue");
@@ -237,27 +237,27 @@ void NFQInitConfig(bool quiet)
 #endif
     }
 
-    if ((ConfGetInt("nfq.repeat-mark", &value)) == 1) {
+    if ((SCConfGetInt("nfq.repeat-mark", &value)) == 1) {
         nfq_config.mark = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.repeat-mask", &value)) == 1) {
+    if ((SCConfGetInt("nfq.repeat-mask", &value)) == 1) {
         nfq_config.mask = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.bypass-mark", &value)) == 1) {
+    if ((SCConfGetInt("nfq.bypass-mark", &value)) == 1) {
         nfq_config.bypass_mark = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.bypass-mask", &value)) == 1) {
+    if ((SCConfGetInt("nfq.bypass-mask", &value)) == 1) {
         nfq_config.bypass_mask = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.route-queue", &value)) == 1) {
+    if ((SCConfGetInt("nfq.route-queue", &value)) == 1) {
         nfq_config.next_queue = ((uint32_t)value) << 16;
     }
 
-    if ((ConfGetInt("nfq.batchcount", &value)) == 1) {
+    if ((SCConfGetInt("nfq.batchcount", &value)) == 1) {
 #ifdef HAVE_NFQ_SET_VERDICT_BATCH
         if (value > 255) {
             SCLogWarning("nfq.batchcount cannot exceed 255.");

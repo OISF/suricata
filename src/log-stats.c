@@ -207,7 +207,7 @@ TmEcode LogStatsLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if successful
  * */
-static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogStatsLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
@@ -230,26 +230,26 @@ static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
     statslog_ctx->flags = LOG_STATS_TOTALS;
 
     if (conf != NULL) {
-        const char *totals = ConfNodeLookupChildValue(conf, "totals");
-        const char *threads = ConfNodeLookupChildValue(conf, "threads");
-        const char *nulls = ConfNodeLookupChildValue(conf, "null-values");
+        const char *totals = SCConfNodeLookupChildValue(conf, "totals");
+        const char *threads = SCConfNodeLookupChildValue(conf, "threads");
+        const char *nulls = SCConfNodeLookupChildValue(conf, "null-values");
         SCLogDebug("totals %s threads %s", totals, threads);
 
-        if ((totals != NULL && ConfValIsFalse(totals)) &&
-                (threads != NULL && ConfValIsFalse(threads))) {
+        if ((totals != NULL && SCConfValIsFalse(totals)) &&
+                (threads != NULL && SCConfValIsFalse(threads))) {
             LogFileFreeCtx(file_ctx);
             SCFree(statslog_ctx);
             SCLogError("Cannot disable both totals and threads in stats logging");
             return result;
         }
 
-        if (totals != NULL && ConfValIsFalse(totals)) {
+        if (totals != NULL && SCConfValIsFalse(totals)) {
             statslog_ctx->flags &= ~LOG_STATS_TOTALS;
         }
-        if (threads != NULL && ConfValIsTrue(threads)) {
+        if (threads != NULL && SCConfValIsTrue(threads)) {
             statslog_ctx->flags |= LOG_STATS_THREADS;
         }
-        if (nulls != NULL && ConfValIsTrue(nulls)) {
+        if (nulls != NULL && SCConfValIsTrue(nulls)) {
             statslog_ctx->flags |= LOG_STATS_NULLS;
         }
         SCLogDebug("statslog_ctx->flags %08x", statslog_ctx->flags);

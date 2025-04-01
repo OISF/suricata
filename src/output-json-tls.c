@@ -550,7 +550,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
+static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
 {
     OutputTlsCtx *tls_ctx = SCCalloc(1, sizeof(OutputTlsCtx));
     if (unlikely(tls_ctx == NULL))
@@ -562,17 +562,17 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     if (conf == NULL)
         return tls_ctx;
 
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    const char *extended = SCConfNodeLookupChildValue(conf, "extended");
     if (extended) {
-        if (ConfValIsTrue(extended)) {
+        if (SCConfValIsTrue(extended)) {
             tls_ctx->fields = EXTENDED_FIELDS;
         }
     }
 
-    ConfNode *custom = ConfNodeLookupChild(conf, "custom");
+    SCConfNode *custom = SCConfNodeLookupChild(conf, "custom");
     if (custom) {
         tls_ctx->fields = 0;
-        ConfNode *field;
+        SCConfNode *field;
         TAILQ_FOREACH(field, &custom->head, next)
         {
             bool valid = false;
@@ -591,8 +591,8 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
         }
     }
 
-    const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
-    if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
+    const char *session_resumption = SCConfNodeLookupChildValue(conf, "session-resumption");
+    if (session_resumption == NULL || SCConfValIsTrue(session_resumption)) {
         tls_ctx->fields |= LOG_TLS_FIELD_SESSION_RESUMED;
         tls_ctx->session_resumed = true;
     }
@@ -631,7 +631,7 @@ static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputTlsLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;

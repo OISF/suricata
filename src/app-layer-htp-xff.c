@@ -199,17 +199,17 @@ end:
 /**
  * \brief Function to return XFF configuration from a configuration node.
  */
-void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
+void HttpXFFGetCfg(SCConfNode *conf, HttpXFFCfg *result)
 {
     BUG_ON(result == NULL);
 
-    ConfNode *xff_node = NULL;
+    SCConfNode *xff_node = NULL;
 
     if (conf != NULL)
-        xff_node = ConfNodeLookupChild(conf, "xff");
+        xff_node = SCConfNodeLookupChild(conf, "xff");
 
-    if (xff_node != NULL && ConfNodeChildValueIsTrue(xff_node, "enabled")) {
-        const char *xff_mode = ConfNodeLookupChildValue(xff_node, "mode");
+    if (xff_node != NULL && SCConfNodeChildValueIsTrue(xff_node, "enabled")) {
+        const char *xff_mode = SCConfNodeLookupChildValue(xff_node, "mode");
 
         if (xff_mode != NULL && strcasecmp(xff_mode, "overwrite") == 0) {
             result->flags |= XFF_OVERWRITE;
@@ -224,7 +224,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             result->flags |= XFF_EXTRADATA;
         }
 
-        const char *xff_deployment = ConfNodeLookupChildValue(xff_node, "deployment");
+        const char *xff_deployment = SCConfNodeLookupChildValue(xff_node, "deployment");
 
         if (xff_deployment != NULL && strcasecmp(xff_deployment, "forward") == 0) {
             result->flags |= XFF_FORWARD;
@@ -240,7 +240,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             result->flags |= XFF_REVERSE;
         }
 
-        const char *xff_header = ConfNodeLookupChildValue(xff_node, "header");
+        const char *xff_header = SCConfNodeLookupChildValue(xff_node, "header");
 
         if (xff_header != NULL) {
             result->header = (char *) xff_header;
@@ -248,8 +248,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             SCLogWarning("The XFF header hasn't been defined, using the default %s", XFF_DEFAULT);
             result->header = XFF_DEFAULT;
         }
-    }
-    else {
+    } else {
         result->flags = XFF_DISABLED;
     }
 }

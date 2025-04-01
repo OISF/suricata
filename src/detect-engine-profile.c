@@ -62,7 +62,7 @@ void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupH
     jb_close(js); // final close
 
     const char *filename = "packet_inspected_rules.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char log_path[PATH_MAX] = "";
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
 
@@ -106,7 +106,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
     jb_close(js); // final close
 
     const char *filename = "packet_inspected_rules.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char log_path[PATH_MAX] = "";
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
 

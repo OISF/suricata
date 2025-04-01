@@ -524,7 +524,7 @@ static char *SRepCompleteFilePath(char *file)
 
     /* Path not specified */
     if (PathIsRelative(file)) {
-        if (ConfGet("default-reputation-path", &defaultpath) == 1) {
+        if (SCConfGet("default-reputation-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(file) + 2);
@@ -565,8 +565,8 @@ static char *SRepCompleteFilePath(char *file)
  */
 int SRepInit(DetectEngineCtx *de_ctx)
 {
-    ConfNode *files;
-    ConfNode *file = NULL;
+    SCConfNode *files;
+    SCConfNode *file = NULL;
     const char *filename = NULL;
     int init = 0;
 
@@ -587,8 +587,8 @@ int SRepInit(DetectEngineCtx *de_ctx)
     }
 
     /* if both settings are missing, we assume the user doesn't want ip rep */
-    (void)ConfGet("reputation-categories-file", &filename);
-    files = ConfGetNode("reputation-files");
+    (void)SCConfGet("reputation-categories-file", &filename);
+    files = SCConfGetNode("reputation-files");
     if (filename == NULL && files == NULL) {
         SCLogConfig("IP reputation disabled");
         return 0;

@@ -25,6 +25,6 @@
 #define SURICATA_ALERT_FASTLOG_H
 
 void AlertFastLogRegister(void);
-OutputInitResult AlertFastLogInitCtx(ConfNode *);
+OutputInitResult AlertFastLogInitCtx(SCConfNode *);
 
 #endif /* SURICATA_ALERT_FASTLOG_H */

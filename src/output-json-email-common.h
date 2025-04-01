@@ -38,6 +38,6 @@ typedef struct JsonEmailLogThread_ {
 TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id);
 bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
-void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx);
+void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_EMAIL_COMMON_H */

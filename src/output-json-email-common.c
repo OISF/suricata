@@ -201,21 +201,21 @@ bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
     return false;
 }
 
-void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
+void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
 {
     if (conf) {
-        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+        const char *extended = SCConfNodeLookupChildValue(conf, "extended");
 
         if (extended != NULL) {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 email_ctx->flags = LOG_EMAIL_EXTENDED;
             }
         }
 
         email_ctx->fields  = 0;
-        ConfNode *custom;
-        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
-            ConfNode *field;
+        SCConfNode *custom;
+        if ((custom = SCConfNodeLookupChild(conf, "custom")) != NULL) {
+            SCConfNode *field;
             TAILQ_FOREACH (field, &custom->head, next) {
                 int f = 0;
                 while (email_fields[f].config_field) {
@@ -230,9 +230,9 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
         }
 
         email_ctx->flags  = 0;
-        ConfNode *md5_conf;
-        if ((md5_conf = ConfNodeLookupChild(conf, "md5")) != NULL) {
-            ConfNode *field;
+        SCConfNode *md5_conf;
+        if ((md5_conf = SCConfNodeLookupChild(conf, "md5")) != NULL) {
+            SCConfNode *field;
             TAILQ_FOREACH (field, &md5_conf->head, next) {
                 if (strcmp("body", field->val) == 0) {
                     SCLogInfo("Going to log the md5 sum of email body");

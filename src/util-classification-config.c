@@ -58,7 +58,7 @@ static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
         const char *classtype, const char *classtype_desc, int priority);
 static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
 
-void SCClassConfInit(DetectEngineCtx *de_ctx)
+void SCClassSCConfInit(DetectEngineCtx *de_ctx)
 {
     int en;
     PCRE2_SIZE eo;
@@ -160,13 +160,13 @@ static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
-        if (ConfGet(config_value, &log_filename) != 1) {
-            if (ConfGet("classification-file", &log_filename) != 1) {
+        if (SCConfGet(config_value, &log_filename) != 1) {
+            if (SCConfGet("classification-file", &log_filename) != 1) {
                 log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
             }
         }
     } else {
-        if (ConfGet("classification-file", &log_filename) != 1) {
+        if (SCConfGet("classification-file", &log_filename) != 1) {
             log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
         }
     }

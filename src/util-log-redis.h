@@ -61,7 +61,7 @@ typedef struct SCLogRedisContext_ {
 } SCLogRedisContext;
 
 void SCLogRedisInit(void);
-int SCConfLogOpenRedis(ConfNode *, void *);
+int SCConfLogOpenRedis(SCConfNode *, void *);
 int LogFileWriteRedis(void *, const char *, size_t);
 
 #endif /* HAVE_LIBHIREDIS */

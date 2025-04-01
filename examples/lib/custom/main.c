@@ -193,12 +193,12 @@ int main(int argc, char **argv)
     }
 
     /* Set "offline" runmode to replay a pcap in library mode. */
-    if (!ConfSetFromString("runmode=offline", 1)) {
+    if (!SCConfSetFromString("runmode=offline", 1)) {
         exit(EXIT_FAILURE);
     }
 
     /* Force logging to the current directory. */
-    ConfSetFromString("default-log-dir=.", 1);
+    SCConfSetFromString("default-log-dir=.", 1);
 
     if (LiveRegisterDevice("lib0") < 0) {
         fprintf(stderr, "LiveRegisterDevice failed");

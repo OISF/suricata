@@ -535,7 +535,7 @@ void FlowInitConfig(bool quiet)
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
     intmax_t val = 0;
-    if (ConfGetInt("flow.emergency-recovery", &val) == 1) {
+    if (SCConfGetInt("flow.emergency-recovery", &val) == 1) {
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
@@ -554,8 +554,7 @@ void FlowInitConfig(bool quiet)
 
     /** set config values for memcap, prealloc and hash_size */
     uint64_t flow_memcap_copy = 0;
-    if ((ConfGet("flow.memcap", &conf_val)) == 1)
-    {
+    if ((SCConfGet("flow.memcap", &conf_val)) == 1) {
         if (conf_val == NULL) {
             FatalError("Invalid value for flow.memcap: NULL");
         }
@@ -569,8 +568,7 @@ void FlowInitConfig(bool quiet)
             SC_ATOMIC_SET(flow_config.memcap, flow_memcap_copy);
         }
     }
-    if ((ConfGet("flow.hash-size", &conf_val)) == 1)
-    {
+    if ((SCConfGet("flow.hash-size", &conf_val)) == 1) {
         if (conf_val == NULL) {
             FatalError("Invalid value for flow.hash-size: NULL");
         }
@@ -582,8 +580,7 @@ void FlowInitConfig(bool quiet)
                        "1-4294967295");
         }
     }
-    if ((ConfGet("flow.prealloc", &conf_val)) == 1)
-    {
+    if ((SCConfGet("flow.prealloc", &conf_val)) == 1) {
         if (conf_val == NULL) {
             FatalError("Invalid value for flow.prealloc: NULL");
         }
@@ -756,25 +753,22 @@ void FlowInitFlowProto(void)
     const char *emergency_closed = NULL;
     const char *emergency_bypassed = NULL;
 
-    ConfNode *flow_timeouts = ConfGetNode("flow-timeouts");
+    SCConfNode *flow_timeouts = SCConfGetNode("flow-timeouts");
     if (flow_timeouts != NULL) {
-        ConfNode *proto = NULL;
+        SCConfNode *proto = NULL;
         uint32_t configval = 0;
 
         /* Defaults. */
-        proto = ConfNodeLookupChild(flow_timeouts, "default");
+        proto = SCConfNodeLookupChild(flow_timeouts, "default");
         if (proto != NULL) {
-            new = ConfNodeLookupChildValue(proto, "new");
-            established = ConfNodeLookupChildValue(proto, "established");
-            closed = ConfNodeLookupChildValue(proto, "closed");
-            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
-            emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency-established");
-            emergency_closed = ConfNodeLookupChildValue(proto,
-                "emergency-closed");
-            emergency_bypassed = ConfNodeLookupChildValue(proto,
-                "emergency-bypassed");
+            new = SCConfNodeLookupChildValue(proto, "new");
+            established = SCConfNodeLookupChildValue(proto, "established");
+            closed = SCConfNodeLookupChildValue(proto, "closed");
+            bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
+            emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
+            emergency_closed = SCConfNodeLookupChildValue(proto, "emergency-closed");
+            emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -830,19 +824,16 @@ void FlowInitFlowProto(void)
         }
 
         /* TCP. */
-        proto = ConfNodeLookupChild(flow_timeouts, "tcp");
+        proto = SCConfNodeLookupChild(flow_timeouts, "tcp");
         if (proto != NULL) {
-            new = ConfNodeLookupChildValue(proto, "new");
-            established = ConfNodeLookupChildValue(proto, "established");
-            closed = ConfNodeLookupChildValue(proto, "closed");
-            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
-            emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency-established");
-            emergency_closed = ConfNodeLookupChildValue(proto,
-                "emergency-closed");
-            emergency_bypassed = ConfNodeLookupChildValue(proto,
-                "emergency-bypassed");
+            new = SCConfNodeLookupChildValue(proto, "new");
+            established = SCConfNodeLookupChildValue(proto, "established");
+            closed = SCConfNodeLookupChildValue(proto, "closed");
+            bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
+            emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
+            emergency_closed = SCConfNodeLookupChildValue(proto, "emergency-closed");
+            emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -898,16 +889,14 @@ void FlowInitFlowProto(void)
         }
 
         /* UDP. */
-        proto = ConfNodeLookupChild(flow_timeouts, "udp");
+        proto = SCConfNodeLookupChild(flow_timeouts, "udp");
         if (proto != NULL) {
-            new = ConfNodeLookupChildValue(proto, "new");
-            established = ConfNodeLookupChildValue(proto, "established");
-            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
-            emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency-established");
-            emergency_bypassed = ConfNodeLookupChildValue(proto,
-                "emergency-bypassed");
+            new = SCConfNodeLookupChildValue(proto, "new");
+            established = SCConfNodeLookupChildValue(proto, "established");
+            bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
+            emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
+            emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {
@@ -950,16 +939,14 @@ void FlowInitFlowProto(void)
         }
 
         /* ICMP. */
-        proto = ConfNodeLookupChild(flow_timeouts, "icmp");
+        proto = SCConfNodeLookupChild(flow_timeouts, "icmp");
         if (proto != NULL) {
-            new = ConfNodeLookupChildValue(proto, "new");
-            established = ConfNodeLookupChildValue(proto, "established");
-            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
-            emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency-established");
-            emergency_bypassed = ConfNodeLookupChildValue(proto,
-                "emergency-bypassed");
+            new = SCConfNodeLookupChildValue(proto, "new");
+            established = SCConfNodeLookupChildValue(proto, "established");
+            bypassed = SCConfNodeLookupChildValue(proto, "bypassed");
+            emergency_new = SCConfNodeLookupChildValue(proto, "emergency-new");
+            emergency_established = SCConfNodeLookupChildValue(proto, "emergency-established");
+            emergency_bypassed = SCConfNodeLookupChildValue(proto, "emergency-bypassed");
 
             if (new != NULL &&
                 StringParseUint32(&configval, 10, strlen(new), new) > 0) {

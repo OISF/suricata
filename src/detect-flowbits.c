@@ -793,7 +793,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
     jb_close(js); // object
 
     const char *filename = "flowbits.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char log_path[PATH_MAX] = "";
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
 

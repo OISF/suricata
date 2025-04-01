@@ -966,7 +966,7 @@ static void EBPFRedirectMapAddCPU(int i, void *data)
     }
 }
 
-void EBPFBuildCPUSet(ConfNode *node, char *iface)
+void EBPFBuildCPUSet(SCConfNode *node, char *iface)
 {
     uint32_t key0 = 0;
     int mapfd = EBPFGetMapFDByName(iface, "cpus_count");

@@ -32,7 +32,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //global init
         InitGlobal();
         SCRunmodeSet(RUNMODE_UNITTEST);
-        if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
+        if (SCConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
         MpmTableSetup();

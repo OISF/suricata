@@ -231,7 +231,7 @@ TmEcode AlertFastLogThreadDeinit(ThreadVars *t, void *data)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-OutputInitResult AlertFastLogInitCtx(ConfNode *conf)
+OutputInitResult AlertFastLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     LogFileCtx *logfile_ctx = LogFileNewCtx();

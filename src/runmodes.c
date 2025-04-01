@@ -287,7 +287,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
 {
     const char *custom_mode = NULL;
     const char *val = NULL;
-    if (ConfGet("runmode", &val) != 1) {
+    if (SCConfGet("runmode", &val) != 1) {
         custom_mode = NULL;
     } else {
         custom_mode = val;
@@ -651,15 +651,16 @@ static void SetupOutput(
     }
 }
 
-static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
+static void RunModeInitializeEveOutput(
+        SCConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
 {
-    ConfNode *types = ConfNodeLookupChild(conf, "types");
+    SCConfNode *types = SCConfNodeLookupChild(conf, "types");
     SCLogDebug("types %p", types);
     if (types == NULL) {
         return;
     }
 
-    ConfNode *type = NULL;
+    SCConfNode *type = NULL;
     TAILQ_FOREACH(type, &types->head, next) {
         int sub_count = 0;
         char subname[256];
@@ -673,11 +674,10 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx, Lo
 
         SCLogConfig("enabling 'eve-log' module '%s'", type->val);
 
-        ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
+        SCConfNode *sub_output_config = SCConfNodeLookupChild(type, type->val);
         if (sub_output_config != NULL) {
-            const char *enabled = ConfNodeLookupChildValue(
-                sub_output_config, "enabled");
-            if (enabled != NULL && !ConfValIsTrue(enabled)) {
+            const char *enabled = SCConfNodeLookupChildValue(sub_output_config, "enabled");
+            if (enabled != NULL && !SCConfValIsTrue(enabled)) {
                 continue;
             }
         }
@@ -717,19 +717,20 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx, Lo
     }
 }
 
-static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
+static void RunModeInitializeLuaOutput(
+        SCConfNode *conf, OutputCtx *parent_ctx, LoggerId *logger_bits)
 {
     OutputModule *lua_module = OutputGetModuleByConfName("lua");
     BUG_ON(lua_module == NULL);
 
-    ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
+    SCConfNode *scripts = SCConfNodeLookupChild(conf, "scripts");
     BUG_ON(scripts == NULL); //TODO
 
     OutputModule *m;
     TAILQ_FOREACH(m, &parent_ctx->submodules, entries) {
         SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
 
-        ConfNode *script = NULL;
+        SCConfNode *script = NULL;
         TAILQ_FOREACH(script, &scripts->head, next) {
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
@@ -757,13 +758,13 @@ extern bool g_filedata_logger_enabled;
  */
 void RunModeInitializeOutputs(void)
 {
-    ConfNode *outputs = ConfGetNode("outputs");
+    SCConfNode *outputs = SCConfGetNode("outputs");
     if (outputs == NULL) {
         /* No "outputs" section in the configuration. */
         return;
     }
 
-    ConfNode *output, *output_config;
+    SCConfNode *output, *output_config;
     const char *enabled;
     char tls_log_enabled = 0;
     char tls_store_present = 0;
@@ -773,7 +774,7 @@ void RunModeInitializeOutputs(void)
     memset(logger_bits, 0, g_alproto_max * sizeof(LoggerId));
     TAILQ_FOREACH(output, &outputs->head, next) {
 
-        output_config = ConfNodeLookupChild(output, output->val);
+        output_config = SCConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
             /* Shouldn't happen. */
             FatalError("Failed to lookup configuration child node: %s", output->val);
@@ -783,8 +784,8 @@ void RunModeInitializeOutputs(void)
             tls_store_present = 1;
         }
 
-        enabled = ConfNodeLookupChildValue(output_config, "enabled");
-        if (enabled == NULL || !ConfValIsTrue(enabled)) {
+        enabled = SCConfNodeLookupChildValue(output_config, "enabled");
+        if (enabled == NULL || !SCConfValIsTrue(enabled)) {
             continue;
         }
 
@@ -866,7 +867,7 @@ void RunModeInitializeOutputs(void)
         SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
         TAILQ_FOREACH(output, &outputs->head, next) {
-            output_config = ConfNodeLookupChild(output, output->val);
+            output_config = SCConfNodeLookupChild(output, output->val);
 
             if (strcmp(output->val, "tls-log") == 0) {
 
@@ -943,7 +944,7 @@ float threading_detect_ratio = 1;
 void RunModeInitializeThreadSettings(void)
 {
     int affinity = 0;
-    if ((ConfGetBool("threading.set-cpu-affinity", &affinity)) == 0) {
+    if ((SCConfGetBool("threading.set-cpu-affinity", &affinity)) == 0) {
         threading_set_cpu_affinity = false;
     } else {
         threading_set_cpu_affinity = affinity == 1;
@@ -953,8 +954,8 @@ void RunModeInitializeThreadSettings(void)
     if (threading_set_cpu_affinity) {
         AffinitySetupLoadFromConfig();
     }
-    if ((ConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
-        if (ConfGetNode("threading.detect-thread-ratio") != NULL)
+    if ((SCConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
+        if (SCConfGetNode("threading.detect-thread-ratio") != NULL)
             WarnInvalidConfEntry("threading.detect-thread-ratio", "%s", "1");
         threading_detect_ratio = 1;
     }
@@ -966,7 +967,7 @@ void RunModeInitializeThreadSettings(void)
      * in case the default per-thread stack size is to be adjusted
      */
     const char *ss = NULL;
-    if ((ConfGet("threading.stack-size", &ss)) == 1) {
+    if ((SCConfGet("threading.stack-size", &ss)) == 1) {
         if (ss != NULL) {
             if (ParseSizeStringU64(ss, &threading_set_stack_size) < 0) {
                 FatalError("Failed to initialize thread_stack_size output, invalid limit: %s", ss);

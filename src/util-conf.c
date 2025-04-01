@@ -32,14 +32,14 @@
 
 TmEcode ConfigSetLogDirectory(const char *name)
 {
-    return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
+    return SCConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
-const char *ConfigGetLogDirectory(void)
+const char *SCConfigGetLogDirectory(void)
 {
     const char *log_dir = NULL;
 
-    if (ConfGet("default-log-dir", &log_dir) != 1) {
+    if (SCConfGet("default-log-dir", &log_dir) != 1) {
 #ifdef OS_WIN32
         log_dir = _getcwd(NULL, 0);
         if (log_dir == NULL) {
@@ -74,14 +74,14 @@ TmEcode ConfigSetDataDirectory(char *name)
     if (size > 2 && tmp[size - 2] == '/') // > 2 to allow just /
         tmp[size - 2] = '\0';
 
-    return ConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
+    return SCConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
 const char *ConfigGetDataDirectory(void)
 {
     const char *data_dir = NULL;
 
-    if (ConfGet("default-data-dir", &data_dir) != 1) {
+    if (SCConfGet("default-data-dir", &data_dir) != 1) {
 #ifdef OS_WIN32
         data_dir = _getcwd(NULL, 0);
         if (data_dir == NULL) {
@@ -118,9 +118,9 @@ TmEcode ConfigCheckDataDirectory(const char *data_dir)
  *
  * \param iface The name of the interface to find the config for.
  */
-ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
+SCConfNode *ConfFindDeviceConfig(SCConfNode *node, const char *iface)
 {
-    ConfNode *if_node, *item;
+    SCConfNode *if_node, *item;
     TAILQ_FOREACH(if_node, &node->head, next) {
         TAILQ_FOREACH(item, &if_node->head, next) {
             if (strcmp(item->name, "interface") == 0 &&
@@ -137,7 +137,7 @@ int ConfUnixSocketIsEnable(void)
 {
     const char *value;
 
-    if (ConfGet("unix-command.enabled", &value) != 1) {
+    if (SCConfGet("unix-command.enabled", &value) != 1) {
         return 0;
     }
 
@@ -159,5 +159,5 @@ int ConfUnixSocketIsEnable(void)
 #endif
     }
 
-    return ConfValIsTrue(value);
+    return SCConfValIsTrue(value);
 }

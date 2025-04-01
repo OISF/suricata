@@ -941,7 +941,7 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     jb_close(js);
 
     const char *filename = "rule_group.json";
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char log_path[PATH_MAX] = "";
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
 
@@ -1999,13 +1999,13 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
     }
 
     int dump_grouping = 0;
-    (void)ConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
+    (void)SCConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
 
     if (dump_grouping) {
         int add_rules = 0;
-        (void)ConfGetBool("detect.profiling.grouping.include-rules", &add_rules);
+        (void)SCConfGetBool("detect.profiling.grouping.include-rules", &add_rules);
         int add_mpm_stats = 0;
-        (void)ConfGetBool("detect.profiling.grouping.include-mpm-stats", &add_mpm_stats);
+        (void)SCConfGetBool("detect.profiling.grouping.include-mpm-stats", &add_mpm_stats);
 
         RulesDumpGrouping(de_ctx, add_rules, add_mpm_stats);
     }
@@ -2164,7 +2164,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     de_ctx->profile_match_logging_threshold = UINT_MAX; // disabled
 
     intmax_t v = 0;
-    if (ConfGetInt("detect.profiling.inspect-logging-threshold", &v) == 1)
+    if (SCConfGetInt("detect.profiling.inspect-logging-threshold", &v) == 1)
         de_ctx->profile_match_logging_threshold = (uint32_t)v;
 #endif
 #ifdef PROFILE_RULES

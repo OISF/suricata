@@ -1419,7 +1419,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 
 void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
 {
-    ConfNode *outputs;
+    SCConfNode *outputs;
     SCLogInitData *sc_lid;
     int have_logging = 0;
     int max_level = 0;
@@ -1431,7 +1431,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         min_level = SC_LOG_NOTICE + verbose;
     }
 
-    outputs = ConfGetNode("logging.outputs");
+    outputs = SCConfGetNode("logging.outputs");
     if (outputs == NULL) {
         SCLogDebug("No logging.output configuration section found.");
         return;
@@ -1445,7 +1445,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
 
     /* Get default log level and format. */
     const char *default_log_level_s = NULL;
-    if (ConfGet("logging.default-log-level", &default_log_level_s) == 1) {
+    if (SCConfGet("logging.default-log-level", &default_log_level_s) == 1) {
         SCLogLevel default_log_level =
             SCMapEnumNameToValue(default_log_level_s, sc_log_level_map);
         if (default_log_level == -1) {
@@ -1453,34 +1453,33 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             exit(EXIT_FAILURE);
         }
         sc_lid->global_log_level = MAX(min_level, default_log_level);
-    }
-    else {
+    } else {
         sc_lid->global_log_level = MAX(min_level, SC_LOG_NOTICE);
     }
 
-    if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
+    if (SCConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SCLogGetDefaultLogFormat(sc_lid->global_log_level);
 
-    (void)ConfGet("logging.default-output-filter", &sc_lid->op_filter);
+    (void)SCConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
-    ConfNode *seq_node, *output;
+    SCConfNode *seq_node, *output;
     TAILQ_FOREACH(seq_node, &outputs->head, next) {
         SCLogLevel level = sc_lid->global_log_level;
         SCLogOPIfaceCtx *op_iface_ctx = NULL;
         const char *format;
         const char *level_s;
 
-        output = ConfNodeLookupChild(seq_node, seq_node->val);
+        output = SCConfNodeLookupChild(seq_node, seq_node->val);
         if (output == NULL)
             continue;
 
         /* By default an output is enabled. */
-        const char *enabled = ConfNodeLookupChildValue(output, "enabled");
-        if (enabled != NULL && ConfValIsFalse(enabled))
+        const char *enabled = SCConfNodeLookupChildValue(output, "enabled");
+        if (enabled != NULL && SCConfValIsFalse(enabled))
             continue;
 
         SCLogOPType type = SC_LOG_OP_TYPE_REGULAR;
-        const char *type_s = ConfNodeLookupChildValue(output, "type");
+        const char *type_s = SCConfNodeLookupChildValue(output, "type");
         if (type_s != NULL) {
             if (strcmp(type_s, "regular") == 0)
                 type = SC_LOG_OP_TYPE_REGULAR;
@@ -1489,9 +1488,9 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             }
         }
 
-        format = ConfNodeLookupChildValue(output, "format");
+        format = SCConfNodeLookupChildValue(output, "format");
 
-        level_s = ConfNodeLookupChildValue(output, "level");
+        level_s = SCConfNodeLookupChildValue(output, "level");
         if (level_s != NULL) {
             level = SCMapEnumNameToValue(level_s, sc_log_level_map);
             if (level == -1) {
@@ -1512,7 +1511,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
                 format = SC_LOG_DEF_FILE_FORMAT;
             }
 
-            const char *filename = ConfNodeLookupChildValue(output, "filename");
+            const char *filename = SCConfNodeLookupChildValue(output, "filename");
             if (filename == NULL) {
                 FatalError("Logging to file requires a filename");
             }
@@ -1530,8 +1529,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         }
         else if (strcmp(output->name, "syslog") == 0) {
             int facility = SC_LOG_DEF_SYSLOG_FACILITY;
-            const char *facility_s = ConfNodeLookupChildValue(output,
-                "facility");
+            const char *facility_s = SCConfNodeLookupChildValue(output, "facility");
             if (facility_s != NULL) {
                 facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
                 if (facility == -1) {
@@ -1583,7 +1581,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
  */
 static char *SCLogGetLogFilename(const char *filearg)
 {
-    const char *log_dir = ConfigGetLogDirectory();
+    const char *log_dir = SCConfigGetLogDirectory();
     char *log_filename = SCMalloc(PATH_MAX);
     if (unlikely(log_filename == NULL))
         return NULL;

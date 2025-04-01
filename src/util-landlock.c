@@ -183,7 +183,7 @@ void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
     int conf_status;
-    if (ConfGetBool("security.landlock.enabled", &conf_status) == 0) {
+    if (SCConfGetBool("security.landlock.enabled", &conf_status) == 0) {
         conf_status = 0;
     }
     if (!conf_status) {
@@ -196,7 +196,7 @@ void LandlockSandboxing(SCInstance *suri)
         return;
     }
 
-    LandlockSandboxingWritePath(ruleset, ConfigGetLogDirectory());
+    LandlockSandboxingWritePath(ruleset, SCConfigGetLogDirectory());
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
@@ -208,7 +208,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;
-        if (ConfGet("pcap-file.file", &pcap_file) == 1) {
+        if (SCConfGet("pcap-file.file", &pcap_file) == 1) {
             char *file_name = SCStrdup(pcap_file);
             if (file_name != NULL) {
                 struct stat statbuf;
@@ -241,7 +241,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (ConfUnixSocketIsEnable()) {
         const char *socketname;
-        if (ConfGet("unix-command.filename", &socketname) == 1) {
+        if (SCConfGet("unix-command.filename", &socketname) == 1) {
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
@@ -257,30 +257,30 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (!suri->sig_file_exclusive) {
         const char *rule_path;
-        if (ConfGet("default-rule-path", &rule_path) == 1 && rule_path) {
+        if (SCConfGet("default-rule-path", &rule_path) == 1 && rule_path) {
             LandlockSandboxingReadPath(ruleset, rule_path);
         }
     }
 
-    ConfNode *read_dirs = ConfGetNode("security.landlock.directories.read");
+    SCConfNode *read_dirs = SCConfGetNode("security.landlock.directories.read");
     if (read_dirs) {
-        if (!ConfNodeIsSequence(read_dirs)) {
+        if (!SCConfNodeIsSequence(read_dirs)) {
             SCLogWarning("Invalid security.landlock.directories.read configuration section: "
                          "expected a list of directory names.");
         } else {
-            ConfNode *directory;
+            SCConfNode *directory;
             TAILQ_FOREACH (directory, &read_dirs->head, next) {
                 LandlockSandboxingReadPath(ruleset, directory->val);
             }
         }
     }
-    ConfNode *write_dirs = ConfGetNode("security.landlock.directories.write");
+    SCConfNode *write_dirs = SCConfGetNode("security.landlock.directories.write");
     if (write_dirs) {
-        if (!ConfNodeIsSequence(write_dirs)) {
+        if (!SCConfNodeIsSequence(write_dirs)) {
             SCLogWarning("Invalid security.landlock.directories.write configuration section: "
                          "expected a list of directory names.");
         } else {
-            ConfNode *directory;
+            SCConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {
                 LandlockSandboxingWritePath(ruleset, directory->val);
             }

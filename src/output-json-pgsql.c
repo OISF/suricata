@@ -97,13 +97,13 @@ static void OutputPgsqlLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonPgsqlLogParseConfig(ConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx)
+static void JsonPgsqlLogParseConfig(SCConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx)
 {
     pgsqllog_ctx->flags = ~0U;
 
-    const char *query = ConfNodeLookupChildValue(conf, "passwords");
+    const char *query = SCConfNodeLookupChildValue(conf, "passwords");
     if (query != NULL) {
-        if (ConfValIsTrue(query)) {
+        if (SCConfValIsTrue(query)) {
             pgsqllog_ctx->flags |= PGSQL_LOG_PASSWORDS;
         } else {
             pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
@@ -113,7 +113,7 @@ static void JsonPgsqlLogParseConfig(ConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx
     }
 }
 
-static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputPgsqlLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
@@ -184,7 +184,7 @@ static TmEcode JsonPgsqlLogThreadDeinit(ThreadVars *t, void *data)
 void JsonPgsqlLogRegister(void)
 {
     /* PGSQL_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.pgsql") == NULL) {
+    if (SCConfGetNode("app-layer.protocols.pgsql") == NULL) {
         SCLogDebug("Disabling Pgsql eve-logger");
         return;
     }

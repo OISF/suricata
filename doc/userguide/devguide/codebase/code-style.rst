@@ -437,7 +437,7 @@ Function names are NamedLikeThis().
 
 .. code-block:: c
 
-    static ConfNode *ConfGetNodeOrCreate(char *name, int final)
+    static SCConfNode *SCConfGetNodeOrCreate(char *name, int final)
 
 static vs non-static
 ^^^^^^^^^^^^^^^^^^^^
@@ -459,7 +459,7 @@ A variable is ``named_like_this`` in all lowercase.
 
 .. code-block:: c
 
-    ConfNode *parent_node = root;
+    SCConfNode *parent_node = root;
 
 Generally, use descriptive variable names.
 
@@ -527,7 +527,7 @@ We use Doxygen, functions are documented using Doxygen notation:
      * \retval The existing configuration node if it exists, or a newly
      * created node for the provided name. On error, NULL will be returned.
      */
-    static ConfNode *ConfGetNodeOrCreate(char *name, int final)
+    static SCConfNode *SCConfGetNodeOrCreate(char *name, int final)
 
 General comments
 ^^^^^^^^^^^^^^^^

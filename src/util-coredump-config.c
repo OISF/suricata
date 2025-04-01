@@ -94,7 +94,7 @@ int32_t CoredumpLoadConfig (void)
     const char *dump_size_config = NULL;
     size_t rlim_size = sizeof(rlim_t);
 
-    if (ConfGet ("coredump.max-dump", &dump_size_config) == 0) {
+    if (SCConfGet("coredump.max-dump", &dump_size_config) == 0) {
         SCLogDebug ("core dump size not specified");
         return 1;
     }

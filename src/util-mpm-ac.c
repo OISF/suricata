@@ -104,10 +104,10 @@ typedef struct StateQueue_ {
  */
 static void SCACGetConfig(void)
 {
-    //ConfNode *ac_conf;
-    //const char *hash_val = NULL;
+    // SCConfNode *ac_conf;
+    // const char *hash_val = NULL;
 
-    // ConfNode *pm = ConfGetNode("pattern-matcher");
+    // SCConfNode *pm = SCConfGetNode("pattern-matcher");
 }
 
 /**

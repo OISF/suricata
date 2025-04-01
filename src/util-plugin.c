@@ -101,11 +101,11 @@ static void InitPlugin(char *path)
 
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
 {
-    ConfNode *conf = ConfGetNode("plugins");
+    SCConfNode *conf = SCConfGetNode("plugins");
     if (conf == NULL) {
         return;
     }
-    ConfNode *plugin = NULL;
+    SCConfNode *plugin = NULL;
     TAILQ_FOREACH(plugin, &conf->head, next) {
         struct stat statbuf;
         if (stat(plugin->val, &statbuf) == -1) {

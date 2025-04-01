@@ -33,12 +33,12 @@ use nom7::{
 
 /// cbindgen:ignore
 extern {
-    fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
-    fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
+    fn SCConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
+    fn SCConfGetChildValue(conf: *const c_void, key: *const c_char,
                          vptr: *mut *const c_char) -> i8;
-    fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
+    fn SCConfGetChildValueBool(conf: *const c_void, key: *const c_char,
                              vptr: *mut c_int) -> i8;
-    fn ConfGetNode(key: *const c_char) -> *const c_void;
+    fn SCConfGetNode(key: *const c_char) -> *const c_void;
 }
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
@@ -48,7 +48,7 @@ pub fn conf_get_node(key: &str) -> Option<ConfNode> {
         return None;
     };
 
-    let node = unsafe { ConfGetNode(key.as_ptr()) };
+    let node = unsafe { SCConfGetNode(key.as_ptr()) };
     if node.is_null() {
         None
     } else {
@@ -62,7 +62,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
 
     unsafe {
         let s = CString::new(key).unwrap();
-        if ConfGet(s.as_ptr(), &mut vptr) != 1 {
+        if SCConfGet(s.as_ptr(), &mut vptr) != 1 {
             SCLogDebug!("Failed to find value for key {}", key);
             return None;
         }
@@ -106,7 +106,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValue(self.conf,
+            if SCConfGetChildValue(self.conf,
                                  s.as_ptr(),
                                  &mut vptr) != 1 {
                 return None;
@@ -129,7 +129,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValueBool(self.conf,
+            if SCConfGetChildValueBool(self.conf,
                                      s.as_ptr(),
                                      &mut vptr) != 1 {
                 return false;

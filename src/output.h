@@ -48,8 +48,8 @@ typedef struct OutputInitResult_ {
     bool ok;
 } OutputInitResult;
 
-typedef OutputInitResult (*OutputInitFunc)(ConfNode *);
-typedef OutputInitResult (*OutputInitSubFunc)(ConfNode *, OutputCtx *);
+typedef OutputInitResult (*OutputInitFunc)(SCConfNode *);
+typedef OutputInitResult (*OutputInitSubFunc)(SCConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
 typedef TmEcode (*OutputFlushFunc)(ThreadVars *, Packet *, void *);
 typedef uint32_t (*OutputGetActiveCountFunc)(void);

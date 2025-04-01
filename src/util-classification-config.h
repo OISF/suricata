@@ -51,7 +51,7 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *,
                                               DetectEngineCtx *);
 void SCClassConfDeInitContext(DetectEngineCtx *);
 
-void SCClassConfInit(DetectEngineCtx *de_ctx);
+void SCClassSCConfInit(DetectEngineCtx *de_ctx);
 void SCClassConfDeinit(DetectEngineCtx *de_ctx);
 
 /* for unittests */

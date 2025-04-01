@@ -57,7 +57,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult DCERPCLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult DCERPCLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DCERPC);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DCERPC);

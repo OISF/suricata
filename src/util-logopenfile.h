@@ -180,7 +180,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 void LogFileFlush(LogFileCtx *file_ctx);
 
 LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *lf_ctx);
-int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
+int SCConfLogOpenGeneric(SCConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
 

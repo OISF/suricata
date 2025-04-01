@@ -72,13 +72,13 @@ static bool AFPRunModeIsIPS(void)
     bool has_ips = false;
     bool has_ids = false;
 
-    ConfNode *af_packet_node = ConfGetNode("af-packet");
+    SCConfNode *af_packet_node = SCConfGetNode("af-packet");
     if (af_packet_node == NULL) {
         SCLogConfig("no 'af-packet' section in the yaml, default to IDS");
         return false;
     }
 
-    ConfNode *if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    SCConfNode *if_default = SCConfNodeLookupKeyValue(af_packet_node, "interface", "default");
 
     for (int ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev = LiveGetDeviceName(ldev);
@@ -86,7 +86,7 @@ static bool AFPRunModeIsIPS(void)
             SCLogConfig("invalid livedev at index %d, default to IDS", ldev);
             return false;
         }
-        ConfNode *if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
+        SCConfNode *if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
         if (if_root == NULL) {
             if (if_default == NULL) {
                 SCLogConfig(
@@ -99,8 +99,8 @@ static bool AFPRunModeIsIPS(void)
 
         const char *copymodestr = NULL;
         const char *copyifacestr = NULL;
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
-                ConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
+        if (SCConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
+                SCConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
             if (strcmp(copymodestr, "ips") == 0) {
                 has_ips = true;
             } else {
@@ -174,9 +174,9 @@ static int cluster_id_auto = 1;
 static void *ParseAFPConfig(const char *iface)
 {
     const char *threadsstr = NULL;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *af_packet_node;
+    SCConfNode *if_root;
+    SCConfNode *if_default = NULL;
+    SCConfNode *af_packet_node;
     const char *tmpclusterid;
     const char *tmpctype;
     const char *copymodestr;
@@ -222,7 +222,7 @@ static void *ParseAFPConfig(const char *iface)
 #endif
 
     /* Find initial node */
-    af_packet_node = ConfGetNode("af-packet");
+    af_packet_node = SCConfGetNode("af-packet");
     if (af_packet_node == NULL) {
         SCLogInfo("%s: unable to find af-packet config using default values", iface);
         goto finalize;
@@ -246,7 +246,7 @@ static void *ParseAFPConfig(const char *iface)
 
     if (active_runmode && !strcmp("single", active_runmode)) {
         aconf->threads = 1;
-    } else if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    } else if (SCConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 0;
     } else {
         if (threadsstr != NULL) {
@@ -263,7 +263,7 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (out_iface != NULL) {
             if (strlen(out_iface) > 0) {
                 aconf->out_iface = out_iface;
@@ -278,19 +278,19 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", &boolval);
+    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", &boolval);
     if (boolval) {
         SCLogConfig("%s: enabling locked memory for mmap", aconf->iface);
         aconf->flags |= AFP_MMAP_LOCKED;
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
+    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", &boolval);
     if (boolval) {
         SCLogConfig("%s: using emergency ring flush", aconf->iface);
         aconf->flags |= AFP_EMERGENCY_MODE;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
         if (aconf->out_iface == NULL) {
             SCLogWarning("%s: copy mode activated but no destination"
                          " iface. Disabling feature",
@@ -308,7 +308,7 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
+    if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
         if (boolval) {
             if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
                 SCLogConfig("%s: enabling tpacket v3", aconf->iface);
@@ -333,7 +333,7 @@ static void *ParseAFPConfig(const char *iface)
         SCLogWarning("%s: using tpacket-v3 in IPS or TAP mode will result in high latency", iface);
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
         aconf->cluster_id = (uint16_t)(cluster_id_auto++);
     } else {
         if (StringParseUint16(&aconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
@@ -343,7 +343,7 @@ static void *ParseAFPConfig(const char *iface)
         SCLogDebug("Going to use cluster-id %" PRIu16, aconf->cluster_id);
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
         SCLogConfig("%s: using default cluster-type of \"cluster_flow\"", aconf->iface);
         tmpctype = "cluster_flow";
     }
@@ -365,7 +365,7 @@ static void *ParseAFPConfig(const char *iface)
         uint16_t defrag = 0;
         int conf_val = 0;
         SCLogConfig("%s: using flow cluster mode for AF_PACKET", aconf->iface);
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val)) {
+        if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val)) {
             if (conf_val) {
                 SCLogConfig("%s: using defrag kernel functionality for AF_PACKET", aconf->iface);
                 defrag = PACKET_FANOUT_FLAG_DEFRAG;
@@ -402,7 +402,7 @@ static void *ParseAFPConfig(const char *iface)
     }
 
     int conf_val = 0;
-    ConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
+    SCConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
     if (conf_val) {
         SCLogConfig("%s: Rollover requested for AF_PACKET but ignored -- see ticket #6128.",
                 aconf->iface);
@@ -414,7 +414,7 @@ static void *ParseAFPConfig(const char *iface)
 
     ConfSetBPFFilter(if_root, if_default, iface, &aconf->bpf_filter);
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
         aconf->ebpf_lb_file = NULL;
     } else {
 #ifdef HAVE_PACKET_EBPF
@@ -426,15 +426,14 @@ static void *ParseAFPConfig(const char *iface)
 
 #ifdef HAVE_PACKET_EBPF
     boolval = false;
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", &boolval) == 1) {
+    if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", &boolval) == 1) {
         if (boolval) {
             SCLogConfig("%s: using pinned maps", aconf->iface);
             aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
         }
         const char *pinned_maps_name = NULL;
-        if (ConfGetChildValueWithDefault(if_root, if_default,
-                    "pinned-maps-name",
-                    &pinned_maps_name) != 1) {
+        if (SCConfGetChildValueWithDefault(
+                    if_root, if_default, "pinned-maps-name", &pinned_maps_name) != 1) {
             aconf->ebpf_t_config.pinned_maps_name = pinned_maps_name;
         } else {
             aconf->ebpf_t_config.pinned_maps_name = NULL;
@@ -460,7 +459,7 @@ static void *ParseAFPConfig(const char *iface)
     }
 #endif
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-filter-file", &ebpf_file) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "ebpf-filter-file", &ebpf_file) != 1) {
         aconf->ebpf_filter_file = NULL;
     } else {
 #ifdef HAVE_PACKET_EBPF
@@ -469,7 +468,7 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_t_config.mode = AFP_MODE_EBPF_BYPASS;
         aconf->ebpf_t_config.flags |= EBPF_SOCKET_FILTER;
 #endif
-        ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
+        SCConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
 #ifdef HAVE_PACKET_EBPF
             SCLogConfig("%s: using bypass kernel functionality for AF_PACKET", aconf->iface);
@@ -495,14 +494,14 @@ static void *ParseAFPConfig(const char *iface)
 #endif
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
         aconf->xdp_filter_file = NULL;
     } else {
 #ifdef HAVE_PACKET_XDP
         aconf->ebpf_t_config.mode = AFP_MODE_XDP_BYPASS;
         aconf->ebpf_t_config.flags |= EBPF_XDP_CODE;
         aconf->xdp_filter_file = ebpf_file;
-        ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
+        SCConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
             SCLogConfig("%s: using bypass kernel functionality for AF_PACKET", aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
@@ -526,7 +525,7 @@ static void *ParseAFPConfig(const char *iface)
 #endif
 #ifdef HAVE_PACKET_XDP
         const char *xdp_mode;
-        if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
+        if (SCConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
             aconf->xdp_mode = XDP_FLAGS_SKB_MODE;
         } else {
             if (!strcmp(xdp_mode, "soft")) {
@@ -542,7 +541,7 @@ static void *ParseAFPConfig(const char *iface)
         }
 
         boolval = true;
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-percpu-hash", &boolval) ==
+        if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "use-percpu-hash", &boolval) ==
                 1) {
             if (!boolval) {
                 SCLogConfig("%s: not using percpu hash", aconf->iface);
@@ -572,10 +571,11 @@ static void *ParseAFPConfig(const char *iface)
                 } else {
                     /* Try to get the xdp-cpu-redirect key */
                     const char *cpuset;
-                    if (ConfGetChildValueWithDefault(if_root, if_default,
-                                "xdp-cpu-redirect", &cpuset) == 1) {
+                    if (SCConfGetChildValueWithDefault(
+                                if_root, if_default, "xdp-cpu-redirect", &cpuset) == 1) {
                         SCLogConfig("%s: Setting up CPU map XDP", iface);
-                        ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
+                        SCConfNode *node =
+                                SCConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
                         if (node == NULL) {
                             SCLogError("Previously found node has disappeared");
                         } else {
@@ -596,16 +596,16 @@ static void *ParseAFPConfig(const char *iface)
 #endif
     }
 
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
         aconf->buffer_size = value;
     } else {
         aconf->buffer_size = 0;
     }
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "ring-size", &value)) == 1) {
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "ring-size", &value)) == 1) {
         aconf->ring_size = value;
     }
 
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
         if (value % getpagesize()) {
             SCLogWarning("%s: block-size %" PRIuMAX " must be a multiple of pagesize (%u).", iface,
                     value, getpagesize());
@@ -614,13 +614,13 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
         aconf->block_timeout = value;
     } else {
         aconf->block_timeout = 10;
     }
 
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "v2-block-size", &value)) == 1) {
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "v2-block-size", &value)) == 1) {
         if (value % getpagesize()) {
             SCLogWarning("%s: v2-block-size %" PRIuMAX " must be a multiple of pagesize (%u).",
                     iface, value, getpagesize());
@@ -629,18 +629,18 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
+    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", &boolval);
     if (boolval) {
         SCLogConfig("%s: disabling promiscuous mode", aconf->iface);
         aconf->promisc = 0;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
+    if (SCConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpctype)) {
+        } else if (SCConfValIsTrue(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (ConfValIsFalse(tmpctype)) {
+        } else if (SCConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else if (strcmp(tmpctype, "kernel") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
@@ -790,7 +790,7 @@ int RunModeIdsAFPAutoFp(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-packet.live-interface", &live_dev);
+    (void)SCConfGet("af-packet.live-interface", &live_dev);
 
     SCLogDebug("live_dev %s", live_dev);
 
@@ -827,7 +827,7 @@ int RunModeIdsAFPSingle(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-packet.live-interface", &live_dev);
+    (void)SCConfGet("af-packet.live-interface", &live_dev);
 
     if (AFPPeersListInit() != TM_ECODE_OK) {
         FatalError("Unable to init peers list.");
@@ -868,7 +868,7 @@ int RunModeIdsAFPWorkers(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-packet.live-interface", &live_dev);
+    (void)SCConfGet("af-packet.live-interface", &live_dev);
 
     if (AFPPeersListInit() != TM_ECODE_OK) {
         FatalError("Unable to init peers list.");

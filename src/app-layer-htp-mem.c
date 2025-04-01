@@ -48,8 +48,7 @@ void HTPParseMemcap(void)
 
     /** set config values for memcap, prealloc and hash_size */
     uint64_t memcap;
-    if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
-    {
+    if ((SCConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &memcap) < 0) {
             SCLogError("Error parsing http.memcap "
                        "from conf file - %s.  Killing engine",

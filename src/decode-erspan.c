@@ -53,7 +53,7 @@
 void DecodeERSPANConfig(void)
 {
     int enabled = 0;
-    if (ConfGetBool("decoder.erspan.typeI.enabled", &enabled) == 1) {
+    if (SCConfGetBool("decoder.erspan.typeI.enabled", &enabled) == 1) {
         SCLogWarning("ERSPAN Type I is no longer configurable and it is always"
                      " enabled; ignoring configuration setting.");
     }

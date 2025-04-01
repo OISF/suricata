@@ -399,7 +399,7 @@ static void LogTlsStoreLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFilestoreCtx* to the file_ctx if succesful
  * */
-static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
+static OutputInitResult LogTlsStoreLogInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
@@ -409,8 +409,8 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
     output_ctx->data = NULL;
     output_ctx->DeInit = LogTlsStoreLogDeInitCtx;
 
-    const char *s_default_log_dir = ConfigGetLogDirectory();
-    const char *s_base_dir = ConfNodeLookupChildValue(conf, "certs-log-dir");
+    const char *s_default_log_dir = SCConfigGetLogDirectory();
+    const char *s_base_dir = SCConfNodeLookupChildValue(conf, "certs-log-dir");
     if (s_base_dir == NULL || strlen(s_base_dir) == 0) {
         strlcpy(tls_logfile_base_dir,
                 s_default_log_dir, sizeof(tls_logfile_base_dir));

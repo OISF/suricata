@@ -74,11 +74,11 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
     /* If we have a configuration prefix, only use it if the primary configuration node
      * is not marked as final, as that means it was provided on the command line with
      * a --set. */
-    ConfNode *default_rule_path = ConfGetNode("default-rule-path");
+    SCConfNode *default_rule_path = SCConfGetNode("default-rule-path");
     if ((!default_rule_path || !default_rule_path->final) && strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.default-rule-path",
                 de_ctx->config_prefix);
-        default_rule_path = ConfGetNode(varname);
+        default_rule_path = SCConfGetNode(varname);
     }
     if (default_rule_path) {
         defaultpath = default_rule_path->val;
@@ -287,8 +287,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
 {
     SCEnter();
 
-    ConfNode *rule_files;
-    ConfNode *file = NULL;
+    SCConfNode *rule_files;
+    SCConfNode *file = NULL;
     SigFileLoaderStat *sig_stat = &de_ctx->sig_stat;
     int ret = 0;
     char *sfile = NULL;
@@ -308,13 +308,12 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
 
     /* ok, let's load signature files from the general config */
     if (!(sig_file != NULL && sig_file_exclusive)) {
-        rule_files = ConfGetNode(varname);
+        rule_files = SCConfGetNode(varname);
         if (rule_files != NULL) {
-            if (!ConfNodeIsSequence(rule_files)) {
+            if (!SCConfNodeIsSequence(rule_files)) {
                 SCLogWarning("Invalid rule-files configuration section: "
                              "expected a list of filenames.");
-            }
-            else {
+            } else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = skipped_sigs = 0;
@@ -503,7 +502,7 @@ static void DetectLoaderInit(DetectLoaderControl *loader)
 void DetectLoadersInit(void)
 {
     intmax_t setting = NLOADERS;
-    (void)ConfGetInt("multi-detect.loaders", &setting);
+    (void)SCConfGetInt("multi-detect.loaders", &setting);
 
     if (setting < 1 || setting > 1024) {
         FatalError("invalid multi-detect.loaders setting %" PRIdMAX, setting);

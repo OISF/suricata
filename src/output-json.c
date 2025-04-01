@@ -1057,7 +1057,7 @@ static inline enum LogFileType FileTypeFromConf(const char *typestr)
 }
 
 static int LogFileTypePrepare(
-        OutputJsonCtx *json_ctx, enum LogFileType log_filetype, ConfNode *conf)
+        OutputJsonCtx *json_ctx, enum LogFileType log_filetype, SCConfNode *conf)
 {
 
     if (log_filetype == LOGFILE_TYPE_FILE || log_filetype == LOGFILE_TYPE_UNIX_DGRAM ||
@@ -1070,7 +1070,7 @@ static int LogFileTypePrepare(
 #ifdef HAVE_LIBHIREDIS
     else if (log_filetype == LOGFILE_TYPE_REDIS) {
         SCLogRedisInit();
-        ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
+        SCConfNode *redis_node = SCConfNodeLookupChild(conf, "redis");
         if (!json_ctx->file_ctx->sensor_name) {
             char hostname[1024];
             gethostname(hostname, 1023);
@@ -1113,7 +1113,7 @@ static int LogFileTypePrepare(
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-OutputInitResult OutputJsonInitCtx(ConfNode *conf)
+OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     OutputCtx *output_ctx = NULL;
@@ -1126,13 +1126,13 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
     /* First lookup a sensor-name value in this outputs configuration
      * node (deprecated). If that fails, lookup the global one. */
-    const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
+    const char *sensor_name = SCConfNodeLookupChildValue(conf, "sensor-name");
     if (sensor_name != NULL) {
         SCLogWarning("Found deprecated eve-log setting \"sensor-name\". "
                      "Please set sensor-name globally.");
     }
     else {
-        (void)ConfGet("sensor-name", &sensor_name);
+        (void)SCConfGet("sensor-name", &sensor_name);
     }
 
     json_ctx->file_ctx = LogFileNewCtx();
@@ -1159,10 +1159,10 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     output_ctx->DeInit = OutputJsonDeInitCtx;
 
     if (conf) {
-        const char *output_s = ConfNodeLookupChildValue(conf, "filetype");
+        const char *output_s = SCConfNodeLookupChildValue(conf, "filetype");
         // Backwards compatibility
         if (output_s == NULL) {
-            output_s = ConfNodeLookupChildValue(conf, "type");
+            output_s = SCConfNodeLookupChildValue(conf, "type");
         }
 
         enum LogFileType log_filetype = FileTypeFromConf(output_s);
@@ -1175,7 +1175,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 FatalError("Invalid JSON output option: %s", output_s);
         }
 
-        const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
+        const char *prefix = SCConfNodeLookupChildValue(conf, "prefix");
         if (prefix != NULL)
         {
             SCLogInfo("Using prefix '%s' for JSON messages", prefix);
@@ -1188,8 +1188,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         /* Threaded file output */
-        const ConfNode *threaded = ConfNodeLookupChild(conf, "threaded");
-        if (threaded && threaded->val && ConfValIsTrue(threaded->val)) {
+        const SCConfNode *threaded = SCConfNodeLookupChild(conf, "threaded");
+        if (threaded && threaded->val && SCConfValIsTrue(threaded->val)) {
             SCLogConfig("Threaded EVE logging configured");
             json_ctx->file_ctx->threaded = true;
         } else {
@@ -1199,7 +1199,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             goto error_exit;
         }
 
-        const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
+        const char *sensor_id_s = SCConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
             if (StringParseUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) < 0) {
                 FatalError("Failed to initialize JSON output, "
@@ -1209,8 +1209,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         /* Check if top-level metadata should be logged. */
-        const ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
-        if (metadata && metadata->val && ConfValIsFalse(metadata->val)) {
+        const SCConfNode *metadata = SCConfNodeLookupChild(conf, "metadata");
+        if (metadata && metadata->val && SCConfValIsFalse(metadata->val)) {
             SCLogConfig("Disabling eve metadata logging.");
             json_ctx->cfg.include_metadata = false;
         } else {
@@ -1218,8 +1218,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         /* Check if ethernet information should be logged. */
-        const ConfNode *ethernet = ConfNodeLookupChild(conf, "ethernet");
-        if (ethernet && ethernet->val && ConfValIsTrue(ethernet->val)) {
+        const SCConfNode *ethernet = SCConfNodeLookupChild(conf, "ethernet");
+        if (ethernet && ethernet->val && SCConfValIsTrue(ethernet->val)) {
             SCLogConfig("Enabling Ethernet MAC address logging.");
             json_ctx->cfg.include_ethernet = true;
         } else {
@@ -1227,14 +1227,14 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         /* See if we want to enable the community id */
-        const ConfNode *community_id = ConfNodeLookupChild(conf, "community-id");
-        if (community_id && community_id->val && ConfValIsTrue(community_id->val)) {
+        const SCConfNode *community_id = SCConfNodeLookupChild(conf, "community-id");
+        if (community_id && community_id->val && SCConfValIsTrue(community_id->val)) {
             SCLogConfig("Enabling eve community_id logging.");
             json_ctx->cfg.include_community_id = true;
         } else {
             json_ctx->cfg.include_community_id = false;
         }
-        const char *cid_seed = ConfNodeLookupChildValue(conf, "community-id-seed");
+        const char *cid_seed = SCConfNodeLookupChildValue(conf, "community-id-seed");
         if (cid_seed != NULL) {
             if (StringParseUint16(&json_ctx->cfg.community_id_seed,
                         10, 0, cid_seed) < 0)
@@ -1246,7 +1246,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         /* Do we have a global eve xff configuration? */
-        const ConfNode *xff = ConfNodeLookupChild(conf, "xff");
+        const SCConfNode *xff = SCConfNodeLookupChild(conf, "xff");
         if (xff != NULL) {
             json_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
             if (likely(json_ctx->xff_cfg != NULL)) {
@@ -1254,8 +1254,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
-        if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
+        const char *pcapfile_s = SCConfNodeLookupChildValue(conf, "pcap-file");
+        if (pcapfile_s != NULL && SCConfValIsTrue(pcapfile_s)) {
             json_ctx->file_ctx->is_pcap_offline =
                     (SCRunmodeGet() == RUNMODE_PCAP_FILE || SCRunmodeGet() == RUNMODE_UNIX_SOCKET);
         }

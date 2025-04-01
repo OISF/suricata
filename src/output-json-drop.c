@@ -257,7 +257,7 @@ static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonDropLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
@@ -279,13 +279,13 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
     }
 
     if (conf) {
-        const char *extended = ConfNodeLookupChildValue(conf, "alerts");
+        const char *extended = SCConfNodeLookupChildValue(conf, "alerts");
         if (extended != NULL) {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 drop_ctx->flags |= LOG_DROP_ALERTS;
             }
         }
-        extended = ConfNodeLookupChildValue(conf, "flows");
+        extended = SCConfNodeLookupChildValue(conf, "flows");
         if (extended != NULL) {
             if (strcasecmp(extended, "start") == 0) {
                 g_droplog_flows_start = 1;
@@ -296,9 +296,9 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
                              "'flow' are 'start' and 'all'");
             }
         }
-        extended = ConfNodeLookupChildValue(conf, "verdict");
+        extended = SCConfNodeLookupChildValue(conf, "verdict");
         if (extended != NULL) {
-            if (ConfValIsTrue(extended)) {
+            if (SCConfValIsTrue(extended)) {
                 drop_ctx->flags |= LOG_DROP_VERDICT;
             }
         }

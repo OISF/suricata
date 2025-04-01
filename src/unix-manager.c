@@ -121,7 +121,7 @@ static int UnixNew(UnixCommand * this)
     TAILQ_INIT(&this->clients);
 
     int check_dir = 0;
-    if (ConfGet("unix-command.filename", &socketname) == 1) {
+    if (SCConfGet("unix-command.filename", &socketname) == 1) {
         if (PathIsAbsolute(socketname)) {
             strlcpy(sockettarget, socketname, sizeof(sockettarget));
         } else {
@@ -885,7 +885,7 @@ static TmEcode UnixManagerConfGetCommand(json_t *cmd,
     }
 
     variable = (char *)json_string_value(jarg);
-    if (ConfGet(variable, &confval) != 1) {
+    if (SCConfGet(variable, &confval) != 1) {
         json_object_set_new(server_msg, "message", json_string("Unable to get value"));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1061,7 +1061,7 @@ int UnixManagerInit(void)
 {
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
-        if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
+        if (SCConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
         if (failure_fatal) {
