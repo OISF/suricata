@@ -106,7 +106,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
         return SCDcerpcOpnumMatch(txv, (void *)m);
     }
 
-    if (rs_smb_tx_match_dce_opnum(txv, (void *)m) != 1)
+    if (SCSmbTxMatchDceOpnum(txv, (void *)m) != 1)
         SCReturnInt(0);
 
     SCReturnInt(1);

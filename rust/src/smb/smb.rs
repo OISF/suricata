@@ -102,7 +102,7 @@ static mut SMB_MAX_TX: usize = 1024;
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_smb_init(context: &'static mut SuricataFileContext)
+pub extern "C" fn SCSmbInit(context: &'static mut SuricataFileContext)
 {
     unsafe {
         SURICATA_SMB_FILE_CONFIG = Some(context);
@@ -1987,8 +1987,7 @@ impl SMBState {
 }
 
 /// Returns *mut SMBState
-#[no_mangle]
-pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1997,16 +1996,14 @@ pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 
 /// Params:
 /// - state: *mut SMBState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn smb_state_free(state: *mut std::os::raw::c_void) {
     SCLogDebug!("freeing state");
     let mut smb_state = unsafe { Box::from_raw(state as *mut SMBState) };
     smb_state.free();
 }
 
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
+unsafe extern "C" fn smb_parse_request_tcp(flow: *const Flow,
                                        state: *mut ffi::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -2018,7 +2015,7 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {
-        return rs_smb_parse_request_tcp_gap(state, stream_slice.gap_size());
+        return smb_parse_request_tcp_gap(state, stream_slice.gap_size());
     }
 
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
@@ -2032,8 +2029,7 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     state.parse_tcp_data_ts(flow, &stream_slice)
 }
 
-#[no_mangle]
-pub extern "C" fn rs_smb_parse_request_tcp_gap(
+extern "C" fn smb_parse_request_tcp_gap(
                                         state: &mut SMBState,
                                         input_len: u32)
                                         -> AppLayerResult
@@ -2042,8 +2038,7 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 }
 
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
+unsafe extern "C" fn smb_parse_response_tcp(flow: *const Flow,
                                         state: *mut ffi::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         stream_slice: StreamSlice,
@@ -2055,7 +2050,7 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {
-        return rs_smb_parse_response_tcp_gap(state, stream_slice.gap_size());
+        return smb_parse_response_tcp_gap(state, stream_slice.gap_size());
     }
 
     /* START with MISTREAM set: record might be starting the middle. */
@@ -2067,8 +2062,7 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
     state.parse_tcp_data_tc(flow, &stream_slice)
 }
 
-#[no_mangle]
-pub extern "C" fn rs_smb_parse_response_tcp_gap(
+extern "C" fn smb_parse_response_tcp_gap(
                                         state: &mut SMBState,
                                         input_len: u32)
                                         -> AppLayerResult
@@ -2173,8 +2167,7 @@ fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppPro
 
 // probing confirmation parser
 // return 1 if found, 0 is not found
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
+unsafe extern "C" fn smb_probe_begins_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
@@ -2187,8 +2180,7 @@ pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
 
 // probing parser
 // return 1 if found, 0 is not found
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
+unsafe extern "C" fn c_smb_probe_tcp(_f: *const Flow,
                                    flags: u8, input: *const u8, len: u32, rdir: *mut u8)
     -> AppProto
 {
@@ -2199,17 +2191,15 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
     return smb_probe_tcp(flags, slice, rdir, false);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
+unsafe extern "C" fn smb_state_get_tx_count(state: *mut ffi::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state, SMBState);
-    SCLogDebug!("rs_smb_state_get_tx_count: returning {}", state.tx_id);
+    SCLogDebug!("smb_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
+unsafe extern "C" fn smb_state_get_tx(state: *mut ffi::c_void,
                                       tx_id: u64)
                                       -> *mut ffi::c_void
 {
@@ -2224,8 +2214,7 @@ pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
+unsafe extern "C" fn smb_state_tx_free(state: *mut ffi::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state, SMBState);
@@ -2233,8 +2222,7 @@ pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
+unsafe extern "C" fn smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
                                                   direction: u8)
                                                   -> i32
 {
@@ -2253,10 +2241,9 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
 }
 
 
-export_state_data_get!(rs_smb_get_state_data, SMBState);
+export_state_data_get!(smb_get_state_data, SMBState);
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_get_tx_data(
+unsafe extern "C" fn smb_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -2264,8 +2251,7 @@ pub unsafe extern "C" fn rs_smb_get_tx_data(
     return &mut tx.tx_data;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
+unsafe extern "C" fn smb_state_get_event_info_by_id(
     event_id: u8,
     event_name: *mut *const std::os::raw::c_char,
     event_type: *mut AppLayerEventType,
@@ -2273,8 +2259,7 @@ pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
     SMBEvent::get_event_info_by_id(event_id, event_name, event_type)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info(
+unsafe extern "C" fn smb_state_get_event_info(
     event_name: *const std::os::raw::c_char,
     event_id: *mut u8,
     event_type: *mut AppLayerEventType,
@@ -2282,8 +2267,8 @@ pub unsafe extern "C" fn rs_smb_state_get_event_info(
     SMBEvent::get_event_info(event_name, event_id, event_type)
 }
 
-pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
-    let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
+unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
+    let retval = c_smb_probe_tcp(f, dir, input, len, rdir);
     let f = cast_pointer!(f, Flow);
     if retval != ALPROTO_SMB {
         return retval;
@@ -2311,17 +2296,17 @@ fn register_pattern_probe() -> i8 {
         // SMB1
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToServer as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB2/3
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToServer as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB3 encrypted records
         r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
@@ -2342,7 +2327,7 @@ fn register_pattern_probe() -> i8 {
 const PARSER_NAME: &[u8] = b"smb\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_register_parser() {
+pub unsafe extern "C" fn SCRegisterSmbParser() {
     let default_port = CString::new("445").unwrap();
     let mut stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {
@@ -2353,24 +2338,24 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_smb_state_new,
-        state_free: rs_smb_state_free,
-        tx_free: rs_smb_state_tx_free,
-        parse_ts: rs_smb_parse_request_tcp,
-        parse_tc: rs_smb_parse_response_tcp,
-        get_tx_count: rs_smb_state_get_tx_count,
-        get_tx: rs_smb_state_get_tx,
+        state_new: smb_state_new,
+        state_free: smb_state_free,
+        tx_free: smb_state_tx_free,
+        parse_ts: smb_parse_request_tcp,
+        parse_tc: smb_parse_response_tcp,
+        get_tx_count: smb_state_get_tx_count,
+        get_tx: smb_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_smb_tx_get_alstate_progress,
-        get_eventinfo: Some(rs_smb_state_get_event_info),
-        get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),
+        tx_get_progress: smb_tx_get_alstate_progress,
+        get_eventinfo: Some(smb_state_get_event_info),
+        get_eventinfo_byid : Some(smb_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_files: Some(rs_smb_gettxfiles),
+        get_tx_files: Some(smb_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<SMBState, SMBTransaction>),
-        get_tx_data: rs_smb_get_tx_data,
-        get_state_data: rs_smb_get_state_data,
+        get_tx_data: smb_get_tx_data,
+        get_state_data: smb_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(SMBFrameType::ffi_id_from_name),
@@ -2392,11 +2377,11 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
 
         let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
                     IPPROTO_TCP, parser.name, ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
+                    MIN_REC_SIZE, c_smb_probe_tcp, c_smb_probe_tcp);
 
         if have_cfg == 0 {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
-                                          0, MIN_REC_SIZE, Direction::ToServer as u8, rs_smb_probe_tcp, rs_smb_probe_tcp);
+                                          0, MIN_REC_SIZE, Direction::ToServer as u8, c_smb_probe_tcp, c_smb_probe_tcp);
         }
 
         if AppLayerParserConfParserEnabled(

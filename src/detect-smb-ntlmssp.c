@@ -63,7 +63,7 @@ static InspectionBuffer *GetNtlmsspUserData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_smb_tx_get_ntlmssp_user(txv, &b, &b_len) != 1)
+        if (SCSmbTxGetNtlmsspUser(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -119,7 +119,7 @@ static InspectionBuffer *GetNtlmsspDomainData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_smb_tx_get_ntlmssp_domain(txv, &b, &b_len) != 1)
+        if (SCSmbTxGetNtlmsspDomain(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
