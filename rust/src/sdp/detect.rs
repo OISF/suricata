@@ -888,7 +888,7 @@ unsafe extern "C" fn sip_media_desc_encryption_key_get_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ScDetectSdpRegister() {
+pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SCSigTableElmt {
         name: b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         desc: b"sticky buffer to match on the SDP session name field\0".as_ptr()
