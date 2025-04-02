@@ -59,7 +59,7 @@ typedef struct LogPgsqlLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogPgsqlLogThread;
 
-bool JsonPgsqlAddMetadata(void *vtx, JsonBuilder *jb)
+bool JsonPgsqlAddMetadata(void *vtx, SCJsonBuilder *jb)
 {
     return SCPgsqlLogger(vtx, PGSQL_DEFAULTS, jb);
 }
@@ -70,7 +70,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
     LogPgsqlLogThread *thread = thread_data;
     SCLogDebug("Logging pgsql transaction %" PRIu64 ".", tx_id);
 
-    JsonBuilder *jb =
+    SCJsonBuilder *jb =
             CreateEveHeader(p, LOG_DIR_FLOW, "pgsql", NULL, thread->pgsqllog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
@@ -81,12 +81,12 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
     }
 
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread->ctx);
-    jb_free(jb);
+    SCJbFree(jb);
 
     return TM_ECODE_OK;
 
 error:
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_FAILED;
 }
 

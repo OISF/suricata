@@ -142,6 +142,8 @@ item_types = ["enums","structs","opaque","functions","constants"]
 [export.rename]
 "JsonT" = "json_t"
 "CLuaState" = "lua_State"
+"JsonBuilder" = "SCJsonBuilder"
+"JsonBuilderMark" = "SCJsonBuilderMark"
 
 #
 # You get the following results:

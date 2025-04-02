@@ -62,7 +62,7 @@ typedef struct LogIKELogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogIKELogThread;
 
-bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js)
 {
     IKEState *state = FlowGetAppState(f);
     if (state) {
@@ -79,7 +79,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         void *tx, uint64_t tx_id)
 {
     LogIKELogThread *thread = thread_data;
-    JsonBuilder *jb =
+    SCJsonBuilder *jb =
             CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "ike", NULL, thread->ikelog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
@@ -92,11 +92,11 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
 
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread->ctx);
 
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_OK;
 
 error:
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_FAILED;
 }
 

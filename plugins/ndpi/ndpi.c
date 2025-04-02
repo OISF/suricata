@@ -437,7 +437,7 @@ static void DetectnDPIRiskFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(ptr);
 }
 
-static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb, void *data)
+static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb, void *data)
 {
     /* Adding ndpi info to EVE requires a flow. */
     if (f == NULL) {
@@ -460,7 +460,7 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *j
     buffer = ndpi_serializer_get_buffer(&serializer, &buffer_len);
 
     /* Inject the nDPI JSON to the JsonBuilder */
-    jb_set_formatted(jb, buffer);
+    SCJbSetFormatted(jb, buffer);
 
     ndpi_term_serializer(&serializer);
 }

@@ -35,8 +35,9 @@ typedef struct JsonEmailLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonEmailLogThread;
 
-TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id);
-bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
+TmEcode EveEmailLogJson(JsonEmailLogThread *aft, SCJsonBuilder *js, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id);
+bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js);
 
 void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx);
 

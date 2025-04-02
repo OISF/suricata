@@ -178,9 +178,9 @@ SCEveFileType *SCEveFindFileType(const char *name);
  *
  * The function type for callbacks registered with
  * SCEveRegisterCallback. This function will be called with the
- * JsonBuilder just prior to the top-level object being closed. New
+ * SCJsonBuilder just prior to the top-level object being closed. New
  * fields maybe added, however there is no way to alter existing
- * objects already added to the JsonBuilder.
+ * objects already added to the SCJsonBuilder.
  *
  * \param tv The ThreadVars for the thread performing the logging.
  * \param p Packet if available.
@@ -188,12 +188,12 @@ SCEveFileType *SCEveFindFileType(const char *name);
  * \param user User data provided during callback registration.
  */
 typedef void (*SCEveUserCallbackFn)(
-        ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb, void *user);
+        ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb, void *user);
 
 /** \brief Register a callback for adding extra information to EVE logs.
  *
  * Allow users to register a callback for each EVE log. The callback
- * is called just before the root object on the JsonBuilder is to be
+ * is called just before the root object on the SCJsonBuilder is to be
  * closed.
  *
  * New objects and fields can be append, but exist entries cannot be modified.
@@ -202,7 +202,7 @@ typedef void (*SCEveUserCallbackFn)(
  * NULL.
  *
  * Limitations: At this time the callbacks will only be called for EVE
- * loggers that use JsonBuilder, notably this means it won't be called
+ * loggers that use SCJsonBuilder, notably this means it won't be called
  * for stats records at this time.
  *
  * \returns true if callback is registered, false is not due to memory
@@ -214,6 +214,6 @@ bool SCEveRegisterCallback(SCEveUserCallbackFn fn, void *user);
  *
  * Run EVE callbacks.
  */
-void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb);
+void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb);
 
 #endif

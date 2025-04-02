@@ -47,7 +47,7 @@
 
 #include "rust.h"
 
-bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
+bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
 {
     NFSState *state = FlowGetAppState(f);
     if (state) {
@@ -59,7 +59,7 @@ bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
     return false;
 }
 
-bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
+bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
 {
     NFSState *state = FlowGetAppState(f);
     if (state) {
@@ -80,22 +80,22 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (rs_nfs_tx_logging_is_filtered(state, nfstx))
         return TM_ECODE_OK;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL, thread->ctx);
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
 
-    jb_open_object(jb, "rpc");
+    SCJbOpenObject(jb, "rpc");
     rs_rpc_log_json_response(tx, jb);
-    jb_close(jb);
+    SCJbClose(jb);
 
-    jb_open_object(jb, "nfs");
+    SCJbOpenObject(jb, "nfs");
     rs_nfs_log_json_response(state, tx, jb);
-    jb_close(jb);
+    SCJbClose(jb);
 
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread);
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_OK;
 }
 

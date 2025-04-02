@@ -73,7 +73,7 @@ static int JsonArpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     char dstip[JSON_ADDR_LEN] = "";
     const ARPHdr *arph = PacketGetARP(p);
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "arp", NULL, thread->ctx);
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "arp", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
@@ -81,17 +81,17 @@ static int JsonArpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     PrintInet(AF_INET, arph->source_ip, srcip, sizeof(srcip));
     PrintInet(AF_INET, arph->dest_ip, dstip, sizeof(dstip));
 
-    jb_open_object(jb, "arp");
+    SCJbOpenObject(jb, "arp");
     JB_SET_STRING(jb, "hw_type", "ethernet");
     JB_SET_STRING(jb, "proto_type", "ipv4");
-    jb_set_string(jb, "opcode", OpcodeToString(ntohs(arph->opcode)));
+    SCJbSetString(jb, "opcode", OpcodeToString(ntohs(arph->opcode)));
     JSONFormatAndAddMACAddr(jb, "src_mac", arph->source_mac, false);
-    jb_set_string(jb, "src_ip", srcip);
+    SCJbSetString(jb, "src_ip", srcip);
     JSONFormatAndAddMACAddr(jb, "dest_mac", arph->dest_mac, false);
-    jb_set_string(jb, "dest_ip", dstip);
-    jb_close(jb); /* arp */
+    SCJbSetString(jb, "dest_ip", dstip);
+    SCJbClose(jb); /* arp */
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread);
-    jb_free(jb);
+    SCJbFree(jb);
 
     return TM_ECODE_OK;
 }

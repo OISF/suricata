@@ -46,13 +46,13 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
+bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
 {
     FTPTransaction *tx = vtx;
     /* Preallocate array objects to simplify failure case */
-    JsonBuilder *js_resplist = NULL;
+    SCJsonBuilder *js_resplist = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {
-        js_resplist = jb_new_array();
+        js_resplist = SCJbNewArray();
 
         if (unlikely(js_resplist == NULL)) {
             return false;
@@ -68,12 +68,12 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
             return false;
         }
     }
-    jb_open_object(jb, "ftp");
+    SCJbOpenObject(jb, "ftp");
     if (command_name) {
-        jb_set_string(jb, "command", command_name);
+        SCJbSetString(jb, "command", command_name);
         uint32_t min_length = command_name_length + 1; /* command + space */
         if (tx->request_length > min_length) {
-            jb_set_string_from_bytes(jb, "command_data", (const uint8_t *)tx->request + min_length,
+            SCJbSetStringFromBytes(jb, "command_data", (const uint8_t *)tx->request + min_length,
                     tx->request_length - min_length - 1);
             if (tx->request_truncated) {
                 JB_SET_TRUE(jb, "command_truncated");
@@ -109,16 +109,17 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
                     /* Gather the completion code if present */
                     if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
                         if (!is_cc_array_open) {
-                            jb_open_array(jb, "completion_code");
+                            SCJbOpenArray(jb, "completion_code");
                             is_cc_array_open = true;
                         }
-                        jb_append_string_from_bytes(jb, (const uint8_t *)where, 3);
+                        SCJbAppendStringFromBytes(jb, (const uint8_t *)where, 3);
                         offset = 4;
                     }
                 }
                 /* move past 3 character completion code */
                 if (pos >= offset) {
-                    jb_append_string_from_bytes(js_resplist, (const uint8_t *)where + offset, pos - offset);
+                    SCJbAppendStringFromBytes(
+                            js_resplist, (const uint8_t *)where + offset, pos - offset);
                     resp_cnt++;
                 }
 
@@ -128,17 +129,17 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
         }
 
         if (is_cc_array_open) {
-            jb_close(jb);
+            SCJbClose(jb);
         }
         if (resp_cnt) {
-            jb_close(js_resplist);
-            jb_set_object(jb, "reply", js_resplist);
+            SCJbClose(js_resplist);
+            SCJbSetObject(jb, "reply", js_resplist);
         }
-        jb_free(js_resplist);
+        SCJbFree(js_resplist);
     }
 
     if (tx->dyn_port) {
-        jb_set_uint(jb, "dynamic_port", tx->dyn_port);
+        SCJbSetUint(jb, "dynamic_port", tx->dyn_port);
     }
 
     if (tx->command_descriptor.command_code == FTP_COMMAND_PORT ||
@@ -161,6 +162,6 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
     } else {
         JB_SET_FALSE(jb, "reply_truncated");
     }
-    jb_close(jb);
+    SCJbClose(jb);
     return true;
 }

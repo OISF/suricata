@@ -172,7 +172,7 @@ void OutputLoggerExitPrintStats(ThreadVars *, void *);
 void OutputSetupActiveLoggers(void);
 void OutputClearActiveLoggers(void);
 
-typedef bool (*EveJsonSimpleTxLogFunc)(void *, struct JsonBuilder *);
+typedef bool (*EveJsonSimpleTxLogFunc)(void *, struct SCJsonBuilder *);
 
 typedef struct EveJsonSimpleAppLayerLogger {
     EveJsonSimpleTxLogFunc LogTx;

@@ -50,7 +50,7 @@ bool SCEveRegisterCallback(SCEveUserCallbackFn fn, void *user)
     return true;
 }
 
-void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb)
+void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb)
 {
     EveUserCallback *cb = eve_user_callbacks;
     while (cb != NULL) {

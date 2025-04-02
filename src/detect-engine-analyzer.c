@@ -631,10 +631,10 @@ void EngineAnalysisRulesFailure(
 }
 
 typedef struct RuleAnalyzer {
-    JsonBuilder *js; /* document root */
+    SCJsonBuilder *js; /* document root */
 
-    JsonBuilder *js_warnings;
-    JsonBuilder *js_notes;
+    SCJsonBuilder *js_warnings;
+    SCJsonBuilder *js_notes;
 } RuleAnalyzer;
 
 static void ATTR_FMT_PRINTF(2, 3) AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
@@ -647,9 +647,9 @@ static void ATTR_FMT_PRINTF(2, 3) AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...
     va_end(ap);
 
     if (!ctx->js_notes)
-        ctx->js_notes = jb_new_array();
+        ctx->js_notes = SCJbNewArray();
     if (ctx->js_notes)
-        jb_append_string(ctx->js_notes, str);
+        SCJbAppendString(ctx->js_notes, str);
 }
 
 static void ATTR_FMT_PRINTF(2, 3) AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
@@ -662,9 +662,9 @@ static void ATTR_FMT_PRINTF(2, 3) AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, 
     va_end(ap);
 
     if (!ctx->js_warnings)
-        ctx->js_warnings = jb_new_array();
+        ctx->js_warnings = SCJbNewArray();
     if (ctx->js_warnings)
-        jb_append_string(ctx->js_warnings, str);
+        SCJbAppendString(ctx->js_warnings, str);
 }
 
 #define CHECK(pat) if (strlen((pat)) <= len && memcmp((pat), buf, MIN(len, strlen((pat)))) == 0) return true;
@@ -685,59 +685,59 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
     return false;
 }
 
-static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
+static void DumpContent(SCJsonBuilder *js, const DetectContentData *cd)
 {
     char pattern_str[1024] = "";
     DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
 
-    jb_set_string(js, "pattern", pattern_str);
-    jb_set_uint(js, "length", cd->content_len);
-    jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
-    jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
-    jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
-    jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
-    jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
-    jb_set_bool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
+    SCJbSetString(js, "pattern", pattern_str);
+    SCJbSetUint(js, "length", cd->content_len);
+    SCJbSetBool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
+    SCJbSetBool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
+    SCJbSetBool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
+    SCJbSetBool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
+    SCJbSetBool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
+    SCJbSetBool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
     if (cd->flags & DETECT_CONTENT_OFFSET) {
-        jb_set_uint(js, "offset", cd->offset);
+        SCJbSetUint(js, "offset", cd->offset);
     }
     if (cd->flags & DETECT_CONTENT_DEPTH) {
-        jb_set_uint(js, "depth", cd->depth);
+        SCJbSetUint(js, "depth", cd->depth);
     }
     if (cd->flags & DETECT_CONTENT_DISTANCE) {
-        jb_set_int(js, "distance", cd->distance);
+        SCJbSetInt(js, "distance", cd->distance);
     }
     if (cd->flags & DETECT_CONTENT_WITHIN) {
-        jb_set_int(js, "within", cd->within);
+        SCJbSetInt(js, "within", cd->within);
     }
-    jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
-    jb_set_bool(js, "relative_next", cd->flags & DETECT_CONTENT_RELATIVE_NEXT);
+    SCJbSetBool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+    SCJbSetBool(js, "relative_next", cd->flags & DETECT_CONTENT_RELATIVE_NEXT);
 }
 
-static void DumpPcre(JsonBuilder *js, const DetectPcreData *cd)
+static void DumpPcre(SCJsonBuilder *js, const DetectPcreData *cd)
 {
-    jb_set_bool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
-    jb_set_bool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
-    jb_set_bool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
-    jb_set_bool(js, "negated", cd->flags & DETECT_PCRE_NEGATE);
+    SCJbSetBool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
+    SCJbSetBool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
+    SCJbSetBool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
+    SCJbSetBool(js, "negated", cd->flags & DETECT_PCRE_NEGATE);
 }
 
-static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *smd)
+static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData *smd)
 {
     if (smd == NULL)
         return;
 
-    jb_open_array(js, "matches");
+    SCJbOpenArray(js, "matches");
     do {
-        jb_start_object(js);
+        SCJbStartObject(js);
         const char *mname = sigmatch_table[smd->type].name;
-        jb_set_string(js, "name", mname);
+        SCJbSetString(js, "name", mname);
 
         switch (smd->type) {
             case DETECT_CONTENT: {
                 const DetectContentData *cd = (const DetectContentData *)smd->ctx;
 
-                jb_open_object(js, "content");
+                SCJbOpenObject(js, "content");
                 DumpContent(js, cd);
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and "
@@ -761,15 +761,15 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                     AnalyzerNote(ctx, (char *)"'distance' option for pattern w/o previous content "
                                               "was converted to 'offset'");
                 }
-                jb_close(js);
+                SCJbClose(js);
                 break;
             }
             case DETECT_PCRE: {
                 const DetectPcreData *cd = (const DetectPcreData *)smd->ctx;
 
-                jb_open_object(js, "pcre");
+                SCJbOpenObject(js, "pcre");
                 DumpPcre(js, cd);
-                jb_close(js);
+                SCJbClose(js);
                 if (cd->flags & DETECT_PCRE_RAWBYTES) {
                     AnalyzerNote(ctx,
                             (char *)"'/B' (rawbytes) option is a no-op and is silently ignored");
@@ -779,192 +779,192 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
             case DETECT_BYTEJUMP: {
                 const DetectBytejumpData *cd = (const DetectBytejumpData *)smd->ctx;
 
-                jb_open_object(js, "byte_jump");
-                jb_set_uint(js, "nbytes", cd->nbytes);
-                jb_set_int(js, "offset", cd->offset);
-                jb_set_uint(js, "multiplier", cd->multiplier);
-                jb_set_int(js, "post_offset", cd->post_offset);
+                SCJbOpenObject(js, "byte_jump");
+                SCJbSetUint(js, "nbytes", cd->nbytes);
+                SCJbSetInt(js, "offset", cd->offset);
+                SCJbSetUint(js, "multiplier", cd->multiplier);
+                SCJbSetInt(js, "post_offset", cd->post_offset);
                 switch (cd->base) {
                     case DETECT_BYTEJUMP_BASE_UNSET:
-                        jb_set_string(js, "base", "unset");
+                        SCJbSetString(js, "base", "unset");
                         break;
                     case DETECT_BYTEJUMP_BASE_OCT:
-                        jb_set_string(js, "base", "oct");
+                        SCJbSetString(js, "base", "oct");
                         break;
                     case DETECT_BYTEJUMP_BASE_DEC:
-                        jb_set_string(js, "base", "dec");
+                        SCJbSetString(js, "base", "dec");
                         break;
                     case DETECT_BYTEJUMP_BASE_HEX:
-                        jb_set_string(js, "base", "hex");
+                        SCJbSetString(js, "base", "hex");
                         break;
                 }
-                jb_open_array(js, "flags");
+                SCJbOpenArray(js, "flags");
                 if (cd->flags & DETECT_BYTEJUMP_BEGIN)
-                    jb_append_string(js, "from_beginning");
+                    SCJbAppendString(js, "from_beginning");
                 if (cd->flags & DETECT_BYTEJUMP_LITTLE)
-                    jb_append_string(js, "little_endian");
+                    SCJbAppendString(js, "little_endian");
                 if (cd->flags & DETECT_BYTEJUMP_BIG)
-                    jb_append_string(js, "big_endian");
+                    SCJbAppendString(js, "big_endian");
                 if (cd->flags & DETECT_BYTEJUMP_STRING)
-                    jb_append_string(js, "string");
+                    SCJbAppendString(js, "string");
                 if (cd->flags & DETECT_BYTEJUMP_RELATIVE)
-                    jb_append_string(js, "relative");
+                    SCJbAppendString(js, "relative");
                 if (cd->flags & DETECT_BYTEJUMP_ALIGN)
-                    jb_append_string(js, "align");
+                    SCJbAppendString(js, "align");
                 if (cd->flags & DETECT_BYTEJUMP_DCE)
-                    jb_append_string(js, "dce");
+                    SCJbAppendString(js, "dce");
                 if (cd->flags & DETECT_BYTEJUMP_OFFSET_BE)
-                    jb_append_string(js, "offset_be");
+                    SCJbAppendString(js, "offset_be");
                 if (cd->flags & DETECT_BYTEJUMP_END)
-                    jb_append_string(js, "from_end");
-                jb_close(js);
-                jb_close(js);
+                    SCJbAppendString(js, "from_end");
+                SCJbClose(js);
+                SCJbClose(js);
                 break;
             }
             case DETECT_BYTETEST: {
                 const DetectBytetestData *cd = (const DetectBytetestData *)smd->ctx;
 
-                jb_open_object(js, "byte_test");
-                jb_set_uint(js, "nbytes", cd->nbytes);
-                jb_set_int(js, "offset", cd->offset);
+                SCJbOpenObject(js, "byte_test");
+                SCJbSetUint(js, "nbytes", cd->nbytes);
+                SCJbSetInt(js, "offset", cd->offset);
                 switch (cd->base) {
                     case DETECT_BYTETEST_BASE_UNSET:
-                        jb_set_string(js, "base", "unset");
+                        SCJbSetString(js, "base", "unset");
                         break;
                     case DETECT_BYTETEST_BASE_OCT:
-                        jb_set_string(js, "base", "oct");
+                        SCJbSetString(js, "base", "oct");
                         break;
                     case DETECT_BYTETEST_BASE_DEC:
-                        jb_set_string(js, "base", "dec");
+                        SCJbSetString(js, "base", "dec");
                         break;
                     case DETECT_BYTETEST_BASE_HEX:
-                        jb_set_string(js, "base", "hex");
+                        SCJbSetString(js, "base", "hex");
                         break;
                 }
-                jb_open_array(js, "flags");
+                SCJbOpenArray(js, "flags");
                 if (cd->flags & DETECT_BYTETEST_LITTLE)
-                    jb_append_string(js, "little_endian");
+                    SCJbAppendString(js, "little_endian");
                 if (cd->flags & DETECT_BYTETEST_BIG)
-                    jb_append_string(js, "big_endian");
+                    SCJbAppendString(js, "big_endian");
                 if (cd->flags & DETECT_BYTETEST_STRING)
-                    jb_append_string(js, "string");
+                    SCJbAppendString(js, "string");
                 if (cd->flags & DETECT_BYTETEST_RELATIVE)
-                    jb_append_string(js, "relative");
+                    SCJbAppendString(js, "relative");
                 if (cd->flags & DETECT_BYTETEST_DCE)
-                    jb_append_string(js, "dce");
-                jb_close(js);
-                jb_close(js);
+                    SCJbAppendString(js, "dce");
+                SCJbClose(js);
+                SCJbClose(js);
                 break;
             }
             case DETECT_ABSENT: {
                 const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
-                jb_open_object(js, "absent");
-                jb_set_bool(js, "or_else", dad->or_else);
-                jb_close(js);
+                SCJbOpenObject(js, "absent");
+                SCJbSetBool(js, "or_else", dad->or_else);
+                SCJbClose(js);
                 break;
             }
 
             case DETECT_IPOPTS: {
                 const DetectIpOptsData *cd = (const DetectIpOptsData *)smd->ctx;
 
-                jb_open_object(js, "ipopts");
+                SCJbOpenObject(js, "ipopts");
                 const char *flag = IpOptsFlagToString(cd->ipopt);
-                jb_set_string(js, "option", flag);
-                jb_close(js);
+                SCJbSetString(js, "option", flag);
+                SCJbClose(js);
                 break;
             }
             case DETECT_FLOWBITS: {
                 const DetectFlowbitsData *cd = (const DetectFlowbitsData *)smd->ctx;
 
-                jb_open_object(js, "flowbits");
+                SCJbOpenObject(js, "flowbits");
                 switch (cd->cmd) {
                     case DETECT_FLOWBITS_CMD_ISSET:
-                        jb_set_string(js, "cmd", "isset");
+                        SCJbSetString(js, "cmd", "isset");
                         break;
                     case DETECT_FLOWBITS_CMD_ISNOTSET:
-                        jb_set_string(js, "cmd", "isnotset");
+                        SCJbSetString(js, "cmd", "isnotset");
                         break;
                     case DETECT_FLOWBITS_CMD_SET:
-                        jb_set_string(js, "cmd", "set");
+                        SCJbSetString(js, "cmd", "set");
                         break;
                     case DETECT_FLOWBITS_CMD_UNSET:
-                        jb_set_string(js, "cmd", "unset");
+                        SCJbSetString(js, "cmd", "unset");
                         break;
                     case DETECT_FLOWBITS_CMD_TOGGLE:
-                        jb_set_string(js, "cmd", "toggle");
+                        SCJbSetString(js, "cmd", "toggle");
                         break;
                 }
                 bool is_or = false;
-                jb_open_array(js, "names");
+                SCJbOpenArray(js, "names");
                 if (cd->or_list_size == 0) {
-                    jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
+                    SCJbAppendString(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
                 } else if (cd->or_list_size > 0) {
                     is_or = true;
                     for (uint8_t i = 0; i < cd->or_list_size; i++) {
                         const char *varname =
                                 VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
-                        jb_append_string(js, varname);
+                        SCJbAppendString(js, varname);
                     }
                 }
-                jb_close(js); // array
+                SCJbClose(js); // array
                 if (is_or) {
-                    jb_set_string(js, "operator", "or");
+                    SCJbSetString(js, "operator", "or");
                 }
-                jb_close(js); // object
+                SCJbClose(js); // object
                 break;
             }
             case DETECT_ACK: {
                 const DetectAckData *cd = (const DetectAckData *)smd->ctx;
 
-                jb_open_object(js, "ack");
-                jb_set_uint(js, "number", cd->ack);
-                jb_close(js);
+                SCJbOpenObject(js, "ack");
+                SCJbSetUint(js, "number", cd->ack);
+                SCJbClose(js);
                 break;
             }
             case DETECT_SEQ: {
                 const DetectSeqData *cd = (const DetectSeqData *)smd->ctx;
-                jb_open_object(js, "seq");
-                jb_set_uint(js, "number", cd->seq);
-                jb_close(js);
+                SCJbOpenObject(js, "seq");
+                SCJbSetUint(js, "number", cd->seq);
+                SCJbClose(js);
                 break;
             }
             case DETECT_TCPMSS: {
                 const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
-                jb_open_object(js, "tcp_mss");
+                SCJbOpenObject(js, "tcp_mss");
                 SCDetectU16ToJson(js, cd);
-                jb_close(js);
+                SCJbClose(js);
                 break;
             }
             case DETECT_ICMP_ID: {
                 const DetectIcmpIdData *cd = (const DetectIcmpIdData *)smd->ctx;
-                jb_open_object(js, "id");
-                jb_set_uint(js, "number", SCNtohs(cd->id));
-                jb_close(js);
+                SCJbOpenObject(js, "id");
+                SCJbSetUint(js, "number", SCNtohs(cd->id));
+                SCJbClose(js);
                 break;
             }
             case DETECT_WINDOW: {
                 const DetectWindowData *wd = (const DetectWindowData *)smd->ctx;
-                jb_open_object(js, "window");
-                jb_set_uint(js, "size", wd->size);
-                jb_set_bool(js, "negated", wd->negated);
-                jb_close(js);
+                SCJbOpenObject(js, "window");
+                SCJbSetUint(js, "size", wd->size);
+                SCJbSetBool(js, "negated", wd->negated);
+                SCJbClose(js);
                 break;
             }
             case DETECT_FLOW_AGE: {
                 const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
-                jb_open_object(js, "flow_age");
+                SCJbOpenObject(js, "flow_age");
                 SCDetectU32ToJson(js, cd);
-                jb_close(js);
+                SCJbClose(js);
                 break;
             }
         }
-        jb_close(js);
+        SCJbClose(js);
 
         if (smd->is_last)
             break;
         smd++;
     } while (1);
-    jb_close(js);
+    SCJbClose(js);
 }
 
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
@@ -974,212 +974,212 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 
     RuleAnalyzer ctx = { NULL, NULL, NULL };
 
-    ctx.js = jb_new_object();
+    ctx.js = SCJbNewObject();
     if (ctx.js == NULL)
         SCReturn;
 
-    jb_set_string(ctx.js, "raw", s->sig_str);
-    jb_set_uint(ctx.js, "id", s->id);
-    jb_set_uint(ctx.js, "gid", s->gid);
-    jb_set_uint(ctx.js, "rev", s->rev);
-    jb_set_string(ctx.js, "msg", s->msg);
+    SCJbSetString(ctx.js, "raw", s->sig_str);
+    SCJbSetUint(ctx.js, "id", s->id);
+    SCJbSetUint(ctx.js, "gid", s->gid);
+    SCJbSetUint(ctx.js, "rev", s->rev);
+    SCJbSetString(ctx.js, "msg", s->msg);
 
     const char *alproto = AppProtoToString(s->alproto);
-    jb_set_string(ctx.js, "app_proto", alproto);
+    SCJbSetString(ctx.js, "app_proto", alproto);
 
-    jb_open_array(ctx.js, "requirements");
+    SCJbOpenArray(ctx.js, "requirements");
     if (s->mask & SIG_MASK_REQUIRE_PAYLOAD) {
-        jb_append_string(ctx.js, "payload");
+        SCJbAppendString(ctx.js, "payload");
     }
     if (s->mask & SIG_MASK_REQUIRE_NO_PAYLOAD) {
-        jb_append_string(ctx.js, "no_payload");
+        SCJbAppendString(ctx.js, "no_payload");
     }
     if (s->mask & SIG_MASK_REQUIRE_FLOW) {
-        jb_append_string(ctx.js, "flow");
+        SCJbAppendString(ctx.js, "flow");
     }
     if (s->mask & SIG_MASK_REQUIRE_FLAGS_INITDEINIT) {
-        jb_append_string(ctx.js, "tcp_flags_init_deinit");
+        SCJbAppendString(ctx.js, "tcp_flags_init_deinit");
     }
     if (s->mask & SIG_MASK_REQUIRE_FLAGS_UNUSUAL) {
-        jb_append_string(ctx.js, "tcp_flags_unusual");
+        SCJbAppendString(ctx.js, "tcp_flags_unusual");
     }
     if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
-        jb_append_string(ctx.js, "engine_event");
+        SCJbAppendString(ctx.js, "engine_event");
     }
     if (s->mask & SIG_MASK_REQUIRE_REAL_PKT) {
-        jb_append_string(ctx.js, "real_pkt");
+        SCJbAppendString(ctx.js, "real_pkt");
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
-    jb_open_object(ctx.js, "match_policy");
-    jb_open_array(ctx.js, "actions");
+    SCJbOpenObject(ctx.js, "match_policy");
+    SCJbOpenArray(ctx.js, "actions");
     if (s->action & ACTION_ALERT) {
-        jb_append_string(ctx.js, "alert");
+        SCJbAppendString(ctx.js, "alert");
     }
     if (s->action & ACTION_DROP) {
-        jb_append_string(ctx.js, "drop");
+        SCJbAppendString(ctx.js, "drop");
     }
     if (s->action & ACTION_REJECT) {
-        jb_append_string(ctx.js, "reject");
+        SCJbAppendString(ctx.js, "reject");
     }
     if (s->action & ACTION_REJECT_DST) {
-        jb_append_string(ctx.js, "reject_dst");
+        SCJbAppendString(ctx.js, "reject_dst");
     }
     if (s->action & ACTION_REJECT_BOTH) {
-        jb_append_string(ctx.js, "reject_both");
+        SCJbAppendString(ctx.js, "reject_both");
     }
     if (s->action & ACTION_CONFIG) {
-        jb_append_string(ctx.js, "config");
+        SCJbAppendString(ctx.js, "config");
     }
     if (s->action & ACTION_PASS) {
-        jb_append_string(ctx.js, "pass");
+        SCJbAppendString(ctx.js, "pass");
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
     enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
     switch (flow_action) {
         case SIG_PROP_FLOW_ACTION_PACKET:
-            jb_set_string(ctx.js, "scope", "packet");
+            SCJbSetString(ctx.js, "scope", "packet");
             break;
         case SIG_PROP_FLOW_ACTION_FLOW:
-            jb_set_string(ctx.js, "scope", "flow");
+            SCJbSetString(ctx.js, "scope", "flow");
             break;
         case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
-            jb_set_string(ctx.js, "scope", "flow_if_stateful");
+            SCJbSetString(ctx.js, "scope", "flow_if_stateful");
             break;
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
     switch (s->type) {
         case SIG_TYPE_NOT_SET:
-            jb_set_string(ctx.js, "type", "unset");
+            SCJbSetString(ctx.js, "type", "unset");
             break;
         case SIG_TYPE_IPONLY:
-            jb_set_string(ctx.js, "type", "ip_only");
+            SCJbSetString(ctx.js, "type", "ip_only");
             break;
         case SIG_TYPE_LIKE_IPONLY:
-            jb_set_string(ctx.js, "type", "like_ip_only");
+            SCJbSetString(ctx.js, "type", "like_ip_only");
             break;
         case SIG_TYPE_PDONLY:
-            jb_set_string(ctx.js, "type", "pd_only");
+            SCJbSetString(ctx.js, "type", "pd_only");
             break;
         case SIG_TYPE_DEONLY:
-            jb_set_string(ctx.js, "type", "de_only");
+            SCJbSetString(ctx.js, "type", "de_only");
             break;
         case SIG_TYPE_PKT:
-            jb_set_string(ctx.js, "type", "pkt");
+            SCJbSetString(ctx.js, "type", "pkt");
             break;
         case SIG_TYPE_PKT_STREAM:
-            jb_set_string(ctx.js, "type", "pkt_stream");
+            SCJbSetString(ctx.js, "type", "pkt_stream");
             break;
         case SIG_TYPE_STREAM:
-            jb_set_string(ctx.js, "type", "stream");
+            SCJbSetString(ctx.js, "type", "stream");
             break;
         case SIG_TYPE_APPLAYER:
-            jb_set_string(ctx.js, "type", "app_layer");
+            SCJbSetString(ctx.js, "type", "app_layer");
             break;
         case SIG_TYPE_APP_TX:
-            jb_set_string(ctx.js, "type", "app_tx");
+            SCJbSetString(ctx.js, "type", "app_tx");
             break;
         case SIG_TYPE_MAX:
-            jb_set_string(ctx.js, "type", "error");
+            SCJbSetString(ctx.js, "type", "error");
             break;
     }
 
     // dependencies object and its subfields only logged if we have values
     if (s->init_data->is_rule_state_dependant) {
-        jb_open_object(ctx.js, "dependencies");
-        jb_open_object(ctx.js, "flowbits");
-        jb_open_object(ctx.js, "upstream");
+        SCJbOpenObject(ctx.js, "dependencies");
+        SCJbOpenObject(ctx.js, "flowbits");
+        SCJbOpenObject(ctx.js, "upstream");
         if (s->init_data->rule_state_dependant_sids_size > 0) {
-            jb_open_object(ctx.js, "state_modifying_rules");
-            jb_open_array(ctx.js, "sids");
+            SCJbOpenObject(ctx.js, "state_modifying_rules");
+            SCJbOpenArray(ctx.js, "sids");
             for (uint32_t i = 0; i < s->init_data->rule_state_dependant_sids_idx; i++) {
-                jb_append_uint(ctx.js, s->init_data->rule_state_dependant_sids_array[i]);
+                SCJbAppendUint(ctx.js, s->init_data->rule_state_dependant_sids_array[i]);
             }
-            jb_close(ctx.js); // sids
-            jb_open_array(ctx.js, "names");
+            SCJbClose(ctx.js); // sids
+            SCJbOpenArray(ctx.js, "names");
             for (uint32_t i = 0; i < s->init_data->rule_state_flowbits_ids_size - 1; i++) {
                 if (s->init_data->rule_state_flowbits_ids_array[i] != 0) {
-                    jb_append_string(ctx.js,
+                    SCJbAppendString(ctx.js,
                             VarNameStoreSetupLookup(s->init_data->rule_state_flowbits_ids_array[i],
                                     VAR_TYPE_FLOW_BIT));
                 }
             }
-            jb_close(ctx.js); // names
-            jb_close(ctx.js); // state_modifying_rules
+            SCJbClose(ctx.js); // names
+            SCJbClose(ctx.js); // state_modifying_rules
         }
-        jb_close(ctx.js); // upstream
-        jb_close(ctx.js); // flowbits
-        jb_close(ctx.js); // dependencies
+        SCJbClose(ctx.js); // upstream
+        SCJbClose(ctx.js); // flowbits
+        SCJbClose(ctx.js); // dependencies
     }
 
-    jb_open_array(ctx.js, "flags");
+    SCJbOpenArray(ctx.js, "flags");
     if (s->flags & SIG_FLAG_SRC_ANY) {
-        jb_append_string(ctx.js, "src_any");
+        SCJbAppendString(ctx.js, "src_any");
     }
     if (s->flags & SIG_FLAG_DST_ANY) {
-        jb_append_string(ctx.js, "dst_any");
+        SCJbAppendString(ctx.js, "dst_any");
     }
     if (s->flags & SIG_FLAG_SP_ANY) {
-        jb_append_string(ctx.js, "sp_any");
+        SCJbAppendString(ctx.js, "sp_any");
     }
     if (s->flags & SIG_FLAG_DP_ANY) {
-        jb_append_string(ctx.js, "dp_any");
+        SCJbAppendString(ctx.js, "dp_any");
     }
     if ((s->action & ACTION_ALERT) == 0) {
-        jb_append_string(ctx.js, "noalert");
+        SCJbAppendString(ctx.js, "noalert");
     }
     if (s->flags & SIG_FLAG_DSIZE) {
-        jb_append_string(ctx.js, "dsize");
+        SCJbAppendString(ctx.js, "dsize");
     }
     if (s->flags & SIG_FLAG_APPLAYER) {
-        jb_append_string(ctx.js, "applayer");
+        SCJbAppendString(ctx.js, "applayer");
     }
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        jb_append_string(ctx.js, "need_packet");
+        SCJbAppendString(ctx.js, "need_packet");
     }
     if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
-        jb_append_string(ctx.js, "need_stream");
+        SCJbAppendString(ctx.js, "need_stream");
     }
     if (s->flags & SIG_FLAG_MPM_NEG) {
-        jb_append_string(ctx.js, "negated_mpm");
+        SCJbAppendString(ctx.js, "negated_mpm");
     }
     if (s->flags & SIG_FLAG_FLUSH) {
-        jb_append_string(ctx.js, "flush");
+        SCJbAppendString(ctx.js, "flush");
     }
     if (s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
-        jb_append_string(ctx.js, "need_flowvar");
+        SCJbAppendString(ctx.js, "need_flowvar");
     }
     if (s->flags & SIG_FLAG_FILESTORE) {
-        jb_append_string(ctx.js, "filestore");
+        SCJbAppendString(ctx.js, "filestore");
     }
     if (s->flags & SIG_FLAG_TOSERVER) {
-        jb_append_string(ctx.js, "toserver");
+        SCJbAppendString(ctx.js, "toserver");
     }
     if (s->flags & SIG_FLAG_TOCLIENT) {
-        jb_append_string(ctx.js, "toclient");
+        SCJbAppendString(ctx.js, "toclient");
     }
     if (s->flags & SIG_FLAG_TLSSTORE) {
-        jb_append_string(ctx.js, "tlsstore");
+        SCJbAppendString(ctx.js, "tlsstore");
     }
     if (s->flags & SIG_FLAG_BYPASS) {
-        jb_append_string(ctx.js, "bypass");
+        SCJbAppendString(ctx.js, "bypass");
     }
     if (s->flags & SIG_FLAG_PREFILTER) {
-        jb_append_string(ctx.js, "prefilter");
+        SCJbAppendString(ctx.js, "prefilter");
     }
     if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
-        jb_append_string(ctx.js, "src_is_target");
+        SCJbAppendString(ctx.js, "src_is_target");
     }
     if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
-        jb_append_string(ctx.js, "dst_is_target");
+        SCJbAppendString(ctx.js, "dst_is_target");
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
     const DetectEnginePktInspectionEngine *pkt_mpm = NULL;
     const DetectEngineAppInspectionEngine *app_mpm = NULL;
 
-    jb_open_array(ctx.js, "pkt_engines");
+    SCJbOpenArray(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, pkt->sm_list);
@@ -1196,54 +1196,54 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                     break;
             }
         }
-        jb_start_object(ctx.js);
-        jb_set_string(ctx.js, "name", name);
-        jb_set_bool(ctx.js, "is_mpm", pkt->mpm);
+        SCJbStartObject(ctx.js);
+        SCJbSetString(ctx.js, "name", name);
+        SCJbSetBool(ctx.js, "is_mpm", pkt->mpm);
         if (pkt->v1.transforms != NULL) {
-            jb_open_array(ctx.js, "transforms");
+            SCJbOpenArray(ctx.js, "transforms");
             for (int t = 0; t < pkt->v1.transforms->cnt; t++) {
-                jb_start_object(ctx.js);
-                jb_set_string(ctx.js, "name",
+                SCJbStartObject(ctx.js);
+                SCJbSetString(ctx.js, "name",
                         sigmatch_table[pkt->v1.transforms->transforms[t].transform].name);
-                jb_close(ctx.js);
+                SCJbClose(ctx.js);
             }
-            jb_close(ctx.js);
+            SCJbClose(ctx.js);
         }
         DumpMatches(&ctx, ctx.js, pkt->smd);
-        jb_close(ctx.js);
+        SCJbClose(ctx.js);
         if (pkt->mpm) {
             pkt_mpm = pkt;
         }
     }
-    jb_close(ctx.js);
-    jb_open_array(ctx.js, "frame_engines");
+    SCJbClose(ctx.js);
+    SCJbOpenArray(ctx.js, "frame_engines");
     const DetectEngineFrameInspectionEngine *frame = s->frame_inspect;
     for (; frame != NULL; frame = frame->next) {
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, frame->sm_list);
-        jb_start_object(ctx.js);
-        jb_set_string(ctx.js, "name", name);
-        jb_set_bool(ctx.js, "is_mpm", frame->mpm);
+        SCJbStartObject(ctx.js);
+        SCJbSetString(ctx.js, "name", name);
+        SCJbSetBool(ctx.js, "is_mpm", frame->mpm);
         if (frame->v1.transforms != NULL) {
-            jb_open_array(ctx.js, "transforms");
+            SCJbOpenArray(ctx.js, "transforms");
             for (int t = 0; t < frame->v1.transforms->cnt; t++) {
-                jb_start_object(ctx.js);
-                jb_set_string(ctx.js, "name",
+                SCJbStartObject(ctx.js);
+                SCJbSetString(ctx.js, "name",
                         sigmatch_table[frame->v1.transforms->transforms[t].transform].name);
-                jb_close(ctx.js);
+                SCJbClose(ctx.js);
             }
-            jb_close(ctx.js);
+            SCJbClose(ctx.js);
         }
         DumpMatches(&ctx, ctx.js, frame->smd);
-        jb_close(ctx.js);
+        SCJbClose(ctx.js);
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         bool has_stream = false;
         bool has_client_body_mpm = false;
         bool has_file_data_mpm = false;
 
-        jb_open_array(ctx.js, "engines");
+        SCJbOpenArray(ctx.js, "engines");
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {
             const char *name = DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list);
@@ -1266,31 +1266,31 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 has_file_data_mpm = true;
             }
 
-            jb_start_object(ctx.js);
-            jb_set_string(ctx.js, "name", name);
+            SCJbStartObject(ctx.js);
+            SCJbSetString(ctx.js, "name", name);
             const char *direction = app->dir == 0 ? "toserver" : "toclient";
-            jb_set_string(ctx.js, "direction", direction);
-            jb_set_bool(ctx.js, "is_mpm", app->mpm);
-            jb_set_string(ctx.js, "app_proto", AppProtoToString(app->alproto));
-            jb_set_uint(ctx.js, "progress", app->progress);
+            SCJbSetString(ctx.js, "direction", direction);
+            SCJbSetBool(ctx.js, "is_mpm", app->mpm);
+            SCJbSetString(ctx.js, "app_proto", AppProtoToString(app->alproto));
+            SCJbSetUint(ctx.js, "progress", app->progress);
 
             if (app->v2.transforms != NULL) {
-                jb_open_array(ctx.js, "transforms");
+                SCJbOpenArray(ctx.js, "transforms");
                 for (int t = 0; t < app->v2.transforms->cnt; t++) {
-                    jb_start_object(ctx.js);
-                    jb_set_string(ctx.js, "name",
+                    SCJbStartObject(ctx.js);
+                    SCJbSetString(ctx.js, "name",
                             sigmatch_table[app->v2.transforms->transforms[t].transform].name);
-                    jb_close(ctx.js);
+                    SCJbClose(ctx.js);
                 }
-                jb_close(ctx.js);
+                SCJbClose(ctx.js);
             }
             DumpMatches(&ctx, ctx.js, app->smd);
-            jb_close(ctx.js);
+            SCJbClose(ctx.js);
             if (app->mpm) {
                 app_mpm = app;
             }
         }
-        jb_close(ctx.js);
+        SCJbClose(ctx.js);
 
         if (has_stream && has_client_body_mpm)
             AnalyzerNote(&ctx, (char *)"mpm in http_client_body combined with stream match leads to stream buffering");
@@ -1298,18 +1298,18 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             AnalyzerNote(&ctx, (char *)"mpm in file_data combined with stream match leads to stream buffering");
     }
 
-    jb_open_object(ctx.js, "lists");
+    SCJbOpenObject(ctx.js, "lists");
     for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
         if (s->sm_arrays[i] != NULL) {
-            jb_open_object(ctx.js, DetectListToHumanString(i));
+            SCJbOpenObject(ctx.js, DetectListToHumanString(i));
             DumpMatches(&ctx, ctx.js, s->sm_arrays[i]);
-            jb_close(ctx.js);
+            SCJbClose(ctx.js);
         }
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
     if (pkt_mpm || app_mpm) {
-        jb_open_object(ctx.js, "mpm");
+        SCJbOpenObject(ctx.js, "mpm");
 
         int mpm_list = pkt_mpm ? DETECT_SM_LIST_PMATCH : app_mpm->sm_list;
         const char *name;
@@ -1317,7 +1317,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             name = DetectListToHumanString(mpm_list);
         else
             name = DetectEngineBufferTypeGetNameById(de_ctx, mpm_list);
-        jb_set_string(ctx.js, "buffer", name);
+        SCJbSetString(ctx.js, "buffer", name);
 
         SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
         if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
@@ -1338,34 +1338,34 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 break;
             smd++;
         } while (1);
-        jb_close(ctx.js);
+        SCJbClose(ctx.js);
     } else if (s->init_data->prefilter_sm) {
-        jb_open_object(ctx.js, "prefilter");
+        SCJbOpenObject(ctx.js, "prefilter");
         int prefilter_list = SigMatchListSMBelongsTo(s, s->init_data->prefilter_sm);
         const char *name;
         if (prefilter_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(prefilter_list);
         else
             name = DetectEngineBufferTypeGetNameById(de_ctx, prefilter_list);
-        jb_set_string(ctx.js, "buffer", name);
+        SCJbSetString(ctx.js, "buffer", name);
         const char *mname = sigmatch_table[s->init_data->prefilter_sm->type].name;
-        jb_set_string(ctx.js, "name", mname);
-        jb_close(ctx.js);
+        SCJbSetString(ctx.js, "name", mname);
+        SCJbClose(ctx.js);
     }
 
     if (ctx.js_warnings) {
-        jb_close(ctx.js_warnings);
-        jb_set_object(ctx.js, "warnings", ctx.js_warnings);
-        jb_free(ctx.js_warnings);
+        SCJbClose(ctx.js_warnings);
+        SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+        SCJbFree(ctx.js_warnings);
         ctx.js_warnings = NULL;
     }
     if (ctx.js_notes) {
-        jb_close(ctx.js_notes);
-        jb_set_object(ctx.js, "notes", ctx.js_notes);
-        jb_free(ctx.js_notes);
+        SCJbClose(ctx.js_notes);
+        SCJbSetObject(ctx.js, "notes", ctx.js_notes);
+        SCJbFree(ctx.js_notes);
         ctx.js_notes = NULL;
     }
-    jb_close(ctx.js);
+    SCJbClose(ctx.js);
 
     const char *filename = "rules.json";
     const char *log_dir = SCConfigGetLogDirectory();
@@ -1376,12 +1376,12 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     SCMutexLock(&g_rules_analyzer_write_m);
     FILE *fp = fopen(json_path, "a");
     if (fp != NULL) {
-        fwrite(jb_ptr(ctx.js), jb_len(ctx.js), 1, fp);
+        fwrite(SCJbPtr(ctx.js), SCJbLen(ctx.js), 1, fp);
         fprintf(fp, "\n");
         fclose(fp);
     }
     SCMutexUnlock(&g_rules_analyzer_write_m);
-    jb_free(ctx.js);
+    SCJbFree(ctx.js);
     SCReturn;
 }
 
@@ -1390,11 +1390,11 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     if (de_ctx->pattern_hash_table == NULL)
         return;
 
-    JsonBuilder *root_jb = jb_new_object();
-    JsonBuilder *arrays[de_ctx->buffer_type_id];
-    memset(&arrays, 0, sizeof(JsonBuilder *) * de_ctx->buffer_type_id);
+    SCJsonBuilder *root_jb = SCJbNewObject();
+    SCJsonBuilder *arrays[de_ctx->buffer_type_id];
+    memset(&arrays, 0, sizeof(SCJsonBuilder *) * de_ctx->buffer_type_id);
 
-    jb_open_array(root_jb, "buffers");
+    SCJbOpenArray(root_jb, "buffers");
 
     for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->pattern_hash_table);
             htb != NULL; htb = HashListTableGetListNext(htb)) {
@@ -1402,48 +1402,48 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
         DetectPatternTracker *p = HashListTableGetListData(htb);
         DetectContentPatternPrettyPrint(p->cd, str, sizeof(str));
 
-        JsonBuilder *jb = arrays[p->sm_list];
+        SCJsonBuilder *jb = arrays[p->sm_list];
         if (arrays[p->sm_list] == NULL) {
-            jb = arrays[p->sm_list] = jb_new_object();
+            jb = arrays[p->sm_list] = SCJbNewObject();
             const char *name;
             if (p->sm_list < DETECT_SM_LIST_DYNAMIC_START)
                 name = DetectListToHumanString(p->sm_list);
             else
                 name = DetectEngineBufferTypeGetNameById(de_ctx, p->sm_list);
-            jb_set_string(jb, "name", name);
-            jb_set_uint(jb, "list_id", p->sm_list);
+            SCJbSetString(jb, "name", name);
+            SCJbSetUint(jb, "list_id", p->sm_list);
 
-            jb_open_array(jb, "patterns");
+            SCJbOpenArray(jb, "patterns");
         }
 
-        jb_start_object(jb);
-        jb_set_string(jb, "pattern", str);
-        jb_set_uint(jb, "patlen", p->cd->content_len);
-        jb_set_uint(jb, "cnt", p->cnt);
-        jb_set_uint(jb, "mpm", p->mpm);
-        jb_open_object(jb, "flags");
-        jb_set_bool(jb, "nocase", p->cd->flags & DETECT_CONTENT_NOCASE);
-        jb_set_bool(jb, "negated", p->cd->flags & DETECT_CONTENT_NEGATED);
-        jb_set_bool(jb, "depth", p->cd->flags & DETECT_CONTENT_DEPTH);
-        jb_set_bool(jb, "offset", p->cd->flags & DETECT_CONTENT_OFFSET);
-        jb_set_bool(jb, "endswith", p->cd->flags & DETECT_CONTENT_ENDS_WITH);
-        jb_close(jb);
-        jb_close(jb);
+        SCJbStartObject(jb);
+        SCJbSetString(jb, "pattern", str);
+        SCJbSetUint(jb, "patlen", p->cd->content_len);
+        SCJbSetUint(jb, "cnt", p->cnt);
+        SCJbSetUint(jb, "mpm", p->mpm);
+        SCJbOpenObject(jb, "flags");
+        SCJbSetBool(jb, "nocase", p->cd->flags & DETECT_CONTENT_NOCASE);
+        SCJbSetBool(jb, "negated", p->cd->flags & DETECT_CONTENT_NEGATED);
+        SCJbSetBool(jb, "depth", p->cd->flags & DETECT_CONTENT_DEPTH);
+        SCJbSetBool(jb, "offset", p->cd->flags & DETECT_CONTENT_OFFSET);
+        SCJbSetBool(jb, "endswith", p->cd->flags & DETECT_CONTENT_ENDS_WITH);
+        SCJbClose(jb);
+        SCJbClose(jb);
     }
 
     for (uint32_t i = 0; i < de_ctx->buffer_type_id; i++) {
-        JsonBuilder *jb = arrays[i];
+        SCJsonBuilder *jb = arrays[i];
         if (jb == NULL)
             continue;
 
-        jb_close(jb); // array
-        jb_close(jb); // object
+        SCJbClose(jb); // array
+        SCJbClose(jb); // object
 
-        jb_append_object(root_jb, jb);
-        jb_free(jb);
+        SCJbAppendObject(root_jb, jb);
+        SCJbFree(jb);
     }
-    jb_close(root_jb);
-    jb_close(root_jb);
+    SCJbClose(root_jb);
+    SCJbClose(root_jb);
 
     const char *filename = "patterns.json";
     const char *log_dir = SCConfigGetLogDirectory();
@@ -1454,12 +1454,12 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     SCMutexLock(&g_rules_analyzer_write_m);
     FILE *fp = fopen(json_path, "a");
     if (fp != NULL) {
-        fwrite(jb_ptr(root_jb), jb_len(root_jb), 1, fp);
+        fwrite(SCJbPtr(root_jb), SCJbLen(root_jb), 1, fp);
         fprintf(fp, "\n");
         fclose(fp);
     }
     SCMutexUnlock(&g_rules_analyzer_write_m);
-    jb_free(root_jb);
+    SCJbFree(root_jb);
 
     HashListTableFree(de_ctx->pattern_hash_table);
     de_ctx->pattern_hash_table = NULL;
