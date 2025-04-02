@@ -65,7 +65,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL, ctx->eve_ctx);
+    SCJsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL, ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -73,7 +73,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     SCDhcpLoggerLog(ctx->rs_logger, tx, js);
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->thread);
-    jb_free(js);
+    SCJbFree(js);
 
     return TM_ECODE_OK;
 }

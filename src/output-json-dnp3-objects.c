@@ -30,1631 +30,1631 @@
 #include "output-json.h"
 
 // clang-format off
-void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
+void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {
             DNP3ObjectG1V1 *data = point->data;
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(1, 2): {
             DNP3ObjectG1V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "reserved", data->reserved);
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "reserved", data->reserved);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(2, 1): {
             DNP3ObjectG2V1 *data = point->data;
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(2, 2): {
             DNP3ObjectG2V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "reserved", data->reserved);
-            jb_set_uint(js, "state", data->state);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "reserved", data->reserved);
+            SCJbSetUint(js, "state", data->state);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(2, 3): {
             DNP3ObjectG2V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "reserved", data->reserved);
-            jb_set_uint(js, "state", data->state);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "reserved", data->reserved);
+            SCJbSetUint(js, "state", data->state);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(3, 1): {
             DNP3ObjectG3V1 *data = point->data;
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(3, 2): {
             DNP3ObjectG3V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(4, 1): {
             DNP3ObjectG4V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(4, 2): {
             DNP3ObjectG4V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "state", data->state);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "state", data->state);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(4, 3): {
             DNP3ObjectG4V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "chatter_filter", data->chatter_filter);
-            jb_set_uint(js, "state", data->state);
-            jb_set_uint(js, "relative_time_ms", data->relative_time_ms);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "chatter_filter", data->chatter_filter);
+            SCJbSetUint(js, "state", data->state);
+            SCJbSetUint(js, "relative_time_ms", data->relative_time_ms);
             break;
         }
         case DNP3_OBJECT_CODE(10, 1): {
             DNP3ObjectG10V1 *data = point->data;
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(10, 2): {
             DNP3ObjectG10V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(11, 1): {
             DNP3ObjectG11V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(11, 2): {
             DNP3ObjectG11V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "state", data->state);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "state", data->state);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(12, 1): {
             DNP3ObjectG12V1 *data = point->data;
-            jb_set_uint(js, "op_type", data->op_type);
-            jb_set_uint(js, "qu", data->qu);
-            jb_set_uint(js, "cr", data->cr);
-            jb_set_uint(js, "tcc", data->tcc);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "ontime", data->ontime);
-            jb_set_uint(js, "offtime", data->offtime);
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved", data->reserved);
+            SCJbSetUint(js, "op_type", data->op_type);
+            SCJbSetUint(js, "qu", data->qu);
+            SCJbSetUint(js, "cr", data->cr);
+            SCJbSetUint(js, "tcc", data->tcc);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "ontime", data->ontime);
+            SCJbSetUint(js, "offtime", data->offtime);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved", data->reserved);
             break;
         }
         case DNP3_OBJECT_CODE(12, 2): {
             DNP3ObjectG12V2 *data = point->data;
-            jb_set_uint(js, "op_type", data->op_type);
-            jb_set_uint(js, "qu", data->qu);
-            jb_set_uint(js, "cr", data->cr);
-            jb_set_uint(js, "tcc", data->tcc);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "ontime", data->ontime);
-            jb_set_uint(js, "offtime", data->offtime);
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved", data->reserved);
+            SCJbSetUint(js, "op_type", data->op_type);
+            SCJbSetUint(js, "qu", data->qu);
+            SCJbSetUint(js, "cr", data->cr);
+            SCJbSetUint(js, "tcc", data->tcc);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "ontime", data->ontime);
+            SCJbSetUint(js, "offtime", data->offtime);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved", data->reserved);
             break;
         }
         case DNP3_OBJECT_CODE(12, 3): {
             DNP3ObjectG12V3 *data = point->data;
-            jb_set_uint(js, "point", data->point);
+            SCJbSetUint(js, "point", data->point);
             break;
         }
         case DNP3_OBJECT_CODE(13, 1): {
             DNP3ObjectG13V1 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "commanded_state", data->commanded_state);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "commanded_state", data->commanded_state);
             break;
         }
         case DNP3_OBJECT_CODE(13, 2): {
             DNP3ObjectG13V2 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "commanded_state", data->commanded_state);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "commanded_state", data->commanded_state);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(20, 1): {
             DNP3ObjectG20V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 2): {
             DNP3ObjectG20V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 3): {
             DNP3ObjectG20V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 4): {
             DNP3ObjectG20V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 5): {
             DNP3ObjectG20V5 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 6): {
             DNP3ObjectG20V6 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 7): {
             DNP3ObjectG20V7 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(20, 8): {
             DNP3ObjectG20V8 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 1): {
             DNP3ObjectG21V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 2): {
             DNP3ObjectG21V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 3): {
             DNP3ObjectG21V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 4): {
             DNP3ObjectG21V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 5): {
             DNP3ObjectG21V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 6): {
             DNP3ObjectG21V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 7): {
             DNP3ObjectG21V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 8): {
             DNP3ObjectG21V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(21, 9): {
             DNP3ObjectG21V9 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 10): {
             DNP3ObjectG21V10 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 11): {
             DNP3ObjectG21V11 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(21, 12): {
             DNP3ObjectG21V12 *data = point->data;
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 1): {
             DNP3ObjectG22V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 2): {
             DNP3ObjectG22V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 3): {
             DNP3ObjectG22V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 4): {
             DNP3ObjectG22V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(22, 5): {
             DNP3ObjectG22V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 6): {
             DNP3ObjectG22V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 7): {
             DNP3ObjectG22V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(22, 8): {
             DNP3ObjectG22V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 1): {
             DNP3ObjectG23V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 2): {
             DNP3ObjectG23V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 3): {
             DNP3ObjectG23V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 4): {
             DNP3ObjectG23V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
             break;
         }
         case DNP3_OBJECT_CODE(23, 5): {
             DNP3ObjectG23V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 6): {
             DNP3ObjectG23V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 7): {
             DNP3ObjectG23V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(23, 8): {
             DNP3ObjectG23V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "rollover", data->rollover);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "count", data->count);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "rollover", data->rollover);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "count", data->count);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(30, 1): {
             DNP3ObjectG30V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 2): {
             DNP3ObjectG30V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 3): {
             DNP3ObjectG30V3 *data = point->data;
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 4): {
             DNP3ObjectG30V4 *data = point->data;
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 5): {
             DNP3ObjectG30V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(30, 6): {
             DNP3ObjectG30V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 1): {
             DNP3ObjectG31V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 2): {
             DNP3ObjectG31V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 3): {
             DNP3ObjectG31V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(31, 4): {
             DNP3ObjectG31V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(31, 5): {
             DNP3ObjectG31V5 *data = point->data;
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 6): {
             DNP3ObjectG31V6 *data = point->data;
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 7): {
             DNP3ObjectG31V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(31, 8): {
             DNP3ObjectG31V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 1): {
             DNP3ObjectG32V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 2): {
             DNP3ObjectG32V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 3): {
             DNP3ObjectG32V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 4): {
             DNP3ObjectG32V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 5): {
             DNP3ObjectG32V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 6): {
             DNP3ObjectG32V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(32, 7): {
             DNP3ObjectG32V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(32, 8): {
             DNP3ObjectG32V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 1): {
             DNP3ObjectG33V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 2): {
             DNP3ObjectG33V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 3): {
             DNP3ObjectG33V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 4): {
             DNP3ObjectG33V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 5): {
             DNP3ObjectG33V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 6): {
             DNP3ObjectG33V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(33, 7): {
             DNP3ObjectG33V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(33, 8): {
             DNP3ObjectG33V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(34, 1): {
             DNP3ObjectG34V1 *data = point->data;
-            jb_set_uint(js, "deadband_value", data->deadband_value);
+            SCJbSetUint(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(34, 2): {
             DNP3ObjectG34V2 *data = point->data;
-            jb_set_uint(js, "deadband_value", data->deadband_value);
+            SCJbSetUint(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(34, 3): {
             DNP3ObjectG34V3 *data = point->data;
-            jb_set_float(js, "deadband_value", data->deadband_value);
+            SCJbSetFloat(js, "deadband_value", data->deadband_value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 1): {
             DNP3ObjectG40V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 2): {
             DNP3ObjectG40V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 3): {
             DNP3ObjectG40V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(40, 4): {
             DNP3ObjectG40V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(41, 1): {
             DNP3ObjectG41V1 *data = point->data;
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "control_status", data->control_status);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 2): {
             DNP3ObjectG41V2 *data = point->data;
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "control_status", data->control_status);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 3): {
             DNP3ObjectG41V3 *data = point->data;
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "control_status", data->control_status);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(41, 4): {
             DNP3ObjectG41V4 *data = point->data;
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "control_status", data->control_status);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "control_status", data->control_status);
             break;
         }
         case DNP3_OBJECT_CODE(42, 1): {
             DNP3ObjectG42V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 2): {
             DNP3ObjectG42V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 3): {
             DNP3ObjectG42V3 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 4): {
             DNP3ObjectG42V4 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 5): {
             DNP3ObjectG42V5 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 6): {
             DNP3ObjectG42V6 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(42, 7): {
             DNP3ObjectG42V7 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(42, 8): {
             DNP3ObjectG42V8 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "over_range", data->over_range);
-            jb_set_uint(js, "reference_err", data->reference_err);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "value", data->value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "over_range", data->over_range);
+            SCJbSetUint(js, "reference_err", data->reference_err);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "value", data->value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 1): {
             DNP3ObjectG43V1 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 2): {
             DNP3ObjectG43V2 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 3): {
             DNP3ObjectG43V3 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "commanded_value", data->commanded_value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 4): {
             DNP3ObjectG43V4 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "commanded_value", data->commanded_value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 5): {
             DNP3ObjectG43V5 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 6): {
             DNP3ObjectG43V6 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "commanded_value", data->commanded_value);
             break;
         }
         case DNP3_OBJECT_CODE(43, 7): {
             DNP3ObjectG43V7 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "commanded_value", data->commanded_value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(43, 8): {
             DNP3ObjectG43V8 *data = point->data;
-            jb_set_uint(js, "status_code", data->status_code);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_float(js, "commanded_value", data->commanded_value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetFloat(js, "commanded_value", data->commanded_value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 1): {
             DNP3ObjectG50V1 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 2): {
             DNP3ObjectG50V2 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
-            jb_set_uint(js, "interval", data->interval);
+            SCJbSetUint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "interval", data->interval);
             break;
         }
         case DNP3_OBJECT_CODE(50, 3): {
             DNP3ObjectG50V3 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(50, 4): {
             DNP3ObjectG50V4 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
-            jb_set_uint(js, "interval_count", data->interval_count);
-            jb_set_uint(js, "interval_units", data->interval_units);
+            SCJbSetUint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "interval_count", data->interval_count);
+            SCJbSetUint(js, "interval_units", data->interval_units);
             break;
         }
         case DNP3_OBJECT_CODE(51, 1): {
             DNP3ObjectG51V1 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(51, 2): {
             DNP3ObjectG51V2 *data = point->data;
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         case DNP3_OBJECT_CODE(52, 1): {
             DNP3ObjectG52V1 *data = point->data;
-            jb_set_uint(js, "delay_secs", data->delay_secs);
+            SCJbSetUint(js, "delay_secs", data->delay_secs);
             break;
         }
         case DNP3_OBJECT_CODE(52, 2): {
             DNP3ObjectG52V2 *data = point->data;
-            jb_set_uint(js, "delay_ms", data->delay_ms);
+            SCJbSetUint(js, "delay_ms", data->delay_ms);
             break;
         }
         case DNP3_OBJECT_CODE(70, 1): {
             DNP3ObjectG70V1 *data = point->data;
-            jb_set_uint(js, "filename_size", data->filename_size);
-            jb_set_uint(js, "filetype_code", data->filetype_code);
-            jb_set_uint(js, "attribute_code", data->attribute_code);
-            jb_set_uint(js, "start_record", data->start_record);
-            jb_set_uint(js, "end_record", data->end_record);
-            jb_set_uint(js, "file_size", data->file_size);
-            jb_set_uint(js, "created_timestamp", data->created_timestamp);
-            jb_set_uint(js, "permission", data->permission);
-            jb_set_uint(js, "file_id", data->file_id);
-            jb_set_uint(js, "owner_id", data->owner_id);
-            jb_set_uint(js, "group_id", data->group_id);
-            jb_set_uint(js, "file_function_code", data->file_function_code);
-            jb_set_uint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "filename_size", data->filename_size);
+            SCJbSetUint(js, "filetype_code", data->filetype_code);
+            SCJbSetUint(js, "attribute_code", data->attribute_code);
+            SCJbSetUint(js, "start_record", data->start_record);
+            SCJbSetUint(js, "end_record", data->end_record);
+            SCJbSetUint(js, "file_size", data->file_size);
+            SCJbSetUint(js, "created_timestamp", data->created_timestamp);
+            SCJbSetUint(js, "permission", data->permission);
+            SCJbSetUint(js, "file_id", data->file_id);
+            SCJbSetUint(js, "owner_id", data->owner_id);
+            SCJbSetUint(js, "group_id", data->group_id);
+            SCJbSetUint(js, "file_function_code", data->file_function_code);
+            SCJbSetUint(js, "status_code", data->status_code);
             if (data->filename_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
-                jb_set_string(js, "filename", "");
+                SCJbSetString(js, "filename", "");
             }
-            jb_set_uint(js, "data_size", data->data_size);
+            SCJbSetUint(js, "data_size", data->data_size);
             if (data->data_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "data", (const uint8_t *)data->data, data->data_size);
             } else {
-                jb_set_string(js, "data", "");
+                SCJbSetString(js, "data", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 2): {
             DNP3ObjectG70V2 *data = point->data;
-            jb_set_uint(js, "username_offset", data->username_offset);
-            jb_set_uint(js, "username_size", data->username_size);
-            jb_set_uint(js, "password_offset", data->password_offset);
-            jb_set_uint(js, "password_size", data->password_size);
-            jb_set_uint(js, "authentication_key", data->authentication_key);
+            SCJbSetUint(js, "username_offset", data->username_offset);
+            SCJbSetUint(js, "username_size", data->username_size);
+            SCJbSetUint(js, "password_offset", data->password_offset);
+            SCJbSetUint(js, "password_size", data->password_size);
+            SCJbSetUint(js, "authentication_key", data->authentication_key);
             if (data->username_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "username", (const uint8_t *)data->username, data->username_size);
             } else {
-                jb_set_string(js, "username", "");
+                SCJbSetString(js, "username", "");
             }
             if (data->password_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "password", (const uint8_t *)data->password, data->password_size);
             } else {
-                jb_set_string(js, "password", "");
+                SCJbSetString(js, "password", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 3): {
             DNP3ObjectG70V3 *data = point->data;
-            jb_set_uint(js, "filename_offset", data->filename_offset);
-            jb_set_uint(js, "filename_size", data->filename_size);
-            jb_set_uint(js, "created", data->created);
-            jb_set_uint(js, "permissions", data->permissions);
-            jb_set_uint(js, "authentication_key", data->authentication_key);
-            jb_set_uint(js, "file_size", data->file_size);
-            jb_set_uint(js, "operational_mode", data->operational_mode);
-            jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
-            jb_set_uint(js, "request_id", data->request_id);
+            SCJbSetUint(js, "filename_offset", data->filename_offset);
+            SCJbSetUint(js, "filename_size", data->filename_size);
+            SCJbSetUint(js, "created", data->created);
+            SCJbSetUint(js, "permissions", data->permissions);
+            SCJbSetUint(js, "authentication_key", data->authentication_key);
+            SCJbSetUint(js, "file_size", data->file_size);
+            SCJbSetUint(js, "operational_mode", data->operational_mode);
+            SCJbSetUint(js, "maximum_block_size", data->maximum_block_size);
+            SCJbSetUint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
-                jb_set_string(js, "filename", "");
+                SCJbSetString(js, "filename", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 4): {
             DNP3ObjectG70V4 *data = point->data;
-            jb_set_uint(js, "file_handle", data->file_handle);
-            jb_set_uint(js, "file_size", data->file_size);
-            jb_set_uint(js, "maximum_block_size", data->maximum_block_size);
-            jb_set_uint(js, "request_id", data->request_id);
-            jb_set_uint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "file_handle", data->file_handle);
+            SCJbSetUint(js, "file_size", data->file_size);
+            SCJbSetUint(js, "maximum_block_size", data->maximum_block_size);
+            SCJbSetUint(js, "request_id", data->request_id);
+            SCJbSetUint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
-                jb_set_string(js, "optional_text", "");
+                SCJbSetString(js, "optional_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 5): {
             DNP3ObjectG70V5 *data = point->data;
-            jb_set_uint(js, "file_handle", data->file_handle);
-            jb_set_uint(js, "block_number", data->block_number);
+            SCJbSetUint(js, "file_handle", data->file_handle);
+            SCJbSetUint(js, "block_number", data->block_number);
             if (data->file_data_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "file_data", (const uint8_t *)data->file_data, data->file_data_len);
             } else {
-                jb_set_string(js, "file_data", "");
+                SCJbSetString(js, "file_data", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 6): {
             DNP3ObjectG70V6 *data = point->data;
-            jb_set_uint(js, "file_handle", data->file_handle);
-            jb_set_uint(js, "block_number", data->block_number);
-            jb_set_uint(js, "status_code", data->status_code);
+            SCJbSetUint(js, "file_handle", data->file_handle);
+            SCJbSetUint(js, "block_number", data->block_number);
+            SCJbSetUint(js, "status_code", data->status_code);
             if (data->optional_text_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
             } else {
-                jb_set_string(js, "optional_text", "");
+                SCJbSetString(js, "optional_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 7): {
             DNP3ObjectG70V7 *data = point->data;
-            jb_set_uint(js, "filename_offset", data->filename_offset);
-            jb_set_uint(js, "filename_size", data->filename_size);
-            jb_set_uint(js, "file_type", data->file_type);
-            jb_set_uint(js, "file_size", data->file_size);
-            jb_set_uint(js, "created_timestamp", data->created_timestamp);
-            jb_set_uint(js, "permissions", data->permissions);
-            jb_set_uint(js, "request_id", data->request_id);
+            SCJbSetUint(js, "filename_offset", data->filename_offset);
+            SCJbSetUint(js, "filename_size", data->filename_size);
+            SCJbSetUint(js, "file_type", data->file_type);
+            SCJbSetUint(js, "file_size", data->file_size);
+            SCJbSetUint(js, "created_timestamp", data->created_timestamp);
+            SCJbSetUint(js, "permissions", data->permissions);
+            SCJbSetUint(js, "request_id", data->request_id);
             if (data->filename_size > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "filename", (const uint8_t *)data->filename, data->filename_size);
             } else {
-                jb_set_string(js, "filename", "");
+                SCJbSetString(js, "filename", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(70, 8): {
             DNP3ObjectG70V8 *data = point->data;
             if (data->file_specification_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "file_specification", (const uint8_t *)data->file_specification, data->file_specification_len);
             } else {
-                jb_set_string(js, "file_specification", "");
+                SCJbSetString(js, "file_specification", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(80, 1): {
             DNP3ObjectG80V1 *data = point->data;
-            jb_set_uint(js, "state", data->state);
+            SCJbSetUint(js, "state", data->state);
             break;
         }
         case DNP3_OBJECT_CODE(81, 1): {
             DNP3ObjectG81V1 *data = point->data;
-            jb_set_uint(js, "fill_percentage", data->fill_percentage);
-            jb_set_uint(js, "overflow_state", data->overflow_state);
-            jb_set_uint(js, "group", data->group);
-            jb_set_uint(js, "variation", data->variation);
+            SCJbSetUint(js, "fill_percentage", data->fill_percentage);
+            SCJbSetUint(js, "overflow_state", data->overflow_state);
+            SCJbSetUint(js, "group", data->group);
+            SCJbSetUint(js, "variation", data->variation);
             break;
         }
         case DNP3_OBJECT_CODE(83, 1): {
             DNP3ObjectG83V1 *data = point->data;
-            jb_set_string(js, "data->vendor_code", data->vendor_code);
-            jb_set_uint(js, "object_id", data->object_id);
-            jb_set_uint(js, "length", data->length);
-            jb_set_base64(js, "data->data_objects", data->data_objects, data->length);
+            SCJbSetString(js, "data->vendor_code", data->vendor_code);
+            SCJbSetUint(js, "object_id", data->object_id);
+            SCJbSetUint(js, "length", data->length);
+            SCJbSetBase64(js, "data->data_objects", data->data_objects, data->length);
             break;
         }
         case DNP3_OBJECT_CODE(86, 2): {
             DNP3ObjectG86V2 *data = point->data;
-            jb_set_uint(js, "rd", data->rd);
-            jb_set_uint(js, "wr", data->wr);
-            jb_set_uint(js, "st", data->st);
-            jb_set_uint(js, "ev", data->ev);
-            jb_set_uint(js, "df", data->df);
-            jb_set_uint(js, "padding0", data->padding0);
-            jb_set_uint(js, "padding1", data->padding1);
-            jb_set_uint(js, "padding2", data->padding2);
+            SCJbSetUint(js, "rd", data->rd);
+            SCJbSetUint(js, "wr", data->wr);
+            SCJbSetUint(js, "st", data->st);
+            SCJbSetUint(js, "ev", data->ev);
+            SCJbSetUint(js, "df", data->df);
+            SCJbSetUint(js, "padding0", data->padding0);
+            SCJbSetUint(js, "padding1", data->padding1);
+            SCJbSetUint(js, "padding2", data->padding2);
             break;
         }
         case DNP3_OBJECT_CODE(102, 1): {
             DNP3ObjectG102V1 *data = point->data;
-            jb_set_uint(js, "value", data->value);
+            SCJbSetUint(js, "value", data->value);
             break;
         }
         case DNP3_OBJECT_CODE(120, 1): {
             DNP3ObjectG120V1 *data = point->data;
-            jb_set_uint(js, "csq", data->csq);
-            jb_set_uint(js, "usr", data->usr);
-            jb_set_uint(js, "mal", data->mal);
-            jb_set_uint(js, "reason", data->reason);
-            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            SCJbSetUint(js, "csq", data->csq);
+            SCJbSetUint(js, "usr", data->usr);
+            SCJbSetUint(js, "mal", data->mal);
+            SCJbSetUint(js, "reason", data->reason);
+            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
             DNP3ObjectG120V2 *data = point->data;
-            jb_set_uint(js, "csq", data->csq);
-            jb_set_uint(js, "usr", data->usr);
-            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            SCJbSetUint(js, "csq", data->csq);
+            SCJbSetUint(js, "usr", data->usr);
+            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 3): {
             DNP3ObjectG120V3 *data = point->data;
-            jb_set_uint(js, "csq", data->csq);
-            jb_set_uint(js, "user_number", data->user_number);
+            SCJbSetUint(js, "csq", data->csq);
+            SCJbSetUint(js, "user_number", data->user_number);
             break;
         }
         case DNP3_OBJECT_CODE(120, 4): {
             DNP3ObjectG120V4 *data = point->data;
-            jb_set_uint(js, "user_number", data->user_number);
+            SCJbSetUint(js, "user_number", data->user_number);
             break;
         }
         case DNP3_OBJECT_CODE(120, 5): {
             DNP3ObjectG120V5 *data = point->data;
-            jb_set_uint(js, "ksq", data->ksq);
-            jb_set_uint(js, "user_number", data->user_number);
-            jb_set_uint(js, "key_wrap_alg", data->key_wrap_alg);
-            jb_set_uint(js, "key_status", data->key_status);
-            jb_set_uint(js, "mal", data->mal);
-            jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
-            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
-            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            SCJbSetUint(js, "ksq", data->ksq);
+            SCJbSetUint(js, "user_number", data->user_number);
+            SCJbSetUint(js, "key_wrap_alg", data->key_wrap_alg);
+            SCJbSetUint(js, "key_status", data->key_status);
+            SCJbSetUint(js, "mal", data->mal);
+            SCJbSetUint(js, "challenge_data_len", data->challenge_data_len);
+            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
             DNP3ObjectG120V6 *data = point->data;
-            jb_set_uint(js, "ksq", data->ksq);
-            jb_set_uint(js, "usr", data->usr);
-            jb_set_base64(js, "data->wrapped_key_data", data->wrapped_key_data, data->wrapped_key_data_len);
+            SCJbSetUint(js, "ksq", data->ksq);
+            SCJbSetUint(js, "usr", data->usr);
+            SCJbSetBase64(js, "data->wrapped_key_data", data->wrapped_key_data, data->wrapped_key_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 7): {
             DNP3ObjectG120V7 *data = point->data;
-            jb_set_uint(js, "sequence_number", data->sequence_number);
-            jb_set_uint(js, "usr", data->usr);
-            jb_set_uint(js, "association_id", data->association_id);
-            jb_set_uint(js, "error_code", data->error_code);
-            jb_set_uint(js, "time_of_error", data->time_of_error);
+            SCJbSetUint(js, "sequence_number", data->sequence_number);
+            SCJbSetUint(js, "usr", data->usr);
+            SCJbSetUint(js, "association_id", data->association_id);
+            SCJbSetUint(js, "error_code", data->error_code);
+            SCJbSetUint(js, "time_of_error", data->time_of_error);
             if (data->error_text_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "error_text", (const uint8_t *)data->error_text, data->error_text_len);
             } else {
-                jb_set_string(js, "error_text", "");
+                SCJbSetString(js, "error_text", "");
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 8): {
             DNP3ObjectG120V8 *data = point->data;
-            jb_set_uint(js, "key_change_method", data->key_change_method);
-            jb_set_uint(js, "certificate_type", data->certificate_type);
-            jb_set_base64(js, "data->certificate", data->certificate, data->certificate_len);
+            SCJbSetUint(js, "key_change_method", data->key_change_method);
+            SCJbSetUint(js, "certificate_type", data->certificate_type);
+            SCJbSetBase64(js, "data->certificate", data->certificate, data->certificate_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
             DNP3ObjectG120V9 *data = point->data;
-            jb_set_base64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
             DNP3ObjectG120V10 *data = point->data;
-            jb_set_uint(js, "key_change_method", data->key_change_method);
-            jb_set_uint(js, "operation", data->operation);
-            jb_set_uint(js, "scs", data->scs);
-            jb_set_uint(js, "user_role", data->user_role);
-            jb_set_uint(js, "user_role_expiry_interval", data->user_role_expiry_interval);
-            jb_set_uint(js, "username_len", data->username_len);
-            jb_set_uint(js, "user_public_key_len", data->user_public_key_len);
-            jb_set_uint(js, "certification_data_len", data->certification_data_len);
+            SCJbSetUint(js, "key_change_method", data->key_change_method);
+            SCJbSetUint(js, "operation", data->operation);
+            SCJbSetUint(js, "scs", data->scs);
+            SCJbSetUint(js, "user_role", data->user_role);
+            SCJbSetUint(js, "user_role_expiry_interval", data->user_role_expiry_interval);
+            SCJbSetUint(js, "username_len", data->username_len);
+            SCJbSetUint(js, "user_public_key_len", data->user_public_key_len);
+            SCJbSetUint(js, "certification_data_len", data->certification_data_len);
             if (data->username_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
-                jb_set_string(js, "username", "");
+                SCJbSetString(js, "username", "");
             }
-            jb_set_base64(js, "data->user_public_key", data->user_public_key, data->user_public_key_len);
-            jb_set_base64(js, "data->certification_data", data->certification_data, data->certification_data_len);
+            SCJbSetBase64(js, "data->user_public_key", data->user_public_key, data->user_public_key_len);
+            SCJbSetBase64(js, "data->certification_data", data->certification_data, data->certification_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
             DNP3ObjectG120V11 *data = point->data;
-            jb_set_uint(js, "key_change_method", data->key_change_method);
-            jb_set_uint(js, "username_len", data->username_len);
-            jb_set_uint(js, "master_challenge_data_len", data->master_challenge_data_len);
+            SCJbSetUint(js, "key_change_method", data->key_change_method);
+            SCJbSetUint(js, "username_len", data->username_len);
+            SCJbSetUint(js, "master_challenge_data_len", data->master_challenge_data_len);
             if (data->username_len > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "username", (const uint8_t *)data->username, data->username_len);
             } else {
-                jb_set_string(js, "username", "");
+                SCJbSetString(js, "username", "");
             }
-            jb_set_base64(js, "data->master_challenge_data", data->master_challenge_data, data->master_challenge_data_len);
+            SCJbSetBase64(js, "data->master_challenge_data", data->master_challenge_data, data->master_challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
             DNP3ObjectG120V12 *data = point->data;
-            jb_set_uint(js, "ksq", data->ksq);
-            jb_set_uint(js, "user_number", data->user_number);
-            jb_set_uint(js, "challenge_data_len", data->challenge_data_len);
-            jb_set_base64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            SCJbSetUint(js, "ksq", data->ksq);
+            SCJbSetUint(js, "user_number", data->user_number);
+            SCJbSetUint(js, "challenge_data_len", data->challenge_data_len);
+            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
             DNP3ObjectG120V13 *data = point->data;
-            jb_set_uint(js, "ksq", data->ksq);
-            jb_set_uint(js, "user_number", data->user_number);
-            jb_set_uint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
-            jb_set_base64(js, "data->encrypted_update_key_data", data->encrypted_update_key_data, data->encrypted_update_key_len);
+            SCJbSetUint(js, "ksq", data->ksq);
+            SCJbSetUint(js, "user_number", data->user_number);
+            SCJbSetUint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
+            SCJbSetBase64(js, "data->encrypted_update_key_data", data->encrypted_update_key_data, data->encrypted_update_key_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
             DNP3ObjectG120V14 *data = point->data;
-            jb_set_base64(js, "data->digital_signature", data->digital_signature, data->digital_signature_len);
+            SCJbSetBase64(js, "data->digital_signature", data->digital_signature, data->digital_signature_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
             DNP3ObjectG120V15 *data = point->data;
-            jb_set_base64(js, "data->mac", data->mac, data->mac_len);
+            SCJbSetBase64(js, "data->mac", data->mac, data->mac_len);
             break;
         }
         case DNP3_OBJECT_CODE(121, 1): {
             DNP3ObjectG121V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "association_id", data->association_id);
-            jb_set_uint(js, "count_value", data->count_value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "association_id", data->association_id);
+            SCJbSetUint(js, "count_value", data->count_value);
             break;
         }
         case DNP3_OBJECT_CODE(122, 1): {
             DNP3ObjectG122V1 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "association_id", data->association_id);
-            jb_set_uint(js, "count_value", data->count_value);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "association_id", data->association_id);
+            SCJbSetUint(js, "count_value", data->count_value);
             break;
         }
         case DNP3_OBJECT_CODE(122, 2): {
             DNP3ObjectG122V2 *data = point->data;
-            jb_set_uint(js, "online", data->online);
-            jb_set_uint(js, "restart", data->restart);
-            jb_set_uint(js, "comm_lost", data->comm_lost);
-            jb_set_uint(js, "remote_forced", data->remote_forced);
-            jb_set_uint(js, "local_forced", data->local_forced);
-            jb_set_uint(js, "reserved0", data->reserved0);
-            jb_set_uint(js, "discontinuity", data->discontinuity);
-            jb_set_uint(js, "reserved1", data->reserved1);
-            jb_set_uint(js, "association_id", data->association_id);
-            jb_set_uint(js, "count_value", data->count_value);
-            jb_set_uint(js, "timestamp", data->timestamp);
+            SCJbSetUint(js, "online", data->online);
+            SCJbSetUint(js, "restart", data->restart);
+            SCJbSetUint(js, "comm_lost", data->comm_lost);
+            SCJbSetUint(js, "remote_forced", data->remote_forced);
+            SCJbSetUint(js, "local_forced", data->local_forced);
+            SCJbSetUint(js, "reserved0", data->reserved0);
+            SCJbSetUint(js, "discontinuity", data->discontinuity);
+            SCJbSetUint(js, "reserved1", data->reserved1);
+            SCJbSetUint(js, "association_id", data->association_id);
+            SCJbSetUint(js, "count_value", data->count_value);
+            SCJbSetUint(js, "timestamp", data->timestamp);
             break;
         }
         default:

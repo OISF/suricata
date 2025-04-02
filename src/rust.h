@@ -23,8 +23,8 @@ typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 #include "rust-context.h"
 #include "rust-bindings.h"
 
-#define JB_SET_STRING(jb, key, val) jb_set_formatted((jb), "\"" key "\":\"" val "\"")
-#define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
-#define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")
+#define JB_SET_STRING(jb, key, val) SCJbSetFormatted((jb), "\"" key "\":\"" val "\"")
+#define JB_SET_TRUE(jb, key)        SCJbSetFormatted((jb), "\"" key "\":true")
+#define JB_SET_FALSE(jb, key)       SCJbSetFormatted((jb), "\"" key "\":false")
 
 #endif /* !SURICATA_RUST_H */

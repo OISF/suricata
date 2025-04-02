@@ -26,7 +26,7 @@
 
 void JsonNFSLogRegister(void);
 
-bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
-bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
+bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb);
+bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb);
 
 #endif /* SURICATA_OUTPUT_JSON_NFS_H */

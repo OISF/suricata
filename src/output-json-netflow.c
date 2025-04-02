@@ -49,13 +49,13 @@
 
 #include "stream-tcp-private.h"
 
-static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
+static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
 
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (unlikely(js == NULL))
         return NULL;
 
@@ -93,7 +93,7 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
     }
 
     /* time */
-    jb_set_string(js, "timestamp", timebuf);
+    SCJbSetString(js, "timestamp", timebuf);
 
     CreateEveFlowId(js, (const Flow *)f);
 
@@ -105,52 +105,52 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 
     /* input interface */
     if (f->livedev) {
-        jb_set_string(js, "in_iface", f->livedev->dev);
+        SCJbSetString(js, "in_iface", f->livedev->dev);
     }
 
     JB_SET_STRING(js, "event_type", "netflow");
 
     /* vlan */
     if (f->vlan_idx > 0) {
-        jb_open_array(js, "vlan");
-        jb_append_uint(js, f->vlan_id[0]);
+        SCJbOpenArray(js, "vlan");
+        SCJbAppendUint(js, f->vlan_id[0]);
         if (f->vlan_idx > 1) {
-            jb_append_uint(js, f->vlan_id[1]);
+            SCJbAppendUint(js, f->vlan_id[1]);
         }
         if (f->vlan_idx > 2) {
-            jb_append_uint(js, f->vlan_id[2]);
+            SCJbAppendUint(js, f->vlan_id[2]);
         }
-        jb_close(js);
+        SCJbClose(js);
     }
 
     /* tuple */
-    jb_set_string(js, "src_ip", srcip);
+    SCJbSetString(js, "src_ip", srcip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            jb_set_uint(js, "src_port", sp);
+            SCJbSetUint(js, "src_port", sp);
             break;
     }
-    jb_set_string(js, "dest_ip", dstip);
+    SCJbSetString(js, "dest_ip", dstip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            jb_set_uint(js, "dest_port", dp);
+            SCJbSetUint(js, "dest_port", dp);
             break;
     }
 
     if (SCProtoNameValid(f->proto)) {
-        jb_set_string(js, "proto", known_proto[f->proto]);
+        SCJbSetString(js, "proto", known_proto[f->proto]);
     } else {
         char proto[4];
         snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
-        jb_set_string(js, "proto", proto);
+        SCJbSetString(js, "proto", proto);
     }
 
     switch (f->proto) {
@@ -163,106 +163,104 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
                 code = f->icmp_d.code;
 
             }
-            jb_set_uint(js, "icmp_type", type);
-            jb_set_uint(js, "icmp_code", code);
+            SCJbSetUint(js, "icmp_type", type);
+            SCJbSetUint(js, "icmp_code", code);
             break;
         }
         case IPPROTO_ESP:
-            jb_set_uint(js, "spi", f->esp.spi);
+            SCJbSetUint(js, "spi", f->esp.spi);
             break;
     }
     return js;
 }
 
 /* JSON format logging */
-static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
+static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
 {
-    jb_set_string(js, "app_proto",
-            AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
+    SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
 
-    jb_open_object(js, "netflow");
+    SCJbOpenObject(js, "netflow");
 
-    jb_set_uint(js, "pkts", f->todstpktcnt);
-    jb_set_uint(js, "bytes", f->todstbytecnt);
+    SCJbSetUint(js, "pkts", f->todstpktcnt);
+    SCJbSetUint(js, "bytes", f->todstbytecnt);
 
     char timebuf1[64], timebuf2[64];
 
     CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
     CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
 
-    jb_set_string(js, "start", timebuf1);
-    jb_set_string(js, "end", timebuf2);
+    SCJbSetString(js, "start", timebuf1);
+    SCJbSetString(js, "end", timebuf2);
 
     uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
-    jb_set_uint(js, "age", age);
+    SCJbSetUint(js, "age", age);
 
-    jb_set_uint(js, "min_ttl", f->min_ttl_toserver);
-    jb_set_uint(js, "max_ttl", f->max_ttl_toserver);
+    SCJbSetUint(js, "min_ttl", f->min_ttl_toserver);
+    SCJbSetUint(js, "max_ttl", f->max_ttl_toserver);
 
     /* Close netflow. */
-    jb_close(js);
+    SCJbClose(js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
-        jb_open_object(js, "tcp");
+        SCJbOpenObject(js, "tcp");
 
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->client.tcp_flags : 0);
-        jb_set_string(js, "tcp_flags", hexflags);
+        SCJbSetString(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->client.tcp_flags : 0, js);
 
-        jb_close(js);
+        SCJbClose(js);
     }
 }
 
-static void NetFlowLogEveToClient(JsonBuilder *js, Flow *f)
+static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
 {
-    jb_set_string(js, "app_proto",
-            AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
+    SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
 
-    jb_open_object(js, "netflow");
+    SCJbOpenObject(js, "netflow");
 
-    jb_set_uint(js, "pkts", f->tosrcpktcnt);
-    jb_set_uint(js, "bytes", f->tosrcbytecnt);
+    SCJbSetUint(js, "pkts", f->tosrcpktcnt);
+    SCJbSetUint(js, "bytes", f->tosrcbytecnt);
 
     char timebuf1[64], timebuf2[64];
 
     CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
     CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
 
-    jb_set_string(js, "start", timebuf1);
-    jb_set_string(js, "end", timebuf2);
+    SCJbSetString(js, "start", timebuf1);
+    SCJbSetString(js, "end", timebuf2);
 
     uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
-    jb_set_uint(js, "age", age);
+    SCJbSetUint(js, "age", age);
 
     /* To client is zero if we did not see any packet */
     if (f->tosrcpktcnt) {
-        jb_set_uint(js, "min_ttl", f->min_ttl_toclient);
-        jb_set_uint(js, "max_ttl", f->max_ttl_toclient);
+        SCJbSetUint(js, "min_ttl", f->min_ttl_toclient);
+        SCJbSetUint(js, "max_ttl", f->max_ttl_toclient);
     }
 
     /* Close netflow. */
-    jb_close(js);
+    SCJbClose(js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
-        jb_open_object(js, "tcp");
+        SCJbOpenObject(js, "tcp");
 
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->server.tcp_flags : 0);
-        jb_set_string(js, "tcp_flags", hexflags);
+        SCJbSetString(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->server.tcp_flags : 0, js);
 
-        jb_close(js);
+        SCJbClose(js);
     }
 }
 
@@ -271,13 +269,13 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCEnter();
     OutputJsonThreadCtx *jhl = thread_data;
 
-    JsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
+    SCJsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jb, f);
     EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOSERVER);
     OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
-    jb_free(jb);
+    SCJbFree(jb);
 
     /* only log a response record if we actually have seen response packets */
     if (f->tosrcpktcnt) {
@@ -287,7 +285,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         NetFlowLogEveToClient(jb, f);
         EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOCLIENT);
         OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
-        jb_free(jb);
+        SCJbFree(jb);
     }
     SCReturnInt(TM_ECODE_OK);
 }

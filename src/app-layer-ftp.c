@@ -1365,13 +1365,13 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
-bool EveFTPDataAddMetadata(void *vtx, JsonBuilder *jb)
+bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
 {
     const FtpDataState *ftp_state = (FtpDataState *)vtx;
-    jb_open_object(jb, "ftp_data");
+    SCJbOpenObject(jb, "ftp_data");
 
     if (ftp_state->file_name) {
-        jb_set_string_from_bytes(jb, "filename", ftp_state->file_name, ftp_state->file_len);
+        SCJbSetStringFromBytes(jb, "filename", ftp_state->file_name, ftp_state->file_len);
     }
     switch (ftp_state->command) {
         case FTP_COMMAND_STOR:
@@ -1383,7 +1383,7 @@ bool EveFTPDataAddMetadata(void *vtx, JsonBuilder *jb)
         default:
             break;
     }
-    jb_close(jb);
+    SCJbClose(jb);
     return true;
 }
 

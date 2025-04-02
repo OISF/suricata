@@ -173,7 +173,7 @@ static int FrameJsonStreamDataCallback(
  *  \brief try to log frame's stream data into payload/payload_printable
  */
 static void FrameAddPayloadTCP(Flow *f, const TcpSession *ssn, const TcpStream *stream,
-        const Frame *frame, JsonBuilder *jb, MemBuffer *buffer)
+        const Frame *frame, SCJsonBuilder *jb, MemBuffer *buffer)
 {
     MemBufferReset(buffer);
 
@@ -199,17 +199,17 @@ static void FrameAddPayloadTCP(Flow *f, const TcpSession *ssn, const TcpStream *
     }
 
     if (cbd.payload->offset) {
-        jb_set_base64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
+        SCJbSetBase64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
         uint8_t printable_buf[cbd.payload->offset + 1];
         uint32_t offset = 0;
         PrintStringsToBuffer(printable_buf, &offset, cbd.payload->offset + 1, cbd.payload->buffer,
                 cbd.payload->offset);
-        jb_set_string(jb, "payload_printable", (char *)printable_buf);
-        jb_set_bool(jb, "complete", complete);
+        SCJbSetString(jb, "payload_printable", (char *)printable_buf);
+        SCJbSetBool(jb, "complete", complete);
     }
 }
 
-static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *frame)
+static void FrameAddPayloadUDP(SCJsonBuilder *js, const Packet *p, const Frame *frame)
 {
     DEBUG_VALIDATE_BUG_ON(frame->offset >= p->payload_len);
     if (frame->offset >= p->payload_len)
@@ -231,18 +231,18 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
     const uint32_t data_len = frame_len;
 
     const uint32_t log_data_len = MIN(data_len, 256);
-    jb_set_base64(js, "payload", data, log_data_len);
+    SCJbSetBase64(js, "payload", data, log_data_len);
 
     uint8_t printable_buf[log_data_len + 1];
     uint32_t o = 0;
     PrintStringsToBuffer(printable_buf, &o, log_data_len + 1, data, log_data_len);
     printable_buf[log_data_len] = '\0';
-    jb_set_string(js, "payload_printable", (char *)printable_buf);
+    SCJbSetString(js, "payload_printable", (char *)printable_buf);
 #if 0
     char pretty_buf[data_len * 4 + 1];
     pretty_buf[0] = '\0';
     PayloadAsHex(data, data_len, pretty_buf, data_len * 4 + 1);
-    jb_set_string(js, "payload_hex", pretty_buf);
+    SCJbSetString(js, "payload_hex", pretty_buf);
 #endif
 }
 
@@ -251,40 +251,40 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
  *  \note ipproto argument is passed to assist static code analyzers
  */
 void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, Flow *f,
-        const TcpStream *stream, const Packet *p, JsonBuilder *jb, MemBuffer *buffer)
+        const TcpStream *stream, const Packet *p, SCJsonBuilder *jb, MemBuffer *buffer)
 {
     DEBUG_VALIDATE_BUG_ON(ipproto != p->proto);
     DEBUG_VALIDATE_BUG_ON(ipproto != f->proto);
 
-    jb_open_object(jb, "frame");
+    SCJbOpenObject(jb, "frame");
     if (frame->type == FRAME_STREAM_TYPE) {
-        jb_set_string(jb, "type", "stream");
+        SCJbSetString(jb, "type", "stream");
     } else {
-        jb_set_string(jb, "type", AppLayerParserGetFrameNameById(ipproto, f->alproto, frame->type));
+        SCJbSetString(jb, "type", AppLayerParserGetFrameNameById(ipproto, f->alproto, frame->type));
     }
-    jb_set_uint(jb, "id", frame->id);
-    jb_set_string(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
+    SCJbSetUint(jb, "id", frame->id);
+    SCJbSetString(jb, "direction", PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
 
     if (ipproto == IPPROTO_TCP) {
         DEBUG_VALIDATE_BUG_ON(stream == NULL);
-        jb_set_uint(jb, "stream_offset", frame->offset);
+        SCJbSetUint(jb, "stream_offset", frame->offset);
 
         if (frame->len < 0) {
             uint64_t usable = StreamTcpGetUsable(stream, true);
             uint64_t len = usable - frame->offset;
-            jb_set_uint(jb, "length", len);
+            SCJbSetUint(jb, "length", len);
         } else {
-            jb_set_uint(jb, "length", frame->len);
+            SCJbSetUint(jb, "length", frame->len);
         }
         FrameAddPayloadTCP(f, f->protoctx, stream, frame, jb, buffer);
     } else {
-        jb_set_uint(jb, "length", frame->len);
+        SCJbSetUint(jb, "length", frame->len);
         FrameAddPayloadUDP(jb, p, frame);
     }
     if (frame->flags & FRAME_FLAG_TX_ID_SET) {
-        jb_set_uint(jb, "tx_id", frame->tx_id);
+        SCJbSetUint(jb, "tx_id", frame->tx_id);
     }
-    jb_close(jb);
+    SCJbClose(jb);
 }
 
 static int FrameJsonUdp(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p, Flow *f,
@@ -308,15 +308,15 @@ static int FrameJsonUdp(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p
         JsonAddrInfo addr = json_addr_info_zero;
         JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-        JsonBuilder *jb =
+        SCJsonBuilder *jb =
                 CreateEveHeader(p, LOG_DIR_PACKET, "frame", &addr, json_output_ctx->eve_ctx);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
 
-        jb_set_string(jb, "app_proto", AppProtoToString(f->alproto));
+        SCJbSetString(jb, "app_proto", AppProtoToString(f->alproto));
         FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb, aft->payload_buffer);
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
-        jb_free(jb);
+        SCJbFree(jb);
         frame->flags |= FRAME_FLAG_LOGGED;
     }
     return TM_ECODE_OK;
@@ -382,15 +382,15 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             JsonAddrInfo addr = json_addr_info_zero;
             JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-            JsonBuilder *jb =
+            SCJsonBuilder *jb =
                     CreateEveHeader(p, LOG_DIR_PACKET, "frame", &addr, json_output_ctx->eve_ctx);
             if (unlikely(jb == NULL))
                 return TM_ECODE_OK;
 
-            jb_set_string(jb, "app_proto", AppProtoToString(p->flow->alproto));
+            SCJbSetString(jb, "app_proto", AppProtoToString(p->flow->alproto));
             FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb, aft->payload_buffer);
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
-            jb_free(jb);
+            SCJbFree(jb);
             frame->flags |= FRAME_FLAG_LOGGED;
         }
     }
