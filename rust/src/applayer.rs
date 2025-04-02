@@ -491,12 +491,6 @@ pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
 pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
-// Defined in detect-engine-register.h
-/// cbindgen:ignore
-extern "C" {
-    pub fn SigTablePreRegister(cb: unsafe extern "C" fn ());
-}
-
 // Defined in app-layer-register.h
 /// cbindgen:ignore
 extern "C" {
