@@ -81,6 +81,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
     PrefilterFreeEnginesList(sghid->pkt_engines);
     PrefilterFreeEnginesList(sghid->payload_engines);
     PrefilterFreeEnginesList(sghid->frame_engines);
+    PrefilterFreeEnginesList(sghid->post_rule_match_engines);
 
     SCFree(sghid);
 }

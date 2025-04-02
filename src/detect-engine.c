@@ -3668,6 +3668,9 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     AlertQueueFree(det_ctx);
 
+    if (det_ctx->post_rule_work_queue.q)
+        SCFree(det_ctx->post_rule_work_queue.q);
+
     if (det_ctx->byte_values != NULL)
         SCFree(det_ctx->byte_values);
 
