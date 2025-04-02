@@ -171,6 +171,11 @@ extern "C" {
         reg_data: EveJsonTxLoggerRegistrationData,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCSigTablePreRegister(
+        KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
+    ) -> ::std::os::raw::c_int;
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
