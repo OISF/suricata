@@ -29,7 +29,7 @@ use nom7::multi::{many1, many_m_n, many_till};
 use nom7::number::streaming::{be_i16, be_i32};
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
 use nom7::sequence::terminated;
-use nom7::{Err, IResult};
+use nom7::{Err, IResult, ToUsize};
 
 pub const PGSQL_LENGTH_FIELD: u32 = 4;
 
@@ -247,7 +247,7 @@ pub struct BackendKeyDataMessage {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConsolidatedDataRowPacket {
     pub identifier: u8,
-    pub row_cnt: u64,
+    pub row_cnt: u64, // row or msg cnt
     pub data_size: u64,
 }
 
@@ -269,6 +269,21 @@ pub struct NotificationResponse {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct CopyOutResponse {
+    pub identifier: u8,
+    pub length: u32,
+    pub column_cnt: u16, // maybe we don't need this one
+    // for each column, there are column_cnt u16 format codes received
+}
+
+// TODO rename to something more generic, since this can be used for other messages that only have identifier and length
+#[derive(Debug, PartialEq, Eq)]
+pub struct TerminationMessage {
+    pub identifier: u8,
+    pub length: u32,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlBEMessage {
     SSLResponse(SSLResponseMessage),
     ErrorResponse(ErrorNoticeMessage),
@@ -283,6 +298,9 @@ pub enum PgsqlBEMessage {
     ParameterStatus(ParameterStatusMessage),
     BackendKeyData(BackendKeyDataMessage),
     CommandComplete(RegularPacket),
+    CopyOutResponse(CopyOutResponse),
+    ConsolidatedCopyDataOut(ConsolidatedDataRowPacket),
+    CopyDone(TerminationMessage),
     ReadyForQuery(ReadyForQueryMessage),
     RowDescription(RowDescriptionMessage),
     ConsolidatedDataRow(ConsolidatedDataRowPacket),
@@ -309,6 +327,9 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::ParameterStatus(_) => "parameter_status",
             PgsqlBEMessage::BackendKeyData(_) => "backend_key_data",
             PgsqlBEMessage::CommandComplete(_) => "command_completed",
+            PgsqlBEMessage::CopyOutResponse(_) => "copy_out_response",
+            PgsqlBEMessage::ConsolidatedCopyDataOut(_) => "copy_data_out", // TODO copy_data_out or copy_data?
+            PgsqlBEMessage::CopyDone(_) => "copy_done",
             PgsqlBEMessage::ReadyForQuery(_) => "ready_for_query",
             PgsqlBEMessage::RowDescription(_) => "row_description",
             PgsqlBEMessage::SSLResponse(SSLResponseMessage::InvalidResponse) => {
@@ -347,12 +368,6 @@ impl SASLAuthenticationMechanism {
 }
 
 type SASLInitialResponse = (SASLAuthenticationMechanism, u32, Vec<u8>);
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct TerminationMessage {
-    pub identifier: u8,
-    pub length: u32,
-}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CancelRequestMessage {
@@ -1017,6 +1032,47 @@ fn add_up_data_size(columns: Vec<ColumnFieldValue>) -> u64 {
     data_size
 }
 
+pub fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'H')(i)?;
+    // copy out message : identifier (u8), length (u32), format (u8), cols (u16), formats (u16*cols)
+    let (i, length) = parse_gte_length(i, 8)?;
+    let (i, _format) = be_u8(i)?;
+    let (i, columns) = be_u16(i)?;
+    let (i, _formats) = many_m_n(0, columns.to_usize(), be_u16)(i)?;
+    Ok((
+        i,
+        PgsqlBEMessage::CopyOutResponse(CopyOutResponse {
+            identifier,
+            length,
+            column_cnt: columns,
+        })
+    ))
+}
+
+pub fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'd')(i)?;
+    let (i, length) = parse_gte_length(i, 5)?;
+    let (i, _data) = take(length - PGSQL_LENGTH_FIELD)(i)?;
+    SCLogDebug!("data_size is {:?}", _data);
+    Ok((
+        i, PgsqlBEMessage::ConsolidatedCopyDataOut(ConsolidatedDataRowPacket {
+            identifier,
+            row_cnt: 1,
+            data_size: (length - PGSQL_LENGTH_FIELD) as u64 })
+    ))
+}
+
+fn parse_copy_done(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'c')(i)?;
+    let (i, length) = parse_exact_length(i, PGSQL_LENGTH_FIELD)?;
+    Ok((
+        i, PgsqlBEMessage::CopyDone(TerminationMessage {
+            identifier,
+            length
+        })
+    ))
+}
+
 // Currently, we don't store the actual DataRow messages, as those could easily become a burden, memory-wise
 // We use ConsolidatedDataRow to store info we still want to log: message size.
 // Later on, we calculate the number of lines the command actually returned by counting ConsolidatedDataRow messages
@@ -1211,10 +1267,13 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlPar
         b'R' => pgsql_parse_authentication_message(i)?,
         b'S' => parse_parameter_status_message(i)?,
         b'C' => parse_command_complete(i)?,
+        b'c' => parse_copy_done(i)?,
         b'Z' => parse_ready_for_query(i)?,
         b'T' => parse_row_description(i)?,
         b'A' => parse_notification_response(i)?,
         b'D' => parse_consolidated_data_row(i)?,
+        b'd' => parse_consolidated_copy_data_out(i)?,
+        b'H' => parse_copy_out_response(i)?,
         _ => {
             let (i, identifier) = be_u8(i)?;
             let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
