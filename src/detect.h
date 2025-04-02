@@ -1121,6 +1121,25 @@ typedef struct RuleMatchCandidateTx {
     const Signature *s;     /**< ptr to sig */
 } RuleMatchCandidateTx;
 
+/** Stores a single u32 for a rule match of the type `sm_type`. Used by
+ *  flowbits prefilter to register DETECT_FLOWBITS,<flowbit id> for post
+ *  match handling. */
+typedef struct PostRuleMatchWorkQueueItem {
+    int sm_type;    /**< sigmatch type e.g. DETECT_FLOWBITS */
+    uint32_t value; /**< value to be interpreted by the sm_type
+                     *   implementation. E.g. flowbit id. */
+#ifdef DEBUG
+    SigIntId id;
+#endif
+} PostRuleMatchWorkQueueItem;
+
+/** Array of PostRuleMatchWorkQueueItem's. */
+typedef struct PostRuleMatchWorkQueue {
+    PostRuleMatchWorkQueueItem *q; /**< array pointer */
+    uint32_t len;                  /**< number of array elements in use. */
+    uint32_t size;                 /**< allocation size in number of elements. */
+} PostRuleMatchWorkQueue;
+
 /**
   * Detection engine thread data.
   */
@@ -1230,6 +1249,9 @@ typedef struct DetectEngineThreadCtx_ {
     uint32_t non_pf_store_cnt;
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
+    /* work queue for post-rule matching affecting prefilter */
+    PostRuleMatchWorkQueue post_rule_work_queue;
+
     PrefilterRuleStore pmq;
 
     /* string to replace */
@@ -1358,6 +1380,7 @@ enum {
     FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
 
     DETECT_EVENT_TOO_MANY_BUFFERS,
+    DETECT_EVENT_POST_MATCH_QUEUE_FAILED,
 };
 
 #define SIG_GROUP_HEAD_HAVERAWSTREAM BIT_U16(0)
@@ -1421,6 +1444,8 @@ typedef struct PrefilterEngineList_ {
     PrefilterPktFn Prefilter;
     PrefilterTxFn PrefilterTx;
     PrefilterFrameFn PrefilterFrame;
+    void (*PrefilterPostRule)(
+            DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f);
 
     struct PrefilterEngineList_ *next;
 
@@ -1454,6 +1479,8 @@ typedef struct PrefilterEngine_ {
         PrefilterPktFn Prefilter;
         PrefilterTxFn PrefilterTx;
         PrefilterFrameFn PrefilterFrame;
+        void (*PrefilterPostRule)(
+                DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f);
     } cb;
 
     /* global id for this prefilter */
@@ -1481,6 +1508,7 @@ typedef struct SigGroupHeadInitData_ {
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
     PrefilterEngineList *frame_engines;
+    PrefilterEngineList *post_rule_match_engines;
 
     /** number of sigs in this group */
     SigIntId sig_cnt;
@@ -1511,6 +1539,7 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
     PrefilterEngine *frame_engines;
+    PrefilterEngine *post_rule_match_engines; /**< engines to run after rules modified a state */
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

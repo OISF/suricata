@@ -112,6 +112,8 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     }
 
     s->init_data->prefilter_sm = sm;
+    SCLogDebug(
+            "sid %u: prefilter is on \"%s\" (%u)", s->id, sigmatch_table[sm->type].name, sm->type);
 
     SCReturnInt(0);
 }
