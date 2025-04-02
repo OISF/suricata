@@ -3676,6 +3676,17 @@
                         "code": {
                             "type": "string"
                         },
+                        "copy_data_out": {
+                            "type": "object",
+                            "properties": {
+                                "row_count": {
+                                    "type": "integer"
+                                },
+                                "data_size": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
                         "command_completed": {
                             "type": "string"
                         },
@@ -3754,6 +3765,14 @@
                         },
                         "severity_non_localizable": {
                             "type": "string"
+                        },
+                        "copy_out_response": {
+                            "type": "object",
+                            "properties": {
+                                "copy_column_count": {
+                                    "type": "integer"
+                                }
+                            }
                         },
                         "ssl_accepted": {
                             "type": "boolean"
