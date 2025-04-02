@@ -40,6 +40,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     }
 
     if !tx.responses.is_empty() {
+        SCLogDebug!("Responses length: {}", tx.responses.len());
         js.set_object("response", &log_response_object(tx)?)?;
     }
     js.close()?;
@@ -197,7 +198,8 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
         PgsqlBEMessage::AuthenticationOk(_)
         | PgsqlBEMessage::AuthenticationCleartextPassword(_)
         | PgsqlBEMessage::AuthenticationSASL(_)
-        | PgsqlBEMessage::AuthenticationSASLContinue(_) => {
+        | PgsqlBEMessage::AuthenticationSASLContinue(_)
+        | PgsqlBEMessage::CopyDone(_) => {
             jb.set_string("message", res.to_str())?;
         }
         PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
@@ -206,6 +208,15 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             param: _,
         }) => {
             // We take care of these elsewhere
+        }
+        PgsqlBEMessage::CopyOutResponse(CopyOutResponse {
+            identifier: _,
+            length: _,
+            column_cnt,
+        }) => {
+            jb.open_object(res.to_str())?;
+            jb.set_uint("copy_column_count", *column_cnt)?;
+            jb.close()?;
         }
         PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {
             identifier: _,
@@ -222,6 +233,16 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             transaction_status: _,
         }) => {
             // We don't want to log this one
+        }
+        PgsqlBEMessage::ConsolidatedCopyDataOut(ConsolidatedDataRowPacket {
+            identifier: _,
+            row_cnt,
+            data_size,
+        }) => {
+            jb.open_object(res.to_str())?;
+            jb.set_uint("row_count", *row_cnt)?;
+            jb.set_uint("data_size", *data_size)?;
+            jb.close()?;
         }
         PgsqlBEMessage::RowDescription(RowDescriptionMessage {
             identifier: _,
