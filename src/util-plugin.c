@@ -171,7 +171,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
         }
     }
     if (plugin->KeywordsRegister) {
-        if (SigTablePreRegister(plugin->KeywordsRegister) != 0) {
+        if (SCSigTablePreRegister(plugin->KeywordsRegister) != 0) {
             return 1;
         }
     }
