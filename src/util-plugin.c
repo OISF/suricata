@@ -28,7 +28,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "detect-engine-register.h"
-#include "output.h"
+#include "output-eve.h"
 
 #include <dlfcn.h>
 
@@ -182,7 +182,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
             .dir = plugin->dir,
             .LogTx = (EveJsonSimpleTxLogFunc)plugin->Logger,
         };
-        if (OutputPreRegisterLogger(reg_data) != 0) {
+        if (SCOutputEvePreRegisterLogger(reg_data) != 0) {
             return 1;
         }
     }

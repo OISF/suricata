@@ -332,3 +332,136 @@ extern "C" {
         parent: *mut SCConfNode, name: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
     ) -> *mut SCConfNode;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JsonBuilder {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Flow {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ThreadVars {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Packet {
+    _unused: [u8; 0],
+}
+pub type ThreadId = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCOutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW = 1,
+    LOG_DIR_FLOW_TOCLIENT = 2,
+    LOG_DIR_FLOW_TOSERVER = 3,
+}
+#[doc = " \\brief Structure used to define an EVE output file type plugin.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadInit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCEveFileType_ {
+    #[doc = " \\brief The name of the output, used in the configuration.\n\n This name is used by the configuration file to specify the EVE\n filetype used.\n\n For example:\n\n \\code{.yaml}\n outputs:\n   - eve-log:\n       filetype: my-output-name\n \\endcode"]
+    pub name: *const ::std::os::raw::c_char,
+    #[doc = " \\brief Function to initialize this filetype.\n\n \\param conf The ConfNode of the `eve-log` configuration\n     section this filetype is being initialized for\n\n \\param threaded Flag to specify if the EVE sub-systems is in\n     threaded mode or not\n\n \\param init_data An output pointer for filetype specific data\n\n \\retval 0 on success, -1 on failure"]
+    pub Init: ::std::option::Option<
+        unsafe extern "C" fn(
+            conf: *const SCConfNode,
+            threaded: bool,
+            init_data: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Initialize thread specific data.\n\n Initialize any thread specific data. For example, if\n implementing a file output you might open the files here, so\n you have one output file per thread.\n\n \\param init_data Data setup during Init\n\n \\param thread_id A unique ID to differentiate this thread from\n     others. If EVE is not in threaded mode this will be called\n     one with a ThreadId of 0. In threaded mode the ThreadId of\n     0 correlates to the main Suricata thread.\n\n \\param thread_data Output pointer for any data required by this\n     thread.\n\n \\retval 0 on success, -1 on failure"]
+    pub ThreadInit: ::std::option::Option<
+        unsafe extern "C" fn(
+            init_data: *const ::std::os::raw::c_void,
+            thread_id: ThreadId,
+            thread_data: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Called for each EVE log record.\n\n The Write function is called for each log EVE log record. The\n provided buffer contains a fully formatted EVE record in JSON\n format.\n\n \\param buffer The fully formatted JSON EVE log record\n\n \\param buffer_len The length of the buffer\n\n \\param init_data The data setup in the call to Init\n\n \\param thread_data The data setup in the call to ThreadInit\n\n \\retval 0 on success, -1 on failure"]
+    pub Write: ::std::option::Option<
+        unsafe extern "C" fn(
+            buffer: *const ::std::os::raw::c_char,
+            buffer_len: ::std::os::raw::c_int,
+            init_data: *const ::std::os::raw::c_void,
+            thread_data: *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Called to deinitialize each thread.\n\n This function will be called for each thread. It is where any\n resources allocated in ThreadInit should be released.\n\n \\param init_data The data setup in Init\n\n \\param thread_data The data setup in ThreadInit"]
+    pub ThreadDeinit: ::std::option::Option<
+        unsafe extern "C" fn(
+            init_data: *const ::std::os::raw::c_void,
+            thread_data: *mut ::std::os::raw::c_void,
+        ),
+    >,
+    #[doc = " \\brief Final call to deinitialize this filetype.\n\n Called, usually on exit to deinitialize and free any resources\n allocated during Init.\n\n \\param init_data Data setup in the call to Init."]
+    pub Deinit: ::std::option::Option<unsafe extern "C" fn(init_data: *mut ::std::os::raw::c_void)>,
+    pub entries: SCEveFileType___bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCEveFileType___bindgen_ty_1 {
+    pub tqe_next: *mut SCEveFileType_,
+    pub tqe_prev: *mut *mut SCEveFileType_,
+}
+#[doc = " \\brief Structure used to define an EVE output file type plugin.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadInit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
+pub type SCEveFileType = SCEveFileType_;
+extern "C" {
+    pub fn SCRegisterEveFileType(arg1: *mut SCEveFileType) -> bool;
+}
+extern "C" {
+    pub fn SCEveFindFileType(name: *const ::std::os::raw::c_char) -> *mut SCEveFileType;
+}
+#[doc = " \\brief Function type for EVE callbacks.\n\n The function type for callbacks registered with\n SCEveRegisterCallback. This function will be called with the\n JsonBuilder just prior to the top-level object being closed. New\n fields maybe added, however there is no way to alter existing\n objects already added to the JsonBuilder.\n\n \\param tv The ThreadVars for the thread performing the logging.\n \\param p Packet if available.\n \\param f Flow if available.\n \\param user User data provided during callback registration."]
+pub type SCEveUserCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        tv: *mut ThreadVars,
+        p: *const Packet,
+        f: *mut Flow,
+        jb: *mut JsonBuilder,
+        user: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    #[doc = " \\brief Register a callback for adding extra information to EVE logs.\n\n Allow users to register a callback for each EVE log. The callback\n is called just before the root object on the JsonBuilder is to be\n closed.\n\n New objects and fields can be append, but exist entries cannot be modified.\n\n Packet and Flow will be provided if available, but will other be\n NULL.\n\n Limitations: At this time the callbacks will only be called for EVE\n loggers that use JsonBuilder, notably this means it won't be called\n for stats records at this time.\n\n \\returns true if callback is registered, false is not due to memory\n     allocation error."]
+    pub fn SCEveRegisterCallback(
+        fn_: SCEveUserCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run EVE callbacks."]
+    pub fn SCEveRunCallbacks(
+        tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut JsonBuilder,
+    );
+}
+pub type EveJsonSimpleTxLogFunc = ::std::option::Option<
+    unsafe extern "C" fn(arg1: *const ::std::os::raw::c_void, arg2: *mut JsonBuilder) -> bool,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonSimpleAppLayerLogger {
+    pub LogTx: EveJsonSimpleTxLogFunc,
+    pub name: *const ::std::os::raw::c_char,
+}
+extern "C" {
+    pub fn SCEveJsonSimpleGetLogger(alproto: AppProto) -> *mut EveJsonSimpleAppLayerLogger;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EveJsonTxLoggerRegistrationData {
+    pub confname: *const ::std::os::raw::c_char,
+    pub logname: *const ::std::os::raw::c_char,
+    pub alproto: AppProto,
+    pub dir: u8,
+    pub LogTx: EveJsonSimpleTxLogFunc,
+}
+extern "C" {
+    pub fn SCOutputEvePreRegisterLogger(
+        reg_data: EveJsonTxLoggerRegistrationData,
+    ) -> ::std::os::raw::c_int;
+}

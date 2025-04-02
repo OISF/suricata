@@ -30,11 +30,26 @@
 #ifndef SURICATA_OUTPUT_EVE_H
 #define SURICATA_OUTPUT_EVE_H
 
-#include "suricata-common.h"
-#include "rust.h"
+// forward declarations to avoid importing rust.h
+// and being able to bindgen this header file
+typedef struct JsonBuilder JsonBuilder;
+// Also do not include flow.h so that bindgen only works for this header
+#ifndef SURICATA_FLOW_H
+typedef struct Flow Flow;
+typedef struct ThreadVars ThreadVars;
+typedef struct Packet Packet;
+#endif
+
 #include "conf.h"
 
 typedef uint32_t ThreadId;
+
+enum SCOutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW,
+    LOG_DIR_FLOW_TOCLIENT,
+    LOG_DIR_FLOW_TOSERVER,
+};
 
 /**
  * \brief Structure used to define an EVE output file type plugin.
@@ -215,5 +230,24 @@ bool SCEveRegisterCallback(SCEveUserCallbackFn fn, void *user);
  * Run EVE callbacks.
  */
 void SCEveRunCallbacks(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *jb);
+
+typedef bool (*EveJsonSimpleTxLogFunc)(const void *, JsonBuilder *);
+
+typedef struct EveJsonSimpleAppLayerLogger {
+    EveJsonSimpleTxLogFunc LogTx;
+    const char *name;
+} EveJsonSimpleAppLayerLogger;
+
+EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
+
+typedef struct EveJsonTxLoggerRegistrationData {
+    const char *confname;
+    const char *logname;
+    AppProto alproto;
+    uint8_t dir;
+    EveJsonSimpleTxLogFunc LogTx;
+} EveJsonTxLoggerRegistrationData;
+
+int SCOutputEvePreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data);
 
 #endif

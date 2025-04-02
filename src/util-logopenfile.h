@@ -33,6 +33,7 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
+#include "flow.h"
 #include "output-eve.h"
 
 enum LogFileType {

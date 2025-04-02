@@ -34,4 +34,6 @@
 
 #include "conf.h"
 
+#include "output-eve.h"
+
 #endif
