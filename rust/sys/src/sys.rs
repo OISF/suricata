@@ -331,6 +331,11 @@ extern "C" {
         parent: *mut SCConfNode, name: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
     ) -> *mut SCConfNode;
 }
+extern "C" {
+    pub fn SCSigTablePreRegister(
+        KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
+    ) -> ::std::os::raw::c_int;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct JsonBuilder {

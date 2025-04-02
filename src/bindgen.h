@@ -34,6 +34,8 @@
 
 #include "conf.h"
 
+#include "detect-engine-register.h"
+
 #include "output-eve.h"
 
 #endif
