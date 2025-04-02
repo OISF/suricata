@@ -476,7 +476,7 @@ static size_t preregistered_callbacks_cap = 0;
 // When an app-layer plugin is loaded, it wants to register its keywords
 // But the plugin is loaded before keywords can register
 // The preregistration callbacks will later be called by SigTableSetup
-int SigTablePreRegister(void (*KeywordsRegister)(void))
+int SCSigTablePreRegister(void (*KeywordsRegister)(void))
 {
     if (preregistered_callbacks_nb == preregistered_callbacks_cap) {
         void *tmp = SCRealloc(PreregisteredCallbacks,

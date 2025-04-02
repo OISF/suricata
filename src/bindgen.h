@@ -32,6 +32,7 @@
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
 #include "output-eve-bindgen.h"
+#include "detect-engine-register.h"
 
 #include "conf.h"
 
