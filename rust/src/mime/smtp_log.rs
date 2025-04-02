@@ -210,8 +210,6 @@ fn log_data_header(
 
 fn log_data(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     log_data_header(js, ctx, "from")?;
-    log_data_header(js, ctx, "date")?;
-    log_data_header(js, ctx, "subject")?;
     log_field_comma(js, ctx, "to", "to")?;
     log_field_comma(js, ctx, "cc", "cc")?;
 
