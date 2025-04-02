@@ -43,7 +43,8 @@ include_version = true
 
 # A list of headers to #include (with quotes)
 # default: []
-includes = []
+no_includes = true
+includes = ["stdint.h", "stdbool.h"]
 
 # The desired length of a line to use when formatting lines
 # default: 100
