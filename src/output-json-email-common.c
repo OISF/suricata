@@ -83,7 +83,8 @@ struct {
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
 
-static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
+static void EveEmailLogJSONMd5(
+        OutputJsonEmailCtx *email_ctx, SCJsonBuilder *js, SMTPTransaction *tx)
 {
     if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
         MimeStateSMTP *entity = tx->mime_state;
@@ -102,7 +103,8 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
     }
 }
 
-static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
+static void EveEmailLogJSONCustom(
+        OutputJsonEmailCtx *email_ctx, SCJsonBuilder *js, SMTPTransaction *tx)
 {
     int f = 0;
     MimeStateSMTP *entity = tx->mime_state;
@@ -132,7 +134,8 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
 }
 
 /* JSON format logging */
-static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id, JsonBuilder *sjs)
+static bool EveEmailLogJsonData(
+        const Flow *f, void *state, void *vtx, uint64_t tx_id, SCJsonBuilder *sjs)
 {
     SMTPState *smtp_state;
     MimeStateSMTP *mime_state;
@@ -144,8 +147,8 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
                 SCLogDebug("no smtp state, so no request logging");
-                jb_free(sjs);
-                SCReturnPtr(NULL, "JsonBuilder");
+                SCJbFree(sjs);
+                SCReturnPtr(NULL, "SCJsonBuilder");
             }
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;
@@ -164,16 +167,17 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
 }
 
 /* JSON format logging */
-TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+TmEcode EveEmailLogJson(JsonEmailLogThread *aft, SCJsonBuilder *js, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id)
 {
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
     SMTPTransaction *tx = (SMTPTransaction *) vtx;
-    JsonBuilderMark mark = { 0, 0, 0 };
+    SCJsonBuilderMark mark = { 0, 0, 0 };
 
-    jb_get_mark(js, &mark);
-    jb_open_object(js, "email");
+    SCJbGetMark(js, &mark);
+    SCJbOpenObject(js, "email");
     if (!EveEmailLogJsonData(f, state, vtx, tx_id, js)) {
-        jb_restore_mark(js, &mark);
+        SCJbRestoreMark(js, &mark);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -184,11 +188,11 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *
         EveEmailLogJSONMd5(email_ctx, js, tx);
     }
 
-    jb_close(js);
+    SCJbClose(js);
     SCReturnInt(TM_ECODE_OK);
 }
 
-bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js)
 {
     SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
     if (smtp_state) {

@@ -812,11 +812,11 @@ SCMutex g_flowbits_dump_write_m = SCMUTEX_INITIALIZER;
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements)
 {
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (js == NULL)
         return;
 
-    jb_open_array(js, "flowbits");
+    SCJbOpenArray(js, "flowbits");
     for (uint32_t x = 0; x < elements; x++) {
         const char *varname = VarNameStoreSetupLookup(x, VAR_TYPE_FLOW_BIT);
         if (varname == NULL)
@@ -824,64 +824,64 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 
         const struct FBAnalyze *e = &array[x];
 
-        jb_start_object(js);
-        jb_set_string(js, "name", varname);
-        jb_set_uint(js, "internal_id", x);
-        jb_set_uint(js, "set_cnt", e->cnts[DETECT_FLOWBITS_CMD_SET]);
-        jb_set_uint(js, "unset_cnt", e->cnts[DETECT_FLOWBITS_CMD_UNSET]);
-        jb_set_uint(js, "toggle_cnt", e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]);
-        jb_set_uint(js, "isset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISSET]);
-        jb_set_uint(js, "isnotset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]);
+        SCJbStartObject(js);
+        SCJbSetString(js, "name", varname);
+        SCJbSetUint(js, "internal_id", x);
+        SCJbSetUint(js, "set_cnt", e->cnts[DETECT_FLOWBITS_CMD_SET]);
+        SCJbSetUint(js, "unset_cnt", e->cnts[DETECT_FLOWBITS_CMD_UNSET]);
+        SCJbSetUint(js, "toggle_cnt", e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]);
+        SCJbSetUint(js, "isset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISSET]);
+        SCJbSetUint(js, "isnotset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]);
 
         // sets
         if (e->cnts[DETECT_FLOWBITS_CMD_SET]) {
-            jb_open_array(js, "sets");
+            SCJbOpenArray(js, "sets");
             for (uint32_t i = 0; i < e->set_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->set_sids[i]];
-                jb_append_uint(js, s->id);
+                SCJbAppendUint(js, s->id);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
         // gets
         if (e->cnts[DETECT_FLOWBITS_CMD_ISSET]) {
-            jb_open_array(js, "isset");
+            SCJbOpenArray(js, "isset");
             for (uint32_t i = 0; i < e->isset_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->isset_sids[i]];
-                jb_append_uint(js, s->id);
+                SCJbAppendUint(js, s->id);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
         // isnotset
         if (e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]) {
-            jb_open_array(js, "isnotset");
+            SCJbOpenArray(js, "isnotset");
             for (uint32_t i = 0; i < e->isnotset_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->isnotset_sids[i]];
-                jb_append_uint(js, s->id);
+                SCJbAppendUint(js, s->id);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
         // unset
         if (e->cnts[DETECT_FLOWBITS_CMD_UNSET]) {
-            jb_open_array(js, "unset");
+            SCJbOpenArray(js, "unset");
             for (uint32_t i = 0; i < e->unset_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->unset_sids[i]];
-                jb_append_uint(js, s->id);
+                SCJbAppendUint(js, s->id);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
         // toggle
         if (e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]) {
-            jb_open_array(js, "toggle");
+            SCJbOpenArray(js, "toggle");
             for (uint32_t i = 0; i < e->toggle_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->toggle_sids[i]];
-                jb_append_uint(js, s->id);
+                SCJbAppendUint(js, s->id);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
-        jb_close(js);
+        SCJbClose(js);
     }
-    jb_close(js); // array
-    jb_close(js); // object
+    SCJbClose(js); // array
+    SCJbClose(js); // object
 
     const char *filename = "flowbits.json";
     const char *log_dir = SCConfigGetLogDirectory();
@@ -891,13 +891,13 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
     SCMutexLock(&g_flowbits_dump_write_m);
     FILE *fp = fopen(log_path, "w");
     if (fp != NULL) {
-        fwrite(jb_ptr(js), jb_len(js), 1, fp);
+        fwrite(SCJbPtr(js), SCJbLen(js), 1, fp);
         fprintf(fp, "\n");
         fclose(fp);
     }
     SCMutexUnlock(&g_flowbits_dump_write_m);
 
-    jb_free(js);
+    SCJbFree(js);
 }
 
 static bool PrefilterFlowbitIsPrefilterable(const Signature *s)

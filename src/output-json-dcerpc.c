@@ -29,12 +29,12 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
 {
     OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dcerpc", NULL, thread->ctx);
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dcerpc", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(jb, "dcerpc");
+    SCJbOpenObject(jb, "dcerpc");
     if (p->proto == IPPROTO_TCP) {
         if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
             goto error;
@@ -44,16 +44,16 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
             goto error;
         }
     }
-    jb_close(jb);
+    SCJbClose(jb);
 
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread);
 
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_OK;
 
 error:
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_FAILED;
 }
 

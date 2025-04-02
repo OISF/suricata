@@ -937,7 +937,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, dir, al->name, NULL, thread->ctx);
+    SCJsonBuilder *js = CreateEveHeader(p, dir, al->name, NULL, thread->ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -947,12 +947,12 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread);
-    jb_free(js);
+    SCJbFree(js);
 
     return TM_ECODE_OK;
 
 error:
-    jb_free(js);
+    SCJbFree(js);
     return TM_ECODE_FAILED;
 }
 

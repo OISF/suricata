@@ -26,6 +26,6 @@
 
 void JsonIKELogRegister(void);
 
-bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
+bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js);
 
 #endif /* SURICATA_OUTPUT_JSON_IKE_H */

@@ -25,7 +25,7 @@
 #include "stream-tcp.h"
 
 void EveStreamLogRegister(void);
-void EveAddFlowTcpStreamFlags(const TcpStream *stream, const char *name, JsonBuilder *jb);
-void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, JsonBuilder *jb);
+void EveAddFlowTcpStreamFlags(const TcpStream *stream, const char *name, SCJsonBuilder *jb);
+void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, SCJsonBuilder *jb);
 
 #endif /* SURICATA_OUTPUT_EVE_STREAM_H */

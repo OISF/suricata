@@ -162,23 +162,23 @@ void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
             DNP3ObjectG{{object.group}}V{{object.variation}} *data = point->data;
 {% for field in object.fields %}
 {% if is_integer_type(field.type) %}
-            jb_set_uint(js, "{{field.name}}", data->{{field.name}});
+            SCJbSetUint(js, "{{field.name}}", data->{{field.name}});
 {% elif field.type in ["flt32", "flt64"] %}
-            jb_set_float(js, "{{field.name}}", data->{{field.name}});
+            SCJbSetFloat(js, "{{field.name}}", data->{{field.name}});
 {% elif field.type == "bytearray" %}
-            jb_set_base64(js, "data->{{field.name}}", data->{{field.name}}, data->{{field.len_field}});
+            SCJbSetBase64(js, "data->{{field.name}}", data->{{field.name}}, data->{{field.len_field}});
 {% elif field.type == "vstr4" %}
-            jb_set_string(js, "data->{{field.name}}", data->{{field.name}});
+            SCJbSetString(js, "data->{{field.name}}", data->{{field.name}});
 {% elif field.type == "chararray" %}
             if (data->{{field.len_field}} > 0) {
-                jb_set_string_from_bytes(
+                SCJbSetStringFromBytes(
                         js, "{{field.name}}", (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
             } else {
-                jb_set_string(js, "{{field.name}}", "");
+                SCJbSetString(js, "{{field.name}}", "");
             }
 {% elif field.type == "bstr8" %}
 {% for field in field.fields %}
-            jb_set_uint(js, "{{field.name}}", data->{{field.name}});
+            SCJbSetUint(js, "{{field.name}}", data->{{field.name}});
 {% endfor %}
 {% else %}
 {{ raise("Unhandled datatype: %s" % (field.type)) }}

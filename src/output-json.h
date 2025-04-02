@@ -95,17 +95,17 @@ typedef struct OutputJsonThreadCtx_ {
 
 json_t *SCJsonString(const char *val);
 
-void CreateEveFlowId(JsonBuilder *js, const Flow *f);
-void EveFileInfo(JsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags);
-void EveTcpFlags(uint8_t flags, JsonBuilder *js);
-void EvePacket(const Packet *p, JsonBuilder *js, uint32_t max_length);
-JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
+void CreateEveFlowId(SCJsonBuilder *js, const Flow *f);
+void EveFileInfo(SCJsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags);
+void EveTcpFlags(uint8_t flags, SCJsonBuilder *js);
+void EvePacket(const Packet *p, SCJsonBuilder *js, uint32_t max_length);
+SCJsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx);
-JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
+SCJsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, uint64_t tx_id, OutputJsonCtx *eve_ctx);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 void OutputJsonBuilderBuffer(
-        ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *js, OutputJsonThreadCtx *ctx);
+        ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *js, OutputJsonThreadCtx *ctx);
 OutputInitResult OutputJsonInitCtx(SCConfNode *);
 
 OutputInitResult OutputJsonLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx);
@@ -113,15 +113,15 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
-        JsonBuilder *js, enum OutputJsonLogDirection dir);
+        SCJsonBuilder *js, enum OutputJsonLogDirection dir);
 int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
-void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js);
+void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
-void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
+void JSONFormatAndAddMACAddr(SCJsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
 void OutputJsonFlush(OutputJsonThreadCtx *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_H */

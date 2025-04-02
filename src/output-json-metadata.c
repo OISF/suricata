@@ -65,7 +65,7 @@
 
 static int MetadataJson(ThreadVars *tv, OutputJsonThreadCtx *aft, const Packet *p)
 {
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "metadata", NULL, aft->ctx);
+    SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "metadata", NULL, aft->ctx);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -76,7 +76,7 @@ static int MetadataJson(ThreadVars *tv, OutputJsonThreadCtx *aft, const Packet *
     }
     OutputJsonBuilderBuffer(tv, p, p->flow, js, aft);
 
-    jb_free(js);
+    SCJbFree(js);
     return TM_ECODE_OK;
 }
 
