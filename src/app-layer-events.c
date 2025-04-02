@@ -161,6 +161,10 @@ SCEnumCharMap det_ctx_event_table[] = {
             "TOO_MANY_BUFFERS",
             DETECT_EVENT_TOO_MANY_BUFFERS,
     },
+    {
+            "POST_MATCH_QUEUE_FAILED",
+            DETECT_EVENT_POST_MATCH_QUEUE_FAILED,
+    },
     { NULL, -1 },
 };
 
