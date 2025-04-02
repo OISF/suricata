@@ -1101,7 +1101,11 @@ what to do in case memcap is hit: 'drop-packet', 'pass-packet', 'reject', or
     memcap-policy: bypass         #How to handle the flow if memcap is reached (IPS mode)
     hash-size: 65536              #Flows will be organized in a hash-table. With this option you can set the
                                   #size of the hash-table.
-    Prealloc: 10000               #The amount of flows Suricata has to keep ready in memory.
+    prealloc: 10000               #The amount of flows Suricata has to keep ready in memory.
+    rate-tracking:                #Enable tracking of flows by the following rate definition; mark them
+                                  #as elephant flows if they exceed the defined rate. Disabled by default.
+      bytes: 1GiB                 #Number of bytes to track
+      interval: 10                #Time interval in seconds for which tracking should be done
 
 At the point the memcap will still be reached, despite prealloc, the
 flow-engine goes into the emergency-mode. In this mode, the engine
