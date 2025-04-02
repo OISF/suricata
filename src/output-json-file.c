@@ -79,7 +79,7 @@ typedef struct JsonFileLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonFileLogThread;
 
-JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
+SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         const uint64_t tx_id, const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
         OutputJsonCtx *eve_ctx)
 {
@@ -117,59 +117,59 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         }
     }
 
-    JsonBuilder *js = CreateEveHeader(p, fdir, "fileinfo", &addr, eve_ctx);
+    SCJsonBuilder *js = CreateEveHeader(p, fdir, "fileinfo", &addr, eve_ctx);
     if (unlikely(js == NULL))
         return NULL;
 
-    JsonBuilderMark mark = { 0, 0, 0 };
+    SCJsonBuilderMark mark = { 0, 0, 0 };
     EveJsonSimpleAppLayerLogger *al;
     switch (p->flow->alproto) {
         case ALPROTO_HTTP1:
-            jb_open_object(js, "http");
+            SCJbOpenObject(js, "http");
             EveHttpAddMetadata(p->flow, tx_id, js);
-            jb_close(js);
+            SCJbClose(js);
             break;
         case ALPROTO_SMTP:
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "smtp");
+            SCJbGetMark(js, &mark);
+            SCJbOpenObject(js, "smtp");
             if (EveSMTPAddMetadata(p->flow, tx_id, js)) {
-                jb_close(js);
+                SCJbClose(js);
             } else {
-                jb_restore_mark(js, &mark);
+                SCJbRestoreMark(js, &mark);
             }
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "email");
+            SCJbGetMark(js, &mark);
+            SCJbOpenObject(js, "email");
             if (EveEmailAddMetadata(p->flow, tx_id, js)) {
-                jb_close(js);
+                SCJbClose(js);
             } else {
-                jb_restore_mark(js, &mark);
+                SCJbRestoreMark(js, &mark);
             }
             break;
         case ALPROTO_NFS:
             /* rpc */
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "rpc");
+            SCJbGetMark(js, &mark);
+            SCJbOpenObject(js, "rpc");
             if (EveNFSAddMetadataRPC(p->flow, tx_id, js)) {
-                jb_close(js);
+                SCJbClose(js);
             } else {
-                jb_restore_mark(js, &mark);
+                SCJbRestoreMark(js, &mark);
             }
             /* nfs */
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "nfs");
+            SCJbGetMark(js, &mark);
+            SCJbOpenObject(js, "nfs");
             if (EveNFSAddMetadata(p->flow, tx_id, js)) {
-                jb_close(js);
+                SCJbClose(js);
             } else {
-                jb_restore_mark(js, &mark);
+                SCJbRestoreMark(js, &mark);
             }
             break;
         case ALPROTO_SMB:
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "smb");
+            SCJbGetMark(js, &mark);
+            SCJbOpenObject(js, "smb");
             if (EveSMBAddMetadata(p->flow, tx_id, js)) {
-                jb_close(js);
+                SCJbClose(js);
             } else {
-                jb_restore_mark(js, &mark);
+                SCJbRestoreMark(js, &mark);
             }
             break;
         default:
@@ -179,9 +179,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
                 if (state) {
                     tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, state, tx_id);
                     if (tx) {
-                        jb_get_mark(js, &mark);
+                        SCJbGetMark(js, &mark);
                         if (!al->LogTx(tx, js)) {
-                            jb_restore_mark(js, &mark);
+                            SCJbRestoreMark(js, &mark);
                         }
                     }
                 }
@@ -189,9 +189,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
             break;
     }
 
-    jb_set_string(js, "app_proto", AppProtoToString(p->flow->alproto));
+    SCJbSetString(js, "app_proto", AppProtoToString(p->flow->alproto));
 
-    jb_open_object(js, "fileinfo");
+    SCJbOpenObject(js, "fileinfo");
     if (stored) {
         // the file has just been stored on disk cf OUTPUT_FILEDATA_FLAG_CLOSE
         // but the flag is not set until the loggers have been called
@@ -199,11 +199,11 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
     } else {
         EveFileInfo(js, ff, tx_id, ff->flags);
     }
-    jb_close(js);
+    SCJbClose(js);
 
     /* xff header */
     if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
-        jb_set_string(js, "xff", xff_buffer);
+        SCJbSetString(js, "xff", xff_buffer);
     }
 
     return js;
@@ -218,13 +218,13 @@ static void FileWriteJsonRecord(ThreadVars *tv, JsonFileLogThread *aft, const Pa
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ? aft->filelog_ctx->xff_cfg
                                                             : aft->filelog_ctx->parent_xff_cfg;
-    JsonBuilder *js = JsonBuildFileInfoRecord(p, ff, tx, tx_id, false, dir, xff_cfg, eve_ctx);
+    SCJsonBuilder *js = JsonBuildFileInfoRecord(p, ff, tx, tx_id, false, dir, xff_cfg, eve_ctx);
     if (unlikely(js == NULL)) {
         return;
     }
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, aft->ctx);
-    jb_free(js);
+    SCJbFree(js);
 }
 
 static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff,

@@ -599,8 +599,8 @@ static bool RuleMpmIsNegated(const Signature *s)
     return (cd->flags & DETECT_CONTENT_NEGATED) ? true : false;
 }
 
-static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigGroupHead *sgh,
-        const int add_rules, const int add_mpm_stats)
+static SCJsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx,
+        const SigGroupHead *sgh, const int add_rules, const int add_mpm_stats)
 {
     uint32_t prefilter_cnt = 0;
     uint32_t mpm_cnt = 0;
@@ -636,13 +636,13 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
     if (sgh->init == NULL)
         return NULL;
 
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (unlikely(js == NULL))
         return NULL;
 
-    jb_set_uint(js, "id", sgh->id);
+    SCJbSetUint(js, "id", sgh->id);
 
-    jb_open_array(js, "rules");
+    SCJbOpenArray(js, "rules");
     for (uint32_t x = 0; x < sgh->init->sig_cnt; x++) {
         const Signature *s = sgh->init->match_array[x];
         if (s == NULL)
@@ -765,37 +765,37 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
         alstats[s->alproto]++;
 
         if (add_rules) {
-            JsonBuilder *e = jb_new_object();
+            SCJsonBuilder *e = SCJbNewObject();
             if (e != NULL) {
-                jb_set_uint(e, "sig_id", s->id);
-                jb_close(e);
-                jb_append_object(js, e);
-                jb_free(e);
+                SCJbSetUint(e, "sig_id", s->id);
+                SCJbClose(e);
+                SCJbAppendObject(js, e);
+                SCJbFree(e);
             }
         }
     }
-    jb_close(js);
+    SCJbClose(js);
 
-    jb_open_object(js, "stats");
-    jb_set_uint(js, "total", sgh->init->sig_cnt);
+    SCJbOpenObject(js, "stats");
+    SCJbSetUint(js, "total", sgh->init->sig_cnt);
 
-    jb_open_object(js, "types");
-    jb_set_uint(js, "mpm", mpm_cnt);
-    jb_set_uint(js, "non_mpm", nonmpm_cnt);
-    jb_set_uint(js, "mpm_depth", mpm_depth_cnt);
-    jb_set_uint(js, "mpm_endswith", mpm_endswith_cnt);
-    jb_set_uint(js, "negated_mpm", negmpm_cnt);
-    jb_set_uint(js, "payload_but_no_mpm", payload_no_mpm_cnt);
-    jb_set_uint(js, "prefilter", prefilter_cnt);
-    jb_set_uint(js, "syn", syn_cnt);
-    jb_set_uint(js, "any5", any5_cnt);
-    jb_close(js);
+    SCJbOpenObject(js, "types");
+    SCJbSetUint(js, "mpm", mpm_cnt);
+    SCJbSetUint(js, "non_mpm", nonmpm_cnt);
+    SCJbSetUint(js, "mpm_depth", mpm_depth_cnt);
+    SCJbSetUint(js, "mpm_endswith", mpm_endswith_cnt);
+    SCJbSetUint(js, "negated_mpm", negmpm_cnt);
+    SCJbSetUint(js, "payload_but_no_mpm", payload_no_mpm_cnt);
+    SCJbSetUint(js, "prefilter", prefilter_cnt);
+    SCJbSetUint(js, "syn", syn_cnt);
+    SCJbSetUint(js, "any5", any5_cnt);
+    SCJbClose(js);
 
     for (AppProto i = 0; i < g_alproto_max; i++) {
         if (alstats[i] > 0) {
             const char *proto_name = (i == ALPROTO_UNKNOWN) ? "payload" : AppProtoToString(i);
-            jb_open_object(js, proto_name);
-            jb_set_uint(js, "total", alstats[i]);
+            SCJbOpenObject(js, proto_name);
+            SCJbSetUint(js, "total", alstats[i]);
 
             for (int y = 0; y < max_buffer_type_id; y++) {
                 if (alproto_mpm_bufs[i][y] == 0)
@@ -807,14 +807,14 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
                 else
                     name = DetectEngineBufferTypeGetNameById(de_ctx, y);
 
-                jb_set_uint(js, name, alproto_mpm_bufs[i][y]);
+                SCJbSetUint(js, name, alproto_mpm_bufs[i][y]);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
     }
 
     if (add_mpm_stats) {
-        jb_open_object(js, "mpm");
+        SCJbOpenObject(js, "mpm");
 
         for (int i = 0; i < max_buffer_type_id; i++) {
             if (mpm_stats[i].cnt > 0) {
@@ -824,42 +824,42 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
                 else
                     name = DetectEngineBufferTypeGetNameById(de_ctx, i);
 
-                jb_open_array(js, name);
+                SCJbOpenArray(js, name);
 
                 for (int y = 0; y < 256; y++) {
                     if (mpm_sizes[i][y] == 0)
                         continue;
 
-                    JsonBuilder *e = jb_new_object();
+                    SCJsonBuilder *e = SCJbNewObject();
                     if (e != NULL) {
-                        jb_set_uint(e, "size", y);
-                        jb_set_uint(e, "count", mpm_sizes[i][y]);
-                        jb_close(e);
-                        jb_append_object(js, e);
-                        jb_free(e);
+                        SCJbSetUint(e, "size", y);
+                        SCJbSetUint(e, "count", mpm_sizes[i][y]);
+                        SCJbClose(e);
+                        SCJbAppendObject(js, e);
+                        SCJbFree(e);
                     }
                 }
 
-                JsonBuilder *e = jb_new_object();
+                SCJsonBuilder *e = SCJbNewObject();
                 if (e != NULL) {
-                    jb_set_uint(e, "total", mpm_stats[i].cnt);
-                    jb_set_uint(e, "avg_strength", mpm_stats[i].total / mpm_stats[i].cnt);
-                    jb_set_uint(e, "min_strength", mpm_stats[i].min);
-                    jb_set_uint(e, "max_strength", mpm_stats[i].max);
-                    jb_close(e);
-                    jb_append_object(js, e);
-                    jb_free(e);
+                    SCJbSetUint(e, "total", mpm_stats[i].cnt);
+                    SCJbSetUint(e, "avg_strength", mpm_stats[i].total / mpm_stats[i].cnt);
+                    SCJbSetUint(e, "min_strength", mpm_stats[i].min);
+                    SCJbSetUint(e, "max_strength", mpm_stats[i].max);
+                    SCJbClose(e);
+                    SCJbAppendObject(js, e);
+                    SCJbFree(e);
                 }
 
-                jb_close(js);
+                SCJbClose(js);
             }
         }
-        jb_close(js);
+        SCJbClose(js);
     }
-    jb_close(js);
+    SCJbClose(js);
 
-    jb_set_uint(js, "score", sgh->init->score);
-    jb_close(js);
+    SCJbSetUint(js, "score", sgh->init->score);
+    SCJbClose(js);
 
     return js;
 }
@@ -867,7 +867,7 @@ static JsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const
 static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                        const int add_rules, const int add_mpm_stats)
 {
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (unlikely(js == NULL))
         return;
 
@@ -875,70 +875,70 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
         if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
             const char *name = (p == IPPROTO_TCP) ? "tcp" : "udp";
 
-            jb_open_object(js, name);
-            jb_open_array(js, "toserver");
+            SCJbOpenObject(js, name);
+            SCJbOpenArray(js, "toserver");
             const DetectPort *list =
                     (p == IPPROTO_TCP) ? de_ctx->flow_gh[1].tcp : de_ctx->flow_gh[1].udp;
             while (list != NULL) {
-                JsonBuilder *port = jb_new_object();
-                jb_set_uint(port, "port", list->port);
-                jb_set_uint(port, "port2", list->port2);
+                SCJsonBuilder *port = SCJbNewObject();
+                SCJbSetUint(port, "port", list->port);
+                SCJbSetUint(port, "port2", list->port2);
 
-                JsonBuilder *stats =
+                SCJsonBuilder *stats =
                         RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
-                jb_set_object(port, "rulegroup", stats);
-                jb_free(stats);
-                jb_close(port);
-                jb_append_object(js, port);
-                jb_free(port);
+                SCJbSetObject(port, "rulegroup", stats);
+                SCJbFree(stats);
+                SCJbClose(port);
+                SCJbAppendObject(js, port);
+                SCJbFree(port);
 
                 list = list->next;
             }
-            jb_close(js); // toserver array
+            SCJbClose(js); // toserver array
 
-            jb_open_array(js, "toclient");
+            SCJbOpenArray(js, "toclient");
             list = (p == IPPROTO_TCP) ? de_ctx->flow_gh[0].tcp :
                                         de_ctx->flow_gh[0].udp;
             while (list != NULL) {
-                JsonBuilder *port = jb_new_object();
-                jb_set_uint(port, "port", list->port);
-                jb_set_uint(port, "port2", list->port2);
+                SCJsonBuilder *port = SCJbNewObject();
+                SCJbSetUint(port, "port", list->port);
+                SCJbSetUint(port, "port2", list->port2);
 
-                JsonBuilder *stats =
+                SCJsonBuilder *stats =
                         RulesGroupPrintSghStats(de_ctx, list->sh, add_rules, add_mpm_stats);
-                jb_set_object(port, "rulegroup", stats);
-                jb_free(stats);
-                jb_close(port);
-                jb_append_object(js, port);
-                jb_free(port);
+                SCJbSetObject(port, "rulegroup", stats);
+                SCJbFree(stats);
+                SCJbClose(port);
+                SCJbAppendObject(js, port);
+                SCJbFree(port);
 
                 list = list->next;
             }
-            jb_close(js); // toclient array
-            jb_close(js);
+            SCJbClose(js); // toclient array
+            SCJbClose(js);
         } else if (p == IPPROTO_ICMP || p == IPPROTO_ICMPV6) {
             const char *name = (p == IPPROTO_ICMP) ? "icmpv4" : "icmpv6";
-            jb_open_object(js, name);
+            SCJbOpenObject(js, name);
             if (de_ctx->flow_gh[1].sgh[p]) {
-                jb_open_object(js, "toserver");
-                JsonBuilder *stats = RulesGroupPrintSghStats(
+                SCJbOpenObject(js, "toserver");
+                SCJsonBuilder *stats = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[1].sgh[p], add_rules, add_mpm_stats);
-                jb_set_object(js, "rulegroup", stats);
-                jb_free(stats);
-                jb_close(js);
+                SCJbSetObject(js, "rulegroup", stats);
+                SCJbFree(stats);
+                SCJbClose(js);
             }
             if (de_ctx->flow_gh[0].sgh[p]) {
-                jb_open_object(js, "toclient");
-                JsonBuilder *stats = RulesGroupPrintSghStats(
+                SCJbOpenObject(js, "toclient");
+                SCJsonBuilder *stats = RulesGroupPrintSghStats(
                         de_ctx, de_ctx->flow_gh[0].sgh[p], add_rules, add_mpm_stats);
-                jb_set_object(js, "rulegroup", stats);
-                jb_free(stats);
-                jb_close(js);
+                SCJbSetObject(js, "rulegroup", stats);
+                SCJbFree(stats);
+                SCJbClose(js);
             }
-            jb_close(js);
+            SCJbClose(js);
         }
     }
-    jb_close(js);
+    SCJbClose(js);
 
     const char *filename = "rule_group.json";
     const char *log_dir = SCConfigGetLogDirectory();
@@ -947,10 +947,10 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
 
     FILE *fp = fopen(log_path, "w");
     if (fp != NULL) {
-        fwrite(jb_ptr(js), jb_len(js), 1, fp);
+        fwrite(SCJbPtr(js), SCJbLen(js), 1, fp);
         (void)fclose(fp);
     }
-    jb_free(js);
+    SCJbFree(js);
 }
 
 static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)

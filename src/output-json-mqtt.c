@@ -60,7 +60,7 @@ typedef struct LogMQTTLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
-bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js)
+bool JsonMQTTAddMetadata(void *vtx, SCJsonBuilder *js)
 {
     return SCMqttLoggerLog(vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
 }
@@ -77,7 +77,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         dir = LOG_DIR_FLOW_TOSERVER;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, dir, "mqtt", NULL, thread->mqttlog_ctx->eve_ctx);
+    SCJsonBuilder *js = CreateEveHeader(p, dir, "mqtt", NULL, thread->mqttlog_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -86,12 +86,12 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         goto error;
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
-    jb_free(js);
+    SCJbFree(js);
 
     return TM_ECODE_OK;
 
 error:
-    jb_free(js);
+    SCJbFree(js);
     return TM_ECODE_FAILED;
 }
 

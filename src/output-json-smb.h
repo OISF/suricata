@@ -25,6 +25,6 @@
 #define SURICATA_OUTPUT_JSON_SMB_H
 
 void JsonSMBLogRegister(void);
-bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
+bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb);
 
 #endif /* SURICATA_OUTPUT_JSON_SMB_H */

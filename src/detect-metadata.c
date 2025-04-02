@@ -129,7 +129,7 @@ static char *CraftPreformattedJSON(const DetectMetadata *head)
     BUG_ON(i != cnt);
     qsort(array, cnt, sizeof(DetectMetadata *), SortHelper);
 
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (js == NULL)
         return NULL;
 
@@ -143,38 +143,38 @@ static char *CraftPreformattedJSON(const DetectMetadata *head)
 
         if (nm && strcasecmp(m->key, nm->key) == 0) {
             if (!array_open) {
-                jb_open_array(js, m->key);
+                SCJbOpenArray(js, m->key);
                 array_open = true;
             }
-            jb_append_string(js, m->value);
+            SCJbAppendString(js, m->value);
         } else {
             if (!array_open) {
-                jb_open_array(js, m->key);
+                SCJbOpenArray(js, m->key);
             }
-            jb_append_string(js, m->value);
-            jb_close(js);
+            SCJbAppendString(js, m->value);
+            SCJbClose(js);
             array_open = false;
         }
     }
-    jb_close(js);
+    SCJbClose(js);
     /* we have a complete json builder. Now store it as a C string */
-    const size_t len = jb_len(js);
+    const size_t len = SCJbLen(js);
 #define MD_STR "\"metadata\":"
 #define MD_STR_LEN (sizeof(MD_STR) - 1)
     char *str = SCMalloc(len + MD_STR_LEN + 1);
     if (str == NULL) {
-        jb_free(js);
+        SCJbFree(js);
         return NULL;
     }
     char *ptr = str;
     memcpy(ptr, MD_STR, MD_STR_LEN);
     ptr += MD_STR_LEN;
-    memcpy(ptr, jb_ptr(js), len);
+    memcpy(ptr, SCJbPtr(js), len);
     ptr += len;
     *ptr = '\0';
 #undef MD_STR
 #undef MD_STR_LEN
-    jb_free(js);
+    SCJbFree(js);
     return str;
 }
 

@@ -31,7 +31,7 @@
 #include "output-json-smb.h"
 #include "rust.h"
 
-bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
+bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
 {
     SMBState *state = FlowGetAppState(f);
     if (state) {
@@ -48,24 +48,24 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
 {
     OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "smb", NULL, thread->ctx);
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "smb", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(jb, "smb");
+    SCJbOpenObject(jb, "smb");
     if (!SCSmbLogJsonResponse(jb, state, tx)) {
         goto error;
     }
-    jb_close(jb);
+    SCJbClose(jb);
 
     OutputJsonBuilderBuffer(tv, p, p->flow, jb, thread);
 
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_OK;
 
 error:
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_FAILED;
 }
 

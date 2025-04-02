@@ -199,29 +199,29 @@ static int SCLogMessageJSON(SCTime_t tval, char *buffer, size_t buffer_size, SCL
         const char *file, unsigned line, const char *function, const char *module,
         const char *message)
 {
-    JsonBuilder *js = jb_new_object();
+    SCJsonBuilder *js = SCJbNewObject();
     if (unlikely(js == NULL))
         goto error;
 
     char timebuf[64];
     CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
-    jb_set_string(js, "timestamp", timebuf);
+    SCJbSetString(js, "timestamp", timebuf);
 
     const char *s = SCMapEnumValueToName(log_level, sc_log_level_map);
     if (s != NULL) {
-        jb_set_string(js, "log_level", s);
+        SCJbSetString(js, "log_level", s);
     } else {
         JB_SET_STRING(js, "log_level", "INVALID");
     }
 
     JB_SET_STRING(js, "event_type", "engine");
-    jb_open_object(js, "engine");
+    SCJbOpenObject(js, "engine");
 
     if (message)
-        jb_set_string(js, "message", message);
+        SCJbSetString(js, "message", message);
 
     if (t_thread_name[0] != '\0') {
-        jb_set_string(js, "thread_name", t_thread_name);
+        SCJbSetString(js, "thread_name", t_thread_name);
     }
 
     if (module) {
@@ -229,25 +229,25 @@ static int SCLogMessageJSON(SCTime_t tval, char *buffer, size_t buffer_size, SCL
         int dn_len = 0;
         const char *dn_name;
         dn_name = SCTransformModule(module, &dn_len);
-        jb_set_string(js, "module", dn_name);
+        SCJbSetString(js, "module", dn_name);
     }
 
     if (log_level >= SC_LOG_DEBUG) {
         if (function)
-            jb_set_string(js, "function", function);
+            SCJbSetString(js, "function", function);
 
         if (file)
-            jb_set_string(js, "file", file);
+            SCJbSetString(js, "file", file);
 
         if (line > 0)
-            jb_set_uint(js, "line", line);
+            SCJbSetUint(js, "line", line);
     }
-    jb_close(js); // engine
+    SCJbClose(js); // engine
 
-    jb_close(js);
-    memcpy(buffer, jb_ptr(js), MIN(buffer_size, jb_len(js)));
+    SCJbClose(js);
+    memcpy(buffer, SCJbPtr(js), MIN(buffer_size, SCJbLen(js)));
 
-    jb_free(js);
+    SCJbFree(js);
 
     return 0;
 

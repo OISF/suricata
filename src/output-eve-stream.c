@@ -174,107 +174,107 @@ static OutputInitResult EveStreamLogInitCtxSub(SCConfNode *conf, OutputCtx *pare
     return result;
 }
 
-void EveAddFlowTcpStreamFlags(const TcpStream *stream, const char *name, JsonBuilder *jb)
+void EveAddFlowTcpStreamFlags(const TcpStream *stream, const char *name, SCJsonBuilder *jb)
 {
-    jb_open_array(jb, name);
+    SCJbOpenArray(jb, name);
     if (stream->flags & STREAMTCP_STREAM_FLAG_HAS_GAP)
-        jb_append_string(jb, "has_gap");
+        SCJbAppendString(jb, "has_gap");
     if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
-        jb_append_string(jb, "noreassembly");
+        SCJbAppendString(jb, "noreassembly");
     if (stream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE)
-        jb_append_string(jb, "keepalive");
+        SCJbAppendString(jb, "keepalive");
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
-        jb_append_string(jb, "depth_reached");
+        SCJbAppendString(jb, "depth_reached");
     if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
-        jb_append_string(jb, "trigger_raw");
+        SCJbAppendString(jb, "trigger_raw");
     if (stream->flags & STREAMTCP_STREAM_FLAG_TIMESTAMP)
-        jb_append_string(jb, "timestamp");
+        SCJbAppendString(jb, "timestamp");
     if (stream->flags & STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP)
-        jb_append_string(jb, "zero_timestamp");
+        SCJbAppendString(jb, "zero_timestamp");
     if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
-        jb_append_string(jb, "appproto_detection_completed");
+        SCJbAppendString(jb, "appproto_detection_completed");
     if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED)
-        jb_append_string(jb, "appproto_detection_skipped");
+        SCJbAppendString(jb, "appproto_detection_skipped");
     if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)
-        jb_append_string(jb, "new_raw_disabled");
+        SCJbAppendString(jb, "new_raw_disabled");
     if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW)
-        jb_append_string(jb, "disable_raw");
+        SCJbAppendString(jb, "disable_raw");
     if (stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV)
-        jb_append_string(jb, "rst_recv");
-    jb_close(jb);
+        SCJbAppendString(jb, "rst_recv");
+    SCJbClose(jb);
 }
 
-void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, JsonBuilder *jb)
+void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, SCJsonBuilder *jb)
 {
-    jb_open_object(jb, "flags");
+    SCJbOpenObject(jb, "flags");
 
-    jb_open_array(jb, name);
+    SCJbOpenArray(jb, name);
     if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
-        jb_append_string(jb, "midstream");
+        SCJbAppendString(jb, "midstream");
     }
     if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED) {
-        jb_append_string(jb, "midstream_established");
+        SCJbAppendString(jb, "midstream_established");
     }
     if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK) {
-        jb_append_string(jb, "midstream_synack");
+        SCJbAppendString(jb, "midstream_synack");
     }
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-        jb_append_string(jb, "timestamp");
+        SCJbAppendString(jb, "timestamp");
     }
     if (ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) {
-        jb_append_string(jb, "server_wscale");
+        SCJbAppendString(jb, "server_wscale");
     }
     if (ssn->flags & STREAMTCP_FLAG_CLOSED_BY_RST) {
-        jb_append_string(jb, "closed_by_rst");
+        SCJbAppendString(jb, "closed_by_rst");
     }
     if (ssn->flags & STREAMTCP_FLAG_4WHS) {
-        jb_append_string(jb, "4whs");
+        SCJbAppendString(jb, "4whs");
     }
     if (ssn->flags & STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT) {
-        jb_append_string(jb, "detect_evasion_attempt");
+        SCJbAppendString(jb, "detect_evasion_attempt");
     }
     if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
-        jb_append_string(jb, "client_sackok");
+        SCJbAppendString(jb, "client_sackok");
     }
     if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
-        jb_append_string(jb, "sackok");
+        SCJbAppendString(jb, "sackok");
     }
     if (ssn->flags & STREAMTCP_FLAG_3WHS_CONFIRMED) {
-        jb_append_string(jb, "3whs_confirmed");
+        SCJbAppendString(jb, "3whs_confirmed");
     }
     if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
-        jb_append_string(jb, "app_layer_disabled");
+        SCJbAppendString(jb, "app_layer_disabled");
     }
     if (ssn->flags & STREAMTCP_FLAG_BYPASS) {
-        jb_append_string(jb, "bypass");
+        SCJbAppendString(jb, "bypass");
     }
     if (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN) {
-        jb_append_string(jb, "tcp_fast_open");
+        SCJbAppendString(jb, "tcp_fast_open");
     }
     if (ssn->flags & STREAMTCP_FLAG_TFO_DATA_IGNORED) {
-        jb_append_string(jb, "tfo_data_ignored");
+        SCJbAppendString(jb, "tfo_data_ignored");
     }
-    jb_close(jb);
-    jb_close(jb);
+    SCJbClose(jb);
+    SCJbClose(jb);
 }
 
-static void LogStreamSB(const StreamingBuffer *sb, JsonBuilder *js)
+static void LogStreamSB(const StreamingBuffer *sb, SCJsonBuilder *js)
 {
-    jb_set_uint(js, "sb_region_size", sb->region.buf_size);
+    SCJbSetUint(js, "sb_region_size", sb->region.buf_size);
 }
 
-static void LogStream(const TcpStream *stream, JsonBuilder *js)
+static void LogStream(const TcpStream *stream, SCJsonBuilder *js)
 {
-    jb_set_uint(js, "isn", stream->isn);
-    jb_set_uint(js, "next_seq", stream->next_seq);
-    jb_set_uint(js, "last_ack", stream->last_ack);
-    jb_set_uint(js, "next_win", stream->next_win);
+    SCJbSetUint(js, "isn", stream->isn);
+    SCJbSetUint(js, "next_seq", stream->next_seq);
+    SCJbSetUint(js, "last_ack", stream->last_ack);
+    SCJbSetUint(js, "next_win", stream->next_win);
     if (!(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        jb_set_uint(js, "base_seq", stream->base_seq);
-        jb_set_uint(js, "segs_right_edge", stream->segs_right_edge);
+        SCJbSetUint(js, "base_seq", stream->base_seq);
+        SCJbSetUint(js, "segs_right_edge", stream->segs_right_edge);
     }
-    jb_set_uint(js, "window", stream->window);
-    jb_set_uint(js, "wscale", stream->wscale);
+    SCJbSetUint(js, "window", stream->window);
+    SCJbSetUint(js, "wscale", stream->wscale);
 
     EveAddFlowTcpStreamFlags(stream, "flags", js);
 
@@ -284,7 +284,7 @@ static void LogStream(const TcpStream *stream, JsonBuilder *js)
     {
         segs++;
     }
-    jb_set_uint(js, "seg_cnt", segs);
+    SCJbSetUint(js, "seg_cnt", segs);
     LogStreamSB(&stream->sb, js);
 }
 
@@ -305,104 +305,104 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "stream_tcp", &addr, ctx->eve_ctx);
+    SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "stream_tcp", &addr, ctx->eve_ctx);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
     if (p->flow != NULL) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
-            jb_set_string(js, "direction", "to_server");
+            SCJbSetString(js, "direction", "to_server");
         } else {
-            jb_set_string(js, "direction", "to_client");
+            SCJbSetString(js, "direction", "to_client");
         }
     }
 
-    jb_open_object(js, "stream_tcp");
-    jb_open_object(js, "packet");
+    SCJbOpenObject(js, "stream_tcp");
+    SCJbOpenObject(js, "packet");
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        jb_set_uint(js, "len", IPV4_GET_RAW_IPLEN(ip4h));
-        jb_set_uint(js, "tos", IPV4_GET_RAW_IPTOS(ip4h));
-        jb_set_uint(js, "ttl", IPV4_GET_RAW_IPTTL(ip4h));
-        jb_set_uint(js, "ipid", IPV4_GET_RAW_IPID(ip4h));
+        SCJbSetUint(js, "len", IPV4_GET_RAW_IPLEN(ip4h));
+        SCJbSetUint(js, "tos", IPV4_GET_RAW_IPTOS(ip4h));
+        SCJbSetUint(js, "ttl", IPV4_GET_RAW_IPTTL(ip4h));
+        SCJbSetUint(js, "ipid", IPV4_GET_RAW_IPID(ip4h));
     } else if (PacketIsIPv6(p)) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
-        jb_set_uint(js, "len", IPV6_GET_RAW_PLEN(ip6h));
-        jb_set_uint(js, "tc", IPV6_GET_RAW_CLASS(ip6h));
-        jb_set_uint(js, "hoplimit", IPV6_GET_RAW_HLIM(ip6h));
-        jb_set_uint(js, "flowlbl", IPV6_GET_RAW_FLOW(ip6h));
+        SCJbSetUint(js, "len", IPV6_GET_RAW_PLEN(ip6h));
+        SCJbSetUint(js, "tc", IPV6_GET_RAW_CLASS(ip6h));
+        SCJbSetUint(js, "hoplimit", IPV6_GET_RAW_HLIM(ip6h));
+        SCJbSetUint(js, "flowlbl", IPV6_GET_RAW_FLOW(ip6h));
     }
     if (PacketIsTCP(p)) {
         const TCPHdr *tcph = PacketGetTCP(p);
-        jb_set_uint(js, "tcpseq", TCP_GET_RAW_SEQ(tcph));
-        jb_set_uint(js, "tcpack", TCP_GET_RAW_ACK(tcph));
-        jb_set_uint(js, "tcpwin", TCP_GET_RAW_WINDOW(tcph));
-        jb_set_bool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph) ? true : false);
-        jb_set_bool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph) ? true : false);
-        jb_set_bool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph) ? true : false);
-        jb_set_bool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph) ? true : false);
-        jb_set_bool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph) ? true : false);
-        jb_set_bool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph) ? true : false);
-        jb_set_uint(js, "tcpres", TCP_GET_RAW_X2(tcph));
-        jb_set_uint(js, "tcpurgp", TCP_GET_RAW_URG_POINTER(tcph));
+        SCJbSetUint(js, "tcpseq", TCP_GET_RAW_SEQ(tcph));
+        SCJbSetUint(js, "tcpack", TCP_GET_RAW_ACK(tcph));
+        SCJbSetUint(js, "tcpwin", TCP_GET_RAW_WINDOW(tcph));
+        SCJbSetBool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph) ? true : false);
+        SCJbSetBool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph) ? true : false);
+        SCJbSetBool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph) ? true : false);
+        SCJbSetBool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph) ? true : false);
+        SCJbSetBool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph) ? true : false);
+        SCJbSetBool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph) ? true : false);
+        SCJbSetUint(js, "tcpres", TCP_GET_RAW_X2(tcph));
+        SCJbSetUint(js, "tcpurgp", TCP_GET_RAW_URG_POINTER(tcph));
 
-        jb_open_array(js, "flags");
+        SCJbOpenArray(js, "flags");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_RETRANSMISSION)
-            jb_append_string(js, "retransmission");
+            SCJbAppendString(js, "retransmission");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_SPURIOUS_RETRANSMISSION)
-            jb_append_string(js, "spurious_retransmission");
+            SCJbAppendString(js, "spurious_retransmission");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVE)
-            jb_append_string(js, "keepalive");
+            SCJbAppendString(js, "keepalive");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_KEEPALIVEACK)
-            jb_append_string(js, "keepalive_ack");
+            SCJbAppendString(js, "keepalive_ack");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_WINDOWUPDATE)
-            jb_append_string(js, "window_update");
+            SCJbAppendString(js, "window_update");
 
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET)
-            jb_append_string(js, "event_set");
+            SCJbAppendString(js, "event_set");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE)
-            jb_append_string(js, "state_update");
+            SCJbAppendString(js, "state_update");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_DUP_ACK)
-            jb_append_string(js, "dup_ack");
+            SCJbAppendString(js, "dup_ack");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_DSACK)
-            jb_append_string(js, "dsack");
+            SCJbAppendString(js, "dsack");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_ACK_UNSEEN_DATA)
-            jb_append_string(js, "ack_unseen_data");
+            SCJbAppendString(js, "ack_unseen_data");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_SESSION_REUSE)
-            jb_append_string(js, "tcp_session_reuse");
+            SCJbAppendString(js, "tcp_session_reuse");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE)
-            jb_append_string(js, "zero_window_probe");
+            SCJbAppendString(js, "zero_window_probe");
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_TCP_ZERO_WIN_PROBE_ACK)
-            jb_append_string(js, "zero_window_probe_ack");
-        jb_close(js);
+            SCJbAppendString(js, "zero_window_probe_ack");
+        SCJbClose(js);
     }
-    jb_close(js);
+    SCJbClose(js);
 
-    jb_open_object(js, "session");
+    SCJbOpenObject(js, "session");
     if (p->flow != NULL && p->flow->protoctx != NULL) {
         const TcpSession *ssn = p->flow->protoctx;
         const char *tcp_state = StreamTcpStateAsString(ssn->state);
         if (tcp_state != NULL)
-            jb_set_string(js, "state", tcp_state);
+            SCJbSetString(js, "state", tcp_state);
         if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_STATE_UPDATE) {
             const char *tcp_pstate = StreamTcpStateAsString(ssn->pstate);
             if (tcp_pstate != NULL)
-                jb_set_string(js, "pstate", tcp_pstate);
+                SCJbSetString(js, "pstate", tcp_pstate);
         }
         EveAddFlowTcpFlags(ssn, "flags", js);
 
-        jb_open_object(js, "client");
+        SCJbOpenObject(js, "client");
         LogStream(&ssn->client, js);
-        jb_close(js);
-        jb_open_object(js, "server");
+        SCJbClose(js);
+        SCJbOpenObject(js, "server");
         LogStream(&ssn->server, js);
-        jb_close(js);
+        SCJbClose(js);
     }
-    jb_close(js);
+    SCJbClose(js);
 
     if (p->l4.vars.tcp.stream_pkt_flags & STREAM_PKT_FLAG_EVENTSET) {
-        jb_open_array(js, "events");
+        SCJbOpenArray(js, "events");
         for (int i = 0; i < p->events.cnt; i++) {
             uint8_t event_code = p->events.events[i];
             bool is_decode = EVENT_IS_DECODER_PACKET_ERROR(event_code);
@@ -413,21 +413,21 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
             const char *event = DEvents[event_code].event_name;
             if (event == NULL)
                 continue;
-            jb_append_string(js, event);
+            SCJbAppendString(js, event);
         }
-        jb_close(js);
+        SCJbClose(js);
     }
 
     if (p->drop_reason != 0) {
         const char *str = PacketDropReasonToString(p->drop_reason);
-        jb_set_string(js, "reason", str);
+        SCJbSetString(js, "reason", str);
     }
 
     /* Close stream. */
-    jb_close(js);
+    SCJbClose(js);
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, td->ctx);
-    jb_free(js);
+    SCJbFree(js);
 
     return TM_ECODE_OK;
 }

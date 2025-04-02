@@ -115,13 +115,13 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_decode && !log_stream)
             continue;
 
-        JsonBuilder *js = CreateEveHeader(
+        SCJsonBuilder *js = CreateEveHeader(
                 p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, aft->json_output_ctx->eve_ctx);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        jb_open_object(js, ANOMALY_EVENT_TYPE);
+        SCJbOpenObject(js, ANOMALY_EVENT_TYPE);
 
         if (event_code < DECODE_EVENT_MAX) {
             const char *event = DEvents[event_code].event_name;
@@ -130,21 +130,21 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
             } else {
                 JB_SET_STRING(js, "type", "stream");
             }
-            jb_set_string(js, "event", event);
+            SCJbSetString(js, "event", event);
         } else {
             JB_SET_STRING(js, "type", "unknown");
-            jb_set_uint(js, "code", event_code);
+            SCJbSetUint(js, "code", event_code);
         }
 
         /* Close anomaly object. */
-        jb_close(js);
+        SCJbClose(js);
 
         if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
             EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         }
 
         OutputJsonBuilderBuffer(tv, p, p->flow, js, aft->ctx);
-        jb_free(js);
+        SCJbFree(js);
     }
 
     return TM_ECODE_OK;
@@ -162,7 +162,7 @@ static int AnomalyAppLayerDecoderEventJson(ThreadVars *tv, JsonAnomalyLogThread 
                 tx_id != TX_ID_UNUSED ? "tx" : "no-tx");
 
     for (int i = decoder_events->event_last_logged; i < decoder_events->cnt; i++) {
-        JsonBuilder *js;
+        SCJsonBuilder *js;
         if (tx_id != TX_ID_UNUSED) {
             js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL, tx_id,
                     aft->json_output_ctx->eve_ctx);
@@ -174,10 +174,9 @@ static int AnomalyAppLayerDecoderEventJson(ThreadVars *tv, JsonAnomalyLogThread 
             return TM_ECODE_OK;
         }
 
+        SCJbOpenObject(js, ANOMALY_EVENT_TYPE);
 
-        jb_open_object(js, ANOMALY_EVENT_TYPE);
-
-        jb_set_string(js, "app_proto", alprotoname);
+        SCJbSetString(js, "app_proto", alprotoname);
 
         const char *event_name = NULL;
         uint8_t event_code = decoder_events->events[i];
@@ -191,18 +190,18 @@ static int AnomalyAppLayerDecoderEventJson(ThreadVars *tv, JsonAnomalyLogThread 
         }
         if (r == 0) {
             JB_SET_STRING(js, "type", "applayer");
-            jb_set_string(js, "event", event_name);
+            SCJbSetString(js, "event", event_name);
         } else {
             JB_SET_STRING(js, "type", "unknown");
-            jb_set_uint(js, "code", event_code);
+            SCJbSetUint(js, "code", event_code);
         }
 
-        jb_set_string(js, "layer", layer);
+        SCJbSetString(js, "layer", layer);
 
         /* anomaly */
-        jb_close(js);
+        SCJbClose(js);
         OutputJsonBuilderBuffer(tv, p, p->flow, js, aft->ctx);
-        jb_free(js);
+        SCJbFree(js);
 
         /* Current implementation assumes a single owner for this value */
         decoder_events->event_last_logged++;

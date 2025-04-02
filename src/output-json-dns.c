@@ -248,21 +248,21 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-bool AlertJsonDns(void *txptr, JsonBuilder *js)
+bool AlertJsonDns(void *txptr, SCJsonBuilder *js)
 {
     return SCDnsLogJson(
             txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
 }
 
-bool AlertJsonDoh2(void *txptr, JsonBuilder *js)
+bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
 {
-    JsonBuilderMark mark = { 0, 0, 0 };
+    SCJsonBuilderMark mark = { 0, 0, 0 };
 
-    jb_get_mark(js, &mark);
+    SCJbGetMark(js, &mark);
     // first log HTTP2 part
     bool r = rs_http2_log_json(txptr, js);
     if (!r) {
-        jb_restore_mark(js, &mark);
+        SCJbRestoreMark(js, &mark);
     }
     // then log one DNS tx if any, preferring the answer
     void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
@@ -271,10 +271,10 @@ bool AlertJsonDoh2(void *txptr, JsonBuilder *js)
     }
     bool r2 = false;
     if (tx_dns) {
-        jb_get_mark(js, &mark);
+        SCJbGetMark(js, &mark);
         r2 = AlertJsonDns(tx_dns, js);
         if (!r2) {
-            jb_restore_mark(js, &mark);
+            SCJbRestoreMark(js, &mark);
         }
     }
     return r || r2;
@@ -286,19 +286,19 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
 
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
 
-    JsonBuilderMark mark = { 0, 0, 0 };
+    SCJsonBuilderMark mark = { 0, 0, 0 };
 
-    jb_get_mark(jb, &mark);
+    SCJbGetMark(jb, &mark);
     // first log HTTP2 part
     bool r = rs_http2_log_json(txptr, jb);
     if (!r) {
-        jb_restore_mark(jb, &mark);
+        SCJbRestoreMark(jb, &mark);
     }
 
     void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
@@ -322,18 +322,18 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
             goto out;
         }
 
-        jb_get_mark(jb, &mark);
+        SCJbGetMark(jb, &mark);
         // log DOH2 with DNS config
         r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb);
         if (!r2) {
-            jb_restore_mark(jb, &mark);
+            SCJbRestoreMark(jb, &mark);
         }
     }
 out:
     if (r || r2) {
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
     }
-    jb_free(jb);
+    SCJbFree(jb);
     return TM_ECODE_OK;
 }
 
@@ -350,21 +350,21 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
 
-        jb_open_object(jb, "dns");
-        jb_set_int(jb, "version", 2);
+        SCJbOpenObject(jb, "dns");
+        SCJbSetInt(jb, "version", 2);
         if (!SCDnsLogJsonQuery(txptr, i, td->dnslog_ctx->flags, jb)) {
-            jb_free(jb);
+            SCJbFree(jb);
             break;
         }
-        jb_close(jb);
+        SCJbClose(jb);
 
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
-        jb_free(jb);
+        SCJbFree(jb);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -383,17 +383,17 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
 
     if (SCDnsLogAnswerEnabled(txptr, td->dnslog_ctx->flags)) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
 
-        jb_open_object(jb, "dns");
-        jb_set_int(jb, "version", 2);
+        SCJbOpenObject(jb, "dns");
+        SCJbSetInt(jb, "version", 2);
         SCDnsLogJsonAnswer(txptr, td->dnslog_ctx->flags, jb);
-        jb_close(jb);
+        SCJbClose(jb);
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
-        jb_free(jb);
+        SCJbFree(jb);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -426,7 +426,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
             return TM_ECODE_OK;
         }
 
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
@@ -434,7 +434,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb)) {
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         }
-        jb_free(jb);
+        SCJbFree(jb);
     }
     return TM_ECODE_OK;
 }

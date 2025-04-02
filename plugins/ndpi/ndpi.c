@@ -460,7 +460,7 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, JsonBuilder *j
     buffer = ndpi_serializer_get_buffer(&serializer, &buffer_len);
 
     /* Inject the nDPI JSON to the JsonBuilder */
-    jb_set_formatted(jb, buffer);
+    SCJbSetFormatted(jb, buffer);
 
     ndpi_term_serializer(&serializer);
 }
