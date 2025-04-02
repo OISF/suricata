@@ -34,7 +34,7 @@ use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
     AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
-    SCOutputJsonLogDirection, SCOutputPreRegisterLogger,
+    SCOutputJsonLogDirection, SCOutputPreRegisterLogger, SCSigTablePreRegister,
 };
 
 #[derive(AppLayerEvent)]
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         LogTx: Some(snmp_log_json_response),
     };
     SCOutputPreRegisterLogger(reg_data);
-    SigTablePreRegister(detect_snmp_register);
+    SCSigTablePreRegister(Some(detect_snmp_register));
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         // port 161
         _ = AppLayerRegisterProtocolDetection(&parser, 1);

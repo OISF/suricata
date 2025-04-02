@@ -32,6 +32,7 @@
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
 #include "output-public.h"
+#include "detect-engine-register.h"
 
 #include "conf.h"
 
