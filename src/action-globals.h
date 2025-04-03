@@ -38,4 +38,10 @@
 
 #define ACTION_DROP_REJECT (ACTION_REJECT_ANY | ACTION_DROP)
 
+enum ActionScope {
+    ACTION_SCOPE_AUTO = 0,
+    ACTION_SCOPE_PACKET, /**< apply action to packet */
+    ACTION_SCOPE_FLOW,   /**< apply drop/pass/accept action to flow */
+};
+
 #endif /* SURICATA_ACTION_GLOBALS_H */
