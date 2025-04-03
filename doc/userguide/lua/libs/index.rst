@@ -14,3 +14,4 @@ environment without access to additional modules.
    hashlib
    http
    packetlib
+   ssh
