@@ -26,18 +26,20 @@ use crate::frames::Frame;
 use nom7 as nom;
 use nom7::Needed;
 
-use flate2::read::DeflateDecoder;
+use flate2::Decompress;
+use flate2::FlushDecompress;
 use suricata_sys::sys::AppProto;
 
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
-use std::io::Read;
 use std::os::raw::{c_char, c_int, c_void};
 
 pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
+
+const WEBSOCKET_DECOMPRESS_BUF_SIZE: usize = 8192;
 
 #[derive(AppLayerFrameType)]
 pub enum WebSocketFrameType {
@@ -85,6 +87,9 @@ pub struct WebSocketState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<WebSocketTransaction>,
+
+    c2s_dec: Option<flate2::Decompress>,
+    s2c_dec: Option<flate2::Decompress>,
 
     c2s_buf: WebSocketReassemblyBuffer,
     s2c_buf: WebSocketReassemblyBuffer,
@@ -195,10 +200,19 @@ impl WebSocketState {
                         }
                         tx.tx_data.set_event(WebSocketEvent::SkipEndOfPayload as u8);
                     }
-                    let buf = if direction == Direction::ToClient {
-                        &mut self.s2c_buf
+                    if pdu.compress {
+                        // RFC 7692 section 7.1.2 states that
+                        // absence of precision means LZ77 sliding window of up to 2^15 bytes
+                        if direction == Direction::ToClient && self.s2c_dec.is_none() {
+                            self.s2c_dec = Some(Decompress::new_with_window_bits(false, 15));
+                        } else if direction == Direction::ToServer && self.c2s_dec.is_none() {
+                            self.c2s_dec = Some(Decompress::new_with_window_bits(false, 15));
+                        }
+                    }
+                    let (buf, dec) = if direction == Direction::ToClient {
+                        (&mut self.s2c_buf, &mut self.s2c_dec)
                     } else {
-                        &mut self.c2s_buf
+                        (&mut self.c2s_buf, &mut self.c2s_dec)
                     };
                     let mut compress = pdu.compress;
                     if !buf.data.is_empty() || !pdu.fin {
@@ -225,13 +239,42 @@ impl WebSocketState {
                         buf.compress = false;
                         // cf RFC 7692 section-7.2.2
                         tx.pdu.payload.extend_from_slice(&[0, 0, 0xFF, 0xFF]);
-                        let mut deflater = DeflateDecoder::new(&tx.pdu.payload[..]);
-                        let mut v = Vec::new();
-                        // do not check result because
-                        // deflate with rust backend fails on good input cf https://github.com/rust-lang/flate2-rs/issues/389
-                        let _ = deflater.read_to_end(&mut v);
-                        if !v.is_empty() {
-                            std::mem::swap(&mut tx.pdu.payload, &mut v);
+                        let mut v = Vec::with_capacity(WEBSOCKET_DECOMPRESS_BUF_SIZE);
+                        if let Some(dec) = dec {
+                            let expect = dec.total_in() + tx.pdu.payload.len() as u64;
+                            let start = dec.total_in();
+                            let mut e = dec.decompress_vec(
+                                &tx.pdu.payload,
+                                &mut v,
+                                FlushDecompress::Finish,
+                            );
+                            while e.is_ok() && dec.total_in() < expect {
+                                let mut s = vec![0u8; WEBSOCKET_DECOMPRESS_BUF_SIZE];
+                                let before = dec.total_out();
+                                let check = dec.total_in();
+                                e = dec.decompress(
+                                    &tx.pdu.payload[(dec.total_in() - start) as usize..],
+                                    &mut s,
+                                    FlushDecompress::Finish,
+                                );
+                                if v.len() < max_pl_size as usize {
+                                    let end = if v.len() + (dec.total_out() - before) as usize
+                                        > max_pl_size as usize
+                                    {
+                                        v.len() - max_pl_size as usize
+                                    } else {
+                                        (dec.total_out() - before) as usize
+                                    };
+                                    v.extend_from_slice(&s[..end]);
+                                }
+                                if check >= dec.total_in() {
+                                    // safety check against infinite loop : dec.total_in() should increase
+                                    break;
+                                }
+                            }
+                            if !v.is_empty() {
+                                std::mem::swap(&mut tx.pdu.payload, &mut v);
+                            }
                         }
                     }
                     self.transactions.push_back(tx);
