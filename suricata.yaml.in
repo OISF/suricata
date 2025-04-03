@@ -959,6 +959,7 @@ app-layer:
     websocket:
       #enabled: yes
       # Maximum used payload size, the rest is skipped
+      # Also applies as a maximum for uncompressed data
       # max-payload-size: 64 KiB
     rdp:
       #enabled: yes
