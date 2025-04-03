@@ -192,6 +192,7 @@ Drop filter can improve the performance of Suricata by filtering
 used-predefined flows directly in the Network interface card. The user can 
 specify unwanted flows before the start of Suricata. These flows are not going to be 
 inspected by Suricata and will be ignored for the whole run of the program.
+On some PMDs, the statistics of the dropped flows are gathered and stored in eve.json.
 
 The syntax for drop filter in Suricata is similar to the dpdk-testpmd application
 rule syntax, although in Suricata, only the "pattern" section is applicable. 
@@ -202,13 +203,86 @@ Patterns currently supported by this feature are listed in
 "src/util-dpdk-rte-flow-pattern.c" in "enum index next_item[]" 
 and their corresponding attributes in "enum index item_<pattern>[]".
 
+.. code-block:: C
+
+    enum index {
+      /* Special tokens. */
+      ZERO = 0,
+      END,
+
+      /* Create tokens */
+      CREATE,
+
+      /* Common tokens. */
+      COMMON_UNSIGNED,
+      COMMON_MAC_ADDR,
+      COMMON_IPV4_ADDR,
+      COMMON_IPV6_ADDR,
+
+      /* Validate/create pattern. */
+      ITEM_PATTERN,
+      ITEM_PARAM_IS,
+      ITEM_PARAM_SPEC,
+      ITEM_PARAM_LAST,
+      ITEM_PARAM_MASK,
+      ITEM_NEXT,
+      ITEM_END,
+      ITEM_VOID,
+      ITEM_ANY,
+      ITEM_PORT_ID,
+      ITEM_ETH,
+      ITEM_ETH_DST,
+      ITEM_ETH_SRC,
+      ITEM_ETH_TYPE,
+      ITEM_ETH_HAS_VLAN,
+      ITEM_RAW,
+      ITEM_VLAN,
+      ITEM_IPV4,
+      ITEM_IPV4_SRC,
+      ITEM_IPV4_DST,
+      ITEM_IPV6,
+      ITEM_IPV6_SRC,
+      ITEM_IPV6_DST,
+      ITEM_ICMP,
+      ITEM_ICMP_TYPE,
+      ITEM_ICMP_CODE,
+      ITEM_ICMP_IDENT,
+      ITEM_ICMP_SEQ,
+      ITEM_ICMP6,
+      ITEM_ICMP6_TYPE,
+      ITEM_ICMP6_CODE,
+      ITEM_UDP,
+      ITEM_UDP_SRC,
+      ITEM_UDP_DST,
+      ITEM_TCP,
+      ITEM_TCP_SRC,
+      ITEM_TCP_DST,
+      ITEM_TCP_FLAGS,
+      ITEM_SCTP,
+      ITEM_SCTP_SRC,
+      ITEM_SCTP_DST,
+      ITEM_SCTP_TAG,
+      ITEM_SCTP_CKSUM,
+      ITEM_VXLAN,
+      ITEM_E_TAG,
+      ITEM_NVGRE,
+      ITEM_MPLS,
+      ITEM_GRE,
+      ITEM_FUZZY,
+      ITEM_GTP,
+      ITEM_GTPC,
+      ITEM_GTPU,
+      ITEM_GENEVE,
+      ITEM_VXLAN_GPE,
+    };
+
 This feature is supported and tested only on NICs wih mlx5, ice and i40e 
 drivers. The level of functionality varies between these cards, 
 the most versatile are cards with mlx5 drivers.
 
 ice does not support broad patterns; some pattern item has to have
-specification, e.g., "pattern eth / ipv4 / end" raises an error but
-"pattern eth / ipv4 src is x / end" or "eth / ipv4 / tcp src is x" works fine.
+specification, e.g., ``pattern eth / ipv4 / end`` raises an error but
+``pattern eth / ipv4 src is x / end`` or ``pattern eth / ipv4 / tcp src is x`` works fine.
 
 i40e does not support different item sets on the same pattern item type,
 e.g., if the first rule is in the form "pattern eth / ipv4 src is x / end",
@@ -218,7 +292,7 @@ exclusively attribute src.
 The configuration for the drop filter can be found and modified in the 
 DPDK section of the suricata.yaml file.
 
-Additionally, mlx5 and ice drivers are able to gather statistics about filtered flows.
+The statistics can be gathered on mlx5 and ice drivers.
 The number of filtered packets is stored in dpdk.rte_flow_filtered field in eve.json.
 ice driver gathers statistics only in the case when all of the rules match one specific flow
 (e.g. mask can not be used).
