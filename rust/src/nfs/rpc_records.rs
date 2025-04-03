@@ -215,9 +215,7 @@ pub struct RpcPacket<'a> {
 ///  2. we have partial data (large records) -> allow partial prog_data parsing
 ///
 /// Arguments:
-/// * `complete`:
-///           type: bool
-///    description: do full parsing, including of `prog_data`
+/// * `complete`: do full parsing, including of `prog_data`
 ///
 pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
@@ -282,9 +280,7 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
 ///  2. we have partial data (large records) -> allow partial prog_data parsing
 ///
 /// Arguments:
-/// * `complete`:
-///           type: bool
-///    description: do full parsing, including of `prog_data`
+/// * `complete`: do full parsing, including of `prog_data`
 ///
 pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
