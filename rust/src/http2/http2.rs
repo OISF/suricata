@@ -264,7 +264,7 @@ impl HTTP2Transaction {
                 path = Some(&block.value);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);
-                if block.value.iter().any(|&x| x == b'@') {
+                if block.value.contains(&b'@') {
                     // it is forbidden by RFC 9113 to have userinfo in this field
                     // when in HTTP1 we can have user:password@domain.com
                     self.set_event(HTTP2Event::UserinfoInUri);
