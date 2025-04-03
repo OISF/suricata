@@ -2844,13 +2844,13 @@ jobs:
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure  --enable-warnings --enable-unittests --prefix="$HOME/.local/"
       - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
       # somehow it gets included by some C++ stdlib header (case unsensitive)
-      - run: rm libhtp/VERSION && make check
+      - run: rm libhtp/VERSION && CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: |
           . ./testenv/bin/activate
           python3 ./suricata-verify/run.py -q --debug-failed
-      - run: make install
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make install
       - name: Check Suricata-Update
         run: |
           . ./testenv/bin/activate
