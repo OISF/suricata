@@ -18,10 +18,10 @@ sdp.repeat_time                          Both
 sdp.timezone                             Both
 sdp.encryption_key                       Both
 sdp.attribute                            Both
-sdp.media_description.media              Both
-sdp.media_description.session_info       Both
-sdp.media_description.connection_data    Both
-sdp.media_description.encryption_key     Both
+sdp.media.media                          Both
+sdp.media.session_info                   Both
+sdp.media.connection_data                Both
+sdp.media.encryption_key                 Both
 ======================================== ==================
 
 sdp.origin
@@ -297,8 +297,8 @@ Example
 
   sdp.attribute; content:"sendrecv"
 
-sdp.media_description.media
----------------------------
+sdp.media.media
+---------------
 
 This keyword matches on the Media subfield of a Media description field found in an SDP request or response.
 
@@ -307,7 +307,7 @@ Syntax
 
 ::
 
-  sdp.media_description.media; content:<media>
+  sdp.media.media; content:<media>
 
 Where <media> is a media (m=) that follows the SDP scheme.
 
@@ -316,10 +316,10 @@ Example
 
 ::
 
-  sdp.media_description.media; content:"audio 30000 RTP/AVP 0 8 97 2 3"
+  sdp.media.media; content:"audio 30000 RTP/AVP 0 8 97 2 3"
 
-sdp.media_description.session_info
-----------------------------------
+sdp.media.session_info
+----------------------
 
 This keyword matches on the Session information subfield of a Media description field found in an SDP request or response.
 
@@ -328,7 +328,7 @@ Syntax
 
 ::
 
-  sdp.media_description.session_info; content:<session_info>
+  sdp.media.session_info; content:<session_info>
 
 Where <session_info> is a description (i=) that follows the SDP scheme.
 
@@ -337,10 +337,10 @@ Example
 
 ::
 
-  sdp.media_description.session_info; content:"Session Description Protocol"
+  sdp.media.session_info; content:"Session Description Protocol"
 
-sdp.media_description.connection_data
--------------------------------------
+sdp.media.connection_data
+-------------------------
 
 This keyword matches on the Connection data subfield of a Media description field found in an SDP request or response.
 
@@ -349,7 +349,7 @@ Syntax
 
 ::
 
-  sdp.media_description.connection_data; content:<connection_data>
+  sdp.media.connection_data; content:<connection_data>
 
 Where <connection_data> is a connection (c=) that follows the SDP scheme.
 
@@ -358,10 +358,10 @@ Example
 
 ::
 
-  sdp.media_description.connection_data; content:"IN IP4 192.168.1.2"
+  sdp.media.connection_data; content:"IN IP4 192.168.1.2"
 
-sdp.media_description.encryption_key
-------------------------------------
+sdp.media.encryption_key
+------------------------
 
 This keyword matches on the Encryption key subfield of a Media description field found in an SDP request or response.
 
@@ -370,7 +370,7 @@ Syntax
 
 ::
 
-  sdp.media_description.encryption_key; content:<encryption_key>
+  sdp.media.encryption_key; content:<encryption_key>
 
 Where <encryption_key> is a key (k=) that follows the SDP scheme.
 
@@ -379,4 +379,4 @@ Example
 
 ::
 
-  sdp.media_description.encryption_key; content:"prompt"
+  sdp.media.encryption_key; content:"prompt"
