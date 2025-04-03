@@ -19,6 +19,9 @@ if available. If the ``pkt_src`` value is ``stream (flow timeout)``, then the
 ``ethernet`` value will be populated with mac addresses from the flow's first
 packet with ethernet header.
 
+If ``suricata-version`` is set to yes, then Suricata version, with its git
+revision if available, will be added to events as ``suricata_version``.
+
 Output Buffering
 ~~~~~~~~~~~~~~~~
 
@@ -69,6 +72,7 @@ Output types::
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
       #ethernet: no # log ethernet header in events when available
+      #suricata-version: no # include suricata version. Default no.
       #redis:
       #  server: 127.0.0.1
       #  port: 6379

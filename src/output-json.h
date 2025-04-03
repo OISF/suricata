@@ -72,6 +72,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
     bool include_ethernet;
+    bool include_suricata_version;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 

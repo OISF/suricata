@@ -398,6 +398,9 @@ void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js)
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
         SCJsonBuilder *js, enum OutputJsonLogDirection dir)
 {
+    if (cfg->include_suricata_version) {
+        SCJbSetString(js, "suricata_version", PROG_VER);
+    }
     if (cfg->include_metadata) {
         EveAddMetadata(p, f, js);
     }
@@ -1224,6 +1227,14 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
             json_ctx->cfg.include_ethernet = true;
         } else {
             json_ctx->cfg.include_ethernet = false;
+        }
+
+        const SCConfNode *suriver = SCConfNodeLookupChild(conf, "suricata-version");
+        if (suriver && suriver->val && SCConfValIsTrue(suriver->val)) {
+            SCLogConfig("Enabling Suricata version logging.");
+            json_ctx->cfg.include_suricata_version = true;
+        } else {
+            json_ctx->cfg.include_suricata_version = false;
         }
 
         /* See if we want to enable the community id */
