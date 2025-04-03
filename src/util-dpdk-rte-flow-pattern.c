@@ -141,6 +141,7 @@ static const enum index item_param[] = {
     ZERO,
 };
 
+/* --- start pattern enum --- */
 static const enum index next_item[] = {
     ITEM_END,
     ITEM_VOID,
@@ -169,6 +170,7 @@ static const enum index next_item[] = {
     ITEM_VXLAN_GPE,
     ZERO,
 };
+/* --- end pattern enum --- */
 
 static const enum index item_any[] = {
     ITEM_NEXT,
