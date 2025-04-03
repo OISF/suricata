@@ -15,3 +15,4 @@ environment without access to additional modules.
    http
    packetlib
    rule
+   ssh
