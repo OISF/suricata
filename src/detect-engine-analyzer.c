@@ -1035,17 +1035,32 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         SCJbAppendString(ctx.js, "pass");
     }
     SCJbClose(ctx.js);
-    enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
-    switch (flow_action) {
-        case SIG_PROP_FLOW_ACTION_PACKET:
-            SCJbSetString(ctx.js, "scope", "packet");
-            break;
-        case SIG_PROP_FLOW_ACTION_FLOW:
-            SCJbSetString(ctx.js, "scope", "flow");
-            break;
-        case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
-            SCJbSetString(ctx.js, "scope", "flow_if_stateful");
-            break;
+
+    if (s->action_scope == ACTION_SCOPE_AUTO) {
+        enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
+        switch (flow_action) {
+            case SIG_PROP_FLOW_ACTION_PACKET:
+                SCJbSetString(ctx.js, "scope", "packet");
+                break;
+            case SIG_PROP_FLOW_ACTION_FLOW:
+                SCJbSetString(ctx.js, "scope", "flow");
+                break;
+            case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
+                SCJbSetString(ctx.js, "scope", "flow_if_stateful");
+                break;
+        }
+    } else {
+        enum ActionScope as = s->action_scope;
+        switch (as) {
+            case ACTION_SCOPE_PACKET:
+                SCJbSetString(ctx.js, "scope", "packet");
+                break;
+            case ACTION_SCOPE_FLOW:
+                SCJbSetString(ctx.js, "scope", "flow");
+                break;
+            case ACTION_SCOPE_AUTO: /* should be unreachable */
+                break;
+        }
     }
     SCJbClose(ctx.js);
 

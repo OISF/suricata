@@ -1266,7 +1266,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     }
     s->init_data->hook.sm_list = list;
 
-    SCLogNotice("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
+    SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
             SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
             s->init_data->hook.t.app.app_progress);
     return 0;
@@ -1451,11 +1451,51 @@ static uint8_t ActionStringToFlags(const char *action)
  *            Signature.
  * \retval -1 On failure.
  */
-static int SigParseAction(Signature *s, const char *action)
+static int SigParseAction(Signature *s, const char *action_in)
 {
-    uint8_t flags = ActionStringToFlags(action);
+    char action[32];
+    strlcpy(action, action_in, sizeof(action));
+    const char *a = action;
+    const char *o = NULL;
+
+    bool has_scope = strchr(action, ':') != NULL;
+    if (has_scope) {
+        char *xsaveptr = NULL;
+        a = strtok_r(action, ":", &xsaveptr);
+        o = strtok_r(NULL, ":", &xsaveptr);
+        SCLogDebug("a: '%s' o: '%s'", a, o);
+    }
+    if (a == NULL) {
+        SCLogError("invalid protocol specification '%s'", action_in);
+        return -1;
+    }
+
+    uint8_t flags = ActionStringToFlags(a);
     if (flags == 0)
         return -1;
+
+    /* parse scope, if any */
+    if (o) {
+        uint8_t scope_flags = 0;
+        if (flags & (ACTION_DROP | ACTION_PASS)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else if (strcmp(o, "flow") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_FLOW;
+            } else {
+                SCLogError("invalid action scope '%s' in action '%s': only 'packet' and 'flow' "
+                           "allowed",
+                        o, action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
+        } else {
+            SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
+                       "'drop', 'pass' and 'reject'",
+                    o, action_in);
+            return -1;
+        }
+    }
 
     s->action = flags;
     return 0;
