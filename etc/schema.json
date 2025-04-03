@@ -1970,6 +1970,9 @@
                 },
                 "wrong_thread": {
                     "type": "boolean"
+                },
+                "tx_cnt": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
@@ -3481,6 +3484,9 @@
                 },
                 "start": {
                     "type": "string"
+                },
+                "tx_cnt": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
@@ -4383,30 +4389,6 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
-                    }
-                },
-                "set_info": {
-                    "type": "object",
-                    "optional": true,
-                    "properties": {
-                        "class": {
-                            "type": "string"
-                        },
-                        "info_level": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "rename": {
-                    "type": "object",
-                    "optional": true,
-                    "properties": {
-                        "from": {
-                            "type": "string"
-                        },
-                        "to": {
-                            "type": "string"
-                        }
                     }
                 },
                 "dcerpc": {

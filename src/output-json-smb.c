@@ -48,7 +48,7 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
 {
     OutputJsonThreadCtx *thread = thread_data;
 
-    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "smb", NULL, thread->ctx);
+    JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "smb", NULL, tx_id, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }
