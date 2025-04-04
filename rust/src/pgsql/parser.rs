@@ -314,7 +314,7 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::SSLResponse(SSLResponseMessage::InvalidResponse) => {
                 "invalid_be_message"
             }
-            PgsqlBEMessage::ConsolidatedDataRow(_) => "data_row",
+            PgsqlBEMessage::ConsolidatedDataRow(_) => "consolidated_data_rows",
             PgsqlBEMessage::NotificationResponse(_) => "notification_response",
             PgsqlBEMessage::UnknownMessageType(_) => "unknown_message_type",
         }
