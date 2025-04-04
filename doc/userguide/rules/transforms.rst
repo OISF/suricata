@@ -53,6 +53,42 @@ Finally, this rule can be used to match on the TLD only; example::
 This example will match on ``maps.google.co.uk`` but not
 ``maps.google.co.nl``.
 
+domain
+------
+
+Takes the buffer and extracts the domain name from it. The domain name is defined
+using `Mozilla’s Public Suffix List <https://publicsuffix.org/>`_. This implies
+that it is using traditional top level domain such as ``.com`` but also some
+specific domain like ``airport.aero`` or ``execute-api.cn-north-1.amazonaws.com.cn``
+where declaration of sub domain by users below the domain is possible.
+
+Example::
+
+    alert tls any any -> any any (tls.sni; domain; \
+        dataset:isset,domains,type string,load domains.lst; sid:1;)
+
+This example will match on all domains contained in the file ``domains.lst``.
+For example, if ``domains.lst`` contains ``oisf.net`` then  ``webshop.oisf.net`` will match.
+
+
+tld
+---
+
+Takes the buffer and extracts the Top Level Domain (TLD) name from it. The TLD name is defined
+using `Mozilla’s Public Suffix List <https://publicsuffix.org/>`_. This implies
+that it is will have traditional TLD such as ``com`` but also some
+specific domain like ``airport.aero`` or ``execute-api.cn-north-1.amazonaws.com.cn``
+where declaration of sub domain by users below the domain is possible.
+
+Example::
+
+    alert tls any any -> any any (tls.sni; tld; \
+        dataset:isset,tlds,type string,load tlds.lst; sid:1;)
+
+This example will match on all TLDs contained in the file ``tlds.lst``. For example, if
+``tlds.lst`` contains ``net`` then  ``oisf.net`` will match.
+
+
 strip_whitespace
 ----------------
 
