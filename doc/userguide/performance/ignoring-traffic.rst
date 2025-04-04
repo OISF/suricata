@@ -4,7 +4,7 @@ Ignoring Traffic
 In some cases there are reasons to ignore certain traffic. Certain hosts
 may be trusted, or perhaps a backup stream should be ignored.
 
-capture filters (BPF)
+Capture Filters (BPF)
 ---------------------
 
 Through BPFs the capture methods pcap, af-packet, netmap  and pf_ring can be
@@ -70,7 +70,7 @@ Example::
   suppress gen_id 0, sig_id 0, track by_src, ip 1.2.3.4
 
 
-encrypted traffic
+Encrypted Traffic
 -----------------
 
 The TLS and SSH app layer parsers have the ability to stop processing
@@ -84,7 +84,7 @@ is done.
 
 .. _bypass:
 
-bypassing traffic
+Bypassing Traffic
 -----------------
 
 Aside from using the ``bypass`` keyword in rules, there are three other ways
