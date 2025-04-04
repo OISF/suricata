@@ -17,8 +17,8 @@
 
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, SCDetectU32Free, SCDetectU32Parse,
-    SCDetectU8Free, DetectUintData,
+    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
+    SCDetectU8Free,
 };
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
