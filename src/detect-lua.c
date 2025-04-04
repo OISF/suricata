@@ -481,13 +481,6 @@ static void *DetectLuaThreadInit(void *data)
 
     LuaRegisterExtensions(t->luastate);
 
-    lua_pushinteger(t->luastate, (lua_Integer)(lua->sid));
-    lua_setglobal(t->luastate, "SCRuleSid");
-    lua_pushinteger(t->luastate, (lua_Integer)(lua->rev));
-    lua_setglobal(t->luastate, "SCRuleRev");
-    lua_pushinteger(t->luastate, (lua_Integer)(lua->gid));
-    lua_setglobal(t->luastate, "SCRuleGid");
-
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
     if (ut_script != NULL) {
@@ -996,27 +989,6 @@ error:
     if (lua != NULL)
         DetectLuaFree(de_ctx, lua);
     return -1;
-}
-
-/** \brief post-sig parse function to set the sid,rev,gid into the
- *         ctx, as this isn't available yet during parsing.
- */
-void DetectLuaPostSetup(Signature *s)
-{
-    int i;
-    SigMatch *sm;
-
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_LUA)
-                continue;
-
-            DetectLuaData *ld = (DetectLuaData *)sm->ctx;
-            ld->sid = s->id;
-            ld->rev = s->rev;
-            ld->gid = s->gid;
-        }
-    }
 }
 
 /**

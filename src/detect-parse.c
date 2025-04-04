@@ -2310,7 +2310,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
-    DetectLuaPostSetup(s);
 
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
         (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {

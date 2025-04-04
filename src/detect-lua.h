@@ -50,9 +50,6 @@ typedef struct DetectLuaData {
     uint32_t flowvar[DETECT_LUA_MAX_FLOWVARS];
     uint16_t bytevars;
     uint32_t bytevar[DETECT_LUA_MAX_BYTEVARS];
-    uint32_t sid;
-    uint32_t rev;
-    uint32_t gid;
     uint64_t alloc_limit;
     uint64_t instruction_limit;
     int allow_restricted_functions;
@@ -65,7 +62,6 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
         const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f);
 
-void DetectLuaPostSetup(Signature *s);
 void LuaDumpStack(lua_State *state, const char *prefix);
 
 #endif /* SURICATA_DETECT_LUA_H */
