@@ -86,6 +86,11 @@ typedef enum LogModeConditionalType_ {
 #define PCAP_BUFFER_TIMEOUT             1000000 // microseconds
 #define PCAP_PKTHDR_SIZE                16
 
+/* Defined since libpcap 1.1.0. */
+#ifndef PCAP_NETMASK_UNKNOWN
+#define PCAP_NETMASK_UNKNOWN 0xffffffff
+#endif
+
 SC_ATOMIC_DECLARE(uint32_t, thread_cnt);
 
 typedef struct PcapFileName_ {
