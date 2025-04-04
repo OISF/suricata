@@ -210,7 +210,8 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
         return buffer;
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
+    InspectionBufferSetupMulti(
+            det_ctx, buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
     buffer->inspect_offset = base_buffer->inspect_offset;
     SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
     SCReturnPtr(buffer, "InspectionBuffer");
@@ -369,7 +370,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
     }
 
-    InspectionBufferSetupMulti(buffer, NULL, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, NULL, data, data_len);
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);

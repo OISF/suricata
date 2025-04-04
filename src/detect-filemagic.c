@@ -295,7 +295,7 @@ static InspectionBuffer *FilemagicGetDataCallback(DetectEngineThreadCtx *det_ctx
     const uint8_t *data = (const uint8_t *)cur_file->magic;
     uint32_t data_len = (uint32_t)strlen(cur_file->magic);
 
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
