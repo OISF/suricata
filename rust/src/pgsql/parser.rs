@@ -278,7 +278,7 @@ pub struct CopyOutResponse {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TerminationMessage {
+pub struct NoPayloadMessage {
     pub identifier: u8,
     pub length: u32,
 }
@@ -300,7 +300,7 @@ pub enum PgsqlBEMessage {
     CommandComplete(RegularPacket),
     CopyOutResponse(CopyOutResponse),
     ConsolidatedCopyDataOut(ConsolidatedDataRowPacket),
-    CopyDone(TerminationMessage),
+    CopyDone(NoPayloadMessage),
     ReadyForQuery(ReadyForQueryMessage),
     RowDescription(RowDescriptionMessage),
     ConsolidatedDataRow(ConsolidatedDataRowPacket),
@@ -384,7 +384,7 @@ pub enum PgsqlFEMessage {
     SASLResponse(RegularPacket),
     SimpleQuery(RegularPacket),
     CancelRequest(CancelRequestMessage),
-    Terminate(TerminationMessage),
+    Terminate(NoPayloadMessage),
     UnknownMessageType(RegularPacket),
 }
 
@@ -776,7 +776,7 @@ fn parse_terminate_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlPars
     let (i, length) = parse_exact_length(i, PGSQL_LENGTH_FIELD)?;
     Ok((
         i,
-        PgsqlFEMessage::Terminate(TerminationMessage { identifier, length }),
+        PgsqlFEMessage::Terminate(NoPayloadMessage { identifier, length }),
     ))
 }
 
@@ -1066,7 +1066,7 @@ fn parse_copy_done(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&
     let (i, identifier) = verify(be_u8, |&x| x == b'c')(i)?;
     let (i, length) = parse_exact_length(i, PGSQL_LENGTH_FIELD)?;
     Ok((
-        i, PgsqlBEMessage::CopyDone(TerminationMessage {
+        i, PgsqlBEMessage::CopyDone(NoPayloadMessage {
             identifier,
             length
         })
