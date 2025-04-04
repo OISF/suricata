@@ -2548,6 +2548,12 @@ pgsql flow. Some of the possible request messages are:
 * "data_size": in bytes. When one or many ``DataRow`` messages are parsed, the
   total size in bytes of the data returned
 * "command_completed": string. Informs the command just completed by the backend
+* "copy_out_response": object. Indicates the beginning of a CopyTo mode, shows
+  how many columns will be copied to STDOUT (``copy_column_cnt`` field)
+* "copy_data_out": object. Consolidated data on the CopyData sent by the backend
+  in a CopyOut transaction
+* "copy_done": string. Similar to ``command_completed`` but sent after the
+  backend finishes sending a batch of ``CopyData`` messages
 * "ssl_accepted": bool. With this event, the initial PGSQL SSL Handshake
   negotiation is complete in terms of tracking and logging. The session will be
   upgraded to use TLS encryption
