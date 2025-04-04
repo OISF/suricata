@@ -38,7 +38,8 @@ typedef struct DetectTransformPcrexformData {
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformPcrexformFree(DetectEngineCtx *, void *);
-static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options);
+static void DetectTransformPcrexform(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
 #ifdef UNITTESTS
 void DetectTransformPcrexformRegisterTests (void);
 #endif
@@ -132,7 +133,8 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
     SCReturnInt(r);
 }
 
-static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
+static void DetectTransformPcrexform(
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
 {
     const char *input = (const char *)buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;

@@ -139,7 +139,7 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx, uint8_t flags
         }
     }
 
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
