@@ -59,7 +59,7 @@ static InspectionBuffer *GetMimeEmailFromData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_from, b_email_from_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -94,7 +94,7 @@ static InspectionBuffer *GetMimeEmailSubjectData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_sub, b_email_sub_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -130,7 +130,7 @@ static InspectionBuffer *GetMimeEmailToData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_to, b_email_to_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -164,7 +164,7 @@ static InspectionBuffer *GetMimeEmailCcData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_cc, b_email_cc_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -198,7 +198,7 @@ static InspectionBuffer *GetMimeEmailDateData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_date, b_email_date_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -233,7 +233,7 @@ static InspectionBuffer *GetMimeEmailMessageIdData(DetectEngineThreadCtx *det_ct
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_msg_id, b_email_msg_id_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }
@@ -268,7 +268,7 @@ static InspectionBuffer *GetMimeEmailXMailerData(DetectEngineThreadCtx *det_ctx,
             return NULL;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, b_email_x_mailer, b_email_x_mailer_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }

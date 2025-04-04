@@ -80,7 +80,7 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");

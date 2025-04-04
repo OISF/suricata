@@ -232,7 +232,7 @@ static InspectionBuffer *FilenameGetDataCallback(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data = cur_file->name;
     uint32_t data_len = cur_file->name_len;
 
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
