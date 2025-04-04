@@ -37,7 +37,7 @@ pub struct SCTransformTableElmt {
     pub flags: u16,
     pub Setup: unsafe extern "C" fn(de: *mut c_void, s: *mut c_void, raw: *const c_char) -> c_int,
     pub Free: Option<unsafe extern "C" fn(de: *mut c_void, ptr: *mut c_void)>,
-    pub Transform: unsafe extern "C" fn(inspect_buf: *mut c_void, options: *mut c_void),
+    pub Transform: unsafe extern "C" fn(_det: *mut c_void, inspect_buf: *mut c_void, options: *mut c_void),
     pub TransformValidate:
         Option<unsafe extern "C" fn(content: *const u8, len: u16, context: *mut c_void) -> bool>,
 }

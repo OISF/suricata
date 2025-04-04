@@ -211,7 +211,7 @@ static inline InspectionBuffer *HttpRequestBodyXformsGetDataCallback(DetectEngin
 
     InspectionBufferSetup(det_ctx, list_id, buffer, base_buffer->inspect, base_buffer->inspect_len);
     buffer->inspect_offset = base_buffer->inspect_offset;
-    InspectionBufferApplyTransforms(buffer, transforms);
+    InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
     SCReturnPtr(buffer, "InspectionBuffer");
 }

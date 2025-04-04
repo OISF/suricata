@@ -143,8 +143,8 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[transform_id].desc = kw->desc;
     sigmatch_table[transform_id].url = kw->url;
     sigmatch_table[transform_id].flags = kw->flags;
-    sigmatch_table[transform_id].Transform =
-            (void (*)(InspectionBuffer * buffer, void *options)) kw->Transform;
+    sigmatch_table[transform_id].Transform = (void (*)(
+            DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options))kw->Transform;
     sigmatch_table[transform_id].TransformValidate = (bool (*)(
             const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
     sigmatch_table[transform_id].Setup =
@@ -173,7 +173,7 @@ InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ct
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
-    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }

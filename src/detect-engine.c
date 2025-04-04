@@ -106,7 +106,7 @@ static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet 
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
 static inline void InspectionBufferApplyTransformsInternal(
-        InspectionBuffer *, const DetectEngineTransforms *);
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *, const DetectEngineTransforms *);
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
@@ -1598,7 +1598,7 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
     return buffer;
 }
 
-static inline void InspectionBufferApplyTransformsInternal(
+static inline void InspectionBufferApplyTransformsInternal(DetectEngineThreadCtx *det_ctx,
         InspectionBuffer *buffer, const DetectEngineTransforms *transforms)
 {
     if (transforms) {
@@ -1607,16 +1607,16 @@ static inline void InspectionBufferApplyTransformsInternal(
             if (id == 0)
                 break;
             BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
+            sigmatch_table[id].Transform(det_ctx, buffer, transforms->transforms[i].options);
             SCLogDebug("applied transform %s", sigmatch_table[id].name);
         }
     }
 }
 
-void InspectionBufferApplyTransforms(
-        InspectionBuffer *buffer, const DetectEngineTransforms *transforms)
+void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms)
 {
-    InspectionBufferApplyTransformsInternal(buffer, transforms);
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
 }
 
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
@@ -1642,8 +1642,8 @@ void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTransforms *transforms,
-        const uint8_t *data, const uint32_t data_len)
+void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len)
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(!buffer->multi);
@@ -1653,7 +1653,7 @@ void InspectionBufferSetupMulti(InspectionBuffer *buffer, const DetectEngineTran
     buffer->len = 0;
     buffer->initialized = true;
 
-    InspectionBufferApplyTransformsInternal(buffer, transforms);
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
 }
 
 static inline void InspectionBufferSetupInternal(DetectEngineThreadCtx *det_ctx, const int list_id,
@@ -1687,7 +1687,7 @@ void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, con
         const DetectEngineTransforms *transforms)
 {
     InspectionBufferSetupInternal(det_ctx, list_id, buffer, data, data_len);
-    InspectionBufferApplyTransformsInternal(buffer, transforms);
+    InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
 }
 
 void InspectionBufferFree(InspectionBuffer *buffer)
