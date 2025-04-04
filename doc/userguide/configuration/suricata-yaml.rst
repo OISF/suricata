@@ -1851,7 +1851,7 @@ port independent.
       # - full:    keep tracking and inspection as normal. Unmodified content
       #            keyword signatures are inspected as well.
       #
-      # For best performance, select 'bypass'.
+      # For the best performance, select 'bypass'.
       #
       #encryption-handling: track-only
 
