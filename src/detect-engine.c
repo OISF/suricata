@@ -987,12 +987,37 @@ int DetectBufferTypeMaxId(void)
     return g_buffer_type_id;
 }
 
+static void DetectBufferAddTransformData(DetectBufferType *map)
+{
+    for (int i = 0; i < map->transforms.cnt; i++) {
+        const TransformData *t = &map->transforms.transforms[i];
+        if (sigmatch_table[t->transform].TransformId) {
+            sigmatch_table[t->transform].TransformId(
+                    &map->xform_id[i].id_data, &map->xform_id[i].id_data_len, t->options);
+            SCLogDebug("transform identity data: [%p] \"%s\" [%d]", map->xform_id[i].id_data,
+                    (char *)map->xform_id[i].id_data, map->xform_id[i].id_data_len);
+        }
+    }
+}
+
 static uint32_t DetectBufferTypeHashNameFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     const DetectBufferType *map = (DetectBufferType *)data;
     uint32_t hash = hashlittle_safe(map->name, strlen(map->name), 0);
-    hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
+
+    // Add the transform data
+    // - Collect transform id and position
+    // - Collect identity data, if any
+    for (int i = 0; i < map->transforms.cnt; i++) {
+        const TransformData *t = &map->transforms.transforms[i];
+        int tval = t->transform + i;
+        hash += hashlittle_safe((uint8_t *)&tval, sizeof(tval), 0);
+        if (map->xform_id[i].id_data) {
+            hash += hashlittle_safe(map->xform_id[i].id_data, map->xform_id[i].id_data_len, 0);
+        }
+    }
     hash %= ht->array_size;
+    SCLogDebug("map->name %s, hash %d", map->name, hash);
     return hash;
 }
 
@@ -1010,7 +1035,48 @@ static char DetectBufferTypeCompareNameFunc(void *data1, uint16_t len1, void *da
     DetectBufferType *map2 = (DetectBufferType *)data2;
 
     char r = (strcmp(map1->name, map2->name) == 0);
-    r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
+
+    // Compare the transforms
+    // the transform supports identity, that data will also be added.
+    if (r && map1->transforms.cnt && (map1->transforms.cnt == map2->transforms.cnt)) {
+        for (int i = 0; i < map1->transforms.cnt; i++) {
+            if (map1->transforms.transforms[i].transform !=
+                    map2->transforms.transforms[i].transform) {
+                r = 0;
+                break;
+            }
+
+            SCLogDebug("%s: transform ids match; checking specialized data", map1->name);
+            // Checks
+            // - Both NULL: --> ok, continue
+            // - One NULL: --> no match, break?
+            // - identity data lengths match: --> ok, continue
+            // - identity data matches: ok
+
+            // Stop if only one is NULL
+            if ((map1->xform_id[i].id_data == NULL) ^ (map2->xform_id[i].id_data == NULL)) {
+                SCLogDebug("identity data: only one is null");
+                r = 0;
+                break;
+            } else if (map1->xform_id[i].id_data == NULL) { /* continue when both are null */
+                SCLogDebug("identity data: both null");
+                r = 1;
+                continue;
+            } else if (map1->xform_id[i].id_data_len != map2->xform_id[i].id_data_len) {
+                // Stop when id data lengths aren't equal
+                SCLogDebug("id data: unequal lengths");
+                r = 0;
+                break;
+            }
+
+            // stop if the identity data is different
+            r &= memcmp(map1->xform_id[i].id_data, map2->xform_id[i].id_data,
+                         map1->xform_id[i].id_data_len) == 0;
+            if (r == 0)
+                break;
+            SCLogDebug("identity data: data matches");
+        }
+    }
     return r;
 }
 
@@ -1033,6 +1099,7 @@ static void DetectBufferTypeFreeFunc(void *data)
     for (int i = 0; i < map->transforms.cnt; i++) {
         if (map->transforms.transforms[i].options == NULL)
             continue;
+
         if (sigmatch_table[map->transforms.transforms[i].transform].Free == NULL) {
             SCLogError("%s allocates transform option memory but has no free routine",
                     sigmatch_table[map->transforms.transforms[i].transform].name);
@@ -1512,8 +1579,9 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(-1);
         }
 
-        SCLogDebug("buffer %d has transform(s) registered: %d",
-                s->init_data->list, s->init_data->transforms.cnt);
+        SCLogDebug("buffer %d has transform(s) registered: %d", s->init_data->list,
+                s->init_data->transforms.cnt);
+
         int new_list = DetectEngineBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
                 s->init_data->transforms.transforms, s->init_data->transforms.cnt);
         if (new_list == -1) {
@@ -1944,6 +2012,11 @@ int DetectEngineBufferTypeGetByIdTransforms(
     memset(&lookup_map, 0, sizeof(lookup_map));
     strlcpy(lookup_map.name, base_map->name, sizeof(lookup_map.name));
     lookup_map.transforms = t;
+
+    /* Add transform identity data from transforms */
+    if (t.cnt) {
+        DetectBufferAddTransformData(&lookup_map);
+    }
     DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_name, &lookup_map, 0);
 
     SCLogDebug("res %p", res);
