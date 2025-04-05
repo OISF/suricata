@@ -958,7 +958,20 @@ static uint32_t DetectBufferTypeHashNameFunc(HashListTable *ht, void *data, uint
     const DetectBufferType *map = (DetectBufferType *)data;
     uint32_t hash = hashlittle_safe(map->name, strlen(map->name), 0);
     hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
+    // Add transform data, if any. Note that the transform identifier is always added; if
+    // the transform supports serialization, that data will also be added.
+    for (int i = 0; i < map->transforms.cnt; i++) {
+        const TransformData *t = &map->transforms.transforms[i];
+        hash += hashlittle_safe((uint8_t *)&t->transform, sizeof(t->transform), 0 );
+        if (sigmatch_table[t->transform].TransformSerialize) {
+            sigmatch_table[t->transform].TransformSerialize((TransformSerializedData *)&map->xform_serialized[i], t->options);
+            hash += hashlittle_safe((uint8_t *)&map->xform_serialized[i].serialized_data, map->xform_serialized[i].serialized_data_len, 0);
+            SCLogNotice("serialized data: \"%s\" [%d]",(char *)map->xform_serialized[i].serialized_data, map->xform_serialized[i].serialized_data_len);
+            hash += hashlittle_safe((uint8_t *)&map->xform_serialized[i].serialized_data, map->xform_serialized[i].serialized_data_len, 0);
+        }
+    }
     hash %= ht->array_size;
+    SCLogDebug("map->name %s, hash %d", map->name,hash);
     return hash;
 }
 
@@ -1480,13 +1493,16 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
 
         SCLogDebug("buffer %d has transform(s) registered: %d",
                 s->init_data->list, s->init_data->transforms.cnt);
+        /* Use serialized version of transform here? won't solve pcre problem */
+        // - can pcre execution data be serilaized? is it available?
+
         int new_list = DetectEngineBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
                 s->init_data->transforms.transforms, s->init_data->transforms.cnt);
         if (new_list == -1) {
             SCReturnInt(-1);
         }
         int base_list = s->init_data->list;
-        SCLogDebug("new_list %d", new_list);
+        SCLogNotice("new_list %d", new_list);
         s->init_data->list = new_list;
         s->init_data->list_set = false;
         // reset transforms now that we've set up the list
@@ -1903,6 +1919,9 @@ int DetectEngineBufferTypeGetByIdTransforms(
     memset(&t, 0, sizeof(t));
     for (int i = 0; i < transform_cnt; i++) {
         t.transforms[i] = transforms[i];
+        if (t.transforms[i].options) {
+            SCLogNotice("have xform w/options: %p", t.transforms[i].options);
+        }
     }
     t.cnt = transform_cnt;
 
@@ -1912,7 +1931,7 @@ int DetectEngineBufferTypeGetByIdTransforms(
     lookup_map.transforms = t;
     DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_name, &lookup_map, 0);
 
-    SCLogDebug("res %p", res);
+    SCLogNotice("res %p", res);
     if (res != NULL) {
         return res->id;
     }
