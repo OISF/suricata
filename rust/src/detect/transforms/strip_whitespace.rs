@@ -46,7 +46,9 @@ fn strip_whitespace_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-unsafe extern "C" fn strip_whitespace_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn strip_whitespace_transform(
+    _det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -90,6 +92,7 @@ pub unsafe extern "C" fn DetectTransformStripWhitespaceRegister() {
         Transform: strip_whitespace_transform,
         Free: None,
         TransformValidate: Some(strip_whitespace_validate),
+        TransformSerialize: None,
     };
     unsafe {
         G_TRANSFORM_STRIP_WHITESPACE_ID = DetectHelperTransformRegister(&kw);
