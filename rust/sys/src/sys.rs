@@ -312,6 +312,13 @@ pub struct SCTransformTableElmt {
             context: *mut ::std::os::raw::c_void,
         ) -> bool,
     >,
+    pub TransformId: ::std::option::Option<
+        unsafe extern "C" fn(
+            id_data: *mut *const u8,
+            id_length: *mut u32,
+            context: *mut ::std::os::raw::c_void,
+        ),
+    >,
 }
 extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;

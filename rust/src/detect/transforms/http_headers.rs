@@ -86,6 +86,7 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
         Transform: Some(header_lowertransform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_HEADER_LOWER_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_HEADER_LOWER_ID < 0 {
@@ -150,6 +151,7 @@ pub unsafe extern "C" fn DetectTransformStripPseudoHeadersRegister() {
         Transform: Some(strip_pseudo_transform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_STRIP_PSEUDO_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_STRIP_PSEUDO_ID < 0 {

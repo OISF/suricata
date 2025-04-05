@@ -93,6 +93,7 @@ pub unsafe extern "C" fn DetectTransformStripWhitespaceRegister() {
         Transform: Some(strip_whitespace_transform),
         Free: None,
         TransformValidate: Some(strip_whitespace_validate),
+        TransformId: None,
     };
     unsafe {
         G_TRANSFORM_STRIP_WHITESPACE_ID = SCDetectHelperTransformRegister(&kw);
