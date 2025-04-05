@@ -28,17 +28,11 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "output.h"
+#include "output-eve-bindgen.h"
 
 #include "app-layer-htp-xff.h"
 
 void OutputJsonRegister(void);
-
-enum OutputJsonLogDirection {
-    LOG_DIR_PACKET = 0,
-    LOG_DIR_FLOW,
-    LOG_DIR_FLOW_TOCLIENT,
-    LOG_DIR_FLOW_TOSERVER,
-};
 
 #define JSON_ADDR_LEN 46
 #define JSON_PROTO_LEN 16
@@ -56,8 +50,7 @@ typedef struct JsonAddrInfo_ {
 
 extern const JsonAddrInfo json_addr_info_zero;
 
-void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
-        JsonAddrInfo *addr);
+void JsonAddrInfoInit(const Packet *p, enum SCOutputJsonLogDirection dir, JsonAddrInfo *addr);
 
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535
@@ -99,9 +92,9 @@ void CreateEveFlowId(SCJsonBuilder *js, const Flow *f);
 void EveFileInfo(SCJsonBuilder *js, const File *file, const uint64_t tx_id, const uint16_t flags);
 void EveTcpFlags(uint8_t flags, SCJsonBuilder *js);
 void EvePacket(const Packet *p, SCJsonBuilder *js, uint32_t max_length);
-SCJsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
+SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx);
-SCJsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
+SCJsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, uint64_t tx_id, OutputJsonCtx *eve_ctx);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 void OutputJsonBuilderBuffer(
@@ -113,7 +106,7 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
-        SCJsonBuilder *js, enum OutputJsonLogDirection dir);
+        SCJsonBuilder *js, enum SCOutputJsonLogDirection dir);
 int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
 void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js);
 

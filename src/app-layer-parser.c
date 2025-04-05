@@ -124,6 +124,7 @@ typedef struct AppLayerParserProtoCtx_
 
 typedef struct AppLayerParserCtx_ {
     AppLayerParserProtoCtx (*ctxs)[FLOW_PROTO_MAX];
+    size_t ctxs_len;
 } AppLayerParserCtx;
 
 struct AppLayerParserState_ {
@@ -259,6 +260,7 @@ int AppLayerParserSetup(void)
     if (unlikely(alp_ctx.ctxs == NULL)) {
         FatalError("Unable to alloc alp_ctx.ctxs.");
     }
+    alp_ctx.ctxs_len = g_alproto_max;
     SCReturnInt(0);
 }
 
@@ -430,6 +432,20 @@ void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
         void *(*StateAlloc)(void *, AppProto), void (*StateFree)(void *))
 {
     SCEnter();
+
+    if (alp_ctx.ctxs_len <= alproto && alproto < g_alproto_max) {
+        // Realloc now as AppLayerParserRegisterStateFuncs is called first
+        void *tmp = SCRealloc(
+                alp_ctx.ctxs, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) * g_alproto_max);
+        if (unlikely(tmp == NULL)) {
+            FatalError("Unable to realloc alp_ctx.ctxs.");
+        }
+        alp_ctx.ctxs = tmp;
+        memset(&alp_ctx.ctxs[alp_ctx.ctxs_len], 0,
+                sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) *
+                        (g_alproto_max - alp_ctx.ctxs_len));
+        alp_ctx.ctxs_len = g_alproto_max;
+    }
 
     alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateAlloc = StateAlloc;
     alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateFree = StateFree;
@@ -1680,7 +1696,6 @@ bad:
 }
 #undef BOTH_SET
 #undef BOTH_SET_OR_BOTH_UNSET
-#undef THREE_SET_OR_THREE_UNSET
 #undef THREE_SET
 
 static void ValidateParser(AppProto alproto)

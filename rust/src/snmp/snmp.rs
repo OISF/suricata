@@ -22,6 +22,8 @@ use crate::flow::Flow;
 use crate::snmp::snmp_parser::*;
 use crate::core::{self, *};
 use crate::applayer::{self, *};
+use super::log::snmp_log_json_response;
+use super::detect::detect_snmp_register;
 use std;
 use std::ffi::CString;
 
@@ -30,21 +32,24 @@ use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
 use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
+    SCOutputJsonLogDirection, SCOutputEvePreRegisterLogger, SCSigTablePreRegister,
+};
 
 #[derive(AppLayerEvent)]
-pub enum SNMPEvent {
+enum SNMPEvent {
     MalformedData,
     UnknownSecurityModel,
     VersionMismatch,
 }
 
 #[derive(Default)]
-pub struct SNMPState<'a> {
+struct SNMPState<'a> {
     state_data: AppLayerStateData,
 
     /// SNMP protocol version
-    pub version: u32,
+    version: u32,
 
     /// List of transactions for this session
     transactions: Vec<SNMPTransaction<'a>>,
@@ -53,7 +58,7 @@ pub struct SNMPState<'a> {
     tx_id: u64,
 }
 
-pub struct SNMPPduInfo<'a> {
+pub(super) struct SNMPPduInfo<'a> {
     pub pdu_type: PduType,
 
     pub err: ErrorStatus,
@@ -63,7 +68,7 @@ pub struct SNMPPduInfo<'a> {
     pub vars: Vec<Oid<'a>>,
 }
 
-pub struct SNMPTransaction<'a> {
+pub(super) struct SNMPTransaction<'a> {
     /// PDU version
     pub version: u32,
 
@@ -92,7 +97,7 @@ impl Transaction for SNMPTransaction<'_> {
 }
 
 impl<'a> SNMPState<'a> {
-    pub fn new() -> SNMPState<'a> {
+    fn new() -> SNMPState<'a> {
         Default::default()
     }
 }
@@ -238,7 +243,7 @@ impl<'a> SNMPState<'a> {
 }
 
 impl<'a> SNMPTransaction<'a> {
-    pub fn new(direction: Direction, version: u32, id: u64) -> SNMPTransaction<'a> {
+    fn new(direction: Direction, version: u32, id: u64) -> SNMPTransaction<'a> {
         SNMPTransaction {
             version,
             info: None,
@@ -404,20 +409,28 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         get_frame_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
+    ALPROTO_SNMP = AppProtoNewProtoFromString(PARSER_NAME.as_ptr() as *const std::os::raw::c_char);
+    let reg_data = EveJsonTxLoggerRegistrationData {
+        confname: b"eve-log.snmp\0".as_ptr() as *const std::os::raw::c_char,
+        logname: b"JsonSNMPLog\0".as_ptr() as *const std::os::raw::c_char,
+        alproto: ALPROTO_SNMP,
+        dir: SCOutputJsonLogDirection::LOG_DIR_PACKET as u8,
+        LogTx: Some(snmp_log_json_response),
+    };
+    SCOutputEvePreRegisterLogger(reg_data);
+    SCSigTablePreRegister(Some(detect_snmp_register));
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         // port 161
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
-        // store the allocated ID for the probe function
-        ALPROTO_SNMP = alproto;
+        _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();
         let _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
     } else {

@@ -22,8 +22,8 @@
  *
  */
 
-#include "detect-engine-register.h"
 #include "suricata-common.h"
+#include "detect-engine-register.h"
 
 #include "detect.h"
 #include "detect-parse.h"

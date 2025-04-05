@@ -210,14 +210,8 @@ def logger_patch_output_c(proto):
         if line.find("rs_template_logger_log") > -1:
             output.write(inlines[i].replace("TEMPLATE", proto.upper()).replace(
                     "template", proto.lower()))
-            # RegisterSimpleJsonApplayerLogger( on itw own line for clang-format
+            # RegisterSimpleJsonApplayerLogger( on its own line for clang-format
             output.write(inlines[i-1])
-        if line.find("OutputTemplateLogInitSub(") > -1:
-            output.write(inlines[i].replace("Template", proto))
-            output.write(inlines[i+1])
-            output.write(inlines[i+2].replace("TEMPLATE", proto.upper()))
-            output.write(inlines[i+3])
-            output.write(inlines[i+4])
         output.write(line)
     open(filename, "w").write(output.getvalue())
 

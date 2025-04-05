@@ -71,6 +71,12 @@ AppProto StringToAppProto(const char *proto_name)
     return ALPROTO_UNKNOWN;
 }
 
+AppProto AppProtoNewProtoFromString(const char *proto_name)
+{
+    AppProtoRegisterProtoString(g_alproto_max, proto_name);
+    return g_alproto_max - 1;
+}
+
 void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name)
 {
     if (alproto < ALPROTO_MAX_STATIC) {

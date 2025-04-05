@@ -29,6 +29,7 @@
 #include "app-layer-parser.h"
 #include "detect-engine-register.h"
 #include "output.h"
+#include "output-eve-bindgen.h"
 
 #include <dlfcn.h>
 
@@ -163,15 +164,14 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
-    AppProto alproto = g_alproto_max;
-    AppProtoRegisterProtoString(alproto, plugin->name);
+    AppProto alproto = AppProtoNewProtoFromString(plugin->name);
     if (plugin->Register) {
         if (AppLayerParserPreRegister(plugin->Register) != 0) {
             return 1;
         }
     }
     if (plugin->KeywordsRegister) {
-        if (SigTablePreRegister(plugin->KeywordsRegister) != 0) {
+        if (SCSigTablePreRegister(plugin->KeywordsRegister) != 0) {
             return 1;
         }
     }
@@ -180,9 +180,10 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
             .confname = plugin->confname,
             .logname = plugin->logname,
             .alproto = alproto,
-            .LogTx = (EveJsonSimpleTxLogFunc)plugin->Logger,
+            .dir = plugin->dir,
+            .LogTx = plugin->Logger,
         };
-        if (OutputPreRegisterLogger(reg_data) != 0) {
+        if (SCOutputEvePreRegisterLogger(reg_data) != 0) {
             return 1;
         }
     }
