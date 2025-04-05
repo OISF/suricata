@@ -31,9 +31,11 @@
 #include "detect-transform-pcrexform.h"
 #include "detect-pcre.h"
 
+#define PCRE_SERIALIZED_DATA_LEN 32
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;
     pcre2_match_context *context;
+    uint8_t serialized_data[PCRE_SERIALIZED_DATA_LEN];
 } DetectTransformPcrexformData;
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
@@ -44,6 +46,15 @@ static void DetectTransformPcrexform(
 void DetectTransformPcrexformRegisterTests (void);
 #endif
 
+static void DetectTransformPcrexformSerialize(uint8_t **data, uint32_t *length, const void *context)
+{
+    if (context) {
+        DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *)context;
+        *data = pxd->serialized_data;
+        *length = PCRE_SERIALIZED_DATA_LEN;
+    }
+}
+
 void DetectTransformPcrexformRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].name = "pcrexform";
@@ -52,6 +63,8 @@ void DetectTransformPcrexformRegister(void)
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].url = "/rules/transforms.html#pcre-xform";
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Transform =
         DetectTransformPcrexform;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].TransformSerialize =
+            DetectTransformPcrexformSerialize;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Free =
         DetectTransformPcrexformFree;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Setup =
@@ -124,6 +137,9 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
+
+    memcpy(pxd->serialized_data, regexstr, PCRE_SERIALIZED_DATA_LEN);
+    pxd->serialized_data[PCRE_SERIALIZED_DATA_LEN - 1] = '\0';
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
