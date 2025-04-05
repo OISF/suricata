@@ -102,23 +102,6 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_PACKET                    BIT_U32(0)
 #define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
 #define FLAG_DATATYPE_STREAM                    BIT_U32(2)
-#define FLAG_DATATYPE_HTTP_URI                  BIT_U32(3)
-#define FLAG_DATATYPE_HTTP_URI_RAW              BIT_U32(4)
-#define FLAG_DATATYPE_HTTP_REQUEST_HEADERS      BIT_U32(5)
-#define FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW  BIT_U32(6)
-#define FLAG_DATATYPE_HTTP_REQUEST_COOKIE       BIT_U32(7)
-#define FLAG_DATATYPE_HTTP_REQUEST_UA           BIT_U32(8)
-#define FLAG_DATATYPE_HTTP_REQUEST_LINE         BIT_U32(9)
-#define FLAG_DATATYPE_HTTP_REQUEST_BODY         BIT_U32(10)
-#define FLAG_DATATYPE_HTTP_RESPONSE_COOKIE      BIT_U32(11)
-#define FLAG_DATATYPE_HTTP_RESPONSE_BODY        BIT_U32(12)
-#define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS     BIT_U32(13)
-#define FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW BIT_U32(14)
-#define FLAG_DATATYPE_DNS_REQUEST               BIT_U32(16)
-#define FLAG_DATATYPE_DNS_RESPONSE              BIT_U32(17)
-#define FLAG_DATATYPE_SSH                       BIT_U32(19)
-#define FLAG_DATATYPE_SMTP                      BIT_U32(20)
-#define FLAG_DATATYPE_DNP3                      BIT_U32(21)
 #define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
@@ -341,41 +324,9 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
-    if (tlua->alproto != ALPROTO_UNKNOWN) {
-        if (p->flow == NULL)
-            SCReturnInt(0);
-
-        AppProto alproto = p->flow->alproto;
-        if (tlua->alproto != alproto)
-            SCReturnInt(0);
-    }
 
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
-
-    if (tlua->alproto == ALPROTO_HTTP1) {
-        HtpState *htp_state = p->flow->alstate;
-        if (htp_state != NULL && htp_state->connp != NULL) {
-            htp_tx_t *tx = NULL;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser,
-                                                                 STREAM_TOSERVER);
-            uint64_t total_txs= AppLayerParserGetTxCnt(p->flow, htp_state);
-            for ( ; idx < total_txs; idx++) {
-                tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, idx);
-                if (tx == NULL)
-                    continue;
-
-                if ((tlua->flags & FLAG_DATATYPE_HTTP_REQUEST_LINE) &&
-                        htp_tx_request_line(tx) != NULL && bstr_len(htp_tx_request_line(tx)) > 0) {
-                    lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tlua->luastate,
-                            (const uint8_t *)bstr_ptr(htp_tx_request_line(tx)),
-                            bstr_len(htp_tx_request_line(tx)));
-                    lua_settable(tlua->luastate, -3);
-                }
-            }
-        }
-    }
 
     SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
@@ -396,32 +347,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, NULL, s, flags);
 
-    if (tlua->alproto != ALPROTO_UNKNOWN) {
-        int alproto = f->alproto;
-        if (tlua->alproto != alproto)
-            SCReturnInt(0);
-    }
-
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
-
-    if (tlua->alproto == ALPROTO_HTTP1) {
-        HtpState *htp_state = state;
-        if (htp_state != NULL && htp_state->connp != NULL) {
-            htp_tx_t *tx = NULL;
-            tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, det_ctx->tx_id);
-            if (tx != NULL) {
-                if ((tlua->flags & FLAG_DATATYPE_HTTP_REQUEST_LINE) &&
-                        htp_tx_request_line(tx) != NULL && bstr_len(htp_tx_request_line(tx)) > 0) {
-                    lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tlua->luastate,
-                            (const uint8_t *)bstr_ptr(htp_tx_request_line(tx)),
-                            bstr_len(htp_tx_request_line(tx)));
-                    lua_settable(tlua->luastate, -3);
-                }
-            }
-        }
-    }
 
     SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
@@ -463,7 +390,6 @@ static void *DetectLuaThreadInit(void *data)
         return NULL;
     }
 
-    t->alproto = lua->alproto;
     t->flags = lua->flags;
 
     t->luastate = SCLuaSbStateNew(lua->alloc_limit, lua->instruction_limit);
@@ -749,106 +675,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 SCLogError("alloc error");
                 goto error;
             }
-
-        } else if (strncmp(k, "http", 4) == 0) {
-            if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP1) {
-                SCLogError(
-                        "can just inspect script against one app layer proto like HTTP at a time");
-                goto error;
-            }
-            if (ld->flags != 0) {
-                SCLogError("when inspecting HTTP buffers only a single buffer can be inspected");
-                goto error;
-            }
-
-            /* http types */
-            ld->alproto = ALPROTO_HTTP1;
-
-            if (strcmp(k, "http.uri") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_URI;
-
-            else if (strcmp(k, "http.uri.raw") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_URI_RAW;
-
-            else if (strcmp(k, "http.request_line") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_LINE;
-
-            else if (strcmp(k, "http.request_headers") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_HEADERS;
-
-            else if (strcmp(k, "http.request_headers.raw") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW;
-
-            else if (strcmp(k, "http.request_cookie") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_COOKIE;
-
-            else if (strcmp(k, "http.request_user_agent") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_UA;
-
-            else if (strcmp(k, "http.request_body") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_REQUEST_BODY;
-
-            else if (strcmp(k, "http.response_body") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_BODY;
-
-            else if (strcmp(k, "http.response_cookie") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_COOKIE;
-
-            else if (strcmp(k, "http.response_headers") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_HEADERS;
-
-            else if (strcmp(k, "http.response_headers.raw") == 0)
-                ld->flags |= FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
-
-            else {
-                SCLogError("unsupported http data type %s", k);
-                goto error;
-            }
-
-            ld->buffername = SCStrdup(k);
-            if (ld->buffername == NULL) {
-                SCLogError("alloc error");
-                goto error;
-            }
-        } else if (strncmp(k, "dns", 3) == 0) {
-
-            ld->alproto = ALPROTO_DNS;
-
-            if (strcmp(k, "dns.request") == 0)
-                ld->flags |= FLAG_DATATYPE_DNS_REQUEST;
-            else if (strcmp(k, "dns.response") == 0)
-                ld->flags |= FLAG_DATATYPE_DNS_RESPONSE;
-
-            else {
-                SCLogError("unsupported dns data type %s", k);
-                goto error;
-            }
-            ld->buffername = SCStrdup(k);
-            if (ld->buffername == NULL) {
-                SCLogError("alloc error");
-                goto error;
-            }
-        } else if (strncmp(k, "tls", 3) == 0) {
-
-            ld->alproto = ALPROTO_TLS;
-
-        } else if (strncmp(k, "ssh", 3) == 0) {
-
-            ld->alproto = ALPROTO_SSH;
-
-            ld->flags |= FLAG_DATATYPE_SSH;
-
-        } else if (strncmp(k, "smtp", 4) == 0) {
-
-            ld->alproto = ALPROTO_SMTP;
-
-            ld->flags |= FLAG_DATATYPE_SMTP;
-
-        } else if (strncmp(k, "dnp3", 4) == 0) {
-
-            ld->alproto = ALPROTO_DNP3;
-
-            ld->flags |= FLAG_DATATYPE_DNP3;
+            /* old options no longer supported */
+        } else if (strncmp(k, "http", 4) == 0 || strncmp(k, "dns", 3) == 0 ||
+                   strncmp(k, "tls", 3) == 0 || strncmp(k, "ssh", 3) == 0 ||
+                   strncmp(k, "smtp", 4) == 0 || strncmp(k, "dnp3", 4) == 0) {
+            SCLogError("data type %s no longer supported, use rule hooks", k);
+            goto error;
 
         } else {
             SCLogError("unsupported data type %s", k);
@@ -913,76 +745,22 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     if (lua->thread_ctx_id == -1)
         goto error;
 
-    if (lua->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, lua->alproto)) {
-            goto error;
-        }
-        s->alproto = lua->alproto;
-    }
+    int list = DetectBufferGetActiveList(de_ctx, s);
+    SCLogDebug("buffer list %d -> %d", list, s->init_data->list);
+    if (list == -1 || (list == 0 && s->init_data->list == INT_MAX)) {
+        /* what needs to happen here is: we register to the rule hook, so e.g.
+         * http1.request_complete. This means we need a list.
+         *
+         * This includes each pkt, payload, stream, etc. */
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-
-    int list = -1;
-    if (lua->alproto == ALPROTO_UNKNOWN) {
-        if (lua->flags & FLAG_DATATYPE_STREAM)
-            list = DETECT_SM_LIST_PMATCH;
-        else {
-            if (lua->flags & FLAG_DATATYPE_BUFFER) {
-                if (DetectBufferGetActiveList(de_ctx, s) != -1) {
-                    list = s->init_data->list;
-                } else {
-                    SCLogError("Lua and sticky buffer failure");
-                    goto error;
-                }
-            } else
-                list = DETECT_SM_LIST_MATCH;
+        if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_NOT_SET) {
+            list = s->init_data->hook.sm_list;
+            SCLogDebug("setting list %d", list);
         }
-
-    } else if (lua->alproto == ALPROTO_HTTP1) {
-        if (lua->flags & FLAG_DATATYPE_HTTP_RESPONSE_BODY) {
-            list = DetectBufferTypeGetByName("file_data");
-        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_BODY) {
-            list = DetectBufferTypeGetByName("http_client_body");
-        } else if (lua->flags & FLAG_DATATYPE_HTTP_URI) {
-            list = DetectBufferTypeGetByName("http_uri");
-        } else if (lua->flags & FLAG_DATATYPE_HTTP_URI_RAW) {
-            list = DetectBufferTypeGetByName("http_raw_uri");
-        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_COOKIE ||
-                   lua->flags & FLAG_DATATYPE_HTTP_RESPONSE_COOKIE) {
-            list = DetectBufferTypeGetByName("http_cookie");
-        } else if (lua->flags & FLAG_DATATYPE_HTTP_REQUEST_UA) {
-            list = DetectBufferTypeGetByName("http_user_agent");
-        } else if (lua->flags &
-                   (FLAG_DATATYPE_HTTP_REQUEST_HEADERS | FLAG_DATATYPE_HTTP_RESPONSE_HEADERS)) {
-            list = DetectBufferTypeGetByName("http_header");
-        } else if (lua->flags & (FLAG_DATATYPE_HTTP_REQUEST_HEADERS_RAW |
-                                        FLAG_DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
-            list = DetectBufferTypeGetByName("http_raw_header");
-        } else {
-            list = DetectBufferTypeGetByName("http_request_line");
-        }
-    } else if (lua->alproto == ALPROTO_DNS) {
-        if (lua->flags & FLAG_DATATYPE_DNS_REQUEST) {
-            list = DetectBufferTypeGetByName("dns_request");
-        } else if (lua->flags & FLAG_DATATYPE_DNS_RESPONSE) {
-            list = DetectBufferTypeGetByName("dns_response");
-        }
-    } else if (lua->alproto == ALPROTO_TLS) {
-        list = DetectBufferTypeGetByName("tls_generic");
-    } else if (lua->alproto == ALPROTO_SSH) {
-        list = DetectBufferTypeGetByName("ssh_banner");
-    } else if (lua->alproto == ALPROTO_SMTP) {
-        list = g_smtp_generic_list_id;
-    } else if (lua->alproto == ALPROTO_DNP3) {
-        list = DetectBufferTypeGetByName("dnp3");
-    } else {
-        SCLogError("lua can't be used with protocol %s", AppLayerGetProtoName(lua->alproto));
-        goto error;
     }
 
     if (list == -1) {
-        SCLogError("lua can't be used with protocol %s", AppLayerGetProtoName(lua->alproto));
+        SCLogError("lua failed to set up");
         goto error;
     }
 
@@ -1055,35 +833,34 @@ static int LuaMatchTest01(void)
 {
     SCConfSetFinal("security.lua.allow-rules", "true");
 
-    const char script[] =
-        "function init (args)\n"
-        "   local needs = {}\n"
-        "   needs[\"http.request_headers\"] = tostring(true)\n"
-        "   needs[\"flowvar\"] = {\"cnt\"}\n"
-        "   return needs\n"
-        "end\n"
-        "\n"
-        "function match(args)\n"
-        "   a = ScFlowvarGet(0)\n"
-        "   if a then\n"
-        "       a = tostring(tonumber(a)+1)\n"
-        "       print (a)\n"
-        "       ScFlowvarSet(0, a, #a)\n"
-        "   else\n"
-        "       a = tostring(1)\n"
-        "       print (a)\n"
-        "       ScFlowvarSet(0, a, #a)\n"
-        "   end\n"
-        "   \n"
-        "   print (\"pre check: \" .. (a))\n"
-        "   if tonumber(a) == 2 then\n"
-        "       print \"match\"\n"
-        "       return 1\n"
-        "   end\n"
-        "   return 0\n"
-        "end\n"
-        "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    const char script[] = "function init (args)\n"
+                          "   local needs = {}\n"
+                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
+                          "   return needs\n"
+                          "end\n"
+                          "\n"
+                          "function match(args)\n"
+                          "   a = ScFlowvarGet(0)\n"
+                          "   if a then\n"
+                          "       a = tostring(tonumber(a)+1)\n"
+                          "       print (a)\n"
+                          "       ScFlowvarSet(0, a, #a)\n"
+                          "   else\n"
+                          "       a = tostring(1)\n"
+                          "       print (a)\n"
+                          "       ScFlowvarSet(0, a, #a)\n"
+                          "   end\n"
+                          "   \n"
+                          "   print (\"pre check: \" .. (a))\n"
+                          "   if tonumber(a) == 2 then\n"
+                          "       print \"match\"\n"
+                          "       return 1\n"
+                          "   end\n"
+                          "   return 0\n"
+                          "end\n"
+                          "return 0\n";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -1180,7 +957,6 @@ static int LuaMatchTest01a(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowvar\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -1205,7 +981,8 @@ static int LuaMatchTest01a(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1725,7 +1502,6 @@ static int LuaMatchTest04(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -1747,7 +1523,8 @@ static int LuaMatchTest04(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
                          "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
@@ -1841,7 +1618,6 @@ static int LuaMatchTest04a(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -1863,7 +1639,8 @@ static int LuaMatchTest04a(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -1959,7 +1736,6 @@ static int LuaMatchTest05(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -1974,7 +1750,8 @@ static int LuaMatchTest05(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2070,7 +1847,6 @@ static int LuaMatchTest05a(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -2085,7 +1861,8 @@ static int LuaMatchTest05a(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2181,7 +1958,6 @@ static int LuaMatchTest06(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -2201,7 +1977,8 @@ static int LuaMatchTest06(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";
@@ -2297,7 +2074,6 @@ static int LuaMatchTest06a(void)
 {
     const char script[] = "function init (args)\n"
                           "   local needs = {}\n"
-                          "   needs[\"http.request_headers\"] = tostring(true)\n"
                           "   needs[\"flowint\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
@@ -2317,7 +2093,8 @@ static int LuaMatchTest06a(void)
                           "   return 0\n"
                           "end\n"
                           "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
+    char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
+                 "sid:1;)";
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
         "Host: www.emergingthreats.net\r\n\r\n";

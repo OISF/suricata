@@ -906,6 +906,10 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "nfq error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "tunnel packet drop";
+        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
+            return "default packet policy";
+        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
+            return "default app policy";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -948,6 +952,10 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.nfq_error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "ips.drop_reason.tunnel_packet_drop";
+        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
+            return "ips.drop_reason.default_packet_policy";
+        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
+            return "ips.drop_reason.default_app_policy";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;

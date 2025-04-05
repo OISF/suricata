@@ -95,6 +95,9 @@ enum PktSrcEnum {
 
 #include "util-validate.h"
 
+/* for now a uint8_t is enough -- here in decode as it's part of the packet */
+#define SignatureMask uint8_t
+
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
@@ -259,7 +262,9 @@ typedef struct PacketAlert_ {
 /** alert is in a frame, frame_id set */
 #define PACKET_ALERT_FLAG_FRAME 0x20
 /** alert in a tx was forced */
-#define PACKET_ALERT_FLAG_TX_GUESSED 0x040
+#define PACKET_ALERT_FLAG_TX_GUESSED 0x40
+/** accept should be applied to packet */
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET 0x80
 
 extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
@@ -373,8 +378,10 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,    /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET, /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_NFQ_ERROR,             /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_INNER_PACKET,          /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
+    PKT_DROP_REASON_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
     PKT_DROP_REASON_MAX,
 };
 
@@ -509,6 +516,12 @@ typedef struct Packet_
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
     uint8_t app_update_direction; // enum StreamUpdateDir
+
+    /** sig mask flags this packet has, used in signature matching */
+    SignatureMask sig_mask;
+
+    /** bit flags of SignatureHookPkt values this packet should trigger */
+    uint16_t pkt_hooks;
 
     /* Pkt Flags */
     uint32_t flags;

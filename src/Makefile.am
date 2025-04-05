@@ -88,6 +88,7 @@ noinst_HEADERS = \
 	defrag-timeout.h \
 	detect-app-layer-event.h \
 	detect-app-layer-protocol.h \
+	detect-app-layer-state.h \
 	detect-asn1.h \
 	detect-base64-data.h \
 	detect-base64-decode.h \
@@ -462,6 +463,7 @@ noinst_HEADERS = \
 	tm-threads-common.h \
 	tm-threads.h \
 	tree.h \
+	tx-bit.h \
 	interval-tree.h \
 	unix-manager.h \
 	util-action.h \
@@ -672,6 +674,7 @@ libsuricata_c_a_SOURCES = \
 	defrag-timeout.c \
 	detect-app-layer-event.c \
 	detect-app-layer-protocol.c \
+	detect-app-layer-state.c \
 	detect-asn1.c \
 	detect-base64-data.c \
 	detect-base64-decode.c \
@@ -1033,6 +1036,7 @@ libsuricata_c_a_SOURCES = \
 	tm-queuehandlers.c \
 	tm-queues.c \
 	tm-threads.c \
+	tx-bit.c \
 	unix-manager.c \
 	util-action.c \
 	util-affinity.c \

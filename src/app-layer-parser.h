@@ -55,6 +55,8 @@
 /** is tx fully inspected? */
 #define APP_LAYER_TX_INSPECTED_TS BIT_U8(2)
 #define APP_LAYER_TX_INSPECTED_TC BIT_U8(3)
+/** accept is applied to entire tx */
+#define APP_LAYER_TX_ACCEPT BIT_U8(4)
 
 /** parser has successfully processed in the input, and has consumed
  *  all of it. */
@@ -131,6 +133,17 @@ typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
 
 /***** Parser related registration *****/
 
+/**
+ *  \param name progress name to get the id for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+typedef int (*AppLayerParserGetStateIdByNameFn)(const char *name, const uint8_t direction);
+/**
+ *  \param id progress value id to get the name for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+typedef const char *(*AppLayerParserGetStateNameByIdFn)(const int id, const uint8_t direction);
+
 typedef int (*AppLayerParserGetFrameIdByNameFn)(const char *frame_name);
 typedef const char *(*AppLayerParserGetFrameNameByIdFn)(const uint8_t id);
 
@@ -182,6 +195,9 @@ void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
         AppLayerParserGetFrameNameByIdFn GetFrameNameById);
 void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
         void (*SetStreamDepthFlag)(void *tx, uint8_t flags));
+void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetStateIdByNameFn GetStateIdByName,
+        AppLayerParserGetStateNameByIdFn GetStateNameById);
 
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
@@ -269,6 +285,18 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
 int AppLayerParserIsEnabled(AppProto alproto);
 int AppLayerParserGetFrameIdByName(uint8_t ipproto, AppProto alproto, const char *name);
 const char *AppLayerParserGetFrameNameById(uint8_t ipproto, AppProto alproto, const uint8_t id);
+/**
+ *  \param name progress name to get the id for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+int AppLayerParserGetStateIdByName(
+        uint8_t ipproto, AppProto alproto, const char *name, uint8_t direction);
+/**
+ *  \param id progress value id to get the name for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ */
+const char *AppLayerParserGetStateNameById(
+        uint8_t ipproto, AppProto alproto, const int id, uint8_t direction);
 
 /***** Cleanup *****/
 

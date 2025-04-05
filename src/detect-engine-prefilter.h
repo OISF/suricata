@@ -54,7 +54,8 @@ void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p, const u
         const SignatureMask mask);
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterPktFn PrefilterFunc,
-        SignatureMask mask, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
+        SignatureMask mask, enum SignatureHookPkt hook, void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name);
 
 void PrefilterPostRuleMatch(
         DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p, Flow *f);
@@ -83,7 +84,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
 
-void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
+int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #ifdef PROFILING
@@ -104,5 +105,7 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, M
 
 void PostRuleMatchWorkQueueAppend(
         DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value);
+
+void PrefilterPktNonPFStatsDump(void);
 
 #endif

@@ -58,10 +58,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Flow is marked an elephant flow */
 #define FLOW_IS_ELEPHANT BIT_U32(3)
 
-// vacancy bit 4
+/** All packets in this flow should be accepted */
+#define FLOW_ACTION_ACCEPT BIT_U32(4)
 
-/** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION        BIT_U32(5)
+// vacancy bit 5
+
 /** Packet payloads belonging to this flow should not be inspected */
 #define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)
 
@@ -565,7 +566,6 @@ void FlowSwap(Flow *);
 void FlowRegisterTests(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
-static inline void FlowSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(const Flow *, const Packet *);
@@ -597,20 +597,6 @@ static inline AppProto FlowGetAppProtocol(const Flow *f)
 static inline void *FlowGetAppState(const Flow *f)
 {
     return f->alstate;
-}
-
-/** \brief Set the No Packet Inspection Flag without locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline  void FlowSetNoPacketInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    f->flags |= FLOW_NOPACKET_INSPECTION;
-
-    SCReturn;
 }
 
 /** \brief Set the No payload inspection Flag without locking the flow.

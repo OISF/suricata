@@ -66,6 +66,12 @@
         "payload": {
             "type": "string"
         },
+        "ts_progress": {
+            "type": "string"
+        },
+        "tc_progress": {
+            "type": "string"
+        },
         "payload_length": {
             "type": "integer"
         },
@@ -5332,6 +5338,16 @@
                                     "description":
                                             "Number of packets dropped due to inner tunnel packet being dropped",
                                     "type": "integer"
+                                },
+                                "default_packet_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default packet policy",
+                                    "type": "integer"
+                                },
+                                "default_app_policy": {
+                                    "description":
+                                            "Number of packets dropped due to default app policy",
+                                    "type": "integer"
                                 }
                             },
                             "additionalProperties": false
@@ -6195,7 +6211,7 @@
                             "type": "object",
                             "error": {
                                 "description":
-                                    "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                        "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         },

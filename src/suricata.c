@@ -618,6 +618,8 @@ static void PrintUsage(const char *progname)
     printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
     printf("\t--unittests-coverage                 : display unittest coverage report\n");
 #endif /* UNITTESTS */
+    printf("\t--firewall-rules-exclusive=<path>    : path to firewall rule file loaded "
+           "exclusively\n");
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
     printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
     printf("\t--list-runmodes                      : list supported runmodes\n");
@@ -1413,6 +1415,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
         {"qa-skip-prefilter", 0, &g_skip_prefilter, 1 },
 
+        {"firewall-rules-exclusive", required_argument, 0, 0},
+
         {"include", required_argument, 0, 0},
 
         {NULL, 0, NULL, 0}
@@ -1819,6 +1823,13 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                         }
                     }
                 }
+            } else if (strcmp((long_opts[option_index]).name, "firewall-rules-exclusive") == 0) {
+                if (suri->firewall_rule_file != NULL) {
+                    SCLogError("can't have multiple --firewall-rules-exclusive options");
+                    return TM_ECODE_FAILED;
+                }
+                suri->firewall_rule_file = optarg;
+                suri->firewall_rule_file_exclusive = true;
             } else {
                 int r = ExceptionSimulationCommandLineParser(
                         (long_opts[option_index]).name, optarg);
@@ -2044,8 +2055,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         }
     }
 
-    if (suri->disabled_detect && suri->sig_file != NULL) {
-        SCLogError("can't use -s/-S when detection is disabled");
+    if (suri->disabled_detect && (suri->sig_file != NULL || suri->firewall_rule_file != NULL)) {
+        SCLogError("can't use -s/-S or --firewall-rules-exclusive when detection is disabled");
         return TM_ECODE_FAILED;
     }
 
@@ -2411,6 +2422,8 @@ static void SetupDelayedDetect(SCInstance *suri)
 
 static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
 {
+    de_ctx->firewall_rule_file_exclusive = suri->firewall_rule_file;
+
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
         SCLogError("Loading signatures failed.");
         if (de_ctx->failure_fatal)
