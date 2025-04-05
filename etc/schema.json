@@ -99,6 +99,9 @@
         "src_port": {
             "type": "integer"
         },
+        "suricata_version": {
+            "type": "string"
+        },
         "stream": {
             "type": "integer"
         },
