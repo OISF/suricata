@@ -100,4 +100,9 @@ SCConfNode *SCConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
 int SCConfSetRootAndDefaultNodes(const char *ifaces_node_name, const char *iface,
         SCConfNode **if_root, SCConfNode **if_default);
 SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int final);
+
+SCConfNode *SCConfGetFirstNode(const SCConfNode *parent);
+SCConfNode *SCConfGetNextNode(const SCConfNode *node);
+const char *SCConfGetValueNode(const SCConfNode *node);
+
 #endif /* ! SURICATA_CONF_H */

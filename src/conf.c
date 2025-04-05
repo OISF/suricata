@@ -201,6 +201,21 @@ SCConfNode *SCConfGetNode(const char *name)
     return node;
 }
 
+SCConfNode *SCConfGetFirstNode(const SCConfNode *parent)
+{
+    return TAILQ_FIRST(&parent->head);
+}
+
+SCConfNode *SCConfGetNextNode(const SCConfNode *node)
+{
+    return TAILQ_NEXT(node, next);
+}
+
+const char *SCConfGetValueNode(const SCConfNode *node)
+{
+    return node->val;
+}
+
 /**
  * \brief Get the root configuration node.
  */

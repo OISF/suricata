@@ -34,6 +34,10 @@ use suricata_sys::sys::SCConfGetChildValue;
 use suricata_sys::sys::SCConfGetChildValueBool;
 use suricata_sys::sys::SCConfGetNode;
 use suricata_sys::sys::SCConfNode;
+use suricata_sys::sys::SCConfNodeLookupChild;
+use suricata_sys::sys::SCConfGetFirstNode;
+use suricata_sys::sys::SCConfGetNextNode;
+use suricata_sys::sys::SCConfGetValueNode;
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
     let key = if let Ok(key) = CString::new(key) {
@@ -90,6 +94,42 @@ pub struct ConfNode {
 impl ConfNode {
     pub fn wrap(conf: *const SCConfNode) -> Self {
         return Self { conf };
+    }
+
+    pub fn get_child_node(&self, key: &str) -> Option<ConfNode> {
+        let node = unsafe {
+            let s = CString::new(key).unwrap();
+            SCConfNodeLookupChild(self.conf, s.as_ptr())
+        };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn first(&self) -> Option<ConfNode> {
+        let node = unsafe { SCConfGetFirstNode(self.conf) };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn next(&self) -> Option<ConfNode> {
+        let node = unsafe { SCConfGetNextNode(self.conf) };
+        if node.is_null() {
+            None
+        } else {
+            Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        let vptr = unsafe { SCConfGetValueNode(self.conf) };
+        let value = std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
+        return value;
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {

@@ -318,7 +318,10 @@ outputs:
         - ftp
         - rdp
         - nfs
-        - smb
+        - smb:
+            # restrict to only certain types in the following list
+            #types: [file, tree_connect, negotiate, dcerpc, create,
+            #  session_setup, ioctl, rename, set_file_path_info, generic]
         - tftp
         - ike
         - dcerpc
