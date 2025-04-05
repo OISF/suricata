@@ -2542,7 +2542,8 @@ pgsql flow. Some of the possible request messages are:
 * "notification_response"
 * "authentication_md5_password": a string with the ``md5`` salt value
 * "parameter_status": logged as an array
-* "backend_key_data"
+* "backend_key_data": object containing ``secret key`` and ``process id`` data
+  about the sender
 * "data_rows": integer. When one or many ``DataRow`` messages are parsed, the
   total returned rows
 * "data_size": in bytes. When one or many ``DataRow`` messages are parsed, the

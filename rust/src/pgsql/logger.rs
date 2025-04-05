@@ -94,12 +94,16 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             length: _,
             payload,
         }) => {
-            js.set_string_from_bytes(req.to_str(), payload)?;
+            js.open_object(req.to_str())?;
+            // TODO should this be an array?
+            js.set_string_from_bytes("statement", payload)?;
+            js.close()?;
         }
         PgsqlFEMessage::CancelRequest(CancelRequestMessage { pid, backend_key }) => {
-            js.set_string("message", "cancel_request")?;
+            js.open_object(req.to_str())?;
             js.set_uint("process_id", *pid)?;
             js.set_uint("secret_key", *backend_key)?;
+            js.close()?;
         }
         PgsqlFEMessage::Terminate(TerminationMessage {
             identifier: _,
@@ -160,7 +164,9 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             length: _,
             message_body,
         }) => {
+            jb.open_object(res.to_str())?;
             log_error_notice_field_types(message_body, jb)?;
+            jb.close()?;
         }
         PgsqlBEMessage::AuthenticationMD5Password(AuthenticationMessage {
             identifier: _,
@@ -213,8 +219,10 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             backend_pid,
             secret_key,
         }) => {
+            jb.open_object(res.to_str())?;
             jb.set_uint("process_id", *backend_pid)?;
             jb.set_uint("secret_key", *secret_key)?;
+            jb.close()?;
         }
         PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
             identifier: _,
@@ -229,15 +237,19 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             field_count,
             fields: _,
         }) => {
+            jb.open_object(res.to_str())?;
             jb.set_uint("field_count", *field_count)?;
+            jb.close()?;
         }
         PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
             identifier: _,
             row_cnt,
             data_size,
         }) => {
+            jb.open_object(res.to_str())?;
             jb.set_uint("data_rows", *row_cnt)?;
             jb.set_uint("data_size", *data_size)?;
+            jb.close()?;
         }
         PgsqlBEMessage::NotificationResponse(NotificationResponse {
             identifier: _,
@@ -246,9 +258,11 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             channel_name,
             payload,
         }) => {
+            jb.open_object(res.to_str())?;
             jb.set_uint("pid", *pid)?;
             jb.set_string_from_bytes("channel_name", channel_name)?;
             jb.set_string_from_bytes("payload", payload)?;
+            jb.close()?;
         }
     }
     Ok(())

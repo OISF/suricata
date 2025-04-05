@@ -3591,6 +3591,17 @@
                 "request": {
                     "type": "object",
                     "properties": {
+                        "cancel_request": {
+                            "type": "object",
+                            "properties": {
+                                "process_id": {
+                                    "type": "integer"
+                                },
+                                "secret_key": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
                         "message": {
                             "type": "string"
                         },
@@ -3599,9 +3610,6 @@
                         },
                         "password_message": {
                             "type": "string"
-                        },
-                        "process_id": {
-                            "type": "integer"
                         },
                         "protocol_version": {
                             "type": "string"
@@ -3615,11 +3623,13 @@
                         "sasl_response": {
                             "type": "string"
                         },
-                        "secret_key": {
-                            "type": "integer"
-                        },
                         "simple_query": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                "statement": {
+                                    "type": "string"
+                                }
+                            }
                         },
                         "startup_parameters": {
                             "type": "object",
@@ -3673,29 +3683,67 @@
                         "authentication_sasl_final": {
                             "type": "string"
                         },
-                        "code": {
-                            "type": "string"
+                        "backend_key_data": {
+                            "type": "object",
+                            "properties": {
+                                "process_id": {
+                                    "type": "integer"
+                                },
+                                "secret_key": {
+                                    "type": "integer"
+                                }
+                            }
                         },
                         "command_completed": {
                             "type": "string"
                         },
-                        "data_rows": {
-                            "type": "integer"
+                        "consolidated_data_rows": {
+                            "type": "object",
+                            "properties": {
+                                "data_rows": {
+                                    "type": "integer"
+                                },
+                                "data_size": {
+                                    "type": "integer"
+                                }
+                            }
                         },
-                        "data_size": {
-                            "type": "integer"
-                        },
-                        "field_count": {
-                            "type": "integer"
-                        },
-                        "file": {
-                            "type": "string"
-                        },
-                        "line": {
-                            "type": "string"
+                        "error_response": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "file": {
+                                    "type": "string"
+                                },
+                                "line": {
+                                    "type": "string"
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "routine": {
+                                    "type": "string"
+                                },
+                                "severity_localizable": {
+                                    "type": "string"
+                                },
+                                "severity_non_localizable": {
+                                    "type": "string"
+                                }
+                            }
                         },
                         "message": {
                             "type": "string"
+                        },
+                        "row_description": {
+                            "type": "object",
+                            "properties": {
+                                "field_count": {
+                                    "type": "integer"
+                                }
+                            }
                         },
                         "parameter_status": {
                             "type": "array",
@@ -3739,21 +3787,6 @@
                                 },
                                 "additionalProperties": true
                             }
-                        },
-                        "process_id": {
-                            "type": "integer"
-                        },
-                        "routine": {
-                            "type": "string"
-                        },
-                        "secret_key": {
-                            "type": "integer"
-                        },
-                        "severity_localizable": {
-                            "type": "string"
-                        },
-                        "severity_non_localizable": {
-                            "type": "string"
                         },
                         "ssl_accepted": {
                             "type": "boolean"
