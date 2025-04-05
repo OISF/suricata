@@ -6643,6 +6643,20 @@
                     },
                     "additionalProperties": false
                 },
+                "pcap_log": {
+                    "type": "object",
+                    "properties": {
+                        "written": {
+                            "description": "Number of packets written",
+                            "type": "integer"
+                        },
+                        "filtered_bpf": {
+                            "description": "Number of packets filtered out by bpf (not written)",
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "tcp": {
                     "type": "object",
                     "properties": {

@@ -497,6 +497,8 @@ By default all packets are logged except:
 
 - TCP streams beyond stream.reassembly.depth
 - encrypted streams after the key exchange
+- If a ``bpf-filter`` is set, packets that don't match the filter will
+  not be logged
 
 It is possible to do conditional pcap logging by using the `conditional`
 option in the pcap-log section. By default the variable is set to `all`
@@ -519,6 +521,11 @@ the alert.
 
       mode: normal # "normal" or multi
       conditional: alerts
+
+      # A BPF filter that will be applied to all packets being
+      # logged. If set, packets must match this filter otherwise they
+      # will not be logged.
+      #bpf-filter:
 
 In ``normal`` mode a pcap file "filename" is created in the default-log-dir or as
 specified by "dir". ``normal`` mode is generally not as performant as ``multi``
