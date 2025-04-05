@@ -41,7 +41,9 @@ fn dot_prefix_transform_do(input: &[u8], output: &mut [u8]) {
     output[0] = b'.';
 }
 
-unsafe extern "C" fn dot_prefix_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn dot_prefix_transform(
+    _det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void,
+) {
     let input_len = InspectionBufferLength(buffer);
     if input_len == 0 {
         return;
@@ -76,6 +78,7 @@ pub unsafe extern "C" fn DetectTransformDotPrefixRegister() {
         Transform: dot_prefix_transform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     unsafe {
         G_TRANSFORM_DOT_PREFIX_ID = DetectHelperTransformRegister(&kw);
