@@ -79,6 +79,7 @@ pub unsafe extern "C" fn DetectTransformDotPrefixRegister() {
         Transform: Some(dot_prefix_transform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     unsafe {
         G_TRANSFORM_DOT_PREFIX_ID = SCDetectHelperTransformRegister(&kw);
