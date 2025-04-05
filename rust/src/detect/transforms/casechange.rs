@@ -80,6 +80,7 @@ pub unsafe extern "C" fn DetectTransformToLowerRegister() {
         Transform: tolower_transform,
         Free: None,
         TransformValidate: Some(tolower_validate),
+        TransformId: None,
     };
     G_TRANSFORM_TOLOWER_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_TOLOWER_ID < 0 {
@@ -140,6 +141,7 @@ pub unsafe extern "C" fn DetectTransformToUpperRegister() {
         Transform: toupper_transform,
         Free: None,
         TransformValidate: Some(toupper_validate),
+        TransformId: None,
     };
     G_TRANSFORM_TOUPPER_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_TOUPPER_ID < 0 {
