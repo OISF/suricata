@@ -31,9 +31,12 @@
 #include "detect-transform-pcrexform.h"
 #include "detect-pcre.h"
 
+#define PCRE_ID_MAX_DATA_LEN 1024
 typedef struct DetectTransformPcrexformData {
     pcre2_code *regex;
     pcre2_match_context *context;
+    uint8_t *id_data;
+    int id_data_len;
 } DetectTransformPcrexformData;
 
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
@@ -44,6 +47,16 @@ static void DetectTransformPcrexform(
 void DetectTransformPcrexformRegisterTests (void);
 #endif
 
+static void DetectTransformPcrexformId(uint8_t **data, uint32_t *length, const void *context)
+{
+    if (context) {
+        DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *)context;
+        *data = pxd->id_data;
+        *length = pxd->id_data_len;
+        ;
+    }
+}
+
 void DetectTransformPcrexformRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].name = "pcrexform";
@@ -52,6 +65,7 @@ void DetectTransformPcrexformRegister(void)
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].url = "/rules/transforms.html#pcre-xform";
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Transform =
         DetectTransformPcrexform;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].TransformId = DetectTransformPcrexformId;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Free =
         DetectTransformPcrexformFree;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Setup =
@@ -66,8 +80,11 @@ static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *) ptr;
+
         pcre2_match_context_free(pxd->context);
         pcre2_code_free(pxd->regex);
+
+        SCFree(pxd->id_data);
         SCFree(pxd);
     }
 }
@@ -112,6 +129,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         SCFree(pxd);
         SCReturnInt(-1);
     }
+
     // check pcd->regex has exactly one capture expression
     uint32_t nb;
     if (pcre2_pattern_info(pxd->regex, PCRE2_INFO_CAPTURECOUNT, &nb) < 0) {
@@ -124,6 +142,15 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
+
+    size_t regexstr_len = MIN(PCRE_ID_MAX_DATA_LEN, strlen(regexstr));
+    pxd->id_data = (uint8_t *)SCCalloc(1, regexstr_len);
+    if (pxd->id_data == NULL) {
+        DetectTransformPcrexformFree(de_ctx, pxd);
+        SCReturnInt(-1);
+    }
+    pxd->id_data_len = regexstr_len;
+    memcpy(pxd->id_data, regexstr, regexstr_len);
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
