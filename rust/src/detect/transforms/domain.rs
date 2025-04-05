@@ -116,6 +116,7 @@ pub unsafe extern "C" fn SCDetectTransformDomainRegister() {
         Transform: Some(domain_transform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     unsafe {
         G_TRANSFORM_DOMAIN_ID = SCDetectHelperTransformRegister(&kw);
@@ -133,6 +134,7 @@ pub unsafe extern "C" fn SCDetectTransformDomainRegister() {
         Transform: Some(tld_transform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     unsafe {
         G_TRANSFORM_TLD_ID = SCDetectHelperTransformRegister(&kw);
