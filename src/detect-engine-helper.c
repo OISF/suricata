@@ -163,6 +163,8 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[transform_id].Setup =
             (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
     sigmatch_table[transform_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+    sigmatch_table[transform_id].TransformId =
+            (void (*)(uint8_t **const id_data, uint32_t *length, void *context)) kw->TransformId;
 
     return transform_id;
 }

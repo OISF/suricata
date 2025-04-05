@@ -19,9 +19,9 @@
 
 use crate::detect::error::RuleParseError;
 use crate::detect::parser::{parse_var, take_until_whitespace, ResultValue};
+use crate::ffi::base64::SCBase64Mode;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use crate::ffi::base64::SCBase64Mode;
 
 use nom7::bytes::complete::tag;
 use nom7::character::complete::multispace0;
@@ -147,7 +147,8 @@ fn parse_transform_base64(
                         } else {
                             return Err(make_error(format!(
                                 "invalid offset value: must be between 0 and {}: {}",
-                                u16::MAX, val
+                                u16::MAX,
+                                val
                             )));
                         }
                     }
@@ -179,7 +180,9 @@ fn parse_transform_base64(
                         } else {
                             return Err(make_error(format!(
                                 "invalid bytes value: must be between {} and {}: {}",
-                                0, u16::MAX, val
+                                0,
+                                u16::MAX,
+                                val
                             )));
                         }
                     }
@@ -215,9 +218,7 @@ pub unsafe extern "C" fn SCTransformBase64Parse(
         return std::ptr::null_mut();
     }
 
-    let arg = CStr::from_ptr(c_arg)
-        .to_str()
-        .unwrap_or("");
+    let arg = CStr::from_ptr(c_arg).to_str().unwrap_or("");
 
     match parse_transform_base64(arg) {
         Ok((_, detect)) => return Box::into_raw(Box::new(detect)),
@@ -264,13 +265,8 @@ mod tests {
     }
 
     fn valid_test(
-        args: &str,
-        nbytes: u32,
-        nbytes_str: &str,
-        offset: u32,
-        offset_str: &str,
-        mode: SCBase64Mode,
-        flags: u8,
+        args: &str, nbytes: u32, nbytes_str: &str, offset: u32, offset_str: &str,
+        mode: SCBase64Mode, flags: u8,
     ) {
         let tbd = SCDetectTransformFromBase64Data {
             flags,

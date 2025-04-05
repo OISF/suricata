@@ -106,6 +106,7 @@ pub unsafe extern "C" fn DetectTransformCompressWhitespaceRegister() {
         Transform: Some(compress_whitespace_transform),
         Free: None,
         TransformValidate: Some(compress_whitespace_validate),
+        TransformId: None,
     };
     G_TRANSFORM_COMPRESS_WHITESPACE_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_COMPRESS_WHITESPACE_ID < 0 {

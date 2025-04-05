@@ -121,6 +121,7 @@ pub unsafe extern "C" fn DetectTransformUrlDecodeRegister() {
         Transform: Some(url_decode_transform),
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_URL_DECODE_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_URL_DECODE_ID < 0 {
