@@ -460,9 +460,15 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
+typedef struct TransformSerializedData_ {
+    uint8_t *serialized_data;
+    uint32_t serialized_data_len;
+} TransformSerializedData;
+
 typedef struct DetectBufferType_ {
     char name[64];
     char description[128];
+    TransformSerializedData xform_serialized[DETECT_TRANSFORMS_MAX];
     int id;
     int parent_id;
     bool mpm;
@@ -1372,6 +1378,9 @@ typedef struct SigTableElmt_ {
     /** InspectionBuffer transformation callback */
     void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, void *context);
     bool (*TransformValidate)(const uint8_t *content, uint16_t content_len, void *context);
+
+    /** Transform serialization callback */
+    void (*TransformSerialize)(uint8_t **serialized_data, uint32_t *length, const void *context);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);

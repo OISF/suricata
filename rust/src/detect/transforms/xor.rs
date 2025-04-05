@@ -101,6 +101,18 @@ unsafe extern "C" fn xor_transform(_det: *mut c_void, buffer: *mut c_void, ctx: 
     InspectionBufferTruncate(buffer, input_len);
 }
 
+unsafe extern "C" fn xor_serialize(
+    data: *mut *const u8, length: *mut u32, ctx: *mut *const c_void,
+) {
+    if data.is_null() || length.is_null() || ctx.is_null() {
+        return;
+    }
+
+    let ctx = cast_pointer!(ctx, DetectTransformXorData);
+    *data = ctx.key.as_ptr();
+    *length = ctx.key.len() as u32;
+}
+
 unsafe extern "C" fn xor_free(_de: *mut c_void, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut DetectTransformXorData));
 }
@@ -116,11 +128,12 @@ pub unsafe extern "C" fn DetectTransformXorRegister() {
         Transform: xor_transform,
         Free: Some(xor_free),
         TransformValidate: None,
+        TransformSerialize: Some(xor_serialize),
     };
     unsafe {
         G_TRANSFORM_XOR_ID = DetectHelperTransformRegister(&kw);
         if G_TRANSFORM_XOR_ID < 0 {
-            SCLogWarning!("Failed registering transform dot_prefix");
+            SCLogWarning!("Failed registering transform xor");
         }
     }
 }
@@ -128,6 +141,7 @@ pub unsafe extern "C" fn DetectTransformXorRegister() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ptr;
 
     #[test]
     fn test_xor_parse() {
@@ -137,6 +151,32 @@ mod tests {
             xor_parse_do("0a0DC8ff"),
             Some(DetectTransformXorData { key: key.to_vec() })
         );
+    }
+
+    #[test]
+    fn test_xor_serialize() {
+        let ctx = Box::new(DetectTransformXorData {
+            key: vec![1, 2, 3, 4, 5],
+        });
+
+        let ctx_ptr: *const c_void = &*ctx as *const _ as *const c_void;
+
+        let mut data_ptr: *const u8 = std::ptr::null();
+        let mut length: u32 = 0;
+
+        unsafe {
+            xor_serialize(
+                &mut data_ptr as *mut _,
+                &mut length as *mut _,
+                ctx_ptr as *mut _,
+            );
+
+            assert!(!data_ptr.is_null(), "data_ptr should not be null");
+            assert_eq!(length, 5);
+
+            let actual = std::slice::from_raw_parts(data_ptr, length as usize);
+            assert_eq!(actual, &[1, 2, 3, 4, 5]);
+        }
     }
 
     #[test]
