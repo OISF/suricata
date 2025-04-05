@@ -2625,6 +2625,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     de_ctx->type = type;
     de_ctx->filemagic_thread_ctx_id = -1;
     de_ctx->tenant_id = tenant_id;
+    de_ctx->pass_applayer_flow_action = false;
 
     if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
         de_ctx->version = DetectEngineGetVersion();
@@ -2641,6 +2642,12 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         SCLogDebug("ConfGetBool could not load the value.");
     }
     de_ctx->failure_fatal = (failure_fatal == 1);
+
+    int pass_applayer_flow_action = 0;
+    if (ConfGetBool("detect.pass-applayer-flow-action", (int *)&pass_applayer_flow_action) != 1) {
+        SCLogDebug("ConfGetBool could not load the value.");
+    }
+    de_ctx->pass_applayer_flow_action = (pass_applayer_flow_action == 1);
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
