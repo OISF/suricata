@@ -52,7 +52,9 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn header_lowertransform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn header_lowertransform(
+    _det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -83,6 +85,7 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
         Transform: header_lowertransform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_HEADER_LOWER_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_HEADER_LOWER_ID < 0 {
@@ -114,7 +117,9 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-unsafe extern "C" fn strip_pseudo_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn strip_pseudo_transform(
+    _det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -145,6 +150,7 @@ pub unsafe extern "C" fn DetectTransformStripPseudoHeadersRegister() {
         Transform: strip_pseudo_transform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_STRIP_PSEUDO_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_STRIP_PSEUDO_ID < 0 {
