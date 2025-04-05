@@ -961,22 +961,24 @@ impl ConnectionParser {
                     *c == 0x20
                 });
 
-            if uri.len() == remaining.len() && uri.iter().any(|&c| is_space(c)) {
+            if uri.iter().any(|&c| is_space(c) && c != 0x20) {
                 // warn regardless if we've seen non-compliant chars
                 htp_warn!(
                     self.logger,
                     HtpLogCode::URI_DELIM_NON_COMPLIANT,
                     "Request line: URI contains non-compliant delimiter"
                 );
-                // if we've seen some 'bad' delimiters, we retry with those
-                let uri_protocol = split_on_predicate(
-                    remaining,
-                    self.cfg.decoder_cfg.allow_space_uri,
-                    true,
-                    |c| is_space(*c),
-                );
-                uri = uri_protocol.0;
-                protocol = uri_protocol.1;
+                if uri.len() == remaining.len() {
+                    // if we've seen some 'bad' delimiters, we retry with those
+                    let uri_protocol = split_on_predicate(
+                        remaining,
+                        self.cfg.decoder_cfg.allow_space_uri,
+                        true,
+                        |c| is_space(*c),
+                    );
+                    uri = uri_protocol.0;
+                    protocol = uri_protocol.1;
+                }
             }
 
             let req = self.request_mut().unwrap();
