@@ -31,7 +31,7 @@
 
 typedef struct DataJsonType {
     char *value;
-    size_t len;
+    uint16_t len;
 } DataJsonType;
 
 typedef struct DataJsonResultType {
