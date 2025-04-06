@@ -69,7 +69,7 @@ Example::
   print (proto)
 
 ``server_software()``
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 Get the ``server_software`` value as a string.
 
@@ -80,7 +80,7 @@ Example::
   print (software)
 
 ``client_software()``
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 Get the ``client_software`` value as a string.
 
