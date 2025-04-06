@@ -68,7 +68,7 @@ static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
         /* JANSSON does not see an integer, float or a string as valid JSON.
            So we need to exclude them from failure. */
         if (!IsFloat(in, ins) && !((in[0] == '"') && (in[ins - 1] == '"'))) {
-            SCLogWarning("dataset: Invalid json: %s: '%s'\n", jerror.text, in);
+            SCLogError("dataset: Invalid json: %s: '%s'", jerror.text, in);
             return -1;
         }
     } else {
