@@ -150,9 +150,9 @@ void PacketAlertRecycle(PacketAlert *pa_array)
     if (pa_array != NULL) {
         for (int i = 0; i < packet_alert_max; i++) {
             if (pa_array[i].json_info.next != NULL) {
-                struct JsonInfoList *current_json = pa_array[i].json_info.next;
+                struct ExtraDataJsonList *current_json = pa_array[i].json_info.next;
                 while (current_json) {
-                    struct JsonInfoList *next_json = current_json->next;
+                    struct ExtraDataJsonList *next_json = current_json->next;
                     SCFree(current_json);
                     current_json = next_json;
                 }
@@ -169,9 +169,9 @@ void PacketAlertFree(PacketAlert *pa)
         for (int i = 0; i < packet_alert_max; i++) {
             /* first item is not allocated so start at second one */
             if (pa[i].json_info.next != NULL) {
-                struct JsonInfoList *current_json = pa[i].json_info.next;
+                struct ExtraDataJsonList *current_json = pa[i].json_info.next;
                 while (current_json) {
-                    struct JsonInfoList *next_json = current_json->next;
+                    struct ExtraDataJsonList *next_json = current_json->next;
                     SCFree(current_json);
                     current_json = next_json;
                 }

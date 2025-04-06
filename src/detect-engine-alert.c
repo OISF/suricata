@@ -294,11 +294,11 @@ static inline PacketAlert PacketAlertSet(
     if (det_ctx->json_content_len) {
         /* We have some JSON attached in the current detection so let's try
            to see if some need to be used for current signature. */
-        struct JsonInfoList *current_json = &pa.json_info;
+        struct ExtraDataJsonList *current_json = &pa.json_info;
         for (size_t i = 0; i < det_ctx->json_content_len; i++) {
             if (s == det_ctx->json_content[i].id) {
                 if (current_json->json_string != NULL) {
-                    struct JsonInfoList *next_json = SCCalloc(1, sizeof(struct JsonInfoList));
+                    struct ExtraDataJsonList *next_json = SCCalloc(1, sizeof(struct ExtraDataJsonList));
                     if (next_json) {
                         current_json->next = next_json;
                         current_json = next_json;
