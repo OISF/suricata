@@ -170,7 +170,7 @@ value is higher than 200.
 dataset with json
 ~~~~~~~~~~~~~~~~~
 
-DataJSON allows matching data against a set and output data attached to the matching
+Dataset with JSON allows matching data against a set and output data attached to the matching
 value in the event.
 
 There is two format supported: ``json`` and ``jsonline``. The difference is that
@@ -204,7 +204,7 @@ a JSON array and search for element to add to the set in this array. This is onl
 If you don't want to have the ``value_key`` in the alert, you can use the
 ``remove_key`` option. This will remove the key from the alert event.
 
-See :ref:`Datajson format <datajson_data>` for more information.
+See :ref:`Dataset with JSON format <datajson_data>` for more information.
 
 Rule Reloads
 ------------
@@ -398,7 +398,7 @@ For example, if the file ``file.json`` is like the following example (typical of
         }
     }
 
-then the match to check the list of threats using datajson can be defined as ::
+then the match to check the list of threats using dataset with JSON can be defined as ::
 
     http.host; dataset:isset,threats,load file.json, enrichment_key threat, value_key host, array_key response.threats;
 
