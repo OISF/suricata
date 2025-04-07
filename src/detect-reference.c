@@ -145,7 +145,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         goto error;
     }
 
-    int ref_len = strlen(uri);
+    size_t ref_len = strlen(uri);
     /* no key, reference -- return an error */
     if (strlen(key) == 0 || ref_len == 0)
         goto error;

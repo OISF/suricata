@@ -121,7 +121,7 @@ static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx
     }
 
     InspectionBufferSetupMulti(det_ctx, buffer, transforms, (const uint8_t *)connp->cert0_sans[idx],
-            strlen(connp->cert0_sans[idx]));
+            (uint32_t)strlen(connp->cert0_sans[idx]));
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");

@@ -40,37 +40,38 @@
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);
-static int SigParseGetMaxBsize(const DetectU64Data *bsz);
+static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
 
 bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
 {
-    int bsize = -1;
+    uint64_t bsize;
+    int retval = 0;
     const DetectU64Data *bsz;
     for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_BSIZE) {
             bsz = (const DetectU64Data *)sm->ctx;
-            bsize = SigParseGetMaxBsize(bsz);
+            retval = SigParseGetMaxBsize(bsz, &bsize);
             break;
         }
     }
 
-    if (bsize == -1) {
+    if (retval == -1) {
         return true;
     }
 
     uint64_t needed;
-    if (bsize >= 0) {
+    if (retval == 0 && bsize >= 0) {
         int len, offset;
         SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
         SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
         needed = len;
-        if (len > bsize) {
+        if ((uint64_t)len > bsize) {
             goto value_error;
         }
-        if ((len + offset) > bsize) {
+        if ((uint64_t)(len + offset) > bsize) {
             needed += offset;
             goto value_error;
         }
@@ -157,14 +158,16 @@ int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eo
     return 0;
 }
 
-static int SigParseGetMaxBsize(const DetectU64Data *bsz)
+static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize)
 {
     switch (bsz->mode) {
         case DETECT_UINT_LT:
         case DETECT_UINT_EQ:
-            return bsz->arg1;
+            *bsize = bsz->arg1;
+            SCReturnInt(0);
         case DETECT_UINT_RA:
-            return bsz->arg2;
+            *bsize = bsz->arg2;
+            SCReturnInt(0);
         case DETECT_UINT_GT:
         default:
             SCReturnInt(-2);
