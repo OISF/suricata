@@ -535,3 +535,36 @@ and contains the LDAP attribute type ``dc``.
 .. container:: example-rule
 
   alert ldap any any -> any any (msg:"Test attribute type and operation"; :example-rule-emphasis:`ldap.responses.operation:search_result_entry,1; ldap.responses.attribute_type; content:"dc";` sid:1;)
+
+ldap.request.attributes
+-----------------------
+
+Matches on LDAP attribute type and value together in request operations.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ ldap.request.attributes; content:"<type>=<value>";
+
+``ldap.request.attributes`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``ldap.request.attributes`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE fields:
+
+   - ``ldap.request.modify_request.changes[].modification.attribute_type``
+   - ``ldap.request.modify_request.changes[].modification.attribute_values[]``
+   - ``ldap.request.add_request.attributes[].name``
+   - ``ldap.request.add_request.attributes[].values[]``
+   - ``ldap.request.compare_request.attribute_value_assertion.description``
+   - ``ldap.request.compare_request.attribute_value_assertion.value``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet has the LDAP attribute type ``objectClass`` with the attribute value ``domain``:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"Test attribute type + value"; :example-rule-emphasis:`ldap.request.attributes; content:"objectClass=domain";` sid:1;)

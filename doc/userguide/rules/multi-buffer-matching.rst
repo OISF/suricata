@@ -87,6 +87,7 @@ following keywords:
 * ``krb5_cname``
 * ``krb5_sname``
 * ``ldap.request.attribute_type``
+* ``ldap.request.attributes``
 * ``ldap.responses.attribute_type``
 * ``ldap.responses.dn``
 * ``ldap.responses.message``

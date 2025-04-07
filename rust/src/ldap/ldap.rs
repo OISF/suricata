@@ -59,6 +59,7 @@ pub struct LdapTransaction {
     pub request: Option<LdapMessage>,
     pub responses: VecDeque<LdapMessage>,
     complete: bool,
+    pub(super) req_attributes: Vec<Vec<u8>>,
 
     tx_data: AppLayerTxData,
 }
@@ -76,6 +77,7 @@ impl LdapTransaction {
             request: None,
             responses: VecDeque::new(),
             complete: false,
+            req_attributes: Vec::new(),
             tx_data: AppLayerTxData::new(),
         }
     }

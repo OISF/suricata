@@ -72,6 +72,7 @@ static mut G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_MSG_BUFFER_ID: c_int = 0;
 static mut G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
+static mut G_LDAP_REQUEST_ATTRIBUTES_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ldap_parse_protocol_req_op(
     ustr: *const std::os::raw::c_char,
@@ -689,6 +690,105 @@ unsafe extern "C" fn ldap_tx_get_resp_attribute_type(
     return false;
 }
 
+unsafe extern "C" fn ldap_detect_request_attibutes_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_LDAP_REQUEST_ATTRIBUTES_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_request_attributes_get_data(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        ldap_tx_get_req_attributes,
+    );
+}
+
+unsafe extern "C" fn ldap_tx_get_req_attributes(
+    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, LdapTransaction);
+
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+
+    if let Some(request) = &tx.request {
+        let mut pos = 0_u32; // Contador para mapear local_id
+
+        match &request.protocol_op {
+            ProtocolOp::ModifyRequest(req) => {
+                for change in &req.changes {
+                    for val in &change.modification.attr_vals {
+                        if pos == local_id {
+                            let mut v = Vec::new();
+                            v.extend_from_slice(change.modification.attr_type.0.as_bytes());
+                            v.push(b'=');
+                            v.extend_from_slice(&val.0);
+                            tx.req_attributes.push(v);
+                            let value = tx.req_attributes.last().unwrap();
+
+                            *buffer = value.as_ptr();
+                            *buffer_len = value.len() as u32;
+                            return true;
+                        }
+                        pos += 1;
+                    }
+                }
+            }
+            ProtocolOp::AddRequest(req) => {
+                for attr in &req.attributes {
+                    for val in &attr.attr_vals {
+                        if pos == local_id {
+                            let mut v = Vec::new();
+                            v.extend_from_slice(attr.attr_type.0.as_bytes());
+                            v.push(b'=');
+                            v.extend_from_slice(&val.0);
+                            tx.req_attributes.push(v);
+                            let value = tx.req_attributes.last().unwrap();
+
+                            *buffer = value.as_ptr();
+                            *buffer_len = value.len() as u32;
+                            return true;
+                        }
+                        pos += 1;
+                    }
+                }
+            }
+            ProtocolOp::CompareRequest(req) => {
+                if local_id == 0 {
+                    let mut v = Vec::new();
+                    v.extend_from_slice(req.ava.attribute_desc.0.as_bytes());
+                    v.push(b'=');
+                    v.extend_from_slice(&req.ava.assertion_value);
+                    tx.req_attributes.push(v);
+                    let value = tx.req_attributes.last().unwrap();
+
+                    *buffer = value.as_ptr();
+                    *buffer_len = value.len() as u32;
+                    return true;
+                }
+            }
+            _ => return false,
+        }
+    }
+
+    false
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableElmt {
@@ -848,5 +948,23 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
         ldap_detect_responses_attribute_type_get_data,
+    );
+    let kw = SCSigTableElmt {
+        name: b"ldap.request.attributes\0".as_ptr() as *const libc::c_char,
+        desc: b"match request LDAP attributes\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap.request.attributes\0".as_ptr() as *const libc::c_char,
+        Setup: ldap_detect_request_attibutes_setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_ldap_request_attributes_kw_id = DetectHelperKeywordRegister(&kw);
+    G_LDAP_REQUEST_ATTRIBUTES_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"ldap.request.attributes\0".as_ptr() as *const libc::c_char,
+        b"LDAP REQUEST ATTRIBUTE TYPE AND VALUE\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        false, //to client
+        true,  //to server
+        ldap_detect_request_attributes_get_data,
     );
 }
