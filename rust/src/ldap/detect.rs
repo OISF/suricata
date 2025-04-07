@@ -73,6 +73,7 @@ static mut G_LDAP_RESPONSES_MSG_BUFFER_ID: c_int = 0;
 static mut G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_REQUEST_ATTRIBUTES_BUFFER_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_ATTRIBUTES_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ldap_parse_protocol_req_op(
     ustr: *const std::os::raw::c_char,
@@ -789,6 +790,67 @@ unsafe extern "C" fn ldap_tx_get_req_attributes(
     false
 }
 
+unsafe extern "C" fn ldap_detect_responses_attibutes_setup(
+    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    if DetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_ATTRIBUTES_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_responses_attributes_get_data(
+    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
+    tx: *const c_void, list_id: c_int, local_id: u32,
+) -> *mut c_void {
+    return DetectHelperGetMultiData(
+        de,
+        transforms,
+        flow,
+        flow_flags,
+        tx,
+        list_id,
+        local_id,
+        ldap_tx_get_resp_attributes,
+    );
+}
+
+unsafe extern "C" fn ldap_tx_get_resp_attributes(
+    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    let mut pos = 0_u32;
+
+    for response in &tx.responses {
+        match &response.protocol_op {
+            ProtocolOp::SearchResultEntry(resp) => {
+                for attr in &resp.attributes {
+                    for val in &attr.attr_vals {
+                        if pos == local_id {
+                            let mut v = Vec::new();
+                            v.extend_from_slice(attr.attr_type.0.as_bytes());
+                            v.push(b'=');
+                            v.extend_from_slice(&val.0);
+                            tx.resp_attributes.push(v);
+                            let value = tx.resp_attributes.last().unwrap();
+
+                            *buffer = value.as_ptr(); // unsafe
+                            *buffer_len = value.len() as u32;
+                            return true;
+                        }
+                        pos += 1;
+                    }
+                }
+            }
+            _ => continue,
+        }
+    }
+    return false;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableElmt {
@@ -966,5 +1028,24 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to client
         true,  //to server
         ldap_detect_request_attributes_get_data,
+    );
+    let kw = SCSigTableElmt {
+        name: b"ldap.responses.attributes\0".as_ptr() as *const libc::c_char,
+        desc: b"match LDAP responses attribute type and value\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap.responses.attributes\0".as_ptr()
+            as *const libc::c_char,
+        Setup: ldap_detect_responses_attibutes_setup,
+        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        AppLayerTxMatch: None,
+        Free: None,
+    };
+    let _g_ldap_responses_attributes_kw_id = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_ATTRIBUTES_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+        b"ldap.responses.attributes\0".as_ptr() as *const libc::c_char,
+        b"LDAP RESPONSES ATTRIBUTE TYPE AND VALUE\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        true,  //to client
+        false, //to server
+        ldap_detect_responses_attributes_get_data,
     );
 }

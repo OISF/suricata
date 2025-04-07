@@ -89,6 +89,7 @@ following keywords:
 * ``ldap.request.attribute_type``
 * ``ldap.request.attributes``
 * ``ldap.responses.attribute_type``
+* ``ldap.responses.attributes``
 * ``ldap.responses.dn``
 * ``ldap.responses.message``
 * ``mqtt.subscribe.topic``
