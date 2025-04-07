@@ -1691,6 +1691,9 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
             } else {
                 s->type = SIG_TYPE_PKT_STREAM;
             }
+        } else if (de_ctx->pass_applayer_flow_action && (s->flags & SIG_FLAG_APPLAYER) &&
+                   (s->flags & SIG_FLAG_REQUIRE_PACKET) == 0) {
+            s->type = SIG_TYPE_APPLAYER;
         } else if (has_match) {
             s->type = SIG_TYPE_PKT;
 
