@@ -3000,8 +3000,8 @@ can be completely disabled the same as the Suricata 7.0 default:
 
    security:
      lua:
-       # Allow Lua rules. Disabled by default.
-       #allow-rules: false
+       # Allow Lua rules. Enabled by default.
+       #allow-rules: true
 
        # Upper bound of allocations by a Lua rule before it will fail
        #max-bytes: 500000 

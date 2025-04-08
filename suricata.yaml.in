@@ -1306,8 +1306,8 @@ security:
         - @e_sysconfdir@
 
   lua:
-    # Allow Lua rules. Disabled by default.
-    #allow-rules: false
+    # Allow Lua rules. Enabled by default.
+    #allow-rules: true
 
 # Some logging modules will use that name in event as identifier. The default
 # value is the hostname
