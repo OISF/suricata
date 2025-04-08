@@ -606,6 +606,7 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
+                gpg \
                 hiredis-devel \
                 jansson-devel \
                 jq \
@@ -654,6 +655,7 @@ jobs:
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
+      - run: rm prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
