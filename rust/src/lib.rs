@@ -138,7 +138,6 @@ pub mod sdp;
 pub mod ldap;
 pub mod flow;
 pub mod direction;
-pub mod domain;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;

@@ -223,7 +223,6 @@
 
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-base64.h"
-#include "detect-transform-domain.h"
 
 #include "util-rule-vars.h"
 
