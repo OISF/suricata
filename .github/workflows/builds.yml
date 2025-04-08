@@ -643,9 +643,9 @@ jobs:
         with:
           name: prep
           path: prep
-      - du --max-depth=1 -h ../
+      - run: du --max-depth=1 -h ../
       - run: tar xf prep/suricata-update.tar.gz
-      - du --max-depth=1 -h ../
+      - run: du --max-depth=1 -h ../
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --disable-shared
         env:
@@ -657,16 +657,16 @@ jobs:
           CC: "clang"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
-      - du --max-depth=1 -h ../
+      - run: du --max-depth=1 -h ../
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
-      - du --max-depth=1 -h ../
+      - run: du --max-depth=1 -h ../
       - name: rm prep/suricata-verify.tar.gz
-      - du --max-depth=1 -h ../
+      - run: du --max-depth=1 -h ../
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
-      - du --max-depth=1 -h ../
-      - df -h
+      - run: du --max-depth=1 -h ../
+      - run: df -h
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
