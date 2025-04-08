@@ -606,6 +606,7 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
+                gpg \
                 hiredis-devel \
                 jansson-devel \
                 jq \
@@ -629,6 +630,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - run: |
+          dnf clean all
       # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.83 -y
@@ -654,6 +657,7 @@ jobs:
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
+      - run: rm -r prep
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
