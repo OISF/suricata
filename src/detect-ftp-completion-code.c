@@ -71,7 +71,7 @@ static bool DetectFTPCompletionCodeGetData(void *txv, uint8_t _flow_flags, uint3
             DEBUG_VALIDATE_BUG_ON(wrapper->response == NULL);
             if (index == count) {
                 *buffer = (const uint8_t *)wrapper->response->code;
-                *buffer_len = strlen(wrapper->response->code);
+                *buffer_len = wrapper->response->code_length;
                 return true;
             }
             count++;
