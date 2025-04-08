@@ -409,6 +409,9 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                         pcap_geterr(pl->pcap_dead_handle));
             } else {
                 pl->bpfp = SCCalloc(1, sizeof(*pl->bpfp));
+                if (pl->bpfp == NULL) {
+                    FatalError("Failed to allocate memory for BPF filter, aborting");
+                }
                 *pl->bpfp = bpfp;
             }
         }
