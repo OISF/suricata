@@ -2358,9 +2358,9 @@ return 0;
 # step, use it, otherwise parse it from the ChangeLog.
     AC_MSG_CHECKING([for release date])
     if test "x$LAST_COMMIT_DATE" != "x"; then
-	RELEASE_DATE=$LAST_COMMIT_DATE
+        RELEASE_DATE=$LAST_COMMIT_DATE
     else
-        RELEASE_DATE=`awk '/^[[0-9\.]]+ -- [[0-9]][[0-9]][[0-9]][[0-9]]-[[0-9]][[0-9]]-[[0-9]][[0-9]]/ { print $3; exit }' $srcdir/ChangeLog`
+        RELEASE_DATE=`awk '/^[[0-9]][[0-9\.\-a-z]]+ -- [[0-9]][[0-9]][[0-9]][[0-9]]-[[0-9]][[0-9]]-[[0-9]][[0-9]]/ { print $3; exit }' $srcdir/ChangeLog`
         if test "x$RELEASE_DATE" = "x"; then
             AC_MSG_ERROR([Failed to determine release date])
         fi
