@@ -661,7 +661,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - run: du --max-depth=1 -h ../
-      - name: rm prep/suricata-verify.tar.gz
+      - run: rm prep/suricata-verify.tar.gz
       - run: du --max-depth=1 -h ../
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
