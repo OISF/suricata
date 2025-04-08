@@ -38,6 +38,6 @@ should continue to work.
 Caveats
 -------
 
-Currently builing the PF_RING plugin is not compatible with the
+Currently building the PF_RING plugin is not compatible with the
 ``--disable-shared`` configure argument.
 
