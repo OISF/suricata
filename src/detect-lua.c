@@ -706,8 +706,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
     int enabled = 0;
-    (void)SCConfGetBool("security.lua.allow-rules", &enabled);
-    if (!enabled) {
+    if (SCConfGetBool("security.lua.allow-rules", &enabled) == 1 && !enabled) {
         SCLogError("Lua rules disabled by security configuration: security.lua.allow-rules");
         return -1;
     }
