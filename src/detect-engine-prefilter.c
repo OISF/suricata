@@ -936,6 +936,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
             const int list_id = s->init_data->buffers[x].id;
             const DetectBufferType *buf = DetectEngineBufferTypeGetById(de_ctx, list_id);
+            if (buf == NULL)
+                continue;
             /* for now, exclude app-layer-events, as they are not tied to a specific
              * progress value like other keywords. */
             SCLogDebug("list_id %d buf %p", list_id, buf);
