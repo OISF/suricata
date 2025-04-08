@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2024-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,6 +21,7 @@ use std::os::raw::{c_char, c_int, c_void};
 
 pub mod casechange;
 pub mod compress_whitespace;
+pub mod domain;
 pub mod dotprefix;
 pub mod hash;
 pub mod http_headers;
