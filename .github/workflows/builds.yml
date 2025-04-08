@@ -606,6 +606,7 @@ jobs:
                 gcc \
                 gcc-c++ \
                 git \
+                gpg \
                 hiredis-devel \
                 jansson-devel \
                 jq \
