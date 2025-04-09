@@ -179,7 +179,6 @@ int DecodePPPOESession(
             case PPP_SNS:
             case PPP_MPLS_UCAST:
             case PPP_MPLS_MCAST:
-            case PPP_IPCP:
             case PPP_OSICP:
             case PPP_NSCP:
             case PPP_DECNETCP:
@@ -187,13 +186,20 @@ int DecodePPPOESession(
             case PPP_IPXCP:
             case PPP_STIICP:
             case PPP_VINESCP:
-            case PPP_IPV6CP:
             case PPP_MPLSCP:
+                ENGINE_SET_EVENT(p, PPP_UNSUP_PROTO);
+                break;
+
+            case PPP_IPCP:
+            case PPP_IPV6CP:
             case PPP_LCP:
             case PPP_PAP:
-            case PPP_LQM:
             case PPP_CHAP:
-                ENGINE_SET_EVENT(p, PPP_UNSUP_PROTO);
+            case PPP_CCP:
+            case PPP_LQM:
+            case PPP_CBCP:
+            case PPP_COMP_DGRAM:
+                /* Valid types to be in PPP but don't inspect validity. */
                 break;
 
             case PPP_VJ_UCOMP:
