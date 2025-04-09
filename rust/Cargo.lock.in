@@ -660,22 +660,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "htp"
-version = "2.0.0"
-dependencies = [
- "base64",
- "bstr",
- "cdylib-link-lines",
- "flate2",
- "lazy_static",
- "libc",
- "lzma-rs",
- "nom",
- "rstest",
- "time",
-]
-
-[[package]]
 name = "indexmap"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1552,7 +1536,6 @@ dependencies = [
  "flate2",
  "hex",
  "hkdf",
- "htp",
  "ipsec-parser",
  "kerberos-parser",
  "lazy_static",
@@ -1576,6 +1559,7 @@ dependencies = [
  "sha2",
  "snmp-parser",
  "suricata-derive",
+ "suricata-htp",
  "suricata-lua-sys",
  "suricata-sys",
  "test-case",
@@ -1594,6 +1578,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "suricata-htp"
+version = "2.0.0"
+dependencies = [
+ "base64",
+ "bstr",
+ "cdylib-link-lines",
+ "flate2",
+ "lazy_static",
+ "libc",
+ "lzma-rs",
+ "nom",
+ "rstest",
+ "time",
 ]
 
 [[package]]
