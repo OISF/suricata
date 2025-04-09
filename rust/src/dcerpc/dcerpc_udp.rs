@@ -127,8 +127,7 @@ impl DCERPCUDPState {
     /// parser in C. This requires an internal transaction ID to be maintained.
     ///
     /// Arguments:
-    /// * `tx_id`:
-    ///    description: internal transaction ID to track transactions
+    /// * `tx_id` - internal transaction ID to track transactions
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction

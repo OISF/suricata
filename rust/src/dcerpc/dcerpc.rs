@@ -485,9 +485,7 @@ impl DCERPCState {
     /// parser in C. This requires an internal transaction ID to be maintained.
     ///
     /// Arguments:
-    /// * `tx_id`:
-    ///           type: unsigned 32 bit integer
-    ///    description: internal transaction ID to track transactions
+    /// * `tx_id`: internal transaction ID to track transactions
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
@@ -505,12 +503,8 @@ impl DCERPCState {
     /// found, create one.
     ///
     /// Arguments:
-    /// * `call_id`:
-    ///             type: unsigned 32 bit integer
-    ///      description: call_id param derived from TCP Header
-    /// * `dir`:
-    ///             type: enum Direction
-    ///      description: direction of the flow
+    /// * `call_id`: call_id param derived from TCP Header
+    /// * `dir`: description: direction of the flow
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
@@ -612,14 +606,13 @@ impl DCERPCState {
     /// Makes a call to the nom parser for parsing DCERPC Header.
     ///
     /// Arguments:
-    /// * `input`:
-    ///           type: u8 vector slice.
-    ///    description: bytes from the beginning of the buffer.
+    /// * `input`: bytes from the beginning of the buffer.
     ///
     /// Return value:
     /// * Success: Number of bytes successfully parsed.
-    /// * Failure: -1 in case of Incomplete data or Eof.
-    ///            -2 in case of Error while parsing.
+    /// * Failure:
+    ///   * -1 in case of Incomplete data or Eof.
+    ///   * -2 in case of Error while parsing.
     pub fn process_header(&mut self, input: &[u8]) -> i32 {
         match parser::parse_dcerpc_header(input) {
             Ok((leftover_bytes, header)) => {
@@ -826,15 +819,9 @@ impl DCERPCState {
     /// Handles stub data for both request and response.
     ///
     /// Arguments:
-    /// * `input`:
-    ///           type: u8 vector slice.
-    ///    description: bytes left *after* parsing header.
-    /// * `bytes_consumed`:
-    ///           type: 16 bit unsigned integer.
-    ///    description: bytes consumed *after* parsing header.
-    /// * `dir`:
-    ///           type: enum Direction.
-    ///    description: direction whose stub is supposed to be handled.
+    /// * `input`: bytes left *after* parsing header.
+    /// * `bytes_consumed`: bytes consumed *after* parsing header.
+    /// * `dir`: direction whose stub is supposed to be handled.
     ///
     /// Return value:
     /// * Success: Number of bytes successfully parsed.

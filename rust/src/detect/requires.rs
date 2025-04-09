@@ -448,8 +448,8 @@ pub unsafe extern "C" fn SCDetectRequiresStatusLog(
 ///   *  0 - OK, rule should continue loading
 ///   * -1 - Error parsing the requires content
 ///   * -4 - Requirements not met, don't continue loading the rule, this
-///          value is chosen so it can be passed back to the options parser
-///          as its treated as a non-fatal silent error.
+///     value is chosen so it can be passed back to the options parser
+///     as its treated as a non-fatal silent error.
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectCheckRequires(
     requires: *const c_char, suricata_version_string: *const c_char, errstr: *mut *const c_char,
