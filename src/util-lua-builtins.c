@@ -25,6 +25,7 @@
 #include "util-lua-flowlib.h"
 #include "util-lua-hashlib.h"
 #include "util-lua-packetlib.h"
+#include "util-lua-rule.h"
 
 #include "lauxlib.h"
 
@@ -37,6 +38,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.hashlib", SCLuaLoadHashlib },
     { "suricata.http", SCLuaLoadHttpLib },
     { "suricata.packet", LuaLoadPacketLib },
+    { "suricata.rule", SCLuaLoadRuleLib },
     { NULL, NULL },
 };
 
