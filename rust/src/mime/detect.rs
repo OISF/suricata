@@ -43,3 +43,20 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetData(
 
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMimeEmailGetUrl(
+    ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32, idx: u32,
+) -> u8 {
+    if !ctx.urls.is_empty() && idx < ctx.urls.len() as u32 {
+        let url = &ctx.urls[idx as usize];
+        *buffer = url.as_ptr();
+        *buffer_len = url.len() as u32;
+        return 1;
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
