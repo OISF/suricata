@@ -129,6 +129,18 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
 
             return DecodeIPV6(tv, dtv, p, pkt + data_offset, (uint16_t)(len - data_offset));
 
+        case PPP_IPCP:
+        case PPP_IPV6CP:
+        case PPP_LCP:
+        case PPP_PAP:
+        case PPP_CHAP:
+        case PPP_CCP:
+        case PPP_LQM:
+        case PPP_CBCP:
+        case PPP_COMP_DGRAM:
+            /* Valid types to be in PPP but don't inspect validity. */
+            return TM_ECODE_OK;
+
         case PPP_VJ_COMP:
         case PPP_IPX:
         case PPP_OSI:
@@ -143,7 +155,6 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
         case PPP_SNS:
         case PPP_MPLS_UCAST:
         case PPP_MPLS_MCAST:
-        case PPP_IPCP:
         case PPP_OSICP:
         case PPP_NSCP:
         case PPP_DECNETCP:
@@ -151,15 +162,7 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
         case PPP_IPXCP:
         case PPP_STIICP:
         case PPP_VINESCP:
-        case PPP_IPV6CP:
         case PPP_MPLSCP:
-        case PPP_LCP:
-        case PPP_PAP:
-        case PPP_LQM:
-        case PPP_CHAP:
-        case PPP_CCP:
-        case PPP_CBCP:
-        case PPP_COMP_DGRAM:
             ENGINE_SET_EVENT(p, PPP_UNSUP_PROTO);
             return TM_ECODE_OK;
 
