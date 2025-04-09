@@ -31,7 +31,7 @@ type LuaInteger = i32;
 pub enum CLuaState {}
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
     fn lua_pushlstring(lua: *mut CLuaState, s: *const c_char, len: usize);

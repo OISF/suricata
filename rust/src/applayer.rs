@@ -475,7 +475,7 @@ pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 
 // Defined in app-layer-register.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
     pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
 }
@@ -487,7 +487,7 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 
 // Defined in app-layer-detect-proto.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
                                          min_depth: u16, max_depth: u16, dir: u8,
                                          pparser1: ProbeFn, pparser2: ProbeFn);
@@ -522,7 +522,7 @@ pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
 pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u16);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);

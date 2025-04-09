@@ -129,7 +129,7 @@ pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 // Defined in app-layer-protos.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
 
@@ -224,7 +224,7 @@ pub struct SuricataContext {
     pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
 
-    pub AppLayerRegisterParser: extern fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
+    pub AppLayerRegisterParser: extern "C" fn(parser: *const crate::applayer::RustParser, alproto: AppProto) -> std::os::raw::c_int,
 }
 
 #[allow(non_snake_case)]
@@ -234,7 +234,7 @@ pub struct SuricataFileContext {
 }
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn SCGetContext() -> &'static mut SuricataContext;
     pub fn SCLogGetLogLevel() -> i32;
 }
@@ -301,7 +301,7 @@ pub enum Flow {}
 
 // Extern functions operating on Flow.
 /// cbindgen:ignore
-extern {
+extern "C" {
     pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
     pub fn FlowGetFlags(flow: &Flow) -> u32;
     pub fn FlowGetSourcePort(flow: &Flow) -> u16;

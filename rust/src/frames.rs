@@ -31,7 +31,7 @@ struct CFrame {
 
 // Defined in app-layer-register.h
 /// cbindgen:ignore
-extern {
+extern "C" {
     #[cfg(not(test))]
     fn AppLayerFrameNewByRelativeOffset(
         flow: *const Flow, stream_slice: *const StreamSlice, frame_start_rel: u32, len: i64,

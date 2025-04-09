@@ -32,7 +32,7 @@ use nom7::{
 };
 
 /// cbindgen:ignore
-extern {
+extern "C" {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
     fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
                          vptr: *mut *const c_char) -> i8;
@@ -141,7 +141,6 @@ impl ConfNode {
         }
         return false;
     }
-
 }
 
 const BYTE: u64       = 1;
