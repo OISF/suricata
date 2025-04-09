@@ -196,3 +196,29 @@ Example of a signature that would alert if an email contains the ``url`` ``test-
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email url"; :example-rule-emphasis:`email.url; content:"test-site.org/blah/123/";` sid:1;)
+
+email.received
+--------------
+
+Matches ``Received`` field of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.received; content:"<content to match against>";
+
+``email.received`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.received`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE field ``email.received[]``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if a packet contains the MIME field ``received`` with the value ``from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch; Mon, 29 Jul 2019 17:01:45 +0000``
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email received"; :example-rule-emphasis:`email.received; content:"from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch\; Mon, 29 Jul 2019 17:01:45 +0000";` sid:1;)
