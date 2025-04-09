@@ -644,51 +644,6 @@ SCFileState
 
 returns state (string), stored (bool)
 
-Alerts
-------
-
-Alerts are a subset of the 'packet' logger:
-
-::
-
-  function init (args)
-      local needs = {}
-      needs["type"] = "packet"
-      needs["filter"] = "alerts"
-      return needs
-  end
-
-SCRuleIds
-~~~~~~~~~
-
-::
-
-  sid, rev, gid = SCRuleIds()
-
-SCRuleAction
-~~~~~~~~~~~~
-
-::
-
-  action = SCRuleAction()
-
-returns one of 'pass', 'reject', 'drop' or 'alert'
-
-SCRuleMsg
-~~~~~~~~~
-
-::
-
-  msg = SCRuleMsg()
-
-SCRuleClass
-~~~~~~~~~~~
-
-::
-
-
-  class, prio = SCRuleClass()
-
 Streaming Data
 --------------
 
