@@ -1,14 +1,12 @@
 [package]
 name = "suricata-htp"
-authors = ["ivanr = Ivan Ristic <ivanr@webkreator.com>", "cccs = Canadian Centre for Cyber Security"]
 version = "2.0.0"
 edition = "2021"
 autobins = false
 license-file = "LICENSE"
 description = "Security Aware HTP Protocol parsing library"
 readme = "README.md"
-repository = "https://github.com/CybercentreCanada/libhtp-rs-internal"
-homepage = "https://github.com/CybercentreCanada/libhtp-rs-internal"
+repository = "https://github.com/OISF/suricata"
 keywords = ["parser", "HTTP", "protocol", "network", "api"]
 categories = ["parsing", "network-programming"]
 include = [
