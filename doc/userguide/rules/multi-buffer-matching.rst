@@ -77,6 +77,7 @@ following keywords:
 * ``dns.answer.name``
 * ``dns.query.name``
 * ``dns.query``
+* ``email.received``
 * ``email.url``
 * ``file.data``
 * ``file.magic``
