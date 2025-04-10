@@ -74,6 +74,9 @@ all-local: Cargo.toml
 	fi
 	$(MAKE) gen/rust-bindings.h
 	$(MAKE) gen/htp/htp_rs.h
+	if test -e Cargo.lock.in; then \
+		cp Cargo.lock Cargo.lock.in; \
+	fi
 
 install-exec-local:
 	install -d -m 0755 "$(DESTDIR)$(bindir)"
