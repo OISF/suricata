@@ -157,9 +157,8 @@ static inline void FlowRateStoreUpdateCurrentRing(
         frs->dir[direction].buf[idx] += pkt_len;
         /* Update the total sum */
         frs->dir[direction].sum += pkt_len;
-    } else if ((idx == frs->dir[direction].last_idx) || (idx == frs->dir[direction].last_idx + 1)) {
-        /* Index matches the last updated index in the ring buffer or is the next index in the
-         * buffer */
+    } else if (idx == frs->dir[direction].last_idx) {
+        /* Index matches the last updated index in the ring buffer */
         /* Add to the existing open time interval */
         frs->dir[direction].buf[idx] += pkt_len;
         /* Update the total sum */
@@ -172,7 +171,10 @@ static inline void FlowRateStoreUpdateCurrentRing(
         DEBUG_VALIDATE_BUG_ON(frs->dir[direction].sum < prev_byte_count);
         /* Sum should get rid of previous count on the same index */
         frs->dir[direction].sum += pkt_len - prev_byte_count;
-        frs->dir[direction].start_ts = p_ts;
+        if (idx != frs->dir[direction].last_idx + 1) {
+            /* Revisited index but not the next to last, so, reset start_ts */
+            frs->dir[direction].start_ts = p_ts;
+        }
     }
     frs->dir[direction].last_idx = idx;
 }
@@ -372,6 +374,15 @@ static int FlowRateTest03(void)
     FAIL_IF(frs->dir[0].last_ts.secs != p5->ts.secs);
     FAIL_IF(frs->dir[0].start_ts.secs != p5->ts.secs);
     FAIL_IF(frs->dir[0].buf[0] != 43);
+
+    Packet *p6 = UTHBuildPacket((uint8_t *)"meerkat", 7, IPPROTO_TCP);
+    p6->ts.secs = p1->ts.secs + 5;
+    FlowRateStoreUpdate(frs, p6->ts, GET_PKT_LEN(p6), TOSERVER);
+    /* Total length of packet is 47 */
+    FAIL_IF(frs->dir[0].sum != 183);
+    FAIL_IF(frs->dir[0].last_ts.secs != p6->ts.secs);
+    FAIL_IF(frs->dir[0].start_ts.secs != p5->ts.secs);
+    FAIL_IF(frs->dir[0].buf[1] != 47);
 
     FlowRateStoreFree(frs);
     PASS;
