@@ -659,7 +659,7 @@ jobs:
         run: tar xf prep/suricata-verify.tar.gz
       - run: rm -r prep
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q --debug-failed
+        run: python3 ./suricata-verify/run.py -q --debug-failed --aggressive-cleanup
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
