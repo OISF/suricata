@@ -393,7 +393,7 @@ static inline void PacketAlertFinalizeProcessQueue(
     bool skip_td = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
-        const Signature *s = pa->s; // de_ctx->sig_array[pa->num];
+        const Signature *s = pa->s;
         if (have_fw_rules && skip_td && (s->flags & SIG_FLAG_FIREWALL) == 0) {
             continue;
         }
