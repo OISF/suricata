@@ -2360,7 +2360,7 @@ return 0;
     if test "x$LAST_COMMIT_DATE" != "x"; then
 	RELEASE_DATE=$LAST_COMMIT_DATE
     else
-        RELEASE_DATE=`awk '/^[[0-9\.]]+ -- [[0-9]][[0-9]][[0-9]][[0-9]]-[[0-9]][[0-9]]-[[0-9]][[0-9]]/ { print $3; exit }' $srcdir/ChangeLog`
+        RELEASE_DATE=`awk '/^[[0-9\.]].+ -- [[0-9]][[0-9]][[0-9]][[0-9]]-[[0-9]][[0-9]]-[[0-9]][[0-9]]/ { print $3; exit }' $srcdir/ChangeLog`
         if test "x$RELEASE_DATE" = "x"; then
             AC_MSG_ERROR([Failed to determine release date])
         fi
