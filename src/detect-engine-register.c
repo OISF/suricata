@@ -223,6 +223,7 @@
 
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-base64.h"
+#include "detect-transform-luaxform.h"
 
 #include "util-rule-vars.h"
 
@@ -739,6 +740,7 @@ void SigTableSetup(void)
     DetectTransformHeaderLowercaseRegister();
     DetectTransformFromBase64DecodeRegister();
     SCDetectTransformDomainRegister();
+    DetectTransformLuaxformRegister();
 
     DetectFileHandlerRegister();
 

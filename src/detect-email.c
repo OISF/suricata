@@ -58,8 +58,8 @@ static InspectionBuffer *GetMimeEmailFromData(DetectEngineThreadCtx *det_ctx,
         if (SCDetectMimeEmailGetData(tx->mime_state, &b_email_from, &b_email_from_len, "from") != 1)
             return NULL;
 
-        InspectionBufferSetup(det_ctx, list_id, buffer, b_email_from, b_email_from_len);
-        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        InspectionBufferSetupAndApplyTransforms(
+                det_ctx, list_id, buffer, b_email_from, b_email_from_len, transforms);
     }
     return buffer;
 }
