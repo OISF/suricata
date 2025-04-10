@@ -28,13 +28,9 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-content.h"
+#include "detect-engine-helper.h"
 
 #include "flow.h"
-
-#include "util-debug.h"
 
 #include "app-layer.h"
 #include "app-layer-ftp.h"
@@ -59,27 +55,33 @@ static int DetectFtpCommandSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 }
 
-static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+static bool DetectFTPCommandGetData(
+        void *txv, const uint8_t _flow_flags, const uint8_t **buffer, uint32_t *buffer_len)
+{
+    FTPTransaction *tx = (FTPTransaction *)txv;
+
+    if (tx->command_descriptor.command_code == FTP_COMMAND_UNKNOWN)
+        return NULL;
+
+    const char *b = NULL;
+    uint8_t b_len = 0;
+    if (SCGetFtpCommandInfo(tx->command_descriptor.command_index, &b, NULL, &b_len)) {
+        *buffer = (const uint8_t *)b;
+        *buffer_len = b_len;
+        return true;
+    }
+
+    *buffer = NULL;
+    *buffer_len = 0;
+    return false;
+}
+
+static InspectionBuffer *GetDataWrapper(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
-        FTPTransaction *tx = (FTPTransaction *)txv;
-
-        if (tx->command_descriptor.command_code == FTP_COMMAND_UNKNOWN)
-            return NULL;
-
-        const char *b = NULL;
-        uint8_t b_len = 0;
-
-        if (SCGetFtpCommandInfo(tx->command_descriptor.command_index, &b, NULL, &b_len)) {
-            InspectionBufferSetupAndApplyTransforms(
-                    det_ctx, list_id, buffer, (const uint8_t *)b, b_len, transforms);
-        }
-    }
-
-    return buffer;
+    return DetectHelperGetData(
+            det_ctx, transforms, _f, _flow_flags, txv, list_id, DetectFTPCommandGetData);
 }
 
 void DetectFtpCommandRegister(void)
@@ -91,11 +93,8 @@ void DetectFtpCommandRegister(void)
     sigmatch_table[DETECT_FTP_COMMAND].Setup = DetectFtpCommandSetup;
     sigmatch_table[DETECT_FTP_COMMAND].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric, GetData);
-
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_FTP, 1);
+    DetectHelperBufferMpmRegister(
+            BUFFER_NAME, BUFFER_NAME, ALPROTO_FTP, false, true, GetDataWrapper);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
