@@ -30,7 +30,8 @@
 
 int SCDetectHelperNewKeywordId(void);
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw);
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
+void DetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 
 typedef bool (*SimpleGetTxBuffer)(void *, uint8_t, const uint8_t **, uint32_t *);
