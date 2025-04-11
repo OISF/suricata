@@ -50,7 +50,7 @@ void DetectMsgRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
 #endif
-    sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
+    sigmatch_table[DETECT_MSG].flags = (SIGMATCH_QUOTES_MANDATORY | SIGMATCH_SUPPORT_FIREWALL);
 }
 
 static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *msgstr)
