@@ -78,6 +78,7 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_TLS_VERSION].Free = DetectTlsVersionFree;
+    sigmatch_table[DETECT_TLS_VERSION].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 #endif

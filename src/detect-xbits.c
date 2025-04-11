@@ -83,7 +83,7 @@ void DetectXbitsRegister (void)
     sigmatch_table[DETECT_XBITS].RegisterTests = XBitsRegisterTests;
 #endif
     /* this is compatible to ip-only signatures */
-    sigmatch_table[DETECT_XBITS].flags |= SIGMATCH_IPONLY_COMPAT;
+    sigmatch_table[DETECT_XBITS].flags |= (SIGMATCH_IPONLY_COMPAT | SIGMATCH_SUPPORT_FIREWALL);
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }

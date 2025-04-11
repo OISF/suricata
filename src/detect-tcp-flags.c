@@ -82,6 +82,7 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
     sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
+    sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
 #endif
