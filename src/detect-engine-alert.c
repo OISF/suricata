@@ -394,6 +394,9 @@ static inline void PacketAlertFinalizeProcessQueue(
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = pa->s;
+
+        /* if a firewall rule told us to skip, we don't count the skipped
+         * alerts. */
         if (have_fw_rules && skip_td && (s->flags & SIG_FLAG_FIREWALL) == 0) {
             continue;
         }
