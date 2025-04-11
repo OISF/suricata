@@ -330,15 +330,19 @@ static int AlertQueueSortHelper(const void *a, const void *b)
 {
     const PacketAlert *pa0 = a;
     const PacketAlert *pa1 = b;
-    if (pa1->num == pa0->num) {
-        if (pa1->tx_id == PACKET_ALERT_NOTX) {
-            return -1;
-        } else if (pa0->tx_id == PACKET_ALERT_NOTX) {
-            return 1;
+    if (pa0->s->firewall_table == pa1->s->firewall_table) {
+        if (pa1->num == pa0->num) {
+            if (pa1->tx_id == PACKET_ALERT_NOTX) {
+                return -1;
+            } else if (pa0->tx_id == PACKET_ALERT_NOTX) {
+                return 1;
+            }
+            return pa0->tx_id < pa1->tx_id ? 1 : -1;
+        } else {
+            return pa0->num < pa1->num ? -1 : 1;
         }
-        return pa0->tx_id < pa1->tx_id ? 1 : -1;
     }
-    return pa0->num > pa1->num ? 1 : -1;
+    return pa0->s->firewall_table < pa1->s->firewall_table ? -1 : 1;
 }
 
 /** \internal
@@ -393,7 +397,10 @@ static inline void PacketAlertFinalizeProcessQueue(
     bool skip_td = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
-        const Signature *s = pa->s; // de_ctx->sig_array[pa->num];
+        const Signature *s = pa->s;
+
+        /* if a firewall rule told us to skip, we don't count the skipped
+         * alerts. */
         if (have_fw_rules && skip_td && (s->flags & SIG_FLAG_FIREWALL) == 0) {
             continue;
         }
@@ -416,14 +423,30 @@ static inline void PacketAlertFinalizeProcessQueue(
                 }
             }
 
-            /* set actions on the flow */
-            FlowApplySignatureActions(p, pa, s, pa->flags);
+            bool skip_action_set = false;
+            if ((p->action & (ACTION_DROP | ACTION_ACCEPT)) != 0) {
+                if (p->action & ACTION_DROP) {
+                    if (pa->action & (ACTION_PASS | ACTION_ACCEPT)) {
+                        skip_action_set = true;
+                    }
+                } else {
+                    if (pa->action & (ACTION_DROP)) {
+                        skip_action_set = true;
+                    }
+                }
+            }
+            SCLogDebug("packet %" PRIu64 ": i:%u sid:%u skip_action_set %s", p->pcap_cnt, i, s->id,
+                    BOOL2STR(skip_action_set));
+            if (!skip_action_set) {
+                /* set actions on the flow */
+                FlowApplySignatureActions(p, pa, s, pa->flags);
 
-            SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
-                    BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
+                SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
+                        BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
 
-            /* set actions on packet */
-            PacketApplySignatureActions(p, s, pa);
+                /* set actions on packet */
+                PacketApplySignatureActions(p, s, pa);
+            }
         }
 
         /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */

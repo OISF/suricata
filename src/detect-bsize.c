@@ -103,6 +103,7 @@ void DetectBsizeRegister(void)
     sigmatch_table[DETECT_BSIZE].Match = NULL;
     sigmatch_table[DETECT_BSIZE].Setup = DetectBsizeSetup;
     sigmatch_table[DETECT_BSIZE].Free = DetectBsizeFree;
+    sigmatch_table[DETECT_BSIZE].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BSIZE].RegisterTests = DetectBsizeRegisterTests;
 #endif

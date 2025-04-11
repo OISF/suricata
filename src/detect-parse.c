@@ -978,6 +978,10 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             goto error;
         }
 
+        if (s->init_data->firewall_rule && (st->flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
+            SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
+        }
+
         /* see if value is negated */
         if ((st->flags & SIGMATCH_HANDLE_NEGATION) && *ptr == '!') {
             s->init_data->negated = true;
@@ -2451,6 +2455,28 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
     return true;
 }
 
+static void DetectFirewallRuleSetTable(Signature *s)
+{
+    enum FirewallTable table;
+    if (s->flags & SIG_FLAG_FIREWALL) {
+        if (s->type == SIG_TYPE_PKT) {
+            table = FIREWALL_TABLE_PACKET_FILTER;
+        } else if (s->type == SIG_TYPE_APP_TX) {
+            table = FIREWALL_TABLE_APP_FILTER;
+        } else {
+            BUG_ON(1);
+        }
+    } else {
+        if (s->type != SIG_TYPE_APP_TX) {
+            table = FIREWALL_TABLE_PACKET_TD;
+        } else {
+            table = FIREWALL_TABLE_APP_TD;
+        }
+    }
+
+    s->firewall_table = (uint8_t)table;
+}
+
 /**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
@@ -2868,6 +2894,10 @@ static Signature *SigInitHelper(
 
     /* check what the type of this sig is */
     SignatureSetType(de_ctx, sig);
+
+    if (de_ctx->flags & DE_HAS_FIREWALL) {
+        DetectFirewallRuleSetTable(sig);
+    }
 
     if (sig->type == SIG_TYPE_IPONLY) {
         /* For IPOnly */

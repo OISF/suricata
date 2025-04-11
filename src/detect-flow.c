@@ -70,6 +70,7 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
+    sigmatch_table[DETECT_FLOW].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
 #endif

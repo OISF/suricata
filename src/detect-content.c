@@ -66,7 +66,8 @@ void DetectContentRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 #endif
-    sigmatch_table[DETECT_CONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_CONTENT].flags =
+            (SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION | SIGMATCH_SUPPORT_FIREWALL);
 }
 
 /**

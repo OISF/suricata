@@ -66,6 +66,7 @@ void DetectDsizeRegister (void)
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;
     sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;
+    sigmatch_table[DETECT_DSIZE].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DSIZE].RegisterTests = DsizeRegisterTests;
 #endif
