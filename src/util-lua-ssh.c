@@ -24,192 +24,115 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
-
-#include "output.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-ssh.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
-#include "rust.h"
-
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-
+#include "util-lua-ssh.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-ssh.h"
+#include "rust.h"
 
-static int GetServerProtoVersion(lua_State *luastate, const Flow *f)
+// #define SSH_MT "suricata:ssh:tx"
+static const char ssh_tx[] = "suricata:ssh:tx";
+
+struct LuaTx {
+    void *tx; // SSHTransaction
+};
+
+static int LuaSshGetTx(lua_State *L)
 {
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-    const uint8_t *protocol = NULL;
-    uint32_t b_len = 0;
-
-    void *tx = SCSshStateGetTx(state, 0);
-    if (SCSshTxGetProtocol(tx, &protocol, &b_len, STREAM_TOCLIENT) != 1)
-        return LuaCallbackError(luastate, "error: no server proto version");
-    if (protocol == NULL || b_len == 0) {
-        return LuaCallbackError(luastate, "error: no server proto version");
+    if (!(LuaStateNeedProto(L, ALPROTO_SSH))) {
+        return LuaCallbackError(L, "error: protocol not ssh");
     }
-
-    return LuaPushStringBuffer(luastate, protocol, b_len);
-}
-
-static int SshGetServerProtoVersion(lua_State *luastate)
-{
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
-        return LuaCallbackError(luastate, "error: protocol not ssh");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetServerProtoVersion(luastate, f);
-
-    return r;
-}
-
-static int GetServerSoftwareVersion(lua_State *luastate, const Flow *f)
-{
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    const uint8_t *software = NULL;
-    uint32_t b_len = 0;
-
-    void *tx = SCSshStateGetTx(state, 0);
-    if (SCSshTxGetSoftware(tx, &software, &b_len, STREAM_TOCLIENT) != 1)
-        return LuaCallbackError(luastate, "error: no server software version");
-    if (software == NULL || b_len == 0) {
-        return LuaCallbackError(luastate, "error: no server software version");
+    void *tx = LuaStateGetTX(L);
+    if (tx == NULL) {
+        return LuaCallbackError(L, "error: no tx available");
     }
-
-    return LuaPushStringBuffer(luastate, software, b_len);
-}
-
-static int SshGetServerSoftwareVersion(lua_State *luastate)
-{
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
-        return LuaCallbackError(luastate, "error: protocol not ssh");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetServerSoftwareVersion(luastate, f);
-
-    return r;
-}
-
-static int GetClientProtoVersion(lua_State *luastate, const Flow *f)
-{
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    const uint8_t *protocol = NULL;
-    uint32_t b_len = 0;
-
-    void *tx = SCSshStateGetTx(state, 0);
-    if (SCSshTxGetProtocol(tx, &protocol, &b_len, STREAM_TOSERVER) != 1)
-        return LuaCallbackError(luastate, "error: no client proto version");
-    if (protocol == NULL || b_len == 0) {
-        return LuaCallbackError(luastate, "error: no client proto version");
+    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    if (ltx == NULL) {
+        return LuaCallbackError(L, "error: fail to allocate user data");
     }
+    ltx->tx = tx;
 
-    return LuaPushStringBuffer(luastate, protocol, b_len);
+    luaL_getmetatable(L, ssh_tx);
+    lua_setmetatable(L, -2);
+
+    return 1;
 }
 
-static int SshGetClientProtoVersion(lua_State *luastate)
+static int LuaSshTxGetProto(lua_State *L, uint8_t flags)
 {
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
-        return LuaCallbackError(luastate, "error: protocol not ssh");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetClientProtoVersion(luastate, f);
-
-    return r;
-}
-
-static int GetClientSoftwareVersion(lua_State *luastate, const Flow *f)
-{
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    const uint8_t *software = NULL;
+    const uint8_t *buf = NULL;
     uint32_t b_len = 0;
-
-    void *tx = SCSshStateGetTx(state, 0);
-    if (SCSshTxGetSoftware(tx, &software, &b_len, STREAM_TOSERVER) != 1)
-        return LuaCallbackError(luastate, "error: no client software version");
-    if (software == NULL || b_len == 0) {
-        return LuaCallbackError(luastate, "error: no client software version");
+    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
     }
-
-    return LuaPushStringBuffer(luastate, software, b_len);
+    if (SCSshTxGetProtocol(ltx->tx, &buf, &b_len, flags) != 1) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
 }
 
-static int SshGetClientSoftwareVersion(lua_State *luastate)
+static int LuaSshTxGetServerProto(lua_State *L)
 {
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
-        return LuaCallbackError(luastate, "error: protocol not ssh");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetClientSoftwareVersion(luastate, f);
-
-    return r;
+    return LuaSshTxGetProto(L, STREAM_TOCLIENT);
 }
 
-/** \brief register ssh lua extensions in a luastate */
-int LuaRegisterSshFunctions(lua_State *luastate)
+static int LuaSshTxGetClientProto(lua_State *L)
 {
-    /* registration of the callbacks */
-    lua_pushcfunction(luastate, SshGetServerProtoVersion);
-    lua_setglobal(luastate, "SshGetServerProtoVersion");
+    return LuaSshTxGetProto(L, STREAM_TOSERVER);
+}
 
-    lua_pushcfunction(luastate, SshGetServerSoftwareVersion);
-    lua_setglobal(luastate, "SshGetServerSoftwareVersion");
+static int LuaSshTxGetSoftware(lua_State *L, uint8_t flags)
+{
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (SCSshTxGetSoftware(ltx->tx, &buf, &b_len, flags) != 1) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
+}
 
-    lua_pushcfunction(luastate, SshGetClientProtoVersion);
-    lua_setglobal(luastate, "SshGetClientProtoVersion");
+static int LuaSshTxGetServerSoftware(lua_State *L)
+{
+    return LuaSshTxGetSoftware(L, STREAM_TOCLIENT);
+}
 
-    lua_pushcfunction(luastate, SshGetClientSoftwareVersion);
-    lua_setglobal(luastate, "SshGetClientSoftwareVersion");
+static int LuaSshTxGetClientSoftware(lua_State *L)
+{
+    return LuaSshTxGetSoftware(L, STREAM_TOSERVER);
+}
 
-    return 0;
+static const struct luaL_Reg txlib[] = {
+    // clang-format off
+    { "server_proto", LuaSshTxGetServerProto },
+    { "server_software", LuaSshTxGetServerSoftware },
+    { "client_proto", LuaSshTxGetClientProto },
+    { "client_software", LuaSshTxGetClientSoftware },
+    { NULL, NULL, }
+    // clang-format on
+};
+
+static const struct luaL_Reg sshlib[] = {
+    // clang-format off
+    { "get_tx", LuaSshGetTx },
+    { NULL, NULL,},
+    // clang-format on
+};
+
+int SCLuaLoadSshLib(lua_State *L)
+{
+    luaL_newmetatable(L, ssh_tx);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_setfuncs(L, txlib, 0);
+
+    luaL_newlib(L, sshlib);
+    return 1;
 }

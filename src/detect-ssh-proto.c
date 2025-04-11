@@ -114,4 +114,11 @@ void DetectSshProtocolRegister(void)
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+
+    /* register these generic engines for lua from here for now */
+    DetectAppLayerInspectEngineRegister(
+            "ssh_banner", ALPROTO_SSH, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(
+            "ssh_banner", ALPROTO_SSH, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectGenericList, NULL);
+    DetectBufferTypeSetDescriptionByName("ssh_banner", "ssh banner");
 }

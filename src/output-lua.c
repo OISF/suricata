@@ -39,7 +39,6 @@
 #include "util-lua-dns.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
-#include "util-lua-ssh.h"
 #include "util-lua-hassh.h"
 #include "util-lua-smtp.h"
 
@@ -593,7 +592,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
     LuaRegisterFunctions(luastate);
     LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
-    LuaRegisterSshFunctions(luastate);
     LuaRegisterHasshFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);
 

@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_LUA_SSH_H
 #define SURICATA_UTIL_LUA_SSH_H
 
-int LuaRegisterSshFunctions(lua_State *luastate);
+#include "lua.h"
+
+int SCLuaLoadSshLib(lua_State *L);
 
 #endif /* SURICATA_UTIL_LUA_SSH_H */
