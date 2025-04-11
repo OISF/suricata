@@ -419,14 +419,30 @@ static inline void PacketAlertFinalizeProcessQueue(
                 }
             }
 
-            /* set actions on the flow */
-            FlowApplySignatureActions(p, pa, s, pa->flags);
+            bool skip_action_set = false;
+            if ((p->action & (ACTION_DROP | ACTION_ACCEPT)) != 0) {
+                if (p->action & ACTION_DROP) {
+                    if (pa->action & (ACTION_PASS | ACTION_ACCEPT)) {
+                        skip_action_set = true;
+                    }
+                } else {
+                    if (pa->action & (ACTION_DROP)) {
+                        skip_action_set = true;
+                    }
+                }
+            }
+            SCLogDebug("packet %" PRIu64 ": i:%u sid:%u skip_action_set %s", p->pcap_cnt, i, s->id,
+                    BOOL2STR(skip_action_set));
+            if (!skip_action_set) {
+                /* set actions on the flow */
+                FlowApplySignatureActions(p, pa, s, pa->flags);
 
-            SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
-                    BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
+                SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
+                        BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
 
-            /* set actions on packet */
-            PacketApplySignatureActions(p, s, pa);
+                /* set actions on packet */
+                PacketApplySignatureActions(p, s, pa);
+            }
         }
 
         /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */
