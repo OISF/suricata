@@ -357,7 +357,7 @@ void DetectAppLayerProtocolRegister(void)
     sigmatch_table[DETECT_APP_LAYER_PROTOCOL].RegisterTests = DetectAppLayerProtocolRegisterTests;
 #endif
     sigmatch_table[DETECT_APP_LAYER_PROTOCOL].flags =
-            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
+            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION | SIGMATCH_SUPPORT_FIREWALL);
 
     sigmatch_table[DETECT_APP_LAYER_PROTOCOL].SetupPrefilter = PrefilterSetupAppProto;
     sigmatch_table[DETECT_APP_LAYER_PROTOCOL].SupportsPrefilter = PrefilterAppProtoIsPrefilterable;

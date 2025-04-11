@@ -44,6 +44,7 @@ void DetectSidRegister (void)
     sigmatch_table[DETECT_SID].url = "/rules/meta.html#sid-signature-id";
     sigmatch_table[DETECT_SID].Match = NULL;
     sigmatch_table[DETECT_SID].Setup = DetectSidSetup;
+    sigmatch_table[DETECT_SID].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_SID].RegisterTests = DetectSidRegisterTests;
 #endif

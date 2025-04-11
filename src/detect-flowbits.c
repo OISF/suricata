@@ -79,7 +79,7 @@ void DetectFlowbitsRegister (void)
     sigmatch_table[DETECT_FLOWBITS].RegisterTests = FlowBitsRegisterTests;
 #endif
     /* this is compatible to ip-only signatures */
-    sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
+    sigmatch_table[DETECT_FLOWBITS].flags |= (SIGMATCH_IPONLY_COMPAT | SIGMATCH_SUPPORT_FIREWALL);
 
     sigmatch_table[DETECT_FLOWBITS].SupportsPrefilter = PrefilterFlowbitIsPrefilterable;
     sigmatch_table[DETECT_FLOWBITS].SetupPrefilter = PrefilterSetupFlowbits;
