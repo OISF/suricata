@@ -1,8 +1,8 @@
 DNS
 ---
 
-DNS transaction details are exposes to Lua scripts with the
-``suricata.dns`` library, For example::
+DNS transaction details are exposed to Lua scripts with the
+``suricata.dns`` library, for example::
 
   local dns = require("suricata.dns")
 
