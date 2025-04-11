@@ -72,6 +72,56 @@ pub enum SSHConnectionState {
     SshStateFinished = 3,
 }
 
+impl SSHConnectionState {
+    fn from_str(s: &str) -> Option<SSHConnectionState> {
+        match s {
+            "in_progress" => Some(SSHConnectionState::SshStateInProgress),
+            "banner_wait_eol" => Some(SSHConnectionState::SshStateBannerWaitEol),
+            "banner_done" => Some(SSHConnectionState::SshStateBannerDone),
+            "finished" => Some(SSHConnectionState::SshStateFinished),
+            _ => None
+        }
+    }
+
+    unsafe extern "C" fn ffi_id_from_name(name: *const std::os::raw::c_char, _dir: u8) -> std::ffi::c_int {
+        if name.is_null() {
+            return -1;
+        }
+        if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
+            Self::from_str(s).map(|t| t as i32).unwrap_or(-1)
+        } else {
+            -1
+        }
+    }
+
+    fn to_cstring(&self) -> *const std::os::raw::c_char {
+        let s = match *self {
+            SSHConnectionState::SshStateInProgress => "in_progress\0",
+            SSHConnectionState::SshStateBannerWaitEol => "banner_wait_eol\0",
+            SSHConnectionState::SshStateBannerDone => "banner_done\0",
+            SSHConnectionState::SshStateFinished => "finished\0",
+        };
+        s.as_ptr() as *const std::os::raw::c_char
+    }
+
+    fn try_from(v: std::ffi::c_int) -> Result<Self, ()> {
+        match v {
+            val if val == SSHConnectionState::SshStateInProgress as std::ffi::c_int => Ok(SSHConnectionState::SshStateInProgress),
+            val if val == SSHConnectionState::SshStateBannerWaitEol as std::ffi::c_int => Ok(SSHConnectionState::SshStateBannerWaitEol),
+            val if val == SSHConnectionState::SshStateBannerDone as std::ffi::c_int => Ok(SSHConnectionState::SshStateBannerDone),
+            val if val == SSHConnectionState::SshStateFinished as std::ffi::c_int => Ok(SSHConnectionState::SshStateFinished),
+            _ => Err(()),
+        }
+    }
+
+    unsafe extern "C" fn ffi_name_from_id(id: std::ffi::c_int, _dir: u8) -> *const std::os::raw::c_char {
+        match Self::try_from(id) {
+            Ok(v) =>  v.to_cstring(),
+            _ => std::ptr::null(),
+        }
+    }
+}
+
 pub const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
 const SSH_MAX_REASSEMBLED_RECORD_LEN: usize = 65535;
@@ -552,8 +602,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
-        get_state_id_by_name: None,
-        get_state_name_by_id: None,
+        get_state_id_by_name: Some(SSHConnectionState::ffi_id_from_name),
+        get_state_name_by_id: Some(SSHConnectionState::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
