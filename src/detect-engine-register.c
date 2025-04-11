@@ -322,6 +322,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("sticky buffer");
         prev = 1;
     }
+    if (flags & SIGMATCH_SUPPORT_FIREWALL) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("supports firewall");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);
