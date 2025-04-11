@@ -1062,6 +1062,7 @@ impl ConnectionParser {
             HtpContentEncoding::Gzip
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
+            | HtpContentEncoding::Brotli
             | HtpContentEncoding::Lzma => {
                 // Send data buffer to the decompressor if it exists
                 if resp.response_decompressor.is_none() && data.is_none() {
@@ -1141,6 +1142,8 @@ impl ConnectionParser {
                 HtpContentEncoding::Deflate
             } else if ce.cmp_nocase_nozero(b"lzma") {
                 HtpContentEncoding::Lzma
+            } else if ce.cmp_nocase_nozero(b"br") {
+                HtpContentEncoding::Brotli
             } else if ce.cmp_nocase_nozero(b"inflate") || ce.cmp_nocase_nozero(b"none") {
                 HtpContentEncoding::None
             } else {
@@ -1160,6 +1163,7 @@ impl ConnectionParser {
             HtpContentEncoding::Gzip
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
+            | HtpContentEncoding::Brotli
             | HtpContentEncoding::Lzma => {
                 self.response_prepend_decompressor(response_content_encoding_processing)?;
             }

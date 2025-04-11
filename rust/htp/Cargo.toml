@@ -30,6 +30,7 @@ libc = "0.2"
 nom = "7.1.1"
 lzma-rs = { version = "0.2.0", features = ["stream"] }
 flate2 = { version = "~1.0.35", features = ["zlib-default"], default-features = false }
+brotli = "~3.4.0"
 lazy_static = "1.4.0"
 time = "=0.3.36"
 
