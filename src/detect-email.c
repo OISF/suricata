@@ -21,6 +21,7 @@
 #include "app-layer-smtp.h"
 #include "detect-email.h"
 #include "rust.h"
+#include "detect-engine-content-inspection.h"
 
 static int g_mime_email_from_buffer_id = 0;
 static int g_mime_email_subject_buffer_id = 0;
@@ -29,6 +30,7 @@ static int g_mime_email_cc_buffer_id = 0;
 static int g_mime_email_date_buffer_id = 0;
 static int g_mime_email_message_id_buffer_id = 0;
 static int g_mime_email_x_mailer_buffer_id = 0;
+static int g_mime_email_url_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -273,6 +275,45 @@ static InspectionBuffer *GetMimeEmailXMailerData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static int DetectMimeEmailUrlSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_url_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailUrlData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id, uint32_t idx)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
+    if (buffer == NULL || buffer->initialized)
+        return buffer;
+
+    SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+    const uint8_t *b_email_url = NULL;
+    uint32_t b_email_url_len = 0;
+
+    if (tx->mime_state == NULL) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    if (SCDetectMimeEmailGetUrl(tx->mime_state, &b_email_url, &b_email_url_len, idx) != 1) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b_email_url, b_email_url_len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableElmt kw = { 0 };
@@ -353,4 +394,15 @@ void DetectEmailRegister(void)
             "MIME EMAIL X-Mailer", ALPROTO_SMTP, false,
             true, // to server
             GetMimeEmailXMailerData);
+
+    kw.name = "email.url";
+    kw.desc = "'Url' extracted from an email";
+    kw.url = "/rules/email-keywords.html#email.url";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailUrlSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_url_buffer_id =
+            DetectHelperMultiBufferMpmRegister("email.url", "MIME EMAIL URL", ALPROTO_SMTP, false,
+                    true, // to server
+                    GetMimeEmailUrlData);
 }

@@ -170,3 +170,29 @@ Example of a signature that would alert if a packet contains the MIME field ``x-
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email x-mailer"; :example-rule-emphasis:`email.x_mailer; content:"Microsoft Office Outlook, Build 11.0.5510";` sid:1;)
+
+email.url
+---------
+
+Matches ``URL`` extracted of an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.url; content:"<content to match against>";
+
+``email.url`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.url`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE field ``email.url[]``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if an email contains the ``url`` ``test-site.org/blah/123/``.
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email url"; :example-rule-emphasis:`email.url; content:"test-site.org/blah/123/";` sid:1;)
