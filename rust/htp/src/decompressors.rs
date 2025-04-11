@@ -1,3 +1,4 @@
+use brotli;
 use std::{
     io::{Cursor, Write},
     time::Instant,
@@ -194,6 +195,8 @@ pub(crate) enum HtpContentEncoding {
     Zlib,
     /// LZMA compression.
     Lzma,
+    /// Brotli compression.
+    Brotli,
 }
 
 /// The outer decompressor tracks the number of callbacks and time spent
@@ -240,6 +243,7 @@ impl Decompressor {
             HtpContentEncoding::Gzip
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
+            | HtpContentEncoding::Brotli
             | HtpContentEncoding::Lzma => Ok(Decompressor::new(Box::new(InnerDecompressor::new(
                 encoding, self.inner, options,
             )?))),
@@ -660,6 +664,35 @@ impl BufWriter for LzmaBufWriter {
     }
 }
 
+/// Simple wrapper around an lzma implementation
+struct BrotliBufWriter(brotli::DecompressorWriter<Cursor<Box<[u8]>>>);
+
+impl Write for BrotliBufWriter {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.0.write(data)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
+}
+
+impl BufWriter for BrotliBufWriter {
+    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+        Some(self.0.get_mut())
+    }
+
+    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+        self.0
+            .into_inner()
+            .map_err(|_e| std::io::Error::new(std::io::ErrorKind::Other, "brotli"))
+    }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Structure that represents each decompressor in the chain.
 struct InnerDecompressor {
     /// Decoder implementation that will write to a temporary buffer.
@@ -691,6 +724,13 @@ impl InnerDecompressor {
             )),
             HtpContentEncoding::Zlib => Ok((
                 Box::new(ZlibBufWriter(flate2::write::ZlibDecoder::new(buf))),
+                false,
+            )),
+            HtpContentEncoding::Brotli => Ok((
+                Box::new(BrotliBufWriter(brotli::DecompressorWriter::new(
+                    buf,
+                    ENCODING_CHUNK_SIZE,
+                ))),
                 false,
             )),
             HtpContentEncoding::Lzma => {
@@ -897,6 +937,7 @@ impl Decompress for InnerDecompressor {
                 HtpContentEncoding::Deflate => HtpContentEncoding::Zlib,
                 HtpContentEncoding::Zlib => HtpContentEncoding::Gzip,
                 HtpContentEncoding::Lzma => HtpContentEncoding::Deflate,
+                HtpContentEncoding::Brotli => HtpContentEncoding::Deflate,
                 HtpContentEncoding::None => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
