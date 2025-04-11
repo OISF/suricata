@@ -664,6 +664,7 @@ name = "htp"
 version = "2.0.0"
 dependencies = [
  "base64",
+ "brotli",
  "bstr",
  "cdylib-link-lines",
  "flate2",
