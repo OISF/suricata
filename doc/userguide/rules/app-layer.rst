@@ -18,10 +18,14 @@ Examples::
     app-layer-protocol:!http,final;
     app-layer-protocol:http,to_server; app-layer-protocol:tls,to_client;
     app-layer-protocol:http2,final; app-layer-protocol:http1,original;
+    app-layer-protocol:unknown;
 
 A special value 'failed' can be used for matching on flows in which
 protocol detection failed. This can happen if Suricata doesn't know
 the protocol or when certain 'bail out' conditions happen.
+
+A special value 'unknown' can be used to match on a protocol being
+not yet known. It can not be negated.
 
 The different modes are
 * direction : protocol recognized on the direction of the current packet
@@ -32,6 +36,9 @@ The different modes are
 * original : original protocol (in case of protocol change)
 
 By default, (if no mode is specified), the mode is ``direction``.
+
+.. note:: when negation is used, like ``!http``, it will not match on the
+   "unknown" state in the flow.
 
 Here is an example of a rule matching non-http traffic on port 80:
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -77,41 +77,70 @@ static int DetectAppLayerProtocolPacketMatch(
 
     switch (data->mode) {
         case DETECT_ALPROTO_DIRECTION:
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
+            if (data->negated) {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    if (f->alproto_ts == ALPROTO_UNKNOWN)
+                        SCReturnInt(0);
+                    r = AppProtoEquals(data->alproto, f->alproto_ts);
+                } else {
+                    if (f->alproto_tc == ALPROTO_UNKNOWN)
+                        SCReturnInt(0);
+                    r = AppProtoEquals(data->alproto, f->alproto_tc);
+                }
+            } else {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    r = AppProtoEquals(data->alproto, f->alproto_ts);
+                } else {
+                    r = AppProtoEquals(data->alproto, f->alproto_tc);
+                }
+            }
+            break;
+        case DETECT_ALPROTO_ORIG:
+            if (data->negated) {
+                if (f->alproto_orig == ALPROTO_UNKNOWN)
+                    SCReturnInt(0);
+                r = AppProtoEquals(data->alproto, f->alproto_orig);
+            } else {
+                r = AppProtoEquals(data->alproto, f->alproto_orig);
+            }
+            break;
+        case DETECT_ALPROTO_FINAL:
+            if (data->negated) {
+                if (f->alproto == ALPROTO_UNKNOWN)
+                    SCReturnInt(0);
+                r = AppProtoEquals(data->alproto, f->alproto);
+            } else {
+                r = AppProtoEquals(data->alproto, f->alproto);
+            }
+            break;
+        case DETECT_ALPROTO_TOSERVER:
+            if (data->negated) {
                 if (f->alproto_ts == ALPROTO_UNKNOWN)
                     SCReturnInt(0);
                 r = AppProtoEquals(data->alproto, f->alproto_ts);
             } else {
+                r = AppProtoEquals(data->alproto, f->alproto_ts);
+            }
+            break;
+        case DETECT_ALPROTO_TOCLIENT:
+            if (data->negated) {
                 if (f->alproto_tc == ALPROTO_UNKNOWN)
                     SCReturnInt(0);
                 r = AppProtoEquals(data->alproto, f->alproto_tc);
+            } else {
+                r = AppProtoEquals(data->alproto, f->alproto_tc);
             }
             break;
-        case DETECT_ALPROTO_ORIG:
-            if (f->alproto_orig == ALPROTO_UNKNOWN)
-                SCReturnInt(0);
-            r = AppProtoEquals(data->alproto, f->alproto_orig);
-            break;
-        case DETECT_ALPROTO_FINAL:
-            if (f->alproto == ALPROTO_UNKNOWN)
-                SCReturnInt(0);
-            r = AppProtoEquals(data->alproto, f->alproto);
-            break;
-        case DETECT_ALPROTO_TOSERVER:
-            if (f->alproto_ts == ALPROTO_UNKNOWN)
-                SCReturnInt(0);
-            r = AppProtoEquals(data->alproto, f->alproto_ts);
-            break;
-        case DETECT_ALPROTO_TOCLIENT:
-            if (f->alproto_tc == ALPROTO_UNKNOWN)
-                SCReturnInt(0);
-            r = AppProtoEquals(data->alproto, f->alproto_tc);
-            break;
         case DETECT_ALPROTO_EITHER:
-            if (f->alproto_ts == ALPROTO_UNKNOWN && f->alproto_tc == ALPROTO_UNKNOWN)
-                SCReturnInt(0);
-            r = AppProtoEquals(data->alproto, f->alproto_tc) ||
-                AppProtoEquals(data->alproto, f->alproto_ts);
+            if (data->negated) {
+                if (f->alproto_ts == ALPROTO_UNKNOWN && f->alproto_tc == ALPROTO_UNKNOWN)
+                    SCReturnInt(0);
+                r = AppProtoEquals(data->alproto, f->alproto_tc) ||
+                    AppProtoEquals(data->alproto, f->alproto_ts);
+            } else {
+                r = AppProtoEquals(data->alproto, f->alproto_tc) ||
+                    AppProtoEquals(data->alproto, f->alproto_ts);
+            }
             break;
     }
     r = r ^ data->negated;
@@ -138,6 +167,13 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
     }
     if (strcmp(alproto_name, "failed") == 0) {
         alproto = ALPROTO_FAILED;
+    } else if (strcmp(alproto_name, "unknown") == 0) {
+        if (negate) {
+            SCLogError("app-layer-protocol "
+                       "keyword can't use negation with protocol 'unknown'");
+            return NULL;
+        }
+        alproto = ALPROTO_UNKNOWN;
     } else {
         alproto = AppLayerGetProtoByName(alproto_name);
         if (alproto == ALPROTO_UNKNOWN) {
@@ -293,19 +329,32 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
         case DETECT_ALPROTO_EITHER:
             // check if either protocol toclient or toserver matches
             // the one in the signature ctx
-            if (f->alproto_tc != ALPROTO_UNKNOWN &&
-                    AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ^ negated) {
-                PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
-            } else if (f->alproto_ts != ALPROTO_UNKNOWN &&
-                       AppProtoEquals(ctx->v1.u16[0], f->alproto_ts) ^ negated) {
-                PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+            if (negated) {
+                if (f->alproto_tc != ALPROTO_UNKNOWN &&
+                        !AppProtoEquals(ctx->v1.u16[0], f->alproto_tc)) {
+                    PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+                } else if (f->alproto_ts != ALPROTO_UNKNOWN &&
+                           !AppProtoEquals(ctx->v1.u16[0], f->alproto_ts)) {
+                    PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+                }
+            } else {
+                if (AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ||
+                        AppProtoEquals(ctx->v1.u16[0], f->alproto_ts)) {
+                    PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+                }
             }
             // We return right away to avoid calling PrefilterAddSids again
             return;
     }
 
-    if (alproto != ALPROTO_UNKNOWN) {
-        if (AppProtoEquals(ctx->v1.u16[0], alproto) ^ negated) {
+    if (negated) {
+        if (alproto != ALPROTO_UNKNOWN) {
+            if (!AppProtoEquals(ctx->v1.u16[0], alproto)) {
+                PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+            }
+        }
+    } else {
+        if (AppProtoEquals(ctx->v1.u16[0], alproto)) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
     }
