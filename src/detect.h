@@ -1618,6 +1618,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_INFO_DEPRECATED        BIT_U16(10)
 /** strict parsing is enabled */
 #define SIGMATCH_STRICT_PARSING         BIT_U16(11)
+/** keyword supported by firewall rules */
+#define SIGMATCH_SUPPORT_FIREWALL BIT_U16(12)
 
 enum DetectEngineTenantSelectors
 {

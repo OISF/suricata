@@ -978,6 +978,10 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             goto error;
         }
 
+        if (s->init_data->firewall_rule && (st->flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
+            SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
+        }
+
         /* see if value is negated */
         if ((st->flags & SIGMATCH_HANDLE_NEGATION) && *ptr == '!') {
             s->init_data->negated = true;
