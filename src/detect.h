@@ -560,6 +560,13 @@ enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_APP,
 };
 
+enum FirewallTable {
+    FIREWALL_TABLE_PACKET_FILTER,
+    FIREWALL_TABLE_PACKET_TD,
+    FIREWALL_TABLE_APP_FILTER,
+    FIREWALL_TABLE_APP_TD,
+};
+
 // dns:request_complete should add DetectBufferTypeGetByName("dns:request_complete");
 // TODO to json
 typedef struct SignatureHook_ {
@@ -691,6 +698,9 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint16_t class_id;
+
+    /** firewall: pseudo table this rule is part of (enum FirewallTable) */
+    uint8_t firewall_table;
 
     /** firewall: progress value for this signature */
     uint8_t app_progress_hook;
