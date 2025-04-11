@@ -64,7 +64,8 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
 {
     LogSmbLogThread *thread = thread_data;
 
-    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "smb", NULL, thread->ctx->ctx);
+    SCJsonBuilder *jb =
+            CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "smb", NULL, tx_id, thread->ctx->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_FAILED;
     }

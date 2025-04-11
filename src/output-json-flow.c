@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
+#include "app-layer-parser.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -348,6 +349,13 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, SCJsonBuilder *jb, Flow *f)
         SCJbOpenArray(jb, "exception_policy");
         EveExceptionPolicyLog(jb, f->applied_exception_policy);
         SCJbClose(jb); /* close array */
+    }
+
+    if (f->alstate) {
+        uint64_t tx_id = AppLayerParserGetTxCnt(f, f->alstate);
+        if (tx_id) {
+            SCJbSetUint(jb, "tx_cnt", tx_id);
+        }
     }
 
     /* Close flow. */
