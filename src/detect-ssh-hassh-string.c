@@ -129,9 +129,9 @@ void DetectSshHasshStringRegister(void)
     sigmatch_table[DETECT_SSH_HASSH_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+            GetSshData, ALPROTO_SSH, SSHConnectionState_BannerDone);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
-            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
+            SSHConnectionState_BannerDone, DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

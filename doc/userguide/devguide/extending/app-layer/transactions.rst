@@ -140,10 +140,10 @@ Code snippet from: rust/src/ssh/ssh.rs:
 .. code-block:: rust
 
     pub enum SSHConnectionState {
-        SshStateInProgress = 0,
-        SshStateBannerWaitEol = 1,
-        SshStateBannerDone = 2,
-        SshStateFinished = 3,
+        InProgress = 0,
+        BannerWaitEol = 1,
+        BannerDone = 2,
+        Finished = 3,
     }
 
 From src/app-layer-ftp.h:
@@ -209,8 +209,8 @@ rust/src/ssh/ssh.rs:
 
 .. code-block:: rust
 
-    tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
-    tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
+    tx_comp_st_ts: SSHConnectionState::Finished as i32,
+    tx_comp_st_tc: SSHConnectionState::Finished as i32,
 
 In C, callback usage would be as follows:
 

@@ -65,11 +65,12 @@ pub enum SSHEvent {
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
+/// cbindgen:prefix-with-name=true
 pub enum SSHConnectionState {
-    SshStateInProgress = 0,
-    SshStateBannerWaitEol = 1,
-    SshStateBannerDone = 2,
-    SshStateFinished = 3,
+    InProgress = 0,
+    BannerWaitEol = 1,
+    BannerDone = 2,
+    Finished = 3,
 }
 
 pub const SSH_MAX_BANNER_LEN: usize = 256;
@@ -100,7 +101,7 @@ impl SshHeader {
             record_left: 0,
             record_left_msg: parser::MessageCode::Undefined(0),
 
-            flags: SSHConnectionState::SshStateInProgress,
+            flags: SSHConnectionState::InProgress,
             protover: Vec::new(),
             swver: Vec::new(),
 
@@ -216,8 +217,8 @@ impl SSHState {
                             }
                         }
                         parser::MessageCode::NewKeys => {
-                            hdr.flags = SSHConnectionState::SshStateFinished;
-                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
+                            hdr.flags = SSHConnectionState::Finished;
+                            if ohdr.flags >= SSHConnectionState::Finished {
                                 let mut flags = 0;
 
                                 match encryption_bypass_mode() {
@@ -279,7 +280,7 @@ impl SSHState {
                             //header with rem as incomplete data
                             match head.msg_code {
                                 parser::MessageCode::NewKeys => {
-                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                    hdr.flags = SSHConnectionState::Finished;
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
@@ -335,7 +336,7 @@ impl SSHState {
         } else {
             &mut self.transaction.srv_hdr
         };
-        if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
+        if hdr.flags == SSHConnectionState::BannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
                     let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
@@ -364,7 +365,7 @@ impl SSHState {
                     if !banner.swver.is_empty() {
                         hdr.swver.extend(banner.swver);
                     }
-                    hdr.flags = SSHConnectionState::SshStateBannerDone;
+                    hdr.flags = SSHConnectionState::BannerDone;
                 } else {
                     SCLogDebug!("SSH invalid banner");
                     self.set_event(SSHEvent::InvalidBanner);
@@ -400,7 +401,7 @@ impl SSHState {
                         if !banner.swver.is_empty() {
                             hdr.swver.extend(banner.swver);
                         }
-                        hdr.flags = SSHConnectionState::SshStateBannerWaitEol;
+                        hdr.flags = SSHConnectionState::BannerWaitEol;
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
@@ -447,7 +448,7 @@ unsafe extern "C" fn rs_ssh_parse_request(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     state.transaction.tx_data.updated_ts = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
+    if hdr.flags < SSHConnectionState::BannerDone {
         return state.parse_banner(buf, false, pstate, flow, &stream_slice);
     } else {
         return state.parse_record(buf, false, pstate, flow, &stream_slice);
@@ -462,7 +463,7 @@ unsafe extern "C" fn ssh_parse_response(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     state.transaction.tx_data.updated_tc = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
+    if hdr.flags < SSHConnectionState::BannerDone {
         return state.parse_banner(buf, true, pstate, flow, &stream_slice);
     } else {
         return state.parse_record(buf, true, pstate, flow, &stream_slice);
@@ -499,21 +500,21 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
 
-    if tx.cli_hdr.flags >= SSHConnectionState::SshStateFinished
-        && tx.srv_hdr.flags >= SSHConnectionState::SshStateFinished
+    if tx.cli_hdr.flags >= SSHConnectionState::Finished
+        && tx.srv_hdr.flags >= SSHConnectionState::Finished
     {
-        return SSHConnectionState::SshStateFinished as i32;
+        return SSHConnectionState::Finished as i32;
     }
 
     if direction == u8::from(Direction::ToServer) {
-        if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-            return SSHConnectionState::SshStateBannerDone as i32;
+        if tx.cli_hdr.flags >= SSHConnectionState::BannerDone {
+            return SSHConnectionState::BannerDone as i32;
         }
-    } else if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-        return SSHConnectionState::SshStateBannerDone as i32;
+    } else if tx.srv_hdr.flags >= SSHConnectionState::BannerDone {
+        return SSHConnectionState::BannerDone as i32;
     }
 
-    return SSHConnectionState::SshStateInProgress as i32;
+    return SSHConnectionState::InProgress as i32;
 }
 
 // Parser name as a C style string.
@@ -537,8 +538,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         parse_tc: ssh_parse_response,
         get_tx_count: ssh_state_get_tx_count,
         get_tx: SCSshStateGetTx,
-        tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
-        tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
+        tx_comp_st_ts: SSHConnectionState::Finished as i32,
+        tx_comp_st_tc: SSHConnectionState::Finished as i32,
         tx_get_progress: SCSshTxGetAlStateProgress,
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
@@ -593,13 +594,13 @@ pub unsafe extern "C" fn SCSshTxGetLogCondition(tx: *mut std::os::raw::c_void) -
     let tx = cast_pointer!(tx, SSHTransaction);
 
     if SCSshHasshIsEnabled() {
-        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished
-            && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished
+        if tx.cli_hdr.flags == SSHConnectionState::Finished
+            && tx.srv_hdr.flags == SSHConnectionState::Finished
         {
             return true;
         }
-    } else if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone
-        && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone
+    } else if tx.cli_hdr.flags == SSHConnectionState::BannerDone
+        && tx.srv_hdr.flags == SSHConnectionState::BannerDone
     {
         return true;
     }

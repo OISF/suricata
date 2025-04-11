@@ -157,9 +157,9 @@ void DetectSshHasshServerRegister(void)
     sigmatch_table[DETECT_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+            GetSshData, ALPROTO_SSH, SSHConnectionState_BannerDone);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
-            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
+            SSHConnectionState_BannerDone, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
