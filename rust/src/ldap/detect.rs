@@ -811,7 +811,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to server
         ldap_detect_responses_msg_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         desc: b"match request LDAP attribute type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.attribute_type\0".as_ptr()
@@ -830,7 +830,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to server
         ldap_detect_request_attribute_type_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP responses attribute type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.attribute_type\0".as_ptr()
