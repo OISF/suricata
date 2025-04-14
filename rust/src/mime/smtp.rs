@@ -742,6 +742,11 @@ pub unsafe extern "C" fn SCMimeSmtpConfigBodyMd5(val: std::os::raw::c_int) {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn MimeBodyMd5IsEnabled() -> bool {
+    MIME_SMTP_CONFIG_BODY_MD5
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpConfigHeaderValueDepth(val: u32) {
     MIME_SMTP_CONFIG_HEADER_VALUE_DEPTH = val;
 }

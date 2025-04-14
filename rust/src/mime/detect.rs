@@ -93,3 +93,12 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetDataArray(
     }
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMimeEmailGetBodyMd5(
+    ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
+) {
+    let hash = &ctx.md5_result;
+    *buffer = hash.as_ptr();
+    *buffer_len = hash.len() as u32;
+}

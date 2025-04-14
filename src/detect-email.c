@@ -33,6 +33,7 @@ static int g_mime_email_message_id_buffer_id = 0;
 static int g_mime_email_x_mailer_buffer_id = 0;
 static int g_mime_email_url_buffer_id = 0;
 static int g_mime_email_received_buffer_id = 0;
+static int g_mime_email_body_md5_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -225,6 +226,39 @@ static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void 
     return true;
 }
 
+int DETECT_EMAIL_BODY_MD5 = 0;
+
+static int DetectMimeEmailBodyMd5Setup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_body_md5_buffer_id) < 0)
+        return -1;
+
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    if (!RunmodeIsUnittests() && !MimeBodyMd5IsEnabled()) {
+        if (DETECT_EMAIL_BODY_MD5 > 0 &&
+                !SigMatchSilentErrorEnabled(de_ctx, DETECT_EMAIL_BODY_MD5)) {
+            SCLogError("email body_md5 is not enabled");
+        }
+        return -2;
+    }
+
+    return 0;
+}
+
+static bool GetMimeEmailBodyMd5Data(
+        const void *txv, const uint8_t _flow_flags, const uint8_t **data, uint32_t *data_len)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)txv;
+    if (tx->mime_state == NULL)
+        return false;
+
+    SCDetectMimeEmailGetBodyMd5(tx->mime_state, data, data_len);
+
+    return true;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableAppLiteElmt kw = { 0 };
@@ -309,4 +343,16 @@ void DetectEmailRegister(void)
     SCDetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = SCDetectHelperMultiBufferMpmRegister("email.received",
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
+
+    kw.name = "email.body_md5";
+    kw.desc = "'md5' hash generated from an email body";
+    kw.url = "/rules/email-keywords.html#email.body_md5";
+    kw.Setup = DetectMimeEmailBodyMd5Setup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DETECT_EMAIL_BODY_MD5 = SCDetectHelperKeywordRegister(&kw);
+    // We do not need a progress because SMTP tx has only progress 0 or 1
+    // even if we have a MimeSmtpMd5State enumeration
+    g_mime_email_body_md5_buffer_id = SCDetectHelperBufferMpmRegister("email.body_md5",
+            "MIME EMAIL BODY MD5", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailBodyMd5Data);
+    DetectBufferTypeRegisterValidateCallback("email.body_md5", DetectMd5ValidateCallback);
 }
