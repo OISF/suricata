@@ -222,3 +222,28 @@ Example of a signature that would alert if a packet contains the MIME field ``re
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email received"; :example-rule-emphasis:`email.received; content:"from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch\; Mon, 29 Jul 2019 17:01:45 +0000";` sid:1;)
+
+email.body_md5
+--------------
+
+Matches the ``md5`` hash generated from an email body.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.body_md5; content:"<content to match against>";
+
+``email.body_md5`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.body_md5``.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if the hash ``ed00c81b85fa455d60e19f1230977134``
+is generated from an email body:
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email body_md5"; :example-rule-emphasis:`email.body_md5; content:"ed00c81b85fa455d60e19f1230977134";` sid:1;)

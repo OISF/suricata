@@ -17,6 +17,7 @@
 
 use super::mime;
 use super::smtp::MimeStateSMTP;
+use crate::mime::smtp::MimeSmtpMd5State;
 use std::ffi::CStr;
 use std::ptr;
 
@@ -95,5 +96,22 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetDataArray(
             i += 1;
         }
     }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMimeEmailGetBodyMd5(
+    ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Completed {
+        let hash = &ctx.md5_result;
+        *buffer = hash.as_ptr();
+        *buffer_len = hash.len() as u32;
+        return 1;
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
     return 0;
 }
