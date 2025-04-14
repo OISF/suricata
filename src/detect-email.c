@@ -32,6 +32,7 @@ static int g_mime_email_message_id_buffer_id = 0;
 static int g_mime_email_x_mailer_buffer_id = 0;
 static int g_mime_email_url_buffer_id = 0;
 static int g_mime_email_received_buffer_id = 0;
+static int g_mime_email_body_md5_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -355,6 +356,41 @@ static InspectionBuffer *GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx
     return buffer;
 }
 
+static int DetectMimeEmailBodyMd5Setup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_body_md5_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static InspectionBuffer *GetMimeEmailBodyMd5Data(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SMTPTransaction *tx = (SMTPTransaction *)txv;
+
+        const uint8_t *b_email_body_md5 = NULL;
+        uint32_t b_email_body_md5_len = 0;
+
+        if (tx->mime_state == NULL)
+            return NULL;
+
+        if (SCDetectMimeEmailGetBodyMd5(tx->mime_state, &b_email_body_md5, &b_email_body_md5_len) !=
+                1)
+            return NULL;
+
+        InspectionBufferSetup(det_ctx, list_id, buffer, b_email_body_md5, b_email_body_md5_len);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+    }
+    return buffer;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableAppLiteElmt kw = { 0 };
@@ -457,4 +493,15 @@ void DetectEmailRegister(void)
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, false,
             true, // to server
             GetMimeEmailReceivedData);
+
+    kw.name = "email.body_md5";
+    kw.desc = "'md5' hash generated from an email body";
+    kw.url = "/rules/email-keywords.html#email.body_md5";
+    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailBodyMd5Setup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_body_md5_buffer_id = DetectHelperBufferMpmRegister("email.body_md5",
+            "MIME EMAIL BODY MD5", ALPROTO_SMTP, false,
+            true, // to server
+            GetMimeEmailBodyMd5Data);
 }
