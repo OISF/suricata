@@ -1068,7 +1068,6 @@ static int LogFileTypePrepare(
         if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
             return -1;
         }
-        OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (log_filetype == LOGFILE_TYPE_REDIS) {
