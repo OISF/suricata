@@ -29,6 +29,7 @@ use nom7::Needed;
 use flate2::Decompress;
 use flate2::FlushDecompress;
 use suricata_sys::sys::AppProto;
+use suricata_sys::sys::AppProtoEnum::ALPROTO_HTTP1;
 
 use std;
 use std::collections::VecDeque;
@@ -297,6 +298,18 @@ impl WebSocketState {
         // Input was fully consumed.
         return AppLayerResult::ok();
     }
+
+    fn use_extension(&mut self, hv: &[u8]) {
+        let iter = hv.split(|c| *c == b';');
+        for sub in iter {
+            if let Ok((_, val)) = parser::parse_cli_max_win(sub) {
+                self.c2s_dec = Some(Decompress::new_with_window_bits(false, val));
+            }
+            if let Ok((_, val)) = parser::parse_srv_max_win(sub) {
+                self.s2c_dec = Some(Decompress::new_with_window_bits(false, val));
+            }
+        }
+    }
 }
 
 // C exports.
@@ -319,12 +332,35 @@ pub unsafe extern "C" fn rs_websocket_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn rs_websocket_state_new(
-    _orig_state: *mut c_void, _orig_proto: AppProto,
-) -> *mut c_void {
+// Extern functions operating on HTTP2.
+extern "C" {
+    pub fn Http1GetDataForWebsocket(
+        orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCWebSocketUseExtension(
+    state: *mut c_void, input: *const u8, input_len: u32,
+) {
+    if !input.is_null() {
+        let slice = build_slice!(input, input_len as usize);
+        let state = cast_pointer!(state, WebSocketState);
+        state.use_extension(slice);
+    }
+}
+
+extern "C" fn rs_websocket_state_new(orig_state: *mut c_void, orig_proto: AppProto) -> *mut c_void {
     let state = WebSocketState::new();
     let boxed = Box::new(state);
-    return Box::into_raw(boxed) as *mut c_void;
+    let r = Box::into_raw(boxed) as *mut c_void;
+    if !orig_state.is_null() && orig_proto == ALPROTO_HTTP1 as u16 {
+        //we could check ALPROTO_HTTP1 == orig_proto
+        unsafe {
+            Http1GetDataForWebsocket(orig_state, r);
+        }
+    }
+    return r;
 }
 
 unsafe extern "C" fn rs_websocket_state_free(state: *mut c_void) {

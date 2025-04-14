@@ -19,6 +19,12 @@ use nom7::bytes::streaming::take;
 use nom7::combinator::cond;
 use nom7::number::streaming::{be_u16, be_u32, be_u64, be_u8};
 use nom7::IResult;
+
+use nom7::bytes::complete::tag;
+use nom7::character::complete::space0;
+use nom7::character::complete::u8 as nomu8;
+use nom7::combinator::verify;
+
 use suricata_derive::EnumStringU8;
 
 #[derive(Clone, Debug, Default, EnumStringU8)]
@@ -94,4 +100,16 @@ pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu>
             to_skip,
         },
     ))
+}
+
+pub(super) fn parse_cli_max_win(i: &[u8]) -> IResult<&[u8], u8> {
+    let (i, _space) = space0(i)?;
+    let (i, _name) = tag("client_max_window_bits=")(i)?;
+    verify(nomu8, |&v| (9..=15).contains(&v))(i)
+}
+
+pub(super) fn parse_srv_max_win(i: &[u8]) -> IResult<&[u8], u8> {
+    let (i, _space) = space0(i)?;
+    let (i, _name) = tag("server_max_window_bits=")(i)?;
+    verify(nomu8, |&v| (9..=15).contains(&v))(i)
 }

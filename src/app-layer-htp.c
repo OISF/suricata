@@ -2552,6 +2552,20 @@ void *HtpGetTxForH2(void *alstate)
     return NULL;
 }
 
+void Http1GetDataForWebsocket(void *alstate_orig, void *wss)
+{
+    // get last transaction
+    htp_tx_t *h1tx = HtpGetTxForH2(alstate_orig);
+    if (wss == NULL || h1tx == NULL) {
+        return;
+    }
+    const htp_header_t *h = htp_tx_response_header(h1tx, "Sec-WebSocket-Extensions");
+    if (h == NULL) {
+        return;
+    }
+    SCWebSocketUseExtension(wss, htp_header_value_ptr(h), (uint32_t)htp_header_value_len(h));
+}
+
 static int HTPStateGetEventInfo(
         const char *event_name, uint8_t *event_id, AppLayerEventType *event_type)
 {
