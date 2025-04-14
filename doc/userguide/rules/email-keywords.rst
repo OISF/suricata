@@ -196,3 +196,27 @@ Example of a signature that would alert if an email contains the ``url`` ``test-
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email url"; :example-rule-emphasis:`email.url; content:"test-site.org/blah/123/";` sid:1;)
+
+email.body_md5
+--------------
+
+Matches the ``md5`` hash generated from an email body.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.body_md5; content:"<content to match against>";
+
+``email.body_md5`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.body_md5``
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if the hash ``ed00c81b85fa455d60e19f1230977134`` is generated from an email body.
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email body_md5"; :example-rule-emphasis:`email.body_md5; content:"ed00c81b85fa455d60e19f1230977134";` sid:1;)
