@@ -1039,7 +1039,9 @@ app-layer:
         #log-url-scheme: yes
         # Set to yes to compute the md5 of the mail body. You will then
         # be able to journalize it.
-        body-md5: no
+        # Set it to no to disable it.
+        # Default is auto: not enabled until a rule needs it
+        # body-md5: auto
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
         content-limit: 100000
