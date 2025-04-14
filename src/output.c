@@ -126,6 +126,8 @@ typedef struct OutputFileRolloverFlag_ {
     TAILQ_ENTRY(OutputFileRolloverFlag_) entries;
 } OutputFileRolloverFlag;
 
+static SCMutex output_file_rotation_mutex = SCMUTEX_INITIALIZER;
+
 TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
     TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
 
@@ -672,7 +674,9 @@ void OutputRegisterFileRotationFlag(int *flag)
         return;
     }
     flag_entry->flag = flag;
+    SCMutexLock(&output_file_rotation_mutex);
     TAILQ_INSERT_TAIL(&output_file_rotation_flags, flag_entry, entries);
+    SCMutexUnlock(&output_file_rotation_mutex);
 }
 
 /**
@@ -688,25 +692,31 @@ void OutputRegisterFileRotationFlag(int *flag)
 void OutputUnregisterFileRotationFlag(int *flag)
 {
     OutputFileRolloverFlag *entry, *next;
+    SCMutexLock(&output_file_rotation_mutex);
     for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
          entry = next) {
         next = TAILQ_NEXT(entry, entries);
         if (entry->flag == flag) {
             TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);
+            SCMutexUnlock(&output_file_rotation_mutex);
             SCFree(entry);
-            break;
+            return;
         }
     }
+    SCMutexUnlock(&output_file_rotation_mutex);
 }
 
 /**
  * \brief Notifies all registered file rotation notification flags.
  */
 void OutputNotifyFileRotation(void) {
-    OutputFileRolloverFlag *flag;
-    TAILQ_FOREACH(flag, &output_file_rotation_flags, entries) {
+    OutputFileRolloverFlag *flag = NULL;
+    OutputFileRolloverFlag *tflag;
+    SCMutexLock(&output_file_rotation_mutex);
+    TAILQ_FOREACH_SAFE (flag, &output_file_rotation_flags, entries, tflag) {
         *(flag->flag) = 1;
     }
+    SCMutexUnlock(&output_file_rotation_mutex);
 }
 
 TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
