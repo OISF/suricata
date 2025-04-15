@@ -721,10 +721,7 @@ impl HTTP2State {
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         tx.state = HTTP2TransactionState::HTTP2StateGlobal;
-        tx.tx_data.update_file_flags(self.state_data.file_flags);
-        // TODO can this tx hold files?
-        tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
-        tx.update_file_flags(tx.tx_data.file_flags);
+        // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
     }
