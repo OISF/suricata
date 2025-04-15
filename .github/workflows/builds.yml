@@ -649,12 +649,12 @@ jobs:
         env:
           CC: "clang"
           RUSTFLAGS: "-Cinstrument-coverage"
-          RUSTC_WRAPPER: "../scripts/rustc.py"
+          RUSTC_WRAPPER: $(pwd)"/scripts/rustc.py"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang"
-          RUSTC_WRAPPER: "../scripts/rustc.py"
+          RUSTC_WRAPPER: $(pwd)"/scripts/rustc.py"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
