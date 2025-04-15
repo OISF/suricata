@@ -2554,18 +2554,19 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     bufdir[b->id].tc += (app->dir == 1);
                 }
 
-                /* only allow rules to use the hook for engines at that
-                 * exact progress for now. */
+                /* only allow rules to use the hook for engines before
+                 * or at that exact progress. */
                 if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                     if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                                s->init_data->hook.t.app.app_progress);
+                            app->progress > s->init_data->hook.t.app.app_progress) {
+                        SCLogError("engine progress value %d is greater than hook %u",
+                                app->progress, s->init_data->hook.t.app.app_progress);
                         SCReturnInt(0);
                     }
                     if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value doesn't match hook");
+                            app->progress > s->init_data->hook.t.app.app_progress) {
+                        SCLogError("engine progress value %d is greater than hook %u",
+                                app->progress, s->init_data->hook.t.app.app_progress);
                         SCReturnInt(0);
                     }
                 }
