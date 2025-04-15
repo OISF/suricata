@@ -409,6 +409,7 @@ pub enum HTTP2Event {
     AuthorityHostMismatch,
     UserinfoInUri,
     ReassemblyLimitReached,
+    DataStreamZero,
 }
 
 pub struct HTTP2DynTable {
@@ -1078,7 +1079,9 @@ impl HTTP2State {
                             data: txdata,
                         });
                     }
-                    if ftype == parser::HTTP2FrameType::Data as u8 {
+                    if ftype == parser::HTTP2FrameType::Data as u8 && sid == 0 {
+                        tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
+                    } else if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
                         match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                             Some(sfcm) => {
                                 //borrow checker forbids to reuse directly tx
