@@ -66,7 +66,7 @@ bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuf
     if (retval == 0) {
         int len, offset;
         SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
-        SCLogDebug("bsize: %d; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+        SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
         needed = len;
         if ((uint64_t)len > bsize) {
             goto value_error;
