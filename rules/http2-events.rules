@@ -23,3 +23,4 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 user info in uri"; flow:esta
 alert http2 any any -> any any (msg:"SURICATA HTTP2 reassembly limit reached"; flow:established; app-layer-event:http2.reassembly_limit_reached; classtype:protocol-command-decode; sid:2290015; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 dns request too long"; flow:established,to_server; app-layer-event:http2.dns_request_too_long; classtype:protocol-command-decode; sid:2290016; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 dns response too long"; flow:established,to_client; app-layer-event:http2.dns_response_too_long; classtype:protocol-command-decode; sid:2290017; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 data on stream zero"; flow:established; app-layer-event:http2.data_stream_zero; classtype:protocol-command-decode; sid:2290018; rev:1;)
