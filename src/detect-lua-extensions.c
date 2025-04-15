@@ -40,7 +40,6 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
-#include "util-lua-dns.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
