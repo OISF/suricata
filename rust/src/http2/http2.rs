@@ -742,6 +742,8 @@ impl HTTP2State {
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
                     tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                    tx_old.tx_data.updated_tc = true;
+                    tx_old.tx_data.updated_ts = true;
                 }
                 return None;
             }
