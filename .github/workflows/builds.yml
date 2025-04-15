@@ -645,15 +645,15 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --disable-shared
+      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" ./configure --enable-warnings --disable-shared
         env:
           CC: "clang"
-          RUSTFLAGS: "-C instrument-coverage"
+          RUSTFLAGS: "-Cinstrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
-      - run: make -j ${{ env.CPUS }}
+      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" make -j ${{ env.CPUS }}
         env:
           CC: "clang"
-          RUSTFLAGS: "-C instrument-coverage"
+          RUSTFLAGS: "-Cinstrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
