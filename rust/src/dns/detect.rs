@@ -23,7 +23,7 @@ use crate::detect::uint::{
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList, DetectHelperBufferRegister,
     DetectHelperGetMultiData, DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    DetectHelperMultiBufferProgressMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
@@ -373,7 +373,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         setup: dns_detect_answer_name_setup,
     };
     let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_DNS_ANSWER_NAME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_DNS_ANSWER_NAME_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
@@ -382,6 +382,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         normal, it could be provided as part of a request. */
         true,
         dns_answer_name_get_data_wrapper,
+        1, // response complete
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.opcode\0".as_ptr() as *const libc::c_char,
@@ -406,7 +407,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         setup: dns_detect_query_name_setup,
     };
     let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_DNS_QUERY_NAME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_DNS_QUERY_NAME_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
@@ -415,6 +416,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         in the response. */
         true,
         dns_query_name_get_data_wrapper,
+        1, // request or response complete
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rcode\0".as_ptr() as *const libc::c_char,
@@ -459,13 +461,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,
     );
-    G_DNS_QUERY_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_DNS_QUERY_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
         b"dns_query\0".as_ptr() as *const libc::c_char,
         b"dns request query\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         false, // only toserver
         true,
         dns_query_get_data_wrapper, // reuse, will be called only toserver
+        1, // request complete
     );
 }
 
