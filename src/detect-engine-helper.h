@@ -43,6 +43,8 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
         bool toclient, bool toserver, InspectionBufferGetDataPtr GetData);
 int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData);
+int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,

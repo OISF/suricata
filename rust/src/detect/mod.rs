@@ -137,6 +137,20 @@ extern "C" {
             u32,
         ) -> *mut c_void,
     ) -> c_int;
+    pub fn DetectHelperMultiBufferProgressMpmRegister(
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
+        toserver: bool,
+        get_multi_data: unsafe extern "C" fn(
+            *mut c_void,
+            *const c_void,
+            *const c_void,
+            u8,
+            *const c_void,
+            i32,
+            u32,
+        ) -> *mut c_void,
+        progress: c_int,
+    ) -> c_int;
 }
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
