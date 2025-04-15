@@ -23,6 +23,7 @@ use proc_macro::TokenStream;
 
 mod applayerevent;
 mod applayerframetype;
+mod applayerstate;
 mod stringenum;
 
 /// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
@@ -50,6 +51,11 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(AppLayerFrameType)]
 pub fn derive_app_layer_frame_type(input: TokenStream) -> TokenStream {
     applayerframetype::derive_app_layer_frame_type(input)
+}
+
+#[proc_macro_derive(AppLayerState, attributes(suricata))]
+pub fn derive_app_layer_state(input: TokenStream) -> TokenStream {
+    applayerstate::derive_app_layer_state(input)
 }
 
 #[proc_macro_derive(EnumStringU8, attributes(name))]
