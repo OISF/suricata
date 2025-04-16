@@ -43,8 +43,7 @@ pub unsafe extern "C" fn SCMimeSmtpLogSubjectMd5(
 
 fn log_body_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Completed {
-        let hash = format!("{:x}", ctx.md5_result);
-        js.set_string("body_md5", &hash)?;
+        js.set_string("body_md5", &ctx.md5_result)?;
     }
     return Ok(());
 }
