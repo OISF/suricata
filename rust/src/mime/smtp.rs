@@ -19,7 +19,6 @@ use super::mime;
 use crate::core::StreamingBufferConfig;
 use crate::filecontainer::FileContainer;
 use crate::utils::base64;
-use digest::generic_array::{typenum::U16, GenericArray};
 use digest::Digest;
 use digest::Update;
 use md5::Md5;
@@ -92,7 +91,7 @@ pub struct MimeStateSMTP<'a> {
     sbcfg: *const StreamingBufferConfig,
     md5: md5::Md5,
     pub(crate) md5_state: MimeSmtpMd5State,
-    pub(crate) md5_result: GenericArray<u8, U16>,
+    pub(crate) md5_result: String,
 }
 
 pub fn mime_smtp_state_init(
@@ -116,7 +115,7 @@ pub fn mime_smtp_state_init(
         sbcfg,
         md5: Md5::new(),
         md5_state: MimeSmtpMd5State::MimeSmtpMd5Disabled,
-        md5_result: [0; 16].into(),
+        md5_result: String::new(),
     };
     return Some(r);
 }
@@ -638,7 +637,8 @@ pub unsafe extern "C" fn SCSmtpMimeParseLine(
 fn mime_smtp_complete(ctx: &mut MimeStateSMTP) {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
         ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Completed;
-        ctx.md5_result = ctx.md5.finalize_reset();
+        let hash = ctx.md5.finalize_reset();
+        ctx.md5_result = format!("{:x}", hash);
     }
     // look for url in the last unfinished line
     mime_smtp_find_url_strings(ctx, b"\n");
