@@ -214,6 +214,7 @@
 #include "detect-ftp-command-data.h"
 #include "detect-ftp-reply.h"
 #include "detect-ftp-mode.h"
+#include "detect-ftp-reply-received.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -728,6 +729,7 @@ void SigTableSetup(void)
     DetectFtpCommandDataRegister();
     DetectFtpReplyRegister();
     DetectFtpModeRegister();
+    DetectFtpReplyReceivedRegister();
 
     DetectBypassRegister();
     DetectConfigRegister();
