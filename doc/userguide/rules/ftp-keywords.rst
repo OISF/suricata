@@ -144,3 +144,27 @@ Signature Example:
 .. container:: example-rule
 
   alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Transfer complete.";` sid: 2;)
+
+ftp.reply_received
+------------------
+
+This keyword matches on whether an FTP reply string was received. EVE logs with the FTP event_type include a field named
+``reply_received``. Use this keyword to alert when a reply is (is not) received. ``ftp.reply_received`` is not a sticky
+buffer and uses a different syntax to express its value.
+
+.. note ::
+   Specify the match value without using quotes, e.g., use yes and not "yes"
+
+Syntax::
+
+  ftp.reply_received: yes|on|no|off;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply_received: yes;` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply_received: no;` sid: 1;)
