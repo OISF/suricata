@@ -27,8 +27,16 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetData(
     ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
     hname: *const std::os::raw::c_char,
 ) -> u8 {
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
     let c_str = CStr::from_ptr(hname); //unsafe
-    let str = c_str.to_str().unwrap_or("");
+    let str = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            return 0;
+        }
+    };
 
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, str.as_bytes()) {
@@ -37,10 +45,6 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetData(
             return 1;
         }
     }
-
-    *buffer = ptr::null();
-    *buffer_len = 0;
-
     return 0;
 }
 
@@ -69,8 +73,16 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetDataArray(
     ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
     hname: *const std::os::raw::c_char, idx: u32,
 ) -> u8 {
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
     let c_str = CStr::from_ptr(hname); //unsafe
-    let str = c_str.to_str().unwrap_or("");
+    let str = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            return 0;
+        }
+    };
 
     let mut i = 0;
     for h in &ctx.headers[..ctx.main_headers_nb] {
@@ -83,9 +95,5 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetDataArray(
             i += 1;
         }
     }
-
-    *buffer = ptr::null();
-    *buffer_len = 0;
-
     return 0;
 }
