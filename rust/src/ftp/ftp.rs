@@ -30,6 +30,11 @@ pub struct DetectFtpModeData {
     pub active: bool,
 }
 
+#[repr(C)]
+pub struct DetectFtpReplyReceivedData {
+    pub received: bool,
+}
+
 /// cbindgen:ignore
 #[repr(C)]
 pub struct FtpCommand {
@@ -224,6 +229,35 @@ pub unsafe extern "C" fn SCFTPGetConfigValues(
     }
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCFTPParseReplyReceived(c_str: *const c_char) -> *mut DetectFtpReplyReceivedData {
+    if c_str.is_null() {
+        return ptr::null_mut();
+    }
+
+    // Convert C string to Rust string slice
+    let Ok(input_str) = CStr::from_ptr(c_str).to_str() else {
+        return ptr::null_mut();
+    };
+
+    // Check for case-insensitive match
+    let received_val = match input_str.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" | "on"  => true,
+        "false" | "0" | "no" | "off"=> false,
+        _ => return ptr::null_mut(), // invalid input
+    };
+
+    // Return a pointer to a heap-allocated struct
+    let boxed = Box::new(DetectFtpReplyReceivedData { received: received_val });
+    Box::into_raw(boxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCFTPFreeReplyReceivedData(ptr: *mut DetectFtpReplyReceivedData) {
+    if !ptr.is_null() {
+        drop(Box::from_raw(ptr));
+    }
+}
 #[no_mangle]
 pub unsafe extern "C" fn SCFTPParseMode(c_str: *const c_char) -> *mut DetectFtpModeData {
     if c_str.is_null() {
