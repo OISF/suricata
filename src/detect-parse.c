@@ -873,7 +873,7 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectSetupDirection(Signature *s, const char **str, bool only_dir)
+static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
 {
     if (strncmp(*str, "to_client", strlen("to_client")) == 0) {
         *str += strlen("to_client");
