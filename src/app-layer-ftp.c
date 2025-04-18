@@ -254,6 +254,7 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPResponseWrapperFree(wrapper);
     }
 
+    SCFTPFreeDynamicPortString(tx->dyn_port_str);
     FTPFree(tx, sizeof(*tx));
 }
 
@@ -561,14 +562,17 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
 static int FTPParsePassiveResponse(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port = rs_ftp_pasv_response(input, input_len);
-    if (dyn_port == 0) {
+    uint16_t dyn_port;
+    char *dyn_port_str = SCFTPPortFromPasvResponse(input, input_len, &dyn_port);
+    if (dyn_port_str == NULL) {
         return -1;
     }
     SCLogDebug("FTP passive mode (v4): dynamic port %"PRIu16"", dyn_port);
     state->active = false;
     state->dyn_port = dyn_port;
     state->curr_tx->dyn_port = dyn_port;
+    state->curr_tx->dyn_port_str = dyn_port_str;
+    state->curr_tx->dyn_port_len = strlen(dyn_port_str);
     state->curr_tx->active = false;
 
     return 0;
@@ -576,14 +580,16 @@ static int FTPParsePassiveResponse(FtpState *state, const uint8_t *input, uint32
 
 static int FTPParsePassiveResponseV6(FtpState *state, const uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
-    if (dyn_port == 0) {
+    uint16_t dyn_port;
+    char *dyn_port_str = SCFTPPortFromEpsvResponse(input, input_len, &dyn_port);
+    if (dyn_port_str == NULL)
         return -1;
-    }
     SCLogDebug("FTP passive mode (v6): dynamic port %"PRIu16"", dyn_port);
     state->active = false;
     state->dyn_port = dyn_port;
     state->curr_tx->dyn_port = dyn_port;
+    state->curr_tx->dyn_port_str = dyn_port_str;
+    state->curr_tx->dyn_port_len = strlen(dyn_port_str);
     state->curr_tx->active = false;
     return 0;
 }
@@ -651,6 +657,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
 
         state->curr_tx = tx;
         uint16_t dyn_port;
+        char *dyn_port_str;
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
                 if (line.len >= 4 && SCMemcmp("234 ", line.buf, 4) == 0) {
@@ -659,25 +666,30 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 break;
 
             case FTP_COMMAND_EPRT:
-                dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len);
-                if (dyn_port == 0) {
+                dyn_port_str = SCFTPPortFromEprtResponse(state->port_line, state->port_line_len, &dyn_port);
+                if (dyn_port_str == NULL) {
                     goto tx_complete;
                 }
                 state->dyn_port = dyn_port;
                 state->active = true;
                 tx->dyn_port = dyn_port;
+                tx->dyn_port_str = dyn_port_str;
+                tx->dyn_port_len = strlen(dyn_port_str);
                 tx->active = true;
                 SCLogDebug("FTP active mode (v6): dynamic port %" PRIu16 "", dyn_port);
                 break;
 
             case FTP_COMMAND_PORT:
-                dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len);
-                if (dyn_port == 0) {
+                dyn_port_str = SCFTPPortFromPortResponse(
+                        state->port_line, state->port_line_len, &dyn_port);
+                if (dyn_port_str == NULL) {
                     goto tx_complete;
                 }
                 state->dyn_port = dyn_port;
                 state->active = true;
                 tx->dyn_port = state->dyn_port;
+                tx->dyn_port_str = dyn_port_str;
+                tx->dyn_port_len = strlen(dyn_port_str);
                 tx->active = true;
                 SCLogDebug("FTP active mode (v4): dynamic port %" PRIu16 "", dyn_port);
                 break;

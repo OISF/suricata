@@ -64,18 +64,21 @@ typedef struct FTPTransaction_  {
     AppLayerTxData tx_data;
 
     /* for the request */
-    uint32_t request_length;
     uint8_t *request;
+    uint32_t request_length;
     bool request_truncated;
 
     /* for the command description */
     FtpCommandInfo command_descriptor;
 
-    uint16_t dyn_port; /* dynamic port, if applicable */
     bool done; /* transaction complete? */
     bool active; /* active or passive mode */
 
     uint8_t direction;
+
+    uint16_t dyn_port; /* dynamic port, if applicable */
+    uint8_t dyn_port_len;
+    char *dyn_port_str;
 
     /* Handle multiple responses */
     TAILQ_HEAD(, FTPResponseWrapper_) response_list;
