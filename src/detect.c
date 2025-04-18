@@ -590,9 +590,8 @@ static bool IsOnlyTxInDirection(Flow *f, uint64_t txid, uint8_t dir)
         if (tx) {
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
             // test if the other tx is unidirectional in the other way
-            if (txd && ((dir == STREAM_TOSERVER && (txd->flags & APP_LAYER_TX_SKIP_INSPECT_TS)) ||
-                               (dir == STREAM_TOCLIENT &&
-                                       (txd->flags & APP_LAYER_TX_SKIP_INSPECT_TC)))) {
+            if ((dir == STREAM_TOSERVER && (txd->flags & APP_LAYER_TX_SKIP_INSPECT_TS)) ||
+                    (dir == STREAM_TOCLIENT && (txd->flags & APP_LAYER_TX_SKIP_INSPECT_TC))) {
                 return true;
             }
         }
@@ -732,7 +731,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCt
                 AppLayerTxData *txd =
                         tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
                                : NULL;
-                if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
+                if (txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
                     alert_flags |= PACKET_ALERT_FLAG_TX;
                     if (pflow->proto != IPPROTO_UDP) {
                         alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
@@ -1358,10 +1357,6 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
 {
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    if (unlikely(txd == NULL)) {
-        DetectTransaction no_tx = NO_TX;
-        return no_tx;
-    }
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
     if (!updated && tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {

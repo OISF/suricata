@@ -182,11 +182,6 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 static inline HtpBody *GetRequestBody(htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud == NULL) {
-        SCLogDebug("no htud");
-        return NULL;
-    }
-
     return &htud->request_body;
 }
 

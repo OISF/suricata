@@ -274,9 +274,8 @@ static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx, const void *
     htp_tx_t *tx = txv;
     const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
     /* if the request wasn't flagged as having a trailer, we skip */
-    if (htud && (
-            ((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||
-            ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers))) {
+    if (((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||
+            ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers)) {
         SCReturn;
     }
     PrefilterMpmHttpHeader(det_ctx, pectx, p, f, txv, idx, _txd, flags);
