@@ -6,6 +6,8 @@ use crate::{
     HtpStatus,
 };
 
+use crate::hook::TxCreateCallbackFn;
+
 #[cfg(test)]
 use crate::hook::{DataNativeCallbackFn, TxNativeCallbackFn};
 
@@ -20,6 +22,11 @@ pub struct Config {
     pub(crate) server_personality: HtpServerPersonality,
     /// Decoder configuration for url path.
     pub(crate) decoder_cfg: DecoderConfig,
+    /// Transaction creation hook.
+    /// Used by suricata to allocate its transaction
+    /// And make libhtp.rs tx creation fail (return None) if suricata failed
+    /// to do the C allocation.
+    pub(crate) hook_tx_create: Option<TxCreateCallbackFn>,
     /// Request start hook, invoked when the parser receives the first byte of a new
     /// request. Because an HTTP transaction always starts with a request, this hook
     /// doubles as a transaction start hook.
@@ -104,6 +111,7 @@ impl Default for Config {
             field_limit: 18000,
             server_personality: HtpServerPersonality::MINIMAL,
             decoder_cfg: Default::default(),
+            hook_tx_create: None,
             hook_request_start: TxHook::default(),
             hook_request_line: TxHook::default(),
             hook_request_header_data: DataHook::default(),

@@ -16,6 +16,10 @@ pub(crate) type TxNativeCallbackFn = fn(tx: &mut Transaction) -> Result<()>;
 pub(crate) type TxHook = Hook<TxExternalCallbackFn, TxNativeCallbackFn>;
 
 /// External (C) callback function prototype
+pub(crate) type TxCreateCallbackFn =
+    unsafe extern "C" fn(tx: *mut Transaction, req: bool) -> HtpStatus;
+
+/// External (C) callback function prototype
 pub(crate) type DataExternalCallbackFn =
     unsafe extern "C" fn(connp: *const ConnectionParser, data: *mut Data) -> HtpStatus;
 

@@ -178,19 +178,18 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
         }
 
         SCLogDebug("tx %p", tx);
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            SCLogDebug("htud %p", htud);
-            HtpBody *body = NULL;
-            if (iflags & OUTPUT_STREAMING_FLAG_TOSERVER)
-                body = &htud->request_body;
-            else if (iflags & OUTPUT_STREAMING_FLAG_TOCLIENT)
-                body = &htud->response_body;
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+        SCLogDebug("htud %p", htud);
+        HtpBody *body = NULL;
+        if (iflags & OUTPUT_STREAMING_FLAG_TOSERVER)
+            body = &htud->request_body;
+        else if (iflags & OUTPUT_STREAMING_FLAG_TOCLIENT)
+            body = &htud->response_body;
 
-            if (body == NULL) {
-                SCLogDebug("no body");
-                goto next;
-            }
+        if (body == NULL) {
+            SCLogDebug("no body");
+            goto next;
+        }
             if (body->first == NULL) {
                 SCLogDebug("no body chunks");
                 goto next;
@@ -236,7 +235,6 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                 Streamer(cbdata, f, NULL, 0, tx_id,
                          iflags|OUTPUT_STREAMING_FLAG_CLOSE|OUTPUT_STREAMING_FLAG_TRANSACTION);
             }
-        }
     }
     return 0;
 }

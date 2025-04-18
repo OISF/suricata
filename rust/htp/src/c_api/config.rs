@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 use crate::{
     config::{Config, HtpServerPersonality, HtpUrlEncodingHandling},
-    hook::{DataExternalCallbackFn, TxExternalCallbackFn},
+    hook::{DataExternalCallbackFn, TxCreateCallbackFn, TxExternalCallbackFn},
     HtpStatus,
 };
 use std::convert::TryInto;
@@ -71,6 +71,19 @@ pub unsafe extern "C" fn htp_config_register_request_line(
 ) {
     if let Some(cfg) = cfg.as_mut() {
         cfg.hook_request_line.register_extern(cbk_fn)
+    }
+}
+
+/// Registers a tx create callback, which is invoked every time a new
+/// request begins and before any parsing is done.
+/// # Safety
+/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_config_register_tx_create(
+    cfg: *mut Config, cbk_fn: TxCreateCallbackFn,
+) {
+    if let Some(cfg) = cfg.as_mut() {
+        cfg.hook_tx_create = Some(cbk_fn);
     }
 }
 
