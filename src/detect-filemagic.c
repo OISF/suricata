@@ -114,7 +114,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILE_MAGIC].desc = "sticky buffer to match on the file magic";
     sigmatch_table[DETECT_FILE_MAGIC].url = "/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILE_MAGIC].Setup = DetectFilemagicSetupSticky;
-    sigmatch_table[DETECT_FILE_MAGIC].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_FILE_MAGIC].flags =
+            SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_SUPPORT_DIR;
 
     filehandler_table[DETECT_FILE_MAGIC].name = "file.magic",
     filehandler_table[DETECT_FILE_MAGIC].priority = 2;
@@ -250,10 +251,6 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSetupDirection(s, str) < 0) {
-        SCLogError("file.magic failed to setup direction");
-        return -1;
-    }
     if (SCDetectBufferSetActiveList(de_ctx, s, g_file_magic_buffer_id) < 0)
         return -1;
 
