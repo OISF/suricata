@@ -100,7 +100,8 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].desc = "sticky buffer to match on the file name";
     sigmatch_table[DETECT_FILE_NAME].url = "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
-    sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_FILE_NAME].flags =
+            SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_SUPPORT_DIR;
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
@@ -208,10 +209,6 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
  */
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSetupDirection(s, str) < 0) {
-        SCLogError("file.name failed to setup direction");
-        return -1;
-    }
     if (SCDetectBufferSetActiveList(de_ctx, s, g_file_name_buffer_id) < 0)
         return -1;
     s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
