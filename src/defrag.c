@@ -1084,13 +1084,10 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
         return NULL;
     }
 
-    if (tv != NULL && dtv != NULL) {
-        if (af == AF_INET) {
-            StatsIncr(tv, dtv->counter_defrag_ipv4_fragments);
-        }
-        else if (af == AF_INET6) {
-            StatsIncr(tv, dtv->counter_defrag_ipv6_fragments);
-        }
+    if (af == AF_INET) {
+        StatsIncr(tv, dtv->counter_defrag_ipv4_fragments);
+    } else if (af == AF_INET6) {
+        StatsIncr(tv, dtv->counter_defrag_ipv6_fragments);
     }
 
     /* return a locked tracker or NULL */
