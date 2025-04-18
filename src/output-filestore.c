@@ -420,6 +420,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
+        SCFree(ctx->xff_cfg);
         SCFree(ctx);
         return result;
     }
