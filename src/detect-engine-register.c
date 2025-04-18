@@ -124,6 +124,7 @@
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
 #include "detect-ftpbounce.h"
+#include "detect-ftp-dynamic_port.h"
 #include "detect-isdataat.h"
 #include "detect-id.h"
 #include "detect-rpc.h"
@@ -633,6 +634,7 @@ void SigTableSetup(void)
     DetectRpcRegister();
     DetectFtpbounceRegister();
     DetectFtpdataRegister();
+    DetectFtpDynamicPortRegister();
     DetectIsdataatRegister();
     DetectIdRegister();
     DetectDsizeRegister();
