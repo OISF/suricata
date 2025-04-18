@@ -787,6 +787,7 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
 
     const char *cache_path = pd->no_cache || !mpm_conf ? NULL : mpm_conf->cache_dir_path;
     if (PatternDatabaseGetCached(&pd, cd, cache_path) == 0 && pd != NULL) {
+        cd = NULL;
         ctx->pattern_db = pd;
         if (PatternDatabaseGetSize(pd, &ctx->hs_db_size) != 0) {
             SCMutexUnlock(&g_db_table_mutex);
