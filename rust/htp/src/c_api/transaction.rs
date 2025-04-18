@@ -45,16 +45,6 @@ pub unsafe extern "C" fn htp_tx_get_user_data(tx: *const Transaction) -> *mut li
         .unwrap_or(std::ptr::null_mut())
 }
 
-/// Associates user data with this transaction.
-/// # Safety
-/// When calling this method, you have to ensure that tx is either properly initialized or NULL
-#[no_mangle]
-pub unsafe extern "C" fn htp_tx_set_user_data(tx: *mut Transaction, user_data: *mut libc::c_void) {
-    if let Some(tx) = tx.as_mut() {
-        tx.set_user_data(Box::new(user_data))
-    }
-}
-
 /// Get a transaction's request line.
 ///
 /// tx: Transaction pointer.
