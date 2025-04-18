@@ -530,6 +530,12 @@ SigMatch *SigMatchAppendSMToList(
                 /* buffer set up by sigmatch is tracked in case we add a stickybuffer for the
                  * same list. */
                 s->init_data->curbuf->sm_init = true;
+                if (s->init_data->init_flags & SIG_FLAG_INIT_FORCE_TOCLIENT) {
+                    s->init_data->curbuf->only_tc = true;
+                }
+                if (s->init_data->init_flags & SIG_FLAG_INIT_FORCE_TOSERVER) {
+                    s->init_data->curbuf->only_ts = true;
+                }
                 SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
             }
         }
@@ -858,6 +864,76 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
     return -1;
 }
 
+/**
+ * \brief Parse and setup a direction
+ *
+ * \param s signature
+ * \param str argument to the keyword
+ * \param only_dir argument wether the keyword only accepts a direction
+ *
+ * \retval 0 on success, -1 on failure
+ */
+static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
+{
+    if (strncmp(*str, "to_client", strlen("to_client")) == 0) {
+        *str += strlen("to_client");
+        // skip space
+        while (**str && isblank(**str)) {
+            (*str)++;
+        }
+        // check comma or nothing
+        if (**str) {
+            if (**str != ',') {
+                SCLogError("expecting to_client [, other]");
+                return -1;
+            } else {
+                (*str)++;
+            }
+            while (**str && isblank(**str)) {
+                (*str)++;
+            }
+        }
+        s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOCLIENT;
+        if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                SCLogError("contradictory directions");
+                return -1;
+            }
+            s->flags |= SIG_FLAG_TOCLIENT;
+        }
+    } else if (strncmp(*str, "to_server", strlen("to_server")) == 0) {
+        *str += strlen("to_server");
+        // skip space
+        while (**str && isblank(**str)) {
+            (*str)++;
+        }
+        // check comma or nothing
+        if (**str) {
+            if (**str != ',') {
+                SCLogError("expecting to_server [, other]");
+                return -1;
+            } else {
+                (*str)++;
+            }
+            while (**str && isblank(**str)) {
+                (*str)++;
+            }
+        }
+        s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOSERVER;
+        if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
+            if (s->flags & SIG_FLAG_TOCLIENT) {
+                SCLogError("contradictory directions");
+                return -1;
+            }
+            s->flags |= SIG_FLAG_TOSERVER;
+        }
+    } else if (only_dir) {
+        SCLogError("unknown option: only accepts to_server or to_client");
+        return -1;
+    }
+    return 0;
+}
+
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output,
         size_t output_size, bool requires)
 {
@@ -1045,7 +1121,15 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             }
         }
         /* setup may or may not add a new SigMatch to the list */
+        if (st->flags & SIGMATCH_SUPPORT_DIR) {
+            if (DetectSetupDirection(s, &ptr, st->flags & SIGMATCH_OPTIONAL_OPT) < 0) {
+                SCLogError("%s failed to setup direction", st->name);
+                goto error;
+            }
+        }
         setup_ret = st->Setup(de_ctx, s, ptr);
+        s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOSERVER;
+        s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOCLIENT;
     } else {
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, NULL);
@@ -3526,43 +3610,6 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
     if (!DetectSetupParseRegexesOpts(parse_str, detect_parse, 0)) {
         FatalError("pcre compile and study failed");
     }
-}
-
-/**
- * \brief Parse and setup a direction
- *
- * \param s siganture
- * \param str argument to the keyword
- *
- * \retval 0 on success, -1 on failure
- */
-int DetectSetupDirection(Signature *s, const char *str)
-{
-    if (str) {
-        if (strcmp(str, "to_client") == 0) {
-            s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOCLIENT;
-            if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
-                if (s->flags & SIG_FLAG_TOSERVER) {
-                    SCLogError("contradictory directions");
-                    return -1;
-                }
-                s->flags |= SIG_FLAG_TOCLIENT;
-            }
-        } else if (strcmp(str, "to_server") == 0) {
-            s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOSERVER;
-            if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
-                if (s->flags & SIG_FLAG_TOCLIENT) {
-                    SCLogError("contradictory directions");
-                    return -1;
-                }
-                s->flags |= SIG_FLAG_TOSERVER;
-            }
-        } else {
-            SCLogError("unknown option: only accepts to_server or to_client");
-            return -1;
-        }
-    }
-    return 0;
 }
 
 /*

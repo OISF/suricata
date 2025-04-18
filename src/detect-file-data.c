@@ -78,7 +78,7 @@ void DetectFiledataRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
 #endif
-    sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_OPTIONAL_OPT;
+    sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_SUPPORT_DIR;
 
     filehandler_table[DETECT_FILE_DATA].name = "file_data";
     filehandler_table[DETECT_FILE_DATA].priority = 2;
@@ -140,11 +140,6 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    if (DetectSetupDirection(s, str) < 0) {
-        SCLogError("file.data failed to setup direction");
-        return -1;
-    }
-
     if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
         SCLogError("The 'file-data' keyword cannot be used with SMTP flow:to_client or "
@@ -166,8 +161,6 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         }
         s->init_data->init_flags |= SIG_FLAG_INIT_TXDIR_STREAMING_TOSERVER;
     }
-    s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOSERVER;
-    s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOCLIENT;
 
     SetupDetectEngineConfig(de_ctx);
     return 0;

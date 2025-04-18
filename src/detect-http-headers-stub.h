@@ -161,16 +161,8 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHttpHeadersSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSetupDirection(s, str) < 0) {
-        SCLogError(KEYWORD_NAME " failed to setup direction");
-        return -1;
-    }
-
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
-
-    s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOSERVER;
-    s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOCLIENT;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
@@ -188,7 +180,8 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetupSticky;
 #if defined(KEYWORD_TOSERVER) && defined(KEYWORD_TOSERVER)
-    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[KEYWORD_ID].flags |=
+            SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_SUPPORT_DIR;
 #else
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #endif
