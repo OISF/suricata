@@ -1624,6 +1624,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_STRICT_PARSING         BIT_U16(11)
 /** keyword supported by firewall rules */
 #define SIGMATCH_SUPPORT_FIREWALL BIT_U16(12)
+/** keyword supporting setting an optional direction */
+#define SIGMATCH_SUPPORT_DIR BIT_U16(13)
 
 enum DetectEngineTenantSelectors
 {
