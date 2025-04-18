@@ -1140,9 +1140,8 @@ void DefragDestroy(void)
 
 #define IP_MF 0x2000
 
-ThreadVars test_tv = {0};
-DecodeThreadVars test_dtv = {0};
-
+ThreadVars test_tv = { 0 };
+DecodeThreadVars test_dtv = { 0 };
 
 /**
  * Allocate a test packet.  Nothing to fancy, just a simple IP packet
@@ -1466,7 +1465,6 @@ static int DefragReverseSimpleTest(void)
     Packet *reassembled = NULL;
     int id = 12;
 
-
     DefragInit();
 
     p1 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
@@ -1518,7 +1516,6 @@ static int DefragInOrderSimpleIpv6Test(void)
     Packet *reassembled = NULL;
     int id = 12;
 
-
     DefragInit();
 
     p1 = BuildIpv6TestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 8);
@@ -1567,7 +1564,6 @@ static int DefragReverseSimpleIpv6Test(void)
     Packet *reassembled = NULL;
     int id = 12;
 
-
     DefragInit();
 
     dc = DefragContextNew();
@@ -1613,7 +1609,6 @@ static int DefragReverseSimpleIpv6Test(void)
 static int DefragDoSturgesNovakTest(int policy, uint8_t *expected, size_t expected_len)
 {
     int i;
-
 
     DefragInit();
 
@@ -1732,7 +1727,6 @@ static int DefragDoSturgesNovakTest(int policy, uint8_t *expected, size_t expect
 static int DefragDoSturgesNovakIpv6Test(int policy, uint8_t *expected, size_t expected_len)
 {
     int i;
-
 
     DefragInit();
 
@@ -2285,7 +2279,6 @@ static int DefragTimeoutTest(void)
 {
     int i;
 
-
     /* Setup a small number of trackers. */
     FAIL_IF_NOT(SCConfSet("defrag.trackers", "16"));
 
@@ -2334,7 +2327,6 @@ static int DefragNoDataIpv4Test(void)
     Packet *p = NULL;
     int id = 12;
 
-
     DefragInit();
 
     dc = DefragContextNew();
@@ -2362,7 +2354,6 @@ static int DefragTooLargeIpv4Test(void)
 {
     DefragContext *dc = NULL;
     Packet *p = NULL;
-
 
     DefragInit();
 
@@ -2400,7 +2391,6 @@ static int DefragVlanTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
 
-
     DefragInit();
 
     p1 = BuildIpv4TestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
@@ -2432,7 +2422,6 @@ static int DefragVlanTest(void)
 static int DefragVlanQinQTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
-
 
     DefragInit();
 
@@ -2468,7 +2457,6 @@ static int DefragVlanQinQinQTest(void)
 {
     Packet *r = NULL;
 
-
     DefragInit();
 
     Packet *p1 = BuildIpv4TestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
@@ -2502,7 +2490,6 @@ static int DefragTrackerReuseTest(void)
     int id = 1;
     Packet *p1 = NULL;
     DefragTracker *tracker1 = NULL, *tracker2 = NULL;
-
 
     DefragInit();
 
@@ -2556,7 +2543,6 @@ static int DefragMfIpv4Test(void)
     int ip_id = 9;
     Packet *p = NULL;
 
-
     DefragInit();
 
     Packet *p1 = BuildIpv4TestPacket(IPPROTO_ICMP, ip_id, 2, 1, 'C', 8);
@@ -2604,7 +2590,6 @@ static int DefragMfIpv6Test(void)
     int ip_id = 9;
     Packet *p = NULL;
 
-
     DefragInit();
 
     Packet *p1 = BuildIpv6TestPacket(IPPROTO_ICMPV6, ip_id, 2, 1, 'C', 8);
@@ -2646,7 +2631,6 @@ static int DefragTestBadProto(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     int id = 12;
-
 
     DefragInit();
 
