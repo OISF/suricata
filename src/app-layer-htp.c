@@ -439,11 +439,9 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
-            s->events++;
-            return;
-        }
+        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        s->events++;
+        return;
     }
     SCLogDebug("couldn't set event %u", e);
 }
@@ -473,8 +471,9 @@ static void *HTPStateAlloc(void *orig_state, AppProto proto_orig)
     SCReturnPtr((void *)s, "void");
 }
 
-static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
+static void HtpTxUserDataFree(void *txud)
 {
+    HtpTxUserData *htud = (HtpTxUserData *)txud;
     if (likely(htud)) {
         HtpBodyFree(&htud->request_body);
         HtpBodyFree(&htud->response_body);
@@ -510,20 +509,6 @@ void HTPStateFree(void *state)
     /* free the connection parser memory used by HTP library */
     if (s->connp != NULL) {
         SCLogDebug("freeing HTP state");
-
-        uint64_t tx_id;
-        uint64_t total_txs = HTPStateGetTxCnt(state);
-        /* free the list of body chunks */
-        if (s->conn != NULL) {
-            for (tx_id = 0; tx_id < total_txs; tx_id++) {
-                htp_tx_t *tx = HTPStateGetTx(s, tx_id);
-                if (tx != NULL) {
-                    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-                    HtpTxUserDataFree(s, htud);
-                    htp_tx_set_user_data(tx, NULL);
-                }
-            }
-        }
         htp_connp_destroy_all(s->connp);
     }
 
@@ -554,10 +539,6 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
 
     htp_tx_t *tx = HTPStateGetTx(s, id);
     if (tx != NULL) {
-        /* This will remove obsolete body chunks */
-        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        HtpTxUserDataFree(s, htud);
-        htp_tx_set_user_data(tx, NULL);
         htp_tx_destroy(s->connp, tx);
     }
 }
@@ -607,13 +588,11 @@ void AppLayerHtpNeedFileInspection(void)
 static void AppLayerHtpSetStreamDepthFlag(void *tx, const uint8_t flags)
 {
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data((htp_tx_t *)tx);
-    if (tx_ud) {
-        SCLogDebug("setting HTP_STREAM_DEPTH_SET, flags %02x", flags);
-        if (flags & STREAM_TOCLIENT) {
-            tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
-        } else {
-            tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
-        }
+    SCLogDebug("setting HTP_STREAM_DEPTH_SET, flags %02x", flags);
+    if (flags & STREAM_TOCLIENT) {
+        tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
+    } else {
+        tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
     }
 }
 
@@ -709,8 +688,6 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
                                    HTP_FLAGS_HOST_MISSING | HTP_FLAGS_HOST_AMBIGUOUS |
                                    HTP_FLAGS_HOSTU_INVALID | HTP_FLAGS_HOSTH_INVALID)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            return;
 
         if (htp_tx_flags(tx) & HTP_FLAGS_REQUEST_INVALID_T_E)
             HTPSetEvent(s, htud, STREAM_TOSERVER,
@@ -729,16 +706,12 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
     }
     if (htp_tx_request_auth_type(tx) == HTP_AUTH_TYPE_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            return;
         HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_AUTH_UNRECOGNIZED);
     }
     if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_METHOD_UNKNOWN &&
             (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
                     htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_UNKNOWN)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            return;
         HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
     }
 }
@@ -1539,9 +1512,6 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
             hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        SCReturnInt(HTP_STATUS_OK);
-    }
     tx_ud->tx_data.updated_tc = true;
     SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
     if (!tx_ud->request_body_init) {
@@ -1650,21 +1620,32 @@ void HTPFreeConfig(void)
 static int HTPCallbackRequestHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud != NULL) {
-        htud->tx_data.updated_ts = true;
-        htud->request_has_trailers = 1;
-    }
+    htud->tx_data.updated_ts = true;
+    htud->request_has_trailers = 1;
     return HTP_STATUS_OK;
 }
 
 static int HTPCallbackResponseHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud != NULL) {
-        htud->tx_data.updated_tc = true;
-        htud->response_has_trailers = 1;
-    }
+    htud->tx_data.updated_tc = true;
+    htud->response_has_trailers = 1;
     return HTP_STATUS_OK;
+}
+
+static void *HTPCallbackTxCreate(bool request)
+{
+    HtpTxUserData *tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
+    if (unlikely(tx_ud == NULL)) {
+        return NULL;
+    }
+    if (request) {
+        // each http tx may xfer files
+        tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT;
+    } else {
+        tx_ud->tx_data.file_tx = STREAM_TOCLIENT; // Toserver already missed.
+    }
+    return tx_ud;
 }
 
 /**\internal
@@ -1696,14 +1677,6 @@ static int HTPCallbackRequestStart(const htp_connp_t *connp, htp_tx_t *tx)
                 hstate->cfg->request.inspect_min_size);
 
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
-        if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_STATUS_OK);
-        }
-        tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // each http tx may xfer files
-        htp_tx_set_user_data(tx, tx_ud);
-    }
     tx_ud->tx_data.updated_ts = true;
     SCReturnInt(HTP_STATUS_OK);
 }
@@ -1736,15 +1709,6 @@ static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
                 hstate->cfg->response.inspect_min_size);
 
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
-        if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_STATUS_OK);
-        }
-        tx_ud->tx_data.file_tx =
-                STREAM_TOCLIENT; // each http tx may xfer files. Toserver already missed.
-        htp_tx_set_user_data(tx, tx_ud);
-    }
     tx_ud->tx_data.updated_tc = true;
     SCReturnInt(HTP_STATUS_OK);
 }
@@ -1795,16 +1759,14 @@ static int HTPCallbackRequestComplete(const htp_connp_t *connp, htp_tx_t *tx)
     HTPErrorCheckTxRequestFlags(hstate, tx);
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud != NULL) {
-        htud->tx_data.updated_ts = true;
-        if (htud->tsflags & HTP_FILENAME_SET) {
-            SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER);
-            htud->tsflags &= ~HTP_FILENAME_SET;
-            if (abs_right_edge < (uint64_t)UINT32_MAX) {
-                StreamTcpReassemblySetMinInspectDepth(
-                        hstate->f->protoctx, STREAM_TOSERVER, (uint32_t)abs_right_edge);
-            }
+    htud->tx_data.updated_ts = true;
+    if (htud->tsflags & HTP_FILENAME_SET) {
+        SCLogDebug("closing file that was being stored");
+        (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOSERVER);
+        htud->tsflags &= ~HTP_FILENAME_SET;
+        if (abs_right_edge < (uint64_t)UINT32_MAX) {
+            StreamTcpReassemblySetMinInspectDepth(
+                    hstate->f->protoctx, STREAM_TOSERVER, (uint32_t)abs_right_edge);
         }
     }
 
@@ -1851,13 +1813,11 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
     }
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud != NULL) {
-        htud->tx_data.updated_tc = true;
-        if (htud->tcflags & HTP_FILENAME_SET) {
-            SCLogDebug("closing file that was being stored");
-            (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOCLIENT);
-            htud->tcflags &= ~HTP_FILENAME_SET;
-        }
+    htud->tx_data.updated_tc = true;
+    if (htud->tcflags & HTP_FILENAME_SET) {
+        SCLogDebug("closing file that was being stored");
+        (void)HTPFileClose(htud, NULL, 0, 0, STREAM_TOCLIENT);
+        htud->tcflags &= ~HTP_FILENAME_SET;
     }
 
     /* response done, do raw reassembly now to inspect state and stream
@@ -1888,13 +1848,7 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 
 static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
 {
-    HtpTxUserData *tx_ud;
     HtpState *hstate = htp_connp_user_data(connp);
-
-    tx_ud = htp_tx_get_user_data(tx);
-    if (unlikely(tx_ud == NULL)) {
-        return HTP_STATUS_OK;
-    }
 
     if (htp_tx_flags(tx)) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
@@ -1910,9 +1864,6 @@ static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t 
         return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        return HTP_STATUS_OK;
-    }
     ptmp = HTPRealloc(tx_ud->request_headers_raw, tx_ud->request_headers_raw_len,
             tx_ud->request_headers_raw_len + htp_tx_data_len(tx_data));
     if (ptmp == NULL) {
@@ -1940,9 +1891,6 @@ static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t
         return HTP_STATUS_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        return HTP_STATUS_OK;
-    }
     tx_ud->tx_data.updated_tc = true;
     ptmp = HTPRealloc(tx_ud->response_headers_raw, tx_ud->response_headers_raw_len,
             tx_ud->response_headers_raw_len + htp_tx_data_len(tx_data));
@@ -1988,6 +1936,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
+
+    htp_config_register_tx_create(cfg_prec->cfg, HTPCallbackTxCreate);
+    htp_config_register_tx_destroy(cfg_prec->cfg, HtpTxUserDataFree);
 
     htp_config_register_request_start(cfg_prec->cfg, HTPCallbackRequestStart);
     htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequestComplete);
@@ -2494,12 +2445,10 @@ static AppLayerGetFileState HTPGetTxFiles(void *txv, uint8_t direction)
     AppLayerGetFileState files = { .fc = NULL, .cfg = &htp_sbcfg };
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud) {
-        if (direction & STREAM_TOCLIENT) {
-            files.fc = &tx_ud->files_tc;
-        } else {
-            files.fc = &tx_ud->files_ts;
-        }
+    if (direction & STREAM_TOCLIENT) {
+        files.fc = &tx_ud->files_tc;
+    } else {
+        files.fc = &tx_ud->files_ts;
     }
     return files;
 }
@@ -2581,10 +2530,7 @@ static AppLayerTxData *HTPGetTxData(void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud) {
-        return &tx_ud->tx_data;
-    }
-    return NULL;
+    return &tx_ud->tx_data;
 }
 
 static AppLayerStateData *HTPGetStateData(void *vstate)

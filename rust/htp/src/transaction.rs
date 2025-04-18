@@ -1,5 +1,6 @@
 use crate::{
     bstr::Bstr,
+    c_api::transaction::htp_tx_get_user_data,
     config::{Config, HtpUnwanted},
     connection_parser::ParserData,
     decompressors::{Decompressor, HtpContentEncoding},
@@ -598,10 +599,23 @@ impl std::fmt::Debug for Transaction {
     }
 }
 
+impl Drop for Transaction {
+    fn drop(&mut self) {
+        if self.user_data.is_none() {
+            return;
+        }
+        if let Some(cb) = self.cfg.hook_tx_destroy {
+            unsafe { cb(htp_tx_get_user_data(self)) };
+        }
+    }
+}
+
 impl Transaction {
     /// Construct a new transaction.
-    pub(crate) fn new(cfg: &'static Config, logger: &Logger, index: usize) -> Self {
-        Self {
+    pub(crate) fn new(
+        cfg: &'static Config, logger: &Logger, index: usize, req: bool,
+    ) -> Option<Self> {
+        let mut tx = Self {
             logger: logger.clone(),
             cfg,
             user_data: None,
@@ -661,7 +675,15 @@ impl Transaction {
             response_header_repetitions: 0,
             request_header_parser: HeaderParser::new(Side::Request),
             response_header_parser: HeaderParser::new(Side::Response),
+        };
+        if let Some(cb) = cfg.hook_tx_create {
+            let r = unsafe { cb(req) };
+            if r.is_null() {
+                return None;
+            }
+            tx.set_user_data(Box::new(r));
         }
+        Some(tx)
     }
 
     /// Has this transaction started?

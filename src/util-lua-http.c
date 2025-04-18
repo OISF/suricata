@@ -169,8 +169,6 @@ static int LuaHttpGetRawHeaders(lua_State *luastate, int dir)
         return 1;
     }
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx->tx);
-    if (htud == NULL)
-        return LuaCallbackError(luastate, "no htud in tx");
 
     uint8_t *raw = htud->request_headers_raw;
     uint32_t raw_len = htud->request_headers_raw_len;
@@ -245,8 +243,6 @@ static int LuaHttpGetBody(lua_State *luastate, int dir)
     }
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx->tx);
-    if (htud == NULL)
-        return LuaCallbackError(luastate, "no htud in tx");
 
     HtpBody *body = NULL;
     if (dir == 0)
