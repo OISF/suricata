@@ -397,11 +397,19 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
                     "rule %u means to use both directions, cannot specify a flow direction", s->id);
             goto error;
         }
+        if (s->flags & SIG_FLAG_TOCLIENT) {
+            SCLogError("rule %u has flow to_server but a hook to_client", s->id);
+            goto error;
+        }
         s->flags |= SIG_FLAG_TOSERVER;
     } else if (fd->flags & DETECT_FLOW_FLAG_TOCLIENT) {
         if (s->flags & SIG_FLAG_TXBOTHDIR) {
             SCLogError(
                     "rule %u means to use both directions, cannot specify a flow direction", s->id);
+            goto error;
+        }
+        if (s->flags & SIG_FLAG_TOSERVER) {
+            SCLogError("rule %u has flow to_client but a hook to_server", s->id);
             goto error;
         }
         s->flags |= SIG_FLAG_TOCLIENT;
