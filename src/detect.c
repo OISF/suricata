@@ -731,7 +731,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCt
                 AppLayerTxData *txd =
                         tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
                                : NULL;
-                if (txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
+                if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
                     alert_flags |= PACKET_ALERT_FLAG_TX;
                     if (pflow->proto != IPPROTO_UDP) {
                         alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;

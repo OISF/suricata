@@ -71,7 +71,7 @@ impl Transactions {
                 if let Some(tx) = tx {
                     return Some(entry.insert(tx));
                 }
-                return None;
+                None
             }
         }
     }
@@ -105,7 +105,7 @@ impl Transactions {
                 if let Some(tx) = tx {
                     return Some(entry.insert(tx));
                 }
-                return None;
+                None
             }
         }
     }
