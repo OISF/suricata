@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar};
+use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar, STREAM_TOSERVER};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -775,5 +775,85 @@ pub trait AppLayerFrameType {
     /// Converts a variant ID to an FFI safe name.
     extern "C" fn ffi_name_from_id(id: u8) -> *const std::os::raw::c_char where Self: Sized {
         Self::from_u8(id).map(|s| s.to_cstring()).unwrap_or_else(std::ptr::null)
+    }
+}
+
+/// AppLayerState trait.
+///
+/// This is the behavior expected from an enum of state progress. For most instances
+/// this behavior can be derived. This is for protocols which do not need direction,
+/// like SSH (which is symmetric).
+///
+/// Example:
+///
+/// #[derive(AppLayerState)]
+/// enum SomeProtoState {
+///     Start,
+///     Complete,
+/// }
+pub trait AppLayerState {
+    /// Create a state progress variant from a u8.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_u8(value: u8) -> Option<Self>
+    where
+        Self: Sized;
+
+    /// Return the u8 value of the enum where the first entry has the value of 0.
+    fn as_u8(&self) -> u8;
+
+    /// Create a state progress variant from a &str.
+    ///
+    /// None will be returned if there is no matching enum variant.
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized;
+
+    /// Return a pointer to a C string of the enum variant suitable as-is for
+    /// FFI.
+    fn to_cstring(&self, to_server: bool) -> *const c_char;
+
+    /// Converts a C string formatted name to a state progress.
+    unsafe extern "C" fn ffi_id_from_name(name: *const c_char, dir: u8) -> c_int
+    where
+        Self: Sized,
+    {
+        if name.is_null() {
+            return -1;
+        }
+        if let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() {
+            let dir = Direction::from(dir);
+            let s2 = match dir {
+                Direction::ToServer => {
+                    if !s.starts_with("request_") {
+                        return -1;
+                    }
+                    &s["request_".len()..]
+                }
+                Direction::ToClient => {
+                    if !s.starts_with("response_") {
+                        return -1;
+                    }
+                    &s["response_".len()..]
+                }
+            };
+            Self::from_str(s2).map(|t| t.as_u8() as c_int).unwrap_or(-1)
+        } else {
+            -1
+        }
+    }
+
+    /// Converts a variant ID to an FFI name.
+    unsafe extern "C" fn ffi_name_from_id(id: c_int, dir: u8) -> *const c_char
+    where
+        Self: Sized,
+    {
+        if id < 0 || id > c_int::from(u8::MAX) {
+            return std::ptr::null();
+        }
+        if let Some(v) = Self::from_u8(id as u8) {
+            return v.to_cstring(dir == STREAM_TOSERVER);
+        }
+        return std::ptr::null();
     }
 }

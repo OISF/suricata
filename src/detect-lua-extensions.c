@@ -40,10 +40,8 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
-#include "util-lua-dns.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
-#include "util-lua-ssh.h"
 #include "util-lua-hassh.h"
 #include "util-lua-smtp.h"
 #include "util-lua-dnp3.h"
@@ -552,7 +550,6 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterFunctions(lua_state);
     LuaRegisterJa3Functions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
-    LuaRegisterSshFunctions(lua_state);
     LuaRegisterHasshFunctions(lua_state);
     LuaRegisterSmtpFunctions(lua_state);
     return 0;

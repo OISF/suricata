@@ -22,23 +22,24 @@ use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7::Err;
-use suricata_sys::sys::AppProto;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
+use suricata_sys::sys::AppProto;
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum SshEncryptionHandling {
     SSH_HANDLE_ENCRYPTION_TRACK_ONLY = 0, // Disable raw content inspection, continue tracking
-    SSH_HANDLE_ENCRYPTION_BYPASS = 1,  // Skip processing of flow, bypass if possible
-    SSH_HANDLE_ENCRYPTION_FULL = 2,    // Handle fully like any other protocol
+    SSH_HANDLE_ENCRYPTION_BYPASS = 1,     // Skip processing of flow, bypass if possible
+    SSH_HANDLE_ENCRYPTION_FULL = 2,       // Handle fully like any other protocol
 }
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
-static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling = SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
+static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling =
+    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
 
 fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
@@ -64,7 +65,8 @@ pub enum SSHEvent {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[suricata(alstate_strip_prefix = "SshState")]
 pub enum SSHConnectionState {
     SshStateInProgress = 0,
     SshStateBannerWaitEol = 1,
@@ -552,8 +554,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
-        get_state_id_by_name: None,
-        get_state_name_by_id: None,
+        get_state_id_by_name: Some(SSHConnectionState::ffi_id_from_name),
+        get_state_name_by_id: Some(SSHConnectionState::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
