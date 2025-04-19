@@ -24,7 +24,6 @@
 use super::template::TemplateTransaction;
 use std::ffi::CString;
 use suricata::cast_pointer;
-use suricata::jsonbuilder::JsonError;
 use suricata_sys::jsonbuilder::{SCJbClose, SCJbOpenObject, SCJbSetString, SCJsonBuilder};
 
 use std;
@@ -35,30 +34,30 @@ pub struct SCJsonBuilderWrapper {
 }
 
 impl SCJsonBuilderWrapper {
-    fn close(&mut self) -> Result<(), JsonError> {
+    fn close(&mut self) -> Result<(), ()> {
         if unsafe { !SCJbClose(self.inner) } {
-            return Err(JsonError::Memory);
+            return Err(());
         }
         Ok(())
     }
-    fn open_object(&mut self, key: &str) -> Result<(), JsonError> {
+    fn open_object(&mut self, key: &str) -> Result<(), ()> {
         let keyc = CString::new(key).unwrap();
         if unsafe { !SCJbOpenObject(self.inner, keyc.as_ptr()) } {
-            return Err(JsonError::Memory);
+            return Err(());
         }
         Ok(())
     }
-    fn set_string(&mut self, key: &str, val: &str) -> Result<(), JsonError> {
+    fn set_string(&mut self, key: &str, val: &str) -> Result<(), ()> {
         let keyc = CString::new(key).unwrap();
         let valc = CString::new(val.escape_default().to_string()).unwrap();
         if unsafe { !SCJbSetString(self.inner, keyc.as_ptr(), valc.as_ptr()) } {
-            return Err(JsonError::Memory);
+            return Err(());
         }
         Ok(())
     }
 }
 
-fn log_template(tx: &TemplateTransaction, js: &mut SCJsonBuilderWrapper) -> Result<(), JsonError> {
+fn log_template(tx: &TemplateTransaction, js: &mut SCJsonBuilderWrapper) -> Result<(), ()> {
     js.open_object("altemplate")?;
     if let Some(ref request) = tx.request {
         js.set_string("request", request)?;
