@@ -219,11 +219,6 @@ void DetectRunStoreStateTx(
         const uint16_t file_no_match)
 {
     AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
-    BUG_ON(tx_data == NULL);
-    if (tx_data == NULL) {
-        SCLogDebug("No TX data for %" PRIu64, tx_id);
-        return;
-    }
     if (tx_data->de_state == NULL) {
         tx_data->de_state = DetectEngineStateAlloc();
         if (tx_data->de_state == NULL)

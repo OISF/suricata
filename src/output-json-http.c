@@ -395,10 +395,8 @@ void EveHttpLogJSONBodyPrintable(SCJsonBuilder *js, Flow *f, uint64_t tx_id)
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
         if (tx) {
             HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-            if (htud != NULL) {
-                BodyPrintableBuffer(js, &htud->request_body, "http_request_body_printable");
-                BodyPrintableBuffer(js, &htud->response_body, "http_response_body_printable");
-            }
+            BodyPrintableBuffer(js, &htud->request_body, "http_request_body_printable");
+            BodyPrintableBuffer(js, &htud->response_body, "http_response_body_printable");
         }
     }
 }
@@ -426,10 +424,8 @@ void EveHttpLogJSONBodyBase64(SCJsonBuilder *js, Flow *f, uint64_t tx_id)
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
         if (tx) {
             HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-            if (htud != NULL) {
-                BodyBase64Buffer(js, &htud->request_body, "http_request_body");
-                BodyBase64Buffer(js, &htud->response_body, "http_response_body");
-            }
+            BodyBase64Buffer(js, &htud->request_body, "http_request_body");
+            BodyBase64Buffer(js, &htud->response_body, "http_response_body");
         }
     }
 }

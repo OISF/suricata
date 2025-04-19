@@ -600,8 +600,10 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     /// Construct a new transaction.
-    pub(crate) fn new(cfg: &'static Config, logger: &Logger, index: usize) -> Self {
-        Self {
+    pub(crate) fn new(
+        cfg: &'static Config, logger: &Logger, index: usize, req: bool,
+    ) -> Option<Self> {
+        let mut tx = Self {
             logger: logger.clone(),
             cfg,
             user_data: None,
@@ -661,7 +663,14 @@ impl Transaction {
             response_header_repetitions: 0,
             request_header_parser: HeaderParser::new(Side::Request),
             response_header_parser: HeaderParser::new(Side::Response),
+        };
+        if let Some(cb) = cfg.hook_tx_create {
+            let r = unsafe { cb(&mut tx, req) };
+            if r != HtpStatus::OK {
+                return None;
+            }
         }
+        Some(tx)
     }
 
     /// Has this transaction started?

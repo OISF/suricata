@@ -224,9 +224,6 @@ static int DetectXbitTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
     BUG_ON(xd == NULL);
 
     AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-    if (txd == NULL) {
-        return 0;
-    }
 
     SCLogDebug("sid:%u: tx:%" PRIu64 ", txd->txbits:%p", s->id, det_ctx->tx_id, txd->txbits);
     int r = TxBitIsset(txd, xd->idx);

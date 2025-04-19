@@ -67,7 +67,11 @@ impl Transactions {
                 if nbtx >= cfg.max_tx as usize {
                     return None;
                 }
-                Some(entry.insert(Transaction::new(cfg, logger, request)))
+                let tx = Transaction::new(cfg, logger, request, true);
+                if let Some(tx) = tx {
+                    return Some(entry.insert(tx));
+                }
+                None
             }
         }
     }
@@ -97,7 +101,11 @@ impl Transactions {
                 if nbtx >= cfg.max_tx as usize {
                     return None;
                 }
-                Some(entry.insert(Transaction::new(cfg, logger, response)))
+                let tx = Transaction::new(cfg, logger, response, false);
+                if let Some(tx) = tx {
+                    return Some(entry.insert(tx));
+                }
+                None
             }
         }
     }

@@ -416,13 +416,6 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("STARTING tx_id %" PRIu64 ", tx %p", tx_id, tx);
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (unlikely(txd == NULL)) {
-            SCLogDebug("NO TXD");
-            /* make sure this tx, which can't be properly logged is skipped */
-            logged = 1;
-            max_id = tx_id;
-            goto next_tx;
-        }
 
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);

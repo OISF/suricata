@@ -784,7 +784,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             break;
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (txd && tag_txs_as_inspected) {
+        if (tag_txs_as_inspected) {
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
             if (txd->flags & inspected_flag) {
@@ -824,22 +824,16 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 
             /* txd can be NULL for HTTP sessions where the user data alloc failed */
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-            if (likely(txd)) {
-                const uint8_t inspected_flag = (flags & STREAM_TOSERVER)
-                                                       ? APP_LAYER_TX_INSPECTED_TS
-                                                       : APP_LAYER_TX_INSPECTED_TC;
-                if (txd->flags & inspected_flag) {
-                    txd->flags |= inspected_flag;
-                    SCLogDebug("%p/%" PRIu64 " out of order tx is done for direction %s. Flag %02x",
-                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
+            const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
+                                                                     : APP_LAYER_TX_INSPECTED_TC;
+            if (txd->flags & inspected_flag) {
+                txd->flags |= inspected_flag;
+                SCLogDebug("%p/%" PRIu64 " out of order tx is done for direction %s. Flag %02x", tx,
+                        idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
 
-                    SCLogDebug("%p/%"PRIu64" out of order tx. Update inspect_id? %"PRIu64,
-                            tx, idx, pstate->inspect_id[direction]);
-                    if (pstate->inspect_id[direction]+1 == idx)
-                        pstate->inspect_id[direction] = idx;
-                }
-            } else {
-                if (pstate->inspect_id[direction]+1 == idx)
+                SCLogDebug("%p/%" PRIu64 " out of order tx. Update inspect_id? %" PRIu64, tx, idx,
+                        pstate->inspect_id[direction]);
+                if (pstate->inspect_id[direction] + 1 == idx)
                     pstate->inspect_id[direction] = idx;
             }
             if (!ires.has_next)
@@ -868,7 +862,7 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
 
     /* Access events via the tx_data. */
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-    if (txd != NULL && txd->events != NULL) {
+    if (txd->events != NULL) {
         ptr = txd->events;
     }
 
@@ -953,7 +947,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        if (txd != NULL && AppLayerParserHasFilesInDir(txd, pkt_dir)) {
+        if (AppLayerParserHasFilesInDir(txd, pkt_dir)) {
             if (pkt_dir_trunc == -1)
                 pkt_dir_trunc = IS_DISRUPTED(
                         (pkt_dir == STREAM_TOSERVER) ? ts_disrupt_flags : tc_disrupt_flags);

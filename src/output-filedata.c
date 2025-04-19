@@ -114,10 +114,8 @@ static void CloseFile(const Packet *p, Flow *f, File *file, void *txv)
     DEBUG_VALIDATE_BUG_ON((file->flags & FILE_STORED) != 0);
 
     AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-    if (txd) {
-        BUG_ON(f->alproto == ALPROTO_SMB && txd->files_logged != 0);
-        txd->files_stored++;
-    }
+    BUG_ON(f->alproto == ALPROTO_SMB && txd->files_logged != 0);
+    txd->files_stored++;
     file->flags |= FILE_STORED;
 }
 

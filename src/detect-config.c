@@ -94,23 +94,18 @@ static void ConfigApplyTx(Flow *f,
     void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
     if (tx) {
         AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
-        if (txd) {
-            SCLogDebug("tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
-            txd->config.log_flags |= BIT_U8(config->type);
+        SCLogDebug("tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
+        txd->config.log_flags |= BIT_U8(config->type);
 
-            const bool unidir =
-                    (txd->flags & (APP_LAYER_TX_SKIP_INSPECT_TS | APP_LAYER_TX_SKIP_INSPECT_TC)) !=
-                    0;
-            if (unidir) {
-                SCLogDebug("handle unidir tx");
-                AppLayerTxConfig req;
-                memset(&req, 0, sizeof(req));
-                req.log_flags = BIT_U8(config->type);
-                AppLayerParserApplyTxConfig(
-                        f->proto, f->alproto, f->alstate, tx, CONFIG_ACTION_SET, req);
-            }
-        } else {
-            SCLogDebug("no tx data");
+        const bool unidir =
+                (txd->flags & (APP_LAYER_TX_SKIP_INSPECT_TS | APP_LAYER_TX_SKIP_INSPECT_TC)) != 0;
+        if (unidir) {
+            SCLogDebug("handle unidir tx");
+            AppLayerTxConfig req;
+            memset(&req, 0, sizeof(req));
+            req.log_flags = BIT_U8(config->type);
+            AppLayerParserApplyTxConfig(
+                    f->proto, f->alproto, f->alstate, tx, CONFIG_ACTION_SET, req);
         }
     } else {
         SCLogDebug("no tx");
