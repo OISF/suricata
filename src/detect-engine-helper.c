@@ -80,18 +80,27 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
     return DetectBufferTypeGetByName(name);
 }
 
-int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData)
+int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress)
 {
     if (toserver) {
-        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, 0, GetData, 2, 0);
+        DetectAppLayerMultiRegister(
+                name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2, progress);
     }
     if (toclient) {
-        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOCLIENT, 0, GetData, 2, 0);
+        DetectAppLayerMultiRegister(
+                name, alproto, SIG_FLAG_TOCLIENT, progress, GetData, 2, progress);
     }
     DetectBufferTypeSupportsMultiInstance(name);
     DetectBufferTypeSetDescriptionByName(name, desc);
     return DetectBufferTypeGetByName(name);
+}
+
+int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData)
+{
+    return DetectHelperMultiBufferProgressMpmRegister(
+            name, desc, alproto, toclient, toserver, GetData, 0);
 }
 
 int SCDetectHelperNewKeywordId(void)
@@ -111,7 +120,7 @@ int SCDetectHelperNewKeywordId(void)
     return DETECT_TBLSIZE_IDX - 1;
 }
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
 {
     int keyword_id = SCDetectHelperNewKeywordId();
     if (keyword_id < 0) {
@@ -130,6 +139,11 @@ int DetectHelperKeywordRegister(const SCSigTableElmt *kw)
     sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
 
     return keyword_id;
+}
+
+void DetectHelperKeywordAliasRegister(int kwid, const char *alias)
+{
+    sigmatch_table[kwid].alias = alias;
 }
 
 int DetectHelperTransformRegister(const SCTransformTableElmt *kw)

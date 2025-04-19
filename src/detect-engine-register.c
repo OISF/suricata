@@ -47,10 +47,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-dns-opcode.h"
-#include "detect-dns-rcode.h"
-#include "detect-dns-rrtype.h"
-#include "detect-dns-query.h"
 #include "detect-dns-name.h"
 #include "detect-dns-response.h"
 #include "detect-tls-sni.h"
@@ -365,10 +361,6 @@ static void SigMultilinePrint(int i, const char *prefix)
 bool SigTableHasKeyword(const char *keyword)
 {
     for (int i = 0; i < DETECT_TBLSIZE; i++) {
-        if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-            continue;
-        }
-
         const char *name = sigmatch_table[i].name;
 
         if (name == NULL || strlen(name) == 0) {
@@ -396,11 +388,7 @@ int SigTableList(const char *keyword)
                 if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("- %s (not built-in)\n", name);
-                } else {
-                    printf("- %s\n", name);
-                }
+                printf("- %s\n", name);
             }
         }
     } else if (strcmp("csv", keyword) == 0) {
@@ -408,9 +396,6 @@ int SigTableList(const char *keyword)
         for (i = 0; i < size; i++) {
             const char *name = sigmatch_table[i].name;
             if (name != NULL && strlen(name) > 0) {
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    continue;
-                }
                 if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
@@ -444,10 +429,6 @@ int SigTableList(const char *keyword)
             if ((sigmatch_table[i].name != NULL) &&
                 strcmp(sigmatch_table[i].name, keyword) == 0) {
                 printf("= %s =\n", sigmatch_table[i].name);
-                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("Not built-in\n");
-                    return TM_ECODE_FAILED;
-                }
                 SigMultilinePrint(i, "");
                 return TM_ECODE_DONE;
             }
@@ -466,9 +447,30 @@ static void DetectFileHandlerRegister(void)
     }
 }
 
+static void SigCleanCString(SigTableElmt *base)
+{
+    SCSigTableNamesElmt kw;
+    // remove const for mut to release
+    kw.name = (char *)base->name;
+    kw.desc = (char *)base->desc;
+    kw.url = (char *)base->url;
+    SCDetectSigMatchNamesFree(&kw);
+}
+
+void DetectHelperKeywordSetCleanCString(int id)
+{
+    sigmatch_table[id].Cleanup = SigCleanCString;
+}
+
 void SigTableCleanup(void)
 {
     if (sigmatch_table != NULL) {
+        for (int i = 0; i < DETECT_TBLSIZE; i++) {
+            if ((sigmatch_table[i].Cleanup) == NULL) {
+                continue;
+            }
+            sigmatch_table[i].Cleanup(&sigmatch_table[i]);
+        }
         SCFree(sigmatch_table);
         sigmatch_table = NULL;
         DETECT_TBLSIZE = 0;
@@ -566,10 +568,6 @@ void SigTableSetup(void)
     DetectHttpStatCodeRegister();
     DetectHttp2Register();
 
-    DetectDnsQueryRegister();
-    DetectDnsOpcodeRegister();
-    DetectDnsRcodeRegister();
-    DetectDnsRrtypeRegister();
     DetectDnsNameRegister();
     DetectDnsResponseRegister();
     DetectModbusRegister();
@@ -763,6 +761,7 @@ void SigTableSetup(void)
     SCDetectTemplateRegister();
     SCDetectLdapRegister();
     SCDetectSdpRegister();
+    SCDetectDNSRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
