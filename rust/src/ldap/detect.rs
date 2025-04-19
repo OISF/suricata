@@ -23,7 +23,7 @@ use crate::detect::uint::{
 use crate::detect::{
     DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
     DetectHelperGetData, DetectHelperGetMultiData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableElmt,
+    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
@@ -691,7 +691,7 @@ unsafe extern "C" fn ldap_tx_get_resp_attribute_type(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectLdapRegister() {
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP request operation\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.operation\0".as_ptr() as *const libc::c_char,
@@ -707,7 +707,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to client
         true,  //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP responses operation\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.operation\0".as_ptr()
@@ -724,7 +724,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         desc: b"match number of LDAP responses\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.count\0".as_ptr() as *const libc::c_char,
@@ -740,7 +740,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.dn\0".as_ptr() as *const libc::c_char,
         desc: b"match request LDAPDN\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.dn\0".as_ptr() as *const libc::c_char,
@@ -758,7 +758,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to server
         ldap_detect_request_dn_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         desc: b"match responses LDAPDN\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.dn\0".as_ptr() as *const libc::c_char,
@@ -776,7 +776,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to server
         ldap_detect_responses_dn_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAPResult code\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.result_code\0".as_ptr()
@@ -793,7 +793,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAPResult message for responses\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.message\0".as_ptr() as *const libc::c_char,
@@ -811,7 +811,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to server
         ldap_detect_responses_msg_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         desc: b"match request LDAP attribute type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.attribute_type\0".as_ptr()
@@ -830,7 +830,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to server
         ldap_detect_request_attribute_type_get_data,
     );
-    let kw = SCSigTableElmt {
+    let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP responses attribute type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.attribute_type\0".as_ptr()

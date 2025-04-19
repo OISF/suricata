@@ -47,6 +47,7 @@ dns.rcode
 This keyword matches on the **rcode** field found in the DNS header flags.
 
 dns.rcode uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+It can also be specified by text from the enumeration.
 
 Currently, Suricata only supports rcode values in the range [0-15], while
 the current DNS version supports rcode values from [0-23] as specified in
@@ -80,6 +81,8 @@ dns.rrtype
 This keyword matches on the **rrtype** (integer) found in the DNS message.
 
 dns.rrtype uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
+
+It can also be specified by text from the enumeration.
 
 Syntax
 ~~~~~~

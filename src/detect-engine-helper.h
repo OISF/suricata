@@ -30,7 +30,8 @@
 
 int SCDetectHelperNewKeywordId(void);
 
-int DetectHelperKeywordRegister(const SCSigTableElmt *kw);
+int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
+void DetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 
 typedef bool (*SimpleGetTxBuffer)(void *, uint8_t, const uint8_t **, uint32_t *);
@@ -43,6 +44,8 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
         bool toclient, bool toserver, InspectionBufferGetDataPtr GetData);
 int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData);
+int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
+        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
