@@ -19,8 +19,8 @@ use std;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
-use crate::core::*;
 use crate::conf::{conf_get, get_memval};
+use crate::core::*;
 use crate::ftp::constant::*;
 use lazy_static::lazy_static;
 
