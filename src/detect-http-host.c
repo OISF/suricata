@@ -250,7 +250,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_request_hostname(tx) == NULL)
             return NULL;
 
-        const uint32_t data_len = bstr_len(htp_tx_request_hostname(tx));
+        const uint32_t data_len = (uint32_t)bstr_len(htp_tx_request_hostname(tx));
         const uint8_t *data = bstr_ptr(htp_tx_request_hostname(tx));
 
         InspectionBufferSetupAndApplyTransforms(
@@ -357,10 +357,10 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
                 return NULL;
 
             data = htp_header_value_ptr(h);
-            data_len = htp_header_value_len(h);
+            data_len = (uint32_t)htp_header_value_len(h);
         } else {
             data = (const uint8_t *)bstr_ptr(htp_uri_hostname(htp_tx_parsed_uri(tx)));
-            data_len = bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
+            data_len = (uint32_t)bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
         }
 
         InspectionBufferSetupAndApplyTransforms(

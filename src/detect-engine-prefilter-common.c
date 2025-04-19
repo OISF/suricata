@@ -33,7 +33,7 @@ static uint32_t PrefilterPacketHeaderHashFunc(HashListTable *ht, void *data, uin
     PrefilterPacketHeaderCtx *ctx = data;
     uint64_t hash = ctx->v1.u64[0] + ctx->v1.u64[1] + ctx->type + ctx->value;
     hash %= ht->array_size;
-    return hash;
+    return (uint32_t)hash;
 }
 
 static char PrefilterPacketHeaderCompareFunc(void *data1, uint16_t len1,

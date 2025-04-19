@@ -112,7 +112,7 @@ void DetectPcreRegister (void)
         pcre_match_limit = SC_MATCH_LIMIT_DEFAULT;
         SCLogDebug("Using PCRE match-limit setting of: %i", pcre_match_limit);
     } else {
-        pcre_match_limit = val;
+        pcre_match_limit = (int)val;
         if (pcre_match_limit != SC_MATCH_LIMIT_DEFAULT) {
             SCLogInfo("Using PCRE match-limit setting of: %i", pcre_match_limit);
         } else {
@@ -126,7 +126,7 @@ void DetectPcreRegister (void)
         pcre_match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
         SCLogDebug("Using PCRE match-limit-recursion setting of: %i", pcre_match_limit_recursion);
     } else {
-        pcre_match_limit_recursion = val;
+        pcre_match_limit_recursion = (int)val;
         if (pcre_match_limit_recursion != SC_MATCH_LIMIT_RECURSION_DEFAULT) {
             SCLogInfo("Using PCRE match-limit-recursion setting of: %i", pcre_match_limit_recursion);
         } else {
@@ -190,7 +190,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     int start_offset = 0;
     if (det_ctx->pcre_match_start_offset != 0) {
-        start_offset = (payload + det_ctx->pcre_match_start_offset - ptr);
+        start_offset = (uint32_t)(payload - ptr) + det_ctx->pcre_match_start_offset;
     }
 
     /* run the actual pcre detection */
@@ -287,8 +287,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
             PCRE2_SIZE *ov = pcre2_get_ovector_pointer(match);
             /* update offset for pcre RELATIVE */
-            det_ctx->buffer_offset = (ptr + ov[1]) - payload;
-            det_ctx->pcre_match_start_offset = (ptr + ov[0] + 1) - payload;
+            det_ctx->buffer_offset = (uint32_t)((ptr + ov[1]) - payload);
+            det_ctx->pcre_match_start_offset = (uint32_t)((ptr + ov[0] + 1) - payload);
 
             ret = 1;
         }
@@ -368,13 +368,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         SCLogDebug("regexstr %s", regexstr);
 
         if (fcap && !pcap)
-            cut_capture = fcap - regexstr;
+            cut_capture = (int)(fcap - regexstr);
         else if (pcap && !fcap)
-            cut_capture = pcap - regexstr;
+            cut_capture = (int)(pcap - regexstr);
         else {
             BUG_ON(pcap == NULL); // added to assist cppcheck
             BUG_ON(fcap == NULL);
-            cut_capture = MIN((pcap - regexstr), (fcap - regexstr));
+            cut_capture = (int)MIN((pcap - regexstr), (fcap - regexstr));
         }
 
         SCLogDebug("cut_capture %d", cut_capture);

@@ -63,7 +63,7 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = htp_header_value_len(h);
+        const uint32_t data_len = (uint32_t)htp_header_value_len(h);
         const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetupAndApplyTransforms(
@@ -117,7 +117,7 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = htp_header_value_len(h);
+        const uint32_t data_len = (uint32_t)htp_header_value_len(h);
         const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetupAndApplyTransforms(
