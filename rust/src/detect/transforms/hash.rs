@@ -80,6 +80,7 @@ pub unsafe extern "C" fn DetectTransformMd5Register() {
         Transform: md5_transform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_MD5_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_MD5_ID < 0 {
@@ -132,6 +133,7 @@ pub unsafe extern "C" fn DetectTransformSha1Register() {
         Transform: sha1_transform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_SHA1_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_SHA1_ID < 0 {
@@ -184,6 +186,7 @@ pub unsafe extern "C" fn DetectTransformSha256Register() {
         Transform: sha256_transform,
         Free: None,
         TransformValidate: None,
+        TransformId: None,
     };
     G_TRANSFORM_SHA256_ID = DetectHelperTransformRegister(&kw);
     if G_TRANSFORM_SHA256_ID < 0 {

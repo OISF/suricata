@@ -37,33 +37,48 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformFromBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 #define DETECT_TRANSFORM_FROM_BASE64_MODE_DEFAULT (uint8_t) SCBase64ModeRFC4648
 static void DetectTransformFromBase64DecodeRegisterTests(void);
 #endif
-static void TransformFromBase64Decode(
-        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
+#define B64D_ID_DATA_LEN 128
 
-void DetectTransformFromBase64DecodeRegister(void)
+static const char *id_format = "{"
+                               "\"flags\" : %d, "
+                               "\"bytes\" : { \"str\": \"%s\", \"cnt\": %d}, "
+                               "\"offset\" : { \"str\": \"%s\", \"cnt\": %d}, "
+                               "\"mode\" : %d"
+                               "}";
+
+static inline uint8_t *DetectTransformFromBase64IdData(
+        SCDetectTransformFromBase64Data *b64d, int *len)
 {
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].name = "from_base64";
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].desc = "convert the base64 decode of the buffer";
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].url = "/rules/transforms.html#from_base64";
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Setup = DetectTransformFromBase64DecodeSetup;
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Transform = TransformFromBase64Decode;
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Free = DetectTransformFromBase64DecodeFree;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].RegisterTests =
-            DetectTransformFromBase64DecodeRegisterTests;
-#endif
-    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].flags |= SIGMATCH_OPTIONAL_OPT;
+    void *ptr = SCCalloc(1, B64D_ID_DATA_LEN);
+    if (ptr) {
+        int rc = snprintf(ptr, B64D_ID_DATA_LEN, id_format, b64d->flags,
+                b64d->nbytes_str ? b64d->nbytes_str : "n/a", b64d->nbytes,
+                b64d->offset_str ? b64d->offset_str : "n/a", b64d->offset, b64d->mode);
+        *len = rc;
+    }
+    return ptr;
+}
+
+static void DetectTransformFromBase64Id(uint8_t **data, uint32_t *length, const void *context)
+{
+    if (context) {
+        SCDetectTransformFromBase64Data *b64d = (SCDetectTransformFromBase64Data *)context;
+        *data = b64d->id_data;
+        *length = b64d->id_data_len;
+    }
 }
 
 static void DetectTransformFromBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCTransformBase64Free(ptr);
+    if (ptr) {
+        SCDetectTransformFromBase64Data *b64d = (SCDetectTransformFromBase64Data *)ptr;
+        SCFree(b64d->id_data);
+        SCTransformBase64Free(ptr);
+    }
 }
 
 static SCDetectTransformFromBase64Data *DetectTransformFromBase64DecodeParse(const char *str)
@@ -104,6 +119,14 @@ static int DetectTransformFromBase64DecodeSetup(
         SCLogError("byte value must be a value, not a variable name");
         goto exit_path;
     }
+
+    int len;
+    b64d->id_data = DetectTransformFromBase64IdData(b64d, &len);
+    if (!b64d->id_data) {
+        SCLogError("Unable to allocate memory for identity representation");
+        goto exit_path;
+    }
+    b64d->id_data_len = len;
 
     r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_FROM_BASE64, b64d);
 
@@ -153,6 +176,22 @@ static void TransformFromBase64Decode(
         //            PrintRawDataFp(stdout, output, b64data->decoded_len);
         InspectionBufferCopy(buffer, decoded, num_decoded);
     }
+}
+
+void DetectTransformFromBase64DecodeRegister(void)
+{
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].name = "from_base64";
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].desc = "convert the base64 decode of the buffer";
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].url = "/rules/transforms.html#from_base64";
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Setup = DetectTransformFromBase64DecodeSetup;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Transform = TransformFromBase64Decode;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].TransformId = DetectTransformFromBase64Id;
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].Free = DetectTransformFromBase64DecodeFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].RegisterTests =
+            DetectTransformFromBase64DecodeRegisterTests;
+#endif
+    sigmatch_table[DETECT_TRANSFORM_FROM_BASE64].flags |= SIGMATCH_OPTIONAL_OPT;
 }
 
 #ifdef UNITTESTS
