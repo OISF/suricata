@@ -64,6 +64,8 @@
             ;;
     esac
 
+    AM_CONDITIONAL([HAVE_CLANG], [test "x$compiler" == "xclang"])
+
     # Checks for programs.
     AC_PROG_AWK
     AC_PROG_CC
