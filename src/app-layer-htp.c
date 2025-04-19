@@ -1703,9 +1703,8 @@ static int HTPCallbackRequestStart(const htp_connp_t *connp, htp_tx_t *tx)
         }
         tx_ud->tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // each http tx may xfer files
         htp_tx_set_user_data(tx, tx_ud);
-    } else {
-        tx_ud->tx_data.updated_ts = true;
     }
+    tx_ud->tx_data.updated_ts = true;
     SCReturnInt(HTP_STATUS_OK);
 }
 
@@ -1745,9 +1744,8 @@ static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
         tx_ud->tx_data.file_tx =
                 STREAM_TOCLIENT; // each http tx may xfer files. Toserver already missed.
         htp_tx_set_user_data(tx, tx_ud);
-    } else {
-        tx_ud->tx_data.updated_tc = true;
     }
+    tx_ud->tx_data.updated_tc = true;
     SCReturnInt(HTP_STATUS_OK);
 }
 

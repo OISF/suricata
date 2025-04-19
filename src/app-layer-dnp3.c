@@ -898,6 +898,7 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
         if (unlikely(tx == NULL)) {
             return;
         }
+        tx->tx_data.updated_ts = true;
         tx->lh = *lh;
         tx->th = th;
         tx->ah = *ah;
@@ -971,6 +972,7 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
         if (unlikely(tx == NULL)) {
             return;
         }
+        tx->tx_data.updated_tc = true;
         tx->lh = *lh;
         tx->th = th;
         tx->ah = *ah;
