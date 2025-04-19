@@ -1212,6 +1212,8 @@ EXTRA_DIST = \
 	tests/stream-tcp.c \
 	tests/output-json-stats.c
 
+EXTRA_CFLAGS =
+
 install-headers:
 	mkdir -p $(DESTDIR)${includedir}/suricata
 	for header in $(noinst_HEADERS); do \
@@ -1406,7 +1408,7 @@ endif
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
-    ${SECCFLAGS} ${PCAP_CFLAGS}      										\
+    ${SECCFLAGS} ${PCAP_CFLAGS} ${EXTRA_CFLAGS}								\
     -Wall -Wno-unused-parameter -Wmissing-prototypes -Wmissing-declarations \
     -Wstrict-prototypes -Wwrite-strings -Wbad-function-cast                 \
     -Wformat-security -Wno-format-nonliteral -Wmissing-format-attribute     \
