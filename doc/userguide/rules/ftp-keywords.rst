@@ -113,6 +113,36 @@ Example rules for each of the preceding FTP commands and command data.
 
   alert ftp any any -> any any (:example-rule-options:`ftp.command_data; content:"192,168,0,13,234,10";` sid: 3;)
 
+ftp.dynamic_port
+----------------
+
+This keyword matches on the dynamic port negotiated during an FTP session with
+the following FTP commands:
+* IPv4: ``PORT`` and ``EPRT``
+* IPv6: ``PASV`` and ``EPSV``
+
+``ftp.dynamic_port`` is a sticky buffer and can be used as a fast pattern.
+
+Syntax::
+
+  ftp.dynamic_port; content: <port>;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.dynamic_port; content:"59914";` sid: 1;)
+
+Example rules combining ``ftp.dynamic_port`` with ``ftp.command``
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.command; content: "PORT"; :example-rule-options:`ftp.dynamic_port; content:"59914";` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.command; content: "EPSV"; :example-rule-options:`ftp.dynamic_port; content:"58612";` sid: 1;)
+
 ftp.reply
 ---------
 
