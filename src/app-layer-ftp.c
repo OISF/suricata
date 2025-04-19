@@ -528,6 +528,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
         FTPTransaction *tx = FTPTransactionCreate(state);
         if (unlikely(tx == NULL))
             SCReturnStruct(APP_LAYER_ERROR);
+        tx->tx_data.updated_ts = true;
         state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
