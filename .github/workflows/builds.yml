@@ -1691,11 +1691,11 @@ jobs:
       - run: |
           ./.github/workflows/live/pcap.sh "single"
   
-  ubuntu-22-04-cov-fuzz:
-    name: Ubuntu 22.04 (fuzz corpus coverage)
+  ubuntu-24-04-cov-fuzz:
+    name: Ubuntu 24.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
@@ -1715,8 +1715,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-14-dev \
-                clang-14 \
+                llvm-19-dev \
+                clang-19 \
                 git \
                 jq \
                 libc++-dev \
@@ -1738,7 +1738,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 make \
                 parallel \
                 python3-yaml \
@@ -1752,15 +1751,14 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
-      # packaged Rust version is too old for coverage, so get from rustup
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
         with:
           name: prep
           path: prep
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
@@ -1771,8 +1769,8 @@ jobs:
       - run: ./configure --enable-warnings --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
         env:
           LIB_FUZZING_ENGINE: "fail_to_onefile_driver"
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -Wimplicit-int-float-conversion -Wimplicit-int-conversion -Werror"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
@@ -1780,12 +1778,12 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
       - run: ./qa/run-ossfuzz-corpus.sh
-      - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-19 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
         with:
