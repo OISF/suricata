@@ -1137,10 +1137,10 @@ jobs:
       - run: make install-headers
       - run: make install-library
 
-  ubuntu-22-04-cov-ut:
-    name: Ubuntu 22.04 (unittests coverage)
+  ubuntu-24-04-cov-ut:
+    name: Ubuntu 24.04 (unittests coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:22.04
+    container: ubuntu:24.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
@@ -1160,7 +1160,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                clang-14 \
+                clang-19 \
                 curl \
                 git \
                 jq \
@@ -1182,8 +1182,7 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
-                llvm-14-dev \
+                llvm-19-dev \
                 make \
                 parallel \
                 python3-yaml \
@@ -1193,56 +1192,56 @@ jobs:
                 exuberant-ctags \
                 curl \
                 dpdk-dev
-      # packaged Rust version is too old for coverage, so get from rustup
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
         with:
           name: prep
           path: prep
+      # packaged Rust version is too old for coverage, so get from rustup
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --disable-shared --enable-unittests
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: ./src/suricata -u -l /tmp/
         env:
           LLVM_PROFILE_FILE: "/tmp/ut.profraw"
-      - run: llvm-profdata-14 merge -o ut.profdata /tmp/ut.profraw
+      - run: llvm-profdata-19 merge -o ut.profdata /tmp/ut.profraw
       - run: ./src/suricata --list-runmodes -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/listrunmodes.profraw"
-      - run: llvm-profdata-14 merge -o listrunmodes.profdata /tmp/listrunmodes.profraw
+      - run: llvm-profdata-19 merge -o listrunmodes.profdata /tmp/listrunmodes.profraw
       - run: ./src/suricata --list-keywords -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/lk.profraw"
-      - run: llvm-profdata-14 merge -o lk.profdata /tmp/lk.profraw
+      - run: llvm-profdata-19 merge -o lk.profdata /tmp/lk.profraw
       - run: ./src/suricata --list-app-layer-protos -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/la.profraw"
-      - run: llvm-profdata-14 merge -o la.profdata /tmp/la.profraw
+      - run: llvm-profdata-19 merge -o la.profdata /tmp/la.profraw
       - run: ./src/suricata --dump-features -c suricata.yaml -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/dumpfeatures.profraw"
-      - run: llvm-profdata-14 merge -o dumpfeatures.profdata /tmp/dumpfeatures.profraw
+      - run: llvm-profdata-19 merge -o dumpfeatures.profdata /tmp/dumpfeatures.profraw
       - run: ./src/suricata --dump-config -c suricata.yaml -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/dumpconfig.profraw"
-      - run: llvm-profdata-14 merge -o dumpconfig.profdata /tmp/dumpconfig.profraw
-      - run: llvm-cov-14 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-19 merge -o dumpconfig.profdata /tmp/dumpconfig.profraw
+      - run: llvm-cov-19 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - run: |
           cd rust
           cargo test --no-run
@@ -1255,8 +1254,8 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
-      - run: llvm-profdata-14 merge -o ct.profdata /tmp/ct.profraw
-      - run: llvm-cov-14 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
+      - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
+      - run: llvm-cov-19 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
         with:
