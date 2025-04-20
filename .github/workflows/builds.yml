@@ -1198,9 +1198,10 @@ jobs:
         with:
           name: prep
           path: prep
-      # packaged Rust version is too old for coverage, so get from rustup
+      # packaged Rust version is too old for coverage, so get from rustup. 1.85.1 matches
+      # LLVM 19
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --disable-shared --enable-unittests
@@ -1287,8 +1288,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-14-dev \
-                clang-14 \
+                llvm-15-dev \
+                clang-15 \
                 git \
                 jq \
                 inetutils-ping \
@@ -1343,8 +1344,8 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --with-gnu-ld --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-15"
+          CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
@@ -1352,15 +1353,15 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-15"
+          CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
       - run: |
           ./qa/unix.sh "suricata-verify/"
         env:
           LLVM_PROFILE_FILE: "/tmp/unix.profraw"
-      - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
         with:
@@ -1391,8 +1392,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-14-dev \
-                clang-14 \
+                llvm-15-dev \
+                clang-15 \
                 git \
                 jq \
                 inetutils-ping \
@@ -1447,8 +1448,8 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --with-gnu-ld --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-15"
+          CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
@@ -1456,8 +1457,8 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-14"
-          CXX: "clang++-14"
+          CC: "clang-15"
+          CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
       # IDS config
       - run: |
@@ -1495,8 +1496,8 @@ jobs:
           ./.github/workflows/live/pcap.sh "single"
         env:
           LLVM_PROFILE_FILE: "/tmp/pcap-single.profraw"
-      - run: llvm-profdata-14 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-14 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
         with:
@@ -1757,8 +1758,9 @@ jobs:
         with:
           name: prep
           path: prep
+      # 1.85.1 matches LLVM 19
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
