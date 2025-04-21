@@ -18,9 +18,9 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperGetMultiData,
+    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -889,17 +889,13 @@ unsafe extern "C" fn sip_media_desc_encryption_key_get_data(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSdpRegister() {
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.session_name\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP session name field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-session-name\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_session_name_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.session_name"),
+        desc: String::from("sticky buffer to match on the SDP session name field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-session-name"),
+        setup: sdp_session_name_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_SESSION_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
@@ -908,17 +904,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_session_name_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.session_info\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP session info field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-session-info\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_session_info_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.session_info"),
+        desc: String::from("sticky buffer to match on the SDP session info field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-session-info"),
+        setup: sdp_session_info_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_SESSION_INFO_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
@@ -927,16 +919,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_session_info_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.origin\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP origin field\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-origin\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_origin_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.origin"),
+        desc: String::from("sticky buffer to match on the SDP origin field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-origin"),
+        setup: sdp_origin_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_ORIGIN_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
@@ -945,16 +934,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_origin_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.uri\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP uri field\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-uri\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_uri_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.uri"),
+        desc: String::from("sticky buffer to match on the SDP uri field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-uri"),
+        setup: sdp_uri_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_URI_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
@@ -963,16 +949,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_uri_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.email\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP email field\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-email\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_email_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.email"),
+        desc: String::from("sticky buffer to match on the SDP email field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-email"),
+        setup: sdp_email_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_EMAIL_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         b"sdp.email\0".as_ptr() as *const libc::c_char,
@@ -981,17 +964,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_email_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP phone number field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-phone-number\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_phone_number_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.phone_number"),
+        desc: String::from("sticky buffer to match on the SDP phone number field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-phone-number"),
+        setup: sdp_phone_number_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_PHONE_NUMBER_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
@@ -1000,17 +979,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_phone_number_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP connection data field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-connection-data\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_conn_data_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.connection_data"),
+        desc: String::from("sticky buffer to match on the SDP connection data field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-connection-data"),
+        setup: sdp_conn_data_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_CONNECTION_DATA_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
@@ -1019,17 +994,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_conn_data_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP bandwidth field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-bandwidth\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_bandwidth_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.bandwidth"),
+        desc: String::from("sticky buffer to match on the SDP bandwidth field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-bandwidth"),
+        setup: sdp_bandwidth_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_BANDWIDTH_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
@@ -1038,16 +1009,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_bandwidth_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.time\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP time field\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#time\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_time_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.time"),
+        desc: String::from("sticky buffer to match on the SDP time field"),
+        url: String::from("/rules/sdp-keywords.html#time"),
+        setup: sdp_time_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_TIME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
@@ -1056,17 +1024,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_time_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP repeat time field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#repeat-time\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_repeat_time_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.repeat_time"),
+        desc: String::from("sticky buffer to match on the SDP repeat time field"),
+        url: String::from("/rules/sdp-keywords.html#repeat-time"),
+        setup: sdp_repeat_time_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_REPEAT_TIME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
@@ -1075,16 +1039,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_repeat_time_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.timezone\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP timezone field\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#timezone\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_timezone_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.timezone"),
+        desc: String::from("sticky buffer to match on the SDP timezone field"),
+        url: String::from("/rules/sdp-keywords.html#timezone"),
+        setup: sdp_timezone_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_TIMEZONE_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
@@ -1093,17 +1054,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_timezone_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP encryption key field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#encryption-key\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_encryption_key_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.encryption_key"),
+        desc: String::from("sticky buffer to match on the SDP encryption key field"),
+        url: String::from("/rules/sdp-keywords.html#encryption-key"),
+        setup: sdp_encryption_key_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_ENCRYPTION_KEY_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.encription_key\0".as_ptr() as *const libc::c_char,
@@ -1112,17 +1069,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_encryption_key_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.attribute\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP attribute field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-attribute\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_attribute_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.attribute"),
+        desc: String::from("sticky buffer to match on the SDP attribute field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-attribute"),
+        setup: sdp_attribute_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_ATTRIBUTE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
@@ -1131,17 +1084,15 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_attribute_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.media.media\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP media subfield of the media_description field\0"
-            .as_ptr() as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#media-description-media\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_media_desc_media_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.media.media"),
+        desc: String::from(
+            "sticky buffer to match on the SDP media subfield of the media_description field",
+        ),
+        url: String::from("/rules/sdp-keywords.html#media-description-media"),
+        setup: sdp_media_desc_media_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
@@ -1150,17 +1101,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_media_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP session info subfield of the media_description field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-media-description-session-info\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_media_desc_session_info_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.media.media_info"),
+        desc: String::from("sticky buffer to match on the SDP session info subfield of the media_description field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-description-session-info"),
+        setup: sdp_media_desc_session_info_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
@@ -1169,17 +1116,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_session_info_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP connection data subfield of the media_description field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-media-description-connection-data\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_media_desc_connection_data_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.media.connection_data"),
+        desc: String::from("sticky buffer to match on the SDP connection data subfield of the media_description field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-description-connection-data"),
+        setup: sdp_media_desc_connection_data_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
@@ -1188,17 +1131,13 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         true,
         sdp_media_desc_connection_data_get,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the SDP encryption key subfield of the media_description field\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/sdp-keywords.html#sdp-media-description-encryption-key\0".as_ptr() as *const libc::c_char,
-        Setup: sdp_media_desc_encryption_key_setup,
-        flags: SIGMATCH_NOOPT,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("sdp.media.encryption_key"),
+        desc: String::from("sticky buffer to match on the SDP encryption key subfield of the media_description field"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-description-encryption-key"),
+        setup: sdp_media_desc_encryption_key_setup,
     };
-    let _ = DetectHelperKeywordRegister(&kw);
+    let _ = helper_keyword_register_sticky_buffer(&kw);
     G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,

@@ -20,9 +20,9 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectSignatureSetAppProto,
+    SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::os::raw::{c_int, c_void};
@@ -84,18 +84,14 @@ pub unsafe extern "C" fn SCDetectTemplateRegister() {
     /* TEMPLATE_END_REMOVE */
     // TODO create a suricata-verify test
     // Setup a keyword structure and register it
-    let kw = SCSigTableAppLiteElmt {
-        name: b"template.buffer\0".as_ptr() as *const libc::c_char,
-        desc: b"Template content modifier to match on the template buffer\0".as_ptr()
-            as *const libc::c_char,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("template.buffer"),
+        desc: String::from("Template content modifier to match on the template buffer"),
         // TODO use the right anchor for url and write doc
-        url: b"/rules/template-keywords.html#buffer\0".as_ptr() as *const libc::c_char,
-        Setup: template_buffer_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+        url: String::from("/rules/template-keywords.html#buffer"),
+        setup: template_buffer_setup,
     };
-    let _g_template_buffer_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_template_buffer_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_TEMPLATE_BUFFER_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"template.buffer\0".as_ptr() as *const libc::c_char,
         b"template.buffer intern description\0".as_ptr() as *const libc::c_char,

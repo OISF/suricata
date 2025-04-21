@@ -17,13 +17,14 @@
 
 use super::websocket::{WebSocketTransaction, ALPROTO_WEBSOCKET};
 use crate::detect::uint::{
-    detect_parse_uint, detect_parse_uint_enum, SCDetectU32Free, SCDetectU32Match,
-    SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match, DetectUintData, DetectUintMode,
+    detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode, SCDetectU32Free,
+    SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
 
@@ -326,16 +327,13 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         true,
         true,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"websocket.payload\0".as_ptr() as *const libc::c_char,
-        desc: b"match WebSocket payload\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/websocket-keywords.html#websocket-payload\0".as_ptr() as *const libc::c_char,
-        Setup: websocket_detect_payload_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("websocket.payload"),
+        desc: String::from("match WebSocket payload"),
+        url: String::from("/rules/websocket-keywords.html#websocket-payload"),
+        setup: websocket_detect_payload_setup,
     };
-    let _g_ws_payload_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ws_payload_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_WEBSOCKET_PAYLOAD_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"websocket.payload\0".as_ptr() as *const libc::c_char,
         b"WebSocket payload\0".as_ptr() as *const libc::c_char,

@@ -20,13 +20,13 @@
 use super::parser::RFBSecurityResultStatus;
 use super::rfb::{RFBTransaction, ALPROTO_RFB};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, SCDetectU32Free, SCDetectU32Parse,
-    DetectUintData,
+    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -188,16 +188,13 @@ unsafe extern "C" fn rfb_sec_result_free(_de: *mut c_void, ctx: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectRfbRegister() {
-    let kw = SCSigTableAppLiteElmt {
-        name: b"rfb.name\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match on the RFB desktop name\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/rfb-keywords.html#rfb-name\0".as_ptr() as *const libc::c_char,
-        Setup: rfb_name_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("rfb.name"),
+        desc: String::from("sticky buffer to match on the RFB desktop name"),
+        url: String::from("/rules/rfb-keywords.html#rfb-name"),
+        setup: rfb_name_setup,
     };
-    let _g_rfb_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_rfb_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_RFB_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"rfb.name\0".as_ptr() as *const libc::c_char,
         b"rfb name\0".as_ptr() as *const libc::c_char,
