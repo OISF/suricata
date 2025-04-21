@@ -261,7 +261,7 @@ impl WebSocketState {
                                     let end = if v.len() + (dec.total_out() - before) as usize
                                         > max_pl_size as usize
                                     {
-                                        v.len() - max_pl_size as usize
+                                        max_pl_size as usize - v.len()
                                     } else {
                                         (dec.total_out() - before) as usize
                                     };
