@@ -30,14 +30,15 @@ use super::parser::{
 };
 
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, SCDetectU16Free, SCDetectU16Match,
-    SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse,
-    SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse, DetectUintData,
+    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU16Match,
+    SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free,
+    SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 
 use crate::direction::Direction;
@@ -1605,16 +1606,13 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         true,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"enip.product_name\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match EtherNet/IP product name\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/enip-keyword.html#enip-product-name\0".as_ptr() as *const libc::c_char,
-        Setup: product_name_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("enip.product_name"),
+        desc: String::from("sticky buffer to match EtherNet/IP product name"),
+        url: String::from("/rules/enip-keyword.html#enip-product-name"),
+        setup: product_name_setup,
     };
-    let _g_enip_product_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_enip_product_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_ENIP_PRODUCT_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"enip.product_name\0".as_ptr() as *const libc::c_char,
         b"ENIP product name\0".as_ptr() as *const libc::c_char,
@@ -1623,16 +1621,13 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         true,
         product_name_get_data,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"enip.service_name\0".as_ptr() as *const libc::c_char,
-        desc: b"sticky buffer to match EtherNet/IP service name\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/enip-keyword.html#enip-service-name\0".as_ptr() as *const libc::c_char,
-        Setup: service_name_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("enip.service_name"),
+        desc: String::from("sticky buffer to match EtherNet/IP service name"),
+        url: String::from("/rules/enip-keyword.html#enip-service-name"),
+        setup: service_name_setup,
     };
-    let _g_enip_service_name_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_enip_service_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_ENIP_SERVICE_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"enip.service_name\0".as_ptr() as *const libc::c_char,
         b"ENIP service name\0".as_ptr() as *const libc::c_char,

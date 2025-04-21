@@ -18,13 +18,12 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
-use crate::detect::uint::{
-    SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, DetectUintData,
-};
+use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::os::raw::{c_int, c_void};
 
@@ -218,16 +217,13 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         true,
     );
 
-    let kw = SCSigTableAppLiteElmt {
-        name: b"snmp.usm\0".as_ptr() as *const libc::c_char,
-        desc: b"SNMP content modifier to match on the SNMP usm\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/snmp-keywords.html#snmp-usm\0".as_ptr() as *const libc::c_char,
-        Setup: snmp_detect_usm_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("snmp.usm"),
+        desc: String::from("SNMP content modifier to match on the SNMP usm"),
+        url: String::from("/rules/snmp-keywords.html#snmp-usm"),
+        setup: snmp_detect_usm_setup,
     };
-    let _g_snmp_usm_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_snmp_usm_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_SNMP_USM_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"snmp.usm\0".as_ptr() as *const libc::c_char,
         b"SNMP USM\0".as_ptr() as *const libc::c_char,
@@ -237,17 +233,13 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         snmp_detect_usm_get_data,
     );
 
-    let kw = SCSigTableAppLiteElmt {
-        name: b"snmp.community\0".as_ptr() as *const libc::c_char,
-        desc: b"SNMP content modifier to match on the SNMP community\0".as_ptr()
-            as *const libc::c_char,
-        url: b"/rules/snmp-keywords.html#snmp-community\0".as_ptr() as *const libc::c_char,
-        Setup: snmp_detect_community_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("snmp.community"),
+        desc: String::from("SNMP content modifier to match on the SNMP community"),
+        url: String::from("/rules/snmp-keywords.html#snmp-community"),
+        setup: snmp_detect_community_setup,
     };
-    let _g_snmp_community_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_snmp_community_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_SNMP_COMMUNITY_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"snmp.community\0".as_ptr() as *const libc::c_char,
         b"SNMP Community identifier\0".as_ptr() as *const libc::c_char,

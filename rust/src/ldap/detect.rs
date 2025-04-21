@@ -21,10 +21,11 @@ use crate::detect::uint::{
     SCDetectU8Free,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
-    DetectHelperGetData, DetectHelperGetMultiData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
+    DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 
@@ -740,16 +741,13 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"ldap.request.dn\0".as_ptr() as *const libc::c_char,
-        desc: b"match request LDAPDN\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.request.dn\0".as_ptr() as *const libc::c_char,
-        Setup: ldap_detect_request_dn_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.request.dn"),
+        desc: String::from("match request LDAPDN"),
+        url: String::from("/rules/ldap-keywords.html#ldap.request.dn"),
+        setup: ldap_detect_request_dn_setup,
     };
-    let _g_ldap_request_dn_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ldap_request_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_LDAP_REQUEST_DN_BUFFER_ID = DetectHelperBufferMpmRegister(
         b"ldap.request.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -758,16 +756,13 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to server
         ldap_detect_request_dn_get_data,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
-        desc: b"match responses LDAPDN\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.dn\0".as_ptr() as *const libc::c_char,
-        Setup: ldap_detect_responses_dn_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.responses.dn"),
+        desc: String::from("match responses LDAPDN"),
+        url: String::from("/rules/ldap-keywords.html#ldap.responses.dn"),
+        setup: ldap_detect_responses_dn_setup,
     };
-    let _g_ldap_responses_dn_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_LDAP_RESPONSES_DN_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -793,16 +788,13 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to client
         false, //to server
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
-        desc: b"match LDAPResult message for responses\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.message\0".as_ptr() as *const libc::c_char,
-        Setup: ldap_detect_responses_msg_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.responses.message"),
+        desc: String::from("match LDAPResult message for responses"),
+        url: String::from("/rules/ldap-keywords.html#ldap.responses.message"),
+        setup: ldap_detect_responses_msg_setup,
     };
-    let _g_ldap_responses_dn_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_LDAP_RESPONSES_MSG_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -811,17 +803,13 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         false, //to server
         ldap_detect_responses_msg_get_data,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
-        desc: b"match request LDAP attribute type\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.request.attribute_type\0".as_ptr()
-            as *const libc::c_char,
-        Setup: ldap_detect_request_attibute_type_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.request.attribute_type"),
+        desc: String::from("match request LDAP attribute type"),
+        url: String::from("/rules/ldap-keywords.html#ldap.request.attribute_type"),
+        setup: ldap_detect_request_attibute_type_setup,
     };
-    let _g_ldap_request_attribute_type_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
@@ -830,17 +818,13 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         true,  //to server
         ldap_detect_request_attribute_type_get_data,
     );
-    let kw = SCSigTableAppLiteElmt {
-        name: b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
-        desc: b"match LDAP responses attribute type\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.attribute_type\0".as_ptr()
-            as *const libc::c_char,
-        Setup: ldap_detect_responses_attibute_type_setup,
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
-        AppLayerTxMatch: None,
-        Free: None,
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.responses.attribute_type"),
+        desc: String::from("match LDAP responses attribute type"),
+        url: String::from("/rules/ldap-keywords.html#ldap.responses.attribute_type"),
+        setup: ldap_detect_responses_attibute_type_setup,
     };
-    let _g_ldap_responses_attribute_type_kw_id = DetectHelperKeywordRegister(&kw);
+    let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
     G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
         b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
