@@ -29,9 +29,9 @@ in with pkgs;
       libnfnetlink
       libpcap
       libyaml
-      luajit
       lz4
       pcre2
+      vectorscan
       zlib
     ];
 
