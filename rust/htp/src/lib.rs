@@ -73,8 +73,6 @@ pub mod parsers;
 pub mod request;
 /// Module for response parsing.
 pub mod response;
-/// Module for custom table.
-pub mod table;
 /// Module for transaction parsing.
 pub mod transaction;
 /// Module to track multiple transactions
