@@ -709,7 +709,8 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
     return 0;
 }
 
-static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *te,
+static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThresholdData *td,
+        ThresholdEntry *te,
         const Packet *p, // ts only? - cache too
         const uint32_t sid, const uint32_t gid, const uint32_t rev, PacketAlert *pa)
 {
@@ -793,8 +794,9 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
                 te->current_count = 1;
             }
             break;
-        case TYPE_RATE:
+        case TYPE_RATE: {
             SCLogDebug("rate_filter");
+            const uint8_t original_action = pa->action;
             ret = 1;
             /* Check if we have a timeout enabled, if so,
              * we still matching (and enabling the new_action) */
@@ -821,7 +823,16 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
                     te->current_count = 1;
                 }
             }
+            if (de_ctx->RateFilterCallback && original_action != pa->action) {
+                pa->action = de_ctx->RateFilterCallback(p, sid, gid, rev, original_action,
+                        pa->action, de_ctx->rate_filter_callback_arg);
+                if (pa->action == original_action) {
+                    /* Reset back to original action, clear modified flag. */
+                    pa->flags &= ~PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED;
+                }
+            }
             break;
+        }
         case TYPE_BACKOFF:
             SCLogDebug("backoff");
 
@@ -844,8 +855,8 @@ static int ThresholdCheckUpdate(const DetectThresholdData *td, ThresholdEntry *t
     return ret;
 }
 
-static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const Signature *s,
-        const DetectThresholdData *td, PacketAlert *pa)
+static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds *tctx,
+        const Packet *p, const Signature *s, const DetectThresholdData *td, PacketAlert *pa)
 {
     /* fast track for count 1 threshold */
     if (td->count == 1 && td->type == TYPE_THRESHOLD) {
@@ -894,7 +905,7 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
             r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
         } else {
             // existing, check/update
-            r = ThresholdCheckUpdate(td, te, p, s->id, s->gid, s->rev, pa);
+            r = ThresholdCheckUpdate(de_ctx, td, te, p, s->id, s->gid, s->rev, pa);
         }
 
         (void)THashDecrUsecnt(res.data);
@@ -909,8 +920,8 @@ static int ThresholdGetFromHash(struct Thresholds *tctx, const Packet *p, const 
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdData *td,
-        uint32_t sid, uint32_t gid, uint32_t rev, PacketAlert *pa)
+static int ThresholdHandlePacketFlow(const DetectEngineCtx *de_ctx, Flow *f, Packet *p,
+        const DetectThresholdData *td, uint32_t sid, uint32_t gid, uint32_t rev, PacketAlert *pa)
 {
     int ret = 0;
     ThresholdEntry *found = ThresholdFlowLookupEntry(f, sid, gid, rev, p->tenant_id);
@@ -930,7 +941,7 @@ static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdDa
         }
     } else {
         // existing, check/update
-        ret = ThresholdCheckUpdate(td, found, p, sid, gid, rev, pa);
+        ret = ThresholdCheckUpdate(de_ctx, td, found, p, sid, gid, rev, pa);
     }
     return ret;
 }
@@ -967,7 +978,7 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
             }
         }
 
-        ret = ThresholdGetFromHash(&ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_DST) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
             int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);
@@ -976,14 +987,14 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
             }
         }
 
-        ret = ThresholdGetFromHash(&ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_BOTH) {
-        ret = ThresholdGetFromHash(&ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_RULE) {
-        ret = ThresholdGetFromHash(&ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_FLOW) {
         if (p->flow) {
-            ret = ThresholdHandlePacketFlow(p->flow, p, td, s->id, s->gid, s->rev, pa);
+            ret = ThresholdHandlePacketFlow(de_ctx, p->flow, p, td, s->id, s->gid, s->rev, pa);
         }
     }
 
