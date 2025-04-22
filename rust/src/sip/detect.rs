@@ -17,10 +17,11 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
-    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperGetMultiData,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -338,24 +339,9 @@ unsafe extern "C" fn sip_from_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_from_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_from_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_from_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "From") {
@@ -380,24 +366,9 @@ unsafe extern "C" fn sip_to_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_to_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_to_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_to_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "To") {
@@ -422,24 +393,9 @@ unsafe extern "C" fn sip_via_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_via_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_via_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_via_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Via") {
@@ -464,24 +420,9 @@ unsafe extern "C" fn sip_ua_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_ua_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_ua_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_ua_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "User-Agent") {
@@ -506,24 +447,9 @@ unsafe extern "C" fn sip_content_type_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_content_type_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_content_type_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_content_type_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Content-Type") {
@@ -548,24 +474,9 @@ unsafe extern "C" fn sip_content_length_hdr_setup(
     return 0;
 }
 
-unsafe extern "C" fn sip_content_length_hdr_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_content_length_hdr_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_content_length_hdr_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     if let Some(value) = sip_get_header_value(tx, local_id, flow_flags.into(), "Content-Length") {
@@ -667,7 +578,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_from_hdr_get,
+        sip_from_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.to"),
@@ -682,7 +593,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_to_hdr_get,
+        sip_to_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.via"),
@@ -697,7 +608,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_via_hdr_get,
+        sip_via_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.user_agent"),
@@ -712,7 +623,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_ua_hdr_get,
+        sip_ua_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.content_type"),
@@ -727,7 +638,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_content_type_hdr_get,
+        sip_content_type_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.content_length"),
@@ -742,6 +653,6 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sip_content_length_hdr_get,
+        sip_content_length_hdr_get_data,
     );
 }

@@ -62,17 +62,10 @@ static void DetectTlsCertsRegisterTests(void);
 
 static int g_tls_certs_buffer_id = 0;
 
-static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
+static bool TlsCertsGetData(DetectEngineThreadCtx *det_ctx, const void *txv, const uint8_t flags,
+        uint32_t local_id, const uint8_t **buf, uint32_t *buf_len)
 {
-    SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
-    const SSLState *ssl_state = (SSLState *)f->alstate;
+    const SSLState *ssl_state = (SSLState *)txv;
     const SSLStateConnp *connp;
 
     if (flags & STREAM_TOSERVER) {
@@ -82,8 +75,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     }
 
     if (TAILQ_EMPTY(&connp->certs)) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
     SSLCertsChain *cert;
@@ -97,14 +89,12 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
         }
     }
     if (cert == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, cert->cert_data, cert->cert_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
+    *buf = cert->cert_data;
+    *buf_len = cert->cert_len;
+    return true;
 }
 
 /**

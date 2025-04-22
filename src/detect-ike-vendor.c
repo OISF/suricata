@@ -39,31 +39,6 @@ static int DetectIkeVendorSetup(DetectEngineCtx *, Signature *, const char *);
 
 static int g_ike_vendor_buffer_id = 0;
 
-static InspectionBuffer *IkeVendorGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
-{
-    SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
-
-    const uint8_t *data;
-    uint32_t data_len;
-    if (rs_ike_tx_get_vendor(txv, local_id, &data, &data_len) == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
 /**
  * \brief Registration function for ike.vendor keyword.
  */
@@ -77,7 +52,7 @@ void DetectIkeVendorRegister(void)
     sigmatch_table[DETECT_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister(
-            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, IkeVendorGetData, 1, 1);
+            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, rs_ike_tx_get_vendor, 1, 1);
 
     g_ike_vendor_buffer_id = DetectBufferTypeGetByName("ike.vendor");
 

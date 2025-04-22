@@ -52,11 +52,24 @@
 #include "util-profiling.h"
 
 static int DetectTlsSubjectAltNameSetup(DetectEngineCtx *, Signature *, const char *);
-static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index);
-
 static int g_tls_subjectaltname_buffer_id = 0;
+
+static bool TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx, const void *txv,
+        const uint8_t flags, uint32_t idx, const uint8_t **buf, uint32_t *buf_len)
+{
+    const SSLState *ssl_state = (SSLState *)txv;
+    const SSLStateConnp *connp;
+
+    connp = &ssl_state->server_connp;
+
+    if (idx >= connp->cert0_sans_len) {
+        return false;
+    }
+
+    *buf = (const uint8_t *)connp->cert0_sans[idx];
+    *buf_len = strlen(connp->cert0_sans[idx]);
+    return true;
+}
 
 /**
  * \brief Registration function for keyword: tls.subjectaltname
@@ -100,29 +113,4 @@ static int DetectTlsSubjectAltNameSetup(DetectEngineCtx *de_ctx, Signature *s, c
         return -1;
 
     return 0;
-}
-
-static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t idx)
-{
-    SCEnter();
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
-    const SSLState *ssl_state = (SSLState *)f->alstate;
-    const SSLStateConnp *connp;
-
-    connp = &ssl_state->server_connp;
-
-    if (idx >= connp->cert0_sans_len) {
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, (const uint8_t *)connp->cert0_sans[idx],
-            strlen(connp->cert0_sans[idx]));
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
 }

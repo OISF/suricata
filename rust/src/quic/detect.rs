@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
+use crate::core::DetectEngineThreadCtx;
 use crate::quic::quic::QuicTransaction;
+use std::os::raw::c_void;
 use std::ptr;
 
 #[no_mangle]
@@ -96,8 +98,10 @@ pub unsafe extern "C" fn rs_quic_tx_get_version(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
-    tx: &QuicTransaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, QuicTransaction);
     if (i as usize) < tx.cyu.len() {
         let cyu = &tx.cyu[i as usize];
 
@@ -106,19 +110,21 @@ pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
         *buffer = p.as_ptr();
         *buffer_len = p.len() as u32;
 
-        1
+        true
     } else {
         *buffer = ptr::null();
         *buffer_len = 0;
 
-        0
+        false
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_cyu_string(
-    tx: &QuicTransaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, QuicTransaction);
     if (i as usize) < tx.cyu.len() {
         let cyu = &tx.cyu[i as usize];
 
@@ -126,11 +132,11 @@ pub unsafe extern "C" fn rs_quic_tx_get_cyu_string(
 
         *buffer = p.as_ptr();
         *buffer_len = p.len() as u32;
-        1
+        true
     } else {
         *buffer = ptr::null();
         *buffer_len = 0;
 
-        0
+        false
     }
 }

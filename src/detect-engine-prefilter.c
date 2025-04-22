@@ -1583,8 +1583,8 @@ static void PrefilterMultiMpm(DetectEngineThreadCtx *det_ctx, const void *pectx,
 
     do {
         // loop until we get a NULL
-        InspectionBuffer *buffer =
-                ctx->GetData(det_ctx, ctx->transforms, f, flags, txv, ctx->list_id, local_id);
+        InspectionBuffer *buffer = DetectGetMultiData(
+                det_ctx, ctx->transforms, f, flags, txv, ctx->list_id, local_id, ctx->GetData);
         if (buffer == NULL)
             break;
 

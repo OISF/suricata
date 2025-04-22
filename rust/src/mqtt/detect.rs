@@ -17,6 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
@@ -24,9 +25,8 @@ use crate::detect::uint::{
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
     DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
-    DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 
 use nom7::branch::alt;
@@ -300,7 +300,8 @@ static mut G_MQTT_CONN_FLAGS_KW_ID: c_int = 0;
 static mut G_MQTT_CONN_FLAGS_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn unsub_topic_get_data(
-    tx: *const c_void, _flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let ml = UNSUB_TOPIC_MATCH_LIMIT;
     if ml > 0 && local_id >= ml as u32 {
@@ -326,22 +327,6 @@ unsafe extern "C" fn unsub_topic_get_data(
     return false;
 }
 
-unsafe extern "C" fn unsub_topic_get_data_wrapper(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        unsub_topic_get_data,
-    );
-}
-
 unsafe extern "C" fn unsub_topic_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -356,7 +341,8 @@ unsafe extern "C" fn unsub_topic_setup(
 }
 
 unsafe extern "C" fn sub_topic_get_data(
-    tx: *const c_void, _flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let ml = SUB_TOPIC_MATCH_LIMIT;
     if ml > 0 && local_id >= ml as u32 {
@@ -380,22 +366,6 @@ unsafe extern "C" fn sub_topic_get_data(
     *buffer = ptr::null();
     *buffer_len = 0;
     return false;
-}
-
-unsafe extern "C" fn sub_topic_get_data_wrapper(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sub_topic_get_data,
-    );
 }
 
 unsafe extern "C" fn sub_topic_setup(
@@ -1122,7 +1092,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         ALPROTO_MQTT,
         false, // only to server
         true,
-        unsub_topic_get_data_wrapper,
+        unsub_topic_get_data,
     );
 
     let kw = SCSigTableAppLiteElmt {
@@ -1163,7 +1133,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         ALPROTO_MQTT,
         false, // only to server
         true,
-        sub_topic_get_data_wrapper,
+        sub_topic_get_data,
     );
 
     let kw = SCSigTableAppLiteElmt {
@@ -1517,23 +1487,24 @@ mod test {
         let mut s: *const u8 = std::ptr::null_mut();
         let mut slen: u32 = 0;
         let tx = &t as *const _ as *mut _;
-        let mut r = unsafe { unsub_topic_get_data(tx, 0, 0, &mut s, &mut slen) };
+        let mut r =
+            unsafe { unsub_topic_get_data(std::ptr::null_mut(), tx, 0, 0, &mut s, &mut slen) };
         assert!(r);
         let mut topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "foo");
-        r = unsafe { unsub_topic_get_data(tx, 0, 1, &mut s, &mut slen) };
+        r = unsafe { unsub_topic_get_data(std::ptr::null_mut(), tx, 0, 1, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baar");
-        r = unsafe { unsub_topic_get_data(tx, 0, 2, &mut s, &mut slen) };
+        r = unsafe { unsub_topic_get_data(std::ptr::null_mut(), tx, 0, 2, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "fieee");
-        r = unsafe { unsub_topic_get_data(tx, 0, 3, &mut s, &mut slen) };
+        r = unsafe { unsub_topic_get_data(std::ptr::null_mut(), tx, 0, 3, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baaaaz");
-        r = unsafe { unsub_topic_get_data(tx, 0, 4, &mut s, &mut slen) };
+        r = unsafe { unsub_topic_get_data(std::ptr::null_mut(), tx, 0, 4, &mut s, &mut slen) };
         assert!(!r);
     }
 
@@ -1591,23 +1562,24 @@ mod test {
         let mut s: *const u8 = std::ptr::null_mut();
         let mut slen: u32 = 0;
         let tx = &t as *const _ as *mut _;
-        let mut r = unsafe { sub_topic_get_data(tx, 0, 0, &mut s, &mut slen) };
+        let mut r =
+            unsafe { sub_topic_get_data(std::ptr::null_mut(), tx, 0, 0, &mut s, &mut slen) };
         assert!(r);
         let mut topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "foo");
-        r = unsafe { sub_topic_get_data(tx, 0, 1, &mut s, &mut slen) };
+        r = unsafe { sub_topic_get_data(std::ptr::null_mut(), tx, 0, 1, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baar");
-        r = unsafe { sub_topic_get_data(tx, 0, 2, &mut s, &mut slen) };
+        r = unsafe { sub_topic_get_data(std::ptr::null_mut(), tx, 0, 2, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "fieee");
-        r = unsafe { sub_topic_get_data(tx, 0, 3, &mut s, &mut slen) };
+        r = unsafe { sub_topic_get_data(std::ptr::null_mut(), tx, 0, 3, &mut s, &mut slen) };
         assert!(r);
         topic = String::from_utf8_lossy(unsafe { build_slice!(s, slen as usize) });
         assert_eq!(topic, "baaaaz");
-        r = unsafe { sub_topic_get_data(tx, 0, 4, &mut s, &mut slen) };
+        r = unsafe { sub_topic_get_data(std::ptr::null_mut(), tx, 0, 4, &mut s, &mut slen) };
         assert!(!r);
     }
 }

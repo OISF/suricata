@@ -59,8 +59,8 @@ static int DetectFtpReplySetup(DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 }
 
-static bool DetectFTPReplyGetData(void *txv, uint8_t _flow_flags, uint32_t index,
-        const uint8_t **buffer, uint32_t *buffer_len)
+static bool DetectFTPReplyGetData(DetectEngineThreadCtx *_det_ctx, const void *txv,
+        uint8_t _flow_flags, uint32_t index, const uint8_t **buffer, uint32_t *buffer_len)
 {
     FTPTransaction *tx = (FTPTransaction *)txv;
 
@@ -86,14 +86,6 @@ static bool DetectFTPReplyGetData(void *txv, uint8_t _flow_flags, uint32_t index
     return false;
 }
 
-static InspectionBuffer *GetDataWrapper(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
-        const int list_id, uint32_t index)
-{
-    return DetectHelperGetMultiData(
-            det_ctx, transforms, _f, _flow_flags, txv, list_id, index, DetectFTPReplyGetData);
-}
-
 void DetectFtpReplyRegister(void)
 {
     /* ftp.reply sticky buffer */
@@ -104,7 +96,7 @@ void DetectFtpReplyRegister(void)
     sigmatch_table[DETECT_FTP_REPLY].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerMultiRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, GetDataWrapper, 2, 1);
+            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectFTPReplyGetData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
