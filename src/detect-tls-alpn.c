@@ -52,11 +52,44 @@
 #include "util-profiling.h"
 
 static int DetectTlsAlpnSetup(DetectEngineCtx *, Signature *, const char *);
-static InspectionBuffer *TlsAlpnGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index);
-
 static int g_tls_alpn_buffer_id = 0;
+
+static bool TlsAlpnGetData(DetectEngineThreadCtx *det_ctx, const void *txv, const uint8_t flags,
+        uint32_t idx, const uint8_t **buf, uint32_t *buf_len)
+{
+    SCEnter();
+
+    const SSLState *ssl_state = (SSLState *)txv;
+    const SSLStateConnp *connp;
+
+    if (flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (TAILQ_EMPTY(&connp->alpns)) {
+        return false;
+    }
+
+    SSLAlpns *a;
+    if (idx == 0) {
+        a = TAILQ_FIRST(&connp->alpns);
+    } else {
+        // TODO optimize ?
+        a = TAILQ_FIRST(&connp->alpns);
+        for (uint32_t i = 0; i < idx; i++) {
+            a = TAILQ_NEXT(a, next);
+        }
+    }
+    if (a == NULL) {
+        return false;
+    }
+
+    *buf = a->alpn;
+    *buf_len = a->size;
+    return true;
+}
 
 /**
  * \brief Registration function for keyword: tls.alpn
@@ -101,48 +134,4 @@ static int DetectTlsAlpnSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         return -1;
 
     return 0;
-}
-
-static InspectionBuffer *TlsAlpnGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t idx)
-{
-    SCEnter();
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
-    const SSLState *ssl_state = (SSLState *)f->alstate;
-    const SSLStateConnp *connp;
-
-    if (flags & STREAM_TOSERVER) {
-        connp = &ssl_state->client_connp;
-    } else {
-        connp = &ssl_state->server_connp;
-    }
-
-    if (TAILQ_EMPTY(&connp->alpns)) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    SSLAlpns *a;
-    if (idx == 0) {
-        a = TAILQ_FIRST(&connp->alpns);
-    } else {
-        // TODO optimize ?
-        a = TAILQ_FIRST(&connp->alpns);
-        for (uint32_t i = 0; i < idx; i++) {
-            a = TAILQ_NEXT(a, next);
-        }
-    }
-    if (a == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, a->alpn, a->size);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
 }

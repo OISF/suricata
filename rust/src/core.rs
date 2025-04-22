@@ -28,6 +28,10 @@ use crate::flow::Flow;
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 pub enum GenericVar {}
+#[repr(C)]
+pub struct DetectEngineThreadCtx {
+    _unused: [u8; 0],
+}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

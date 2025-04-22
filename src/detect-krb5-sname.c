@@ -49,36 +49,6 @@ static int DetectKrb5SNameSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
-{
-    SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
-
-    uint32_t b_len = 0;
-    const uint8_t *b = NULL;
-
-    if (rs_krb5_tx_get_sname(txv, local_id, &b, &b_len) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-    if (b == NULL || b_len == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b, b_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
 void DetectKrb5SNameRegister(void)
 {
     sigmatch_table[DETECT_KRB5_SNAME].name = "krb5.sname";
@@ -89,7 +59,7 @@ void DetectKrb5SNameRegister(void)
     sigmatch_table[DETECT_KRB5_SNAME].desc = "sticky buffer to match on Kerberos 5 server name";
 
     DetectAppLayerMultiRegister(
-            "krb5_sname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, GetKrb5SNameData, 2, 1);
+            "krb5_sname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, rs_krb5_tx_get_sname, 2, 1);
 
     DetectBufferTypeSetDescriptionByName("krb5_sname",
             "Kerberos 5 ticket server name");

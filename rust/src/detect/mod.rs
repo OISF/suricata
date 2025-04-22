@@ -38,6 +38,7 @@ pub mod datasets;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ffi::CString;
 
+use crate::core::DetectEngineThreadCtx;
 use suricata_sys::sys::AppProto;
 
 /// EnumString trait that will be implemented on enums that
@@ -180,41 +181,29 @@ extern "C" {
         de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
     // in detect-engine-helper.h
-    pub fn DetectHelperGetMultiData(
-        de: *mut c_void,
-        transforms: *const c_void,
-        flow: *const c_void,
-        flow_flags: u8,
-        tx: *const c_void,
-        list_id: c_int,
-        local_id: u32,
-        get_buf: unsafe extern "C" fn(*const c_void, u8, u32, *mut *const u8, *mut u32) -> bool,
-    ) -> *mut c_void;
     pub fn DetectHelperMultiBufferMpmRegister(
         name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
         toserver: bool,
         get_multi_data: unsafe extern "C" fn(
-            *mut c_void,
-            *const c_void,
+            *mut DetectEngineThreadCtx,
             *const c_void,
             u8,
-            *const c_void,
-            i32,
             u32,
-        ) -> *mut c_void,
+            *mut *const u8,
+            *mut u32,
+        ) -> bool,
     ) -> c_int;
     pub fn DetectHelperMultiBufferProgressMpmRegister(
         name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
         toserver: bool,
         get_multi_data: unsafe extern "C" fn(
-            *mut c_void,
-            *const c_void,
+            *mut DetectEngineThreadCtx,
             *const c_void,
             u8,
-            *const c_void,
-            i32,
             u32,
-        ) -> *mut c_void,
+            *mut *const u8,
+            *mut u32,
+        ) -> bool,
         progress: c_int,
     ) -> c_int;
 }

@@ -497,46 +497,10 @@ static void HttpMultiBufHeaderThreadDataFree(void *data)
     SCFree(td);
 }
 
-static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
+static bool GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, const void *txv, const uint8_t flags,
+        uint32_t local_id, const uint8_t **buf, uint32_t *buf_len)
 {
     SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
-
-    uint32_t b_len = 0;
-    const uint8_t *b = NULL;
-
-    if (rs_http2_tx_get_header(txv, flags, local_id, &b, &b_len) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-    if (b == NULL || b_len == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b, b_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
-{
-    SCEnter();
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
 
     int kw_thread_id;
     if (flags & STREAM_TOSERVER) {
@@ -547,7 +511,7 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     HttpMultiBufHeaderThreadData *hdr_td =
             DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, kw_thread_id);
     if (unlikely(hdr_td == NULL)) {
-        return NULL;
+        return false;
     }
 
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -599,13 +563,11 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     // hdr_td->len is the number of header buffers
     if (local_id < hdr_td->len) {
         // we have one valid header buffer
-        InspectionBufferSetupMulti(det_ctx, buffer, transforms, hdr_td->items[local_id].buffer,
-                hdr_td->items[local_id].len);
-        buffer->flags = DETECT_CI_FLAGS_SINGLE;
-        SCReturnPtr(buffer, "InspectionBuffer");
+        *buf = hdr_td->items[local_id].buffer;
+        *buf_len = hdr_td->items[local_id].len;
+        return true;
     } // else there are no more header buffer to get
-    InspectionBufferSetupMultiEmpty(buffer);
-    return NULL;
+    return false;
 }
 
 static int DetectHTTPRequestHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -630,7 +592,7 @@ void DetectHttpRequestHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_REQUEST_PROGRESS_HEADERS);
 
@@ -663,7 +625,7 @@ void DetectHttpResponseHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, GetHttp2HeaderData, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_RESPONSE_PROGRESS_HEADERS);
 

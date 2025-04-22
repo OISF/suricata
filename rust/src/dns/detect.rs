@@ -16,13 +16,14 @@
  */
 
 use super::dns::{DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS};
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList, DetectHelperBufferRegister,
-    DetectHelperGetMultiData, DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
+    DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
     DetectHelperMultiBufferProgressMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
@@ -238,7 +239,8 @@ unsafe extern "C" fn dns_detect_answer_name_setup(
 
 /// Get the DNS response answer name and index i.
 unsafe extern "C" fn dns_tx_get_answer_name(
-    tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8, len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8,
+    len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, DNSTransaction);
     let answers = if flags & Direction::ToClient as u8 != 0 {
@@ -261,22 +263,6 @@ unsafe extern "C" fn dns_tx_get_answer_name(
     false
 }
 
-unsafe extern "C" fn dns_answer_name_get_data_wrapper(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        dns_tx_get_answer_name,
-    );
-}
-
 unsafe extern "C" fn dns_detect_query_name_setup(
     de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -291,7 +277,8 @@ unsafe extern "C" fn dns_detect_query_name_setup(
 
 /// Get the DNS response answer name and index i.
 unsafe extern "C" fn dns_tx_get_query_name(
-    tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8, len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8,
+    len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, DNSTransaction);
     let queries = if flags & Direction::ToClient as u8 != 0 {
@@ -315,9 +302,10 @@ unsafe extern "C" fn dns_tx_get_query_name(
 }
 
 unsafe extern "C" fn dns_tx_get_query(
-    tx: *const c_void, _flags: u8, i: u32, buf: *mut *const u8, len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buf: *mut *const u8,
+    len: *mut u32,
 ) -> bool {
-    return dns_tx_get_query_name(tx, Direction::ToServer as u8, i, buf, len);
+    return dns_tx_get_query_name(_de, tx, Direction::ToServer as u8, i, buf, len);
 }
 
 unsafe extern "C" fn dns_detect_query_setup(
@@ -330,38 +318,6 @@ unsafe extern "C" fn dns_detect_query_setup(
         return -1;
     }
     return 0;
-}
-
-unsafe extern "C" fn dns_query_name_get_data_wrapper(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        dns_tx_get_query_name,
-    );
-}
-
-unsafe extern "C" fn dns_query_get_data_wrapper(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        dns_tx_get_query,
-    );
 }
 
 #[no_mangle]
@@ -381,7 +337,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         /* Register also in the TO_SERVER direction, even though this is not
         normal, it could be provided as part of a request. */
         true,
-        dns_answer_name_get_data_wrapper,
+        dns_tx_get_answer_name,
         1, // response complete
     );
     let kw = SCSigTableAppLiteElmt {
@@ -415,7 +371,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         /* Register in both directions as the query is usually echoed back
         in the response. */
         true,
-        dns_query_name_get_data_wrapper,
+        dns_tx_get_query_name,
         1, // request or response complete
     );
     let kw = SCSigTableAppLiteElmt {
@@ -467,8 +423,8 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         ALPROTO_DNS,
         false, // only toserver
         true,
-        dns_query_get_data_wrapper, // reuse, will be called only toserver
-        1,                          // request complete
+        dns_tx_get_query, // reuse, will be called only toserver
+        1,                // request complete
     );
 }
 

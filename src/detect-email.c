@@ -287,32 +287,18 @@ static int DetectMimeEmailUrlSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     return 0;
 }
 
-static InspectionBuffer *GetMimeEmailUrlData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
-        const int list_id, uint32_t idx)
+static bool GetMimeEmailUrlData(DetectEngineThreadCtx *det_ctx, const void *txv,
+        const uint8_t flags, uint32_t idx, const uint8_t **buf, uint32_t *buf_len)
 {
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
     SMTPTransaction *tx = (SMTPTransaction *)txv;
-
-    const uint8_t *b_email_url = NULL;
-    uint32_t b_email_url_len = 0;
-
     if (tx->mime_state == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
-    if (SCDetectMimeEmailGetUrl(tx->mime_state, &b_email_url, &b_email_url_len, idx) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+    if (SCDetectMimeEmailGetUrl(tx->mime_state, buf, buf_len, idx) != 1) {
+        return false;
     }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b_email_url, b_email_url_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-    return buffer;
+    return true;
 }
 
 static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -326,33 +312,19 @@ static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, c
     return 0;
 }
 
-static InspectionBuffer *GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
-        const int list_id, uint32_t idx)
+static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void *txv,
+        const uint8_t flags, uint32_t idx, const uint8_t **buf, uint32_t *buf_len)
 {
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
     SMTPTransaction *tx = (SMTPTransaction *)txv;
 
-    const uint8_t *b_email_received = NULL;
-    uint32_t b_email_received_len = 0;
-
     if (tx->mime_state == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
-    if (SCDetectMimeEmailGetDataArray(
-                tx->mime_state, &b_email_received, &b_email_received_len, "received", idx) != 1) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+    if (SCDetectMimeEmailGetDataArray(tx->mime_state, buf, buf_len, "received", idx) != 1) {
+        return false;
     }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, b_email_received, b_email_received_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-    return buffer;
+    return true;
 }
 
 void DetectEmailRegister(void)

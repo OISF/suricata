@@ -99,14 +99,6 @@ static int g_http2_header_name_buffer_id = 0;
  * \brief Registration function for HTTP2 keywords
  */
 
-static InspectionBuffer *GetHttp2HNameData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
-{
-    return DetectHelperGetMultiData(det_ctx, transforms, _f, flags, txv, list_id, local_id,
-            (MultiGetTxBuffer)rs_http2_tx_get_header_name);
-}
-
 void DetectHttp2Register(void)
 {
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].name = "http2.frametype";
@@ -182,9 +174,10 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, GetHttp2HNameData, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header_name, 2, HTTP2StateOpen);
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, GetHttp2HNameData, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header_name, 2, HTTP2StateOpen);
+
     DetectBufferTypeSupportsMultiInstance("http2_header_name");
     DetectBufferTypeSetDescriptionByName("http2_header_name",
                                          "HTTP2 header name");

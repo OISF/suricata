@@ -35,7 +35,6 @@ void DetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver);
 
 typedef bool (*SimpleGetTxBuffer)(void *, uint8_t, const uint8_t **, uint32_t *);
-typedef bool (*MultiGetTxBuffer)(void *, uint8_t, uint32_t, const uint8_t **, uint32_t *);
 
 InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
@@ -46,10 +45,6 @@ int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppPr
         bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData);
 int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
         bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress);
-
-InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id, uint32_t index, MultiGetTxBuffer GetBuf);
 
 int DetectHelperTransformRegister(const SCTransformTableElmt *kw);
 const uint8_t *InspectionBufferPtr(InspectionBuffer *buf);
