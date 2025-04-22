@@ -175,9 +175,6 @@ static int DetectXbitPostMatchTx(
     if (txv == NULL)
         return 0;
     AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-    if (txd == NULL) {
-        return 0;
-    }
 
     if (xd->cmd != DETECT_XBITS_CMD_SET)
         return 0;
