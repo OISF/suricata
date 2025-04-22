@@ -249,7 +249,14 @@ typedef struct PacketAlert_ {
     int64_t frame_id;
 } PacketAlert;
 
-/* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
+/**
+ * \defgroup PacketAlertFlags
+ *
+ * Available flags for PacketAlert.flags.
+ *
+ * @{
+ */
+/** flag to indicate the rule action (drop/pass) needs to be applied to the flow */
 #define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW BIT_U8(0)
 /** alert was generated based on state */
 #define PACKET_ALERT_FLAG_STATE_MATCH BIT_U8(1)
@@ -265,6 +272,7 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_TX_GUESSED BIT_U8(6)
 /** accept should be applied to packet */
 #define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET BIT_U8(7)
+/** @} */
 
 extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
