@@ -141,7 +141,7 @@ void DetectHttpResponseLineRegister(void)
  */
 static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http_response_line_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http_response_line_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)

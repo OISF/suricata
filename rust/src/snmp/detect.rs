@@ -20,12 +20,13 @@
 use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
-    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
+    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use std::os::raw::{c_int, c_void};
+use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
 
 static mut G_SNMP_VERSION_KW_ID: c_int = 0;
 static mut G_SNMP_VERSION_BUFFER_ID: c_int = 0;
@@ -35,7 +36,7 @@ static mut G_SNMP_USM_BUFFER_ID: c_int = 0;
 static mut G_SNMP_COMMUNITY_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn snmp_detect_version_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
@@ -68,7 +69,7 @@ unsafe extern "C" fn snmp_detect_version_free(_de: *mut c_void, ctx: *mut c_void
 }
 
 unsafe extern "C" fn snmp_detect_pdutype_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
@@ -105,12 +106,12 @@ unsafe extern "C" fn snmp_detect_pdutype_free(_de: *mut c_void, ctx: *mut c_void
 }
 
 unsafe extern "C" fn snmp_detect_usm_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SNMP_USM_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SNMP_USM_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -144,12 +145,12 @@ unsafe extern "C" fn snmp_detect_usm_get_data(
 }
 
 unsafe extern "C" fn snmp_detect_community_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SNMP_COMMUNITY_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SNMP_COMMUNITY_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

@@ -581,7 +581,7 @@ void DetectHTTP2settingsFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http2_header_name_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http2_header_name_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)

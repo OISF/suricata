@@ -147,7 +147,7 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const 
  */
 static int DetectHttpStatCodeSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http_stat_code_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http_stat_code_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;

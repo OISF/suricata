@@ -176,6 +176,23 @@ extern "C" {
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineCtx_ {
+    _unused: [u8; 0],
+}
+pub type DetectEngineCtx = DetectEngineCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Signature_ {
+    _unused: [u8; 0],
+}
+pub type Signature = Signature_;
+extern "C" {
+    pub fn SCDetectBufferSetActiveList(
+        de_ctx: *mut DetectEngineCtx, s: *mut Signature, list: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

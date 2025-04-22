@@ -123,7 +123,7 @@ void DetectTlsJa3StringRegister(void)
  */
 static int DetectTlsJa3StringSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_ja3_str_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_ja3_str_buffer_id) < 0)
         return -1;
 
     AppProto alprotos[] = { ALPROTO_TLS, ALPROTO_QUIC, ALPROTO_UNKNOWN };
