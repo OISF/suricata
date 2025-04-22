@@ -382,6 +382,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
+#include "detect-engine-buffer.h"
 static SigMatch *GetMatches(Signature *s, const int list)
 {
     SigMatch *sm = DetectBufferGetFirstSigMatch(s, list);

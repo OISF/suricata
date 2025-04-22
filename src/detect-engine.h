@@ -201,11 +201,6 @@ int DetectEngineMustParseMetadata(void);
 
 bool DetectBufferIsPresent(const Signature *s, const uint32_t buf_id);
 
-int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
-int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
-SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
-SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
-
 DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
 
