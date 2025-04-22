@@ -84,7 +84,7 @@ static int DetectIcmpv4HdrSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     s->proto.flags |= DETECT_PROTO_IPV4;
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(de_ctx, s, g_icmpv4hdr_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_icmpv4hdr_buffer_id) < 0)
         return -1;
 
     return 0;

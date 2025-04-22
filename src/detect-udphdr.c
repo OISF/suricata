@@ -85,7 +85,7 @@ static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(de_ctx, s, g_udphdr_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_udphdr_buffer_id) < 0)
         return -1;
 
     return 0;

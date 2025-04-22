@@ -38,7 +38,7 @@ pub mod datasets;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ffi::CString;
 
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -66,8 +66,8 @@ pub struct SigTableElmtStickyBuffer {
     pub url: String,
     /// function callback to parse and setup keyword in rule
     pub setup: unsafe extern "C" fn(
-        de: *mut c_void,
-        s: *mut c_void,
+        de: *mut DetectEngineCtx,
+        s: *mut Signature,
         raw: *const std::os::raw::c_char,
     ) -> c_int,
 }
@@ -125,8 +125,8 @@ pub struct SCSigTableAppLiteElmt {
     pub flags: u16,
     /// function callback to parse and setup keyword in rule
     pub Setup: unsafe extern "C" fn(
-        de: *mut c_void,
-        s: *mut c_void,
+        de: *mut DetectEngineCtx,
+        s: *mut Signature,
         raw: *const std::os::raw::c_char,
     ) -> c_int,
     /// function callback to free structure allocated by setup if any
@@ -152,7 +152,6 @@ pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 /// cbindgen:ignore
 extern "C" {
     pub fn DetectHelperKeywordSetCleanCString(id: c_int);
-    pub fn DetectBufferSetActiveList(de: *mut c_void, s: *mut c_void, bufid: c_int) -> c_int;
     pub fn DetectHelperGetData(
         de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
         tx: *const c_void, list_id: c_int,
@@ -175,9 +174,9 @@ extern "C" {
     pub fn DetectHelperBufferRegister(
         name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
     ) -> c_int;
-    pub fn DetectSignatureSetAppProto(s: *mut c_void, alproto: AppProto) -> c_int;
+    pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(
-        de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
+        de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
     // in detect-engine-helper.h
     pub fn DetectHelperGetMultiData(
