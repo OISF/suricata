@@ -18,8 +18,10 @@
 // Author: Frank Honza <frank.honza@dcso.de>
 
 use super::ipsec_parser::IkeV2Transform;
+use crate::core::DetectEngineThreadCtx;
 use crate::ike::ike::*;
 use std::ffi::CStr;
+use std::os::raw::c_void;
 use std::ptr;
 
 #[no_mangle]
@@ -116,23 +118,21 @@ pub extern "C" fn rs_ike_state_get_key_exchange(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_vendor(
-    tx: &IKETransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> u8 {
+pub unsafe extern "C" fn rs_ike_tx_get_vendor(
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buf: *mut *const u8,
+    len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, IKETransaction);
     if tx.ike_version == 1 && i < tx.hdr.ikev1_header.vendor_ids.len() as u32 {
-        unsafe {
-            *len = tx.hdr.ikev1_header.vendor_ids[i as usize].len() as u32;
-            *buf = tx.hdr.ikev1_header.vendor_ids[i as usize].as_ptr();
-        }
-        return 1;
+        *len = tx.hdr.ikev1_header.vendor_ids[i as usize].len() as u32;
+        *buf = tx.hdr.ikev1_header.vendor_ids[i as usize].as_ptr();
+        return true;
     }
 
-    unsafe {
-        *buf = ptr::null();
-        *len = 0;
-    }
+    *buf = ptr::null();
+    *len = 0;
 
-    return 0;
+    return false;
 }
 
 #[no_mangle]

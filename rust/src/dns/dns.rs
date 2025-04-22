@@ -19,6 +19,7 @@ use std;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::os::raw::c_void;
 
 use crate::applayer::*;
 use crate::core::{self, *};
@@ -983,9 +984,11 @@ export_state_data_get!(rs_dns_get_state_data, DNSState);
 /// Get the DNS query name at index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetQueryName(
-    tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, i: u32,
+    buf: *mut *const u8, len: *mut u32,
 ) -> bool {
-    let queries = if to_client {
+    let tx = cast_pointer!(tx, DNSTransaction);
+    let queries = if (flow_flags & STREAM_TOSERVER) == 0 {
         tx.response.as_ref().map(|response| &response.queries)
     } else {
         tx.request.as_ref().map(|request| &request.queries)
@@ -1008,9 +1011,11 @@ pub unsafe extern "C" fn SCDnsTxGetQueryName(
 /// Get the DNS response answer name and index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAnswerName(
-    tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, i: u32,
+    buf: *mut *const u8, len: *mut u32,
 ) -> bool {
-    let answers = if to_client {
+    let tx = cast_pointer!(tx, DNSTransaction);
+    let answers = if (flow_flags & STREAM_TOSERVER) == 0 {
         tx.response.as_ref().map(|response| &response.answers)
     } else {
         tx.request.as_ref().map(|request| &request.answers)
@@ -1033,8 +1038,10 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerName(
 /// Get the DNS response authority name at index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAuthorityName(
-    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool { 
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flow_flags: u8, i: u32,
+    buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, DNSTransaction);
     let index = i as usize;
 
     if let Some(response) = &tx.response {
@@ -1053,8 +1060,10 @@ pub unsafe extern "C" fn SCDnsTxGetAuthorityName(
 /// Get the DNS response additional name at index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAdditionalName(
-    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool { 
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flow_flags: u8, i: u32,
+    buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, DNSTransaction);
     let index = i as usize;
 
     if let Some(response) = &tx.response {
@@ -1072,18 +1081,11 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalName(
 
 fn get_rdata_name(data: &DNSRData) -> Option<&DNSName> {
     match data {
-        DNSRData::CNAME(name)
-        | DNSRData::PTR(name)
-        | DNSRData::MX(name)
-        | DNSRData::NS(name) => {
+        DNSRData::CNAME(name) | DNSRData::PTR(name) | DNSRData::MX(name) | DNSRData::NS(name) => {
             Some(name)
         }
-        DNSRData::SOA(soa) => {
-            Some(&soa.mname)
-        }
-        _ => {
-            None
-        }
+        DNSRData::SOA(soa) => Some(&soa.mname),
+        _ => None,
     }
 }
 
@@ -1091,7 +1093,7 @@ fn get_rdata_name(data: &DNSRData) -> Option<&DNSName> {
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAnswerRdata(
     tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool { 
+) -> bool {
     let index = i as usize;
 
     if let Some(response) = &tx.response {
@@ -1113,7 +1115,7 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerRdata(
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAuthorityRdata(
     tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool { 
+) -> bool {
     let index = i as usize;
 
     if let Some(response) = &tx.response {
@@ -1135,7 +1137,7 @@ pub unsafe extern "C" fn SCDnsTxGetAuthorityRdata(
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAdditionalRdata(
     tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> bool { 
+) -> bool {
     let index = i as usize;
 
     if let Some(response) = &tx.response {

@@ -17,10 +17,11 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
-    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperGetMultiData,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -388,24 +389,9 @@ unsafe extern "C" fn sdp_bandwidth_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_bandwidth_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_bandwidth_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_bandwidth_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -440,24 +426,9 @@ unsafe extern "C" fn sdp_time_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_time_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sdp_time_get_data,
-    );
-}
-
 unsafe extern "C" fn sdp_time_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -490,24 +461,9 @@ unsafe extern "C" fn sdp_repeat_time_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_repeat_time_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sdp_repeat_time_get_data,
-    );
-}
-
 unsafe extern "C" fn sdp_repeat_time_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -636,24 +592,9 @@ unsafe extern "C" fn sdp_attribute_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_attribute_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_attribute_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_attribute_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -688,24 +629,9 @@ unsafe extern "C" fn sdp_media_desc_media_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_media_desc_media_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_media_desc_media_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_media_desc_media_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -740,24 +666,9 @@ unsafe extern "C" fn sdp_media_desc_session_info_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_media_desc_session_info_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_media_desc_session_info_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_media_desc_session_info_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -793,24 +704,9 @@ unsafe extern "C" fn sdp_media_desc_connection_data_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_media_desc_connection_data_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_media_desc_connection_data_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_media_desc_connection_data_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -846,24 +742,9 @@ unsafe extern "C" fn sdp_media_desc_encryption_key_setup(
     return 0;
 }
 
-unsafe extern "C" fn sdp_media_desc_encryption_key_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        sip_media_desc_encryption_key_get_data,
-    );
-}
-
 unsafe extern "C" fn sip_media_desc_encryption_key_get_data(
-    tx: *const c_void, flow_flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
     let direction = flow_flags.into();
@@ -1007,7 +888,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_bandwidth_get,
+        sip_bandwidth_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.time"),
@@ -1022,7 +903,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_time_get,
+        sdp_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.repeat_time"),
@@ -1037,7 +918,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_repeat_time_get,
+        sdp_repeat_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.timezone"),
@@ -1082,7 +963,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_attribute_get,
+        sip_attribute_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.media"),
@@ -1099,7 +980,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_media_desc_media_get,
+        sip_media_desc_media_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.media_info"),
@@ -1114,7 +995,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_media_desc_session_info_get,
+        sip_media_desc_session_info_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.connection_data"),
@@ -1129,7 +1010,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_media_desc_connection_data_get,
+        sip_media_desc_connection_data_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.encryption_key"),
@@ -1144,6 +1025,6 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         ALPROTO_SIP,
         true,
         true,
-        sdp_media_desc_encryption_key_get,
+        sip_media_desc_encryption_key_get_data,
     );
 }

@@ -100,18 +100,12 @@ static int DetectSmtpRcptToSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 }
 
-static InspectionBuffer *GetSmtpRcptToData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t _flow_flags, void *txv,
-        const int list_id, uint32_t idx)
+static bool GetSmtpRcptToData(DetectEngineThreadCtx *_det_ctx, const void *txv, uint8_t _flow_flags,
+        uint32_t idx, const uint8_t **buffer, uint32_t *buffer_len)
 {
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
-    if (buffer == NULL || buffer->initialized)
-        return buffer;
-
     SMTPTransaction *tx = (SMTPTransaction *)txv;
     if (TAILQ_EMPTY(&tx->rcpt_to_list)) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
     SMTPString *s;
@@ -125,13 +119,12 @@ static InspectionBuffer *GetSmtpRcptToData(DetectEngineThreadCtx *det_ctx,
         }
     }
     if (s == NULL) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        return false;
     }
 
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, s->str, s->len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-    return buffer;
+    *buffer = s->str;
+    *buffer_len = s->len;
+    return true;
 }
 
 void SCDetectSMTPRegister(void)
