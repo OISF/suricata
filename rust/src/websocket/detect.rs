@@ -21,11 +21,12 @@ use crate::detect::uint::{
     SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match, DetectUintData, DetectUintMode,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
     DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::websocket::parser::WebSocketOpcode;
+use suricata_sys::sys::{DetectEngineCtx, Signature, SCDetectBufferSetActiveList};
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag};
@@ -118,7 +119,7 @@ static mut G_WEBSOCKET_FLAGS_BUFFER_ID: c_int = 0;
 static mut G_WEBSOCKET_PAYLOAD_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn websocket_detect_opcode_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
@@ -158,7 +159,7 @@ unsafe extern "C" fn websocket_detect_opcode_free(_de: *mut c_void, ctx: *mut c_
 }
 
 unsafe extern "C" fn websocket_detect_mask_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
@@ -201,7 +202,7 @@ unsafe extern "C" fn websocket_detect_mask_free(_de: *mut c_void, ctx: *mut c_vo
 }
 
 unsafe extern "C" fn websocket_detect_flags_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
@@ -241,12 +242,12 @@ unsafe extern "C" fn websocket_detect_flags_free(_de: *mut c_void, ctx: *mut c_v
 }
 
 pub unsafe extern "C" fn websocket_detect_payload_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_WEBSOCKET_PAYLOAD_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_WEBSOCKET_PAYLOAD_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

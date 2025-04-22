@@ -3,6 +3,16 @@
 pub const SC_PACKAGE_VERSION: &[u8; 14] = b"8.0.0-rc1-dev\0";
 pub type __intmax_t = ::std::os::raw::c_long;
 pub type intmax_t = __intmax_t;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineCtx {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Signature {
+    _unused: [u8; 0],
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum AppProtoEnum {
@@ -174,6 +184,11 @@ extern "C" {
 extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectBufferSetActiveList(
+        de_ctx: *mut DetectEngineCtx, s: *mut Signature, list: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 #[doc = " Structure of a configuration parameter."]

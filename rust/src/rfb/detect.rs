@@ -24,10 +24,11 @@ use crate::detect::uint::{
     DetectUintData,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
     DetectHelperGetData, DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
+use suricata_sys::sys::{SCDetectBufferSetActiveList, DetectEngineCtx, Signature};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
@@ -72,19 +73,19 @@ static mut G_RFB_SEC_RESULT_KW_ID: c_int = 0;
 static mut G_RFB_SEC_RESULT_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn rfb_name_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_RFB_NAME_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_RFB_NAME_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
 }
 
 unsafe extern "C" fn rfb_sec_type_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
@@ -138,7 +139,7 @@ unsafe extern "C" fn rfb_parse_sec_result(
 }
 
 unsafe extern "C" fn rfb_sec_result_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;

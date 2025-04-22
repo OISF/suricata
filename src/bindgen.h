@@ -29,10 +29,17 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+// types from detect.h made opaque
+typedef struct DetectEngineCtx DetectEngineCtx;
+typedef struct Signature Signature;
+typedef struct SigMatch SigMatch;
+#define WARN_UNUSED
+
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
 #include "output-eve-bindgen.h"
 #include "detect-engine-register.h"
+#include "detect-engine-buffer.h"
 
 #include "conf.h"
 

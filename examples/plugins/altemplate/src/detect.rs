@@ -24,21 +24,21 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
 use suricata::cast_pointer;
 use suricata::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
+    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperKeywordRegister,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use suricata::direction::Direction;
+use suricata_sys::sys::{SCDetectBufferSetActiveList, DetectEngineCtx, Signature};
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn template_buffer_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_TEMPLATE_BUFFER_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_TEMPLATE_BUFFER_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

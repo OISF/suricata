@@ -20,22 +20,23 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
+use suricata_sys::sys::{SCDetectBufferSetActiveList, DetectEngineCtx, Signature};
 use crate::direction::Direction;
 use std::os::raw::{c_int, c_void};
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn template_buffer_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_TEMPLATE_BUFFER_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_TEMPLATE_BUFFER_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

@@ -21,12 +21,13 @@ use crate::detect::uint::{
     SCDetectU8Free,
 };
 use crate::detect::{
-    DetectBufferSetActiveList, DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
+    DetectHelperBufferMpmRegister, DetectHelperBufferRegister,
     DetectHelperGetData, DetectHelperGetMultiData, DetectHelperKeywordRegister,
     DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_NOOPT,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
+use suricata_sys::sys::{SCDetectBufferSetActiveList, DetectEngineCtx, Signature};
 
 use std::collections::VecDeque;
 use std::ffi::CStr;
@@ -87,7 +88,7 @@ unsafe extern "C" fn ldap_parse_protocol_req_op(
 }
 
 unsafe extern "C" fn ldap_detect_request_operation_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
@@ -172,7 +173,7 @@ unsafe extern "C" fn ldap_parse_protocol_resp_op(
 }
 
 unsafe extern "C" fn ldap_detect_responses_operation_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
@@ -262,7 +263,7 @@ unsafe extern "C" fn ldap_detect_responses_free(_de: *mut c_void, ctx: *mut c_vo
 }
 
 unsafe extern "C" fn ldap_detect_responses_count_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
@@ -303,12 +304,12 @@ unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mu
 }
 
 unsafe extern "C" fn ldap_detect_request_dn_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,_raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_LDAP_REQUEST_DN_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_REQUEST_DN_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -356,12 +357,12 @@ unsafe extern "C" fn ldap_tx_get_request_dn(
 }
 
 unsafe extern "C" fn ldap_detect_responses_dn_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,_raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_DN_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_DN_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -442,7 +443,7 @@ unsafe extern "C" fn ldap_parse_responses_result_code(
 }
 
 unsafe extern "C" fn ldap_detect_responses_result_code_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
@@ -503,12 +504,12 @@ unsafe extern "C" fn ldap_detect_responses_result_code_free(_de: *mut c_void, ct
 }
 
 unsafe extern "C" fn ldap_detect_responses_msg_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,_raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_MSG_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_MSG_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -563,12 +564,12 @@ unsafe extern "C" fn ldap_tx_get_responses_msg(
 }
 
 unsafe extern "C" fn ldap_detect_request_attibute_type_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,_raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -637,12 +638,12 @@ unsafe extern "C" fn ldap_tx_get_req_attribute_type(
 }
 
 unsafe extern "C" fn ldap_detect_responses_attibute_type_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature,_raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

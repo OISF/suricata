@@ -254,7 +254,7 @@ static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, con
         SCLogError("file.magic failed to setup direction");
         return -1;
     }
-    if (DetectBufferSetActiveList(de_ctx, s, g_file_magic_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_file_magic_buffer_id) < 0)
         return -1;
 
     if (de_ctx->filemagic_thread_ctx_id == -1) {

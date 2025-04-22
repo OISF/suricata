@@ -27,6 +27,7 @@ use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
     SCSigTableAppLiteElmt, SigMatchAppendSMToList,
 };
+use suricata_sys::sys::{DetectEngineCtx, Signature};
 use std::os::raw::{c_int, c_void};
 
 fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
@@ -48,7 +49,7 @@ static mut G_DHCP_RENEWAL_TIME_KW_ID: c_int = 0;
 static mut G_DHCP_RENEWAL_TIME_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn dhcp_detect_leasetime_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
@@ -91,7 +92,7 @@ unsafe extern "C" fn dhcp_detect_time_free(_de: *mut c_void, ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn dhcp_detect_rebindingtime_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
@@ -128,7 +129,7 @@ unsafe extern "C" fn dhcp_detect_rebindingtime_match(
 }
 
 unsafe extern "C" fn dhcp_detect_renewaltime_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
