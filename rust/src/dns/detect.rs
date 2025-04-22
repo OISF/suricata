@@ -16,7 +16,7 @@
  */
 
 use super::dns::{DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS};
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
@@ -333,10 +333,9 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         /* Register also in the TO_SERVER direction, even though this is not
         normal, it could be provided as part of a request. */
-        true,
         dns_tx_get_answer_name,
         1, // response complete
     );
@@ -367,10 +366,9 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         /* Register in both directions as the query is usually echoed back
         in the response. */
-        true,
         dns_tx_get_query_name,
         1, // request or response complete
     );
@@ -421,8 +419,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         b"dns_query\0".as_ptr() as *const libc::c_char,
         b"dns request query\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        false, // only toserver
-        true,
+        STREAM_TOSERVER,
         dns_tx_get_query, // reuse, will be called only toserver
         1,                // request complete
     );

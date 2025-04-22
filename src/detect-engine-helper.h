@@ -42,9 +42,9 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         bool toclient, bool toserver, InspectionBufferGetDataPtr GetData);
 int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData);
+        uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
 int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress);
+        uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 int DetectHelperTransformRegister(const SCTransformTableElmt *kw);
 const uint8_t *InspectionBufferPtr(InspectionBuffer *buf);

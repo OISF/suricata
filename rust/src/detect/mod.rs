@@ -182,8 +182,7 @@ extern "C" {
     ) -> *mut c_void;
     // in detect-engine-helper.h
     pub fn DetectHelperMultiBufferMpmRegister(
-        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
-        toserver: bool,
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
         get_multi_data: unsafe extern "C" fn(
             *mut DetectEngineThreadCtx,
             *const c_void,
@@ -194,8 +193,7 @@ extern "C" {
         ) -> bool,
     ) -> c_int;
     pub fn DetectHelperMultiBufferProgressMpmRegister(
-        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
-        toserver: bool,
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
         get_multi_data: unsafe extern "C" fn(
             *mut DetectEngineThreadCtx,
             *const c_void,

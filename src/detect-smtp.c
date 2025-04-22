@@ -158,8 +158,6 @@ void SCDetectSMTPRegister(void)
     kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpRcptToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_smtp_rcpt_to_buffer_id =
-            DetectHelperMultiBufferMpmRegister("smtp.rcpt_to", "SMTP RCPT TO", ALPROTO_SMTP, false,
-                    true, // to server
-                    GetSmtpRcptToData);
+    g_smtp_rcpt_to_buffer_id = DetectHelperMultiBufferMpmRegister(
+            "smtp.rcpt_to", "SMTP RCPT TO", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpRcptToData);
 }

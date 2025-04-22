@@ -81,12 +81,12 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
 }
 
 int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress)
+        uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress)
 {
-    if (toserver) {
+    if (direction & STREAM_TOSERVER) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2);
     }
-    if (toclient) {
+    if (direction & STREAM_TOCLIENT) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOCLIENT, progress, GetData, 2);
     }
     DetectBufferTypeSupportsMultiInstance(name);
@@ -95,10 +95,9 @@ int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *des
 }
 
 int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData)
+        uint8_t direction, InspectionMultiBufferGetDataPtr GetData)
 {
-    return DetectHelperMultiBufferProgressMpmRegister(
-            name, desc, alproto, toclient, toserver, GetData, 0);
+    return DetectHelperMultiBufferProgressMpmRegister(name, desc, alproto, direction, GetData, 0);
 }
 
 int SCDetectHelperNewKeywordId(void)
