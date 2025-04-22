@@ -414,10 +414,8 @@ void DetectEmailRegister(void)
     kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailUrlSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_mime_email_url_buffer_id =
-            DetectHelperMultiBufferMpmRegister("email.url", "MIME EMAIL URL", ALPROTO_SMTP, false,
-                    true, // to server
-                    GetMimeEmailUrlData);
+    g_mime_email_url_buffer_id = DetectHelperMultiBufferMpmRegister(
+            "email.url", "MIME EMAIL URL", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailUrlData);
 
     kw.name = "email.received";
     kw.desc = "'Received' field from an email";
@@ -426,7 +424,5 @@ void DetectEmailRegister(void)
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = DetectHelperMultiBufferMpmRegister("email.received",
-            "MIME EMAIL RECEIVED", ALPROTO_SMTP, false,
-            true, // to server
-            GetMimeEmailReceivedData);
+            "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
 }

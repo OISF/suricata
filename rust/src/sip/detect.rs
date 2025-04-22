@@ -17,7 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
     DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperMultiBufferMpmRegister,
@@ -576,8 +576,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.from\0".as_ptr() as *const libc::c_char,
         b"sip.from\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_from_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -591,8 +590,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.to\0".as_ptr() as *const libc::c_char,
         b"sip.to\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_to_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -606,8 +604,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.via\0".as_ptr() as *const libc::c_char,
         b"sip.via\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_via_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -621,8 +618,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.ua\0".as_ptr() as *const libc::c_char,
         b"sip.ua\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_ua_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -636,8 +632,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.content_type\0".as_ptr() as *const libc::c_char,
         b"sip.content_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_content_type_hdr_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -651,8 +646,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.content_length\0".as_ptr() as *const libc::c_char,
         b"sip.content_length\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_content_length_hdr_get_data,
     );
 }

@@ -17,7 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
@@ -1090,8 +1090,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         keyword_name,
         b"unsubscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         unsub_topic_get_data,
     );
 
@@ -1131,8 +1130,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         keyword_name,
         b"subscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         sub_topic_get_data,
     );
 
