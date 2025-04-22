@@ -407,6 +407,8 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 
 #ifdef UNITTESTS
 
+#include "detect-engine-buffer.h"
+
 static int g_file_data_buffer_id = 0;
 static int g_http_uri_buffer_id = 0;
 
