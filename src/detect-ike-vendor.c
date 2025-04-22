@@ -52,7 +52,7 @@ void DetectIkeVendorRegister(void)
     sigmatch_table[DETECT_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister(
-            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, rs_ike_tx_get_vendor, 1, 1);
+            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, rs_ike_tx_get_vendor, 1);
 
     g_ike_vendor_buffer_id = DetectBufferTypeGetByName("ike.vendor");
 

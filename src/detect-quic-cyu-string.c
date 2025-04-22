@@ -66,7 +66,7 @@ void DetectQuicCyuStringRegister(void)
 #endif
 
     DetectAppLayerMultiRegister(
-            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, rs_quic_tx_get_cyu_string, 2, 1);
+            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1, rs_quic_tx_get_cyu_string, 2);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

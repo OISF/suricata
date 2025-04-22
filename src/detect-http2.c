@@ -174,9 +174,9 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, rs_http2_tx_get_header_name, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header_name, 2);
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, rs_http2_tx_get_header_name, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header_name, 2);
 
     DetectBufferTypeSupportsMultiInstance("http2_header_name");
     DetectBufferTypeSetDescriptionByName("http2_header_name",

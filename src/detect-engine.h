@@ -177,7 +177,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
-        InspectionMultiBufferGetDataPtr GetData, int priority, int tx_min_progress);
+        InspectionMultiBufferGetDataPtr GetData, int priority);
 
 void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,

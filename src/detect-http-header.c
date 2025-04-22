@@ -591,9 +591,9 @@ void DetectHttpRequestHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, rs_http2_tx_get_header, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header, 2);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_REQUEST_PROGRESS_HEADERS);
+            HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
     DetectBufferTypeSetDescriptionByName("http_request_header", "HTTP header name and value");
     g_http_request_header_buffer_id = DetectBufferTypeGetByName("http_request_header");
@@ -624,9 +624,9 @@ void DetectHttpResponseHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, rs_http2_tx_get_header, 2, HTTP2StateOpen);
+            HTTP2StateOpen, rs_http2_tx_get_header, 2);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2, HTP_RESPONSE_PROGRESS_HEADERS);
+            HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
     DetectBufferTypeSetDescriptionByName("http_response_header", "HTTP header name and value");
     g_http_response_header_buffer_id = DetectBufferTypeGetByName("http_response_header");
