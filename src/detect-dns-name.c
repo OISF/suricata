@@ -89,8 +89,8 @@ static int Register(const char *keyword, const char *desc, const char *doc,
     sigmatch_table[keyword_id].flags |= SIGMATCH_NOOPT;
     sigmatch_table[keyword_id].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, GetBufferFn, 2, 1);
-    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0, GetBufferFn, 2, 1);
+    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, GetBufferFn, 2);
+    DetectAppLayerMultiRegister(keyword, ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1, GetBufferFn, 2);
 
     DetectBufferTypeSetDescriptionByName(keyword, keyword);
     DetectBufferTypeSupportsMultiInstance(keyword);

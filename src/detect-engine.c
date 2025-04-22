@@ -2300,12 +2300,12 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 // wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
 // with cast of callback function
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
-        InspectionMultiBufferGetDataPtr GetData, int priority, int tx_min_progress)
+        InspectionMultiBufferGetDataPtr GetData, int priority)
 {
     AppLayerInspectEngineRegisterInternal(
             name, alproto, dir, progress, DetectEngineInspectMultiBufferGeneric, NULL, GetData);
-    DetectAppLayerMpmMultiRegister(name, dir, priority, PrefilterMultiGenericMpmRegister, GetData,
-            alproto, tx_min_progress);
+    DetectAppLayerMpmMultiRegister(
+            name, dir, priority, PrefilterMultiGenericMpmRegister, GetData, alproto, progress);
 }
 
 InspectionBuffer *DetectGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,

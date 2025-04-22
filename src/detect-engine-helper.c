@@ -84,12 +84,10 @@ int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *des
         bool toclient, bool toserver, InspectionMultiBufferGetDataPtr GetData, int progress)
 {
     if (toserver) {
-        DetectAppLayerMultiRegister(
-                name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2, progress);
+        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2);
     }
     if (toclient) {
-        DetectAppLayerMultiRegister(
-                name, alproto, SIG_FLAG_TOCLIENT, progress, GetData, 2, progress);
+        DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOCLIENT, progress, GetData, 2);
     }
     DetectBufferTypeSupportsMultiInstance(name);
     DetectBufferTypeSetDescriptionByName(name, desc);

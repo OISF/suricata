@@ -113,9 +113,9 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2, 1);
+            TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2);
     DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_CERT_DONE, TlsCertsGetData, 2, 1);
+            TLS_STATE_CLIENT_CERT_DONE, TlsCertsGetData, 2);
 
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 
