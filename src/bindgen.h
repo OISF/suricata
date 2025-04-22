@@ -29,10 +29,13 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#define WARN_UNUSED
+
 #include "app-layer-protos.h"
 #include "suricata-plugin.h"
 #include "output-eve-bindgen.h"
 #include "detect-engine-register.h"
+#include "detect-engine-buffer.h"
 
 #include "conf.h"
 

@@ -18,14 +18,15 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
-    DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperGetMultiData,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperGetMultiData, DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto,
+    SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
 use std::ptr;
+use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
 
 static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
 static mut G_SIP_STAT_CODE_BUFFER_ID: c_int = 0;
@@ -78,12 +79,12 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(
 }
 
 unsafe extern "C" fn sip_protocol_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_PROTOCOL_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_PROTOCOL_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -136,12 +137,12 @@ unsafe extern "C" fn sip_protocol_get_data(
 }
 
 unsafe extern "C" fn sip_stat_code_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_STAT_CODE_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_STAT_CODE_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -180,12 +181,12 @@ unsafe extern "C" fn sip_stat_code_get_data(
 }
 
 unsafe extern "C" fn sip_stat_msg_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_STAT_MSG_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_STAT_MSG_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -223,12 +224,12 @@ unsafe extern "C" fn sip_stat_msg_get_data(
 }
 
 unsafe extern "C" fn sip_request_line_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_REQUEST_LINE_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_REQUEST_LINE_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -266,12 +267,12 @@ unsafe extern "C" fn sip_request_line_get_data(
 }
 
 unsafe extern "C" fn sip_response_line_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_RESPONSE_LINE_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_RESPONSE_LINE_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -327,12 +328,12 @@ fn sip_get_header_value<'a>(
 }
 
 unsafe extern "C" fn sip_from_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_FROM_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_FROM_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -369,12 +370,12 @@ unsafe extern "C" fn sip_from_hdr_get_data(
 }
 
 unsafe extern "C" fn sip_to_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_TO_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_TO_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -411,12 +412,12 @@ unsafe extern "C" fn sip_to_hdr_get_data(
 }
 
 unsafe extern "C" fn sip_via_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_VIA_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_VIA_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -453,12 +454,12 @@ unsafe extern "C" fn sip_via_hdr_get_data(
 }
 
 unsafe extern "C" fn sip_ua_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_UA_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_UA_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -495,12 +496,12 @@ unsafe extern "C" fn sip_ua_hdr_get_data(
 }
 
 unsafe extern "C" fn sip_content_type_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_CONTENT_TYPE_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_CONTENT_TYPE_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -537,12 +538,12 @@ unsafe extern "C" fn sip_content_type_hdr_get_data(
 }
 
 unsafe extern "C" fn sip_content_length_hdr_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_SIP_CONTENT_LENGTH_HDR_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_SIP_CONTENT_LENGTH_HDR_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

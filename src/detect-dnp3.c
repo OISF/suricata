@@ -512,7 +512,7 @@ static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
         return -1;
 
-    if (DetectBufferSetActiveList(de_ctx, s, g_dnp3_data_buffer_id) != 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_dnp3_data_buffer_id) != 0)
         return -1;
 
     SCReturnInt(0);

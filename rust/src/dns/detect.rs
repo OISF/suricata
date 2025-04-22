@@ -21,11 +21,12 @@ use crate::detect::uint::{
     SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList, DetectHelperBufferRegister,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferRegister,
     DetectHelperGetMultiData, DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
     DetectHelperMultiBufferProgressMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
     SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
+use suricata_sys::sys::{SCDetectBufferSetActiveList, DetectEngineCtx, Signature};
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -132,7 +133,7 @@ static mut G_DNS_RRTYPE_KW_ID: c_int = 0;
 static mut G_DNS_RRTYPE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn dns_opcode_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
@@ -166,7 +167,7 @@ unsafe extern "C" fn dns_rcode_parse(ustr: *const std::os::raw::c_char) -> *mut 
 }
 
 unsafe extern "C" fn dns_rcode_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
@@ -202,7 +203,7 @@ unsafe extern "C" fn dns_rrtype_parse(
 }
 
 unsafe extern "C" fn dns_rrtype_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
@@ -225,12 +226,12 @@ unsafe extern "C" fn dns_rrtype_free(_de: *mut c_void, ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn dns_detect_answer_name_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_DNS_ANSWER_NAME_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_DNS_ANSWER_NAME_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -278,12 +279,12 @@ unsafe extern "C" fn dns_answer_name_get_data_wrapper(
 }
 
 unsafe extern "C" fn dns_detect_query_name_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_DNS_QUERY_NAME_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_DNS_QUERY_NAME_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -321,12 +322,12 @@ unsafe extern "C" fn dns_tx_get_query(
 }
 
 unsafe extern "C" fn dns_detect_query_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_DNS) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_DNS_QUERY_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_DNS_QUERY_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;

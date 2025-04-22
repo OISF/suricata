@@ -150,7 +150,7 @@ void DetectTlsRandomRegister(void)
  */
 static int DetectTlsRandomTimeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_random_time_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_time_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
@@ -171,7 +171,7 @@ static int DetectTlsRandomTimeSetup(DetectEngineCtx *de_ctx, Signature *s, const
  */
 static int DetectTlsRandomBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_random_bytes_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_bytes_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
@@ -192,7 +192,7 @@ static int DetectTlsRandomBytesSetup(DetectEngineCtx *de_ctx, Signature *s, cons
  */
 static int DetectTlsRandomSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_random_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
