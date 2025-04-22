@@ -6,6 +6,14 @@ SSH transaction details are exposes to Lua scripts with the
 
   local ssh = require("suricata.ssh")
 
+For use in rule matching, the rule must **hook** into a SSH
+transaction state. Available states are listed in `ssh-hooks`.
+For example:
+
+.. container:: example-rule
+
+  alert ssh::example-rule-emphasis:`response_banner_done` any any -> any any (...
+
 Setup
 ^^^^^
 
