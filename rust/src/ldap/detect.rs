@@ -16,7 +16,7 @@
  */
 
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
     SCDetectU8Free,
@@ -707,8 +707,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
         ldap_tx_get_responses_dn,
     );
     let kw = SCSigTableAppLiteElmt {
@@ -739,8 +738,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
         ldap_tx_get_responses_msg,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -754,8 +752,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        false, //to client
-        true,  //to server
+        STREAM_TOSERVER,
         ldap_tx_get_req_attribute_type,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -769,8 +766,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
         ldap_tx_get_resp_attribute_type,
     );
 }

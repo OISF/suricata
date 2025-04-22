@@ -17,7 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
     DetectHelperBufferMpmRegister, DetectHelperGetData, DetectHelperMultiBufferMpmRegister,
@@ -886,8 +886,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_bandwidth_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -901,8 +900,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -916,8 +914,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_repeat_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -961,8 +958,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_attribute_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -978,8 +974,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_media_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -993,8 +988,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_session_info_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1008,8 +1002,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_connection_data_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1023,8 +1016,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_encryption_key_get_data,
     );
 }
