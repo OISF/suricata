@@ -16,6 +16,8 @@
  */
 
 #include "suricata.h"
+#include "detect.h"
+#include "detect-engine.h"
 #include "runmodes.h"
 #include "conf.h"
 #include "pcap.h"
@@ -144,6 +146,11 @@ done:
     pthread_exit(NULL);
 }
 
+static void RateFilterCallback(
+        const Signature *s, const Packet *p, uint8_t orig_action, PacketAlert *pa, void *arg)
+{
+}
+
 int main(int argc, char **argv)
 {
     SuricataPreInit(argv[0]);
@@ -207,6 +214,8 @@ int main(int argc, char **argv)
 
     SuricataInit();
 
+    SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL);
+
     /* Create and start worker on its own thread, passing the PCAP
      * file as argument. This needs to be done in between SuricataInit
      * and SuricataPostInit. */
@@ -237,6 +246,7 @@ int main(int argc, char **argv)
      * function and SCTmThreadsSlotPktAcqLoopFinish that require them
      * to be run concurrently at this time. */
     SuricataShutdown();
+
     GlobalsDestroy();
 
     return EXIT_SUCCESS;

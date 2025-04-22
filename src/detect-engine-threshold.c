@@ -952,6 +952,8 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
 {
     SCEnter();
 
+    uint8_t action = pa->action;
+
     int ret = 0;
     if (td == NULL) {
         SCReturnInt(0);
@@ -985,6 +987,10 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
         if (p->flow) {
             ret = ThresholdHandlePacketFlow(p->flow, p, td, s->id, s->gid, s->rev, pa);
         }
+    }
+
+    if (de_ctx->RateFilterCallback && action != pa->action) {
+        (*de_ctx->RateFilterCallback)(s, p, action, pa, de_ctx->rate_filter_callback_arg);
     }
 
     SCReturnInt(ret);
