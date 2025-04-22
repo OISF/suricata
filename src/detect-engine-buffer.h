@@ -24,9 +24,13 @@
 #ifndef SURICATA_DETECT_ENGINE_BUFFER_H
 #define SURICATA_DETECT_ENGINE_BUFFER_H
 
-#include "detect.h"
+// types from detect.h with only forward declarations for bindgen
+// could be #ifndef SURICATA_BINDGEN_H #include "detect.h" #endif
+typedef struct DetectEngineCtx_ DetectEngineCtx;
+typedef struct Signature_ Signature;
+typedef struct SigMatch_ SigMatch;
 
-int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
+int WARN_UNUSED SCDetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);

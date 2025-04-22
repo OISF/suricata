@@ -167,7 +167,7 @@ static int DetectHttpHeadersSetupSticky(DetectEngineCtx *de_ctx, Signature *s, c
         return -1;
     }
 
-    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
 
     s->init_data->init_flags &= ~SIG_FLAG_INIT_FORCE_TOSERVER;

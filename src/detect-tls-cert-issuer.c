@@ -111,7 +111,7 @@ void DetectTlsIssuerRegister(void)
  */
 static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_cert_issuer_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_cert_issuer_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)

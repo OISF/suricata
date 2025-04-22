@@ -36,7 +36,7 @@ static int g_mime_email_received_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_from_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_from_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -70,7 +70,7 @@ static InspectionBuffer *GetMimeEmailFromData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_subject_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_subject_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -105,7 +105,7 @@ static InspectionBuffer *GetMimeEmailSubjectData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailToSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_to_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_to_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -141,7 +141,7 @@ static InspectionBuffer *GetMimeEmailToData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailCcSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_cc_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_cc_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -175,7 +175,7 @@ static InspectionBuffer *GetMimeEmailCcData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailDateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_date_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_date_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -209,7 +209,7 @@ static InspectionBuffer *GetMimeEmailDateData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailMessageIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_message_id_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_message_id_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -244,7 +244,7 @@ static InspectionBuffer *GetMimeEmailMessageIdData(DetectEngineThreadCtx *det_ct
 
 static int DetectMimeEmailXMailerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_x_mailer_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_x_mailer_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -279,7 +279,7 @@ static InspectionBuffer *GetMimeEmailXMailerData(DetectEngineThreadCtx *det_ctx,
 
 static int DetectMimeEmailUrlSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_url_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_url_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -304,7 +304,7 @@ static bool GetMimeEmailUrlData(DetectEngineThreadCtx *det_ctx, const void *txv,
 
 static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_mime_email_received_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_received_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
@@ -335,7 +335,7 @@ void DetectEmailRegister(void)
     kw.name = "email.from";
     kw.desc = "'From' field from an email";
     kw.url = "/rules/email-keywords.html#email.from";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailFromSetup;
+    kw.Setup = DetectMimeEmailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_from_buffer_id =
@@ -346,7 +346,7 @@ void DetectEmailRegister(void)
     kw.name = "email.subject";
     kw.desc = "'Subject' field from an email";
     kw.url = "/rules/email-keywords.html#email.subject";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailSubjectSetup;
+    kw.Setup = DetectMimeEmailSubjectSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_subject_buffer_id = DetectHelperBufferMpmRegister("email.subject",
@@ -357,7 +357,7 @@ void DetectEmailRegister(void)
     kw.name = "email.to";
     kw.desc = "'To' field from an email";
     kw.url = "/rules/email-keywords.html#email.to";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailToSetup;
+    kw.Setup = DetectMimeEmailToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_to_buffer_id =
@@ -368,7 +368,7 @@ void DetectEmailRegister(void)
     kw.name = "email.cc";
     kw.desc = "'Cc' field from an email";
     kw.url = "/rules/email-keywords.html#email.cc";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailCcSetup;
+    kw.Setup = DetectMimeEmailCcSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_cc_buffer_id =
@@ -379,7 +379,7 @@ void DetectEmailRegister(void)
     kw.name = "email.date";
     kw.desc = "'Date' field from an email";
     kw.url = "/rules/email-keywords.html#email.date";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailDateSetup;
+    kw.Setup = DetectMimeEmailDateSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_date_buffer_id =
@@ -390,7 +390,7 @@ void DetectEmailRegister(void)
     kw.name = "email.message_id";
     kw.desc = "'Message-Id' field from an email";
     kw.url = "/rules/email-keywords.html#email.message_id";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailMessageIdSetup;
+    kw.Setup = DetectMimeEmailMessageIdSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_message_id_buffer_id = DetectHelperBufferMpmRegister("email.message_id",
@@ -401,7 +401,7 @@ void DetectEmailRegister(void)
     kw.name = "email.x_mailer";
     kw.desc = "'X-Mailer' field from an email";
     kw.url = "/rules/email-keywords.html#email.x_mailer";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailXMailerSetup;
+    kw.Setup = DetectMimeEmailXMailerSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_x_mailer_buffer_id = DetectHelperBufferMpmRegister("email.x_mailer",
@@ -412,7 +412,7 @@ void DetectEmailRegister(void)
     kw.name = "email.url";
     kw.desc = "'Url' extracted from an email";
     kw.url = "/rules/email-keywords.html#email.url";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailUrlSetup;
+    kw.Setup = DetectMimeEmailUrlSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_url_buffer_id = DetectHelperMultiBufferMpmRegister(
@@ -421,7 +421,7 @@ void DetectEmailRegister(void)
     kw.name = "email.received";
     kw.desc = "'Received' field from an email";
     kw.url = "/rules/email-keywords.html#email.received";
-    kw.Setup = (int (*)(void *, void *, const char *))DetectMimeEmailReceivedSetup;
+    kw.Setup = DetectMimeEmailReceivedSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = DetectHelperMultiBufferMpmRegister("email.received",

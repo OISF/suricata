@@ -23,11 +23,12 @@ use crate::detect::uint::{
     SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
-    DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto,
-    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
+    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
+    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
+use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag};
@@ -328,12 +329,12 @@ unsafe extern "C" fn unsub_topic_get_data(
 }
 
 unsafe extern "C" fn unsub_topic_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_UNSUB_TOPIC_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_UNSUB_TOPIC_BUFFER_ID) < 0 {
         return -1;
     }
 
@@ -369,12 +370,12 @@ unsafe extern "C" fn sub_topic_get_data(
 }
 
 unsafe extern "C" fn sub_topic_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_SUB_TOPIC_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_SUB_TOPIC_BUFFER_ID) < 0 {
         return -1;
     }
 
@@ -393,7 +394,7 @@ unsafe extern "C" fn mqtt_parse_type(ustr: *const std::os::raw::c_char) -> *mut 
 }
 
 unsafe extern "C" fn mqtt_type_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -425,7 +426,7 @@ unsafe extern "C" fn mqtt_type_free(_de: *mut c_void, ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn mqtt_reason_code_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -483,7 +484,7 @@ unsafe extern "C" fn mqtt_parse_qos(ustr: *const std::os::raw::c_char) -> *mut u
 }
 
 unsafe extern "C" fn mqtt_qos_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -535,7 +536,7 @@ unsafe extern "C" fn mqtt_parse_bool(ustr: *const std::os::raw::c_char) -> *mut 
 }
 
 unsafe extern "C" fn mqtt_connack_sessionpresent_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -584,12 +585,12 @@ unsafe extern "C" fn mqtt_connack_sessionpresent_free(_de: *mut c_void, ctx: *mu
 }
 
 unsafe extern "C" fn mqtt_pub_topic_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_PUB_TOPIC_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_PUB_TOPIC_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -611,12 +612,12 @@ unsafe extern "C" fn mqtt_pub_topic_get_data(
 }
 
 unsafe extern "C" fn mqtt_pub_msg_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_PUB_MSG_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_PUB_MSG_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -638,7 +639,7 @@ unsafe extern "C" fn mqtt_pub_msg_get_data(
 }
 
 unsafe extern "C" fn mqtt_protocol_version_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -745,7 +746,7 @@ unsafe extern "C" fn mqtt_parse_flags(
 }
 
 unsafe extern "C" fn mqtt_flags_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -858,7 +859,7 @@ unsafe extern "C" fn mqtt_parse_conn_flags(
 }
 
 unsafe extern "C" fn mqtt_conn_flags_setup(
-    de: *mut c_void, s: *mut c_void, raw: *const libc::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
@@ -908,12 +909,12 @@ unsafe extern "C" fn mqtt_conn_flags_free(_de: *mut c_void, ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn mqtt_conn_willtopic_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_WILLTOPIC_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_WILLTOPIC_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -935,12 +936,12 @@ unsafe extern "C" fn mqtt_conn_willtopic_get_data(
 }
 
 unsafe extern "C" fn mqtt_conn_willmsg_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_WILLMSG_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_WILLMSG_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -962,12 +963,12 @@ unsafe extern "C" fn mqtt_conn_willmsg_get_data(
 }
 
 unsafe extern "C" fn mqtt_conn_username_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_USERNAME_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_USERNAME_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -989,12 +990,12 @@ unsafe extern "C" fn mqtt_conn_username_get_data(
 }
 
 unsafe extern "C" fn mqtt_conn_protocolstring_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_PROTOCOLSTRING_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_PROTOCOLSTRING_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -1016,12 +1017,12 @@ unsafe extern "C" fn mqtt_conn_protocolstring_get_data(
 }
 
 unsafe extern "C" fn mqtt_conn_password_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_PASSWORD_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_PASSWORD_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
@@ -1043,12 +1044,12 @@ unsafe extern "C" fn mqtt_conn_password_get_data(
 }
 
 unsafe extern "C" fn mqtt_conn_clientid_setup(
-    de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if DetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    if DetectBufferSetActiveList(de, s, G_MQTT_CONN_CLIENTID_BUFFER_ID) < 0 {
+    if SCDetectBufferSetActiveList(de, s, G_MQTT_CONN_CLIENTID_BUFFER_ID) < 0 {
         return -1;
     }
     return 0;
