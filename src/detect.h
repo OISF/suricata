@@ -917,6 +917,16 @@ typedef struct {
     uint32_t content_inspect_min_size;
 } DetectFileDataCfg;
 
+/**
+ * \brief Function type for rate filter callback.
+ *
+ * This function should return the new action to be applied. If no change to the
+ * action is to be made, the callback should return the current action provided
+ * in the new_action parameter.
+ */
+typedef uint8_t (*SCDetectRateFilterFunc)(const Packet *p, uint32_t sid, uint32_t gid, uint32_t rev,
+        uint8_t original_action, uint8_t new_action, void *arg);
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     bool failure_fatal;
@@ -1131,7 +1141,22 @@ typedef struct DetectEngineCtx_ {
     HashTable *non_pf_engine_names;
 
     const char *firewall_rule_file_exclusive;
+
+    /* user provided rate filter callbacks. */
+    SCDetectRateFilterFunc RateFilterCallback;
+
+    /* use provided data to be passed to rate_filter_callback. */
+    void *rate_filter_callback_arg;
 } DetectEngineCtx;
+
+/**
+ * \brief Register a callback when a rate_filter has been applied to
+ *     an alert.
+ *
+ * This callback is added to the current detection engine and will be
+ * copied to all future detection engines over rule reloads.
+ */
+void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc cb, void *arg);
 
 /* Engine groups profiles (low, medium, high, custom) */
 enum {

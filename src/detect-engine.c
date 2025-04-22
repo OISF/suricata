@@ -4869,6 +4869,10 @@ int DetectEngineReload(const SCInstance *suri)
     }
     SCLogDebug("set up new_de_ctx %p", new_de_ctx);
 
+    /* Copy over callbacks. */
+    new_de_ctx->RateFilterCallback = old_de_ctx->RateFilterCallback;
+    new_de_ctx->rate_filter_callback_arg = old_de_ctx->rate_filter_callback_arg;
+
     /* add to master */
     DetectEngineAddToMaster(new_de_ctx);
 
@@ -5067,6 +5071,14 @@ bool DetectMd5ValidateCallback(
         }
     }
     return true;
+}
+
+void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
+{
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    de_ctx->RateFilterCallback = fn;
+    de_ctx->rate_filter_callback_arg = arg;
+    DetectEngineDeReference(&de_ctx);
 }
 
 /*************************************Unittest*********************************/
