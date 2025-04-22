@@ -35,9 +35,6 @@ inspection. Currently the following are available:
 * buffer -- the current sticky buffer
 * stream
 * dnp3
-* dns.request
-* dns.response
-* dns.rrname
 * ssh
 * smtp
 * tls

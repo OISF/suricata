@@ -1,6 +1,8 @@
 DNS
 ---
 
+.. role:: example-rule-emphasis
+
 DNS transaction details are exposed to Lua scripts with the
 ``suricata.dns`` library, for example::
 
@@ -23,12 +25,18 @@ If you are going to use the script for rule matching, choose one of
 the available DNS buffers listed in :ref:`lua-detection` and follow
 the pattern:
 
-::
+For use in rule matching, the rule must **hook** into a DNS
+transaction state. Available states are ``request_complete`` and
+``response_complete``.  For example:
+
+.. container:: example-rule
+
+  alert dns::example-rule-emphasis:`request_complete` any any -> any any (...
+
+Then to initialize the script::
 
   function init (args)
-     local needs = {}
-     needs["dns.rrname"] = tostring(true)
-     return needs
+     return {}
   end
 
 Transaction
