@@ -390,7 +390,7 @@ static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http_header_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http_header_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
@@ -572,7 +572,7 @@ static bool GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, const void *txv, 
 
 static int DetectHTTPRequestHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http_request_header_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http_request_header_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
@@ -605,7 +605,7 @@ void DetectHttpRequestHeaderRegister(void)
 
 static int DetectHTTPResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_http_response_header_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http_response_header_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
