@@ -140,6 +140,27 @@ Response (``to_client``) side:
 * ``server_handshake_done``
 * ``server_finished``
 
+.. _ssh-hooks:
+
+ssh
+^^^
+
+Available states:
+
+Request (``to_server``) side:
+
+* ``request_in_progress``
+* ``request_banner_wait_eol``
+* ``request_banner_done``
+* ``request_finished``
+
+Response (``to_client``) side:
+
+* ``response_in_progress``
+* ``response_banner_wait_eol``
+* ``response_banner_done``
+* ``response_finished``
+
 Firewall pipeline
 ~~~~~~~~~~~~~~~~~
 
