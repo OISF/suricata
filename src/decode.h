@@ -243,28 +243,44 @@ typedef uint16_t Port;
 typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for thresholding */
-    uint8_t flags;
+    uint16_t flags;
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
 } PacketAlert;
 
-/* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
-#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW BIT_U8(0)
+/**
+ * \defgroup PacketAlertFlags
+ *
+ * Available flags for PacketAlert.flags.
+ *
+ * @{
+ */
+/** flag to indicate the rule action (drop/pass) needs to be applied to the flow */
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW BIT_U16(0)
 /** alert was generated based on state */
-#define PACKET_ALERT_FLAG_STATE_MATCH BIT_U8(1)
+#define PACKET_ALERT_FLAG_STATE_MATCH BIT_U16(1)
 /** alert was generated based on stream */
-#define PACKET_ALERT_FLAG_STREAM_MATCH BIT_U8(2)
+#define PACKET_ALERT_FLAG_STREAM_MATCH BIT_U16(2)
 /** alert is in a tx, tx_id set */
-#define PACKET_ALERT_FLAG_TX BIT_U8(3)
+#define PACKET_ALERT_FLAG_TX BIT_U16(3)
 /** action was changed by rate_filter */
-#define PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED BIT_U8(4)
+#define PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED BIT_U16(4)
 /** alert is in a frame, frame_id set */
-#define PACKET_ALERT_FLAG_FRAME BIT_U8(5)
+#define PACKET_ALERT_FLAG_FRAME BIT_U16(5)
 /** alert in a tx was forced */
-#define PACKET_ALERT_FLAG_TX_GUESSED BIT_U8(6)
+#define PACKET_ALERT_FLAG_TX_GUESSED BIT_U16(6)
 /** accept should be applied to packet */
-#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET BIT_U8(7)
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET BIT_U16(7)
+/** user private flag 0 */
+#define PACKET_ALERT_FLAG_USER0 BIT_U16(12)
+/** user private flag 1 */
+#define PACKET_ALERT_FLAG_USER1 BIT_U16(13)
+/** user private flag 2 */
+#define PACKET_ALERT_FLAG_USER2 BIT_U16(14)
+/** user private flag 3 */
+#define PACKET_ALERT_FLAG_USER3 BIT_U16(15)
+/** @} */
 
 extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15

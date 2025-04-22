@@ -351,7 +351,7 @@ static int AlertQueueSortHelper(const void *a, const void *b)
  *
  */
 static inline void FlowApplySignatureActions(
-        Packet *p, PacketAlert *pa, const Signature *s, uint8_t alert_flags)
+        Packet *p, PacketAlert *pa, const Signature *s, uint16_t alert_flags)
 {
     /* For DROP and PASS sigs we need to apply the action to the flow if
      * - sig is IP or PD only
@@ -376,7 +376,7 @@ static inline void FlowApplySignatureActions(
         }
 
         if (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW) {
-            SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
+            SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %04x (set "
                        "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
                     p->pcap_cnt, s->id, s->action, pa->flags);
         }
