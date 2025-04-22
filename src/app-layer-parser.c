@@ -953,13 +953,11 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
                         (pkt_dir == STREAM_TOSERVER) ? ts_disrupt_flags : tc_disrupt_flags);
             AppLayerParserFileTxHousekeeping(f, tx, pkt_dir, (bool)pkt_dir_trunc);
         }
-        if (txd) {
-            // should be reset by parser next time it updates the tx
-            if (pkt_dir & STREAM_TOSERVER) {
-                txd->updated_ts = false;
-            } else {
-                txd->updated_tc = false;
-            }
+        // should be reset by parser next time it updates the tx
+        if (pkt_dir & STREAM_TOSERVER) {
+            txd->updated_ts = false;
+        } else {
+            txd->updated_tc = false;
         }
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
@@ -976,7 +974,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        if (txd && has_tx_detect_flags) {
+        if (has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) &&
                     (f->sgh_toserver != NULL || (f->flags & FLOW_SGH_TOSERVER) == 0)) {
                 if ((txd->flags & (APP_LAYER_TX_INSPECTED_TS | APP_LAYER_TX_SKIP_INSPECT_TS)) ==
@@ -1003,7 +1001,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        if (txd && logger_expectation != 0) {
+        if (logger_expectation != 0) {
             LoggerId tx_logged = GetTxLogged(txd);
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
@@ -1015,19 +1013,17 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
 
         /* if file logging is enabled, we keep a tx active while some of the files aren't
          * logged yet. */
-        if (txd) {
-            SCLogDebug("files_opened %u files_logged %u files_stored %u", txd->files_opened,
-                    txd->files_logged, txd->files_stored);
+        SCLogDebug("files_opened %u files_logged %u files_stored %u", txd->files_opened,
+                txd->files_logged, txd->files_stored);
 
-            if (txd->files_opened) {
-                if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
-                    skipped = true;
-                    goto next;
-                }
-                if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
-                    skipped = true;
-                    goto next;
-                }
+        if (txd->files_opened) {
+            if (g_file_logger_enabled && txd->files_opened != txd->files_logged) {
+                skipped = true;
+                goto next;
+            }
+            if (g_filedata_logger_enabled && txd->files_opened != txd->files_stored) {
+                skipped = true;
+                goto next;
             }
         }
 
