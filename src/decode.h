@@ -250,21 +250,21 @@ typedef struct PacketAlert_ {
 } PacketAlert;
 
 /* flag to indicate the rule action (drop/pass) needs to be applied to the flow */
-#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW 0x1
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW BIT_U8(0)
 /** alert was generated based on state */
-#define PACKET_ALERT_FLAG_STATE_MATCH   0x02
+#define PACKET_ALERT_FLAG_STATE_MATCH BIT_U8(1)
 /** alert was generated based on stream */
-#define PACKET_ALERT_FLAG_STREAM_MATCH  0x04
+#define PACKET_ALERT_FLAG_STREAM_MATCH BIT_U8(2)
 /** alert is in a tx, tx_id set */
-#define PACKET_ALERT_FLAG_TX            0x08
+#define PACKET_ALERT_FLAG_TX BIT_U8(3)
 /** action was changed by rate_filter */
-#define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
+#define PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED BIT_U8(4)
 /** alert is in a frame, frame_id set */
-#define PACKET_ALERT_FLAG_FRAME 0x20
+#define PACKET_ALERT_FLAG_FRAME BIT_U8(5)
 /** alert in a tx was forced */
-#define PACKET_ALERT_FLAG_TX_GUESSED 0x40
+#define PACKET_ALERT_FLAG_TX_GUESSED BIT_U8(6)
 /** accept should be applied to packet */
-#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET 0x80
+#define PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET BIT_U8(7)
 
 extern uint16_t packet_alert_max;
 #define PACKET_ALERT_MAX 15
