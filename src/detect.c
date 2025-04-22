@@ -1404,12 +1404,10 @@ static inline void StoreDetectProgress(
         DetectTransaction *tx, const uint8_t flow_flags, const uint8_t progress)
 {
     AppLayerTxData *txd = (AppLayerTxData *)tx->tx_data_ptr;
-    if (likely(txd != NULL)) {
-        if (flow_flags & STREAM_TOSERVER) {
-            txd->detect_progress_ts = progress;
-        } else {
-            txd->detect_progress_tc = progress;
-        }
+    if (flow_flags & STREAM_TOSERVER) {
+        txd->detect_progress_ts = progress;
+    } else {
+        txd->detect_progress_tc = progress;
     }
 }
 
