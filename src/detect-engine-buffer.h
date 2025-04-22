@@ -24,9 +24,12 @@
 #ifndef SURICATA_DETECT_ENGINE_BUFFER_H
 #define SURICATA_DETECT_ENGINE_BUFFER_H
 
+#ifndef SURICATA_BINDGEN_H
+// regular suricata build
 #include "detect.h"
+#endif
 
-int WARN_UNUSED DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
+int WARN_UNUSED SCDetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list);
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);

@@ -196,7 +196,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)

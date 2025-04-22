@@ -66,7 +66,7 @@ static int g_buffer_responder_id = 0;
 
 static int DetectSpiInitiatorSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_initiator_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_initiator_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
@@ -77,7 +77,7 @@ static int DetectSpiInitiatorSetup(DetectEngineCtx *de_ctx, Signature *s, const 
 
 static int DetectSpiResponderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_buffer_responder_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_responder_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)

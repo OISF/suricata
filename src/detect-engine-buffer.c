@@ -26,7 +26,7 @@
 #include "detect-parse.h"
 #include "detect-engine-buffer.h"
 
-int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list)
+int SCDetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
 

@@ -101,7 +101,7 @@ void DetectQuicUaRegister(void)
  */
 static int DetectQuicUaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, quic_ua_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, quic_ua_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)

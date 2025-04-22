@@ -41,7 +41,7 @@ static int g_krb5_sname_buffer_id = 0;
 
 static int DetectKrb5SNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_krb5_sname_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_krb5_sname_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)

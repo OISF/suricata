@@ -212,7 +212,7 @@ static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, cons
         SCLogError("file.name failed to setup direction");
         return -1;
     }
-    if (DetectBufferSetActiveList(de_ctx, s, g_file_name_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_file_name_buffer_id) < 0)
         return -1;
     s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
     return 0;

@@ -48,7 +48,7 @@ static int additional_buffer_id = 0;
 
 static int DetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str, int id)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, id) < 0) {
+    if (SCDetectBufferSetActiveList(de_ctx, s, id) < 0) {
         return -1;
     }
     if (DetectSignatureSetAppProto(s, ALPROTO_DNS) < 0) {

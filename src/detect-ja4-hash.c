@@ -115,7 +115,7 @@ void DetectJa4HashRegister(void)
  */
 static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_ja4_hash_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_ja4_hash_buffer_id) < 0)
         return -1;
 
     AppProto alprotos[] = { ALPROTO_TLS, ALPROTO_QUIC, ALPROTO_UNKNOWN };

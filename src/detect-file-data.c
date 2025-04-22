@@ -153,7 +153,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    if (DetectBufferSetActiveList(de_ctx, s, DetectBufferTypeGetByName("file_data")) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, DetectBufferTypeGetByName("file_data")) < 0)
         return -1;
 
     s->init_data->init_flags |= SIG_FLAG_INIT_FILEDATA;
