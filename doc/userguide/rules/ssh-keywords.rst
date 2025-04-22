@@ -5,6 +5,26 @@ SSH Keywords
 Suricata has several rule keywords to match on different elements of SSH
 connections.
 
+.. _ssh-hooks:
+
+Hooks
+-----
+
+The available hooks for SSH are:
+
+Request (``to_server``) side:
+
+* ``request_in_progress``
+* ``request_banner_wait_eol``
+* ``request_banner_done``
+* ``request_finished``
+
+Response (``to_client``) side:
+
+* ``response_in_progress``
+* ``response_banner_wait_eol``
+* ``response_banner_done``
+* ``response_finished``
 
 Frames
 ------
