@@ -38,6 +38,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-buffer.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-engine-mpm.h"

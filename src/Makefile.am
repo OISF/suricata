@@ -120,6 +120,7 @@ noinst_HEADERS = \
 	detect-engine-address-ipv6.h \
 	detect-engine-alert.h \
 	detect-engine-analyzer.h \
+	detect-engine-buffer.h \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
 	detect-engine-dcepayload.h \
@@ -706,6 +707,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-alert.c \
 	detect-engine-analyzer.c \
 	detect-engine-build.c \
+	detect-engine-buffer.c \
 	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
