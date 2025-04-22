@@ -19,12 +19,14 @@ use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
 };
 use super::parser;
-use crate::direction::Direction;
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
+use crate::direction::Direction;
+use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
-use std::str::FromStr;
+use std::os::raw::c_void;
 use std::rc::Rc;
-use base64::{Engine, engine::general_purpose::STANDARD};
+use std::str::FromStr;
 
 fn http2_tx_has_frametype(
     tx: &HTTP2Transaction, direction: Direction, value: u8,
@@ -359,8 +361,10 @@ pub unsafe extern "C" fn rs_http2_detect_sizeupdatectx_match(
 // and rs_http2_detect_sizeupdatectx_match explicitly casting
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header_name(
-    tx: &HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, direction: u8, nb: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
     let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
@@ -869,8 +873,10 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers_raw(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_header(
-    tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, direction: u8, nb: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
     let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
@@ -883,7 +889,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         let value = &tx.escaped[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
-                        return 1;
+                        return true;
                     } else {
                         pos += blocks.len() as u32;
                     }
@@ -900,7 +906,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                         let value = &tx.escaped[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
-                        return 1;
+                        return true;
                     } else {
                         pos += blocks.len() as u32;
                     }
@@ -908,7 +914,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
             }
         }
     }
-    return 0;
+    return false;
 }
 
 fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
@@ -933,7 +939,9 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         blocks,
     };
     let txdata = HTTP2FrameTypeData::HEADERS(hs);
-    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer).unwrap();
+    let tx = state
+        .find_or_create_tx(&head, &txdata, Direction::ToServer)
+        .unwrap();
     tx.frames_ts.push(HTTP2Frame {
         header: head,
         data: txdata,
@@ -976,7 +984,9 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
             match parser::http2_parse_frame_settings(&dec) {
                 Ok((_, set)) => {
                     let txdata = HTTP2FrameTypeData::SETTINGS(set);
-                    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer).unwrap();
+                    let tx = state
+                        .find_or_create_tx(&head, &txdata, Direction::ToServer)
+                        .unwrap();
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,

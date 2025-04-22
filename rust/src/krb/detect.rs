@@ -17,6 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::core::DetectEngineThreadCtx;
 use crate::krb::krb5::{test_weak_encryption, KRB5Transaction};
 
 use kerberos_parser::krb5::EncryptionType;
@@ -29,6 +30,7 @@ use nom7::multi::many1;
 use nom7::IResult;
 
 use std::ffi::CStr;
+use std::os::raw::c_void;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx: &KRB5Transaction, ptr: *mut u32) {
@@ -50,32 +52,36 @@ pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &KRB5Transaction, ptr: *mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_cname(
-    tx: &KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, KRB5Transaction);
     if let Some(ref s) = tx.cname {
         if (i as usize) < s.name_string.len() {
             let value = &s.name_string[i as usize];
             *buffer = value.as_ptr();
             *buffer_len = value.len() as u32;
-            return 1;
+            return true;
         }
     }
-    0
+    false
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_sname(
-    tx: &KRB5Transaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, KRB5Transaction);
     if let Some(ref s) = tx.sname {
         if (i as usize) < s.name_string.len() {
             let value = &s.name_string[i as usize];
             *buffer = value.as_ptr();
             *buffer_len = value.len() as u32;
-            return 1;
+            return true;
         }
     }
-    0
+    false
 }
 
 const KRB_TICKET_FASTARRAY_SIZE: usize = 256;

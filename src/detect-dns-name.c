@@ -77,80 +77,6 @@ static int SetupAuthoritiesBuffer(DetectEngineCtx *de_ctx, Signature *s, const c
     return DetectSetup(de_ctx, s, str, authority_buffer_id);
 }
 
-static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index, enum DnsSection what)
-{
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, index);
-    if (buffer == NULL) {
-        return NULL;
-    }
-    if (buffer->initialized) {
-        return buffer;
-    }
-
-    bool to_client = (flags & STREAM_TOSERVER) == 0;
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-
-    bool ok = false;
-    switch (what) {
-        case DNS_QUERY:
-            ok = SCDnsTxGetQueryName(txv, to_client, index, &data, &data_len);
-            break;
-        case DNS_ANSWER:
-            ok = SCDnsTxGetAnswerName(txv, to_client, index, &data, &data_len);
-            break;
-        case DNS_AUTHORITY:
-            ok = SCDnsTxGetAuthorityName(txv, index, &data, &data_len);
-            break;
-        case DNS_ADDITIONAL:
-            ok = SCDnsTxGetAdditionalName(txv, index, &data, &data_len);
-            break;
-        default:
-            DEBUG_VALIDATE_BUG_ON("unhandled dns rrname type");
-            InspectionBufferSetupMultiEmpty(buffer);
-            return NULL;
-    }
-
-    if (ok) {
-        InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
-        buffer->flags = DETECT_CI_FLAGS_SINGLE;
-        return buffer;
-    }
-
-    InspectionBufferSetupMultiEmpty(buffer);
-    return NULL;
-}
-
-static InspectionBuffer *GetQueryBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index)
-{
-    return GetBuffer(det_ctx, transforms, f, flags, txv, list_id, index, DNS_QUERY);
-}
-
-static InspectionBuffer *GetAnswerBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index)
-{
-    return GetBuffer(det_ctx, transforms, f, flags, txv, list_id, index, DNS_ANSWER);
-}
-
-static InspectionBuffer *GetAuthorityBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index)
-{
-    return GetBuffer(det_ctx, transforms, f, flags, txv, list_id, index, DNS_AUTHORITY);
-}
-
-static InspectionBuffer *GetAdditionalBuffer(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
-        uint32_t index)
-{
-    return GetBuffer(det_ctx, transforms, f, flags, txv, list_id, index, DNS_ADDITIONAL);
-}
-
 static int Register(const char *keyword, const char *desc, const char *doc,
         int (*Setup)(DetectEngineCtx *, Signature *, const char *),
         InspectionMultiBufferGetDataPtr GetBufferFn)
@@ -175,14 +101,14 @@ static int Register(const char *keyword, const char *desc, const char *doc,
 void DetectDnsNameRegister(void)
 {
     query_buffer_id = Register("dns.queries.rrname", "DNS query rrname sticky buffer",
-            "/rules/dns-keywords.html#dns.queries.rrname", SetupQueryBuffer, GetQueryBuffer);
+            "/rules/dns-keywords.html#dns.queries.rrname", SetupQueryBuffer, SCDnsTxGetQueryName);
     answer_buffer_id = Register("dns.answers.rrname", "DNS answer rrname sticky buffer",
-            "/rules/dns-keywords.html#dns.answers.rrname", SetupAnswerBuffer, GetAnswerBuffer);
+            "/rules/dns-keywords.html#dns.answers.rrname", SetupAnswerBuffer, SCDnsTxGetAnswerName);
     additional_buffer_id =
             Register("dns.additionals.rrname", "DNS additionals rrname sticky buffer",
                     "/rules/dns-keywords.html#dns-additionals-rrname", SetupAdditionalsBuffer,
-                    GetAdditionalBuffer);
+                    SCDnsTxGetAdditionalName);
     authority_buffer_id = Register("dns.authorities.rrname", "DNS authorities rrname sticky buffer",
             "/rules/dns-keywords.html#dns-authorities-rrname", SetupAuthoritiesBuffer,
-            GetAuthorityBuffer);
+            SCDnsTxGetAuthorityName);
 }

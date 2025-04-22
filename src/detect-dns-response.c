@@ -110,25 +110,29 @@ static InspectionBuffer *GetBuffer(DetectEngineThreadCtx *det_ctx, uint8_t flags
         /* Get name values. */
         switch (cbdata->response_section) {
             case DNS_RESPONSE_QUERY:
-                if (!SCDnsTxGetQueryName(txv, true, cbdata->response_id, &data, &data_len)) {
+                if (!SCDnsTxGetQueryName(
+                            det_ctx, txv, STREAM_TOCLIENT, cbdata->response_id, &data, &data_len)) {
                     InspectionBufferSetupMultiEmpty(buffer);
                     return NULL;
                 }
                 break;
             case DNS_RESPONSE_ANSWER:
-                if (!SCDnsTxGetAnswerName(txv, true, cbdata->response_id, &data, &data_len)) {
+                if (!SCDnsTxGetAnswerName(
+                            det_ctx, txv, STREAM_TOCLIENT, cbdata->response_id, &data, &data_len)) {
                     InspectionBufferSetupMultiEmpty(buffer);
                     return NULL;
                 }
                 break;
             case DNS_RESPONSE_AUTHORITY:
-                if (!SCDnsTxGetAuthorityName(txv, cbdata->response_id, &data, &data_len)) {
+                if (!SCDnsTxGetAuthorityName(
+                            det_ctx, txv, 0, cbdata->response_id, &data, &data_len)) {
                     InspectionBufferSetupMultiEmpty(buffer);
                     return NULL;
                 }
                 break;
             case DNS_RESPONSE_ADDITIONAL:
-                if (!SCDnsTxGetAdditionalName(txv, cbdata->response_id, &data, &data_len)) {
+                if (!SCDnsTxGetAdditionalName(
+                            det_ctx, txv, 0, cbdata->response_id, &data, &data_len)) {
                     InspectionBufferSetupMultiEmpty(buffer);
                     return NULL;
                 }

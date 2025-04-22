@@ -16,6 +16,7 @@
  */
 
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
+use crate::core::DetectEngineThreadCtx;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
     SCDetectU8Free,
@@ -23,9 +24,8 @@ use crate::detect::uint::{
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
     DetectHelperBufferMpmRegister, DetectHelperBufferRegister, DetectHelperGetData,
-    DetectHelperGetMultiData, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 
@@ -368,24 +368,9 @@ unsafe extern "C" fn ldap_detect_responses_dn_setup(
     return 0;
 }
 
-unsafe extern "C" fn ldap_detect_responses_dn_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        ldap_tx_get_responses_dn,
-    );
-}
-
 unsafe extern "C" fn ldap_tx_get_responses_dn(
-    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);
 
@@ -515,24 +500,9 @@ unsafe extern "C" fn ldap_detect_responses_msg_setup(
     return 0;
 }
 
-unsafe extern "C" fn ldap_detect_responses_msg_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        ldap_tx_get_responses_msg,
-    );
-}
-
 unsafe extern "C" fn ldap_tx_get_responses_msg(
-    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);
 
@@ -575,24 +545,9 @@ unsafe extern "C" fn ldap_detect_request_attibute_type_setup(
     return 0;
 }
 
-unsafe extern "C" fn ldap_detect_request_attribute_type_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        ldap_tx_get_req_attribute_type,
-    );
-}
-
 unsafe extern "C" fn ldap_tx_get_req_attribute_type(
-    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);
 
@@ -649,24 +604,9 @@ unsafe extern "C" fn ldap_detect_responses_attibute_type_setup(
     return 0;
 }
 
-unsafe extern "C" fn ldap_detect_responses_attribute_type_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int, local_id: u32,
-) -> *mut c_void {
-    return DetectHelperGetMultiData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        local_id,
-        ldap_tx_get_resp_attribute_type,
-    );
-}
-
 unsafe extern "C" fn ldap_tx_get_resp_attribute_type(
-    tx: *const c_void, _flags: u8, local_id: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);
 
@@ -769,7 +709,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         ALPROTO_LDAP,
         true,  //to client
         false, //to server
-        ldap_detect_responses_dn_get_data,
+        ldap_tx_get_responses_dn,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
@@ -801,7 +741,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         ALPROTO_LDAP,
         true,  //to client
         false, //to server
-        ldap_detect_responses_msg_get_data,
+        ldap_tx_get_responses_msg,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.attribute_type"),
@@ -816,7 +756,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         ALPROTO_LDAP,
         false, //to client
         true,  //to server
-        ldap_detect_request_attribute_type_get_data,
+        ldap_tx_get_req_attribute_type,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.attribute_type"),
@@ -831,6 +771,6 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         ALPROTO_LDAP,
         true,  //to client
         false, //to server
-        ldap_detect_responses_attribute_type_get_data,
+        ldap_tx_get_resp_attribute_type,
     );
 }

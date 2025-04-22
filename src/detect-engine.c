@@ -2308,6 +2308,30 @@ void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t di
             alproto, tx_min_progress);
 }
 
+InspectionBuffer *DetectGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, uint32_t index, InspectionMultiBufferGetDataPtr GetBuf)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, index);
+    if (buffer == NULL) {
+        return NULL;
+    }
+    if (buffer->initialized) {
+        return buffer;
+    }
+
+    const uint8_t *data = NULL;
+    uint32_t data_len = 0;
+
+    if (!GetBuf(det_ctx, txv, flow_flags, index, &data, &data_len)) {
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
+    return buffer;
+}
+
 uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
@@ -2319,8 +2343,8 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
     }
 
     do {
-        InspectionBuffer *buffer = engine->v2.GetMultiData(
-                det_ctx, transforms, f, flags, txv, engine->sm_list, local_id);
+        InspectionBuffer *buffer = DetectGetMultiData(det_ctx, transforms, f, flags, txv,
+                engine->sm_list, local_id, engine->v2.GetMultiData);
 
         if (buffer == NULL || buffer->inspect == NULL)
             break;

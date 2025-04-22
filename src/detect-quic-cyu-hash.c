@@ -55,33 +55,6 @@ static int DetectQuicCyuHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     return 0;
 }
 
-static InspectionBuffer *QuicHashGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
-        int list_id, uint32_t local_id)
-{
-    SCEnter();
-
-    if (local_id > UINT16_MAX)
-        return NULL;
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
-    if (buffer == NULL)
-        return NULL;
-    if (buffer->initialized)
-        return buffer;
-
-    const uint8_t *data;
-    uint32_t data_len;
-    if (rs_quic_tx_get_cyu_hash(txv, local_id, &data, &data_len) == 0) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
 void DetectQuicCyuHashRegister(void)
 {
     /* quic.cyu.hash sticky buffer */
@@ -95,7 +68,7 @@ void DetectQuicCyuHashRegister(void)
 #endif
 
     DetectAppLayerMultiRegister(
-            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, QuicHashGetData, 2, 1);
+            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, rs_quic_tx_get_cyu_hash, 2, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

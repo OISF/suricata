@@ -169,30 +169,6 @@ int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
     return transform_id;
 }
 
-InspectionBuffer *DetectHelperGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id, uint32_t index, MultiGetTxBuffer GetBuf)
-{
-    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, index);
-    if (buffer == NULL) {
-        return NULL;
-    }
-    if (buffer->initialized) {
-        return buffer;
-    }
-
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-
-    if (!GetBuf(txv, flow_flags, index, &data, &data_len)) {
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
-    }
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
-    return buffer;
-}
-
 const uint8_t *InspectionBufferPtr(InspectionBuffer *buf)
 {
     return buf->inspect;
