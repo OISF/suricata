@@ -96,7 +96,7 @@ void DetectFtpReplyRegister(void)
     sigmatch_table[DETECT_FTP_REPLY].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerMultiRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectFTPReplyGetData, 2, 1);
+            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 1, DetectFTPReplyGetData, 2);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
