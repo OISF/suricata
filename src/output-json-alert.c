@@ -204,7 +204,7 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, 
 {
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
-    if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
+    if (unlikely(pa->flags & PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED)) {
         if (PacketCheckAction(p, ACTION_DROP_REJECT)) {
             action = "blocked";
         }

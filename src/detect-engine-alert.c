@@ -193,8 +193,9 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
     if (pa->action & ACTION_DROP_REJECT) {
         /* PacketDrop will update the packet action, too */
         PacketDrop(p, pa->action,
-                (pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED) ? PKT_DROP_REASON_RULES_THRESHOLD
-                                                                : PKT_DROP_REASON_RULES);
+                (pa->flags & PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED)
+                        ? PKT_DROP_REASON_RULES_THRESHOLD
+                        : PKT_DROP_REASON_RULES);
         SCLogDebug("[packet %p][DROP sid %u]", p, s->id);
 
         if (p->alerts.drop.action == 0) {
