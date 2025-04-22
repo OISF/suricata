@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "detect-smtp.h"
 #include "detect-engine.h"
+#include "detect-engine-buffer.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
