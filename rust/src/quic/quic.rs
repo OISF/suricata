@@ -21,11 +21,15 @@ use super::{
     frames::{Frame, QuicTlsExtension, StreamTag},
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::{
     applayer::{self, *},
     direction::Direction,
     flow::Flow,
+    ja4::JA4,
+};
+use crate::{
+    core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP},
+    ja4::JA4Impl,
 };
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -55,7 +59,7 @@ pub struct QuicTransaction {
     pub ua: Option<Vec<u8>>,
     pub extv: Vec<QuicTlsExtension>,
     pub ja3: Option<String>,
-    pub ja4: Option<String>,
+    pub ja4: Option<JA4>,
     pub client: bool,
     tx_data: AppLayerTxData,
 }
@@ -63,7 +67,7 @@ pub struct QuicTransaction {
 impl QuicTransaction {
     fn new(
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extv: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<String>, client: bool,
+        extv: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<JA4>, client: bool,
     ) -> Self {
         let direction = if client {
             Direction::ToServer
@@ -164,7 +168,7 @@ impl QuicState {
 
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extb: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<String>, client: bool,
+        extb: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<JA4>, client: bool,
         frag_long: bool,
     ) {
         let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, ja4, client);
@@ -248,7 +252,7 @@ impl QuicState {
         let mut sni: Option<Vec<u8>> = None;
         let mut ua: Option<Vec<u8>> = None;
         let mut ja3: Option<String> = None;
-        let mut ja4: Option<String> = None;
+        let mut ja4: Option<JA4> = None;
         let mut extv: Vec<QuicTlsExtension> = Vec::new();
         let mut frag_long = false;
         for frame in &data.frames {
@@ -293,8 +297,8 @@ impl QuicState {
                     if to_server {
                         // our hash is complete, let's only use strings from
                         // now on
-                        if let Some(ref rja4) = c.ja4 {
-                            ja4 = Some(rja4.get_hash());
+                        if let Some(ref rja4) = c.hs {
+                            ja4 = JA4::try_new(rja4);
                         }
                     }
                     for e in &c.extv {
