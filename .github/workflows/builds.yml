@@ -326,7 +326,7 @@ jobs:
       matrix:
         container:
           - almalinux:9
-          - fedora:41
+          - fedora:42
     env:
       skip: true
     steps:
@@ -355,6 +355,7 @@ jobs:
               dnf config-manager --set-enabled crb
            elif test -e /etc/fedora-release; then
               dnf -y install \
+                awk \
                 git \
                 make \
                 rpm-build \
@@ -376,7 +377,7 @@ jobs:
       # We need a step for each RPM upload as we can't use the
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
-      - if: ${{ matrix.container == 'fedora:41' &&  env.skip != 'true' }}
+      - if: ${{ matrix.container == 'fedora:42' &&  env.skip != 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         name: Uploading RPMs
         with:
@@ -576,10 +577,10 @@ jobs:
       - run: make clean
       - run: make -j ${{ env.CPUS }}
 
-  fedora-41-sv-codecov:
-    name: Fedora 41 (Suricata Verify codecov)
+  fedora-42-sv-codecov:
+    name: Fedora 42 (Suricata Verify codecov)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: fedora:42
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -597,6 +598,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                awk \
                 cbindgen \
                 ccache \
                 clang \
@@ -634,7 +636,7 @@ jobs:
           dnf clean all
       # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.83 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.86.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: ./.github/actions/install-cbindgen
@@ -668,11 +670,11 @@ jobs:
           fail_ci_if_error: false
           flags: suricata-verify
 
-  # Fedora 41 build using Clang.
-  fedora-41-clang:
-    name: Fedora 41 (clang, debug, asan, wshadow, rust-strict, systemd)
+  # Fedora build using Clang.
+  fedora-42-clang:
+    name: Fedora 42 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: fedora:42
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -690,6 +692,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                awk \
                 cargo \
                 cbindgen \
                 ccache \
@@ -766,11 +769,11 @@ jobs:
       # Check compilation against systemd
       - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
-  # Fedora 39 build using GCC.
-  fedora-41-gcc:
-    name: Fedora 41 (gcc, debug, asan, wshadow, rust-strict)
+  # Fedora build using GCC.
+  fedora-42-gcc:
+    name: Fedora 42 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: fedora:42
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -788,6 +791,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                awk \
                 cargo \
                 cbindgen \
                 ccache \
@@ -863,7 +867,7 @@ jobs:
   fedora-non-root:
     name: Fedora (non-root, debug, clang, asan, wshadow, rust-strict, no-ja)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: fedora:42
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Determine number of CPUs
@@ -873,6 +877,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                awk \
                 cargo \
                 cbindgen \
                 ccache \
