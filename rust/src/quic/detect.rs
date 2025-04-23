@@ -70,8 +70,8 @@ pub unsafe extern "C" fn rs_quic_tx_get_ja4(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ja4) = &tx.ja4 {
-        *buffer = ja4.as_ptr();
-        *buffer_len = ja4.len() as u32;
+        *buffer = ja4.as_ref().as_ptr();
+        *buffer_len = ja4.as_ref().len() as u32;
         1
     } else {
         *buffer = ptr::null();

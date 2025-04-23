@@ -35,7 +35,6 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "util-ja3.h"
-#include "util-ja4.h"
 #include "util-time.h"
 
 #define LOG_TLS_FIELD_VERSION         BIT_U64(0)
@@ -237,11 +236,11 @@ static void JsonTlsLogJa3(SCJsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogSCJA4(SCJsonBuilder *js, SSLState *ssl_state)
 {
-    if (ssl_state->client_connp.ja4 != NULL) {
+    if (ssl_state->client_connp.hs != NULL) {
         uint8_t buffer[JA4_HEX_LEN];
         /* JA4 hash has 36 characters */
-        SCJA4GetHash(ssl_state->client_connp.ja4, (uint8_t(*)[JA4_HEX_LEN])buffer);
-        SCJbSetStringFromBytes(js, "ja4", buffer, 36);
+        SCJA4GetHash(ssl_state->client_connp.hs, (uint8_t(*)[JA4_HEX_LEN])buffer);
+        SCJbSetStringFromBytes(js, "ja4", buffer, JA4_HEX_LEN);
     }
 }
 

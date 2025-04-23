@@ -35,8 +35,6 @@
 #include "detect-engine-prefilter.h"
 #include "detect-ja4-hash.h"
 
-#include "util-ja4.h"
-
 #include "app-layer-ssl.h"
 
 #ifndef HAVE_JA4
@@ -146,12 +144,12 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
 
-        if (ssl_state->client_connp.ja4 == NULL) {
+        if (ssl_state->client_connp.hs == NULL) {
             return NULL;
         }
 
         uint8_t data[JA4_HEX_LEN];
-        SCJA4GetHash(ssl_state->client_connp.ja4, (uint8_t(*)[JA4_HEX_LEN])data);
+        SCJA4GetHash(ssl_state->client_connp.hs, (uint8_t(*)[JA4_HEX_LEN])data);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, 0);
         InspectionBufferCopy(buffer, data, JA4_HEX_LEN);
