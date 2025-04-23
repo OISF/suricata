@@ -1282,6 +1282,7 @@ impl HTTP2State {
                             None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
                         }
                     }
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
                     input = &rem[hlsafe..];
                 }
                 Err(Err::Incomplete(_)) => {

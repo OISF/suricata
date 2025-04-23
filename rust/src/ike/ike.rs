@@ -196,7 +196,7 @@ impl IKEState {
         }
     }
 
-    fn handle_input(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
+    fn handle_input(&mut self, flow: *const Flow, input: &[u8], direction: Direction) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -213,9 +213,9 @@ impl IKEState {
                 }
 
                 if isakmp_header.maj_ver == 1 {
-                    handle_ikev1(self, current, isakmp_header, direction);
+                    handle_ikev1(self, flow, current, isakmp_header, direction);
                 } else if isakmp_header.maj_ver == 2 {
-                    handle_ikev2(self, current, isakmp_header, direction);
+                    handle_ikev2(self, flow, current, isakmp_header, direction);
                 } else {
                     return AppLayerResult::err();
                 }
@@ -321,20 +321,20 @@ pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, 
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    return state.handle_input(stream_slice.as_slice(), Direction::ToServer);
+    return state.handle_input(flow, stream_slice.as_slice(), Direction::ToServer);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ike_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
-    return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
+    return state.handle_input(flow, stream_slice.as_slice(), Direction::ToClient);
 }
 
 #[no_mangle]

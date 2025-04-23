@@ -18,6 +18,8 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::applayer::*;
+use crate::core::*;
+use crate::flow::Flow;
 use crate::direction::Direction;
 use crate::ike::ipsec_parser::*;
 
@@ -96,7 +98,7 @@ impl Default for Ikev2Container {
 }
 
 pub fn handle_ikev2(
-    state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
+    state: &mut IKEState, flow: *const Flow, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
     let hdr = IkeV2Header {
         init_spi: isakmp_header.init_spi,
@@ -175,6 +177,7 @@ pub fn handle_ikev2(
         }
     }
     state.transactions.push(tx);
+    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, direction as i32);
     return AppLayerResult::ok();
 }
 

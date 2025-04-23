@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 use crate::applayer::{self, *};
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::*;
 use crate::flow::Flow;
 
 use std::ffi::CString;
@@ -180,7 +180,7 @@ impl ModbusState {
         }
     }
 
-    pub fn parse(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
+    pub fn parse(&mut self, flow: *const Flow, input: &[u8], direction: Direction) -> AppLayerResult {
         let mut rest = input;
         while !rest.is_empty() {
             match MODBUS_PARSER.parse(rest, direction.clone()) {
@@ -193,6 +193,7 @@ impl ModbusState {
                                     tx.tx_data.updated_tc = true;
                                     tx.tx_data.updated_ts = true;
                                     tx.request = Some(msg);
+                                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                                 }
                                 None => {
                                     let mut tx = match self.new_tx() {
@@ -202,6 +203,7 @@ impl ModbusState {
                                     tx.set_events_from_flags(&msg.error_flags);
                                     tx.request = Some(msg);
                                     self.transactions.push(tx);
+                                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                                 }
                             }
                         }
@@ -221,6 +223,7 @@ impl ModbusState {
                                 tx.tx_data.updated_tc = true;
                                 tx.tx_data.updated_ts = true;
                                 tx.response = Some(msg);
+                                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                             }
                             None => {
                                 let mut tx = match self.new_tx() {
@@ -241,6 +244,7 @@ impl ModbusState {
                                 tx.response = Some(msg);
                                 tx.set_event(ModbusEvent::UnsolicitedResponse);
                                 self.transactions.push(tx);
+                                sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                             }
                         },
                     }
@@ -315,7 +319,7 @@ pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_voi
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -329,12 +333,12 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    state.parse(buf, Direction::ToServer)
+    state.parse(flow, buf, Direction::ToServer)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -348,7 +352,7 @@ pub unsafe extern "C" fn rs_modbus_parse_response(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    state.parse(buf, Direction::ToClient)
+    state.parse(flow, buf, Direction::ToClient)
 }
 
 #[no_mangle]

@@ -21,7 +21,7 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
+use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use std::ffi::CString;
@@ -102,11 +102,11 @@ impl BitTorrentDHTState {
         }
     }
 
-    pub fn parse(&mut self, input: &[u8], _direction: Direction) -> bool {
+    pub fn parse(&mut self, flow: *const Flow, input: &[u8], direction: Direction) -> bool {
         if !Self::is_dht(input) {
             return true;
         }
-        let mut tx = self.new_tx(_direction);
+        let mut tx = self.new_tx(direction);
         let mut status = true;
 
         if let Err(_e) = parse_bittorrent_dht_packet(input, &mut tx) {
@@ -115,6 +115,9 @@ impl BitTorrentDHTState {
             SCLogDebug!("BitTorrent DHT Parsing Error: {}", _e);
         }
 
+        if status {
+            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, direction as i32);
+        }
         self.transactions.push(tx);
 
         return status;
@@ -183,13 +186,13 @@ unsafe extern "C" fn parse_tc(
 }
 
 unsafe extern "C" fn parse(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
     direction: Direction,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, BitTorrentDHTState);
     let buf = stream_slice.as_slice();
-    state.parse(buf, direction).into()
+    state.parse(flow, buf, direction).into()
 }
 
 unsafe extern "C" fn state_get_tx(

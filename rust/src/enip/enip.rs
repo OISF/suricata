@@ -19,10 +19,7 @@ use super::constant::{EnipCommand, EnipStatus};
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{
-    ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
-    STREAM_TOCLIENT, STREAM_TOSERVER,
-};
+use crate::core::*;
 use crate::detect::EnumString;
 use crate::direction::Direction;
 use crate::flow::Flow;
@@ -272,7 +269,7 @@ impl EnipState {
         }
     }
     fn parse_tcp(
-        &mut self, stream_slice: StreamSlice, request: bool, flow: *const Flow,
+        &mut self, stream_slice: StreamSlice, request: bool, flow: *const Flow, dir: Direction,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if request {
@@ -318,6 +315,7 @@ impl EnipState {
                             tx.response = Some(pdu);
                         }
                         self.transactions.push_back(tx);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
                     }
                     start = rem;
                 }
@@ -514,7 +512,7 @@ unsafe extern "C" fn enip_parse_request_tcp(
         AppLayerResult::ok()
     } else {
         debug_validate_bug_on!(stream_slice.is_empty());
-        state.parse_tcp(stream_slice, true, flow)
+        state.parse_tcp(stream_slice, true, flow, Direction::ToServer)
     }
 }
 
@@ -533,7 +531,7 @@ unsafe extern "C" fn enip_parse_response_tcp(
         AppLayerResult::ok()
     } else {
         debug_validate_bug_on!(stream_slice.is_empty());
-        state.parse_tcp(stream_slice, false, flow)
+        state.parse_tcp(stream_slice, false, flow, Direction::ToClient)
     }
 }
 

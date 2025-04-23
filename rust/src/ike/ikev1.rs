@@ -18,6 +18,8 @@
 // Author: Frank Honza <frank.honza@dcso.de>
 
 use crate::applayer::*;
+use crate::core::*;
+use crate::flow::Flow;
 use crate::common::to_hex;
 use crate::direction::Direction;
 use crate::ike::ike::{IKEState, IkeEvent};
@@ -72,7 +74,7 @@ pub struct Ikev1Container {
 }
 
 pub fn handle_ikev1(
-    state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
+    state: &mut IKEState, flow: *const Flow, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
     let mut tx = state.new_tx(direction);
 
@@ -165,5 +167,6 @@ pub fn handle_ikev1(
     tx.payload_types.ikev1_payload_types = Some(payload_types);
     tx.hdr.ikev1_header.encrypted_payloads = isakmp_header.flags & 0x01 == 0x01;
     state.transactions.push(tx);
+    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, direction as i32);
     return AppLayerResult::ok();
 }
