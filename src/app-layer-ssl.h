@@ -282,7 +282,7 @@ typedef struct SSLStateConnp_ {
     JA3Buffer *ja3_str;
     char *ja3_hash;
 
-    JA4 *ja4;
+    HandshakeParams *hs;
 
     /* handshake tls fragmentation buffer. Handshake messages can be fragmented over multiple
      * TLS records. */
