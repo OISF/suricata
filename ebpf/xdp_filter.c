@@ -65,6 +65,9 @@
  * also be used as workaround of some hardware offload issue */
 #define VLAN_TRACKING    1
 
+/* erspan stripping: set it to 1 if you want to strip encapsulating erspan */
+#define ERSPAN_STRIP 0
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -518,6 +521,13 @@ static int __always_inline filter_erspan(
     }
 #endif
     nh_off += 8;
+#if ERSPAN_STRIP
+    if (bpf_xdp_adjust_head(ctx, nh_off))
+        return XDP_PASS;
+    data = (void *)(long)ctx->data;
+    data_end = (void *)(long)ctx->data_end;
+    nh_off = 0;
+#endif
     if (data + nh_off + sizeof(struct ethhdr) > data_end)
         return XDP_PASS;
 
