@@ -30,7 +30,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     js.open_object("pgsql")?;
     js.set_uint("tx_id", tx.tx_id)?;
     if let Some(request) = &tx.request {
-        js.set_object("request", &log_request(request, flags)?)?;
+        log_request(request, flags, js)?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");
         // TODO Log anomaly event?
@@ -48,8 +48,10 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     Ok(())
 }
 
-fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::try_new_object()?;
+fn log_request(req: &PgsqlFEMessage, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mark = js.get_mark();
+    js.open_object("request")?;
+    let mut is_mark_restored = false;
     match req {
         PgsqlFEMessage::StartupMessage(StartupPacket {
             length: _,
@@ -81,6 +83,9 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }) => {
             if flags & PGSQL_LOG_PASSWORDS != 0 {
                 js.set_string_from_bytes("password", payload)?;
+            } else {
+                js.restore_mark(&mark)?;
+                is_mark_restored = true;
             }
         }
         PgsqlFEMessage::SASLResponse(RegularPacket {
@@ -116,8 +121,10 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             // We don't want to log these, for now. Cf redmine: #6576
         }
     }
-    js.close()?;
-    Ok(js)
+    if !is_mark_restored {
+        js.close()?;
+    }
+    Ok(())
 }
 
 fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> {
