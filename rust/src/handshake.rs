@@ -203,6 +203,29 @@ pub unsafe extern "C" fn SCHandshakeFree(hs: &mut HandshakeParams) {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetVersion(hs: &HandshakeParams) -> u16 {
+    u16::from(hs.tls_version.unwrap_or(TlsVersion(0)))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetCiphers(hs: &mut HandshakeParams, out: *mut usize) -> *const u16 {
+    *out = hs.ciphersuites.len();
+    hs.ciphersuites.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetExtensions(hs: &mut HandshakeParams, out: *mut usize) -> *const u16 {
+    *out = hs.extensions.len();
+    hs.extensions.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetSigAlgs(hs: &mut HandshakeParams, out: *mut usize) -> *const u16 {
+    *out = hs.signature_algorithms.len();
+    hs.signature_algorithms.as_ptr()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCHandshakeGetALPN(hs: &HandshakeParams, idx: u32, out: *mut CStringData) -> bool {
     if out.is_null() {
         return false;
