@@ -481,6 +481,20 @@ struct PacketL4 {
     } vars;
 };
 
+enum DecodeTunnelProto {
+    DECODE_TUNNEL_ETHERNET,
+    DECODE_TUNNEL_ERSPANII,
+    DECODE_TUNNEL_ERSPANI,
+    DECODE_TUNNEL_VLAN,
+    DECODE_TUNNEL_IPV4,
+    DECODE_TUNNEL_IPV6,
+    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
+    DECODE_TUNNEL_PPP,
+    DECODE_TUNNEL_NSH,
+    DECODE_TUNNEL_ARP,
+    DECODE_TUNNEL_UNSET
+};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -551,6 +565,9 @@ typedef struct Packet_
 
     /* tunnel type: none, root or child */
     enum PacketTunnelType ttype;
+
+    /* tunnel protocol */
+    enum DecodeTunnelProto tproto;
 
     SCTime_t ts;
 
@@ -1098,20 +1115,6 @@ static inline void PacketTunnelSetVerdicted(Packet *p)
 {
     p->tunnel_verdicted = true;
 }
-
-enum DecodeTunnelProto {
-    DECODE_TUNNEL_ETHERNET,
-    DECODE_TUNNEL_ERSPANII,
-    DECODE_TUNNEL_ERSPANI,
-    DECODE_TUNNEL_VLAN,
-    DECODE_TUNNEL_IPV4,
-    DECODE_TUNNEL_IPV6,
-    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
-    DECODE_TUNNEL_PPP,
-    DECODE_TUNNEL_NSH,
-    DECODE_TUNNEL_ARP,
-    DECODE_TUNNEL_UNSET
-};
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
                              const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto);
