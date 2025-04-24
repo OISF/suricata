@@ -34,6 +34,12 @@
 #define XDP_FLAGS_DRV_MODE		(1U << 2)
 #define XDP_FLAGS_HW_MODE		(1U << 3)
 
+struct flowtunnel_keys_ebpf {
+    __be32 src;
+    __be32 dst;
+    __u32 session : 24; // vni or spanid
+    __u8 tunnel_type : 8;
+};
 
 struct flowv4_keys {
     __be32 src;
@@ -44,7 +50,8 @@ struct flowv4_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u8 tunnel : 1;
+    __u16 vlan1_or_tunnel_id : 15;
 };
 
 struct flowv6_keys {
@@ -56,12 +63,17 @@ struct flowv6_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u8 tunnel : 1;
+    __u16 vlan1_or_tunnel_id : 15;
 };
 
 struct pair {
     uint64_t packets;
     uint64_t bytes;
+};
+
+struct flowtunnel_id {
+    uint16_t tunnel_id;
 };
 
 typedef struct EBPFBypassData_ {
@@ -87,6 +99,8 @@ void EBPFRegisterExtension(void);
 void EBPFBuildCPUSet(SCConfNode *node, char *iface);
 
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
+
+void EBPFLoadTunnels(const char *iface, unsigned int nr_cpus);
 
 int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
 bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec);
