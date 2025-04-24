@@ -7020,6 +7020,39 @@
                         "type": "string"
                     }
                 },
+                "client_handshake": {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "description": "TLS version in client hello",
+                            "type": "string"
+                        },
+                        "ciphers": {
+                            "description": "TLS client cipher(s)",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "integer"
+                            }
+                        },
+                        "exts": {
+                            "description": "TLS client extension(s)",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "integer"
+                            }
+                        },
+                        "sig_algs": {
+                            "description": "TLS client signature algorithm(s)",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                },
                 "server_alpns": {
                     "description": "TLS server ALPN field(s)",
                     "type": "array",

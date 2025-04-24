@@ -125,6 +125,11 @@ pub extern "C" fn SCHandshakeNew() -> *mut HandshakeParams {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCHandshakeIsEmpty(hs: & HandshakeParams) -> bool {
+    *hs == HandshakeParams::default()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCHandshakeSetTLSVersion(hs: &mut HandshakeParams, version: u16) {
     hs.set_tls_version(TlsVersion(version));
 }
@@ -156,6 +161,35 @@ pub unsafe extern "C" fn SCHandshakeAddALPN(
 pub unsafe extern "C" fn SCHandshakeFree(hs: &mut HandshakeParams) {
     let hs: Box<HandshakeParams> = Box::from_raw(hs);
     std::mem::drop(hs);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetVersion(hs: &HandshakeParams) -> u16 {
+    u16::from(hs.tls_version.unwrap_or(TlsVersion(0)))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetCiphers(
+    hs: &mut HandshakeParams, out: *mut usize,
+) -> *const u16 {
+    *out = hs.ciphersuites.len();
+    hs.ciphersuites.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetExtensions(
+    hs: &mut HandshakeParams, out: *mut usize,
+) -> *const u16 {
+    *out = hs.extensions.len();
+    hs.extensions.as_ptr() as *const u16
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHandshakeGetSigAlgs(
+    hs: &mut HandshakeParams, out: *mut usize,
+) -> *const u16 {
+    *out = hs.signature_algorithms.len();
+    hs.signature_algorithms.as_ptr()
 }
 
 #[no_mangle]
