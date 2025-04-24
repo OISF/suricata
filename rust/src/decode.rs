@@ -17,8 +17,10 @@
 
 //! Decode module.
 
+use crate::cast_pointer;
 use crate::conf::conf_get_node;
 use std::collections::HashMap;
+use std::ffi::c_void;
 use std::net::Ipv4Addr;
 use suricata_sys::sys::SCPacketTunnelType;
 
@@ -131,4 +133,41 @@ pub unsafe extern "C" fn DecodeTunnelsId(
         Some(value) => *value,
         None => PKT_TUNNEL_UNKNOWN,
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn DecodeTunnelsIterStart(
+    map: *mut HashMap<flowtunnel_keys, u16>,
+) -> *mut c_void {
+    let map = &*map;
+    return Box::into_raw(Box::new(map.iter())) as *mut _;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn DecodeTunnelsMapIter(
+    iter: *mut c_void, key: &mut flowtunnel_keys, value: &mut u16,
+) -> bool {
+    let iter = cast_pointer!(
+        iter,
+        std::collections::hash_map::Iter<'static, flowtunnel_keys, u16>
+    );
+    match iter.next() {
+        Some((k, v)) => {
+            *key = k.clone();
+            *value = *v;
+            return true;
+        }
+        None => {
+            return false;
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn DecodeTunnelsMapIterEnd(iter: *mut c_void) {
+    let iter = cast_pointer!(
+        iter,
+        std::collections::hash_map::Iter<'static, flowtunnel_keys, u16>
+    );
+    let _ = Box::from_raw(iter);
 }
