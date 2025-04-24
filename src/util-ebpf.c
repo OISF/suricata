@@ -55,6 +55,7 @@
 #include <bpf/bpf.h>
 #include <net/if.h>
 #include "autoconf.h"
+#include "rust.h"
 
 #define BPF_MAP_MAX_COUNT 16
 
@@ -181,7 +182,7 @@ static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 
 static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *config)
 {
-    int fd_v4 = -1, fd_v6 = -1;
+    int fd_v4 = -1, fd_v6 = -1, fd_tunnel = -1;
 
     /* First try to load the eBPF check map and return if found */
     if (config->pinned_maps_name) {
@@ -205,6 +206,9 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
             SCLogWarning("Found a flow_table_v4 map but no flow_table_v6 map");
             return fd_v6;
         }
+
+        /* Get flow tunnel table if it exists */
+        fd_tunnel = EBPFLoadPinnedMapsFile(livedev, "flow_table_tunnels");
     }
 
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
@@ -225,6 +229,14 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
             goto alloc_error;
         }
         bpf_map_data->last = 2;
+        if (fd_tunnel > 0) {
+            bpf_map_data->array[2].fd = fd_tunnel;
+            bpf_map_data->array[2].name = SCStrdup("flow_table_tunnels");
+            if (bpf_map_data->array[2].name == NULL) {
+                goto alloc_error;
+            }
+            bpf_map_data->last++;
+        }
     } else {
         bpf_map_data->last = 0;
     }
@@ -422,6 +434,12 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         if (strcmp(bpf_map__name(map), "flow_table_v6") == 0) {
             if (bpf_map__key_size(map) != sizeof(struct flowv6_keys)) {
                 SCLogError("Incompatible flow_table_v6");
+                break;
+            }
+        }
+        if (strcmp(bpf_map__name(map), "flow_table_tunnels") == 0) {
+            if (bpf_map__key_size(map) != sizeof(struct flowtunnel_keys_ebpf)) {
+                SCLogError("Incompatible flow_table_tunnels");
                 break;
             }
         }
@@ -760,7 +778,11 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.dst.addr_data32[2] = 0;
         flow_key.dst.addr_data32[3] = 0;
         flow_key.vlan_id[0] = next_key.vlan0;
-        flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.tunnel) {
+            flow_key.tunnel_id = next_key.vlan1_or_tunnel_id;
+        } else {
+            flow_key.vlan_id[1] = next_key.vlan1_or_tunnel_id;
+        }
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -878,7 +900,11 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.dst.addr_data32[3] = ntohl(next_key.dst[3]);
         }
         flow_key.vlan_id[0] = next_key.vlan0;
-        flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.tunnel) {
+            flow_key.tunnel_id = next_key.vlan1_or_tunnel_id;
+        } else {
+            flow_key.vlan_id[1] = next_key.vlan1_or_tunnel_id;
+        }
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -974,6 +1000,38 @@ static void EBPFRedirectMapAddCPU(int i, void *data)
     } else {
         g_redirect_iface_cpu_counter++;
     }
+}
+
+void EBPFLoadTunnels(const char *iface, unsigned int nr_cpus)
+{
+    BPF_DECLARE_PERCPU(struct flowtunnel_id, value, nr_cpus);
+
+    int mapfd = EBPFGetMapFDByName(iface, "flow_table_tunnels");
+    if (mapfd < 0) {
+        return;
+    }
+    struct flowtunnel_keys key;
+    struct flowtunnel_keys_ebpf *key_ebpf = SCCalloc(1, sizeof(struct flowtunnel_keys_ebpf));
+    if (key_ebpf == NULL) {
+        return;
+    }
+    uint16_t tunnel_id;
+    void *iter = DecodeTunnelsGetMapIter();
+
+    while (DecodeTunnelsMapIter(iter, &key, &tunnel_id)) {
+        for (unsigned int i = 0; i < nr_cpus; i++) {
+            BPF_PERCPU(value, i).tunnel_id = tunnel_id;
+        }
+        key_ebpf->src = key.src;
+        key_ebpf->dst = key.dst;
+        key_ebpf->session = key.session;
+        key_ebpf->tunnel_type = key.tunnel_type;
+        if (bpf_map_update_elem(mapfd, key_ebpf, value, BPF_NOEXIST) != 0) {
+            SCLogError("Can't update eBPF tunnels map: %s (%d)", strerror(errno), errno);
+            return;
+        }
+    }
+    DecodeTunnelsMapIterEnd(iter);
 }
 
 void EBPFBuildCPUSet(SCConfNode *node, char *iface)
