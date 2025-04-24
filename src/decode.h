@@ -552,6 +552,9 @@ typedef struct Packet_
     /* tunnel type: none, root or child */
     enum PacketTunnelType ttype;
 
+    /* tunnel protocol */
+    enum DecodeTunnelProto tproto;
+
     SCTime_t ts;
 
     union {
