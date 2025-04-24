@@ -71,6 +71,9 @@
 /* vxlan port configurable */
 #define VXLAN_PORT 0xb512
 
+/* vxlan stripping: set it to 1 if you want to strip encapsulating vxlan */
+#define VXLAN_STRIP 0
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -610,6 +613,14 @@ static int __always_inline filter_vxlan(
     __u16 vlan0 = 0;
     __u16 h_proto;
     nh_off += sizeof(struct vxlanhdr);
+
+#if VXLAN_STRIP
+    if (bpf_xdp_adjust_head(ctx, nh_off))
+        return XDP_PASS;
+    data = (void *)(long)ctx->data;
+    data_end = (void *)(long)ctx->data_end;
+    nh_off = 0;
+#endif
 
     if (data + nh_off + sizeof(struct ethhdr) > data_end)
         return XDP_PASS;
