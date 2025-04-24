@@ -24,9 +24,9 @@ use std::slice;
 pub struct FTPResponseLine {
     code: *mut u8,     // Response code as a string (may be null)
     response: *mut u8, // Response string
-    length: usize,         // Length of the response string
-    truncated: bool,       // Uses TX/state value.
-    total_size: usize,     // Total allocated size in bytes
+    length: usize,     // Length of the response string
+    truncated: bool,   // Uses TX/state value.
+    total_size: usize, // Total allocated size in bytes
 }
 
 /// Parses a single FTP response line and returns an FTPResponseLine struct.
