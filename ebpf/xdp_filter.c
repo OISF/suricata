@@ -23,6 +23,10 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_vlan.h>
+/* Workaround to avoid the need of 32bit headers */
+#define _LINUX_IF_H
+#define IFNAMSIZ 16
+#include <linux/if_tunnel.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -66,6 +70,13 @@ struct vlan_hdr {
     __u16	h_vlan_encapsulated_proto;
 };
 
+struct flowtunnel_keys {
+    __u32 src;
+    __u32 dst;
+    __u32 session : 24;
+    __u8 tunnel : 8;
+};
+
 struct flowv4_keys {
     __u32 src;
     __u32 dst;
@@ -75,7 +86,8 @@ struct flowv4_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u16 vlan1_or_tunnel_id : 15;
+    __u8 tunnel : 1;
 };
 
 struct flowv6_keys {
@@ -87,13 +99,29 @@ struct flowv6_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u16 vlan1_or_tunnel_id : 15;
+    __u8 tunnel : 1;
 };
 
 struct pair {
     __u64 packets;
     __u64 bytes;
 };
+
+struct flowtunnel_id {
+    __u16 tunnel_id;
+};
+
+struct {
+#if USE_PERCPU_HASH
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+#else
+    __uint(type, BPF_MAP_TYPE_HASH);
+#endif
+    __type(key, struct flowtunnel_keys);
+    __type(value, struct flowtunnel_id);
+    __uint(max_entries, 256);
+} flow_table_tunnels SEC(".maps");
 
 struct {
 #if USE_PERCPU_HASH
@@ -232,7 +260,8 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv4_final(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -280,7 +309,8 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     tuple.port16[1] = (__u16)dport;
 
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
@@ -421,7 +451,8 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
     tuple.port16[1] = dport;
 
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
@@ -480,6 +511,16 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
 
     return XDP_PASS;
 #endif
+}
+
+static int __always_inline filter_ipv4(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+{
+    struct iphdr *iph = data + nh_off;
+    if ((void *)(iph + 1) > data_end)
+        return XDP_PASS;
+
+    return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
 }
 
 int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
