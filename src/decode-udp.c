@@ -103,12 +103,17 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     /* Handle VXLAN if configured */
-    if (DecodeVXLANEnabledForPort(p->sp, p->dp) &&
-            unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
-        /* Here we have a VXLAN packet and don't need to handle app
-         * layer */
-        FlowSetupPacket(p);
-        return TM_ECODE_OK;
+    if (DecodeVXLANEnabledForPort(p->sp, p->dp)) {
+        Packet *tp =
+                PacketTunnelPktSetup(tv, dtv, p, p->payload, p->payload_len, DECODE_TUNNEL_VXLAN);
+        if (tp != NULL) {
+            PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+            PacketEnqueueNoLock(&tv->decode_pq, tp);
+            /* Here we have a VXLAN packet and don't need to handle app
+             * layer */
+            FlowSetupPacket(p);
+            return TM_ECODE_OK;
+        }
     }
 
     FlowSetupPacket(p);
