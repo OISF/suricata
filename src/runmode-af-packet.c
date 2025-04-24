@@ -585,6 +585,7 @@ static void *ParseAFPConfig(const char *iface)
                         /* It will just set CPU count to 0 */
                         EBPFBuildCPUSet(NULL, aconf->iface);
                     }
+                    EBPFLoadTunnels(aconf->iface, aconf->ebpf_t_config.cpus_count);
                 }
                 /* we have a peer and we use bypass so we can set up XDP iface redirect */
                 if (aconf->out_iface) {
