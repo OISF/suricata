@@ -37,26 +37,27 @@
 #include "util-ja3.h"
 #include "util-time.h"
 
-#define LOG_TLS_FIELD_VERSION         BIT_U64(0)
-#define LOG_TLS_FIELD_SUBJECT         BIT_U64(1)
-#define LOG_TLS_FIELD_ISSUER          BIT_U64(2)
-#define LOG_TLS_FIELD_SERIAL          BIT_U64(3)
-#define LOG_TLS_FIELD_FINGERPRINT     BIT_U64(4)
-#define LOG_TLS_FIELD_NOTBEFORE       BIT_U64(5)
-#define LOG_TLS_FIELD_NOTAFTER        BIT_U64(6)
-#define LOG_TLS_FIELD_SNI             BIT_U64(7)
-#define LOG_TLS_FIELD_CERTIFICATE     BIT_U64(8)
-#define LOG_TLS_FIELD_CHAIN           BIT_U64(9)
-#define LOG_TLS_FIELD_SESSION_RESUMED BIT_U64(10)
-#define LOG_TLS_FIELD_JA3             BIT_U64(11)
-#define LOG_TLS_FIELD_JA3S            BIT_U64(12)
-#define LOG_TLS_FIELD_CLIENT          BIT_U64(13) /**< client fields (issuer, subject, etc) */
-#define LOG_TLS_FIELD_CLIENT_CERT     BIT_U64(14)
-#define LOG_TLS_FIELD_CLIENT_CHAIN    BIT_U64(15)
-#define LOG_TLS_FIELD_JA4             BIT_U64(16)
-#define LOG_TLS_FIELD_SUBJECTALTNAME  BIT_U64(17)
-#define LOG_TLS_FIELD_CLIENT_ALPNS    BIT_U64(18)
-#define LOG_TLS_FIELD_SERVER_ALPNS    BIT_U64(19)
+#define LOG_TLS_FIELD_VERSION          BIT_U64(0)
+#define LOG_TLS_FIELD_SUBJECT          BIT_U64(1)
+#define LOG_TLS_FIELD_ISSUER           BIT_U64(2)
+#define LOG_TLS_FIELD_SERIAL           BIT_U64(3)
+#define LOG_TLS_FIELD_FINGERPRINT      BIT_U64(4)
+#define LOG_TLS_FIELD_NOTBEFORE        BIT_U64(5)
+#define LOG_TLS_FIELD_NOTAFTER         BIT_U64(6)
+#define LOG_TLS_FIELD_SNI              BIT_U64(7)
+#define LOG_TLS_FIELD_CERTIFICATE      BIT_U64(8)
+#define LOG_TLS_FIELD_CHAIN            BIT_U64(9)
+#define LOG_TLS_FIELD_SESSION_RESUMED  BIT_U64(10)
+#define LOG_TLS_FIELD_JA3              BIT_U64(11)
+#define LOG_TLS_FIELD_JA3S             BIT_U64(12)
+#define LOG_TLS_FIELD_CLIENT           BIT_U64(13) /**< client fields (issuer, subject, etc) */
+#define LOG_TLS_FIELD_CLIENT_CERT      BIT_U64(14)
+#define LOG_TLS_FIELD_CLIENT_CHAIN     BIT_U64(15)
+#define LOG_TLS_FIELD_JA4              BIT_U64(16)
+#define LOG_TLS_FIELD_SUBJECTALTNAME   BIT_U64(17)
+#define LOG_TLS_FIELD_CLIENT_ALPNS     BIT_U64(18)
+#define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
+#define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
 
 typedef struct {
     const char *name;
@@ -85,6 +86,7 @@ TlsFields tls_fields[] = {
     { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
+    { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
     { NULL, -1 },
     // clang-format on
 };
@@ -360,6 +362,27 @@ static void JsonTlsLogClientCert(
     }
 }
 
+static void JsonTlsLogClientHandshake(SCJsonBuilder *js, SSLState *ssl_state)
+{
+    if (ssl_state->client_connp.hs == NULL) {
+        return;
+    }
+
+    // Don't write an empty handshake
+    if (SCTLSHandshakeIsEmpty(ssl_state->client_connp.hs)) {
+        return;
+    }
+
+    SCJbOpenObject(js, "client_handshake");
+
+    SCTLSHandshakeLogVersion(ssl_state->client_connp.hs, js);
+    SCTLSHandshakeLogCiphers(ssl_state->client_connp.hs, js);
+    SCTLSHandshakeLogExtensions(ssl_state->client_connp.hs, js);
+    SCTLSHandshakeLogSigAlgs(ssl_state->client_connp.hs, js);
+
+    SCJbClose(js);
+}
+
 static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
@@ -391,8 +414,9 @@ static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fi
         JsonTlsLogSni(js, ssl_state);
 
     /* tls version */
-    if (fields & LOG_TLS_FIELD_VERSION)
+    if (fields & LOG_TLS_FIELD_VERSION) {
         JsonTlsLogVersion(js, ssl_state);
+    }
 
     /* tls notbefore */
     if (fields & LOG_TLS_FIELD_NOTBEFORE)
@@ -429,6 +453,10 @@ static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fi
     if (fields & LOG_TLS_FIELD_SERVER_ALPNS) {
         JsonTlsLogAlpns(js, &ssl_state->server_connp, "server_alpns");
     }
+
+    /* tls client handshake parameters */
+    if (fields & LOG_TLS_FIELD_CLIENT_HANDSHAKE)
+        JsonTlsLogClientHandshake(js, ssl_state);
 
     if (fields & LOG_TLS_FIELD_CLIENT) {
         const bool log_cert = (fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
