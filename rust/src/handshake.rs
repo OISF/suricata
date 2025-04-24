@@ -24,6 +24,7 @@ use std::os::raw::c_char;
 use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::tls_version::SCTlsVersion;
 
 #[derive(Debug, PartialEq)]
 pub struct HandshakeParams {
@@ -124,6 +125,52 @@ impl HandshakeParams {
         js.close()?;
         Ok(())
     }
+
+    fn log_version(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
+        let vers = self.tls_version.map(|v| v.0).unwrap_or_default();
+        let ver_str = SCTlsVersion::try_from(vers).map_err(|_| JsonError::InvalidState)?;
+        js.set_string("version", ver_str.as_str())?;
+        Ok(())
+    }
+
+    fn log_exts(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
+        if self.extensions.is_empty() {
+            return Ok(());
+        }
+        js.open_array("exts")?;
+
+        for v in &self.extensions {
+            js.append_uint(v.0.into())?;
+        }
+        js.close()?;
+        Ok(())
+    }
+
+    fn log_ciphers(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
+        if self.ciphersuites.is_empty() {
+            return Ok(());
+        }
+        js.open_array("ciphers")?;
+
+        for v in &self.ciphersuites {
+            js.append_uint(v.0.into())?;
+        }
+        js.close()?;
+        Ok(())
+    }
+
+    fn log_sig_algs(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
+        if self.signature_algorithms.is_empty() {
+            return Ok(());
+        }
+        js.open_array("sig_algs")?;
+
+        for v in &self.signature_algorithms {
+            js.append_uint(*v as u64)?;
+        }
+        js.close()?;
+        Ok(())
+    }
 }
 
 // Objects used to allow C to call into this struct via the below C ABI
@@ -177,6 +224,38 @@ pub unsafe extern "C" fn SCTLSHandshakeAddALPN(
 pub unsafe extern "C" fn SCTLSHandshakeFree(hs: &mut HandshakeParams) {
     let hs: Box<HandshakeParams> = Box::from_raw(hs);
     std::mem::drop(hs);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogVersion(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+    if js.is_null() {
+        return false;
+    }
+    return hs.log_version(js.as_mut().unwrap()).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogCiphers(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+    if js.is_null() {
+        return false;
+    }
+    return hs.log_ciphers(js.as_mut().unwrap()).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogExtensions(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+    if js.is_null() {
+        return false;
+    }
+    return hs.log_exts(js.as_mut().unwrap()).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogSigAlgs(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+    if js.is_null() {
+        return false;
+    }
+    return hs.log_sig_algs(js.as_mut().unwrap()).is_ok()
 }
 
 #[no_mangle]
