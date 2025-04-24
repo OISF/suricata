@@ -47,7 +47,8 @@
 #include "util-lua-dnp3.h"
 #include "detect-lua-extensions.h"
 
-static const char luaext_key_ld[] = "suricata:luadata";
+/* Lua registry key for DetectLuaData. */
+const char luaext_key_ld[] = "suricata:luadata";
 
 static int GetLuaData(lua_State *luastate, DetectLuaData **ret_ld)
 {
@@ -71,67 +72,6 @@ static int GetFlow(lua_State *luastate, Flow **ret_f)
         LUA_ERROR("no flow");
     }
     *ret_f = f;
-    return 0;
-}
-
-static int GetFlowVarById(lua_State *luastate, Flow *f,
-        FlowVar **ret_fv, bool fv_may_be_null, uint32_t *ret_idx)
-{
-    DetectLuaData *ld = NULL;
-    if (ret_idx)
-        *ret_idx = 0;
-    *ret_fv = NULL;
-
-    /* need lua data for id -> idx conversion */
-    int ret = GetLuaData(luastate, &ld);
-    if (ret != 0)
-        return ret;
-
-    if (!lua_isnumber(luastate, 1)) {
-        LUA_ERROR("flowvar id not a number");
-    }
-    int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
-        LUA_ERROR("flowvar id out of range");
-    }
-    uint32_t idx = ld->flowvar[id];
-    if (idx == 0) {
-        LUA_ERROR("flowvar id uninitialized");
-    }
-    FlowVar *fv = FlowVarGet(f, idx);
-    if (!fv_may_be_null && fv == NULL) {
-        LUA_ERROR("no flow var");
-    }
-    *ret_fv = fv;
-    if (ret_idx)
-        *ret_idx = idx;
-    return 0;
-}
-
-static int GetFlowVarByKey(lua_State *luastate, Flow *f, FlowVar **ret_fv)
-{
-    *ret_fv = NULL;
-
-    if (!lua_isstring(luastate, 1)) {
-        LUA_ERROR("flowvar key not a string");
-    }
-    const char *keystr = lua_tostring(luastate, 1);
-    if (keystr == NULL) {
-        LUA_ERROR("key is null");
-    }
-    if (!lua_isnumber(luastate, 2)) {
-        LUA_ERROR("key length not specified");
-    }
-    int keylen = lua_tonumber(luastate, 2);
-    if (keylen < 0 || keylen > 0xff) {
-        LUA_ERROR("key len out of range: max 256");
-    }
-
-    FlowVar *fv = FlowVarGetByKey(f, (const uint8_t *)keystr, (uint8_t)keylen);
-    if (fv == NULL) {
-        LUA_ERROR("no flow var");
-    }
-    *ret_fv = fv;
     return 0;
 }
 
@@ -167,151 +107,6 @@ static int GetFlowIntById(lua_State *luastate, Flow *f,
     if (ret_idx)
         *ret_idx = idx;
     return 0;
-}
-
-static int LuaGetFlowvar(lua_State *luastate)
-{
-    Flow *f;
-    FlowVar *fv;
-    int ret;
-
-    /* need flow */
-    ret = GetFlow(luastate, &f);
-    if (ret != 0)
-        return ret;
-
-    if (lua_isnumber(luastate, 1)) {
-        ret = GetFlowVarById(luastate, f, &fv, false, NULL);
-        if (ret != 0 || fv == NULL)
-            return ret;
-    } else if (lua_isstring(luastate, 1)) {
-        ret = GetFlowVarByKey(luastate, f, &fv);
-        if (ret != 0 || fv == NULL)
-            return ret;
-    } else {
-        LUA_ERROR("invalid data type as first argument");
-    }
-
-    LuaPushStringBuffer(luastate,
-            (const uint8_t *)fv->data.fv_str.value,
-            (size_t)fv->data.fv_str.value_len);
-    return 1;
-}
-
-static int LuaSetFlowvarById(lua_State *luastate)
-{
-    uint32_t idx = 0;
-    Flow *f;
-    const char *str;
-    int len;
-    uint8_t *buffer;
-    FlowVar *fv = NULL;
-
-    /* need flow */
-    int ret = GetFlow(luastate, &f);
-    if (ret != 0)
-        return ret;
-
-    ret = GetFlowVarById(luastate, f, &fv, true, &idx);
-    if (ret != 0)
-        return ret;
-
-    if (!lua_isstring(luastate, 2)) {
-        LUA_ERROR("buffer not a string");
-    }
-    str = lua_tostring(luastate, 2);
-    if (str == NULL) {
-        LUA_ERROR("buffer is null");
-    }
-
-    if (!lua_isnumber(luastate, 3)) {
-        LUA_ERROR("buffer length not specified");
-    }
-    len = lua_tonumber(luastate, 3);
-    if (len < 0 || len > 0xffff) {
-        LUA_ERROR("len out of range: max 64k");
-    }
-
-    buffer = SCMalloc(len+1);
-    if (unlikely(buffer == NULL)) {
-        LUA_ERROR("out of memory");
-    }
-    memcpy(buffer, str, len);
-    buffer[len] = '\0';
-
-    FlowVarAddIdValue(f, idx, buffer, (uint16_t)len);
-    return 0;
-}
-
-static int LuaSetFlowvarByKey(lua_State *luastate)
-{
-    Flow *f;
-    const char *str;
-    int len;
-    uint8_t *buffer;
-
-    /* need flow */
-    int ret = GetFlow(luastate, &f);
-    if (ret != 0)
-        return ret;
-
-    const char *keystr = NULL;
-    int keylen = 0;
-
-    keystr = lua_tostring(luastate, 1);
-    if (keystr == NULL) {
-        LUA_ERROR("key is null");
-    }
-    if (!lua_isnumber(luastate, 2)) {
-        LUA_ERROR("key length not specified");
-    }
-    keylen = lua_tonumber(luastate, 2);
-    if (keylen < 0 || keylen > 0xff) {
-        LUA_ERROR("key len out of range: max 255");
-    }
-
-    if (!lua_isstring(luastate, 3)) {
-        LUA_ERROR("buffer not a string");
-    }
-    str = lua_tostring(luastate, 3);
-    if (str == NULL) {
-        LUA_ERROR("buffer is null");
-    }
-
-    if (!lua_isnumber(luastate, 4)) {
-        LUA_ERROR("buffer length not specified");
-    }
-    len = lua_tonumber(luastate, 4);
-    if (len < 0 || len > 0xffff) {
-        LUA_ERROR("len out of range: max 64k");
-    }
-
-    buffer = SCMalloc(len+1);
-    if (unlikely(buffer == NULL)) {
-        LUA_ERROR("out of memory");
-    }
-    memcpy(buffer, str, len);
-    buffer[len] = '\0';
-
-    uint8_t *keybuf = SCMalloc(keylen+1);
-    if (unlikely(keybuf == NULL)) {
-        SCFree(buffer);
-        LUA_ERROR("out of memory");
-    }
-    memcpy(keybuf, keystr, keylen);
-    keybuf[keylen] = '\0';
-    FlowVarAddKeyValue(f, keybuf, (uint8_t)keylen, buffer, (uint16_t)len);
-
-    return 0;
-}
-
-static int LuaSetFlowvar(lua_State *luastate)
-{
-    if (lua_isnumber(luastate, 1)) {
-        return LuaSetFlowvarById(luastate);
-    } else {
-        return LuaSetFlowvarByKey(luastate);
-    }
 }
 
 static int LuaGetFlowint(lua_State *luastate)
@@ -478,13 +273,7 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
-    /* lua keyword data */
-    lua_pushlightuserdata(lua_state, (void *)&luaext_key_ld);
-    lua_pushlightuserdata(lua_state, (void *)ld);
-    lua_settable(lua_state, LUA_REGISTRYINDEX);
-
     LuaStateSetSignature(lua_state, s);
-
     LuaStateSetFlow(lua_state, f);
     LuaStateSetDetCtx(lua_state, det_ctx);
 
@@ -508,18 +297,6 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
  */
 int LuaRegisterExtensions(lua_State *lua_state)
 {
-    lua_pushcfunction(lua_state, LuaGetFlowvar);
-    lua_setglobal(lua_state, "ScFlowvarGet");
-
-    lua_pushcfunction(lua_state, LuaGetFlowvar);
-    lua_setglobal(lua_state, "SCFlowvarGet");
-
-    lua_pushcfunction(lua_state, LuaSetFlowvar);
-    lua_setglobal(lua_state, "ScFlowvarSet");
-
-    lua_pushcfunction(lua_state, LuaSetFlowvar);
-    lua_setglobal(lua_state, "SCFlowvarSet");
-
     lua_pushcfunction(lua_state, LuaGetFlowint);
     lua_setglobal(lua_state, "ScFlowintGet");
 

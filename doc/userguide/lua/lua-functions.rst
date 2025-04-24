@@ -675,38 +675,6 @@ SCFlowintDecr
 
 Decrement Flowint at index given by the first parameter.
 
-SCFlowvarGet
-~~~~~~~~~~~~
-
-Get the Flowvar at index given by the parameter.
-
-SCFlowvarSet
-~~~~~~~~~~~~
-
-Set a Flowvar. First parameter is the index, second is the data
-and third is the length of data.
-
-You can use it to set string 
-
-::
-
- function init (args)
-     local needs = {}
-     needs["http.request_headers"] = tostring(true)
-     needs["flowvar"] = {"cnt"}
-     return needs
- end
- 
- function match(args)
-     a = SCFlowvarGet(0);
-     if a then
-         a = tostring(tonumber(a)+1)
-         SCFlowvarSet(0, a, #a)
-     else
-         a = tostring(1)
-         SCFlowvarSet(0, a, #a)
-     end 
-
 Misc
 ----
 
