@@ -176,6 +176,8 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_VXLAN:
+            return DecodeEthernet(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
             return DecodeNSH(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ARP:
