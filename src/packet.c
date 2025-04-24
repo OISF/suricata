@@ -156,6 +156,7 @@ void PacketReinit(Packet *p)
     p->prev = NULL;
     p->tunnel_verdicted = false;
     p->root = NULL;
+    p->tproto = DECODE_TUNNEL_UNSET;
     p->livedev_id = 0;
     p->livedev_dst_id = 0;
     PACKET_PROFILING_RESET(p);
