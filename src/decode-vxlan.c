@@ -182,6 +182,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+            AFPReadCopyBypass(tp, p);
             PacketEnqueueNoLock(&tv->decode_pq, tp);
         }
     }

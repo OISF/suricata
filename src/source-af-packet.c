@@ -352,6 +352,7 @@ typedef struct AFPThreadVars_
 #ifdef HAVE_PACKET_EBPF
     uint8_t xdp_mode;
     bool xdp_bypass_erspan2;
+    bool xdp_bypass_vxlan;
     int ebpf_lb_fd;
     int ebpf_filter_fd;
     struct ebpf_timeout_config ebpf_t_config;
@@ -745,6 +746,7 @@ void AFPReadCopyBypass(Packet *dst, Packet *src)
     dst->afp_v.v6_map_fd = src->afp_v.v6_map_fd;
     dst->afp_v.nr_cpus = src->afp_v.nr_cpus;
     dst->afp_v.xdp_bypass_erspan2 = src->afp_v.xdp_bypass_erspan2;
+    dst->afp_v.xdp_bypass_vxlan = src->afp_v.xdp_bypass_vxlan;
 #endif
 }
 
@@ -763,6 +765,7 @@ static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
         p->afp_v.xdp_bypass_erspan2 = ptv->xdp_bypass_erspan2;
+        p->afp_v.xdp_bypass_vxlan = ptv->xdp_bypass_vxlan;
     }
 #endif
 }
@@ -2254,6 +2257,8 @@ static bool PacketIsTunnelWithoutBypassSupport(Packet *p)
             return false;
         case DECODE_TUNNEL_ERSPANII:
             return !p->afp_v.xdp_bypass_erspan2;
+        case DECODE_TUNNEL_VXLAN:
+            return !p->afp_v.xdp_bypass_vxlan;
         case PacketTunnelChild:
             // fallthrough
         default:
@@ -2642,6 +2647,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->xdp_mode = afpconfig->xdp_mode;
     ptv->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
     ptv->xdp_bypass_erspan2 = afpconfig->xdp_bypass_erspan2;
+    ptv->xdp_bypass_vxlan = afpconfig->xdp_bypass_vxlan;
 
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
         ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
