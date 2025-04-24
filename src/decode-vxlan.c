@@ -147,7 +147,6 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_vxlan);
 
     EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
-    int decode_tunnel_proto = DECODE_TUNNEL_UNSET;
 
     /* Look at encapsulated Ethernet frame to get next protocol  */
     uint16_t eth_type = SCNtohs(ethh->eth_type);
@@ -159,34 +158,21 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case ETHERNET_TYPE_IP:
             SCLogDebug("VXLAN found IPv4");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV4;
             break;
         case ETHERNET_TYPE_IPV6:
             SCLogDebug("VXLAN found IPv6");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV6;
             break;
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021AD:
         case ETHERNET_TYPE_8021QINQ:
             SCLogDebug("VXLAN found VLAN");
-            decode_tunnel_proto = DECODE_TUNNEL_VLAN;
             break;
         default:
             SCLogDebug("VXLAN found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
             ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);
     }
 
-    /* Set-up and process inner packet if it is a supported ethertype */
-    if (decode_tunnel_proto != DECODE_TUNNEL_UNSET) {
-        Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto);
-        if (tp != NULL) {
-            PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-            PacketEnqueueNoLock(&tv->decode_pq, tp);
-        }
-    }
-
-    return TM_ECODE_OK;
+    return DecodeEthernet(tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN);
 }
 
 #ifdef UNITTESTS
