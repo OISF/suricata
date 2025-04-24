@@ -258,7 +258,7 @@ static bool PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
         return false;
     }
 
-    if (p->ttype == PacketTunnelChild) {
+    if (PacketIsTunnelChild(p)) {
         return false;
     }
     return true;
@@ -390,7 +390,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     PCAPLOG_PROFILE_START;
 
     int datalink = p->datalink;
-    if (p->ttype == PacketTunnelChild) {
+    if (PacketIsTunnelChild(p)) {
         Packet *real_p = p->root;
         datalink = real_p->datalink;
     }
@@ -626,7 +626,7 @@ static int PcapLog(ThreadVars *tv, void *thread_data, const Packet *p)
     pl->pkt_cnt++;
     pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
     pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
-    if (p->ttype == PacketTunnelChild) {
+    if (PacketIsTunnelChild(p)) {
         rp = p->root;
         pl->h->caplen = GET_PKT_LEN(rp);
         pl->h->len = GET_PKT_LEN(rp);
@@ -700,7 +700,7 @@ static int PcapLog(ThreadVars *tv, void *thread_data, const Packet *p)
             /* PcapLogDumpSegment has written over the PcapLogData variables so need to update */
             pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
             pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
-            if (p->ttype == PacketTunnelChild) {
+            if (PacketIsTunnelChild(p)) {
                 rp = p->root;
                 pl->h->caplen = GET_PKT_LEN(rp);
                 pl->h->len = GET_PKT_LEN(rp);
@@ -713,7 +713,7 @@ static int PcapLog(ThreadVars *tv, void *thread_data, const Packet *p)
         }
     }
 
-    if (p->ttype == PacketTunnelChild) {
+    if (PacketIsTunnelChild(p)) {
         rp = p->root;
         ret = PcapWrite(tv, td, GET_PKT_DATA(rp), len);
     } else {
