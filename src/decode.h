@@ -406,6 +406,17 @@ enum PacketTunnelType {
     PacketTunnelNone,
     PacketTunnelRoot,
     PacketTunnelChild,
+    DECODE_TUNNEL_ETHERNET,
+    DECODE_TUNNEL_ERSPANII,
+    DECODE_TUNNEL_ERSPANI,
+    DECODE_TUNNEL_VLAN,
+    DECODE_TUNNEL_IPV4,
+    DECODE_TUNNEL_IPV6,
+    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
+    DECODE_TUNNEL_PPP,
+    DECODE_TUNNEL_NSH,
+    DECODE_TUNNEL_ARP,
+    DECODE_TUNNEL_UNSET
 };
 
 /* forward declaration since Packet struct definition requires this */
@@ -1096,22 +1107,8 @@ static inline void PacketTunnelSetVerdicted(Packet *p)
     p->tunnel_verdicted = true;
 }
 
-enum DecodeTunnelProto {
-    DECODE_TUNNEL_ETHERNET,
-    DECODE_TUNNEL_ERSPANII,
-    DECODE_TUNNEL_ERSPANI,
-    DECODE_TUNNEL_VLAN,
-    DECODE_TUNNEL_IPV4,
-    DECODE_TUNNEL_IPV6,
-    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
-    DECODE_TUNNEL_PPP,
-    DECODE_TUNNEL_NSH,
-    DECODE_TUNNEL_ARP,
-    DECODE_TUNNEL_UNSET
-};
-
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto);
+        const uint8_t *pkt, uint32_t len, enum PacketTunnelType proto);
 Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
 void PacketDefragPktSetupParent(Packet *parent);
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
@@ -1360,7 +1357,7 @@ static inline bool PacketIsTunnelRoot(const Packet *p)
 
 static inline bool PacketIsTunnelChild(const Packet *p)
 {
-    return (p->ttype == PacketTunnelChild);
+    return (p->ttype > PacketTunnelRoot);
 }
 
 static inline bool PacketIsTunnel(const Packet *p)
