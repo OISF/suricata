@@ -42,7 +42,8 @@ struct flowv4_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u16 vlan1_or_tunnel_id : 15;
+    __u8 tunnel : 1;
 };
 
 struct flowv6_keys {
@@ -54,7 +55,8 @@ struct flowv6_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u16 vlan1_or_tunnel_id : 15;
+    __u8 tunnel : 1;
 };
 
 struct pair {
@@ -119,7 +121,8 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
@@ -194,7 +197,8 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     tuple.port16[0] = port;
 
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
     //char fmt[] = "Now Got IPv6 port %u and %u\n";
     //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);

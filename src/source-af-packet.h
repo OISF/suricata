@@ -64,6 +64,7 @@ struct ebpf_timeout_config {
 #define AFP_MMAP_LOCKED (1<<6)
 #define AFP_BYPASS   (1<<7)
 #define AFP_XDPBYPASS   (1<<8)
+#define AFP_BYPASS_TUNNELS     (1 << 9)
 
 #define AFP_COPY_MODE_NONE  0
 #define AFP_COPY_MODE_TAP   1
@@ -203,5 +204,10 @@ void AFPPeersListClean(void);
 int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
+
+#ifdef HAVE_PACKET_EBPF
+typedef struct Packet_ Packet;
+void AFPReadCopyBypass(Packet *dst, Packet *src);
+#endif
 
 #endif /* SURICATA_SOURCE_AFP_H */

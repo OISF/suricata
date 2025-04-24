@@ -58,6 +58,7 @@
 #include "flow-storage.h"
 #include "util-validate.h"
 #include "action-globals.h"
+#include "rust.h"
 
 #ifdef HAVE_AF_PACKET
 
@@ -739,6 +740,17 @@ static inline int AFPSuriFailure(AFPThreadVars *ptv, union thdr h)
     SCReturnInt(AFP_SURI_FAILURE);
 }
 
+#ifdef HAVE_PACKET_EBPF
+void AFPReadCopyBypass(Packet *dst, Packet *src)
+{
+    dst->BypassPacketsFlow = src->BypassPacketsFlow;
+    dst->afp_v.v4_map_fd = src->afp_v.v4_map_fd;
+    dst->afp_v.v6_map_fd = src->afp_v.v6_map_fd;
+    dst->afp_v.nr_cpus = src->afp_v.nr_cpus;
+    dst->afp_v.flags = src->afp_v.flags;
+}
+#endif
+
 static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
 {
 #ifdef HAVE_PACKET_EBPF
@@ -747,12 +759,14 @@ static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
+        p->afp_v.flags = ptv->flags;
     }
     if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
+        p->afp_v.flags = ptv->flags;
     }
 #endif
 }
@@ -2247,7 +2261,12 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     {                                                                                              \
         (k)->ip_proto = ((p)->proto == IPPROTO_TCP) ? 1 : 0;                                       \
         (k)->vlan0 = (p)->vlan_id[0];                                                              \
-        (k)->vlan1 = (p)->vlan_id[1];                                                              \
+        if ((p)->tunnel_id) {                                                                      \
+            (k)->tunnel = 1;                                                                       \
+            (k)->vlan1_or_tunnel_id = (p)->tunnel_id;                                              \
+        } else {                                                                                   \
+            (k)->vlan1_or_tunnel_id = (p)->vlan_id[1];                                             \
+        }                                                                                          \
     }
 
 /**
@@ -2278,10 +2297,20 @@ static int AFPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
     if (PacketIsTunnel(p)) {
+        if (p->tunnel_id == 0 || p->recursion_level > 1) {
+            return 0;
+        }
+        if (!(p->afp_v.flags & AFP_BYPASS_TUNNELS)) {
+            return 0;
+        }
+    }
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
+        return 0;
+    } else if (p->tunnel_id && p->vlan_id[1]) {
+        // unsupported by ebpf : tunnel with multiple layers of vlans inside
         return 0;
     }
     LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
@@ -2409,10 +2438,22 @@ static int AFPXDPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
     if (PacketIsTunnel(p)) {
+        if (p->tunnel_id == 0 || p->recursion_level > 1) {
+            return 0;
+        }
+        if (!(p->afp_v.flags & AFP_BYPASS_TUNNELS)) {
+            return 0;
+        }
+    }
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
+        return 0;
+    } else if (p->tunnel_id && p->vlan_id[1]) {
+        // unsupported by ebpf : tunnel with multiple layers of vlans inside
         return 0;
     }
     LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
@@ -2603,6 +2644,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
                 SCLogError("Can't find eBPF map fd for '%s'", "flow_table_v6");
                 g_flowv6_ok = false;
             }
+        }
+        int tunnel_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_tunnels");
+        if (ptv->v6_map_fd != -1) {
+            ptv->flags |= AFP_BYPASS_TUNNELS;
         }
     }
     ptv->ebpf_t_config = afpconfig->ebpf_t_config;
