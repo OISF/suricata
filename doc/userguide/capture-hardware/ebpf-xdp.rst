@@ -278,6 +278,9 @@ also use the ``/usr/libexec/suricata/ebpf/xdp_filter.bpf`` (in our example TCP o
     # if the ebpf filter implements a bypass function, you can set 'bypass' to
     # yes and benefit from these feature
     bypass: yes
+    # if the ebpf filter implements ERSPAN2 bypass function,
+    # you can set 'bypass-erspan2' to yes and benefit from this feature
+    bypass-erspan2: yes
     ring-size: 200000
     # Uncomment the following if you are using hardware XDP with
     # a card like Netronome (default value is yes)

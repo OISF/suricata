@@ -520,6 +520,10 @@ static void *ParseAFPConfig(const char *iface)
             }
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
         }
+        SCConfGetChildValueBoolWithDefault(if_root, if_default, "bypass-erspan2", &conf_val);
+        if (conf_val) {
+            aconf->xdp_bypass_erspan2 = true;
+        }
 #else
         SCLogWarning("%s: XDP filter set but XDP support is not built-in", iface);
 #endif

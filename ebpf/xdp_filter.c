@@ -23,6 +23,7 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_vlan.h>
+#include <linux/if_tunnel.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -232,7 +233,7 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv4_final(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -480,6 +481,111 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
 
     return XDP_PASS;
 #endif
+}
+
+static int __always_inline filter_erspan(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+{
+    struct erspan_hdr {
+        __be16 ver_vlan;
+        __be16 flags_spanid;
+        __be32 padding;
+    };
+    __u16 vlan0 = 0;
+    __u16 h_proto;
+    __u16 flags_spanid;
+
+    struct erspan_hdr *erhdr = (struct erspan_hdr *)(data + nh_off);
+    if ((void *)(erhdr + 1) > data_end)
+        return XDP_PASS;
+
+    if ((erhdr->ver_vlan & 0xF0) != 0x10) {
+        // only handle ERSPAN 2
+        return XDP_PASS;
+    }
+    flags_spanid = erhdr->flags_spanid;
+    if ((flags_spanid & 0x1800) == 0x800) {
+        // do not handle ISL encapsulated
+        return XDP_PASS;
+    }
+#if VLAN_TRACKING
+    if ((flags_spanid & 0x1800) == 0x1000) {
+        vlan0 = erhdr->ver_vlan & 0xFFF;
+    }
+#endif
+    nh_off += 8;
+    if (data + nh_off + sizeof(struct ethhdr) > data_end)
+        return XDP_PASS;
+
+    struct ethhdr *eth = data + nh_off;
+    nh_off += sizeof(*eth);
+
+    h_proto = eth->h_proto;
+
+    if ((flags_spanid & 0x1800) == 0x1800 && (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD))) {
+        struct vlan_hdr *vhdr;
+
+        if (data + nh_off + sizeof(struct vlan_hdr) > data_end)
+            return XDP_PASS;
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
+        vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+#endif
+    }
+    if (h_proto == __constant_htons(ETH_P_IP))
+        return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, 0);
+    else if (h_proto == __constant_htons(ETH_P_IPV6))
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, 0);
+    return XDP_PASS;
+}
+
+static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+{
+    struct gre_hdr {
+        __be16 flags;
+        __be16 proto;
+    };
+    __u16 proto;
+
+    struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
+
+    if ((void *)(grhdr + 1) > data_end)
+        return XDP_PASS;
+
+    // only GRE version 0 without routing
+    if (grhdr->flags & (GRE_VERSION|GRE_ROUTING))
+        return XDP_PASS;
+
+    nh_off += 4;
+    if (grhdr->flags & GRE_CSUM)
+        nh_off += 4;
+    if (grhdr->flags & GRE_KEY)
+        nh_off += 4;
+    if (grhdr->flags & GRE_SEQ)
+        nh_off += 4;
+    if (data + nh_off > data_end)
+        return XDP_PASS;
+
+    proto = grhdr->proto;
+    // only handle erspan over gre
+    if (proto == __constant_htons(ETH_P_ERSPAN)) {
+        return filter_erspan(ctx, data, nh_off, data_end);
+    }
+    return XDP_PASS;
+}
+
+static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+{
+    struct iphdr *iph = data + nh_off;
+    if ((void *)(iph + 1) > data_end)
+        return XDP_PASS;
+
+    if (iph->protocol == IPPROTO_GRE) {
+        nh_off += sizeof(struct iphdr);
+        return filter_gre(ctx, data, nh_off, data_end, vlan0, vlan1);
+    }
+    return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
 }
 
 int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
