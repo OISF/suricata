@@ -146,6 +146,13 @@ void LuaDumpStack(lua_State *state, const char *prefix)
     }
 }
 
+static void LuaStateSetDetectLuaData(lua_State *state, DetectLuaData *data)
+{
+    lua_pushlightuserdata(state, (void *)&luaext_key_ld);
+    lua_pushlightuserdata(state, (void *)data);
+    lua_settable(state, LUA_REGISTRYINDEX);
+}
+
 /**
  * \brief Common function to run the Lua match function and process
  *     the return value.
@@ -406,6 +413,7 @@ static void *DetectLuaThreadInit(void *data)
     }
 
     LuaRegisterExtensions(t->luastate);
+    LuaStateSetDetectLuaData(t->luastate, lua);
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
@@ -513,6 +521,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     } else {
         SCLuaSbLoadLibs(luastate);
     }
+    LuaStateSetDetectLuaData(luastate, ld);
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
@@ -804,22 +813,25 @@ static int LuaMatchTest01(void)
 {
     SCConfSetFinal("security.lua.allow-rules", "true");
 
-    const char script[] = "function init (args)\n"
-                          "   local needs = {}\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
-                          "   return needs\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")\n"
+                          "   return {}\n"
+                          "end\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")\n"
                           "end\n"
                           "\n"
                           "function match(args)\n"
-                          "   a = ScFlowvarGet(0)\n"
+                          "   a = cnt:value()\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"
@@ -926,22 +938,25 @@ static int LuaMatchTest01(void)
 
 static int LuaMatchTest01a(void)
 {
-    const char script[] = "function init (args)\n"
-                          "   local needs = {}\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
-                          "   return needs\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")\n"
+                          "   return {}\n"
+                          "end\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")\n"
                           "end\n"
                           "\n"
                           "function match(args)\n"
-                          "   a = SCFlowvarGet(0)\n"
+                          "   a = cnt:value(0)\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"
@@ -1047,23 +1062,27 @@ static int LuaMatchTest01a(void)
 /** \test payload buffer */
 static int LuaMatchTest02(void)
 {
-    const char script[] = "function init (args)\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")\n"
                           "   local needs = {}\n"
                           "   needs[\"payload\"] = tostring(true)\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
                           "   return needs\n"
+                          "end\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")\n"
                           "end\n"
                           "\n"
                           "function match(args)\n"
-                          "   a = ScFlowvarGet(0)\n"
+                          "   a = cnt:value()\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"
@@ -1154,23 +1173,27 @@ static int LuaMatchTest02(void)
 /** \test payload buffer */
 static int LuaMatchTest02a(void)
 {
-    const char script[] = "function init (args)\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")"
                           "   local needs = {}\n"
                           "   needs[\"payload\"] = tostring(true)\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
                           "   return needs\n"
+                          "end\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")"
                           "end\n"
                           "\n"
                           "function match(args)\n"
-                          "   a = SCFlowvarGet(0)\n"
+                          "   a = cnt:value()\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"
@@ -1260,23 +1283,28 @@ static int LuaMatchTest02a(void)
 /** \test packet buffer */
 static int LuaMatchTest03(void)
 {
-    const char script[] = "function init (args)\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")\n"
                           "   local needs = {}\n"
                           "   needs[\"packet\"] = tostring(true)\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
                           "\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")\n"
+                          "end\n"
+                          "\n"
                           "function match(args)\n"
-                          "   a = ScFlowvarGet(0)\n"
+                          "   a = cnt:value()\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       ScFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"
@@ -1366,23 +1394,28 @@ static int LuaMatchTest03(void)
 /** \test packet buffer */
 static int LuaMatchTest03a(void)
 {
-    const char script[] = "function init (args)\n"
+    const char script[] = "local flowvarlib = require(\"suricata.flowvar\")\n"
+                          "function init (args)\n"
+                          "   flowvarlib.register(\"cnt\")\n"
                           "   local needs = {}\n"
                           "   needs[\"packet\"] = tostring(true)\n"
-                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
                           "   return needs\n"
                           "end\n"
                           "\n"
+                          "function thread_init (args)\n"
+                          "   cnt = flowvarlib.get(\"cnt\")\n"
+                          "end\n"
+                          "\n"
                           "function match(args)\n"
-                          "   a = SCFlowvarGet(0)\n"
+                          "   a = cnt:value()\n"
                           "   if a then\n"
                           "       a = tostring(tonumber(a)+1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   else\n"
                           "       a = tostring(1)\n"
                           "       print (a)\n"
-                          "       SCFlowvarSet(0, a, #a)\n"
+                          "       cnt:set(a, #a)\n"
                           "   end\n"
                           "   \n"
                           "   print (\"pre check: \" .. (a))\n"

@@ -11,6 +11,7 @@ environment without access to additional modules.
    base64
    dns
    flowlib
+   flowvar
    hashlib
    http
    packetlib
