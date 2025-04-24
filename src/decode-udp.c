@@ -107,6 +107,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         Packet *tp = PacketTunnelPktSetup(tv, dtv, p, p->payload, p->payload_len, DECODE_TUNNEL_VXLAN);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+            AFPReadCopyBypass(tp, p);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
             /* Here we have a VXLAN packet and don't need to handle app
              * layer */
