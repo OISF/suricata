@@ -248,7 +248,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
 
         } else {
-            FlowHashKey4 fhk = { };
+            FlowHashKey4 fhk = {};
             const int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
             fhk.addrs[1-ai] = p->src.addr_data32[0];
             fhk.addrs[ai] = p->dst.addr_data32[0];
@@ -266,7 +266,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
         }
     } else if (PacketIsIPv6(p)) {
-        FlowHashKey6 fhk = { };
+        FlowHashKey6 fhk = {};
         if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             fhk.src[0] = p->src.addr_data32[0];
             fhk.src[1] = p->src.addr_data32[1];
@@ -318,8 +318,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
     uint32_t hash = 0;
 
     if (fk->src.family == AF_INET) {
-        FlowHashKey4 fhk = {
-        };
+        FlowHashKey4 fhk = {};
         int ai = (fk->src.address.address_un_data32[0] > fk->dst.address.address_un_data32[0]);
         fhk.addrs[1-ai] = fk->src.address.address_un_data32[0];
         fhk.addrs[ai] = fk->dst.address.address_un_data32[0];
@@ -338,8 +337,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     } else {
-        FlowHashKey6 fhk = {
-        };
+        FlowHashKey6 fhk = {};
         if (FlowHashRawAddressIPv6GtU32(fk->src.address.address_un_data32,
                     fk->dst.address.address_un_data32)) {
             fhk.src[0] = fk->src.address.address_un_data32[0];
@@ -528,7 +526,8 @@ static inline int FlowCompareESP(Flow *f, const Packet *p)
 
     return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, p->vlan_id) && f->tunnel_id == p->tunnel_id && f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
+           CmpVlanIds(f->vlan_id, p->vlan_id) && f->tunnel_id == p->tunnel_id &&
+           f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
            (f->livedev == p->livedev || g_livedev_mask == 0);
 }
 

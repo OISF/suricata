@@ -203,4 +203,9 @@ int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
 
+#ifdef HAVE_AF_PACKET
+typedef struct Packet_ Packet;
+void AFPReadCopyBypass(Packet *dst, Packet *src);
+#endif
+
 #endif /* SURICATA_SOURCE_AFP_H */

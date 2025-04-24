@@ -362,7 +362,13 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 
 static void *decode_tunnels_map;
 
-uint16_t PacketGetTunnelId(Packet *p, uint32_t session) {
+void *DecodeTunnelsGetMapIter()
+{
+    return DecodeTunnelsIterStart(decode_tunnels_map);
+}
+
+uint16_t PacketGetTunnelId(Packet *p, uint32_t session)
+{
     if (!PacketIsIPv4(p)) {
         return PKT_TUNNEL_UNKNOWN;
     }
@@ -370,7 +376,7 @@ uint16_t PacketGetTunnelId(Packet *p, uint32_t session) {
     k.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
     k.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
     k.session = session;
-    k.tunnel_type = (uint8_t) p->ttype;
+    k.tunnel_type = (uint8_t)p->ttype;
     return DecodeTunnelsId(decode_tunnels_map, k);
 }
 
@@ -412,7 +418,9 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     p->livedev = parent->livedev;
-
+#ifdef HAVE_AF_PACKET
+    AFPReadCopyBypass(p, parent);
+#endif
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
