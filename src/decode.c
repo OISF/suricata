@@ -396,7 +396,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         parent->ttype = PacketTunnelRoot;
@@ -457,7 +457,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         // we set parent->ttype later
