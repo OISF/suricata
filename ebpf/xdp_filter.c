@@ -23,6 +23,10 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_vlan.h>
+/* Workaround to avoid the need of 32bit headers */
+#define _LINUX_IF_H
+#define IFNAMSIZ 16
+#include <linux/if_tunnel.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -66,6 +70,13 @@ struct vlan_hdr {
     __u16	h_vlan_encapsulated_proto;
 };
 
+struct flowtunnel_keys {
+    __u32 src;
+    __u32 dst;
+    __u32 session : 24;
+    __u8 tunnel : 8;
+};
+
 struct flowv4_keys {
     __u32 src;
     __u32 dst;
@@ -75,7 +86,8 @@ struct flowv4_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u8 tunnel : 1;
+    __u16 vlan1_or_tunnel_id : 15;
 };
 
 struct flowv6_keys {
@@ -87,13 +99,29 @@ struct flowv6_keys {
     };
     __u8 ip_proto:1;
     __u16 vlan0:15;
-    __u16 vlan1;
+    __u8 tunnel : 1;
+    __u16 vlan1_or_tunnel_id : 15;
 };
 
 struct pair {
     __u64 packets;
     __u64 bytes;
 };
+
+struct flowtunnel_id {
+    __u16 tunnel_id;
+};
+
+struct {
+#if USE_PERCPU_HASH
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+#else
+    __uint(type, BPF_MAP_TYPE_HASH);
+#endif
+    __type(key, struct flowtunnel_keys);
+    __type(value, struct flowtunnel_id);
+    __uint(max_entries, 256);
+} flow_table_tunnels SEC(".maps");
 
 struct {
 #if USE_PERCPU_HASH
@@ -232,7 +260,8 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv4_final(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -280,7 +309,8 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     tuple.port16[1] = (__u16)dport;
 
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
@@ -421,7 +451,8 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
     tuple.port16[1] = dport;
 
     tuple.vlan0 = vlan0;
-    tuple.vlan1 = vlan1;
+    tuple.tunnel = (vlan1 & 0x8000) != 0;
+    tuple.vlan1_or_tunnel_id = vlan1 & 0x7FFF;
 
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
@@ -480,6 +511,130 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
 
     return XDP_PASS;
 #endif
+}
+
+static int __always_inline filter_erspan(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, struct iphdr *iph)
+{
+    struct erspan_hdr {
+        __be16 ver_vlan;
+        __be16 flags_spanid;
+        __be32 padding;
+    };
+    __u16 vlan0 = 0;
+    __u16 vlan1 = 0;
+    struct flowtunnel_keys tuple;
+    __u16 h_proto;
+    __u16 flags_spanid;
+    struct flowtunnel_id *value;
+
+    struct erspan_hdr *erhdr = (struct erspan_hdr *)(data + nh_off);
+    if ((void *)(erhdr + 1) > data_end)
+        return XDP_PASS;
+
+    if ((erhdr->ver_vlan & 0xF0) != 0x10) {
+        // only handle ERSPAN 2
+        return XDP_PASS;
+    }
+    flags_spanid = erhdr->flags_spanid;
+    if ((flags_spanid & 0x1800) == 0x800) {
+        // do not handle ISL encapsulated
+        return XDP_PASS;
+    }
+
+    tuple.tunnel = 4; // DECODE_TUNNEL_ERSPANII
+    tuple.src = iph->saddr;
+    tuple.dst = iph->daddr;
+    tuple.session = flags_spanid & 0x3FF;
+    value = bpf_map_lookup_elem(&flow_table_tunnels, &tuple);
+    if (!value) {
+        // unknown tunnel
+        return XDP_PASS;
+    }
+    vlan1 = 0x8000 | value->tunnel_id;
+
+    nh_off += 8;
+    if (data + nh_off + sizeof(struct ethhdr) > data_end)
+        return XDP_PASS;
+
+    struct ethhdr *eth = data + nh_off;
+    nh_off += sizeof(*eth);
+
+    h_proto = eth->h_proto;
+
+#if VLAN_TRACKING
+    if ((flags_spanid & 0x1800) == 0x1000) {
+        vlan0 = erhdr->ver_vlan & 0xFFF;
+    }
+#endif
+    if ((flags_spanid & 0x1800) == 0x1800 && (h_proto == __constant_htons(ETH_P_8021Q) ||
+                                                     h_proto == __constant_htons(ETH_P_8021AD))) {
+        struct vlan_hdr *vhdr;
+
+        if (data + nh_off + sizeof(struct vlan_hdr) > data_end)
+            return XDP_PASS;
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
+        vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+#endif
+    }
+    if (h_proto == __constant_htons(ETH_P_IP))
+        return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
+    else if (h_proto == __constant_htons(ETH_P_IPV6))
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
+    return XDP_PASS;
+}
+
+static int __always_inline filter_gre(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, struct iphdr *iph)
+{
+    struct gre_hdr {
+        __be16 flags;
+        __be16 proto;
+    };
+    __u16 proto;
+
+    struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
+
+    if ((void *)(grhdr + 1) > data_end)
+        return XDP_PASS;
+
+    // only GRE version 0 without routing
+    if (grhdr->flags & (GRE_VERSION | GRE_ROUTING))
+        return XDP_PASS;
+
+    nh_off += 4;
+    if (grhdr->flags & GRE_CSUM)
+        nh_off += 4;
+    if (grhdr->flags & GRE_KEY)
+        nh_off += 4;
+    if (grhdr->flags & GRE_SEQ)
+        nh_off += 4;
+    if (data + nh_off > data_end)
+        return XDP_PASS;
+
+    proto = grhdr->proto;
+    // only handle erspan over gre
+    if (proto == __constant_htons(ETH_P_ERSPAN)) {
+        return filter_erspan(ctx, data, nh_off, data_end, iph);
+    }
+    return XDP_PASS;
+}
+
+static int __always_inline filter_ipv4(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+{
+    struct iphdr *iph = data + nh_off;
+    if ((void *)(iph + 1) > data_end)
+        return XDP_PASS;
+
+    if (iph->protocol == IPPROTO_GRE) {
+        nh_off += sizeof(struct iphdr);
+        return filter_gre(ctx, data, nh_off, data_end, iph);
+    }
+    return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
 }
 
 int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)

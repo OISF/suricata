@@ -409,6 +409,11 @@ void PacketGetTunnelId(Packet *p, uint32_t session)
     }
 }
 
+void *DecodeTunnelsGetMapIter(void)
+{
+    return DecodeTunnelsIterStart(decode_tunnels_map);
+}
+
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -447,7 +452,10 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     p->livedev = parent->livedev;
-
+#ifdef HAVE_PACKET_EBPF
+    // need to copy BypassPacketsFlow callback and such
+    AFPReadCopyBypass(p, parent);
+#endif
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
