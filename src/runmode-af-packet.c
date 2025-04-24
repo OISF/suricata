@@ -524,6 +524,10 @@ static void *ParseAFPConfig(const char *iface)
         if (conf_val) {
             aconf->xdp_bypass_erspan2 = true;
         }
+        SCConfGetChildValueBoolWithDefault(if_root, if_default, "bypass-vxlan", &conf_val);
+        if (conf_val) {
+            aconf->xdp_bypass_vxlan = true;
+        }
 #else
         SCLogWarning("%s: XDP filter set but XDP support is not built-in", iface);
 #endif

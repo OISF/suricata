@@ -65,6 +65,9 @@
 /* erspan stripping: set it to 1 if you want to strip encapsulating erspan */
 #define ERSPAN_STRIP 0
 
+/* vxlan port configurable */
+#define VXLAN_PORT 0xb512
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -589,6 +592,49 @@ static int __always_inline filter_gre(
     return XDP_PASS;
 }
 
+struct vxlanhdr {
+    __be16 flags;
+    __be16 gdp;
+    __u8 vni0;
+    __u8 vni1;
+    __u8 vni2;
+    __u8 res;
+};
+
+static int __always_inline filter_vxlan(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+{
+    __u16 vlan0 = 0;
+    __u16 h_proto;
+    nh_off += sizeof(struct vxlanhdr);
+
+    if (data + nh_off + sizeof(struct ethhdr) > data_end)
+        return XDP_PASS;
+
+    struct ethhdr *eth = data + nh_off;
+    nh_off += sizeof(*eth);
+
+    h_proto = eth->h_proto;
+
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
+        struct vlan_hdr *vhdr;
+
+        if (data + nh_off + sizeof(struct vlan_hdr) > data_end)
+            return XDP_PASS;
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
+        vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+#endif
+    }
+    if (h_proto == __constant_htons(ETH_P_IP))
+        return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, 0);
+    else if (h_proto == __constant_htons(ETH_P_IPV6))
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, 0);
+    return XDP_PASS;
+}
+
 static int __always_inline filter_ipv4(
         struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
@@ -599,6 +645,21 @@ static int __always_inline filter_ipv4(
     if (iph->protocol == IPPROTO_GRE) {
         nh_off += sizeof(struct iphdr);
         return filter_gre(ctx, data, nh_off, data_end, vlan0, vlan1);
+    } else if (iph->protocol == IPPROTO_UDP) {
+        if (data + nh_off + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct vxlanhdr) +
+                        sizeof(struct ethhdr) <=
+                data_end) {
+            struct udphdr *uh = (struct udphdr *)(data + nh_off + sizeof(struct iphdr));
+            if (uh->dest == VXLAN_PORT) {
+                struct vxlanhdr *vh = (struct vxlanhdr *)(data + nh_off + sizeof(struct iphdr) +
+                                                          sizeof(struct udphdr));
+                // check vni is present and reserved is 0
+                if ((vh->flags & 0xDEFF) == 8 && vh->res == 0) {
+                    nh_off += sizeof(struct iphdr) + sizeof(struct udphdr);
+                    return filter_vxlan(ctx, data, nh_off, data_end);
+                }
+            }
+        }
     }
     return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
 }

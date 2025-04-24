@@ -120,6 +120,7 @@ typedef struct AFPIfaceConfig_
     const char *out_iface;
 #ifdef HAVE_PACKET_EBPF
     bool xdp_bypass_erspan2;
+    bool xdp_bypass_vxlan;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
     SC_ATOMIC_DECLARE(unsigned int, ref);
@@ -163,6 +164,7 @@ typedef struct AFPPacketVars_
     uint16_t vlan_tci;
 #ifdef HAVE_PACKET_EBPF
     bool xdp_bypass_erspan2;
+    bool xdp_bypass_vxlan;
     int v4_map_fd;
     int v6_map_fd;
     unsigned int nr_cpus;
