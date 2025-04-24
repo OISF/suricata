@@ -547,6 +547,9 @@ typedef struct Packet_
     /* tunnel type: none, root or child */
     uint8_t ttype; // enum PacketTunnelType
 
+    /* tunnel protocol */
+    uint8_t tproto; // enum DecodeTunnelProto
+
     /* Pkt Flags */
     uint32_t flags;
 
