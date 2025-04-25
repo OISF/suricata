@@ -58,6 +58,7 @@
 #define LOG_TLS_FIELD_CLIENT_ALPNS     BIT_U64(18)
 #define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
 #define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
+#define LOG_TLS_FIELD_SERVER_HANDSHAKE BIT_U64(21)
 
 typedef struct {
     const char *name;
@@ -87,6 +88,7 @@ TlsFields tls_fields[] = {
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
     { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
+    { "server_handshake", LOG_TLS_FIELD_SERVER_HANDSHAKE },
     { NULL, -1 },
     // clang-format on
 };
@@ -417,6 +419,35 @@ static void JsonTlsLogClientHandshake(SCJsonBuilder *js, SSLState *ssl_state)
     SCJbClose(js);
 }
 
+static void JsonTlsLogServerHandshake(SCJsonBuilder *js, SSLState *ssl_state)
+{
+    const uint16_t *val;
+    uintptr_t i, nr;
+
+    if (ssl_state->server_connp.hs == NULL) {
+        return;
+    }
+
+    SCJbOpenObject(js, "server_handshake");
+
+    const uint16_t vers = SCHandshakeGetVersion(ssl_state->server_connp.hs);
+    JsonTlsLogVersion(js, vers);
+
+    const uint16_t choosen_cipher = SCHandshakeGetFirstCipher(ssl_state->server_connp.hs);
+    SCJbSetUint(js, "cipher", choosen_cipher);
+
+    val = SCHandshakeGetExtensions(ssl_state->server_connp.hs, &nr);
+    if (nr > 0) {
+        SCJbOpenArray(js, "exts");
+        for (i = 0; i < nr; i++) {
+            SCJbAppendUint(js, val[i]);
+        }
+        SCJbClose(js);
+    }
+
+    SCJbClose(js);
+}
+
 static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
@@ -491,6 +522,10 @@ static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fi
     /* tls client handshake parameters */
     if (fields & LOG_TLS_FIELD_CLIENT_HANDSHAKE)
         JsonTlsLogClientHandshake(js, ssl_state);
+
+    /* tls server handshake parameters */
+    if (fields & LOG_TLS_FIELD_SERVER_HANDSHAKE)
+        JsonTlsLogServerHandshake(js, ssl_state);
 
     if (fields & LOG_TLS_FIELD_CLIENT) {
         const bool log_cert = (fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
