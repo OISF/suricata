@@ -146,6 +146,12 @@ impl HandshakeParams {
         Ok(())
     }
 
+    fn log_first_cipher(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
+        let chosen = self.ciphersuites.first().map(|&v| *v).unwrap_or(0);
+        js.set_uint("cipher", chosen)?;
+        Ok(())
+    }
+
     fn log_ciphers(&self, js: &mut JsonBuilder) -> Result<(), JsonError> {
         if self.ciphersuites.is_empty() {
             return Ok(());
@@ -240,6 +246,14 @@ pub unsafe extern "C" fn SCTLSHandshakeLogCiphers(hs: &HandshakeParams, js: *mut
         return false;
     }
     return hs.log_ciphers(js.as_mut().unwrap()).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogFirstCipher(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+    if js.is_null() {
+        return false;
+    }
+    return hs.log_first_cipher(js.as_mut().unwrap()).is_ok()
 }
 
 #[no_mangle]

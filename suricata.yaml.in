@@ -288,7 +288,7 @@ outputs:
             #session-resumption: no
             # custom controls which TLS fields that are included in eve-log
             # WARNING: enabling custom disables extended logging.
-            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname, client, client_certificate, client_chain, client_alpns, server_alpns, client_handshake]
+            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname, client, client_certificate, client_chain, client_alpns, server_alpns, client_handshake, server_handshake]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
