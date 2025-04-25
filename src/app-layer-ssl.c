@@ -753,7 +753,8 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
     uint16_t version = (uint16_t)(*input << 8) | *(input + 1);
     ssl_state->curr_connp->version = version;
 
-    if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+    if (ssl_state->current_flags &
+            (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
         SCHandshakeSetTLSVersion(ssl_state->curr_connp->hs, version);
     }
 
@@ -925,7 +926,8 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         input += 2;
 
         if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
-            if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+            if (ssl_state->current_flags &
+                    (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
                 SCHandshakeAddCipher(ssl_state->curr_connp->hs, cipher_suite);
             }
             if (enable_ja3) {
@@ -1517,7 +1519,8 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             }
         }
 
-        if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+        if (ssl_state->current_flags &
+                (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
                 SCHandshakeAddExtension(ssl_state->curr_connp->hs, ext_type);
             }
