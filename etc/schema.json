@@ -7049,6 +7049,25 @@
 			}
 		    }
 		},
+		"server_handshake": {
+		    "type": "object",
+		    "properties": {
+			"version": {
+			    "type": "string"
+			},
+			"cipher": {
+			    "description": "TLS server's chosen cipher",
+			    "type": "integer"
+			},
+			"exts": {
+			    "description": "TLS server extension(s)",
+			    "type": "array",
+			    "items": {
+				"type": "integer"
+			    }
+			}
+		    }
+		},
                 "server_alpns": {
                     "description": "TLS server ALPN field(s)",
                     "type": "array",
