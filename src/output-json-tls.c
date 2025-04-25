@@ -58,6 +58,7 @@
 #define LOG_TLS_FIELD_CLIENT_ALPNS     BIT_U64(18)
 #define LOG_TLS_FIELD_SERVER_ALPNS     BIT_U64(19)
 #define LOG_TLS_FIELD_CLIENT_HANDSHAKE BIT_U64(20)
+#define LOG_TLS_FIELD_SERVER_HANDSHAKE BIT_U64(21)
 
 typedef struct {
     const char *name;
@@ -87,6 +88,7 @@ TlsFields tls_fields[] = {
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
     { "server_alpns", LOG_TLS_FIELD_SERVER_ALPNS },
     { "client_handshake", LOG_TLS_FIELD_CLIENT_HANDSHAKE },
+    { "server_handshake", LOG_TLS_FIELD_SERVER_HANDSHAKE },
     { NULL, -1 },
     // clang-format on
 };
@@ -383,6 +385,25 @@ static void JsonTlsLogClientHandshake(SCJsonBuilder *js, SSLState *ssl_state)
     SCJbClose(js);
 }
 
+static void JsonTlsLogServerHandshake(SCJsonBuilder *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.hs == NULL) {
+        return;
+    }
+
+    if (SCTLSHandshakeIsEmpty(ssl_state->server_connp.hs)) {
+        return;
+    }
+
+    SCJbOpenObject(js, "server_handshake");
+
+    SCTLSHandshakeLogVersion(ssl_state->server_connp.hs, js);
+    SCTLSHandshakeLogFirstCipher(ssl_state->server_connp.hs, js);
+    SCTLSHandshakeLogExtensions(ssl_state->server_connp.hs, js);
+
+    SCJbClose(js);
+}
+
 static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fields)
 {
     /* tls subject */
@@ -457,6 +478,10 @@ static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fi
     /* tls client handshake parameters */
     if (fields & LOG_TLS_FIELD_CLIENT_HANDSHAKE)
         JsonTlsLogClientHandshake(js, ssl_state);
+
+    /* tls server handshake parameters */
+    if (fields & LOG_TLS_FIELD_SERVER_HANDSHAKE)
+        JsonTlsLogServerHandshake(js, ssl_state);
 
     if (fields & LOG_TLS_FIELD_CLIENT) {
         const bool log_cert = (fields & LOG_TLS_FIELD_CLIENT_CERT) != 0;
