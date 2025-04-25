@@ -180,6 +180,7 @@ noinst_HEADERS = \
 	detect-ftp-reply.h \
 	detect-ftpbounce.h \
 	detect-ftpdata.h \
+	detect-ftp-mode.h \
 	detect-geoip.h \
 	detect-gid.h \
 	detect-hostbits.h \
@@ -770,6 +771,7 @@ libsuricata_c_a_SOURCES = \
 	detect-ftp-reply.c \
 	detect-ftpbounce.c \
 	detect-ftpdata.c \
+	detect-ftp-mode.c \
 	detect-geoip.c \
 	detect-gid.c \
 	detect-hostbits.c \
