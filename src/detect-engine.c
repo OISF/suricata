@@ -2457,9 +2457,7 @@ const char *DetectEngineMpmCachingGetPath(void)
 
     char yamlpath[] = "detect.sgh-mpm-caching-path";
     const char *strval = NULL;
-    (void)SCConfGet(yamlpath, &strval);
-
-    if (strval != NULL) {
+    if (SCConfGet(yamlpath, &strval) == 1 && strval != NULL) {
         return strval;
     }
 
