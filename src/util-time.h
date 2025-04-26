@@ -79,7 +79,7 @@ typedef struct {
 #define SCTIME_FROM_TIMEVAL(tv)                                                                    \
     (SCTime_t)                                                                                     \
     {                                                                                              \
-        .secs = (tv)->tv_sec, .usecs = (tv)->tv_usec                                               \
+        .secs = (uint64_t)(tv)->tv_sec, .usecs = (uint32_t)(tv)->tv_usec                           \
     }
 /** \brief variant to deal with potentially bad timestamps, like from pcap files */
 #define SCTIME_FROM_TIMEVAL_UNTRUSTED(tv)                                                          \

@@ -30,7 +30,7 @@
 
 #include "util-dpdk.h"
 
-int i40eDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
+int i40eDeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name);
 void i40eDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
 
 #endif /* HAVE_DPDK */

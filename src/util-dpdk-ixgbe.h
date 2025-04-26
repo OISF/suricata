@@ -28,7 +28,7 @@
 
 #ifdef HAVE_DPDK
 
-int ixgbeDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name);
+int ixgbeDeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name);
 void ixgbeDeviceSetRSSHashFunction(uint64_t *rss_conf);
 
 #endif /* HAVE_DPDK */
