@@ -299,7 +299,7 @@ static int i40eDeviceSetRSSWithFlows(int port_id, const char *port_name, int nb_
 
 #endif /* RTE_VERSION < RTE_VERSION_NUM(20,0,0,0) */
 
-int i40eDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name)
+int i40eDeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
 {
     (void)nb_rx_queues; // avoid unused variable warnings
 
