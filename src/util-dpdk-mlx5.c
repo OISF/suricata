@@ -40,7 +40,7 @@
 
 #define MLX5_RSS_HKEY_LEN 40
 
-int mlx5DeviceSetRSS(int port_id, int nb_rx_queues, char *port_name)
+int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
 {
     uint16_t queues[RTE_MAX_QUEUES_PER_PORT];
     struct rte_flow_error flush_error = { 0 };

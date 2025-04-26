@@ -70,7 +70,7 @@ static char *AllocArgument(size_t arg_len);
 static char *AllocAndSetArgument(const char *arg);
 static char *AllocAndSetOption(const char *arg);
 
-static void ArgumentsInit(struct Arguments *args, unsigned capacity);
+static void ArgumentsInit(struct Arguments *args, uint16_t capacity);
 static void ArgumentsCleanup(struct Arguments *args);
 static void ArgumentsAdd(struct Arguments *args, char *value);
 static void ArgumentsAddOptionAndArgument(struct Arguments *args, const char *opt, const char *arg);
@@ -148,9 +148,9 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
  * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
  * The divisor is returned.
  */
-static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
+static uint32_t GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
 {
-    for (int i = max_num; i >= 2; i--) {
+    for (uint32_t i = max_num; i >= 2; i--) {
         if (num % i == 0) {
             return i;
         }
@@ -225,12 +225,12 @@ static char *AllocAndSetOption(const char *arg)
     size_t full_len = arg_len + strlen(dash_prefix);
 
     ptr = AllocArgument(full_len);
-    strlcpy(ptr, dash_prefix, strlen(dash_prefix) + 1);
-    strlcat(ptr, arg, full_len + 1);
+    strlcpy(ptr, dash_prefix, full_len);
+    strlcat(ptr, arg, full_len);
     SCReturnPtr(ptr, "char *");
 }
 
-static void ArgumentsInit(struct Arguments *args, unsigned capacity)
+static void ArgumentsInit(struct Arguments *args, uint16_t capacity)
 {
     SCEnter();
     args->argv = SCCalloc(capacity, sizeof(*args->argv)); // alloc array of pointers
@@ -352,7 +352,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     if (ptr == NULL)
         FatalError("Could not allocate memory for DPDKIfaceConfig");
 
-    ptr->out_port_id = -1; // make sure no port is set
+    ptr->out_port_id = UINT16_MAX; // make sure no port is set
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
     ptr->DerefFunc = DPDKDerefConfig;
@@ -381,7 +381,7 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    static int32_t remaining_auto_cpus = -1;
+    static uint16_t remaining_auto_cpus = UINT16_MAX; // uninitialized
     if (!threading_set_cpu_affinity) {
         SCLogError("DPDK runmode requires configured thread affinity");
         SCReturnInt(-EINVAL);
@@ -397,7 +397,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCLogError("Specify management-cpu-set list in the threading section");
         SCReturnInt(-EINVAL);
     }
-    uint32_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+    uint16_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
     if (sched_cpus == UtilCpuGetNumProcessorsOnline()) {
         SCLogWarning(
                 "\"all\" specified in worker CPU cores affinity, excluding management threads");
@@ -425,7 +425,12 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        iconf->threads = (uint16_t)sched_cpus / LiveGetDeviceCount();
+        uint16_t live_dev_count = (uint16_t)LiveGetDeviceCount();
+        if (live_dev_count == 0) {
+            SCLogError("No live devices found, cannot auto-assign threads");
+            SCReturnInt(-EINVAL);
+        }
+        iconf->threads = sched_cpus / live_dev_count;
         if (iconf->threads == 0) {
             SCLogError("Not enough worker CPU cores with affinity were configured");
             SCReturnInt(-ERANGE);
@@ -434,8 +439,9 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         if (remaining_auto_cpus > 0) {
             iconf->threads++;
             remaining_auto_cpus--;
-        } else if (remaining_auto_cpus == -1) {
-            remaining_auto_cpus = (int32_t)sched_cpus % LiveGetDeviceCount();
+        } else if (remaining_auto_cpus == UINT16_MAX) {
+            // first time auto-assignment
+            remaining_auto_cpus = sched_cpus % live_dev_count;
             if (remaining_auto_cpus > 0) {
                 iconf->threads++;
                 remaining_auto_cpus--;
@@ -582,7 +588,7 @@ static uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
     // It is advised to have mempool cache size lower or equal to:
     //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
     // and at the same time "mempool-size modulo cache_size == 0".
-    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, mp_sz / 1.5);
+    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, (uint32_t)(mp_sz / 1.5));
     return GreatestDivisorUpTo(mp_sz, max_cache_size);
 }
 
@@ -626,7 +632,7 @@ static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str,
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        iconf->nb_rx_desc = GreatestPowOf2UpTo(max_desc);
+        iconf->nb_rx_desc = (uint16_t)GreatestPowOf2UpTo(max_desc);
         SCReturnInt(0);
     }
 
@@ -659,7 +665,7 @@ static int ConfigSetTxDescriptors(
 
     if (strcmp(entry_str, "auto") == 0) {
         if (iface_sends_pkts) {
-            iconf->nb_tx_desc = GreatestPowOf2UpTo(max_desc);
+            iconf->nb_tx_desc = (uint16_t)GreatestPowOf2UpTo(max_desc);
         } else {
             iconf->nb_tx_desc = 0;
         }
@@ -709,20 +715,21 @@ static int ConfigSetMtu(DPDKIfaceConfig *iconf, intmax_t entry_int)
         SCReturnInt(-ERANGE);
     }
 
-    iconf->mtu = entry_int;
+    iconf->mtu = (uint16_t)entry_int;
     SCReturnInt(0);
 }
 
 static int ConfigSetLinkupTimeout(DPDKIfaceConfig *iconf, intmax_t entry_int)
 {
     SCEnter();
-    if (entry_int < 0) {
-        SCLogError("%s: Link-up waiting timeout needs to be a positive number or 0 to disable",
-                iconf->iface);
+    if (entry_int < 0 || entry_int > UINT16_MAX) {
+        SCLogError("%s: Link-up waiting timeout needs to be a positive number (up to %u) or 0 to "
+                   "disable",
+                iconf->iface, UINT16_MAX);
         SCReturnInt(-ERANGE);
     }
 
-    iconf->linkup_timeout = entry_int;
+    iconf->linkup_timeout = (uint16_t)entry_int;
     SCReturnInt(0);
 }
 
@@ -913,7 +920,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
 
     // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads, dev_info.max_rx_queues);
+    retval = ConfigSetRxQueues(iconf, iconf->threads, dev_info.max_rx_queues);
     if (retval < 0) {
         SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
                 iconf->iface, dev_info.max_rx_queues);
@@ -921,7 +928,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     }
 
     // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
-    uint16_t tx_queues = iconf->nb_tx_desc > 0 ? (uint16_t)iconf->threads : 0;
+    uint16_t tx_queues = iconf->nb_tx_desc > 0 ? iconf->threads : 0;
     retval = ConfigSetTxQueues(iconf, tx_queues, dev_info.max_tx_queues, iface_sends_pkts);
     if (retval < 0) {
         SCLogError("%s: too many threads configured - reduce thread count to: %" PRIu16,
@@ -1062,9 +1069,9 @@ static void DeviceSetPMDSpecificRSS(struct rte_eth_rss_conf *rss_conf, const cha
 }
 
 // Returns -1 if no bit is set
-static int GetFirstSetBitPosition(uint64_t bits)
+static int32_t GetFirstSetBitPosition(uint64_t bits)
 {
-    for (uint64_t i = 0; i < 64; i++) {
+    for (int32_t i = 0; i < 64; i++) {
         if (bits & BIT_U64(i))
             return i;
     }
@@ -1467,7 +1474,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
-                iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
+                (unsigned int)iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
         if (retval < 0) {
             SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
@@ -1485,8 +1492,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->iface, queue_id, iconf->nb_tx_desc, txq_conf.offloads,
                 txq_conf.tx_thresh.hthresh, txq_conf.tx_thresh.pthresh, txq_conf.tx_thresh.wthresh,
                 txq_conf.tx_free_thresh, txq_conf.tx_rs_thresh, txq_conf.tx_deferred_start);
-        retval = rte_eth_tx_queue_setup(
-                iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
+        retval = rte_eth_tx_queue_setup(iconf->port_id, queue_id, iconf->nb_tx_desc,
+                (unsigned int)iconf->socket_id, &txq_conf);
         if (retval < 0) {
             SCLogError("%s: failed to setup TX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
@@ -1815,7 +1822,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    for (int32_t i = 0; i < iconf->threads; i++) {
+    for (uint16_t i = 0; i < iconf->threads; i++) {
         ldev_instance->dpdk_vars = iconf->pkt_mempools;
         iconf->pkt_mempools = NULL;
     }
