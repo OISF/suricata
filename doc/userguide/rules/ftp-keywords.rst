@@ -160,6 +160,37 @@ Example rules combining ``ftp.dynamic_port`` with ``ftp.command``
 
   alert ftp any any -> any any (ftp.command; content: "EPSV"; :example-rule-options:`ftp.dynamic_port: 58612;` sid: 1;)
 
+ftp.mode
+--------
+
+This keyword matches on whether the FTP session is dynamic or passive. In `active` mode sessions, the server establishes the data channel.
+In `passive` mode, the client establishes the data channel. Active mode sessions are established in part with the ``PORT`` (``EPRT`` for IPv6)
+command; passive mode sessions use ``PASV`` (``EPSV`` for IPv6).
+
+Syntax::
+
+  ftp.mode: active|passive;
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.mode: active;` sid: 1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.mode: passive;` sid: 1;)
+
+Example rules combining ``ftp.command`` with ``ftp.command``
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.command; content: "PORT"; :example-rule-options:`ftp.mode: active;` sid:1;)
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (ftp.command; content: "PASV"; :example-rule-options:`ftp.mode: passive;` sid:1;)
+
 ftp.reply
 ---------
 
@@ -170,7 +201,6 @@ include the completion code in the `content` to match upon (see examples).
 Syntax::
 
   ftp.reply; content: <reply-string>;
-  alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Please specify the password.";` sid: 1;)
 
 .. note ::
    FTP commands can return multiple reply strings. Specify a single reply for each ``ftp.reply`` keyword.
@@ -183,6 +213,10 @@ This example shows an FTP command (``RETR``) followed by an FTP reply with multi
     226 Transfer complete.
 
 Signature Example:
+
+.. container:: example-rule
+
+  alert ftp any any -> any any (:example-rule-options:`ftp.reply; content:"Please specify the password.";` sid: 1;)
 
 .. container:: example-rule
 
