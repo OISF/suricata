@@ -451,7 +451,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(0);
     }
 
-    if (StringParseInt32(&iconf->threads, 10, 0, entry_str) < 0) {
+    if (StringParseUint16(&iconf->threads, 10, 0, entry_str) < 0) {
         SCLogError("Threads entry for interface %s contain non-numerical characters - \"%s\"",
                 iconf->iface, entry_str);
         SCReturnInt(-EINVAL);
