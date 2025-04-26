@@ -55,8 +55,7 @@ typedef struct DPDKIfaceConfig_ {
     char iface[RTE_ETH_NAME_MAX_LEN];
     uint16_t port_id;
     int32_t socket_id;
-    /* number of threads - zero means all available */
-    int threads;
+    uint16_t threads;
     /* IPS mode */
     DpdkCopyModeEnum copy_mode;
     const char *out_iface;

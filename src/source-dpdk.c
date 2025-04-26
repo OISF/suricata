@@ -123,7 +123,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t capture_dpdk_ierrors;
     uint16_t capture_dpdk_tx_errs;
     unsigned int flags;
-    int threads;
+    uint16_t threads;
     /* for IPS */
     DpdkCopyModeEnum copy_mode;
     uint16_t out_port_id;
