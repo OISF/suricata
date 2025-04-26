@@ -45,7 +45,7 @@ void ixgbeDeviceSetRSSHashFunction(uint64_t *rss_hf)
     *rss_hf = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_IPV6 | RTE_ETH_RSS_IPV6_EX;
 }
 
-int ixgbeDeviceSetRSS(int port_id, int nb_rx_queues, char *port_name)
+int ixgbeDeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
 {
     uint16_t queues[RTE_MAX_QUEUES_PER_PORT];
     struct rte_flow_error flush_error = { 0 };
