@@ -151,7 +151,7 @@ static TmEcode DecodeDPDK(ThreadVars *, Packet *, void *);
 static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, uint16_t offset);
 static bool InterruptsRXEnable(uint16_t port_id, uint16_t queue_id)
 {
-    uint32_t event_data = port_id << UINT16_WIDTH | queue_id;
+    uint32_t event_data = (uint32_t)port_id << UINT16_WIDTH | queue_id;
     int32_t ret = rte_eth_dev_rx_intr_ctl_q(port_id, queue_id, RTE_EPOLL_PER_THREAD,
             RTE_INTR_EVENT_ADD, (void *)((uintptr_t)event_data));
 
@@ -707,21 +707,23 @@ fail:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-static void PrintDPDKPortXstats(uint32_t port_id, const char *port_name)
+static void PrintDPDKPortXstats(uint16_t port_id, const char *port_name)
 {
     struct rte_eth_xstat *xstats;
     struct rte_eth_xstat_name *xstats_names;
 
-    int32_t len = rte_eth_xstats_get(port_id, NULL, 0);
-    if (len < 0)
+    int32_t ret = rte_eth_xstats_get(port_id, NULL, 0);
+    if (ret < 0) {
         FatalError("Error (%s) getting count of rte_eth_xstats failed on port %s",
-                rte_strerror(-len), port_name);
+                rte_strerror(-ret), port_name);
+    }
+    uint16_t len = (uint16_t)ret;
 
     xstats = SCCalloc(len, sizeof(*xstats));
     if (xstats == NULL)
         FatalError("Failed to allocate memory for the rte_eth_xstat structure");
 
-    int32_t ret = rte_eth_xstats_get(port_id, xstats, len);
+    ret = rte_eth_xstats_get(port_id, xstats, len);
     if (ret < 0 || ret > len) {
         SCFree(xstats);
         FatalError("Error (%s) getting rte_eth_xstats failed on port %s", rte_strerror(-ret),
