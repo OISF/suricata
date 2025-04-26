@@ -20,7 +20,7 @@
 use crate::detect::error::RuleParseError;
 use crate::detect::parser::{parse_var, take_until_whitespace, ResultValue};
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
+use std::os::raw::{c_int, c_void, c_char};
 use crate::ffi::base64::SCBase64Mode;
 
 use nom7::bytes::complete::tag;
@@ -47,6 +47,8 @@ pub struct SCDetectTransformFromBase64Data {
     offset: u32,
     offset_str: *const c_char,
     mode: SCBase64Mode,
+    serialized_data: *mut c_void,
+    serialized_data_len:  c_int,
 }
 
 impl Drop for SCDetectTransformFromBase64Data {
@@ -70,6 +72,8 @@ impl Default for SCDetectTransformFromBase64Data {
             offset: 0,
             offset_str: std::ptr::null_mut(),
             mode: TRANSFORM_FROM_BASE64_MODE_DEFAULT,
+            serialized_data: std::ptr::null_mut(),
+            serialized_data_len: 0,
         }
     }
 }
@@ -287,6 +291,8 @@ mod tests {
                 std::ptr::null_mut()
             },
             mode,
+            serialized_data: std::ptr::null_mut(),
+            serialized_data_len: 0,
         };
 
         let (_, val) = parse_transform_base64(args).unwrap();
