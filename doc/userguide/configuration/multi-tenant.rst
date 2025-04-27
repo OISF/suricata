@@ -35,7 +35,7 @@ Settings:
 
   multi-detect:
     enabled: yes
-    #selector: direct # direct or vlan
+    #selector: direct # direct or vlan or device
     selector: vlan
     loaders: 3
 
