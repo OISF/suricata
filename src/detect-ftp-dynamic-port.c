@@ -111,6 +111,8 @@ void DetectFtpDynamicPortRegister(void)
     DetectAppLayerInspectEngineRegister(
             BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
+    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
+
     g_ftp_dynport_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
