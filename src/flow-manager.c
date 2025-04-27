@@ -808,13 +808,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
     SCTime_t ts;
 
-    /* don't start our activities until time is setup */
-    while (!TimeModeIsReady()) {
-        if (suricata_ctl_flags != 0)
-            return TM_ECODE_OK;
-        usleep(10);
-    }
-
     uint32_t mp = MemcapsGetPressure() * 100;
     if (ftd->instance == 0) {
         StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
@@ -824,6 +817,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
+    /* don't start our activities until time is setup */
+    while (!TimeModeIsReady()) {
+        if (suricata_ctl_flags != 0)
+            return TM_ECODE_OK;
+        usleep(10);
+    }
 
     while (1)
     {
