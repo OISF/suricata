@@ -855,6 +855,14 @@ pcap-file:
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
+  # tenant-id: none # applies in multi-tenant environment with "direct" selector
+  # delete-when-done: false # applies to file and directory
+
+  # PCAP Directory Processing options
+  # recursive: false
+  # continuous: false
+  # delay: 30 # seconds to wait before processing the newly added PCAPs
+  # poll-interval: 5 # how often to check the directory
 
 # See "Advanced Capture Options" below for more options, including Netmap
 # and PF_RING.
