@@ -87,6 +87,9 @@ typedef int (*PrefilterRegisterFunc)(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
+void DetectAppLayerMpmRegisterSimple(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, DetectTxGetBufferPtr GetData, AppProto alproto,
+        int tx_min_progress);
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);

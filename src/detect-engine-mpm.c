@@ -88,7 +88,8 @@ static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
  */
 static void RegisterInternal(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
-        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, int tx_min_progress)
+        DetectTxGetBufferPtr GetDataSimple, InspectionMultiBufferGetDataPtr GetMultiData,
+        AppProto alproto, int tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
@@ -109,8 +110,8 @@ static void RegisterInternal(const char *name, int direction, int priority,
 
     // every HTTP2 can be accessed from DOH2
     if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        RegisterInternal(name, direction, priority, PrefilterRegister, GetData, GetMultiData,
-                ALPROTO_DOH2, tx_min_progress);
+        RegisterInternal(name, direction, priority, PrefilterRegister, GetData, GetDataSimple,
+                GetMultiData, ALPROTO_DOH2, tx_min_progress);
     }
     DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
@@ -126,6 +127,8 @@ static void RegisterInternal(const char *name, int direction, int priority,
     am->PrefilterRegisterWithListId = PrefilterRegister;
     if (GetData != NULL) {
         am->app_v2.GetData = GetData;
+    } else if (GetDataSimple != NULL) {
+        am->app_v2.GetDataSimple = GetDataSimple;
     } else if (GetMultiData != NULL) {
         am->app_v2.GetMultiData = GetMultiData;
     }
@@ -152,16 +155,24 @@ void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress)
 {
-    RegisterInternal(
-            name, direction, priority, PrefilterRegister, GetData, NULL, alproto, tx_min_progress);
+    RegisterInternal(name, direction, priority, PrefilterRegister, GetData, NULL, NULL, alproto,
+            tx_min_progress);
+}
+
+void DetectAppLayerMpmRegisterSimple(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, DetectTxGetBufferPtr GetData, AppProto alproto,
+        int tx_min_progress)
+{
+    RegisterInternal(name, direction, priority, PrefilterRegister, NULL, GetData, NULL, alproto,
+            tx_min_progress);
 }
 
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress)
 {
-    RegisterInternal(
-            name, direction, priority, PrefilterRegister, NULL, GetData, alproto, tx_min_progress);
+    RegisterInternal(name, direction, priority, PrefilterRegister, NULL, NULL, GetData, alproto,
+            tx_min_progress);
 }
 
 /** \brief copy a mpm engine from parent_id, add in transforms */
