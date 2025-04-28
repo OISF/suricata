@@ -44,6 +44,13 @@ static inline void DatajsonUnlockData(THashData *d)
     THashDataUnlock(d);
 }
 
+void DatajsonUnlockElt(DataJsonResultType *r)
+{
+    if (r->hashdata) {
+        DatajsonUnlockData(r->hashdata);
+    }
+}
+
 /* return true if number is a float or an integer */
 static bool IsFloat(const char *in, size_t ins)
 {
@@ -786,7 +793,7 @@ static DataJsonResultType DatajsonLookupString(
         StringType *found = rdata->data;
         rrep.found = true;
         rrep.json = found->json;
-        DatajsonUnlockData(rdata);
+        rrep.hashdata = rdata;
         return rrep;
     }
     return rrep;
@@ -810,7 +817,7 @@ static DataJsonResultType DatajsonLookupMd5(
         Md5Type *found = rdata->data;
         rrep.found = true;
         rrep.json = found->json;
-        DatajsonUnlockData(rdata);
+        rrep.hashdata = rdata;
         return rrep;
     }
     return rrep;
@@ -834,7 +841,7 @@ static DataJsonResultType DatajsonLookupSha256(
         Sha256Type *found = rdata->data;
         rrep.found = true;
         rrep.json = found->json;
-        DatajsonUnlockData(rdata);
+        rrep.hashdata = rdata;
         return rrep;
     }
     return rrep;
@@ -858,7 +865,7 @@ static DataJsonResultType DatajsonLookupIPv4(
         IPv4Type *found = rdata->data;
         rrep.found = true;
         rrep.json = found->json;
-        DatajsonUnlockData(rdata);
+        rrep.hashdata = rdata;
         return rrep;
     }
     return rrep;
@@ -883,7 +890,7 @@ static DataJsonResultType DatajsonLookupIPv6(
         IPv6Type *found = rdata->data;
         rrep.found = true;
         rrep.json = found->json;
-        DatajsonUnlockData(rdata);
+        rrep.hashdata = rdata;
         return rrep;
     }
     return rrep;

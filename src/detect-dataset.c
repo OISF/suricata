@@ -89,6 +89,7 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
                     det_ctx->json_content[det_ctx->json_content_len].id = sd->id;
                     det_ctx->json_content_len++;
                 }
+                DatajsonUnlockElt(&r);
             }
             return 1;
         }
