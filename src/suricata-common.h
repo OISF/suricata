@@ -30,7 +30,10 @@
 #define DBG_PERF
 #endif
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
 #define __USE_GNU
 
 #if defined(__clang_analyzer__)
