@@ -464,9 +464,9 @@ fn parse_media_description(i: &[u8]) -> IResult<&[u8], MediaDescription> {
         format!("{}", port)
     };
     let mut media_str = format!("{} {} {}", &media, &port, &proto);
-    let fmt: Vec<String> = fmt.into_iter().map(String::from).collect();
-    for f in &fmt {
-        media_str = format!("{} {}", media_str, f);
+    if !fmt.is_empty() {
+        let fmt: Vec<String> = fmt.into_iter().map(String::from).collect();
+        media_str = format!("{} {}", media_str, fmt.join(" "));
     }
     Ok((
         i,
