@@ -1,0 +1,9 @@
+LIBSURICATA_CONFIG ?=	@CONFIGURE_PREFIX@/bin/libsuricata-config
+
+SURICATA_LIBS =		`$(LIBSURICATA_CONFIG) --libs`
+SURICATA_CFLAGS :=	`$(LIBSURICATA_CONFIG) --cflags`
+
+all: main
+
+main: main.cpp
+	$(CXX) -o $@ $^ $(SURICATA_CFLAGS) $(SURICATA_LIBS)
