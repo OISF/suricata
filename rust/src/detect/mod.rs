@@ -159,8 +159,7 @@ extern "C" {
         get_buf: unsafe extern "C" fn(*const c_void, u8, *mut *const u8, *mut u32) -> bool,
     ) -> *mut c_void;
     pub fn DetectHelperBufferMpmRegister(
-        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, toclient: bool,
-        toserver: bool,
+        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
         get_data: unsafe extern "C" fn(
             *mut c_void,
             *const c_void,
@@ -173,7 +172,7 @@ extern "C" {
     pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
     pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectHelperBufferRegister(
-        name: *const libc::c_char, alproto: AppProto, toclient: bool, toserver: bool,
+        name: *const libc::c_char, alproto: AppProto, dir: u8,
     ) -> c_int;
     pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(

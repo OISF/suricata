@@ -18,6 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
@@ -197,8 +198,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
     G_SNMP_VERSION_BUFFER_ID = DetectHelperBufferRegister(
         b"snmp.version\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
 
     let kw = SCSigTableAppLiteElmt {
@@ -214,8 +214,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
     G_SNMP_PDUTYPE_BUFFER_ID = DetectHelperBufferRegister(
         b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
 
     let kw = SigTableElmtStickyBuffer {
@@ -229,8 +228,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         b"snmp.usm\0".as_ptr() as *const libc::c_char,
         b"SNMP USM\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         snmp_detect_usm_get_data,
     );
 
@@ -245,8 +243,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         b"snmp.community\0".as_ptr() as *const libc::c_char,
         b"SNMP Community identifier\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         snmp_detect_community_get_data,
     );
 }

@@ -781,8 +781,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_session_name_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -796,8 +795,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_session_info_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -811,8 +809,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_origin_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -826,8 +823,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_uri_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -841,8 +837,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_email_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -856,8 +851,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_phone_number_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -871,8 +865,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_conn_data_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -928,8 +921,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_timezone_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -943,8 +935,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.encription_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_encryption_key_get,
     );
     let kw = SigTableElmtStickyBuffer {
