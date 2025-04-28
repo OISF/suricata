@@ -109,19 +109,82 @@ static int LuaSshTxGetClientSoftware(lua_State *L)
     return LuaSshTxGetSoftware(L, STREAM_TOSERVER);
 }
 
+static int LuaSshTxGetHassh(lua_State *L, uint8_t flags)
+{
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (SCSshTxGetHassh(ltx->tx, &buf, &b_len, flags) != 1) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
+}
+
+static int LuaSshTxGetClientHassh(lua_State *L)
+{
+    return LuaSshTxGetHassh(L, STREAM_TOSERVER);
+}
+
+static int LuaSshTxGetServerHassh(lua_State *L)
+{
+    return LuaSshTxGetHassh(L, STREAM_TOCLIENT);
+}
+
+static int LuaSshTxGetHasshString(lua_State *L, uint8_t flags)
+{
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (SCSshTxGetHasshString(ltx->tx, &buf, &b_len, flags) != 1) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
+}
+
+static int LuaSshTxGetClientHasshString(lua_State *L)
+{
+    return LuaSshTxGetHasshString(L, STREAM_TOSERVER);
+}
+
+static int LuaSshTxGetServerHasshString(lua_State *L)
+{
+    return LuaSshTxGetHasshString(L, STREAM_TOCLIENT);
+}
+
 static const struct luaL_Reg txlib[] = {
     // clang-format off
     { "server_proto", LuaSshTxGetServerProto },
     { "server_software", LuaSshTxGetServerSoftware },
     { "client_proto", LuaSshTxGetClientProto },
     { "client_software", LuaSshTxGetClientSoftware },
+    { "client_hassh", LuaSshTxGetClientHassh },
+    { "server_hassh", LuaSshTxGetServerHassh },
+    { "client_hassh_string", LuaSshTxGetClientHasshString },
+    { "server_hassh_string", LuaSshTxGetServerHasshString },
     { NULL, NULL, }
     // clang-format on
 };
 
+static int LuaSshEnableHassh(lua_State *L)
+{
+    SCSshEnableHassh();
+    return 1;
+}
+
 static const struct luaL_Reg sshlib[] = {
     // clang-format off
     { "get_tx", LuaSshGetTx },
+    { "enable_hassh", LuaSshEnableHassh },
     { NULL, NULL,},
     // clang-format on
 };
