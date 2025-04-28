@@ -24,6 +24,11 @@
 #ifndef SURICATA_CONF_H
 #define SURICATA_CONF_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "queue.h"
 
 /**
@@ -104,5 +109,9 @@ SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int 
 SCConfNode *SCConfGetFirstNode(const SCConfNode *parent);
 SCConfNode *SCConfGetNextNode(const SCConfNode *node);
 const char *SCConfGetValueNode(const SCConfNode *node);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ! SURICATA_CONF_H */
