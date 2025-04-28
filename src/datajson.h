@@ -37,6 +37,7 @@ typedef struct DataJsonType {
 typedef struct DataJsonResultType {
     bool found;
     DataJsonType json;
+    THashData *hashdata;
 } DataJsonResultType;
 
 /* Common functions */
@@ -48,5 +49,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
 DataJsonResultType DatajsonLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 
 int DatajsonAddSerialized(Dataset *set, const char *value, const char *json);
+
+void DatajsonUnlockElt(DataJsonResultType *r);
 
 #endif /* SURICATA_DATAJSON_H*/
