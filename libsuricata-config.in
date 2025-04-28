@@ -6,8 +6,12 @@ includedir="@includedir@"
 libdir="@libdir@"
 LIBS="@LIBS@ @RUST_LDADD@"
 
+# Shared library to link to (the default).
 shared_lib="-lsuricata"
-static_lib="-lsuricata_c -lsuricata_rust"
+
+# Static libraries to link to. We duplicate these as there are
+# circular references and --start-group is not portable.
+static_lib="-lsuricata_c -lsuricata_rust -lsuricata_c -lsuricata_rust"
 
 lib="$shared_lib"
 
