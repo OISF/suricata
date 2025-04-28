@@ -277,20 +277,14 @@ static void JsonTlsLogJa3S(SCJsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogAlpns(SCJsonBuilder *js, SSLStateConnp *connp, const char *object)
 {
-    if (TAILQ_EMPTY(&connp->alpns)) {
+    if (connp->hs == NULL) {
         return;
     }
 
-    SSLAlpns *a = TAILQ_FIRST(&connp->alpns);
-    if (a == NULL) {
+    if (SCTLSHandshakeIsEmpty(connp->hs)) {
         return;
     }
-
-    SCJbOpenArray(js, object);
-    TAILQ_FOREACH (a, &connp->alpns, next) {
-        SCJbAppendStringFromBytes(js, a->alpn, a->size);
-    }
-    SCJbClose(js);
+    SCTLSHandshakeLogALPNs(connp->hs, js, object);
 }
 
 static void JsonTlsLogCertificate(SCJsonBuilder *js, SSLStateConnp *connp)
