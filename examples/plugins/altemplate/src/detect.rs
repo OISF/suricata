@@ -27,6 +27,7 @@ use suricata::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
     DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
+use suricata::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use suricata::direction::Direction;
 use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
 
@@ -93,8 +94,7 @@ pub(super) unsafe extern "C" fn detect_template_register() {
         b"altemplate.buffer\0".as_ptr() as *const libc::c_char,
         b"template.buffer intern description\0".as_ptr() as *const libc::c_char,
         ALPROTO_TEMPLATE,
-        true, //toclient
-        true, //toserver
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         template_buffer_get,
     );
 }

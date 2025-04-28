@@ -353,8 +353,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     G_DNS_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
         b"dns.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query.name"),
@@ -386,8 +385,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     G_DNS_RCODE_BUFFER_ID = DetectHelperBufferRegister(
         b"dns.rcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rrtype\0".as_ptr() as *const libc::c_char,
@@ -402,8 +400,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     G_DNS_RRTYPE_BUFFER_ID = DetectHelperBufferRegister(
         b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query"),

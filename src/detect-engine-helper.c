@@ -30,13 +30,13 @@
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
 
-int DetectHelperBufferRegister(const char *name, AppProto alproto, bool toclient, bool toserver)
+int DetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
 {
-    if (toserver) {
+    if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegister(
                 name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     }
-    if (toclient) {
+    if (direction & STREAM_TOCLIENT) {
         DetectAppLayerInspectEngineRegister(
                 name, alproto, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
     }
@@ -62,15 +62,15 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
 }
 
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        bool toclient, bool toserver, InspectionBufferGetDataPtr GetData)
+        uint8_t direction, InspectionBufferGetDataPtr GetData)
 {
-    if (toserver) {
+    if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegister(
                 name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectBufferGeneric, GetData);
         DetectAppLayerMpmRegister(
                 name, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister, GetData, alproto, 0);
     }
-    if (toclient) {
+    if (direction & STREAM_TOCLIENT) {
         DetectAppLayerInspectEngineRegister(
                 name, alproto, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectBufferGeneric, GetData);
         DetectAppLayerMpmRegister(
