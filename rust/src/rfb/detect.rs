@@ -19,6 +19,7 @@
 
 use super::parser::RFBSecurityResultStatus;
 use super::rfb::{RFBTransaction, ALPROTO_RFB};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
@@ -199,8 +200,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         b"rfb.name\0".as_ptr() as *const libc::c_char,
         b"rfb name\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
-        true, //toclient
-        false,
+        STREAM_TOCLIENT,
         rfb_name_get,
     );
     let kw = SCSigTableAppLiteElmt {
@@ -216,8 +216,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
     G_RFB_SEC_TYPE_BUFFER_ID = DetectHelperBufferRegister(
         b"rfb.sectype\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"rfb.secresult\0".as_ptr() as *const libc::c_char,
@@ -232,8 +231,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
     G_RFB_SEC_RESULT_BUFFER_ID = DetectHelperBufferRegister(
         b"rfb.secresult\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
-        true, // only to client
-        false,
+        STREAM_TOCLIENT,
     );
 }
 

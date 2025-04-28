@@ -781,8 +781,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_session_name_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -796,8 +795,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_session_info_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -811,8 +809,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_origin_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -826,8 +823,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_uri_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -841,8 +837,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_email_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -856,8 +851,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_phone_number_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -871,8 +865,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_conn_data_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -886,7 +879,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_bandwidth_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -900,7 +893,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -914,7 +907,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_repeat_time_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -928,8 +921,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_timezone_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -943,8 +935,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.encription_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sdp_encryption_key_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -958,7 +949,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_attribute_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -974,7 +965,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_media_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -988,7 +979,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_session_info_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1002,7 +993,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_connection_data_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1016,7 +1007,7 @@ STREAM_TOSERVER | STREAM_TOCLIENT,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-STREAM_TOSERVER | STREAM_TOCLIENT,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_media_desc_encryption_key_get_data,
     );
 }

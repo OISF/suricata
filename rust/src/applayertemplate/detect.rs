@@ -19,6 +19,7 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 /* TEMPLATE_START_REMOVE */
 use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectBufferSetActiveList,
     DetectHelperBufferMpmRegister, DetectHelperGetData, DetectSignatureSetAppProto,
@@ -96,8 +97,7 @@ pub unsafe extern "C" fn SCDetectTemplateRegister() {
         b"template.buffer\0".as_ptr() as *const libc::c_char,
         b"template.buffer intern description\0".as_ptr() as *const libc::c_char,
         ALPROTO_TEMPLATE,
-        true, //toclient
-        true, //toserver
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         template_buffer_get,
     );
 }

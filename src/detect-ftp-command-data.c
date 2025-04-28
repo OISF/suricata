@@ -104,7 +104,7 @@ void DetectFtpCommandDataRegister(void)
     sigmatch_table[DETECT_FTP_COMMAND_DATA].flags |= SIGMATCH_NOOPT;
 
     DetectHelperBufferMpmRegister(
-            BUFFER_NAME, BUFFER_NAME, ALPROTO_FTP, false, true, GetDataWrapper);
+            BUFFER_NAME, BUFFER_NAME, ALPROTO_FTP, STREAM_TOSERVER, GetDataWrapper);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

@@ -136,10 +136,8 @@ void SCDetectSMTPRegister(void)
     kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpHeloSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_smtp_helo_buffer_id =
-            DetectHelperBufferMpmRegister("smtp.helo", "SMTP helo", ALPROTO_SMTP, false,
-                    true, // to server
-                    GetSmtpHeloData);
+    g_smtp_helo_buffer_id = DetectHelperBufferMpmRegister(
+            "smtp.helo", "SMTP helo", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpHeloData);
 
     kw.name = "smtp.mail_from";
     kw.desc = "SMTP mail from buffer";
@@ -147,10 +145,8 @@ void SCDetectSMTPRegister(void)
     kw.Setup = (int (*)(void *, void *, const char *))DetectSmtpMailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_smtp_mail_from_buffer_id =
-            DetectHelperBufferMpmRegister("smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, false,
-                    true, // to server
-                    GetSmtpMailFromData);
+    g_smtp_mail_from_buffer_id = DetectHelperBufferMpmRegister(
+            "smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpMailFromData);
 
     kw.name = "smtp.rcpt_to";
     kw.desc = "SMTP rcpt to buffer";

@@ -20,9 +20,8 @@ use super::dhcp::{
     DHCP_OPT_RENEWAL_TIME,
 };
 use super::parser::DHCPOptionWrapper;
-use crate::detect::uint::{
-    SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse, DetectUintData,
-};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
 use crate::detect::{
     DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
     SCSigTableAppLiteElmt, SigMatchAppendSMToList,
@@ -179,8 +178,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
     G_DHCP_LEASE_TIME_BUFFER_ID = DetectHelperBufferRegister(
         b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.rebinding_time\0".as_ptr() as *const libc::c_char,
@@ -195,8 +193,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
     G_DHCP_REBINDING_TIME_BUFFER_ID = DetectHelperBufferRegister(
         b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.renewal_time\0".as_ptr() as *const libc::c_char,
@@ -211,7 +208,6 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
     G_DHCP_RENEWAL_TIME_BUFFER_ID = DetectHelperBufferRegister(
         b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
 }

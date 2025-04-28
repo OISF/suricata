@@ -16,6 +16,7 @@
  */
 
 use super::websocket::{WebSocketTransaction, ALPROTO_WEBSOCKET};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode, SCDetectU32Free,
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
@@ -292,8 +293,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     G_WEBSOCKET_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
         b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.mask\0".as_ptr() as *const libc::c_char,
@@ -308,8 +308,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     G_WEBSOCKET_MASK_BUFFER_ID = DetectHelperBufferRegister(
         b"websocket.mask\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.flags\0".as_ptr() as *const libc::c_char,
@@ -324,8 +323,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     G_WEBSOCKET_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
         b"websocket.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("websocket.payload"),
@@ -338,8 +336,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         b"websocket.payload\0".as_ptr() as *const libc::c_char,
         b"WebSocket payload\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         websocket_detect_payload_get_data,
     );
 }

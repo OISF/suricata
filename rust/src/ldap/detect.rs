@@ -645,8 +645,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        false, //to client
-        true,  //to server
+        STREAM_TOSERVER,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
@@ -662,8 +661,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
@@ -678,8 +676,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.dn"),
@@ -692,8 +689,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         b"ldap.request.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        false, //to client
-        true,  //to server
+        STREAM_TOSERVER,
         ldap_detect_request_dn_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -724,8 +720,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = DetectHelperBufferRegister(
         b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
-        true,  //to client
-        false, //to server
+        STREAM_TOCLIENT,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.message"),

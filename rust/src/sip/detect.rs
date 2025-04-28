@@ -501,8 +501,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.protocol\0".as_ptr() as *const libc::c_char,
         b"sip.protocol\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         sip_protocol_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -516,8 +515,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.stat_code\0".as_ptr() as *const libc::c_char,
         b"sip.stat_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        false,
+        STREAM_TOCLIENT,
         sip_stat_code_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -531,8 +529,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
         b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        false,
+        STREAM_TOCLIENT,
         sip_stat_msg_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -546,8 +543,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.request_line\0".as_ptr() as *const libc::c_char,
         b"sip.request_line\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        false,
-        true,
+        STREAM_TOSERVER,
         sip_request_line_get,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -561,8 +557,7 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         b"sip.response_line\0".as_ptr() as *const libc::c_char,
         b"sip.response_line\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
-        true,
-        false,
+        STREAM_TOCLIENT,
         sip_response_line_get,
     );
     let kw = SigTableElmtStickyBuffer {

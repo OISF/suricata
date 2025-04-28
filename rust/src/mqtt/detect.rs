@@ -17,7 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::core::{DetectEngineThreadCtx, STREAM_TOSERVER};
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
@@ -1107,8 +1107,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_TYPE_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
 
     let keyword_name = b"mqtt.subscribe.topic\0".as_ptr() as *const libc::c_char;
@@ -1148,8 +1147,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_REASON_CODE_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.reason_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        true,
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
@@ -1165,8 +1163,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        true,
-        false, // only to client
+        STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.qos\0".as_ptr() as *const libc::c_char,
@@ -1182,8 +1179,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_QOS_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.qos\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.publish.topic"),
@@ -1196,8 +1192,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.publish.topic\0".as_ptr() as *const libc::c_char,
         b"MQTT PUBLISH topic\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        true, // PUBLISH goes both ways
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         mqtt_pub_topic_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1211,8 +1206,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.publish.message\0".as_ptr() as *const libc::c_char,
         b"MQTT PUBLISH message\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        true, // PUBLISH goes both ways
-        true,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         mqtt_pub_msg_get_data,
     );
     let kw = SCSigTableAppLiteElmt {
@@ -1228,8 +1222,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_PROTOCOL_VERSION_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.flags\0".as_ptr() as *const libc::c_char,
@@ -1244,8 +1237,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
@@ -1260,8 +1252,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     G_MQTT_CONN_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
         b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.willtopic"),
@@ -1274,8 +1265,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.willtopic\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT will topic\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_willtopic_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1289,8 +1279,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.willmessage\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT will message\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_willmsg_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1304,8 +1293,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.username\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT username\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_username_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1319,8 +1307,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.protocol_string\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT protocol string\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_protocolstring_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1334,8 +1321,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.password\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT password\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_password_get_data,
     );
     let kw = SigTableElmtStickyBuffer {
@@ -1349,8 +1335,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         b"mqtt.connect.clientid\0".as_ptr() as *const libc::c_char,
         b"MQTT CONNECT clientid\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
-        false, // only to server
-        true,
+        STREAM_TOSERVER,
         mqtt_conn_clientid_get_data,
     );
 }
