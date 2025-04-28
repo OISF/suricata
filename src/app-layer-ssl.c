@@ -1289,18 +1289,6 @@ invalid_length:
     return -1;
 }
 
-static void StoreALPN(SSLStateConnp *connp, const uint8_t *alpn, const uint32_t size)
-{
-    if (size > 0) {
-        SSLAlpns *a = SCCalloc(1, sizeof(*a) + size);
-        if (a != NULL) {
-            memcpy(a->alpn, alpn, size);
-            a->size = size;
-            TAILQ_INSERT_TAIL(&connp->alpns, a, next);
-        }
-    }
-}
-
 static inline int TLSDecodeHSHelloExtensionALPN(
         SSLState *ssl_state, const uint8_t *const initial_input, const uint32_t input_len)
 {
@@ -1336,13 +1324,7 @@ static inline int TLSDecodeHSHelloExtensionALPN(
             input += alpn_len - alpn_processed_len;
             break;
         }
-
-        if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
-            if (alpn_processed_len == 1) {
-                SCHandshakeSetALPN(ssl_state->curr_connp->hs, (const char *)input, protolen);
-            }
-        }
-        StoreALPN(ssl_state->curr_connp, input, protolen);
+        SCHandshakeAddALPN(ssl_state->curr_connp->hs, (const char *)input, protolen);
 
         alpn_processed_len += protolen;
         input += protolen;
@@ -2939,9 +2921,7 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     ssl_state->client_connp.hs = SCHandshakeNew();
     ssl_state->server_connp.hs = SCHandshakeNew();
     TAILQ_INIT(&ssl_state->server_connp.certs);
-    TAILQ_INIT(&ssl_state->server_connp.alpns);
     TAILQ_INIT(&ssl_state->client_connp.certs);
-    TAILQ_INIT(&ssl_state->client_connp.alpns);
 
     return (void *)ssl_state;
 }
@@ -3029,18 +3009,6 @@ static void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->client_connp.certs);
-
-    SSLAlpns *a;
-    while ((a = TAILQ_FIRST(&ssl_state->server_connp.alpns))) {
-        TAILQ_REMOVE(&ssl_state->server_connp.alpns, a, next);
-        SCFree(a);
-    }
-    TAILQ_INIT(&ssl_state->server_connp.alpns);
-    while ((a = TAILQ_FIRST(&ssl_state->client_connp.alpns))) {
-        TAILQ_REMOVE(&ssl_state->client_connp.alpns, a, next);
-        SCFree(a);
-    }
-    TAILQ_INIT(&ssl_state->client_connp.alpns);
 
     SCFree(ssl_state);
 }

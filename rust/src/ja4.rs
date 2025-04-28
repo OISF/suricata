@@ -18,6 +18,8 @@
 
 */
 #[cfg(feature = "ja4")]
+use crate::jsonbuilder::HEX;
+#[cfg(feature = "ja4")]
 use digest::Digest;
 #[cfg(feature = "ja4")]
 use sha2::Sha256;
@@ -60,6 +62,33 @@ impl JA4 {
             _ => "00",
         }
     }
+
+    fn format_alpn(alpn: Option<&Vec<u8>>) -> [char; 2] {
+        let mut ret = ['0', '0'];
+
+        if let Some(alpn) = alpn {
+            if !alpn.is_empty() {
+                // If the first ALPN value is only a single character, then that character is treated as both the first and last character.
+                if alpn.len() == 2 {
+                    // GREASE values are 2 bytes, so this could be one -- check
+                    let v: u16 = ((alpn[0] as u16) << 8) | alpn[alpn.len() - 1] as u16;
+                    if HandshakeParams::is_grease(v) {
+                        return ret;
+                    }
+                }
+                if !alpn[0].is_ascii_alphanumeric() || !alpn[alpn.len() - 1].is_ascii_alphanumeric()
+                {
+                    // If the first or last byte of the first ALPN is non-alphanumeric (meaning not 0x30-0x39, 0x41-0x5A, or 0x61-0x7A), then we print the first and last characters of the hex representation of the first ALPN instead.
+                    ret[0] = char::from(HEX[(alpn[0] >> 4) as usize]);
+                    ret[1] = char::from(HEX[(alpn[alpn.len() - 1] & 0xF) as usize]);
+                } else {
+                    ret[0] = char::from(alpn[0]);
+                    ret[1] = char::from(alpn[alpn.len() - 1]);
+                }
+            }
+        }
+        ret
+    }
 }
 
 #[cfg(feature = "ja4")]
@@ -76,7 +105,7 @@ impl JA4Impl for JA4 {
             })
             .collect::<Vec<&TlsExtensionType>>();
 
-        let alpn = hs.alpn;
+        let alpn = Self::format_alpn(hs.alpns.first());
 
         // Calculate JA4_a
         let ja4_a = format!(
@@ -147,7 +176,25 @@ pub unsafe extern "C" fn SCJA4GetHash(hs: &HandshakeParams, out: &mut [u8; JA4_H
 #[cfg(feature = "ja4")]
 mod tests {
     use super::*;
-    use tls_parser::TlsCipherSuiteID;
+    use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
+
+    #[test]
+    fn test_format_alpn_ascii() {
+        let res = JA4::format_alpn(Some(&"http/1.1".as_bytes().to_vec()));
+        assert_eq!(res, ['h', '1']);
+    }
+
+    #[test]
+    fn test_add_alpn_non_ascii_first_or_last() {
+        let res = JA4::format_alpn(Some(&vec![0x01, b'T', b'E', 0x7f])); // non-alphanumeric start and end
+        assert_eq!(res, [HEX[0x0], HEX[0xF]].map(|b| b as char)); // 0x01 -> 0, 0x7f -> f
+    }
+
+    #[test]
+    fn test_add_alpn_grease_pair_filtered() {
+        let res = JA4::format_alpn(Some(&vec![0x2a, 0x2a])); // 0x2a2a GREASE
+        assert_eq!(res, ['0', '0']);
+    }
 
     #[test]
     fn test_hash_limit_numbers() {
@@ -175,8 +222,7 @@ mod tests {
     #[test]
     fn test_short_alpn() {
         let mut hs = HandshakeParams::default();
-
-        hs.set_alpn("b".as_bytes());
+        hs.add_alpn("b".as_bytes());
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -184,7 +230,8 @@ mod tests {
         s.truncate(10);
         assert_eq!(s, "t00i0000bb");
 
-        hs.set_alpn("h2".as_bytes());
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn("h2".as_bytes());
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -193,7 +240,8 @@ mod tests {
         assert_eq!(s, "t00i0000h2");
 
         // from https://github.com/FoxIO-LLC/ja4/blob/main/technical_details/JA4.md#alpn-extension-value
-        hs.set_alpn(&[0xab]);
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn(&[0xab]);
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -201,7 +249,8 @@ mod tests {
         s.truncate(10);
         assert_eq!(s, "t00i0000ab");
 
-        hs.set_alpn(&[0xab, 0xcd]);
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn(&[0xab, 0xcd]);
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -209,7 +258,8 @@ mod tests {
         s.truncate(10);
         assert_eq!(s, "t00i0000ad");
 
-        hs.set_alpn(&[0x30, 0xab]);
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn(&[0x30, 0xab]);
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -217,7 +267,8 @@ mod tests {
         s.truncate(10);
         assert_eq!(s, "t00i00003b");
 
-        hs.set_alpn(&[0x30, 0x31, 0xab, 0xcd]);
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn(&[0x30, 0x31, 0xab, 0xcd]);
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -225,7 +276,8 @@ mod tests {
         s.truncate(10);
         assert_eq!(s, "t00i00003d");
 
-        hs.set_alpn(&[0x30, 0xab, 0xcd, 0x31]);
+        let mut hs = HandshakeParams::default();
+        hs.add_alpn(&[0x30, 0xab, 0xcd, 0x31]);
         let mut s = JA4::try_new(&hs)
             .expect("JA4 create failure")
             .as_ref()
@@ -263,7 +315,7 @@ mod tests {
         assert_eq!(s.as_ref(), "q12d000100_e3b0c44298fc_d2e2adf7177b");
 
         // set ALPN extension, should only increase count and set end of JA4_a
-        hs.set_alpn(b"h3-16");
+        hs.add_alpn(b"h3-16");
         hs.add_extension(TlsExtensionType::ApplicationLayerProtocolNegotiation);
         let s = JA4::try_new(&hs).expect("JA4 create failure");
         assert_eq!(s.as_ref(), "q12d0002h6_e3b0c44298fc_d2e2adf7177b");
