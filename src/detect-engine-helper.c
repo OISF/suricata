@@ -44,38 +44,20 @@ int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t dir
     return DetectBufferTypeRegister(name);
 }
 
-InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id,
-        bool (*GetBuf)(void *txv, const uint8_t flow_flags, const uint8_t **buf, uint32_t *buf_len))
-{
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
-        const uint8_t *b = NULL;
-        uint32_t b_len = 0;
-
-        if (!GetBuf(txv, flow_flags, &b, &b_len))
-            return NULL;
-
-        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
-    }
-    return buffer;
-}
-
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionBufferGetDataPtr GetData)
+        uint8_t direction, InspectionSingleBufferGetDataPtr GetData)
 {
     if (direction & STREAM_TOSERVER) {
-        DetectAppLayerInspectEngineRegister(
-                name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectBufferGeneric, GetData);
-        DetectAppLayerMpmRegister(
-                name, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister, GetData, alproto, 0);
+        DetectAppLayerInspectEngineRegisterSingle(
+                name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectBufferSingle, GetData);
+        DetectAppLayerMpmRegisterSingle(
+                name, SIG_FLAG_TOSERVER, 2, PrefilterSingleMpmRegister, GetData, alproto, 0);
     }
     if (direction & STREAM_TOCLIENT) {
-        DetectAppLayerInspectEngineRegister(
-                name, alproto, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectBufferGeneric, GetData);
-        DetectAppLayerMpmRegister(
-                name, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister, GetData, alproto, 0);
+        DetectAppLayerInspectEngineRegisterSingle(
+                name, alproto, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectBufferSingle, GetData);
+        DetectAppLayerMpmRegisterSingle(
+                name, SIG_FLAG_TOCLIENT, 2, PrefilterSingleMpmRegister, GetData, alproto, 0);
     }
     DetectBufferTypeSetDescriptionByName(name, desc);
     return DetectBufferTypeGetByName(name);
