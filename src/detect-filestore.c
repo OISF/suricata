@@ -159,7 +159,6 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
         DEBUG_VALIDATE_BUG_ON(txv == NULL);
         if (txv != NULL) {
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-            DEBUG_VALIDATE_BUG_ON(txd == NULL);
             if (txd != NULL) {
                 if (toclient_dir) {
                     txd->file_flags |= FLOWFILE_STORE_TC;

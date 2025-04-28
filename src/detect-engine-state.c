@@ -228,7 +228,6 @@ void DetectRunStoreStateTx(
         const uint16_t file_no_match)
 {
     AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
-    BUG_ON(tx_data == NULL);
     if (tx_data == NULL) {
         SCLogDebug("No TX data for %" PRIu64, tx_id);
         return;
@@ -284,7 +283,6 @@ void DetectEngineStateResetTxs(Flow *f)
         void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, inspect_tx);
-            BUG_ON(txd == NULL);
             if (txd) {
                 ResetTxState(txd->de_state);
             }
