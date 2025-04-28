@@ -23,9 +23,9 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
@@ -317,21 +317,6 @@ unsafe extern "C" fn ldap_detect_request_dn_setup(
 }
 
 unsafe extern "C" fn ldap_detect_request_dn_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        ldap_tx_get_request_dn,
-    );
-}
-
-unsafe extern "C" fn ldap_tx_get_request_dn(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);
