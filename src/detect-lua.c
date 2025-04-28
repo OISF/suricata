@@ -668,6 +668,8 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                 SCLogError("alloc error");
                 goto error;
             }
+        } else if (strcmp(k, "ssh.hassh") == 0) {
+            SCSshEnableHassh();
             /* old options no longer supported */
         } else if (strncmp(k, "http", 4) == 0 || strncmp(k, "dns", 3) == 0 ||
                    strncmp(k, "tls", 3) == 0 || strncmp(k, "ssh", 3) == 0 ||
