@@ -175,7 +175,7 @@ void DetectPktInspectEngineRegister(const char *name,
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
-        InspectionMultiBufferGetDataPtr GetMultiData)
+        DetectTxGetBufferPtr GetDataSimple, InspectionMultiBufferGetDataPtr GetMultiData)
 {
     BUG_ON(progress >= 48);
 
@@ -210,7 +210,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     // every DNS or HTTP2 can be accessed from DOH2
     if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
         AppLayerInspectEngineRegisterInternal(
-                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetMultiData);
+                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetDataSimple, GetMultiData);
     }
 
     DetectEngineAppInspectionEngine *new_engine =
@@ -260,7 +260,31 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         t = t->next;
     }
 
-    AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress, Callback, GetData, NULL);
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, progress, Callback, GetData, NULL, NULL);
+}
+
+void DetectAppLayerInspectEngineRegisterSimple(const char *name, AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback, DetectTxGetBufferPtr GetData)
+{
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propegate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->progress == progress && t->v2.Callback == Callback &&
+                t->v2.GetDataSimple == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, progress, Callback, NULL, GetData, NULL);
 }
 
 /* copy an inspect engine with transforms to a new list id. */
@@ -2085,6 +2109,66 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
+/**
+ * \brief Do the content inspection & validation for a signature
+ *
+ * \param de_ctx Detection engine context
+ * \param det_ctx Detection engine thread context
+ * \param s Signature to inspect
+ * \param f Flow
+ * \param flags app layer flags
+ * \param state App layer state
+ *
+ * \retval 0 no match.
+ * \retval 1 match.
+ * \retval 2 Sig can't match.
+ */
+uint8_t DetectEngineInspectBufferSimple(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
+{
+    const int list_id = engine->sm_list;
+    SCLogDebug("running inspect on %d", list_id);
+
+    const bool eof =
+            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+
+    SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
+            engine->v2.transforms);
+
+    /* if prefilter didn't already run, we need to consider transformations */
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    const InspectionBuffer *buffer = DetectGetSingleData(
+            det_ctx, transforms, f, flags, txv, list_id, engine->v2.GetDataSimple);
+    if (unlikely(buffer == NULL)) {
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
+    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
+    ci_flags |= buffer->flags;
+
+    /* Inspect all the uricontents fetched on each
+     * transaction at the app layer */
+    const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, data,
+            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+    if (match) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+}
 
 /**
  * \brief Do the content inspection & validation for a signature
@@ -2153,10 +2237,27 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
-    AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, progress, DetectEngineInspectMultiBufferGeneric, NULL, GetData);
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress,
+            DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegister(
             name, dir, priority, PrefilterMultiGenericMpmRegister, GetData, alproto, progress);
+}
+
+InspectionBuffer *DetectGetSingleData(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, DetectTxGetBufferPtr GetBuf)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        const uint8_t *b = NULL;
+        uint32_t b_len = 0;
+
+        if (!GetBuf(txv, flow_flags, &b, &b_len))
+            return NULL;
+
+        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
+    }
+    return buffer;
 }
 
 InspectionBuffer *DetectGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,

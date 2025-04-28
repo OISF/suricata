@@ -24,9 +24,9 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectHelperMultiBufferMpmRegister,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
 
@@ -53,7 +53,7 @@ fn mqtt_tx_has_type(tx: &MQTTTransaction, mtype: &DetectUintData<u8>) -> c_int {
     return 0;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_clientid(
+unsafe extern "C" fn mqtt_conn_clientid_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -73,7 +73,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_clientid(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_username(
+unsafe extern "C" fn mqtt_conn_username_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -94,7 +94,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_username(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_password(
+unsafe extern "C" fn mqtt_conn_password_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -115,7 +115,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_password(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_willtopic(
+unsafe extern "C" fn mqtt_conn_willtopic_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -136,7 +136,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_willtopic(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_willmessage(
+unsafe extern "C" fn mqtt_conn_willmsg_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -157,7 +157,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_willmessage(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_connect_protocol_string(
+unsafe extern "C" fn mqtt_conn_protocolstring_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -177,7 +177,7 @@ unsafe extern "C" fn mqtt_tx_get_connect_protocol_string(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_publish_topic(
+unsafe extern "C" fn mqtt_pub_topic_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -197,7 +197,7 @@ unsafe extern "C" fn mqtt_tx_get_publish_topic(
     return false;
 }
 
-unsafe extern "C" fn mqtt_tx_get_publish_message(
+unsafe extern "C" fn mqtt_pub_msg_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
@@ -596,21 +596,6 @@ unsafe extern "C" fn mqtt_pub_topic_setup(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_pub_topic_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_publish_topic,
-    );
-}
-
 unsafe extern "C" fn mqtt_pub_msg_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -621,21 +606,6 @@ unsafe extern "C" fn mqtt_pub_msg_setup(
         return -1;
     }
     return 0;
-}
-
-unsafe extern "C" fn mqtt_pub_msg_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_publish_message,
-    );
 }
 
 unsafe extern "C" fn mqtt_protocol_version_setup(
@@ -920,21 +890,6 @@ unsafe extern "C" fn mqtt_conn_willtopic_setup(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_conn_willtopic_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_willtopic,
-    );
-}
-
 unsafe extern "C" fn mqtt_conn_willmsg_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -945,21 +900,6 @@ unsafe extern "C" fn mqtt_conn_willmsg_setup(
         return -1;
     }
     return 0;
-}
-
-unsafe extern "C" fn mqtt_conn_willmsg_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_willmessage,
-    );
 }
 
 unsafe extern "C" fn mqtt_conn_username_setup(
@@ -974,21 +914,6 @@ unsafe extern "C" fn mqtt_conn_username_setup(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_conn_username_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_username,
-    );
-}
-
 unsafe extern "C" fn mqtt_conn_protocolstring_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -999,21 +924,6 @@ unsafe extern "C" fn mqtt_conn_protocolstring_setup(
         return -1;
     }
     return 0;
-}
-
-unsafe extern "C" fn mqtt_conn_protocolstring_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_protocol_string,
-    );
 }
 
 unsafe extern "C" fn mqtt_conn_password_setup(
@@ -1028,21 +938,6 @@ unsafe extern "C" fn mqtt_conn_password_setup(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_conn_password_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_password,
-    );
-}
-
 unsafe extern "C" fn mqtt_conn_clientid_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -1053,21 +948,6 @@ unsafe extern "C" fn mqtt_conn_clientid_setup(
         return -1;
     }
     return 0;
-}
-
-unsafe extern "C" fn mqtt_conn_clientid_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        mqtt_tx_get_connect_clientid,
-    );
 }
 
 #[no_mangle]
