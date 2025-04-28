@@ -18,6 +18,11 @@
 #ifndef SURICATA_UTIL_DEVICE_H
 #define SURICATA_UTIL_DEVICE_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "queue.h"
 #include "util-storage.h"
 #include "util-dpdk-common.h"
@@ -93,6 +98,10 @@ void LiveDeviceFinalize(void);
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
 TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *server_msg, void *data);
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* SURICATA_UTIL_DEVICE_H */
