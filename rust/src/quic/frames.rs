@@ -295,7 +295,7 @@ fn quic_get_tls_extensions(
                     TlsExtension::ALPN(x) => {
                         if !x.is_empty() {
                             if let Some(ref mut hs) = hs {
-                                hs.set_alpn(x[0]);
+                                hs.add_alpn(x[0]);
                             }
                         }
                         for alpn in x {
