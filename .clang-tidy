@@ -14,11 +14,14 @@ Checks: "
       -readability-avoid-const-params-in-decls,
       -bugprone-easily-swappable-parameters,
       -misc-include-cleaner,
-"
+      "
+
 WarningsAsErrors: "
       bugprone-unsafe-functions,
       clang-analyzer-unix.Malloc,
-"
+      readability-else-after-return,
+      "
+
 HeaderFileExtensions:
   - ''
   - 'h'
