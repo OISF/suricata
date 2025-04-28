@@ -239,7 +239,12 @@ impl WebSocketState {
                         buf.compress = false;
                         // cf RFC 7692 section-7.2.2
                         tx.pdu.payload.extend_from_slice(&[0, 0, 0xFF, 0xFF]);
-                        let mut v = Vec::with_capacity(WEBSOCKET_DECOMPRESS_BUF_SIZE);
+                        let mut v = Vec::with_capacity(std::cmp::min(
+                            WEBSOCKET_DECOMPRESS_BUF_SIZE,
+                            // Do not allocate 8kbytes for a small size.
+                            // Numbers here may be optimized.
+                            256 + 16 * tx.pdu.payload.len(),
+                        ));
                         if let Some(dec) = dec {
                             let expect = dec.total_in() + tx.pdu.payload.len() as u64;
                             let start = dec.total_in();
