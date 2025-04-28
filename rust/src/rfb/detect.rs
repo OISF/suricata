@@ -24,7 +24,7 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::ffi::CStr;
@@ -36,7 +36,7 @@ use suricata_sys::sys::{
     SigMatchCtx, Signature,
 };
 
-unsafe extern "C" fn rfb_name_get_data(
+unsafe extern "C" fn rfb_name_get(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, RFBTransaction);
@@ -52,21 +52,6 @@ unsafe extern "C" fn rfb_name_get_data(
     *buffer = ptr::null();
     *buffer_len = 0;
     return false;
-}
-
-unsafe extern "C" fn rfb_name_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        rfb_name_get_data,
-    );
 }
 
 static mut G_RFB_NAME_BUFFER_ID: c_int = 0;

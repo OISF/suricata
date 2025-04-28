@@ -131,6 +131,13 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id);
 
+uint8_t DetectEngineInspectBufferSingle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id);
+
+InspectionBuffer *DetectGetSingleData(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, InspectionSingleBufferGetDataPtr GetBuf);
 InspectionBuffer *DetectGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id, uint32_t index, InspectionMultiBufferGetDataPtr GetBuf);
@@ -155,6 +162,9 @@ int DetectEngineInspectPktBufferGeneric(
  */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
+
+void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);

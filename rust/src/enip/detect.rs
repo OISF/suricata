@@ -36,7 +36,7 @@ use crate::detect::uint::{
     SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
@@ -1253,7 +1253,7 @@ pub unsafe extern "C" fn product_name_setup(
     return 0;
 }
 
-unsafe extern "C" fn product_name_get(
+unsafe extern "C" fn product_name_get_data(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, EnipTransaction);
@@ -1273,21 +1273,6 @@ unsafe extern "C" fn product_name_get(
     return false;
 }
 
-unsafe extern "C" fn product_name_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        product_name_get,
-    );
-}
-
 pub unsafe extern "C" fn service_name_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -1300,7 +1285,7 @@ pub unsafe extern "C" fn service_name_setup(
     return 0;
 }
 
-unsafe extern "C" fn service_name_get(
+unsafe extern "C" fn service_name_get_data(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, EnipTransaction);
@@ -1320,20 +1305,6 @@ unsafe extern "C" fn service_name_get(
     return false;
 }
 
-unsafe extern "C" fn service_name_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        service_name_get,
-    );
-}
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEnipRegister() {
     let kw = SCSigTableAppLiteElmt {

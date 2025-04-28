@@ -42,6 +42,8 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(struct DetectEngineThrea
 typedef bool (*InspectionMultiBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
         const void *txv, const uint8_t flow_flags, uint32_t local_id, const uint8_t **buf,
         uint32_t *buf_len);
+typedef bool (*InspectionSingleBufferGetDataPtr)(
+        const void *txv, const uint8_t flow_flags, const uint8_t **buf, uint32_t *buf_len);
 
 /// App-layer light version of SigTableElmt
 typedef struct SCSigTableAppLiteElmt {
@@ -80,13 +82,8 @@ int SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction);
 
-typedef bool (*SimpleGetTxBuffer)(void *, uint8_t, const uint8_t **, uint32_t *);
-
-InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id, SimpleGetTxBuffer GetBuf);
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionBufferGetDataPtr GetData);
+        uint8_t direction, InspectionSingleBufferGetDataPtr GetData);
 int SCDetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
