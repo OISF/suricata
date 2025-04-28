@@ -19,7 +19,7 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
@@ -62,21 +62,6 @@ unsafe extern "C" fn sdp_session_name_setup(
 }
 
 unsafe extern "C" fn sdp_session_name_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_session_name_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_session_name_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -110,21 +95,6 @@ unsafe extern "C" fn sdp_session_info_setup(
 }
 
 unsafe extern "C" fn sdp_session_info_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_session_info_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_session_info_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -157,21 +127,6 @@ unsafe extern "C" fn sdp_origin_setup(
 }
 
 unsafe extern "C" fn sdp_origin_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_origin_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_origin_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -205,21 +160,6 @@ unsafe extern "C" fn sdp_uri_setup(
 }
 
 unsafe extern "C" fn sdp_uri_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_uri_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_uri_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -252,21 +192,6 @@ unsafe extern "C" fn sdp_email_setup(
 }
 
 unsafe extern "C" fn sdp_email_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_email_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_email_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -299,21 +224,6 @@ unsafe extern "C" fn sdp_phone_number_setup(
 }
 
 unsafe extern "C" fn sdp_phone_number_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_phone_number_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_phone_number_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -346,21 +256,6 @@ unsafe extern "C" fn sdp_conn_data_setup(
 }
 
 unsafe extern "C" fn sdp_conn_data_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_conn_data_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_conn_data_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -502,21 +397,6 @@ unsafe extern "C" fn sdp_timezone_setup(
 }
 
 unsafe extern "C" fn sdp_timezone_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_timezone_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_timezone_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -549,21 +429,6 @@ unsafe extern "C" fn sdp_encryption_key_setup(
 }
 
 unsafe extern "C" fn sdp_encryption_key_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sdp_encryption_key_get_data,
-    );
-}
-
-unsafe extern "C" fn sdp_encryption_key_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);

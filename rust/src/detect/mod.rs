@@ -120,21 +120,14 @@ pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
 /// cbindgen:ignore
 extern "C" {
-    pub fn DetectHelperGetData(
-        de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-        tx: *const c_void, list_id: c_int,
-        get_buf: unsafe extern "C" fn(*const c_void, u8, *mut *const u8, *mut u32) -> bool,
-    ) -> *mut c_void;
     pub fn DetectHelperBufferMpmRegister(
         name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
         get_data: unsafe extern "C" fn(
-            *mut c_void,
-            *const c_void,
             *const c_void,
             u8,
-            *const c_void,
-            i32,
-        ) -> *mut c_void,
+            *mut *const u8,
+            *mut u32,
+        ) -> bool,
     ) -> c_int;
     // from detect-parse.h
     pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
