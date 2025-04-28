@@ -38,7 +38,6 @@
 #include "util-lua-http.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
-#include "util-lua-hassh.h"
 #include "util-lua-smtp.h"
 
 #define MODULE_NAME "LuaLog"
@@ -591,7 +590,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
     LuaRegisterFunctions(luastate);
     LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
-    LuaRegisterHasshFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
