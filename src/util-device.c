@@ -41,6 +41,11 @@ static LiveDevStorageId g_bypass_storage_id = { .id = -1 };
 static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
 
+typedef struct LiveDeviceName_ {
+    char *dev;  /**< the device (e.g. "eth0") */
+    TAILQ_ENTRY(LiveDeviceName_) next;
+} LiveDeviceName;
+
 /** List of the name of devices
  *
  * As we don't know the size of the Storage on devices

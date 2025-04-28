@@ -67,11 +67,6 @@ typedef struct LiveDevice_ {
     Storage storage[];
 } LiveDevice;
 
-typedef struct LiveDeviceName_ {
-    char *dev;  /**< the device (e.g. "eth0") */
-    TAILQ_ENTRY(LiveDeviceName_) next;
-} LiveDeviceName;
-
 void LiveDevRegisterExtension(void);
 
 int LiveRegisterDeviceName(const char *dev);
