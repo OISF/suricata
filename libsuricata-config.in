@@ -31,7 +31,7 @@ do
             ;;
         --static)
             lib="$static_lib"
-            use_status="yes"
+            use_static="yes"
             ;;
     esac
     shift
