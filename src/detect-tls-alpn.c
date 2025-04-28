@@ -62,6 +62,7 @@ static bool TlsAlpnGetData(DetectEngineThreadCtx *det_ctx, const void *txv, cons
 
     const SSLState *ssl_state = (SSLState *)txv;
     const SSLStateConnp *connp;
+    CStringData d;
 
     if (flags & STREAM_TOSERVER) {
         connp = &ssl_state->client_connp;
@@ -69,27 +70,13 @@ static bool TlsAlpnGetData(DetectEngineThreadCtx *det_ctx, const void *txv, cons
         connp = &ssl_state->server_connp;
     }
 
-    if (TAILQ_EMPTY(&connp->alpns)) {
-        return false;
-    }
-
-    SSLAlpns *a;
-    if (idx == 0) {
-        a = TAILQ_FIRST(&connp->alpns);
+    if (SCTLSHandshakeGetALPN(connp->hs, idx, &d)) {
+        *buf = d.data;
+        *buf_len = d.len;
+        return true;
     } else {
-        // TODO optimize ?
-        a = TAILQ_FIRST(&connp->alpns);
-        for (uint32_t i = 0; i < idx; i++) {
-            a = TAILQ_NEXT(a, next);
-        }
-    }
-    if (a == NULL) {
         return false;
     }
-
-    *buf = a->alpn;
-    *buf_len = a->size;
-    return true;
 }
 
 /**
