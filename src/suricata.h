@@ -64,6 +64,11 @@
 #ifndef SURICATA_SURICATA_H
 #define SURICATA_SURICATA_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "suricata-common.h"
 
 /* the name of our binary */
@@ -228,5 +233,9 @@ int WindowsInitService(int argc, char **argv);
 #endif
 
 const char *GetProgramVersion(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SURICATA_SURICATA_H */

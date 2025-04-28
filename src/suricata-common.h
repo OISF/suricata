@@ -26,6 +26,11 @@
 #ifndef SURICATA_SURICATA_COMMON_H
 #define SURICATA_SURICATA_COMMON_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #ifdef DEBUG
 #define DBG_PERF
 #endif
@@ -555,5 +560,9 @@ extern int g_ut_modules;
 extern int g_ut_covered;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SURICATA_SURICATA_COMMON_H */
