@@ -18,10 +18,12 @@
 
 */
 
-use crate::jsonbuilder::HEX;
 use libc::c_uchar;
+use std::ffi::CStr;
 use std::os::raw::c_char;
 use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
+
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 #[derive(Debug, PartialEq)]
 pub struct HandshakeParams {
@@ -30,7 +32,7 @@ pub struct HandshakeParams {
     pub(crate) extensions: Vec<TlsExtensionType>,
     pub(crate) signature_algorithms: Vec<u16>,
     pub(crate) domain: bool,
-    pub(crate) alpn: [char; 2],
+    pub(crate) alpns: Vec<Vec<u8>>,
     pub(crate) quic: bool,
 }
 
@@ -42,7 +44,7 @@ impl Default for HandshakeParams {
 
 impl HandshakeParams {
     #[inline]
-    fn is_grease(val: u16) -> bool {
+    pub(crate) fn is_grease(val: u16) -> bool {
         match val {
             0x0a0a | 0x1a1a | 0x2a2a | 0x3a3a | 0x4a4a | 0x5a5a | 0x6a6a | 0x7a7a | 0x8a8a
             | 0x9a9a | 0xaaaa | 0xbaba | 0xcaca | 0xdada | 0xeaea | 0xfafa => true,
@@ -57,7 +59,7 @@ impl HandshakeParams {
             extensions: Vec::with_capacity(20),
             signature_algorithms: Vec::with_capacity(20),
             domain: false,
-            alpn: ['0', '0'],
+            alpns: Vec::with_capacity(4),
             quic: false,
         }
     }
@@ -79,25 +81,11 @@ impl HandshakeParams {
         }
     }
 
-    pub(crate) fn set_alpn(&mut self, alpn: &[u8]) {
-        if !alpn.is_empty() {
-            // If the first ALPN value is only a single character, then that character is treated as both the first and last character.
-            if alpn.len() == 2 {
-                // GREASE values are 2 bytes, so this could be one -- check
-                let v: u16 = ((alpn[0] as u16) << 8) | alpn[alpn.len() - 1] as u16;
-                if Self::is_grease(v) {
-                    return;
-                }
-            }
-            if !alpn[0].is_ascii_alphanumeric() || !alpn[alpn.len() - 1].is_ascii_alphanumeric() {
-                // If the first or last byte of the first ALPN is non-alphanumeric (meaning not 0x30-0x39, 0x41-0x5A, or 0x61-0x7A), then we print the first and last characters of the hex representation of the first ALPN instead.
-                self.alpn[0] = char::from(HEX[(alpn[0] >> 4) as usize]);
-                self.alpn[1] = char::from(HEX[(alpn[alpn.len() - 1] & 0xF) as usize]);
-                return;
-            }
-            self.alpn[0] = char::from(alpn[0]);
-            self.alpn[1] = char::from(alpn[alpn.len() - 1]);
+    pub fn add_alpn(&mut self, alpn: &[u8]) {
+        if alpn.is_empty() {
+            return;
         }
+        self.alpns.push(alpn.to_vec());
     }
 
     pub(crate) fn add_cipher_suite(&mut self, cipher: TlsCipherSuiteID) {
@@ -123,12 +111,38 @@ impl HandshakeParams {
         }
         self.signature_algorithms.push(sigalgo);
     }
+
+    fn log_alpns(&self, js: &mut JsonBuilder, key: &str) -> Result<(), JsonError> {
+        if self.alpns.is_empty() {
+            return Ok(());
+        }
+        js.open_array(key)?;
+
+        for v in &self.alpns {
+            js.append_string_from_bytes(v)?;
+        }
+        js.close()?;
+        Ok(())
+    }
+}
+
+// Objects used to allow C to call into this struct via the below C ABI
+// that enables the return of a u8 pointer and length
+#[repr(C)]
+pub struct CStringData {
+    data: *const u8,
+    len: usize,
 }
 
 #[no_mangle]
 pub extern "C" fn SCTLSHandshakeNew() -> *mut HandshakeParams {
     let hs = Box::new(HandshakeParams::new());
     Box::into_raw(hs)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeIsEmpty(hs: & HandshakeParams) -> bool {
+    *hs == HandshakeParams::default()
 }
 
 #[no_mangle]
@@ -152,17 +166,50 @@ pub unsafe extern "C" fn SCTLSHandshakeAddSigAlgo(hs: &mut HandshakeParams, siga
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeSetALPN(
-    hs: &mut HandshakeParams, proto: *const c_char, len: u16,
+pub unsafe extern "C" fn SCTLSHandshakeAddALPN(
+    hs: &mut HandshakeParams, alpn: *const c_char, len: u16,
 ) {
-    let b: &[u8] = std::slice::from_raw_parts(proto as *const c_uchar, len as usize);
-    hs.set_alpn(b);
+    let b: &[u8] = std::slice::from_raw_parts(alpn as *const c_uchar, len as usize);
+    hs.add_alpn(b);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCTLSHandshakeFree(hs: &mut HandshakeParams) {
     let hs: Box<HandshakeParams> = Box::from_raw(hs);
     std::mem::drop(hs);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeLogALPNs(
+    hs: &HandshakeParams, js: *mut JsonBuilder, ptr: *const c_char
+) -> bool {
+    if js.is_null() {
+        return false;
+    }
+
+    if let Ok(key) = CStr::from_ptr(ptr).to_str() {
+        hs.log_alpns(js.as_mut().unwrap(), key).is_ok()
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCTLSHandshakeGetALPN(
+    hs: &HandshakeParams, idx: u32, out: *mut CStringData,
+) -> bool {
+    if out.is_null() {
+        return false;
+    }
+    if let Some(alpn) = hs.alpns.get(idx as usize) {
+        *out = CStringData {
+            data: alpn.as_ptr(),
+            len: alpn.len(),
+        };
+        true
+    } else {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -254,26 +301,5 @@ mod tests {
         hs.add_signature_algorithm(0x1235);
         hs.add_signature_algorithm(0xbaba); // GREASE
         assert_eq!(hs.signature_algorithms.len(), 2);
-    }
-
-    #[test]
-    fn test_set_alpn_ascii() {
-        let mut hs = HandshakeParams::new();
-        hs.set_alpn(b"http/1.1");
-        assert_eq!(hs.alpn, ['h', '1']);
-    }
-
-    #[test]
-    fn test_set_alpn_non_ascii_first_or_last() {
-        let mut hs = HandshakeParams::new();
-        hs.set_alpn(&[0x01, b'T', b'E', 0x7f]); // non-alphanumeric start and end
-        assert_eq!(hs.alpn, [HEX[0x0], HEX[0xF]].map(|b| b as char)); // 0x01 -> 0, 0x7f -> f
-    }
-
-    #[test]
-    fn test_set_alpn_grease_pair_filtered() {
-        let mut hs = HandshakeParams::new();
-        hs.set_alpn(&[0x2a, 0x2a]); // 0x2a2a GREASE
-        assert_eq!(hs.alpn, ['0', '0']);
     }
 }
