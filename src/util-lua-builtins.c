@@ -41,6 +41,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.packet", LuaLoadPacketLib },
     { "suricata.rule", SCLuaLoadRuleLib },
     { "suricata.ssh", SCLuaLoadSshLib },
+    { "suricata.hassh", SCLuaLoadHasshLib },
     { NULL, NULL },
 };
 

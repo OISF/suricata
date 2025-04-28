@@ -27,5 +27,6 @@
 #include "lua.h"
 
 int SCLuaLoadSshLib(lua_State *L);
+int SCLuaLoadHasshLib(lua_State *L);
 
 #endif /* SURICATA_UTIL_LUA_SSH_H */

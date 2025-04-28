@@ -6,6 +6,11 @@ SSH transaction details are exposes to Lua scripts with the
 
   local ssh = require("suricata.ssh")
 
+If you want to use hassh, you can either set suricata.yaml option
+``app-layer.protocols.ssh.hass`` to true, or use the ``suricata.hassh``
+library which is the ``suricata.ssh`` library but tells Suricata to
+enable hassh.
+
 For use in rule matching, the rule must **hook** into a SSH
 transaction state. Available states are listed in :ref:`ssh-hooks`.
 For example:
@@ -95,3 +100,56 @@ Example::
   local tx = ssh.get_tx()
   local software = tx:client_software();
   print (software)
+
+``client_hassh()``
+^^^^^^^^^^^^^^^^^^
+
+Should be used with ``suricata.hassh`` library.
+
+Get MD5 of hassh algorithms used by the client through client_hassh.
+
+Example::
+
+  local tx = ssh.get_tx()
+  local h = tx:client_hassh();
+  print (h)
+
+
+``client_hassh_string()``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Should be used with ``suricata.hassh`` library.
+
+Get hassh algorithms used by the client through client_hassh_string.
+
+Example::
+
+  local tx = ssh.get_tx()
+  local h = tx:client_hassh_string();
+  print (h)
+
+``server_hassh()``
+^^^^^^^^^^^^^^^^^^
+
+Should be used with ``suricata.hassh`` library.
+
+Get MD5 of hassh algorithms used by the server through server_hassh.
+
+Example::
+
+  local tx = ssh.get_tx()
+  local h = tx:server_hassh();
+  print (h)
+
+``server_hassh_string()``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Should be used with ``suricata.hassh`` library.
+
+Get hassh algorithms used by the server through server_hassh_string.
+
+Example::
+
+  local tx = ssh.get_tx()
+  local h = tx:server_hassh_string();
+  print (h)

@@ -528,7 +528,6 @@ noinst_HEADERS = \
 	util-lua-flowlib.h \
 	util-lua.h \
 	util-lua-hashlib.h \
-	util-lua-hassh.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
 	util-lua-packetlib.h \
@@ -1095,7 +1094,6 @@ libsuricata_c_a_SOURCES = \
 	util-lua-dns.c \
 	util-lua-flowlib.c \
 	util-lua-hashlib.c \
-	util-lua-hassh.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
 	util-lua-packetlib.c \
