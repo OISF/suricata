@@ -193,6 +193,106 @@ extern "C" {
         de_ctx: *mut DetectEngineCtx, s: *mut Signature, list: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Flow_ {
+    _unused: [u8; 0],
+}
+pub type Flow = Flow_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SigMatchCtx_ {
+    _unused: [u8; 0],
+}
+pub type SigMatchCtx = SigMatchCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineThreadCtx_ {
+    _unused: [u8; 0],
+}
+pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InspectionBuffer {
+    _unused: [u8; 0],
+}
+#[doc = " App-layer light version of SigTableElmt"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCSigTableAppLiteElmt {
+    #[doc = " keyword name"]
+    pub name: *const ::std::os::raw::c_char,
+    #[doc = " keyword description"]
+    pub desc: *const ::std::os::raw::c_char,
+    #[doc = " keyword documentation url"]
+    pub url: *const ::std::os::raw::c_char,
+    #[doc = " flags SIGMATCH_*"]
+    pub flags: u16,
+    #[doc = " function callback to parse and setup keyword in rule"]
+    pub Setup: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineCtx,
+            arg2: *mut Signature,
+            arg3: *const ::std::os::raw::c_char,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " function callback to free structure allocated by setup if any"]
+    pub Free: ::std::option::Option<
+        unsafe extern "C" fn(arg1: *mut DetectEngineCtx, arg2: *mut ::std::os::raw::c_void),
+    >,
+    #[doc = " function callback to match on an app-layer transaction"]
+    pub AppLayerTxMatch: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineThreadCtx,
+            arg2: *mut Flow,
+            flags: u8,
+            alstate: *mut ::std::os::raw::c_void,
+            txv: *mut ::std::os::raw::c_void,
+            arg3: *const Signature,
+            arg4: *const SigMatchCtx,
+        ) -> ::std::os::raw::c_int,
+    >,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCTransformTableElmt {
+    pub name: *const ::std::os::raw::c_char,
+    pub desc: *const ::std::os::raw::c_char,
+    pub url: *const ::std::os::raw::c_char,
+    pub flags: u16,
+    pub Setup: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineCtx,
+            arg2: *mut Signature,
+            arg3: *const ::std::os::raw::c_char,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub Free: ::std::option::Option<
+        unsafe extern "C" fn(arg1: *mut DetectEngineCtx, arg2: *mut ::std::os::raw::c_void),
+    >,
+    pub Transform: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineThreadCtx,
+            arg2: *mut InspectionBuffer,
+            context: *mut ::std::os::raw::c_void,
+        ),
+    >,
+    pub TransformValidate: ::std::option::Option<
+        unsafe extern "C" fn(
+            content: *const u8,
+            content_len: u16,
+            context: *mut ::std::os::raw::c_void,
+        ) -> bool,
+    >,
+}
+extern "C" {
+    pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperTransformRegister(
+        kw: *const SCTransformTableElmt,
+    ) -> ::std::os::raw::c_int;
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
