@@ -1867,8 +1867,27 @@ static void DetectRunTx(ThreadVars *tv,
                     tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
 
             if (inspect_flags) {
-                if (*inspect_flags & (DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_SIG_CANT_MATCH)) {
-                    SCLogDebug("%p/%"PRIu64" inspecting: sid %u (%u), flags %08x ALREADY COMPLETE",
+                if (*inspect_flags & DE_STATE_FLAG_FULL_INSPECT) {
+                    SCLogDebug("%p/%" PRIu64
+                               " inspecting: sid %u (%u), flags %08x DE_STATE_FLAG_FULL_INSPECT",
+                            tx.tx_ptr, tx.tx_id, s->id, s->num, *inspect_flags);
+
+                    /* if we're still in the same progress state as an earlier full
+                     * match, we need to apply the same accept */
+                    if (have_fw_rules && (s->flags & SIG_FLAG_FIREWALL) &&
+                            (s->action & ACTION_ACCEPT) && s->app_progress_hook == tx.tx_progress) {
+                        const bool fw_accept_to_packet = ApplyAcceptToPacket(total_txs, &tx, s);
+                        break_out_of_app_filter = ApplyAccept(p, flow_flags, s, &tx, tx_end_state,
+                                fw_next_progress_missing, &tx_fw_verdict, &skip_fw_hook,
+                                &skip_before_progress);
+                        if (fw_accept_to_packet)
+                            DetectRunAppendDefaultAccept(det_ctx, p);
+                    }
+                    continue;
+                }
+                if (*inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+                    SCLogDebug("%p/%" PRIu64
+                               " inspecting: sid %u (%u), flags %08x DE_STATE_FLAG_SIG_CANT_MATCH",
                             tx.tx_ptr, tx.tx_id, s->id, s->num, *inspect_flags);
                     continue;
                 }
