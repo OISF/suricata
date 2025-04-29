@@ -209,7 +209,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
         }) => {
             // We take care of these elsewhere
         }
-        PgsqlBEMessage::CopyOutResponse(CopyOutResponse {
+        PgsqlBEMessage::CopyOutResponse(CopyResponse {
             identifier: _,
             length: _,
             column_cnt,

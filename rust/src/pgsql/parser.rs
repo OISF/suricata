@@ -269,7 +269,7 @@ pub struct NotificationResponse {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CopyOutResponse {
+pub struct CopyResponse {
     pub identifier: u8,
     pub length: u32,
     pub column_cnt: u16,
@@ -298,7 +298,7 @@ pub enum PgsqlBEMessage {
     ParameterStatus(ParameterStatusMessage),
     BackendKeyData(BackendKeyDataMessage),
     CommandComplete(RegularPacket),
-    CopyOutResponse(CopyOutResponse),
+    CopyOutResponse(CopyResponse),
     ConsolidatedCopyDataOut(ConsolidatedDataRowPacket),
     CopyDone(NoPayloadMessage),
     ReadyForQuery(ReadyForQueryMessage),
@@ -1041,7 +1041,7 @@ pub fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, Pgsql
     let (i, _formats) = many_m_n(0, columns.to_usize(), be_u16)(i)?;
     Ok((
         i,
-        PgsqlBEMessage::CopyOutResponse(CopyOutResponse {
+        PgsqlBEMessage::CopyOutResponse(CopyResponse {
             identifier,
             length,
             column_cnt: columns,
