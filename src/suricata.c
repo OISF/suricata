@@ -117,7 +117,7 @@
 #include "util-coredump-config.h"
 #include "util-cpu.h"
 #include "util-daemon.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-dpdk.h"
 #include "util-ebpf.h"
 #include "util-exception-policy.h"

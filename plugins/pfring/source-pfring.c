@@ -153,15 +153,15 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * to the interface counter */
         uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
         uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
-        SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
-        SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
+        LiveDevicePktsAdd(ptv->livedev, pfring_s.recv - th_pkts);
+        LiveDeviceDropAdd(ptv->livedev, pfring_s.drop - th_drops);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
 
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
         if (ptv->flags & PFRING_FLAGS_BYPASS) {
             uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
-            SC_ATOMIC_ADD(ptv->livedev->bypassed, pfring_s.shunt - th_bypassed);
+            LiveDeviceBypassedAdd(ptv->livedev, pfring_s.shunt - th_bypassed);
             StatsSetUI64(ptv->tv, ptv->capture_bypassed, pfring_s.shunt);
         }
 #endif
@@ -234,8 +234,8 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
             p->flags |= PKT_IGNORE_CHECKSUM;
             break;
         case CHECKSUM_VALIDATION_AUTO:
-            if (ChecksumAutoModeCheck(ptv->pkts, SC_ATOMIC_GET(ptv->livedev->pkts),
-                        SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
+            if (ChecksumAutoModeCheck(ptv->pkts, LiveDevicePktsGet(ptv->livedev),
+                        LiveDeviceInvalidChecksumsGet(ptv->livedev))) {
                 ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }

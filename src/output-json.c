@@ -54,7 +54,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-log-redis.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-validate.h"
 
 #include "flow-var.h"

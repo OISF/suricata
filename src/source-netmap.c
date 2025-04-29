@@ -42,6 +42,7 @@
 #include "util-privs.h"
 #include "util-validate.h"
 #include "util-datalink.h"
+#include "util-device-private.h"
 
 #include "source-netmap.h"
 
