@@ -1738,7 +1738,7 @@
 
     # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
-                AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
+                AS_HELP_STRING([--enable-napatech],[Enable Napatech Devices]),
                 [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
     AS_IF([test "x$enable_napatech" = "xyes"], [
