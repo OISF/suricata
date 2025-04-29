@@ -167,7 +167,7 @@ value is higher than 200.
 
 .. _datasets_json:
 
-dataset with json
+dataset with JSON
 ~~~~~~~~~~~~~~~~~
 
 Dataset with JSON allows matching data against a set and output data attached to the matching
@@ -191,7 +191,7 @@ Example rules could look like::
     alert http any any -> any any (msg:"IP match"; ip.dst; dataset:isset,bad_ips, type ip, load bad_ips.json, format json, enrichment_key bad_ones, value_key ip; sid:8000001;)
 
 In this example, the match will occur if the destination IP is in the set and the
-alert will have an ``alert.extra.bad_ones`` subobject that will contain the JSON
+alert will have an ``alert.content.bad_ones`` subobject that will contain the JSON
 data associated to the value (``bad_ones`` coming from ``enrichment_key`` option).
 
 When format is ``json`` or ``jsonline``, the ``value_key`` is used to get
@@ -401,6 +401,19 @@ For example, if the file ``file.json`` is like the following example (typical of
 then the match to check the list of threats using dataset with JSON can be defined as ::
 
     http.host; dataset:isset,threats,load file.json, enrichment_key threat, value_key host, array_key response.threats;
+
+If the signature matches, it will result in an alert with the following ::
+
+    {
+        "alert": {
+            "context": {
+                "threat": {
+                    "host": "toto.com",
+                    "origin": "japan"
+                }
+            }
+        }
+    }
 
 .. _datasets_file_locations:
 
