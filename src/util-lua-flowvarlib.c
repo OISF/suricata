@@ -116,17 +116,17 @@ static int LuaFlowvarSet(lua_State *L)
 
 static const luaL_Reg flowvarlib[] = {
     // clang-format off
-  { "register", LuaFlowvarRegister, },
-{ "get", LuaFlowvarGet },
-  { NULL, NULL, },
+    { "register", LuaFlowvarRegister, },
+    { "get", LuaFlowvarGet },
+    { NULL, NULL, },
     // clang-format on
 };
 
 static const luaL_Reg flowvarmt[] = {
     // clang-format off
-  { "value", LuaFlowvarValue, },
-  { "set", LuaFlowvarSet, },
-  { NULL, NULL, },
+    { "value", LuaFlowvarValue, },
+    { "set", LuaFlowvarSet, },
+    { NULL, NULL, },
     // clang-format on
 };
 
