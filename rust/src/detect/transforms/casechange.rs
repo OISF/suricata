@@ -16,10 +16,14 @@
  */
 
 use super::{
-    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCheckAndExpand,
-    InspectionBufferLength, InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
+    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
 };
 use crate::detect::SIGMATCH_NOOPT;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
+    Signature,
+};
 
 use std::os::raw::{c_int, c_void};
 use std::ptr;
@@ -28,7 +32,7 @@ static mut G_TRANSFORM_TOLOWER_ID: c_int = 0;
 static mut G_TRANSFORM_TOUPPER_ID: c_int = 0;
 
 unsafe extern "C" fn tolower_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     return DetectSignatureAddTransform(s, G_TRANSFORM_TOLOWER_ID, ptr::null_mut());
 }
@@ -39,7 +43,9 @@ fn tolower_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn tolower_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn tolower_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -75,20 +81,20 @@ pub unsafe extern "C" fn DetectTransformToLowerRegister() {
         name: b"to_lowercase\0".as_ptr() as *const libc::c_char,
         desc: b"convert buffer to lowercase\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#to_lowercase\0".as_ptr() as *const libc::c_char,
-        Setup: tolower_setup,
+        Setup: Some(tolower_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: tolower_transform,
+        Transform: Some(tolower_transform),
         Free: None,
         TransformValidate: Some(tolower_validate),
     };
-    G_TRANSFORM_TOLOWER_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_TOLOWER_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_TOLOWER_ID < 0 {
         SCLogWarning!("Failed registering transform tolower");
     }
 }
 
 unsafe extern "C" fn toupper_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     return DetectSignatureAddTransform(s, G_TRANSFORM_TOUPPER_ID, ptr::null_mut());
 }
@@ -99,7 +105,9 @@ fn toupper_transform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn toupper_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn toupper_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -135,13 +143,13 @@ pub unsafe extern "C" fn DetectTransformToUpperRegister() {
         name: b"to_uppercase\0".as_ptr() as *const libc::c_char,
         desc: b"convert buffer to uppercase\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#to_uppercase\0".as_ptr() as *const libc::c_char,
-        Setup: toupper_setup,
+        Setup: Some(toupper_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: toupper_transform,
+        Transform: Some(toupper_transform),
         Free: None,
         TransformValidate: Some(toupper_validate),
     };
-    G_TRANSFORM_TOUPPER_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_TOUPPER_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_TOUPPER_ID < 0 {
         SCLogWarning!("Failed registering transform toupper");
     }
