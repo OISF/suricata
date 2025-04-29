@@ -1613,6 +1613,46 @@ static inline bool ApplyAcceptToPacket(
     return false;
 }
 
+/** \internal
+ * \retval bool true: break_out_of_app_filter, false: don't break out */
+static bool ApplyAccept(Packet *p, const uint8_t flow_flags, const Signature *s,
+        DetectTransaction *tx, const int tx_end_state, const bool fw_next_progress_missing,
+        bool *tx_fw_verdict, bool *skip_fw_hook, uint8_t *skip_before_progress)
+{
+    *tx_fw_verdict = true;
+
+    const enum ActionScope as = s->action_scope;
+    /* accept:hook: jump to first rule of next state.
+     * Implemented as skip until the first rule of next state. */
+    if (as == ACTION_SCOPE_HOOK) {
+        *skip_fw_hook = true;
+        *skip_before_progress = s->app_progress_hook;
+
+        /* if there is no fw rule for the next progress value,
+         * we invoke the default drop policy. */
+        if (fw_next_progress_missing) {
+            SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_cnt,
+                    flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+            p->flow->flags |= FLOW_ACTION_DROP;
+            return true;
+        }
+        return false;
+    } else if (as == ACTION_SCOPE_TX) {
+        tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
+        *skip_fw_hook = true;
+        *skip_before_progress = (uint8_t)tx_end_state + 1; // skip all hooks
+        SCLogDebug(
+                "accept:tx applied, skip_fw_hook, skip_before_progress %u", *skip_before_progress);
+        return false;
+    } else if (as == ACTION_SCOPE_PACKET) {
+        return true;
+    } else if (as == ACTION_SCOPE_FLOW) {
+        return true;
+    }
+    return false;
+}
+
 static void DetectRunTx(ThreadVars *tv,
                     DetectEngineCtx *de_ctx,
                     DetectEngineThreadCtx *det_ctx,
@@ -1876,35 +1916,9 @@ static void DetectRunTx(ThreadVars *tv,
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
-                    tx_fw_verdict = true;
-
-                    const enum ActionScope as = s->action_scope;
-                    /* accept:hook: jump to first rule of next state.
-                     * Implemented as skip until the first rule of next state. */
-                    if (as == ACTION_SCOPE_HOOK) {
-                        skip_fw_hook = true;
-                        skip_before_progress = s->app_progress_hook;
-
-                        /* if there is no fw rule for the next progress value,
-                         * we invoke the default drop policy. */
-                        if (fw_next_progress_missing) {
-                            SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_cnt,
-                                    flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
-                            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
-                            p->flow->flags |= FLOW_ACTION_DROP;
-                            break_out_of_app_filter = true;
-                        }
-                    } else if (as == ACTION_SCOPE_TX) {
-                        tx.tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
-                        skip_fw_hook = true;
-                        skip_before_progress = (uint8_t)tx_end_state + 1; // skip all hooks
-                        SCLogDebug("accept:tx applied, skip_fw_hook, skip_before_progress %u",
-                                skip_before_progress);
-                    } else if (as == ACTION_SCOPE_PACKET) {
-                        break_out_of_app_filter = true;
-                    } else if (as == ACTION_SCOPE_FLOW) {
-                        break_out_of_app_filter = true;
-                    }
+                    break_out_of_app_filter = ApplyAccept(p, flow_flags, s, &tx, tx_end_state,
+                            fw_next_progress_missing, &tx_fw_verdict, &skip_fw_hook,
+                            &skip_before_progress);
                 }
             } else if (last_for_progress) {
                 SCLogDebug("sid %u: not a match: %s rule, last_for_progress %s", s->id,
