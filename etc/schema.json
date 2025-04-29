@@ -226,10 +226,10 @@
                 "xff": {
                     "type": "string"
                 },
-                "extra": {
+                "context": {
                     "type": "object",
                     "additionalProperties": true,
-                    "description": "Extra data created by keywords such as dataset with JSON"
+                    "description": "Extra context data created by keywords such as dataset with JSON"
                 },
                 "metadata": {
                     "type": "object",
