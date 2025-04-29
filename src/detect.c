@@ -1882,6 +1882,8 @@ static void DetectRunTx(ThreadVars *tv,
                                 &skip_before_progress);
                         if (fw_accept_to_packet)
                             DetectRunAppendDefaultAccept(det_ctx, p);
+                        if (break_out_of_app_filter)
+                            break;
                     }
                     continue;
                 }
