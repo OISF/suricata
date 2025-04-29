@@ -102,6 +102,11 @@ fn log_request(req: &PgsqlFEMessage, flags: u32, js: &mut JsonBuilder) -> Result
             identifier: _,
             length: _,
             payload,
+        })
+        | PgsqlFEMessage::CopyFail(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
         }) => {
             js.set_string_from_bytes(req.to_str(), payload)?;
         }
@@ -110,10 +115,18 @@ fn log_request(req: &PgsqlFEMessage, flags: u32, js: &mut JsonBuilder) -> Result
             js.set_uint("process_id", *pid)?;
             js.set_uint("secret_key", *backend_key)?;
         }
-        PgsqlFEMessage::Terminate(NoPayloadMessage {
+        PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
             identifier: _,
-            length: _,
+            row_cnt,
+            data_size,
         }) => {
+            js.open_object(req.to_str())?;
+            js.set_uint("msg_count", *row_cnt)?;
+            js.set_uint("data_size", *data_size)?;
+            js.close()?;
+        }
+        PgsqlFEMessage::CopyDone(_)
+        | PgsqlFEMessage::Terminate(_) => {
             js.set_string("message", req.to_str())?;
         }
         PgsqlFEMessage::UnknownMessageType(RegularPacket {
@@ -217,6 +230,11 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             // We take care of these elsewhere
         }
         PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            identifier: _,
+            length: _,
+            column_cnt,
+        })
+        | PgsqlBEMessage::CopyInResponse(CopyResponse {
             identifier: _,
             length: _,
             column_cnt,
