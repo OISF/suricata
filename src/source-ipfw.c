@@ -39,7 +39,7 @@
 #include "util-byte.h"
 #include "util-privs.h"
 #include "util-datalink.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "runmodes.h"
 
 #ifndef IPFW

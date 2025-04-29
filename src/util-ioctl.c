@@ -24,6 +24,7 @@
 
 #include "suricata-common.h"
 #include "util-ioctl.h"
+#include "util-device-private.h"
 #include "conf.h"
 #include "decode.h"
 #include "decode-sll.h"

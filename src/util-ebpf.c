@@ -43,7 +43,7 @@
 #include "util-ebpf.h"
 #include "util-affinity.h"
 #include "util-cpu.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 #include "device-storage.h"
 #include "flow-storage.h"

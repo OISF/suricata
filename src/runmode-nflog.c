@@ -27,7 +27,7 @@
 #include "runmode-nflog.h"
 
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-runmodes.h"
 #include "util-misc.h"
 

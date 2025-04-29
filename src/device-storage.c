@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "device-storage.h"
+#include "util-device-private.h"
 #include "util-storage.h"
 #include "util-unittest.h"
 

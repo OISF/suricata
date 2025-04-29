@@ -39,7 +39,7 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "source-ipfw.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 const char *RunModeIpsIPFWGetDefaultMode(void)
 {

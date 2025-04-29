@@ -46,7 +46,7 @@
 #include "util-host-os-info.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

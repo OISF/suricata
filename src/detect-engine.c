@@ -77,7 +77,7 @@
 #include "util-magic.h"
 #include "util-signal.h"
 #include "util-spm.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-var-name.h"
 #include "util-path.h"
 #include "util-profiling.h"
