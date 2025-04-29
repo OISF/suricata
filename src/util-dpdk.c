@@ -21,9 +21,11 @@
  * \author Lukas Sismis <lukas.sismis@gmail.com>
  */
 
+#include "suricata-common.h"
 #include "suricata.h"
 #include "util-dpdk.h"
 #include "util-debug.h"
+#include "util-device-private.h"
 
 void DPDKCleanupEAL(void)
 {

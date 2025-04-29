@@ -50,7 +50,7 @@
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-runmodes.h"
 #include "util-ioctl.h"
 #include "util-ebpf.h"

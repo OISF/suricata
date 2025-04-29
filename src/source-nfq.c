@@ -48,7 +48,7 @@
 #include "util-byte.h"
 #include "util-cpu.h"
 #include "util-privs.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 #include "runmodes.h"
 

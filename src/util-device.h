@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2016 Open Information Security Foundation
+/* Copyright (C) 2011-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,10 +23,6 @@ extern "C"
 {
 #endif
 
-#include "queue.h"
-#include "util-storage.h"
-#include "util-dpdk-common.h"
-
 #define OFFLOAD_FLAG_SG     (1<<0)
 #define OFFLOAD_FLAG_TSO    (1<<1)
 #define OFFLOAD_FLAG_GSO    (1<<2)
@@ -40,32 +36,12 @@ void LiveSetOffloadDisable(void);
 void LiveSetOffloadWarn(void);
 int LiveGetOffload(void);
 
-#define MAX_DEVNAME 10
-
-/** storage for live device names */
-typedef struct LiveDevice_ {
-    char *dev;  /**< the device (e.g. "eth0") */
-    char dev_short[MAX_DEVNAME + 1];
-    int mtu; /* MTU of the device */
-    bool tenant_id_set;
-
-    uint16_t id;
-
-    SC_ATOMIC_DECLARE(uint64_t, pkts);
-    SC_ATOMIC_DECLARE(uint64_t, drop);
-    SC_ATOMIC_DECLARE(uint64_t, bypassed);
-    SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
-    TAILQ_ENTRY(LiveDevice_) next;
-
-    uint32_t tenant_id;     /**< tenant id in multi-tenancy */
-    uint32_t offload_orig;  /**< original offload settings to restore @exit */
-#ifdef HAVE_DPDK
-    // DPDK resources that needs to be cleaned after workers are stopped and devices closed
-    DPDKDeviceResources *dpdk_vars;
-#endif
-    /** storage handle as a flex array member */
-    Storage storage[];
-} LiveDevice;
+/**
+ * \brief Public definition of LiveDevice.
+ *
+ * The private definition can be found in util-device-private.h.
+ */
+typedef struct LiveDevice_ LiveDevice;
 
 void LiveDevRegisterExtension(void);
 
@@ -94,6 +70,13 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
 TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *server_msg, void *data);
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data);
 #endif
+
+uint64_t LiveDevicePktsGet(LiveDevice *dev);
+void LiveDevicePktsIncr(LiveDevice *dev);
+void LiveDevicePktsAdd(LiveDevice *dev, uint64_t n);
+void LiveDeviceDropAdd(LiveDevice *dev, uint64_t n);
+void LiveDeviceBypassedAdd(LiveDevice *dev, uint64_t n);
+uint64_t LiveDeviceInvalidChecksumsGet(LiveDevice *dev);
 
 #ifdef __cplusplus
 }

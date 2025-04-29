@@ -37,7 +37,7 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-runmodes.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 const char *RunModeIpsNFQGetDefaultMode(void)
 {

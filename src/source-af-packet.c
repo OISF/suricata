@@ -46,7 +46,7 @@
 #include "util-cpu.h"
 #include "util-datalink.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-ebpf.h"
 #include "util-error.h"
 #include "util-privs.h"

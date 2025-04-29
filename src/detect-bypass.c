@@ -47,7 +47,7 @@
 #include "util-spm-bm.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 static int DetectBypassMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

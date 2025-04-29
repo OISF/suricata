@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "source-lib.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 /* Set time to the first packet timestamp when replaying a PCAP. */
 static bool time_set = false;

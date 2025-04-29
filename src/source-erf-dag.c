@@ -32,7 +32,7 @@
 
 #include "util-privs.h"
 #include "util-datalink.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "tmqh-packetpool.h"
 #include "source-erf-dag.h"
 

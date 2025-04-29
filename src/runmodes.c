@@ -56,7 +56,7 @@
 #include "counters.h"
 
 #include "suricata-plugin.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 int debuglog_enabled = 0;
 bool threading_set_cpu_affinity = false;

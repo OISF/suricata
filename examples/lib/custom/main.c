@@ -24,6 +24,7 @@
 #include "threadvars.h"
 #include "action-globals.h"
 #include "packet.h"
+#include "util-device.h"
 
 static int worker_id = 1;
 
@@ -123,7 +124,7 @@ static void *SimpleWorker(void *arg)
             goto done;
         }
 
-        (void)SC_ATOMIC_ADD(device->pkts, 1);
+        LiveDevicePktsIncr(device);
         count++;
     }
 

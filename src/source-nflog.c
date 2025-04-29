@@ -36,7 +36,7 @@
 
 #include "runmodes.h"
 #include "util-error.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-datalink.h"
 
 #ifndef HAVE_NFLOG

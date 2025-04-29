@@ -48,7 +48,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"

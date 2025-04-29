@@ -39,7 +39,7 @@
 #include "util-byte.h"
 #include "util-affinity.h"
 #include "util-runmodes.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 static const char *default_mode = "workers";
 
