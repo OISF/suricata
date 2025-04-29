@@ -44,7 +44,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-cache.h"
 
-#include "util-device.h"
+#include "util-device-private.h"
 
 #include "util-debug.h"
 

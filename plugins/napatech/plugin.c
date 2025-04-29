@@ -21,7 +21,7 @@
 #include "decode.h"
 #include "source-napatech.h"
 #include "runmode-napatech.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int decode_slot)
 {

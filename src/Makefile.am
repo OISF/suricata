@@ -486,6 +486,7 @@ noinst_HEADERS = \
 	util-debug.h \
 	util-detect.h \
 	util-device.h \
+	util-device-private.h \
 	util-dpdk.h \
 	util-dpdk-bonding.h \
 	util-dpdk-common.h \

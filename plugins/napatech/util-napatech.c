@@ -26,7 +26,7 @@
 #include "suricata-plugin.h"
 
 #include "suricata.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-cpu.h"
 #include "util-byte.h"
 #include "util-conf.h"

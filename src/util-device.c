@@ -17,7 +17,7 @@
 
 #include "suricata-common.h"
 #include "conf.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-ioctl.h"
 #include "util-misc.h"
 #include "util-dpdk.h"
@@ -42,7 +42,7 @@ static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
 
 typedef struct LiveDeviceName_ {
-    char *dev;  /**< the device (e.g. "eth0") */
+    char *dev; /**< the device (e.g. "eth0") */
     TAILQ_ENTRY(LiveDeviceName_) next;
 } LiveDeviceName;
 
@@ -613,3 +613,33 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
     SCReturnInt(TM_ECODE_FAILED);
 }
 #endif
+
+uint64_t LiveDevicePktsGet(LiveDevice *dev)
+{
+    return SC_ATOMIC_GET(dev->pkts);
+}
+
+void LiveDevicePktsIncr(LiveDevice *dev)
+{
+    (void)SC_ATOMIC_ADD(dev->pkts, 1);
+}
+
+void LiveDevicePktsAdd(LiveDevice *dev, uint64_t n)
+{
+    (void)SC_ATOMIC_ADD(dev->pkts, n);
+}
+
+void LiveDeviceDropAdd(LiveDevice *dev, uint64_t n)
+{
+    (void)SC_ATOMIC_ADD(dev->drop, n);
+}
+
+void LiveDeviceBypassedAdd(LiveDevice *dev, uint64_t n)
+{
+    (void)SC_ATOMIC_ADD(dev->bypassed, n);
+}
+
+uint64_t LiveDeviceInvalidChecksumsGet(LiveDevice *dev)
+{
+    return SC_ATOMIC_GET(dev->invalid_checksums);
+}

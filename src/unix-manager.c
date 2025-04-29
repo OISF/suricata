@@ -35,7 +35,7 @@
 #include "util-conf.h"
 #include "util-privs.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-ebpf.h"
 #include "util-signal.h"
 #include "util-buffer.h"

@@ -31,7 +31,7 @@
 #include "packet.h"
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-error.h"
 #include "util-ioctl.h"
 #include "util-privs.h"

@@ -33,7 +33,7 @@
 #include "util-affinity.h"
 #include "util-cpu.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-runmodes.h"
 #include "util-time.h"
 

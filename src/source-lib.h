@@ -27,7 +27,7 @@
 #define SURICATA_SOURCE_LIB_H
 
 #include "tm-threads.h"
-#include "util-device.h"
+#include "util-device-private.h"
 
 /** \brief register a "Decode" module for suricata as a library.
  *

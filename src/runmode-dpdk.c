@@ -39,7 +39,7 @@
 #include "util-byte.h"
 #include "util-cpu.h"
 #include "util-debug.h"
-#include "util-device.h"
+#include "util-device-private.h"
 #include "util-dpdk.h"
 #include "util-dpdk-bonding.h"
 #include "util-dpdk-common.h"
