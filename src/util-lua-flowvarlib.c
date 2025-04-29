@@ -81,7 +81,7 @@ static int LuaFlowvarGet(lua_State *L)
 
 static int LuaFlowvarValue(lua_State *L)
 {
-    uint32_t *flowvar_id = luaL_testudata(L, 1, suricata_flowvar_mt);
+    uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowvar_mt);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return LuaCallbackError(L, "flow is NULL");
