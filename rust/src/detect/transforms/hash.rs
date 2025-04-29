@@ -16,10 +16,15 @@
  */
 
 use super::{
-    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCheckAndExpand,
-    InspectionBufferLength, InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
+    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
 };
 use crate::detect::SIGMATCH_NOOPT;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
+    Signature,
+};
+
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};
 use digest::{Digest, Update};
 use md5::Md5;
@@ -36,7 +41,7 @@ static mut G_TRANSFORM_SHA256_ID: c_int = 0;
 const SC_MD5_LEN: usize = 16;
 
 unsafe extern "C" fn md5_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if G_DISABLE_HASHING {
         SCLogError!("MD5 hashing has been disabled, needed for to_md5 keyword");
@@ -49,7 +54,9 @@ fn md5_transform_do(input: &[u8], output: &mut [u8]) {
     Md5::new().chain(input).finalize_into(output.into());
 }
 
-unsafe extern "C" fn md5_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn md5_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -75,20 +82,20 @@ pub unsafe extern "C" fn DetectTransformMd5Register() {
         name: b"to_md5\0".as_ptr() as *const libc::c_char,
         desc: b"convert to md5 hash of the buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#to-md5\0".as_ptr() as *const libc::c_char,
-        Setup: md5_setup,
+        Setup: Some(md5_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: md5_transform,
+        Transform: Some(md5_transform),
         Free: None,
         TransformValidate: None,
     };
-    G_TRANSFORM_MD5_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_MD5_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_MD5_ID < 0 {
         SCLogWarning!("Failed registering transform md5");
     }
 }
 
 unsafe extern "C" fn sha1_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if G_DISABLE_HASHING {
         SCLogError!("SHA1 hashing has been disabled, needed for to_sha1 keyword");
@@ -101,7 +108,9 @@ fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
     Sha1::new().chain(input).finalize_into(output.into());
 }
 
-unsafe extern "C" fn sha1_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn sha1_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -127,20 +136,20 @@ pub unsafe extern "C" fn DetectTransformSha1Register() {
         name: b"to_sha1\0".as_ptr() as *const libc::c_char,
         desc: b"convert to sha1 hash of the buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#to-sha1\0".as_ptr() as *const libc::c_char,
-        Setup: sha1_setup,
+        Setup: Some(sha1_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: sha1_transform,
+        Transform: Some(sha1_transform),
         Free: None,
         TransformValidate: None,
     };
-    G_TRANSFORM_SHA1_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_SHA1_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_SHA1_ID < 0 {
         SCLogWarning!("Failed registering transform sha1");
     }
 }
 
 unsafe extern "C" fn sha256_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     if G_DISABLE_HASHING {
         SCLogError!("SHA256 hashing has been disabled, needed for to_sha256 keyword");
@@ -153,7 +162,9 @@ fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
     Sha256::new().chain(input).finalize_into(output.into());
 }
 
-unsafe extern "C" fn sha256_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn sha256_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -179,13 +190,13 @@ pub unsafe extern "C" fn DetectTransformSha256Register() {
         name: b"to_sha256\0".as_ptr() as *const libc::c_char,
         desc: b"convert to sha256 hash of the buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#to-sha256\0".as_ptr() as *const libc::c_char,
-        Setup: sha256_setup,
+        Setup: Some(sha256_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: sha256_transform,
+        Transform: Some(sha256_transform),
         Free: None,
         TransformValidate: None,
     };
-    G_TRANSFORM_SHA256_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_SHA256_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_SHA256_ID < 0 {
         SCLogWarning!("Failed registering transform sha256");
     }

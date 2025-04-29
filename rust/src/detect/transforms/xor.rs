@@ -16,10 +16,14 @@
  */
 
 use super::{
-    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCheckAndExpand,
-    InspectionBufferLength, InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
+    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
 };
 use crate::detect::SIGMATCH_QUOTES_MANDATORY;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
+    Signature,
+};
 
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -59,7 +63,7 @@ unsafe fn xor_parse(raw: *const std::os::raw::c_char) -> *mut c_void {
 }
 
 unsafe extern "C" fn xor_setup(
-    de: *mut c_void, s: *mut c_void, opt_str: *const std::os::raw::c_char,
+    de: *mut DetectEngineCtx, s: *mut Signature, opt_str: *const std::os::raw::c_char,
 ) -> c_int {
     let ctx = xor_parse(opt_str);
     if ctx.is_null() {
@@ -80,7 +84,9 @@ fn xor_transform_do(input: &[u8], output: &mut [u8], ctx: &DetectTransformXorDat
     }
 }
 
-unsafe extern "C" fn xor_transform(_det: *mut c_void, buffer: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn xor_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -101,7 +107,7 @@ unsafe extern "C" fn xor_transform(_det: *mut c_void, buffer: *mut c_void, ctx: 
     InspectionBufferTruncate(buffer, input_len);
 }
 
-unsafe extern "C" fn xor_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn xor_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut DetectTransformXorData));
 }
 
@@ -111,14 +117,14 @@ pub unsafe extern "C" fn DetectTransformXorRegister() {
         name: b"xor\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via XOR decoding before inspection\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#xor\0".as_ptr() as *const libc::c_char,
-        Setup: xor_setup,
+        Setup: Some(xor_setup),
         flags: SIGMATCH_QUOTES_MANDATORY,
-        Transform: xor_transform,
+        Transform: Some(xor_transform),
         Free: Some(xor_free),
         TransformValidate: None,
     };
     unsafe {
-        G_TRANSFORM_XOR_ID = DetectHelperTransformRegister(&kw);
+        G_TRANSFORM_XOR_ID = SCDetectHelperTransformRegister(&kw);
         if G_TRANSFORM_XOR_ID < 0 {
             SCLogWarning!("Failed registering transform dot_prefix");
         }

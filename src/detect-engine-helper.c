@@ -29,6 +29,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
+#include "rust.h"
 
 int DetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
 {
@@ -143,7 +144,7 @@ void DetectHelperKeywordAliasRegister(int kwid, const char *alias)
     sigmatch_table[kwid].alias = alias;
 }
 
-int DetectHelperTransformRegister(const SCTransformTableElmt *kw)
+int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
 {
     int transform_id = SCDetectHelperNewKeywordId();
     if (transform_id < 0) {

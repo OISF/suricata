@@ -36,6 +36,7 @@
 #include "output-eve-bindgen.h"
 #include "detect-engine-register.h"
 #include "detect-engine-buffer.h"
+#include "detect-engine-helper.h"
 
 #include "conf.h"
 
