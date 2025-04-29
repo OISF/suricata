@@ -299,6 +299,7 @@ pub enum PgsqlBEMessage {
     BackendKeyData(BackendKeyDataMessage),
     CommandComplete(RegularPacket),
     CopyOutResponse(CopyResponse),
+    CopyInResponse(CopyResponse),
     ConsolidatedCopyDataOut(ConsolidatedDataRowPacket),
     CopyDone(NoPayloadMessage),
     ReadyForQuery(ReadyForQueryMessage),
@@ -328,6 +329,7 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::BackendKeyData(_) => "backend_key_data",
             PgsqlBEMessage::CommandComplete(_) => "command_completed",
             PgsqlBEMessage::CopyOutResponse(_) => "copy_out_response",
+            PgsqlBEMessage::CopyInResponse(_) => "copy_in_response",
             PgsqlBEMessage::ConsolidatedCopyDataOut(_) => "copy_data_out",
             PgsqlBEMessage::CopyDone(_) => "copy_done",
             PgsqlBEMessage::ReadyForQuery(_) => "ready_for_query",
@@ -383,6 +385,9 @@ pub enum PgsqlFEMessage {
     SASLInitialResponse(SASLInitialResponsePacket),
     SASLResponse(RegularPacket),
     SimpleQuery(RegularPacket),
+    ConsolidatedCopyDataIn(ConsolidatedDataRowPacket),
+    CopyDone(NoPayloadMessage),
+    CopyFail(RegularPacket),
     CancelRequest(CancelRequestMessage),
     Terminate(NoPayloadMessage),
     UnknownMessageType(RegularPacket),
@@ -397,6 +402,9 @@ impl PgsqlFEMessage {
             PgsqlFEMessage::SASLInitialResponse(_) => "sasl_initial_response",
             PgsqlFEMessage::SASLResponse(_) => "sasl_response",
             PgsqlFEMessage::SimpleQuery(_) => "simple_query",
+            PgsqlFEMessage::ConsolidatedCopyDataIn(_) => "copy_data_in",
+            PgsqlFEMessage::CopyDone(_) => "copy_done",
+            PgsqlFEMessage::CopyFail(_) => "copy_fail",
             PgsqlFEMessage::CancelRequest(_) => "cancel_request",
             PgsqlFEMessage::Terminate(_) => "termination_message",
             PgsqlFEMessage::UnknownMessageType(_) => "unknown_message_type",
@@ -787,6 +795,9 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError
         b'\0' => pgsql_parse_startup_packet(i)?,
         b'Q' => parse_simple_query(i)?,
         b'X' => parse_terminate_message(i)?,
+        b'd' => parse_consolidated_copy_data_in(i)?,
+        b'c' => parse_copy_in_done(i)?,
+        b'f' => parse_copy_fail(i)?,
         _ => {
             let (i, identifier) = be_u8(i)?;
             let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
@@ -1049,6 +1060,22 @@ pub fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, Pgsql
     ))
 }
 
+pub fn parse_copy_in_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'G')(i)?;
+    let (i, length) = parse_gte_length(i, 8)?;
+    let (i, _format) = be_u8(i)?;
+    let (i, columns) = be_u16(i)?;
+    let (i, _formats) = many_m_n(0, columns.to_usize(), be_u16)(i)?;
+    Ok((
+        i,
+        PgsqlBEMessage::CopyInResponse(CopyResponse {
+            identifier,
+            length,
+            column_cnt: columns,
+        })
+    ))
+}
+
 pub fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'd')(i)?;
     let (i, length) = parse_gte_length(i, 5)?;
@@ -1062,13 +1089,50 @@ pub fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessa
     ))
 }
 
-fn parse_copy_done(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+pub fn parse_consolidated_copy_data_in(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'd')(i)?;
+    let (i, length) = parse_gte_length(i, 5)?;
+    let (i, _data) = take(length - PGSQL_LENGTH_FIELD)(i)?;
+    SCLogDebug!("data size is {:?}", _data);
+    Ok((
+        i, PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+            identifier,
+            row_cnt: 1,
+            data_size: (length - PGSQL_LENGTH_FIELD) as u64 })
+    ))
+}
+
+fn parse_copy_in_done(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'c')(i)?;
+    let (i, length) = parse_exact_length(i, PGSQL_LENGTH_FIELD)?;
+    Ok((
+        i, PgsqlFEMessage::CopyDone(NoPayloadMessage {
+            identifier,
+            length
+        })
+    ))
+}
+
+fn parse_copy_out_done(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'c')(i)?;
     let (i, length) = parse_exact_length(i, PGSQL_LENGTH_FIELD)?;
     Ok((
         i, PgsqlBEMessage::CopyDone(NoPayloadMessage {
             identifier,
             length
+        })
+    ))
+}
+
+fn parse_copy_fail(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+    let (i, identifier) = verify(be_u8, |&x| x == b'f')(i)?;
+    let (i, length) = parse_gte_length(i, 5)?;
+    let (i, data) = take(length - PGSQL_LENGTH_FIELD)(i)?;
+    Ok((
+        i, PgsqlFEMessage::CopyFail(RegularPacket {
+            identifier,
+            length,
+            payload: data.to_vec(),
         })
     ))
 }
@@ -1267,13 +1331,14 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlPar
         b'R' => pgsql_parse_authentication_message(i)?,
         b'S' => parse_parameter_status_message(i)?,
         b'C' => parse_command_complete(i)?,
-        b'c' => parse_copy_done(i)?,
+        b'c' => parse_copy_out_done(i)?,
         b'Z' => parse_ready_for_query(i)?,
         b'T' => parse_row_description(i)?,
         b'A' => parse_notification_response(i)?,
         b'D' => parse_consolidated_data_row(i)?,
         b'd' => parse_consolidated_copy_data_out(i)?,
         b'H' => parse_copy_out_response(i)?,
+        b'G' => parse_copy_in_response(i)?,
         _ => {
             let (i, identifier) = be_u8(i)?;
             let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;

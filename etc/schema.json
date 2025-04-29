@@ -3654,6 +3654,20 @@
                 "request": {
                     "type": "object",
                     "properties": {
+                        "copy_data_in": {
+                            "type": "object",
+                            "description": "CopyData message from CopyIn mode",
+                            "properties": {
+                                "msg_count": {
+                                    "type": "integer",
+                                    "description": "how many CopyData messages were sent (does not necessarily match number of rows from the query)"
+                                },
+                                "data_size": {
+                                    "type": "integer",
+                                    "description": "accumulated data size of all CopyData messages sent"
+                                }
+                            }
+                        },
                         "message": {
                             "type": "string"
                         },
@@ -3831,6 +3845,16 @@
                         },
                         "severity_non_localizable": {
                             "type": "string"
+                        },
+                        "copy_in_response": {
+                            "type": "object",
+                            "description": "backend/server response accepting CopyIn mode",
+                            "properties": {
+                                "copy_column_count": {
+                                    "type": "integer",
+                                    "description": "number of columns that will be copied in the CopyData message"
+                                }
+                            }
                         },
                         "copy_out_response": {
                             "type": "object",
