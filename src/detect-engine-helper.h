@@ -25,8 +25,53 @@
 #define SURICATA_DETECT_ENGINE_HELPER_H
 
 #include "app-layer-protos.h"
-#include "detect.h"
-#include "rust.h"
+
+// type from flow.h with only forward declarations for bindgen
+typedef struct Flow_ Flow;
+// types from detect.h with only forward declarations for bindgen
+// could be #ifndef SURICATA_BINDGEN_H #include "detect.h" #endif
+typedef struct DetectEngineCtx_ DetectEngineCtx;
+typedef struct Signature_ Signature;
+typedef struct SigMatchCtx_ SigMatchCtx;
+typedef struct DetectEngineThreadCtx_ DetectEngineThreadCtx;
+typedef struct InspectionBuffer InspectionBuffer;
+typedef struct DetectEngineTransforms DetectEngineTransforms;
+typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
+typedef bool (*InspectionMultiBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const void *txv, const uint8_t flow_flags, uint32_t local_id, const uint8_t **buf,
+        uint32_t *buf_len);
+
+/// App-layer light version of SigTableElmt
+typedef struct SCSigTableAppLiteElmt {
+    /// keyword name
+    const char *name;
+    /// keyword description
+    const char *desc;
+    /// keyword documentation url
+    const char *url;
+    /// flags SIGMATCH_*
+    uint16_t flags;
+    /// function callback to parse and setup keyword in rule
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
+    /// function callback to free structure allocated by setup if any
+    void (*Free)(DetectEngineCtx *, void *);
+    /// function callback to match on an app-layer transaction
+    int (*AppLayerTxMatch)(DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, void *txv,
+            const Signature *, const SigMatchCtx *);
+} SCSigTableAppLiteElmt;
+
+typedef struct SCTransformTableElmt {
+    const char *name;
+    const char *desc;
+    const char *url;
+    uint16_t flags;
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
+    void (*Free)(DetectEngineCtx *, void *);
+    void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, void *context);
+    bool (*TransformValidate)(const uint8_t *content, uint16_t content_len, void *context);
+} SCTransformTableElmt;
 
 int SCDetectHelperNewKeywordId(void);
 
@@ -46,7 +91,7 @@ int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppPr
 int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
-int DetectHelperTransformRegister(const SCTransformTableElmt *kw);
+int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 const uint8_t *InspectionBufferPtr(InspectionBuffer *buf);
 uint32_t InspectionBufferLength(InspectionBuffer *buf);
 

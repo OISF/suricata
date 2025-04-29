@@ -87,8 +87,6 @@ include = [
     "FtpStateValues",
     "FtpDataStateValues",
     "HTTP2TransactionState",
-    "SCSigTableAppLiteElmt",
-    "SCTransformTableElmt",
     "DataRepType",
 ]
 

@@ -16,10 +16,14 @@
  */
 
 use super::{
-    DetectHelperTransformRegister, DetectSignatureAddTransform, InspectionBufferCheckAndExpand,
-    InspectionBufferLength, InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
+    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
 };
 use crate::detect::SIGMATCH_NOOPT;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
+    Signature,
+};
 
 use std::os::raw::{c_int, c_void};
 use std::ptr;
@@ -28,7 +32,7 @@ static mut G_TRANSFORM_HEADER_LOWER_ID: c_int = 0;
 static mut G_TRANSFORM_STRIP_PSEUDO_ID: c_int = 0;
 
 unsafe extern "C" fn header_lowersetup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     return DetectSignatureAddTransform(s, G_TRANSFORM_HEADER_LOWER_ID, ptr::null_mut());
 }
@@ -52,7 +56,9 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
     }
 }
 
-unsafe extern "C" fn header_lowertransform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn header_lowertransform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -78,20 +84,20 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
         name: b"header_lowercase\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via lowercaseing header names\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#header_lowercase\0".as_ptr() as *const libc::c_char,
-        Setup: header_lowersetup,
+        Setup: Some(header_lowersetup),
         flags: SIGMATCH_NOOPT,
-        Transform: header_lowertransform,
+        Transform: Some(header_lowertransform),
         Free: None,
         TransformValidate: None,
     };
-    G_TRANSFORM_HEADER_LOWER_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_HEADER_LOWER_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_HEADER_LOWER_ID < 0 {
         SCLogWarning!("Failed registering transform tolower");
     }
 }
 
 unsafe extern "C" fn strip_pseudo_setup(
-    _de: *mut c_void, s: *mut c_void, _raw: *const std::os::raw::c_char,
+    _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
     return DetectSignatureAddTransform(s, G_TRANSFORM_STRIP_PSEUDO_ID, ptr::null_mut());
 }
@@ -114,7 +120,9 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
     return nb as u32;
 }
 
-unsafe extern "C" fn strip_pseudo_transform(_det: *mut c_void, buffer: *mut c_void, _ctx: *mut c_void) {
+unsafe extern "C" fn strip_pseudo_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+) {
     let input = InspectionBufferPtr(buffer);
     let input_len = InspectionBufferLength(buffer);
     if input.is_null() || input_len == 0 {
@@ -140,13 +148,13 @@ pub unsafe extern "C" fn DetectTransformStripPseudoHeadersRegister() {
         name: b"strip_pseudo_headers\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via stripping pseudo headers\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#strip_pseudo_headers\0".as_ptr() as *const libc::c_char,
-        Setup: strip_pseudo_setup,
+        Setup: Some(strip_pseudo_setup),
         flags: SIGMATCH_NOOPT,
-        Transform: strip_pseudo_transform,
+        Transform: Some(strip_pseudo_transform),
         Free: None,
         TransformValidate: None,
     };
-    G_TRANSFORM_STRIP_PSEUDO_ID = DetectHelperTransformRegister(&kw);
+    G_TRANSFORM_STRIP_PSEUDO_ID = SCDetectHelperTransformRegister(&kw);
     if G_TRANSFORM_STRIP_PSEUDO_ID < 0 {
         SCLogWarning!("Failed registering transform toupper");
     }
