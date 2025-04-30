@@ -270,7 +270,7 @@ error:
     return false;
 }
 
-bool SCTmThreadsSlotPktAcqLoopFinish(ThreadVars *tv)
+bool SCTmThreadsSlotPacketLoopFinish(ThreadVars *tv)
 {
     TmSlot *s = tv->tm_slots;
     bool rc = true;
@@ -344,7 +344,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             run = false;
         }
     }
-    if (!SCTmThreadsSlotPktAcqLoopFinish(tv)) {
+    if (!SCTmThreadsSlotPacketLoopFinish(tv)) {
         goto error;
     }
 
@@ -521,7 +521,7 @@ static void *TmThreadsSlotVar(void *td)
             run = false;
         }
     }
-    if (!SCTmThreadsSlotPktAcqLoopFinish(tv)) {
+    if (!SCTmThreadsSlotPacketLoopFinish(tv)) {
         goto error;
     }
     StatsSyncCounters(tv);

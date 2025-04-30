@@ -138,7 +138,7 @@ done:
      * Note that there is some thread synchronization between this
      * function and SuricataShutdown such that they must be run
      * concurrently at this time before either will exit. */
-    SCTmThreadsSlotPktAcqLoopFinish(tv);
+    SCTmThreadsSlotPacketLoopFinish(tv);
 
     SCLogNotice("Worker thread exiting");
     pthread_exit(NULL);
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
     SCLogNotice("Shutting down");
 
     /* Note that there is some thread synchronization between this
-     * function and SCTmThreadsSlotPktAcqLoopFinish that require them
+     * function and SCTmThreadsSlotPacketLoopFinish that require them
      * to be run concurrently at this time. */
     SuricataShutdown();
     GlobalsDestroy();
