@@ -2283,9 +2283,14 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     /* handle graceful shutdown of the flow engine, it's helper
      * threads and the packet threads */
     FlowDisableFlowManagerThread();
+    /* disable capture */
     TmThreadDisableReceiveThreads();
+    /* tell packet threads to enter flow timeout loop */
+    TmThreadDisablePacketThreads(THV_REQ_FLOW_LOOP, THV_FLOW_LOOP);
+    /* run cleanup on the flow hash */
     FlowWorkToDoCleanup();
-    TmThreadDisablePacketThreads();
+    /* gracefully shut down packet threads */
+    TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE);
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();
 
