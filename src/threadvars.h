@@ -32,7 +32,7 @@
 struct TmSlot_;
 
 /** Thread flags set and read by threads to control the threads */
-#define THV_USE                 BIT_U32(0)  /** thread is in use */
+// bit 0 vacant
 #define THV_INIT_DONE           BIT_U32(1)  /** thread initialization done */
 #define THV_PAUSE               BIT_U32(2)  /** signal thread to pause itself */
 #define THV_PAUSED              BIT_U32(3)  /** the thread is paused atm */
