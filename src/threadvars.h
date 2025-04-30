@@ -44,7 +44,7 @@ struct TmSlot_;
 #define THV_DEINIT              BIT_U32(7)
 #define THV_RUNNING_DONE        BIT_U32(8)  /** thread has completed running and is entering
                                          * the de-init phase */
-#define THV_KILL_PKTACQ         BIT_U32(9)  /**< flag thread to stop packet acq */
+#define THV_REQ_FLOW_LOOP       BIT_U32(9)  /**< request thread to enter flow timeout loop */
 #define THV_FLOW_LOOP           BIT_U32(10) /**< thread is in flow shutdown loop */
 
 /** signal thread's capture method to create a fake packet to force through
