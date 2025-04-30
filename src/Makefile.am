@@ -9,6 +9,13 @@ if HAS_FUZZPCAP
 endif
 endif
 
+# Headers that should never be installed.
+PRIVATE_INCLUDES = \
+	util-device-private.h
+
+# Headers that are installed with "make install-headers". They are
+# declared as "noinst_HEADERS" to avoid them being installed by
+# default.
 noinst_HEADERS = \
 	action-globals.h \
 	alert-debuglog.h \
@@ -486,7 +493,6 @@ noinst_HEADERS = \
 	util-debug.h \
 	util-detect.h \
 	util-device.h \
-	util-device-private.h \
 	util-dpdk.h \
 	util-dpdk-bonding.h \
 	util-dpdk-common.h \
@@ -1172,6 +1178,7 @@ libsuricata_c_a_SOURCES = \
 	win32-syscall.c
 
 EXTRA_DIST = \
+	${PRIVATE_INCLUDES} \
 	tests/stream-tcp-inline.c \
 	tests/stream-tcp-list.c \
 	tests/detect-ipv4hdr.c \
