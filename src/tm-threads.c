@@ -369,7 +369,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             TmThreadsSetFlag(tv, THV_FAILED);
             run = 0;
         }
-        if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
+        if (TmThreadsCheckFlag(tv, THV_REQ_FLOW_LOOP) || suricata_ctl_flags) {
             run = 0;
         }
         if (r == TM_ECODE_DONE) {
@@ -507,37 +507,16 @@ static void *TmThreadsSlotVar(void *td)
             TmThreadsHandleInjectedPackets(tv);
         }
 
-        if (TmThreadsCheckFlag(tv, THV_KILL)) {
+        if (TmThreadsCheckFlag(tv, THV_REQ_FLOW_LOOP)) {
             run = 0;
         }
-    } /* while (run) */
+    }
+    if (!SCTmThreadsSlotPktAcqLoopFinish(tv)) {
+        goto error;
+    }
     StatsSyncCounters(tv);
 
-    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
-    TmThreadWaitForFlag(tv, THV_DEINIT);
-
-    PacketPoolDestroy();
-
-    s = (TmSlot *)tv->tm_slots;
-
-    for ( ; s != NULL; s = s->slot_next) {
-        if (s->SlotThreadExitPrintStats != NULL) {
-            s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
-        }
-
-        if (s->SlotThreadDeinit != NULL) {
-            r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
-            if (r != TM_ECODE_OK) {
-                TmThreadsSetFlag(tv, THV_CLOSED);
-                goto error;
-            }
-        }
-    }
-
-    SCLogDebug("%s ending", tv->name);
-    tv->stream_pq = NULL;
-    TmThreadsSetFlag(tv, THV_CLOSED);
-    pthread_exit((void *) 0);
+    pthread_exit(NULL);
     return NULL;
 
 error:
@@ -1451,7 +1430,7 @@ again:
             if (tm && tm->PktAcqBreakLoop != NULL) {
                 tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
             }
-            TmThreadsSetFlag(tv, THV_KILL_PKTACQ);
+            TmThreadsSetFlag(tv, THV_REQ_FLOW_LOOP);
 
             if (tv->inq != NULL) {
                 for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
@@ -1505,8 +1484,17 @@ static void TmThreadDebugValidateNoMorePackets(void)
 
 /**
  * \brief Disable all packet threads
+ * \param set flag to set
+ * \param check flag to check
+ *
+ * Support 2 stages in shutting down the packet threads:
+ * 1. set THV_REQ_FLOW_LOOP and wait for THV_FLOW_LOOP
+ * 2. set THV_KILL and wait for THV_RUNNING_DONE
+ *
+ * During step 1 the main loop is exited, and the flow loop logic is entered.
+ * During step 2, the flow loop logic is done and the thread closes.
  */
-void TmThreadDisablePacketThreads(void)
+void TmThreadDisablePacketThreads(const uint16_t set, const uint16_t check)
 {
     struct timeval start_ts;
     struct timeval cur_ts;
@@ -1530,7 +1518,7 @@ again:
     /* loop through the packet threads and kill them */
     SCMutexLock(&tv_root_lock);
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        TmThreadsSetFlag(tv, THV_KILL);
+        TmThreadsSetFlag(tv, set);
 
         /* separate worker threads (autofp) will still wait at their
          * input queues. So nudge them here so they will observe the
@@ -1544,7 +1532,8 @@ again:
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
 
-        while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+        /* wait for it to reach the expected state */
+        while (!TmThreadsCheckFlag(tv, check)) {
             SCMutexUnlock(&tv_root_lock);
 
             SleepMsec(1);
