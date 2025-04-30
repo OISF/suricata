@@ -3615,6 +3615,9 @@
                         "password_message": {
                             "type": "string"
                         },
+                        "password_redacted": {
+                            "type": "boolean"
+                        },
                         "process_id": {
                             "type": "integer"
                         },
