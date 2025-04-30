@@ -928,7 +928,6 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
 
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
-    TmThreadsSetFlag(tv, THV_USE);
 
     /* set the incoming queue */
     if (inq_name != NULL && strcmp(inq_name, "packetpool") != 0) {
