@@ -3615,6 +3615,10 @@
                         "password_message": {
                             "type": "string"
                         },
+                        "password_redacted": {
+                            "type": "boolean",
+                            "description": "indicates if a password message was received but not logged due to Suricata settings"
+                        },
                         "process_id": {
                             "type": "integer"
                         },
