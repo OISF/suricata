@@ -80,7 +80,7 @@ Syntax::
 
     dataset:<set|unset|isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
-         , format <csv|json|jsonline>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>,
+         , format <csv|json|ndjson>, enrichment_key <output_key>, value_key <json_key>, array_key <json_path>,
          remove_key];
 
 type <type>
@@ -99,7 +99,7 @@ hashsize <size>
 format <type>
   the format of the file: csv, json. Defaut to csv. See
   :ref:`dataset with json format <datasets_json>` for json
-  and jsonline option
+  and ndjson option
 enrichment_key <key>
   the key to use for the enrichment of the alert event
   for json format
@@ -173,9 +173,9 @@ dataset with JSON
 Dataset with JSON allows matching data against a set and output data attached to the matching
 value in the event.
 
-There is two format supported: ``json`` and ``jsonline``. The difference is that
-``json`` format is a single JSON object, while ``jsonline`` is handling file with
-one JSON object per line. The ``jsonline`` format is useful for large files
+There is two format supported: ``json`` and ``ndjson``. The difference is that
+``json`` format is a single JSON object, while ``ndjson`` is handling file with
+one JSON object per line. The ``ndjson`` format is useful for large files
 as the parsing is done line by line.
 
 Syntax::
@@ -183,7 +183,7 @@ Syntax::
     dataset:<cmd>,<name>,<options>;
 
     dataset:<isset|isnotset>,<name> \
-        [, type <string|md5|sha256|ipv4|ip>, load <file name>, format <json|jsonline>, memcap <size>, hashsize <size>, enrichment_key <json_key> \
+        [, type <string|md5|sha256|ipv4|ip>, load <file name>, format <json|ndjson>, memcap <size>, hashsize <size>, enrichment_key <json_key> \
          , value_key <json_key>, array_key <json_path>];
 
 Example rules could look like::
@@ -194,8 +194,8 @@ In this example, the match will occur if the destination IP is in the set and th
 alert will have an ``alert.content.bad_ones`` subobject that will contain the JSON
 data associated to the value (``bad_ones`` coming from ``enrichment_key`` option).
 
-When format is ``json`` or ``jsonline``, the ``value_key`` is used to get
-the value in the line (``jsonline`` format) or in the array (``json`` format).
+When format is ``json`` or ``ndjson``, the ``value_key`` is used to get
+the value in the line (``ndjson`` format) or in the array (``json`` format).
 At least one single element needs to be have the ``value_key`` present in the data file to
 have a successful load.
 If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
