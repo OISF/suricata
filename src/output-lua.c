@@ -36,7 +36,6 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
-#include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-smtp.h"
 
@@ -588,7 +587,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
 
     /* register functions common to all */
     LuaRegisterFunctions(luastate);
-    LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);
 

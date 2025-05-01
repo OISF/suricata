@@ -49,6 +49,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-ssl.h"
 
 #include "stream-tcp.h"
 
@@ -72,7 +73,8 @@ static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectLuaRegisterTests(void);
 #endif
 static void DetectLuaFree(DetectEngineCtx *, void *);
-static int g_smtp_generic_list_id = 0;
+static int g_lua_ja3_list_id = 0;
+static int g_lua_ja3s_list_id = 0;
 
 /**
  * \brief Registration function for keyword: lua
@@ -89,12 +91,18 @@ void DetectLuaRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 #endif
-    g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
-    DetectAppLayerInspectEngineRegister("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectGenericList, NULL);
+    g_lua_ja3_list_id = DetectBufferTypeRegister("lua.ja3");
+    DetectAppLayerInspectEngineRegister("lua.ja3", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CLIENT_HELLO_DONE, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(
+            "lua.ja3", ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
+
+    g_lua_ja3s_list_id = DetectBufferTypeRegister("lua.ja3s");
+    DetectAppLayerInspectEngineRegister("lua.ja3s", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_SERVER_HELLO_DONE, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(
+            "lua.ja3s", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectGenericList, NULL);
 
     SCLogDebug("registering lua rule option");
 }
@@ -103,6 +111,8 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_PACKET                    BIT_U32(0)
 #define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
 #define FLAG_DATATYPE_STREAM                    BIT_U32(2)
+#define FLAG_LIST_JA3                           BIT_U32(3)
+#define FLAG_LIST_JA3S                          BIT_U32(4)
 #define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
@@ -658,7 +668,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             continue;
         }
 
-        if (strcmp(k, "packet") == 0) {
+        if (strcmp(k, "ja3") == 0) {
+            ld->flags |= FLAG_LIST_JA3;
+        } else if (strcmp(k, "ja3s") == 0) {
+            ld->flags |= FLAG_LIST_JA3S;
+        } else if (strcmp(k, "packet") == 0) {
             ld->flags |= FLAG_DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0) {
             ld->flags |= FLAG_DATATYPE_PAYLOAD;
@@ -764,6 +778,13 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     if (list == -1) {
         SCLogError("lua failed to set up");
         goto error;
+    }
+    if (list == 0) {
+        if (lua->flags & FLAG_LIST_JA3) {
+            list = g_lua_ja3_list_id;
+        } else if (lua->flags & FLAG_LIST_JA3S) {
+            list = g_lua_ja3s_list_id;
+        }
     }
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_LUA, (SigMatchCtx *)lua, list) == NULL) {

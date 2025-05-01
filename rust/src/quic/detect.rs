@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::core::DetectEngineThreadCtx;
+use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::quic::quic::QuicTransaction;
 use std::os::raw::c_void;
 use std::ptr;
@@ -52,17 +52,21 @@ pub unsafe extern "C" fn rs_quic_tx_get_sni(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_ja3(
-    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+    tx: &QuicTransaction, dir: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    if tx.client {
+        if dir & STREAM_TOSERVER == 0 {
+            return false;
+        }
+    } else if dir & STREAM_TOCLIENT == 0 {
+        return false;
+    }
     if let Some(ja3) = &tx.ja3 {
         *buffer = ja3.as_ptr();
         *buffer_len = ja3.len() as u32;
-        1
-    } else {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-        0
+        return true;
     }
+    return false;
 }
 
 #[no_mangle]
