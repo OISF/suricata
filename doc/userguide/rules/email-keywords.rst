@@ -16,12 +16,12 @@ Syntax::
 
 ``email.from`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.from``
+This keyword maps to the EVE field ``email.from``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``from`` with the value ``toto <toto@gmail.com>``
+Example of a signature that would alert if a packet contains the MIME field ``from`` with the value ``toto <toto@gmail.com>``:
 
 .. container:: example-rule
 
@@ -40,12 +40,12 @@ Syntax::
 
 ``email.subject`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.subject``
+This keyword maps to the EVE field ``email.subject``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``subject`` with the value ``This is a test email``
+Example of a signature that would alert if a packet contains the MIME field ``subject`` with the value ``This is a test email``:
 
 .. container:: example-rule
 
@@ -64,12 +64,12 @@ Syntax::
 
 ``email.to`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.to``
+This keyword maps to the EVE field ``email.to``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``to`` with the value ``172.16.92.2@linuxbox``
+Example of a signature that would alert if a packet contains the MIME field ``to`` with the value ``172.16.92.2@linuxbox``:
 
 .. container:: example-rule
 
@@ -88,12 +88,12 @@ Syntax::
 
 ``email.cc`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.cc[]``
+This keyword maps to the EVE field ``email.cc[]``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``cc`` with the value ``Emily <emily.roberts@example.com>, Ava <ava.johnson@example.com>, Sophia Wilson <sophia.wilson@example.com>``
+Example of a signature that would alert if a packet contains the MIME field ``cc`` with the value ``Emily <emily.roberts@example.com>, Ava <ava.johnson@example.com>, Sophia Wilson <sophia.wilson@example.com>``:
 
 .. container:: example-rule
 
@@ -112,12 +112,12 @@ Syntax::
 
 ``email.date`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.date``
+This keyword maps to the EVE field ``email.date``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``date`` with the value ``Fri, 21 Apr 2023 05:10:36 +0000``
+Example of a signature that would alert if a packet contains the MIME field ``date`` with the value ``Fri, 21 Apr 2023 05:10:36 +0000``:
 
 .. container:: example-rule
 
@@ -136,12 +136,12 @@ Syntax::
 
 ``email.message_id`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.message_id``
+This keyword maps to the EVE field ``email.message_id``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``message id`` with the value ``<alpine.DEB.2.00.1311261630120.9535@sd-26634.dedibox.fr>``
+Example of a signature that would alert if a packet contains the MIME field ``message id`` with the value ``<alpine.DEB.2.00.1311261630120.9535@sd-26634.dedibox.fr>``:
 
 .. container:: example-rule
 
@@ -160,12 +160,12 @@ Syntax::
 
 ``email.x_mailer`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
 
-This keyword maps to the EVE field ``email.x_mailer``
+This keyword maps to the EVE field ``email.x_mailer``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``x-mailer`` with the value ``Microsoft Office Outlook, Build 11.0.5510``
+Example of a signature that would alert if a packet contains the MIME field ``x-mailer`` with the value ``Microsoft Office Outlook, Build 11.0.5510``:
 
 .. container:: example-rule
 
@@ -186,12 +186,12 @@ Syntax::
 
 ``email.url`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
-This keyword maps to the EVE field ``email.url[]``
+This keyword maps to the EVE field ``email.url[]``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if an email contains the ``url`` ``test-site.org/blah/123/``.
+Example of a signature that would alert if an email contains the ``url`` ``test-site.org/blah/123/``:
 
 .. container:: example-rule
 
@@ -212,12 +212,12 @@ Syntax::
 
 ``email.received`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
-This keyword maps to the EVE field ``email.received[]``
+This keyword maps to the EVE field ``email.received[]``.
 
 Example
 ^^^^^^^
 
-Example of a signature that would alert if a packet contains the MIME field ``received`` with the value ``from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch; Mon, 29 Jul 2019 17:01:45 +0000``
+Example of a signature that would alert if a packet contains the MIME field ``received`` with the value ``from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch; Mon, 29 Jul 2019 17:01:45 +0000``:
 
 .. container:: example-rule
 
