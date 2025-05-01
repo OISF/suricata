@@ -381,7 +381,7 @@ static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key, Dat
     uint32_t cnt = 0;
     if (format == DATASET_FORMAT_JSON) {
         cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddStringElement);
-    } else if (format == DATASET_FORMAT_JSONLINE) {
+    } else if (format == DATASET_FORMAT_NDJSON) {
         cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddStringElement);
     }
     THashConsolidateMemcap(set->hash);
@@ -443,7 +443,7 @@ static int DatajsonLoadMd5(Dataset *set, char *json_key, char *array_key, Datase
     uint32_t cnt = 0;
     if (format == DATASET_FORMAT_JSON) {
         cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddMd5Element);
-    } else if (format == DATASET_FORMAT_JSONLINE) {
+    } else if (format == DATASET_FORMAT_NDJSON) {
         cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddMd5Element);
     }
     THashConsolidateMemcap(set->hash);
@@ -505,7 +505,7 @@ static int DatajsonLoadSha256(Dataset *set, char *json_key, char *array_key, Dat
     uint32_t cnt = 0;
     if (format == DATASET_FORMAT_JSON) {
         cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddSha256Element);
-    } else if (format == DATASET_FORMAT_JSONLINE) {
+    } else if (format == DATASET_FORMAT_NDJSON) {
         cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddSha256Element);
     }
     THashConsolidateMemcap(set->hash);
@@ -563,7 +563,7 @@ static int DatajsonLoadIPv4(Dataset *set, char *json_key, char *array_key, Datas
 
     if (format == DATASET_FORMAT_JSON) {
         cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddIpv4Element);
-    } else if (format == DATASET_FORMAT_JSONLINE) {
+    } else if (format == DATASET_FORMAT_NDJSON) {
         cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddIpv4Element);
     }
     THashConsolidateMemcap(set->hash);
@@ -622,7 +622,7 @@ static int DatajsonLoadIPv6(Dataset *set, char *json_key, char *array_key, Datas
 
     if (format == DATASET_FORMAT_JSON) {
         cnt = DatajsonLoadTypeFromJSON(set, json_key, array_key, DatajsonAddIPv6Element);
-    } else if (format == DATASET_FORMAT_JSONLINE) {
+    } else if (format == DATASET_FORMAT_NDJSON) {
         cnt = DatajsonLoadTypeFromJsonline(set, json_key, DatajsonAddIPv6Element);
     }
 
