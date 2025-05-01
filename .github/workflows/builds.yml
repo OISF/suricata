@@ -670,6 +670,21 @@ jobs:
           fail_ci_if_error: false
           flags: suricata-verify
 
+      # Generate coverage report for code that may only be used by the
+      # lib/plugin examples.
+      - run: make
+        working-directory: examples/lib/custom
+      - run: make install-conf
+      - run: ./custom -- ../../../qa/docker/pcaps/tls.pcap
+        working-directory: examples/lib/custom
+      - run: llvm-profdata merge -o examples.profdata $(find examples/ -name '*.profraw')
+      - run: llvm-cov show ./examples/lib/custom/custom -instr-profile=examples.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
+        with:
+          fail_ci_if_error: false
+          flags: examples
+
   # Fedora build using Clang.
   fedora-42-clang:
     name: Fedora 42 (clang, debug, asan, wshadow, rust-strict, systemd)
