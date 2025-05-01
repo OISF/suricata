@@ -621,6 +621,8 @@ static void PrintUsage(const char *progname)
     printf("\t--firewall-rules-exclusive=<path>    : path to firewall rule file loaded "
            "exclusively\n");
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
+    printf("\t--list-app-layer-hooks               : list supported app layer hooks for use in "
+           "rules\n");
     printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
     printf("\t--list-runmodes                      : list supported runmodes\n");
     printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
@@ -1325,6 +1327,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     int dump_config = 0;
     int dump_features = 0;
     int list_app_layer_protocols = 0;
+    int list_app_layer_hooks = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
@@ -1371,6 +1374,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
+        {"list-app-layer-hooks", 0, &list_app_layer_hooks, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
         {"list-keywords", optional_argument, &list_keywords, 1},
@@ -1562,8 +1566,9 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
                 /* listing all supported app layer protocols */
-            }
-            else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "list-app-layer-hooks") == 0) {
+                /* listing all supported app layer hooks */
+            } else if (strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
                 suri->run_mode = RUNMODE_LIST_UNITTEST;
 #else
@@ -1582,31 +1587,28 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 }
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
                 suri->runmode_custom_mode = optarg;
-            } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
             }
 #ifdef OS_WIN32
-            else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
+            else if (strcmp((long_opts[option_index]).name, "service-install") == 0) {
                 suri->run_mode = RUNMODE_INSTALL_SERVICE;
                 return TM_ECODE_OK;
-            }
-            else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "service-remove") == 0) {
                 suri->run_mode = RUNMODE_REMOVE_SERVICE;
                 return TM_ECODE_OK;
-            }
-            else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
                 suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
                 return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
-            else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
+            else if (strcmp((long_opts[option_index]).name, "pidfile") == 0) {
                 suri->pid_filename = SCStrdup(optarg);
                 if (suri->pid_filename == NULL) {
                     SCLogError("strdup failed: %s", strerror(errno));
                     return TM_ECODE_FAILED;
                 }
-            }
-            else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
+            } else if (strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
             } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
                 g_disable_hashing = true;
@@ -2065,6 +2067,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
     if (list_app_layer_protocols)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
+    if (list_app_layer_hooks)
+        suri->run_mode = RUNMODE_LIST_APP_LAYER_HOOKS;
     if (list_keywords)
         suri->run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
@@ -2336,6 +2340,12 @@ int SCStartInternalRunMode(int argc, char **argv)
                 return ListAppLayerProtocols(suri->conf_filename);
             } else {
                 return ListAppLayerProtocols(DEFAULT_CONF_FILE);
+            }
+        case RUNMODE_LIST_APP_LAYER_HOOKS:
+            if (suri->conf_filename != NULL) {
+                return ListAppLayerHooks(suri->conf_filename);
+            } else {
+                return ListAppLayerHooks(DEFAULT_CONF_FILE);
             }
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
