@@ -414,8 +414,11 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
         }
         s->flags |= SIG_FLAG_TOCLIENT;
     } else {
-        s->flags |= SIG_FLAG_TOSERVER;
-        s->flags |= SIG_FLAG_TOCLIENT;
+        /* if direction wasn't already set, e.g. by rule hook, assume both */
+        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0) {
+            s->flags |= SIG_FLAG_TOSERVER;
+            s->flags |= SIG_FLAG_TOCLIENT;
+        }
     }
     if (fd->flags == 0 || fd->flags == DETECT_FLOW_FLAG_TOSERVER ||
             fd->flags == DETECT_FLOW_FLAG_TOCLIENT) {
