@@ -9,7 +9,7 @@ Initialization
 
 First, the ``flowvar`` lib module must be loaded::
 
-  local flowvarlib = require("suricata.flow")
+  local flowvarlib = require("suricata.flowvar")
 
 Then in the ``init`` method, any flow variables used in the script
 should be registered. This is optional and could be skipped if you
@@ -18,7 +18,7 @@ means.
 
 Example::
 
-  local flowvarlib = require("suricata.flow")
+  local flowvarlib = require("suricata.flowvar")
 
   function init ()
       flowvarlib.register("count")
