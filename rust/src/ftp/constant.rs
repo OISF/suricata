@@ -19,9 +19,7 @@
 #[repr(u8)]
 #[allow(non_camel_case_types)]
 pub enum FtpStateValues {
-    FTP_STATE_NONE,
     FTP_STATE_IN_PROGRESS,
-    FTP_STATE_PORT_DONE,
     FTP_STATE_FINISHED,
 }
 // FTP Data progress values
