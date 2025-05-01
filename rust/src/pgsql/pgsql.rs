@@ -60,7 +60,7 @@ pub struct PgsqlTransaction {
     pub tx_id: u64,
     pub tx_req_state: PgsqlTxProgress,
     pub tx_res_state: PgsqlTxProgress,
-    pub request: Option<PgsqlFEMessage>,
+    pub requests: Vec<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
     pub data_row_cnt: u64,
@@ -87,7 +87,7 @@ impl PgsqlTransaction {
             tx_id: 0,
             tx_req_state: PgsqlTxProgress::TxInit,
             tx_res_state: PgsqlTxProgress::TxInit,
-            request: None,
+            requests: Vec::<PgsqlFEMessage>::new(),
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
             data_size: 0,
@@ -380,7 +380,7 @@ impl PgsqlState {
                     // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.updated_ts = true;
-                        tx.request = Some(request);
+                        tx.requests.push(request);
                         if let Some(state) = new_state {
                             if Self::request_is_complete(state) {
                                 // The request is always complete at this point
