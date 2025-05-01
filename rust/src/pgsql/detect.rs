@@ -46,10 +46,12 @@ unsafe extern "C" fn pgsql_detect_query_get_data(
 ) -> bool {
     let tx = cast_pointer!(tx, PgsqlTransaction);
 
-    if let Some(PgsqlFEMessage::SimpleQuery(ref query)) = &tx.request {
-        *buffer = query.payload.as_ptr();
-        *buffer_len = query.payload.len() as u32;
-        return true;
+    for request in &tx.requests {
+        if let PgsqlFEMessage::SimpleQuery(ref query) = request {
+            *buffer = query.payload.as_ptr();
+            *buffer_len = query.payload.len() as u32;
+            return true;
+        }
     }
 
     *buffer = std::ptr::null();
