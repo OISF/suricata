@@ -3783,20 +3783,25 @@
                         },
                         "copy_data_out": {
                             "type": "object",
+                            "description": "CopyData message from CopyOut mode",
                             "properties": {
-                                "data_size": {
-                                    "type": "integer"
-                                },
                                 "row_count": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of rows sent in CopyData messages"
+                                },
+                                "data_size": {
+                                    "type": "integer",
+                                    "description": "Accumulated data size of all CopyData messages sent"
                                 }
                             }
                         },
                         "copy_out_response": {
                             "type": "object",
+                            "description": "Backend/server response accepting CopyOut mode",
                             "properties": {
                                 "copy_column_count": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of columns that will be copied in the CopyData message"
                                 }
                             }
                         },
