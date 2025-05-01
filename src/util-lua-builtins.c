@@ -20,6 +20,7 @@
 #include "util-lua-base64lib.h"
 #include "util-lua-dataset.h"
 #include "util-lua-dnp3.h"
+#include "util-lua-flowintlib.h"
 #include "util-lua-flowvarlib.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
@@ -37,6 +38,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.dnp3", SCLuaLoadDnp3Lib },
     { "suricata.dns", SCLuaLoadDnsLib },
     { "suricata.flow", LuaLoadFlowLib },
+    { "suricata.flowint", LuaLoadFlowintLib },
     { "suricata.flowvar", LuaLoadFlowvarLib },
     { "suricata.hashlib", SCLuaLoadHashlib },
     { "suricata.http", SCLuaLoadHttpLib },
