@@ -3626,9 +3626,6 @@
                         "password": {
                             "type": "string"
                         },
-                        "password_message": {
-                            "type": "string"
-                        },
                         "process_id": {
                             "type": "integer"
                         },

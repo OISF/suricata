@@ -398,7 +398,7 @@ impl PgsqlFEMessage {
         match self {
             PgsqlFEMessage::StartupMessage(_) => "startup_message",
             PgsqlFEMessage::SSLRequest(_) => "ssl_request",
-            PgsqlFEMessage::PasswordMessage(_) => "password_message",
+            PgsqlFEMessage::PasswordMessage(_) => "password",
             PgsqlFEMessage::SASLInitialResponse(_) => "sasl_initial_response",
             PgsqlFEMessage::SASLResponse(_) => "sasl_response",
             PgsqlFEMessage::SimpleQuery(_) => "simple_query",
