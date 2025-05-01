@@ -33,6 +33,7 @@ static int g_mime_email_message_id_buffer_id = 0;
 static int g_mime_email_x_mailer_buffer_id = 0;
 static int g_mime_email_url_buffer_id = 0;
 static int g_mime_email_received_buffer_id = 0;
+static int g_mime_email_attachment_buffer_id = 0;
 
 static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -328,6 +329,31 @@ static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void 
     return true;
 }
 
+static int DetectMimeEmailAttachmentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_attachment_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+        return -1;
+
+    return 0;
+}
+
+static bool GetMimeEmailAttachmentData(DetectEngineThreadCtx *det_ctx, const void *txv,
+        const uint8_t flags, uint32_t idx, const uint8_t **buf, uint32_t *buf_len)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)txv;
+    if (tx->mime_state == NULL) {
+        return false;
+    }
+
+    if (SCDetectMimeEmailGetAttachment(tx->mime_state, buf, buf_len, idx) != 1) {
+        return false;
+    }
+    return true;
+}
+
 void DetectEmailRegister(void)
 {
     SCSigTableAppLiteElmt kw = { 0 };
@@ -412,4 +438,13 @@ void DetectEmailRegister(void)
     DetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = DetectHelperMultiBufferMpmRegister("email.received",
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
+
+    kw.name = "email.attachment";
+    kw.desc = "File name extracted from an email";
+    kw.url = "/rules/email-keywords.html#email.attachment";
+    kw.Setup = DetectMimeEmailAttachmentSetup;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    DetectHelperKeywordRegister(&kw);
+    g_mime_email_attachment_buffer_id = DetectHelperMultiBufferMpmRegister("email.attachment",
+            "MIME EMAIL ATTACHMENT", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailAttachmentData);
 }

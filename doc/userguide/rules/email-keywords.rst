@@ -222,3 +222,29 @@ Example of a signature that would alert if a packet contains the MIME field ``re
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email received"; :example-rule-emphasis:`email.received; content:"from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch\; Mon, 29 Jul 2019 17:01:45 +0000";` sid:1;)
+
+email.attachment
+----------------
+
+Matches the attached files from an email.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ email.attachment; content:"<content to match against>";
+
+``email.attachment`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.attachment`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+This keyword maps to the EVE field ``email.attachment[]``.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if an email contains the attachment ``file-test.zip``:
+
+.. container:: example-rule
+
+  alert smtp any any -> any any (msg:"Test mime email attachment"; :example-rule-emphasis:`email.attachment; content:"file-test.zip";` sid:1;)
