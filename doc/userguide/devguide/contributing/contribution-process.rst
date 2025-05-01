@@ -224,8 +224,16 @@ We have a :ref:`Coding Style` that must be followed.
 Documentation Style
 ===================
 
-For documenting *code*, please follow Rust documentation and/or Doxygen
-guidelines, according to what your contribution is using (Rust or C).
+For documenting *code*, please follow Rust documentation and/or
+Doxygen guidelines, according to what your contribution is using (Rust
+or C). The rest of this section refers to the user and developer
+documentation.
+
+The user and developer guide documentation (what you are reading now)
+is written in *reStructuredText* and rendered with `Sphinx
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_. For
+a primer *reStucturedText* please see the `reStrucutredText Primer
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_.
 
 When writing or updating *documentation pages*, please:
 
@@ -235,6 +243,32 @@ When writing or updating *documentation pages*, please:
 * bear in mind that our documentation is published on `Read the Docs <https:/
   /docs.suricata.io/en/latest/#suricata-user-guide>`_ and can also be
   built to pdf, so it is important that it looks good in such formats.
+
+Headings
+--------
+
+reStructuredText allows for flexible header order, for consistency
+please use the following order:
+
+* ``#``: for h1
+* ``*``: for h2
+* ``=``: for h3
+* ``-``: for h4
+* ``~``: for h5
+* ``^``: for h6
+
+For example, in a new documentation page:
+
+.. code-block:: rst
+
+  Page Title
+  ##########
+
+  Section
+  *******
+
+  Sub-Section
+  ===========
 
 Rule examples
 -------------
