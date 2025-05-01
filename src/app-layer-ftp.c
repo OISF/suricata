@@ -889,11 +889,11 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
     SCLogDebug("tx %p", vtx);
     FTPTransaction *tx = vtx;
 
+    /* having a tx implies request side is done */
+    if (direction == STREAM_TOSERVER) {
+        return FTP_STATE_FINISHED;
+    }
     if (!tx->done) {
-        if (direction == STREAM_TOSERVER &&
-                tx->command_descriptor.command_code == FTP_COMMAND_PORT) {
-            return FTP_STATE_PORT_DONE;
-        }
         return FTP_STATE_IN_PROGRESS;
     }
 
