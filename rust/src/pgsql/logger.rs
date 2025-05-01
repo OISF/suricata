@@ -80,7 +80,7 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             payload,
         }) => {
             if flags & PGSQL_LOG_PASSWORDS != 0 {
-                js.set_string_from_bytes("password", payload)?;
+                js.set_string_from_bytes(req.to_str(), payload)?;
             } else {
                 js.set_bool("password_redacted", true)?;
             }

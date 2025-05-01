@@ -2526,7 +2526,7 @@ Requests are sent by the frontend (client), which would be the source of a pgsql
 flow. Some of the possible request messages are:
 
 * "startup_message": message sent to start a new PostgreSQL connection
-* "password_message": if password output for PGSQL is enabled in suricata.yaml,
+* "password": if password output for PGSQL is enabled in suricata.yaml,
   carries the password sent during Authentication phase
 * "password_redacted": set to true in case there is a password message, but its
   logging is disabled
