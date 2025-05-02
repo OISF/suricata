@@ -24,145 +24,183 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
-
-#include "output.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-ssl.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
-
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-
+#include "util-lua-ja3.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-ja3.h"
+#include "app-layer-ssl.h"
+#include "rust.h"
 
-static int Ja3GetHash(lua_State *luastate)
+static const char ja3_tx[] = "suricata:ja3:tx";
+
+struct LuaTx {
+    void *tx; // Quic or TLS Transaction
+    AppProto alproto;
+};
+
+static int LuaJa3GetTx(lua_State *L)
 {
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol is not tls");
+    AppProto alproto = ALPROTO_QUIC;
+    if (LuaStateNeedProto(L, ALPROTO_TLS)) {
+        alproto = ALPROTO_TLS;
+    } else if (!(LuaStateNeedProto(L, ALPROTO_QUIC))) {
+        return LuaCallbackError(L, "error: protocol nor tls neither quic");
+    }
+    void *tx = LuaStateGetTX(L);
+    if (tx == NULL) {
+        return LuaCallbackError(L, "error: no tx available");
+    }
+    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    if (ltx == NULL) {
+        return LuaCallbackError(L, "error: fail to allocate user data");
+    }
+    ltx->tx = tx;
+    ltx->alproto = alproto;
 
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
+    luaL_getmetatable(L, ja3_tx);
+    lua_setmetatable(L, -2);
 
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    if (ssl_state->client_connp.ja3_hash == NULL)
-        return LuaCallbackError(luastate, "error: no JA3 hash");
-
-    return LuaPushStringBuffer(luastate,
-                               (uint8_t *)ssl_state->client_connp.ja3_hash,
-                               strlen(ssl_state->client_connp.ja3_hash));
+    return 1;
 }
 
-static int Ja3GetString(lua_State *luastate)
+static int LuaJa3TxGetHash(lua_State *L)
 {
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol is not tls");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    if (ssl_state->client_connp.ja3_str == NULL ||
-            ssl_state->client_connp.ja3_str->data == NULL)
-        return LuaCallbackError(luastate, "error: no JA3 str");
-
-    return LuaPushStringBuffer(luastate,
-                               (uint8_t *)ssl_state->client_connp.ja3_str->data,
-                               ssl_state->client_connp.ja3_str->used);
+    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (ltx->alproto == ALPROTO_TLS) {
+        SSLState *ssl_state = (SSLState *)ltx->tx;
+        if (ssl_state->client_connp.ja3_hash == NULL) {
+            lua_pushnil(L);
+            return 1;
+        }
+        return LuaPushStringBuffer(L, (uint8_t *)ssl_state->client_connp.ja3_hash,
+                strlen(ssl_state->client_connp.ja3_hash));
+    } // else QUIC {
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    if (!SCQuicTxGetJa3(ltx->tx, STREAM_TOSERVER, &buf, &b_len)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    uint8_t ja3_hash[SC_MD5_HEX_LEN + 1];
+    // this adds a final zero
+    SCMd5HashBufferToHex(buf, b_len, (char *)ja3_hash, SC_MD5_HEX_LEN + 1);
+    return LuaPushStringBuffer(L, ja3_hash, SC_MD5_HEX_LEN);
 }
 
-static int Ja3SGetHash(lua_State *luastate)
+static int LuaJa3TxGetString(lua_State *L)
 {
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol is not tls");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    if (ssl_state->server_connp.ja3_hash == NULL)
-        return LuaCallbackError(luastate, "error: no JA3S hash");
-
-    return LuaPushStringBuffer(luastate,
-                               (uint8_t *)ssl_state->server_connp.ja3_hash,
-                               strlen(ssl_state->server_connp.ja3_hash));
+    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (ltx->alproto == ALPROTO_TLS) {
+        SSLState *ssl_state = (SSLState *)ltx->tx;
+        if (ssl_state->client_connp.ja3_str == NULL ||
+                ssl_state->client_connp.ja3_str->data == NULL) {
+            lua_pushnil(L);
+            return 1;
+        }
+        return LuaPushStringBuffer(L, (uint8_t *)ssl_state->client_connp.ja3_str->data,
+                ssl_state->client_connp.ja3_str->used);
+    } // else QUIC {
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    if (!SCQuicTxGetJa3(ltx->tx, STREAM_TOSERVER, &buf, &b_len)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
 }
 
-static int Ja3SGetString(lua_State *luastate)
+static int LuaJa3TxGetServerHash(lua_State *L)
 {
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol is not tls");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    if (ssl_state->server_connp.ja3_str == NULL ||
-            ssl_state->server_connp.ja3_str->data == NULL)
-        return LuaCallbackError(luastate, "error: no JA3S str");
-
-    return LuaPushStringBuffer(luastate,
-                               (uint8_t *)ssl_state->server_connp.ja3_str->data,
-                               ssl_state->server_connp.ja3_str->used);
+    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (ltx->alproto == ALPROTO_TLS) {
+        SSLState *ssl_state = (SSLState *)ltx->tx;
+        if (ssl_state->server_connp.ja3_hash == NULL) {
+            lua_pushnil(L);
+            return 1;
+        }
+        return LuaPushStringBuffer(L, (uint8_t *)ssl_state->server_connp.ja3_hash,
+                strlen(ssl_state->server_connp.ja3_hash));
+    } // else QUIC {
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    if (!SCQuicTxGetJa3(ltx->tx, STREAM_TOCLIENT, &buf, &b_len)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    uint8_t ja3_hash[SC_MD5_HEX_LEN + 1];
+    // this adds a final zero
+    SCMd5HashBufferToHex(buf, b_len, (char *)ja3_hash, SC_MD5_HEX_LEN + 1);
+    return LuaPushStringBuffer(L, ja3_hash, SC_MD5_HEX_LEN);
 }
 
-/** *\brief Register JA3 Lua extensions */
-int LuaRegisterJa3Functions(lua_State *luastate)
+static int LuaJa3TxGetServerString(lua_State *L)
 {
-    lua_pushcfunction(luastate, Ja3GetHash);
-    lua_setglobal(luastate, "Ja3GetHash");
+    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    if (ltx->alproto == ALPROTO_TLS) {
+        SSLState *ssl_state = (SSLState *)ltx->tx;
+        if (ssl_state->server_connp.ja3_str == NULL ||
+                ssl_state->server_connp.ja3_str->data == NULL) {
+            lua_pushnil(L);
+            return 1;
+        }
+        return LuaPushStringBuffer(L, (uint8_t *)ssl_state->server_connp.ja3_str->data,
+                ssl_state->server_connp.ja3_str->used);
+    } // else QUIC {
+    const uint8_t *buf = NULL;
+    uint32_t b_len = 0;
+    if (!SCQuicTxGetJa3(ltx->tx, STREAM_TOCLIENT, &buf, &b_len)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    return LuaPushStringBuffer(L, buf, b_len);
+}
 
-    lua_pushcfunction(luastate, Ja3GetString);
-    lua_setglobal(luastate, "Ja3GetString");
+static const struct luaL_Reg txlib[] = {
+    // clang-format off
+    { "ja3_get_hash", LuaJa3TxGetHash },
+    { "ja3_get_string", LuaJa3TxGetString },
+    { "ja3s_get_hash", LuaJa3TxGetServerHash },
+    { "ja3s_get_string", LuaJa3TxGetServerString },
+    { NULL, NULL, }
+    // clang-format on
+};
 
-    lua_pushcfunction(luastate, Ja3SGetHash);
-    lua_setglobal(luastate, "Ja3SGetHash");
+static int LuaJa3Enable(lua_State *L)
+{
+    SSLEnableJA3();
+    return 1;
+}
 
-    lua_pushcfunction(luastate, Ja3SGetString);
-    lua_setglobal(luastate, "Ja3SGetString");
+static const struct luaL_Reg ja3lib[] = {
+    // clang-format off
+    { "get_tx", LuaJa3GetTx },
+    { "enable_ja3", LuaJa3Enable },
+    { NULL, NULL,},
+    // clang-format on
+};
 
-    return 0;
+int SCLuaLoadJa3Lib(lua_State *L)
+{
+    luaL_newmetatable(L, ja3_tx);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_setfuncs(L, txlib, 0);
+
+    luaL_newlib(L, ja3lib);
+    return 1;
 }
