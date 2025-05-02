@@ -174,3 +174,26 @@ SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id)
     }
     return last;
 }
+
+int SCDetectSignatureAddTransform(Signature *s, int transform, void *options)
+{
+    /* we only support buffers */
+    if (s->init_data->list == 0) {
+        SCReturnInt(-1);
+    }
+    if (!s->init_data->list_set) {
+        SCLogError("transforms must directly follow stickybuffers");
+        SCReturnInt(-1);
+    }
+    if (s->init_data->transforms.cnt >= DETECT_TRANSFORMS_MAX) {
+        SCReturnInt(-1);
+    }
+
+    s->init_data->transforms.transforms[s->init_data->transforms.cnt].transform = transform;
+    s->init_data->transforms.transforms[s->init_data->transforms.cnt].options = options;
+
+    s->init_data->transforms.cnt++;
+    SCLogDebug("Added transform #%d [%s]", s->init_data->transforms.cnt, s->sig_str);
+
+    SCReturnInt(0);
+}

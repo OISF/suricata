@@ -16,13 +16,13 @@
  */
 
 use super::{
-    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
-    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
+    InspectionBufferTruncate,
 };
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    Signature,
+    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
 };
 
 use std::os::raw::{c_int, c_void};
@@ -33,7 +33,7 @@ static mut G_TRANSFORM_URL_DECODE_ID: c_int = 0;
 unsafe extern "C" fn url_decode_setup(
     _de: *mut DetectEngineCtx, s: *mut Signature, _opt: *const std::os::raw::c_char,
 ) -> c_int {
-    return DetectSignatureAddTransform(s, G_TRANSFORM_URL_DECODE_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_URL_DECODE_ID, ptr::null_mut());
 }
 
 fn hex_value(i: u8) -> Option<u8> {
