@@ -360,6 +360,7 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
     if (set->remove_key) {
         json_object_del(value, json_key);
     }
+
     elt.value = json_dumps(value, JSON_COMPACT);
     elt.len = strlen(elt.value);
 
@@ -642,74 +643,34 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
         uint32_t hashsize, char *json_key_value, char *json_array_key, DatasetFormats format,
         bool remove_key)
 {
-    uint64_t default_memcap = 0;
-    uint32_t default_hashsize = 0;
-    if (strlen(name) > DATASET_NAME_MAX_LEN) {
-        SCLogError("dataset name too long");
+    Dataset *set = NULL;
+
+    int ret = DatasetCreateOrGet(name, type, NULL, load, &memcap, &hashsize, &set);
+    if (ret < 0) {
+        SCLogError("dataset with JSON %s creation failed", name);
         return NULL;
     }
-
-    DatasetLock();
-    Dataset *set = DatasetSearchByName(name);
-    if (set) {
-        if (type != DATASET_TYPE_NOTSET && set->type != type) {
-            SCLogError("dataset %s already "
-                       "exists and is of type %u",
-                    set->name, set->type);
+    if (ret == 1) {
+        SCLogDebug("dataset %s already exists", name);
+        if (set->remove_key !=  remove_key) {
+            SCLogError("dataset %s remove_key mismatch: %b != %b", set->name, set->remove_key,
+                    remove_key);
             DatasetUnlock();
             return NULL;
         }
-
-        if (load == NULL || strlen(load) == 0) {
-            // OK, rule keyword doesn't have to set state/load,
-            // even when yaml set has set it.
-        } else {
-            if ((load == NULL && strlen(set->load) > 0) ||
-                    (load != NULL && strcmp(set->load, load) != 0)) {
-                SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
-                DatasetUnlock();
-                return NULL;
-            }
-        }
-
         DatasetUnlock();
         return set;
     }
 
-    if (type == DATASET_TYPE_NOTSET) {
-        SCLogError("dataset %s not defined", name);
-        goto out_err;
-    }
-
-    set = DatasetAlloc(name);
-    if (set == NULL) {
-        SCLogError("dataset %s allocation failed", name);
-        goto out_err;
-    }
-
-    strlcpy(set->name, name, sizeof(set->name));
-    set->type = type;
     set->remove_key = remove_key;
-    if (load && strlen(load)) {
-        strlcpy(set->load, load, sizeof(set->load));
-        SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
-    }
 
-    static const char conf_format_str[] = "datasets.%s.hash";
-    char cnf_name[DATASET_NAME_MAX_LEN + (sizeof(conf_format_str) / sizeof(char))];
-    int p_ret = snprintf(cnf_name, sizeof(cnf_name), conf_format_str, name);
-    if (p_ret == 0) {
-        SCLogError("Can't build configuration variable for set: '%s'", name);
-        goto out_err;
-    }
-
-    DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
+    char cnf_name[128];
+    snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrJsonSet, Md5StrJsonFree,
                     Md5StrHash, Md5StrCompare, NULL, Md5StrJsonGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatajsonLoadMd5(set, json_key_value, json_array_key, format) < 0)
@@ -718,8 +679,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringJsonSet, StringJsonFree,
                     StringHash, StringCompare, NULL, StringJsonGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatajsonLoadString(set, json_key_value, json_array_key, format) < 0) {
@@ -730,8 +690,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrJsonSet, Sha256StrJsonFree,
                     Sha256StrHash, Sha256StrCompare, NULL, Sha256StrJsonGetLength,
-                    load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    load != NULL ? 1 : 0, memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatajsonLoadSha256(set, json_key_value, json_array_key, format) < 0)
@@ -740,8 +699,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
         case DATASET_TYPE_IPV4:
             set->hash = THashInit(cnf_name, sizeof(IPv4Type), IPv4JsonSet, IPv4JsonFree, IPv4Hash,
                     IPv4Compare, NULL, IPv4JsonGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatajsonLoadIPv4(set, json_key_value, json_array_key, format) < 0)
@@ -750,8 +708,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
         case DATASET_TYPE_IPV6:
             set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6JsonSet, IPv6JsonFree, IPv6Hash,
                     IPv6Compare, NULL, IPv6JsonGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap,
-                    hashsize > 0 ? hashsize : default_hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatajsonLoadIPv6(set, json_key_value, json_array_key, format) < 0)
@@ -762,7 +719,10 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
     SCLogDebug(
             "set %p/%s type %u save %s load %s", set, set->name, set->type, set->save, set->load);
 
-    DatasetAppendSet(set);
+    if (DatasetAppendSet(set) < 0) {
+        SCLogError("dataset %s append failed", name);
+        goto out_err;
+    }
 
     DatasetUnlock();
     return set;
