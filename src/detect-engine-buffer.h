@@ -34,5 +34,6 @@ int WARN_UNUSED SCDetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *
 int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
+int SCDetectSignatureAddTransform(Signature *s, int transform, void *options);
 
 #endif /* SURICATA_DETECT_ENGINE_BUFFER_H */

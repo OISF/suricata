@@ -16,13 +16,13 @@
  */
 
 use super::{
-    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
-    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
+    InspectionBufferTruncate,
 };
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    Signature,
+    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
 };
 
 use std::os::raw::{c_int, c_void};
@@ -34,7 +34,7 @@ static mut G_TRANSFORM_STRIP_PSEUDO_ID: c_int = 0;
 unsafe extern "C" fn header_lowersetup(
     _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    return DetectSignatureAddTransform(s, G_TRANSFORM_HEADER_LOWER_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_HEADER_LOWER_ID, ptr::null_mut());
 }
 
 fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
 unsafe extern "C" fn strip_pseudo_setup(
     _de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    return DetectSignatureAddTransform(s, G_TRANSFORM_STRIP_PSEUDO_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_STRIP_PSEUDO_ID, ptr::null_mut());
 }
 
 fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
