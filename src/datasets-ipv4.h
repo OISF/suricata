@@ -25,7 +25,7 @@
 #define SURICATA_DATASETS_IPV4_H
 
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct IPv4Type {
     uint8_t ipv4[4];
