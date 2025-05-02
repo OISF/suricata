@@ -910,7 +910,7 @@ void OutputRegisterRootLoggers(void)
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_FTPDATA, (EveJsonSimpleTxLogFunc)EveFTPDataAddMetadata, "ftp_data");
     RegisterSimpleJsonApplayerLogger(
-            ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)rs_tftp_log_json_request, NULL);
+            ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)SCTftpLogJsonRequest, NULL);
     // ALPROTO_IKE special: uses state
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)SCKrb5LogJsonResponse, NULL);

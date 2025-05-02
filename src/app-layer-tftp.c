@@ -43,12 +43,12 @@
 
 static void *TFTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    return rs_tftp_state_alloc();
+    return SCTftpStateAlloc();
 }
 
 static void TFTPStateFree(void *state)
 {
-    rs_tftp_state_free(state);
+    SCTftpStateFree(state);
 }
 
 /**
@@ -59,7 +59,7 @@ static void TFTPStateFree(void *state)
  */
 static void TFTPStateTxFree(void *state, uint64_t tx_id)
 {
-    rs_tftp_state_tx_free(state, tx_id);
+    SCTftpStateTxFree(state, tx_id);
 }
 
 static int TFTPStateGetEventInfo(
@@ -108,7 +108,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState
         SCReturnStruct(APP_LAYER_OK);
     }
 
-    int64_t res = rs_tftp_request(state, input, input_len);
+    int64_t res = SCTftpParseRequest(state, input, input_len);
     if (res < 0) {
         SCReturnStruct(APP_LAYER_ERROR);
     }
@@ -126,12 +126,12 @@ static AppLayerResult TFTPParseResponse(Flow *f, void *state, AppLayerParserStat
 
 static uint64_t TFTPGetTxCnt(void *state)
 {
-    return rs_tftp_get_tx_cnt(state);
+    return SCTftpGetTxCnt(state);
 }
 
 static void *TFTPGetTx(void *state, uint64_t tx_id)
 {
-    return rs_tftp_get_tx(state, tx_id);
+    return SCTftpGetTx(state, tx_id);
 }
 
 /**
@@ -229,8 +229,8 @@ void RegisterTFTPParsers(void)
                                            TFTPStateGetEventInfo);
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP,
-                                         rs_tftp_get_tx_data);
-        AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_TFTP, rs_tftp_get_state_data);
+                                         SCTftpGetTxData);
+        AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_TFTP, SCTftpGetStateData);
     }
     else {
         SCLogDebug("TFTP protocol parsing disabled.");

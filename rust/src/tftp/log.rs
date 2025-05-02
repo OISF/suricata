@@ -34,6 +34,6 @@ fn tftp_log_request(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> Result<(), Js
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_log_json_request(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> bool {
+pub extern "C" fn SCTftpLogJsonRequest(tx: &TFTPTransaction, jb: &mut JsonBuilder) -> bool {
     tftp_log_request(tx, jb).is_ok()
 }
