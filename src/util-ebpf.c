@@ -413,6 +413,18 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             SCLogError("Too many BPF maps in eBPF files");
             break;
         }
+        if (strcmp(bpf_map__name(map), "flow_table_v4") == 0) {
+            if (bpf_map__key_size(map) != sizeof(struct flowv4_keys)) {
+                SCLogError("Incompatible flow_table_v4");
+                break;
+            }
+        }
+        if (strcmp(bpf_map__name(map), "flow_table_v6") == 0) {
+            if (bpf_map__key_size(map) != sizeof(struct flowv6_keys)) {
+                SCLogError("Incompatible flow_table_v6");
+                break;
+            }
+        }
         SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_data->array[bpf_map_data->last].fd = bpf_map__fd(map);
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup(bpf_map__name(map));
@@ -749,7 +761,6 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.dst.addr_data32[3] = 0;
         flow_key.vlan_id[0] = next_key.vlan0;
         flow_key.vlan_id[1] = next_key.vlan1;
-        flow_key.vlan_id[2] = next_key.vlan2;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -868,7 +879,6 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         }
         flow_key.vlan_id[0] = next_key.vlan0;
         flow_key.vlan_id[1] = next_key.vlan1;
-        flow_key.vlan_id[2] = next_key.vlan2;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
