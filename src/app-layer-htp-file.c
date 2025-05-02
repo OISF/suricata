@@ -96,7 +96,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 int HTPParseContentRange(const bstr *rawvalue, HTTPContentRange *range)
 {
     uint32_t len = (uint32_t)bstr_len(rawvalue);
-    return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
+    return SCHttpParseContentRange(range, bstr_ptr(rawvalue), len);
 }
 
 /**

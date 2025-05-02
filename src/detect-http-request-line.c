@@ -82,7 +82,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_http2_tx_get_request_line(txv, &b, &b_len) != 1)
+        if (SCHttp2TxGetRequestLine(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

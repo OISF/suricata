@@ -260,7 +260,7 @@ bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
 
     SCJbGetMark(js, &mark);
     // first log HTTP2 part
-    bool r = rs_http2_log_json(txptr, js);
+    bool r = SCHttp2LogJson(txptr, js);
     if (!r) {
         SCJbRestoreMark(js, &mark);
     }
@@ -296,7 +296,7 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     SCJbGetMark(jb, &mark);
     // first log HTTP2 part
-    bool r = rs_http2_log_json(txptr, jb);
+    bool r = SCHttp2LogJson(txptr, jb);
     if (!r) {
         SCJbRestoreMark(jb, &mark);
     }
