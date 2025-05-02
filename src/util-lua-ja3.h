@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_LUA_JA3_H
 #define SURICATA_UTIL_LUA_JA3_H
 
-int LuaRegisterJa3Functions(lua_State *luastate);
+#include "lua.h"
+
+int SCLuaLoadJa3Lib(lua_State *L);
 
 #endif /* SURICATA_UTIL_LUA_JA3_H */
