@@ -67,10 +67,7 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].url = "/rules/ftp-keywords.html#ftpbounce";
     sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
 
-    g_ftp_request_list_id = DetectBufferTypeRegister("ftp_request");
-
-    DetectAppLayerInspectEngineRegister(
-            "ftp_request", ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+    g_ftp_request_list_id = DetectBufferTypeGetByName("ftp:request_complete:generic");
 }
 
 /**
