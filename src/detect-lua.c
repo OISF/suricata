@@ -72,7 +72,6 @@ static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectLuaRegisterTests(void);
 #endif
 static void DetectLuaFree(DetectEngineCtx *, void *);
-static int g_smtp_generic_list_id = 0;
 
 /**
  * \brief Registration function for keyword: lua
@@ -89,12 +88,6 @@ void DetectLuaRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 #endif
-    g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
-
-    DetectAppLayerInspectEngineRegister("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister("smtp_generic", ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectGenericList, NULL);
 
     SCLogDebug("registering lua rule option");
 }
