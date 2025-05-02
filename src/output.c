@@ -913,7 +913,7 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)rs_tftp_log_json_request, NULL);
     // ALPROTO_IKE special: uses state
     RegisterSimpleJsonApplayerLogger(
-            ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)rs_krb5_log_json_response, NULL);
+            ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)SCKrb5LogJsonResponse, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, (EveJsonSimpleTxLogFunc)rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
