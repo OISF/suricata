@@ -413,6 +413,18 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             SCLogError("Too many BPF maps in eBPF files");
             break;
         }
+        if (strcmp(bpf_map__name(map), "flow_table_v4") == 0) {
+            if (bpf_map__key_size(map) != sizeof(struct flowv4_keys)) {
+                SCLogError("Incompatible flow_table_v4");
+                break;
+            }
+        }
+        if (strcmp(bpf_map__name(map), "flow_table_v6") == 0) {
+            if (bpf_map__key_size(map) != sizeof(struct flowv6_keys)) {
+                SCLogError("Incompatible flow_table_v6");
+                break;
+            }
+        }
         SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_data->array[bpf_map_data->last].fd = bpf_map__fd(map);
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup(bpf_map__name(map));

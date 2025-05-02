@@ -76,6 +76,7 @@ struct flowv4_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
+    __u16 vlan2;
 };
 
 struct flowv6_keys {
@@ -88,6 +89,7 @@ struct flowv6_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
+    __u16 vlan2;
 };
 
 struct pair {
@@ -232,7 +234,8 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end,
+        __u16 vlan0, __u16 vlan1, __u16 vlan2)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -281,6 +284,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
 
     tuple.vlan0 = vlan0;
     tuple.vlan1 = vlan1;
+    tuple.vlan2 = vlan2;
 
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
@@ -376,7 +380,8 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
 #endif
 }
 
-static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end,
+        __u16 vlan0, __u16 vlan1, __u16 vlan2)
 {
     struct ipv6hdr *ip6h = data + nh_off;
     int dport;
@@ -422,6 +427,7 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
 
     tuple.vlan0 = vlan0;
     tuple.vlan1 = vlan1;
+    tuple.vlan2 = vlan2;
 
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
@@ -491,6 +497,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     __u64 nh_off;
     __u16 vlan0 = 0;
     __u16 vlan1 = 0;
+    __u16 vlan2 = 0;
 #if USE_GLOBAL_BYPASS
     int *iface_peer;
     char *g_switch = 0;
@@ -542,11 +549,25 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         vlan1 = 0;
 #endif
     }
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
+        struct vlan_hdr *vhdr;
+
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        if (data + nh_off > data_end)
+            return XDP_PASS;
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
+        vlan2 = vhdr->h_vlan_TCI & 0x0fff;
+#else
+        vlan2 = 0;
+#endif
+    }
 
     if (h_proto == __constant_htons(ETH_P_IP))
-        return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1);
+        return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1, vlan2);
     else if (h_proto == __constant_htons(ETH_P_IPV6))
-        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1, vlan2);
 
     return XDP_PASS;
 }

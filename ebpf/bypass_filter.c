@@ -43,6 +43,7 @@ struct flowv4_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
+    __u16 vlan2;
 };
 
 struct flowv6_keys {
@@ -55,6 +56,7 @@ struct flowv6_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
+    __u16 vlan2;
 };
 
 struct pair {
@@ -86,7 +88,7 @@ struct vlan_hdr {
  *
  * \return 0 to drop packet out and -1 to accept it
  */
-static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16 vlan1)
+static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16 vlan1, __u16 vlan2)
 {
     __u32 nhoff, verlen;
     struct flowv4_keys tuple;
@@ -120,6 +122,7 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     tuple.port16[0] = port;
     tuple.vlan0 = vlan0;
     tuple.vlan1 = vlan1;
+    tuple.vlan2 = vlan2;
 
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
@@ -153,7 +156,7 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
  *
  * \return 0 to drop packet out and -1 to accept it
  */
-static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16 vlan1)
+static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16 vlan1, __u16 vlan2)
 {
     __u32 nhoff;
     __u8 nhdr;
@@ -195,6 +198,7 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
 
     tuple.vlan0 = vlan0;
     tuple.vlan1 = vlan1;
+    tuple.vlan2 = vlan2;
 
     //char fmt[] = "Now Got IPv6 port %u and %u\n";
     //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
@@ -224,6 +228,7 @@ int SEC("filter") hashfilter(struct __sk_buff *skb) {
     __u16 proto = load_half(skb, offsetof(struct ethhdr, h_proto));
     __u16 vlan0 = skb->vlan_tci & 0x0fff;
     __u16 vlan1 = 0;
+    __u16 vlan2 = 0;
 
     if (proto == ETH_P_8021AD || proto == ETH_P_8021Q) {
         proto = load_half(skb, nhoff + offsetof(struct vlan_hdr,
@@ -235,13 +240,21 @@ int SEC("filter") hashfilter(struct __sk_buff *skb) {
 #endif
         nhoff += sizeof(struct vlan_hdr);
     }
+    if (proto == ETH_P_8021AD || proto == ETH_P_8021Q) {
+        proto = load_half(skb, nhoff + offsetof(struct vlan_hdr, h_vlan_encapsulated_proto));
+#if VLAN_TRACKING
+        /* one vlan layer is stripped by OS so get vlan 1 at first pass */
+        vlan2 = load_half(skb, nhoff + offsetof(struct vlan_hdr, h_vlan_TCI)) & 0x0fff;
+#endif
+        nhoff += sizeof(struct vlan_hdr);
+    }
 
     skb->cb[0] = nhoff;
     switch (proto) {
         case ETH_P_IP:
-            return ipv4_filter(skb, vlan0, vlan1);
+            return ipv4_filter(skb, vlan0, vlan1, vlan2);
         case ETH_P_IPV6:
-            return ipv6_filter(skb, vlan0, vlan1);
+            return ipv6_filter(skb, vlan0, vlan1, vlan2);
         default:
 #if 0
             {
