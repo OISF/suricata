@@ -87,25 +87,25 @@ impl TFTPTransaction {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_alloc() -> *mut std::os::raw::c_void {
+pub extern "C" fn SCTftpStateAlloc() -> *mut std::os::raw::c_void {
     let state = TFTPState { state_data: AppLayerStateData::new(), transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_free(state: *mut std::os::raw::c_void) {
+pub extern "C" fn SCTftpStateFree(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut TFTPState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_tx_free(state: &mut TFTPState,
+pub extern "C" fn SCTftpStateTxFree(state: &mut TFTPState,
                                         tx_id: u64) {
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
+pub extern "C" fn SCTftpGetTx(state: &mut TFTPState,
                                     tx_id: u64) -> *mut std::os::raw::c_void {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => tx as *const _ as *mut _,
@@ -114,7 +114,7 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
+pub extern "C" fn SCTftpGetTxCnt(state: &mut TFTPState) -> u64 {
     return state.tx_id;
 }
 
@@ -155,7 +155,7 @@ fn parse_tftp_request(input: &[u8]) -> Option<TFTPTransaction> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_tftp_request(state: &mut TFTPState,
+pub unsafe extern "C" fn SCTftpParseRequest(state: &mut TFTPState,
                                   input: *const u8,
                                   len: u32) -> i64 {
     let buf = std::slice::from_raw_parts(input, len as usize);
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn rs_tftp_request(state: &mut TFTPState,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_tftp_get_tx_data(
+pub unsafe extern "C" fn SCTftpGetTxData(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn rs_tftp_get_tx_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_tftp_get_state_data(
+pub unsafe extern "C" fn SCTftpGetStateData(
     state: *mut std::os::raw::c_void)
     -> *mut AppLayerStateData
 {
