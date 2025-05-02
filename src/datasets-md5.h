@@ -25,7 +25,7 @@
 #define SURICATA_DATASETS_MD5_H
 
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct Md5Type {
     uint8_t md5[16];

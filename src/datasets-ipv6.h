@@ -25,7 +25,7 @@
 #define SURICATA_DATASETS_IPV6_H
 
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct IPv6Type {
     uint8_t ipv6[16];

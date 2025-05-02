@@ -25,7 +25,7 @@
 #define SURICATA_DATASETS_SHA256_H
 
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct Sha256Type {
     uint8_t sha256[32];
