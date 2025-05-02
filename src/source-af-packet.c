@@ -2316,7 +2316,6 @@ static int AFPBypassCallback(Packet *p)
         keys[0]->port16[1] = p->dp;
         keys[0]->vlan0 = p->vlan_id[0];
         keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
 
         if (p->proto == IPPROTO_TCP) {
             keys[0]->ip_proto = 1;
@@ -2342,7 +2341,6 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->port16[1] = p->sp;
         keys[1]->vlan0 = p->vlan_id[0];
         keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
 
         keys[1]->ip_proto = keys[0]->ip_proto;
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
@@ -2377,7 +2375,6 @@ static int AFPBypassCallback(Packet *p)
         keys[0]->port16[1] = p->dp;
         keys[0]->vlan0 = p->vlan_id[0];
         keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
 
         if (p->proto == IPPROTO_TCP) {
             keys[0]->ip_proto = 1;
@@ -2405,7 +2402,6 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->port16[1] = p->sp;
         keys[1]->vlan0 = p->vlan_id[0];
         keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
 
         keys[1]->ip_proto = keys[0]->ip_proto;
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
@@ -2473,7 +2469,6 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[0]->port16[1] = htons(p->dp);
         keys[0]->vlan0 = p->vlan_id[0];
         keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
         if (p->proto == IPPROTO_TCP) {
             keys[0]->ip_proto = 1;
         } else {
@@ -2498,7 +2493,6 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->port16[1] = htons(p->sp);
         keys[1]->vlan0 = p->vlan_id[0];
         keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
         keys[1]->ip_proto = keys[0]->ip_proto;
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
@@ -2531,7 +2525,6 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[0]->port16[1] = htons(p->dp);
         keys[0]->vlan0 = p->vlan_id[0];
         keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
         if (p->proto == IPPROTO_TCP) {
             keys[0]->ip_proto = 1;
         } else {
@@ -2558,7 +2551,6 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->port16[1] = htons(p->sp);
         keys[1]->vlan0 = p->vlan_id[0];
         keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
         keys[1]->ip_proto = keys[0]->ip_proto;
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
