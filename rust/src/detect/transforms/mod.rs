@@ -17,8 +17,6 @@
 
 //! Module for transforms
 
-use suricata_sys::sys::InspectionBuffer;
-
 pub mod casechange;
 pub mod compress_whitespace;
 pub mod domain;
@@ -28,12 +26,3 @@ pub mod http_headers;
 pub mod strip_whitespace;
 pub mod urldecode;
 pub mod xor;
-
-/// cbindgen:ignore
-extern "C" {
-    pub fn InspectionBufferPtr(buf: *const InspectionBuffer) -> *const u8;
-    pub fn InspectionBufferLength(buf: *const InspectionBuffer) -> u32;
-    pub fn InspectionBufferCopy(ibuf: *const InspectionBuffer, buf: *const u8, buf_len: u32);
-    pub fn InspectionBufferCheckAndExpand(ibuf: *const InspectionBuffer, buf_len: u32) -> *mut u8;
-    pub fn InspectionBufferTruncate(ibuf: *const InspectionBuffer, buf_len: u32);
-}

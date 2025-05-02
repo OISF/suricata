@@ -15,14 +15,11 @@
  * 02110-1301, USA.
  */
 
-use super::{
-    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
-    InspectionBufferTruncate,
-};
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
+    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
+    SCTransformTableElmt, Signature,
 };
 
 use std::os::raw::{c_int, c_void};
@@ -59,14 +56,14 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
 unsafe extern "C" fn header_lowertransform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, input_len);
+    let output = SCInspectionBufferCheckAndExpand(buffer, input_len);
     if output.is_null() {
         // allocation failure
         return;
@@ -75,7 +72,7 @@ unsafe extern "C" fn header_lowertransform(
 
     header_lowertransform_do(input, output);
 
-    InspectionBufferTruncate(buffer, input_len);
+    SCInspectionBufferTruncate(buffer, input_len);
 }
 
 #[no_mangle]
@@ -123,14 +120,14 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
 unsafe extern "C" fn strip_pseudo_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, input_len);
+    let output = SCInspectionBufferCheckAndExpand(buffer, input_len);
     if output.is_null() {
         // allocation failure
         return;
@@ -139,7 +136,7 @@ unsafe extern "C" fn strip_pseudo_transform(
 
     let out_len = strip_pseudo_transform_do(input, output);
 
-    InspectionBufferTruncate(buffer, out_len);
+    SCInspectionBufferTruncate(buffer, out_len);
 }
 
 #[no_mangle]

@@ -129,7 +129,7 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     decompressed_data_len += 8;
 
     /* make sure the inspection buffer has enough space */
-    InspectionBufferCheckAndExpand(out_buffer, decompressed_data_len);
+    SCInspectionBufferCheckAndExpand(out_buffer, decompressed_data_len);
     if (out_buffer->size < decompressed_data_len) {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
         return 0;
