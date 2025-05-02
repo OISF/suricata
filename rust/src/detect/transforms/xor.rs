@@ -16,13 +16,13 @@
  */
 
 use super::{
-    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
-    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
+    InspectionBufferTruncate,
 };
 use crate::detect::SIGMATCH_QUOTES_MANDATORY;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    Signature,
+    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
 };
 
 use std::ffi::CStr;
@@ -69,7 +69,7 @@ unsafe extern "C" fn xor_setup(
     if ctx.is_null() {
         return -1;
     }
-    let r = DetectSignatureAddTransform(s, G_TRANSFORM_XOR_ID, ctx);
+    let r = SCDetectSignatureAddTransform(s, G_TRANSFORM_XOR_ID, ctx);
     if r != 0 {
         xor_free(de, ctx);
     }

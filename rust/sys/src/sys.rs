@@ -193,6 +193,11 @@ extern "C" {
         de_ctx: *mut DetectEngineCtx, s: *mut Signature, list: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCDetectSignatureAddTransform(
+        s: *mut Signature, transform: ::std::os::raw::c_int, options: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Flow_ {

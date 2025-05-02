@@ -26,8 +26,8 @@
 #include "suricata-common.h"
 
 #include "detect.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-buffer.h"
 #include "detect-byte.h"
 
 #include "rust.h"
@@ -105,7 +105,7 @@ static int DetectTransformFromBase64DecodeSetup(
         goto exit_path;
     }
 
-    r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_FROM_BASE64, b64d);
+    r = SCDetectSignatureAddTransform(s, DETECT_TRANSFORM_FROM_BASE64, b64d);
 
 exit_path:
     if (r != 0)
