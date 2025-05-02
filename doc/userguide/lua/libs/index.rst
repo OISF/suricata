@@ -18,3 +18,4 @@ environment without access to additional modules.
    packetlib
    rule
    ssh
+   ja3
