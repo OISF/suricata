@@ -916,7 +916,7 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_KRB5, (EveJsonSimpleTxLogFunc)SCKrb5LogJsonResponse, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_QUIC, (EveJsonSimpleTxLogFunc)rs_quic_to_json, NULL);
     // ALPROTO_DHCP TODO missing
-    RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)SCSipLogJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, (EveJsonSimpleTxLogFunc)rs_rfb_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_POP3, (EveJsonSimpleTxLogFunc)SCPop3LoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(

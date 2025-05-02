@@ -87,7 +87,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_sip_tx_get_uri(txv, &b, &b_len) != 1)
+        if (SCSipTxGetUri(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

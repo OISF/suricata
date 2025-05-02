@@ -113,7 +113,7 @@ fn expand_header_name(h: &str) -> &str {
     }
 }
 
-pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
+pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
     let (i, method) = parse_method(oi)?;
     let (i, _) = char(' ')(i)?;
     let (i, path) = parse_request_uri(i)?;
@@ -143,7 +143,7 @@ pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
     ))
 }
 
-pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
+pub fn parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
     let (i, version) = parse_version(oi)?;
     let (i, _) = char(' ')(i)?;
     let (i, code) = parse_code(i)?;
@@ -308,7 +308,7 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        let (_, req) = sip_parse_request(buf).unwrap();
+        let (_, req) = parse_request(buf).unwrap();
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
@@ -324,7 +324,7 @@ mod tests {
                           \r\nABCD"
             .as_bytes();
 
-        let (body, req) = sip_parse_request(buf).expect("parsing failed");
+        let (body, req) = parse_request(buf).expect("parsing failed");
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");
@@ -338,7 +338,7 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        let (_, resp) = sip_parse_response(buf).unwrap();
+        let (_, resp) = parse_response(buf).unwrap();
         assert_eq!(resp.version, "SIP/2.0");
         assert_eq!(resp.code, "401");
         assert_eq!(resp.reason, "Unauthorized");
@@ -370,7 +370,7 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        let (_, req) = sip_parse_request(buf).unwrap();
+        let (_, req) = parse_request(buf).unwrap();
         assert_eq!(req.method, "REGISTER");
         assert_eq!(req.path, "sip:sip.cybercity.dk");
         assert_eq!(req.version, "SIP/2.0");

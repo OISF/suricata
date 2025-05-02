@@ -128,7 +128,7 @@ impl SIPState {
         );
         SCLogDebug!("ts: pdu {:?}", _pdu);
 
-        match sip_parse_request(input) {
+        match parse_request(input) {
             Ok((_, request)) => {
                 let mut tx = self.new_tx(Direction::ToServer);
                 sip_frames_ts(flow, &stream_slice, &request, tx.id);
@@ -172,7 +172,7 @@ impl SIPState {
                 );
                 SCLogDebug!("ts: pdu {:?}", self.request_frame);
             }
-            match sip_parse_request(start) {
+            match parse_request(start) {
                 Ok((rem, request)) => {
                     let mut tx = self.new_tx(Direction::ToServer);
                     let tx_id = tx.id;
@@ -224,7 +224,7 @@ impl SIPState {
         );
         SCLogDebug!("tc: pdu {:?}", _pdu);
 
-        match sip_parse_response(input) {
+        match parse_response(input) {
             Ok((_, response)) => {
                 let mut tx = self.new_tx(Direction::ToClient);
                 sip_frames_tc(flow, &stream_slice, &response, tx.id);
@@ -267,7 +267,7 @@ impl SIPState {
                 );
                 SCLogDebug!("tc: pdu {:?}", self.request_frame);
             }
-            match sip_parse_response(start) {
+            match parse_response(start) {
                 Ok((rem, response)) => {
                     let mut tx = self.new_tx(Direction::ToClient);
                     let tx_id = tx.id;
@@ -393,8 +393,7 @@ fn sip_frames_tc(flow: *const Flow, stream_slice: &StreamSlice, r: &Response, tx
     }
 }
 
-#[no_mangle]
-pub extern "C" fn rs_sip_state_new(
+extern "C" fn sip_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = SIPState::new();
@@ -402,14 +401,12 @@ pub extern "C" fn rs_sip_state_new(
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_sip_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn sip_state_free(state: *mut std::os::raw::c_void) {
     let mut state = unsafe { Box::from_raw(state as *mut SIPState) };
     state.free();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx(
+unsafe extern "C" fn sip_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SIPState);
@@ -419,20 +416,17 @@ pub unsafe extern "C" fn rs_sip_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, SIPState);
     state.tx_id
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SIPState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub extern "C" fn rs_sip_tx_get_alstate_progress(
+extern "C" fn sip_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     1
@@ -440,8 +434,7 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
 
 pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_request(
+unsafe extern "C" fn sip_parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -449,8 +442,7 @@ pub unsafe extern "C" fn rs_sip_parse_request(
     state.parse_request(flow, stream_slice).into()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_request_tcp(
+unsafe extern "C" fn sip_parse_request_tcp(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -466,8 +458,7 @@ pub unsafe extern "C" fn rs_sip_parse_request_tcp(
     state.parse_request_tcp(flow, stream_slice)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_response(
+unsafe extern "C" fn sip_parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -475,8 +466,7 @@ pub unsafe extern "C" fn rs_sip_parse_response(
     state.parse_response(flow, stream_slice).into()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_response_tcp(
+unsafe extern "C" fn sip_parse_response_tcp(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -553,7 +543,7 @@ export_state_data_get!(sip_get_state_data, SIPState);
 const PARSER_NAME: &[u8] = b"sip\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_register_parser() {
+pub unsafe extern "C" fn SCRegisterSipParser() {
     let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -562,16 +552,16 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_sip_state_new,
-        state_free: rs_sip_state_free,
-        tx_free: rs_sip_state_tx_free,
-        parse_ts: rs_sip_parse_request,
-        parse_tc: rs_sip_parse_response,
-        get_tx_count: rs_sip_state_get_tx_count,
-        get_tx: rs_sip_state_get_tx,
+        state_new: sip_state_new,
+        state_free: sip_state_free,
+        tx_free: sip_state_tx_free,
+        parse_ts: sip_parse_request,
+        parse_tc: sip_parse_response,
+        get_tx_count: sip_state_get_tx_count,
+        get_tx: sip_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_sip_tx_get_alstate_progress,
+        tx_get_progress: sip_tx_get_alstate_progress,
         get_eventinfo: Some(SIPEvent::get_event_info),
         get_eventinfo_byid: Some(SIPEvent::get_event_info_by_id),
         localstorage_new: None,
@@ -607,8 +597,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
     parser.ipproto = core::IPPROTO_TCP;
     parser.probe_ts = None;
     parser.probe_tc = None;
-    parser.parse_ts = rs_sip_parse_request_tcp;
-    parser.parse_tc = rs_sip_parse_response_tcp;
+    parser.parse_ts = sip_parse_request_tcp;
+    parser.parse_tc = sip_parse_response_tcp;
 
     let ip_proto_str = CString::new("tcp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
