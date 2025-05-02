@@ -59,9 +59,9 @@ bool DetectAsn1Match(const SigMatchData *smd, const uint8_t *buffer, const uint3
         const uint32_t offset)
 {
     const DetectAsn1Data *ad = (const DetectAsn1Data *)smd->ctx;
-    Asn1 *asn1 = rs_asn1_decode(buffer, buffer_len, offset, ad);
-    uint8_t ret = rs_asn1_checks(asn1, ad);
-    rs_asn1_free(asn1);
+    Asn1 *asn1 = SCAsn1Decode(buffer, buffer_len, offset, ad);
+    uint8_t ret = SCAsn1Checks(asn1, ad);
+    SCAsn1Free(asn1);
     return ret == 1;
 }
 
@@ -75,7 +75,7 @@ bool DetectAsn1Match(const SigMatchData *smd, const uint8_t *buffer, const uint3
  */
 static DetectAsn1Data *DetectAsn1Parse(const char *asn1str)
 {
-    DetectAsn1Data *ad = rs_detect_asn1_parse(asn1str);
+    DetectAsn1Data *ad = SCAsn1DetectParse(asn1str);
 
     if (ad == NULL) {
         SCLogError("Malformed asn1 argument: %s", asn1str);
@@ -120,7 +120,7 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
 static void DetectAsn1Free(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectAsn1Data *ad = (DetectAsn1Data *)ptr;
-    rs_detect_asn1_free(ad);
+    SCAsn1DetectFree(ad);
 }
 
 #ifdef UNITTESTS
