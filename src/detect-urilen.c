@@ -85,7 +85,7 @@ void DetectUrilenRegister(void)
 
 static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 {
-    return rs_detect_urilen_parse(urilenstr);
+    return SCDetectUrilenParse(urilenstr);
 }
 
 /**
@@ -140,7 +140,7 @@ static void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     DetectUrilenData *urilend = (DetectUrilenData *)ptr;
-    rs_detect_urilen_free(urilend);
+    SCDetectUrilenFree(urilend);
 }
 
 /** \brief set prefilter dsize pair

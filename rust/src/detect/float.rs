@@ -229,7 +229,7 @@ fn detect_parse_float_notending<T: DetectFloatType>(i: &str) -> IResult<&str, De
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_f64_parse(
+pub unsafe extern "C" fn SCDetectF64Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectFloatData<f64> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn rs_detect_f64_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_f64_match(
+pub unsafe extern "C" fn SCDetectF64Match(
     arg: f64, ctx: &DetectFloatData<f64>,
 ) -> std::os::raw::c_int {
     if detect_match_float::<f64>(ctx, arg) {
@@ -253,7 +253,7 @@ pub unsafe extern "C" fn rs_detect_f64_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_f64_free(ctx: &mut DetectFloatData<f64>) {
+pub unsafe extern "C" fn SCDetectF64Free(ctx: &mut DetectFloatData<f64>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
@@ -441,7 +441,7 @@ mod tests {
     fn do_match_test(val: &str, arg1: f64, arg1_cmp: f64, arg2: f64, mode: DetectFloatMode) {
         let c_string = CString::new(val).expect("CString::new failed");
         unsafe {
-            let val = rs_detect_f64_parse(c_string.as_ptr());
+            let val = SCDetectF64Parse(c_string.as_ptr());
             let str_arg_a = format!("{:.3}", (*val).arg1);
             let str_arg_b = format!("{:.3}", arg1);
             assert_eq!(str_arg_a, str_arg_b);
@@ -450,7 +450,7 @@ mod tests {
             assert_eq!(str_arg_a, str_arg_b);
 
             assert_eq!((*val).mode, mode);
-            assert_eq!(1, rs_detect_f64_match(arg1_cmp, &*val));
+            assert_eq!(1, SCDetectF64Match(arg1_cmp, &*val));
         }
     }
 
@@ -461,7 +461,7 @@ mod tests {
     fn do_parse_test(val: &str, arg1: f64, arg2: f64, mode: DetectFloatMode) {
         let c_string = CString::new(val).expect("CString::new failed");
         unsafe {
-            let val = rs_detect_f64_parse(c_string.as_ptr());
+            let val = SCDetectF64Parse(c_string.as_ptr());
             let str_arg_a = format!("{:.3}", (*val).arg1);
             let str_arg_b = format!("{:.3}", arg1);
             assert_eq!(str_arg_a, str_arg_b);
@@ -478,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rs_detect_match_valid() {
+    fn test_ffi_detect_match_valid() {
         do_match_test_arg1("1.0", 1.0, 1.0, DetectFloatMode::DetectFloatModeEqual);
         do_match_test_arg1("> 1.0", 1.0, 1.1, DetectFloatMode::DetectFloatModeGt);
         do_match_test_arg1(">= 1.0", 1.0, 1.0, DetectFloatMode::DetectFloatModeGte);
@@ -515,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rs_detect_parse_valid() {
+    fn test_ffi_detect_parse_valid() {
         do_parse_test_arg1("1.0", 1.0, DetectFloatMode::DetectFloatModeEqual);
         do_parse_test_arg1("> 1.0", 1.0, DetectFloatMode::DetectFloatModeGt);
         do_parse_test_arg1(">= 1.0", 1.0, DetectFloatMode::DetectFloatModeGte);

@@ -142,7 +142,7 @@ static int DetectStreamSizeMatch(
  */
 static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *streamstr)
 {
-    DetectStreamSizeData *sd = rs_detect_stream_size_parse(streamstr);
+    DetectStreamSizeData *sd = SCDetectStreamSizeParse(streamstr);
     if (sd == NULL)
         return -1;
 
@@ -161,7 +161,7 @@ static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
  */
 void DetectStreamSizeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_detect_stream_size_free(ptr);
+    SCDetectStreamSizeFree(ptr);
 }
 
 /* prefilter code */
@@ -238,7 +238,7 @@ static int DetectStreamSizeParseTest01 (void)
 {
     int result = 0;
     DetectStreamSizeData *sd = NULL;
-    sd = rs_detect_stream_size_parse("server,<,6");
+    sd = SCDetectStreamSizeParse("server,<,6");
     if (sd != NULL) {
         if (sd->flags & StreamSizeServer && sd->du32.mode == DETECT_UINT_LT && sd->du32.arg1 == 6)
             result = 1;
@@ -257,7 +257,7 @@ static int DetectStreamSizeParseTest02 (void)
 {
     int result = 1;
     DetectStreamSizeData *sd = NULL;
-    sd = rs_detect_stream_size_parse("invalidoption,<,6");
+    sd = SCDetectStreamSizeParse("invalidoption,<,6");
     if (sd != NULL) {
         printf("expected: NULL got 0x%02X %" PRIu32 ": ", sd->flags, sd->du32.arg1);
         result = 0;
@@ -298,7 +298,7 @@ static int DetectStreamSizeParseTest03 (void)
     memset(&f, 0, sizeof(Flow));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    sd = rs_detect_stream_size_parse("client,>,8");
+    sd = SCDetectStreamSizeParse("client,>,8");
     if (sd != NULL) {
         if (!(sd->flags & StreamSizeClient)) {
             printf("sd->flags not STREAM_SIZE_CLIENT: ");
@@ -374,7 +374,7 @@ static int DetectStreamSizeParseTest04 (void)
     memset(&f, 0, sizeof(Flow));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    sd = rs_detect_stream_size_parse(" client , > , 8 ");
+    sd = SCDetectStreamSizeParse(" client , > , 8 ");
     if (sd != NULL) {
         if (!(sd->flags & StreamSizeClient) && sd->du32.mode != DETECT_UINT_GT &&
                 sd->du32.arg1 != 8) {
