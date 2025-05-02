@@ -23,6 +23,9 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_vlan.h>
+/* Workaround to avoid the need of 32bit headers */
+#define _LINUX_IF_H
+#define IFNAMSIZ 16
 #include <linux/if_tunnel.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
