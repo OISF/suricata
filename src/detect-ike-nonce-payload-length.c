@@ -87,7 +87,7 @@ static int DetectIkeNoncePayloadLengthMatch(DetectEngineThreadCtx *det_ctx, Flow
     SCEnter();
 
     uint32_t length;
-    if (!rs_ike_state_get_nonce_payload_length(txv, &length))
+    if (!SCIkeStateGetNoncePayloadLength(txv, &length))
         SCReturnInt(0);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     return DetectU32Match(length, du32);

@@ -91,7 +91,7 @@ static int DetectIkeKeyExchangePayloadLengthMatch(DetectEngineThreadCtx *det_ctx
     SCEnter();
 
     uint32_t length;
-    if (!rs_ike_state_get_key_exchange_payload_length(txv, &length))
+    if (!SCIkeStateGetKeyExchangePayloadLength(txv, &length))
         SCReturnInt(0);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     return DetectU32Match(length, du32);

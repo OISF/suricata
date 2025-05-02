@@ -87,7 +87,7 @@ static int DetectIkeExchTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8
     SCEnter();
 
     uint8_t exch_type;
-    if (!rs_ike_state_get_exch_type(txv, &exch_type))
+    if (!SCIkeStateGetExchType(txv, &exch_type))
         SCReturnInt(0);
 
     const DetectU8Data *du8 = (const DetectU8Data *)ctx;

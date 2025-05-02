@@ -78,7 +78,7 @@ static InspectionBuffer *GetNonceData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ike_state_get_nonce(txv, &b, &b_len) != 1)
+        if (SCIkeStateGetNonce(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

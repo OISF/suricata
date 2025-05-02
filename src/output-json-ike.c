@@ -68,7 +68,7 @@ bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js)
     if (state) {
         IKETransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
         if (tx) {
-            return rs_ike_logger_log(state, tx, LOG_IKE_EXTENDED, js);
+            return SCIkeLoggerLog(state, tx, LOG_IKE_EXTENDED, js);
         }
     }
 
@@ -86,7 +86,7 @@ static int JsonIKELogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     }
 
     LogIKEFileCtx *ike_ctx = thread->ikelog_ctx;
-    if (!rs_ike_logger_log(state, tx, ike_ctx->flags, jb)) {
+    if (!SCIkeLoggerLog(state, tx, ike_ctx->flags, jb)) {
         goto error;
     }
 

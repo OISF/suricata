@@ -226,7 +226,7 @@ fn log_ikev2(tx: &IKETransaction, jb: &mut JsonBuilder) -> Result<(), JsonError>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_logger_log(
+pub unsafe extern "C" fn SCIkeLoggerLog(
     state: &mut IKEState, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, IKETransaction);

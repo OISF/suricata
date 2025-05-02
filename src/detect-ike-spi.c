@@ -95,7 +95,7 @@ static InspectionBuffer *GetInitiatorData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ike_state_get_spi_initiator(txv, &b, &b_len) != 1)
+        if (SCIkeStateGetSpiInitiator(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -115,7 +115,7 @@ static InspectionBuffer *GetResponderData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ike_state_get_spi_responder(txv, &b, &b_len) != 1)
+        if (SCIkeStateGetSpiResponder(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
