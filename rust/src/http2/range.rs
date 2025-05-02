@@ -86,7 +86,7 @@ pub fn http2_parse_check_content_range(input: &[u8]) -> IResult<&[u8], HTTPConte
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http_parse_content_range(
+pub unsafe extern "C" fn SCHttpParseContentRange(
     cr: &mut HTTPContentRange, buffer: *const u8, buffer_len: u32,
 ) -> std::os::raw::c_int {
     let slice = build_slice!(buffer, buffer_len as usize);

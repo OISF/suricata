@@ -285,7 +285,7 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_log_json(
+pub unsafe extern "C" fn SCHttp2LogJson(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, HTTP2Transaction);

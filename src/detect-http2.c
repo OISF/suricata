@@ -175,9 +175,9 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, rs_http2_tx_get_header_name, 2);
+            HTTP2StateOpen, SCHttp2TxGetHeaderName, 2);
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, rs_http2_tx_get_header_name, 2);
+            HTTP2StateOpen, SCHttp2TxGetHeaderName, 2);
 
     DetectBufferTypeSupportsMultiInstance("http2_header_name");
     DetectBufferTypeSetDescriptionByName("http2_header_name",
@@ -205,7 +205,7 @@ static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
 {
     uint8_t *detect = (uint8_t *)ctx;
 
-    return rs_http2_tx_has_frametype(txv, flags, *detect);
+    return SCHttp2TxHasFrametype(txv, flags, *detect);
 }
 
 static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
@@ -216,7 +216,7 @@ static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
     }
 
     // it it failed so far, parse string value from enumeration
-    int r = rs_http2_parse_frametype(str);
+    int r = SCHttp2ParseFrametype(str);
     if (r >= 0 && r <= UINT8_MAX) {
         *ft = (uint8_t)r;
         return 1;
@@ -284,7 +284,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
 {
     uint32_t *detect = (uint32_t *)ctx;
 
-    return rs_http2_tx_has_errorcode(txv, flags, *detect);
+    return SCHttp2TxHasErrorCode(txv, flags, *detect);
     //TODOask handle negation rules
 }
 
@@ -296,7 +296,7 @@ static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
     }
 
     // it it failed so far, parse string value from enumeration
-    int r = rs_http2_parse_errorcode(str);
+    int r = SCHttp2ParseErrorCode(str);
     if (r >= 0) {
         *ec = r;
         return 1;
@@ -363,14 +363,14 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
 
 {
     uint32_t nb = 0;
-    int value = rs_http2_tx_get_next_priority(txv, flags, nb);
+    int value = SCHttp2TxGetNextPriority(txv, flags, nb);
     const DetectU8Data *du8 = (const DetectU8Data *)ctx;
     while (value >= 0) {
         if (DetectU8Match((uint8_t)value, du8)) {
             return 1;
         }
         nb++;
-        value = rs_http2_tx_get_next_priority(txv, flags, nb);
+        value = SCHttp2TxGetNextPriority(txv, flags, nb);
     }
     return 0;
 }
@@ -425,14 +425,14 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
 
 {
     uint32_t nb = 0;
-    int value = rs_http2_tx_get_next_window(txv, flags, nb);
+    int value = SCHttp2TxGetNextWindow(txv, flags, nb);
     const DetectU32Data *du32 = (const DetectU32Data *)ctx;
     while (value >= 0) {
         if (DetectU32Match(value, du32)) {
             return 1;
         }
         nb++;
-        value = rs_http2_tx_get_next_window(txv, flags, nb);
+        value = SCHttp2TxGetNextWindow(txv, flags, nb);
     }
     return 0;
 }
@@ -486,7 +486,7 @@ static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    return rs_http2_detect_sizeupdatectx_match(ctx, txv, flags);
+    return SCHttp2DetectSizeUpdateCtxMatch(ctx, txv, flags);
 }
 
 /**
@@ -538,7 +538,7 @@ static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    return rs_http2_detect_settingsctx_match(ctx, txv, flags);
+    return SCHttp2DetectSettingsCtxMatch(ctx, txv, flags);
 }
 
 /**
@@ -556,7 +556,7 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    void *http2set = rs_http2_detect_settingsctx_parse(str);
+    void *http2set = SCHttp2DetectSettingsCtxParse(str);
     if (http2set == NULL)
         return -1;
 
@@ -576,7 +576,7 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
  */
 void DetectHTTP2settingsFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_http2_detect_settingsctx_free(ptr);
+    SCHttp2DetectSettingsCtxFree(ptr);
 }
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)

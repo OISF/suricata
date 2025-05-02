@@ -49,7 +49,7 @@ const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
+pub extern "C" fn SCHttp2Init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_HTTP2_FILE_CONFIG = Some(context);
     }
@@ -1394,8 +1394,7 @@ export_tx_data_get!(http2_get_tx_data, HTTP2Transaction);
 export_state_data_get!(http2_get_state_data, HTTP2State);
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_probing_parser_tc(
+unsafe extern "C" fn http2_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if !input.is_null() {
@@ -1431,9 +1430,8 @@ extern "C" {
 
 // Suppress the unsafe warning here as creating a state for an app-layer
 // is typically not unsafe.
-#[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn rs_http2_state_new(
+extern "C" fn http2_state_new(
     orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
@@ -1448,20 +1446,17 @@ pub extern "C" fn rs_http2_state_new(
     return r;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
+unsafe extern "C" fn http2_state_free(state: *mut std::os::raw::c_void) {
     let mut state: Box<HTTP2State> = Box::from_raw(state as _);
     state.free();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, HTTP2State);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_ts(
+unsafe extern "C" fn http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1469,8 +1464,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
     return state.parse_ts(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_tc(
+unsafe extern "C" fn http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1478,8 +1472,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
     return state.parse_tc(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx(
+unsafe extern "C" fn http2_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, HTTP2State);
@@ -1493,29 +1486,25 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_state(
+unsafe extern "C" fn http2_tx_get_state(
     tx: *mut std::os::raw::c_void,
 ) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
+unsafe extern "C" fn http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
-    return rs_http2_tx_get_state(tx) as i32;
+    return http2_tx_get_state(tx) as i32;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_http2_getfiles(
+unsafe extern "C" fn http2_getfiles(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -1539,31 +1528,31 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_register_parser() {
+pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     let default_port = CString::new("[80]").unwrap();
     let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
         probe_ts: None, // big magic string should be enough
-        probe_tc: Some(rs_http2_probing_parser_tc),
+        probe_tc: Some(http2_probing_parser_tc),
         min_depth: HTTP2_FRAME_HEADER_LEN as u16,
         max_depth: HTTP2_MAGIC_LEN as u16,
-        state_new: rs_http2_state_new,
-        state_free: rs_http2_state_free,
-        tx_free: rs_http2_state_tx_free,
-        parse_ts: rs_http2_parse_ts,
-        parse_tc: rs_http2_parse_tc,
-        get_tx_count: rs_http2_state_get_tx_count,
-        get_tx: rs_http2_state_get_tx,
+        state_new: http2_state_new,
+        state_free: http2_state_free,
+        tx_free: http2_state_tx_free,
+        parse_ts: http2_parse_ts,
+        parse_tc: http2_parse_tc,
+        get_tx_count: http2_state_get_tx_count,
+        get_tx: http2_state_get_tx,
         tx_comp_st_ts: HTTP2TransactionState::HTTP2StateClosed as i32,
         tx_comp_st_tc: HTTP2TransactionState::HTTP2StateClosed as i32,
-        tx_get_progress: rs_http2_tx_get_alstate_progress,
+        tx_get_progress: http2_tx_get_alstate_progress,
         get_eventinfo: Some(HTTP2Event::get_event_info),
         get_eventinfo_byid: Some(HTTP2Event::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_files: Some(rs_http2_getfiles),
+        get_tx_files: Some(http2_getfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<HTTP2State, HTTP2Transaction>),
         get_tx_data: http2_get_tx_data,
         get_state_data: http2_get_state_data,
