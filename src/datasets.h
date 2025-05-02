@@ -60,7 +60,7 @@ typedef struct Dataset {
 } Dataset;
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s);
-void DatasetAppendSet(Dataset *set);
+int DatasetAppendSet(Dataset *set);
 Dataset *DatasetAlloc(const char *name);
 void DatasetLock(void);
 void DatasetUnlock(void);
@@ -68,8 +68,8 @@ Dataset *DatasetSearchByName(const char *name);
 Dataset *DatasetFind(const char *name, enum DatasetTypes type);
 Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t memcap, uint32_t hashsize);
-Dataset *DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save,
-        const char *load, uint64_t *memcap, uint32_t *hashsize);
+int DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set);
 int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
