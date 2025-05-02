@@ -16,13 +16,13 @@
  */
 
 use super::{
-    DetectSignatureAddTransform, InspectionBufferCheckAndExpand, InspectionBufferLength,
-    InspectionBufferPtr, InspectionBufferTruncate, SCTransformTableElmt,
+    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
+    InspectionBufferTruncate,
 };
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    Signature,
+    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
 };
 
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};
@@ -47,7 +47,7 @@ unsafe extern "C" fn md5_setup(
         SCLogError!("MD5 hashing has been disabled, needed for to_md5 keyword");
         return -1;
     }
-    return DetectSignatureAddTransform(s, G_TRANSFORM_MD5_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_MD5_ID, ptr::null_mut());
 }
 
 fn md5_transform_do(input: &[u8], output: &mut [u8]) {
@@ -101,7 +101,7 @@ unsafe extern "C" fn sha1_setup(
         SCLogError!("SHA1 hashing has been disabled, needed for to_sha1 keyword");
         return -1;
     }
-    return DetectSignatureAddTransform(s, G_TRANSFORM_SHA1_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_SHA1_ID, ptr::null_mut());
 }
 
 fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
@@ -155,7 +155,7 @@ unsafe extern "C" fn sha256_setup(
         SCLogError!("SHA256 hashing has been disabled, needed for to_sha256 keyword");
         return -1;
     }
-    return DetectSignatureAddTransform(s, G_TRANSFORM_SHA256_ID, ptr::null_mut());
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_SHA256_ID, ptr::null_mut());
 }
 
 fn sha256_transform_do(input: &[u8], output: &mut [u8]) {

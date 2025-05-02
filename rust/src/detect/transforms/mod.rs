@@ -17,9 +17,7 @@
 
 //! Module for transforms
 
-use std::os::raw::{c_int, c_void};
-
-use suricata_sys::sys::{InspectionBuffer, SCTransformTableElmt, Signature};
+use suricata_sys::sys::InspectionBuffer;
 
 pub mod casechange;
 pub mod compress_whitespace;
@@ -33,9 +31,6 @@ pub mod xor;
 
 /// cbindgen:ignore
 extern "C" {
-    pub fn DetectSignatureAddTransform(
-        s: *mut Signature, transform_id: c_int, ctx: *mut c_void,
-    ) -> c_int;
     pub fn InspectionBufferPtr(buf: *const InspectionBuffer) -> *const u8;
     pub fn InspectionBufferLength(buf: *const InspectionBuffer) -> u32;
     pub fn InspectionBufferCopy(ibuf: *const InspectionBuffer, buf: *const u8, buf_len: u32);
