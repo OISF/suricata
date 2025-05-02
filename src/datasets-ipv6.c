@@ -24,7 +24,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "datasets.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 #include "datasets-ipv6.h"
 #include "util-hash-lookup3.h"
 #include "util-thash.h"
