@@ -215,9 +215,9 @@ fn asn1_decode<'a>(
 /// # Safety
 ///
 /// input must be a valid buffer of at least input_len bytes
-/// pointer must be freed using `rs_asn1_free`
+/// pointer must be freed using `SCAsn1Free`
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_decode(
+pub unsafe extern "C" fn SCAsn1Decode(
     input: *const u8, input_len: u32, buffer_offset: u32, ad_ptr: *const DetectAsn1Data,
 ) -> *mut Asn1<'static> {
     if input.is_null() || input_len == 0 || ad_ptr.is_null() {
@@ -240,9 +240,9 @@ pub unsafe extern "C" fn rs_asn1_decode(
 ///
 /// # Safety
 ///
-/// ptr must be a valid object obtained using `rs_asn1_decode`
+/// ptr must be a valid object obtained using `SCAsn1Decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
+pub unsafe extern "C" fn SCAsn1Free(ptr: *mut Asn1) {
     if ptr.is_null() {
         return;
     }
@@ -256,12 +256,12 @@ pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
 ///
 /// # Safety
 ///
-/// ptr must be a valid object obtained using `rs_asn1_decode`
-/// ad_ptr must be a valid object obtained using `rs_detect_asn1_parse`
+/// ptr must be a valid object obtained using `SCAsn1Decode`
+/// ad_ptr must be a valid object obtained using `SCAsn1DetectParse`
 ///
 /// Returns 1 if any of the options match, 0 if not
 #[no_mangle]
-pub unsafe extern "C" fn rs_asn1_checks(ptr: *const Asn1, ad_ptr: *const DetectAsn1Data) -> u8 {
+pub unsafe extern "C" fn SCAsn1Checks(ptr: *const Asn1, ad_ptr: *const DetectAsn1Data) -> u8 {
     if ptr.is_null() || ad_ptr.is_null() {
         return 0;
     }
