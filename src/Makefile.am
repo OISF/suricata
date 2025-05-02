@@ -22,21 +22,21 @@ noinst_HEADERS = \
 	alert-fastlog.h \
 	alert-syslog.h \
 	app-layer-detect-proto.h \
-	app-layer-dnp3.h \
 	app-layer-dnp3-objects.h \
+	app-layer-dnp3.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
 	app-layer-ftp.h \
-	app-layer.h \
 	app-layer-htp-body.h \
 	app-layer-htp-file.h \
-	app-layer-htp.h \
 	app-layer-htp-mem.h \
 	app-layer-htp-range.h \
 	app-layer-htp-xff.h \
+	app-layer-htp.h \
 	app-layer-http2.h \
 	app-layer-ike.h \
+	app-layer-imap.h \
 	app-layer-modbus.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
@@ -48,19 +48,19 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
-	app-layer-imap.h \
+	app-layer.h \
 	bindgen.h \
 	build-info.h \
-	conf.h \
 	conf-yaml-loader.h \
+	conf.h \
 	counters.h \
-	datasets.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
 	datasets-md5.h \
 	datasets-reputation.h \
 	datasets-sha256.h \
 	datasets-string.h \
+	datasets.h \
 	decode-arp.h \
 	decode-chdlc.h \
 	decode-erspan.h \
@@ -69,7 +69,6 @@ noinst_HEADERS = \
 	decode-events.h \
 	decode-geneve.h \
 	decode-gre.h \
-	decode.h \
 	decode-icmpv4.h \
 	decode-icmpv6.h \
 	decode-ipv4.h \
@@ -88,11 +87,12 @@ noinst_HEADERS = \
 	decode-vlan.h \
 	decode-vntag.h \
 	decode-vxlan.h \
+	decode.h \
 	defrag-config.h \
-	defrag.h \
 	defrag-hash.h \
 	defrag-stack.h \
 	defrag-timeout.h \
+	defrag.h \
 	detect-app-layer-event.h \
 	detect-app-layer-protocol.h \
 	detect-app-layer-state.h \
@@ -122,9 +122,10 @@ noinst_HEADERS = \
 	detect-dns-name.h \
 	detect-dns-response.h \
 	detect-dsize.h \
-	detect-engine-address.h \
+	detect-email.h \
 	detect-engine-address-ipv4.h \
 	detect-engine-address-ipv6.h \
+	detect-engine-address.h \
 	detect-engine-alert.h \
 	detect-engine-analyzer.h \
 	detect-engine-buffer.h \
@@ -134,7 +135,6 @@ noinst_HEADERS = \
 	detect-engine-event.h \
 	detect-engine-file.h \
 	detect-engine-frame.h \
-	detect-engine.h \
 	detect-engine-helper.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
@@ -152,6 +152,7 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
+	detect-engine.h \
 	detect-entropy.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
@@ -163,39 +164,37 @@ noinst_HEADERS = \
 	detect-filesha256.h \
 	detect-filesize.h \
 	detect-filestore.h \
-	detect-flowbits.h \
-	detect-flow.h \
 	detect-flow-age.h \
 	detect-flow-pkts.h \
+	detect-flow.h \
+	detect-flowbits.h \
 	detect-flowint.h \
 	detect-flowvar.h \
 	detect-fragbits.h \
 	detect-fragoffset.h \
 	detect-frame.h \
-	detect-ftpbounce.h \
-	detect-ftpdata.h \
-	detect-ftp-command.h \
 	detect-ftp-command-data.h \
+	detect-ftp-command.h \
 	detect-ftp-dynamic-port.h \
 	detect-ftp-reply.h \
+	detect-ftpbounce.h \
+	detect-ftpdata.h \
 	detect-geoip.h \
 	detect-gid.h \
-	detect.h \
 	detect-hostbits.h \
-	detect-http2.h \
 	detect-http-accept-enc.h \
-	detect-http-accept.h \
 	detect-http-accept-lang.h \
+	detect-http-accept.h \
 	detect-http-client-body.h \
 	detect-http-connection.h \
 	detect-http-content-len.h \
 	detect-http-content-type.h \
 	detect-http-cookie.h \
 	detect-http-header-common.h \
-	detect-http-header.h \
 	detect-http-header-names.h \
-	detect-http-headers.h \
+	detect-http-header.h \
 	detect-http-headers-stub.h \
+	detect-http-headers.h \
 	detect-http-host.h \
 	detect-http-location.h \
 	detect-http-method.h \
@@ -211,21 +210,22 @@ noinst_HEADERS = \
 	detect-http-stat-msg.h \
 	detect-http-ua.h \
 	detect-http-uri.h \
+	detect-http2.h \
 	detect-icmp-id.h \
 	detect-icmp-seq.h \
 	detect-icmpv4hdr.h \
-	detect-icmpv6hdr.h \
 	detect-icmpv6-mtu.h \
+	detect-icmpv6hdr.h \
 	detect-icode.h \
 	detect-id.h \
-	detect-ike-exch-type.h \
-	detect-ike-spi.h \
-	detect-ike-vendor.h \
 	detect-ike-chosen-sa.h \
+	detect-ike-exch-type.h \
 	detect-ike-key-exchange-payload-length.h \
+	detect-ike-key-exchange-payload.h \
 	detect-ike-nonce-payload-length.h \
 	detect-ike-nonce-payload.h \
-	detect-ike-key-exchange-payload.h \
+	detect-ike-spi.h \
+	detect-ike-vendor.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -246,11 +246,6 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	detect-modbus.h \
-	detect-quic-sni.h \
-	detect-quic-ua.h \
-	detect-quic-version.h \
-	detect-quic-cyu-hash.h \
-	detect-quic-cyu-string.h \
 	detect-msg.h \
 	detect-nfs-procedure.h \
 	detect-nfs-version.h \
@@ -263,6 +258,11 @@ noinst_HEADERS = \
 	detect-pktvar.h \
 	detect-prefilter.h \
 	detect-priority.h \
+	detect-quic-cyu-hash.h \
+	detect-quic-cyu-string.h \
+	detect-quic-sni.h \
+	detect-quic-ua.h \
+	detect-quic-version.h \
 	detect-rawbytes.h \
 	detect-reference.h \
 	detect-replace.h \
@@ -277,14 +277,14 @@ noinst_HEADERS = \
 	detect-smb-share.h \
 	detect-smb-version.h \
 	detect-smtp.h \
-	detect-ssh-hassh.h \
-	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-server-string.h \
+	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-string.h \
-	detect-ssh-proto.h \
+	detect-ssh-hassh.h \
 	detect-ssh-proto-version.h \
-	detect-ssh-software.h \
+	detect-ssh-proto.h \
 	detect-ssh-software-version.h \
+	detect-ssh-software.h \
 	detect-ssl-state.h \
 	detect-ssl-version.h \
 	detect-stream_size.h \
@@ -292,29 +292,29 @@ noinst_HEADERS = \
 	detect-target.h \
 	detect-tcp-ack.h \
 	detect-tcp-flags.h \
-	detect-tcphdr.h \
-	detect-tcpmss.h \
 	detect-tcp-seq.h \
 	detect-tcp-window.h \
-	detect-template2.h \
+	detect-tcphdr.h \
+	detect-tcpmss.h \
 	detect-template.h \
+	detect-template2.h \
 	detect-threshold.h \
 	detect-tls-alpn.h \
 	detect-tls-cert-fingerprint.h \
 	detect-tls-cert-issuer.h \
 	detect-tls-cert-serial.h \
-	detect-tls-certs.h \
 	detect-tls-cert-subject.h \
 	detect-tls-cert-validity.h \
-	detect-tls-subjectaltname.h \
-	detect-tls.h \
+	detect-tls-certs.h \
 	detect-tls-ja3-hash.h \
+	detect-tls-ja3-string.h \
 	detect-tls-ja3s-hash.h \
 	detect-tls-ja3s-string.h \
-	detect-tls-ja3-string.h \
-	detect-tls-sni.h \
-	detect-tls-version.h \
 	detect-tls-random.h \
+	detect-tls-sni.h \
+	detect-tls-subjectaltname.h \
+	detect-tls-version.h \
+	detect-tls.h \
 	detect-tos.h \
 	detect-transform-base64.h \
 	detect-transform-pcrexform.h \
@@ -322,16 +322,15 @@ noinst_HEADERS = \
 	detect-udphdr.h \
 	detect-uricontent.h \
 	detect-urilen.h \
+	detect-vlan.h \
 	detect-within.h \
 	detect-xbits.h \
-	detect-vlan.h \
-	detect-email.h \
+	detect.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
 	flow-bypass.h \
 	flow-callbacks.h \
-	flow.h \
 	flow-hash.h \
 	flow-manager.h \
 	flow-private.h \
@@ -342,16 +341,18 @@ noinst_HEADERS = \
 	flow-util.h \
 	flow-var.h \
 	flow-worker.h \
+	flow.h \
 	host-bit.h \
-	host.h \
 	host-queue.h \
 	host-storage.h \
 	host-timeout.h \
+	host.h \
+	interval-tree.h \
 	ippair-bit.h \
-	ippair.h \
 	ippair-queue.h \
 	ippair-storage.h \
 	ippair-timeout.h \
+	ippair.h \
 	log-cf-common.h \
 	log-flush.h \
 	log-httplog.h \
@@ -360,21 +361,22 @@ noinst_HEADERS = \
 	log-tcp-data.h \
 	log-tlslog.h \
 	log-tlsstore.h \
-	output-eve.h \
-	output-eve-stream.h \
+	output-eve-bindgen.h \
 	output-eve-null.h \
-	output-filedata.h \
+	output-eve-stream.h \
+	output-eve-syslog.h \
+	output-eve.h \
 	output-file.h \
+	output-filedata.h \
 	output-filestore.h \
 	output-flow.h \
-	output.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
 	output-json-arp.h \
 	output-json-dcerpc.h \
 	output-json-dhcp.h \
-	output-json-dnp3.h \
 	output-json-dnp3-objects.h \
+	output-json-dnp3.h \
 	output-json-dns.h \
 	output-json-drop.h \
 	output-json-email-common.h \
@@ -382,7 +384,6 @@ noinst_HEADERS = \
 	output-json-flow.h \
 	output-json-frame.h \
 	output-json-ftp.h \
-	output-json.h \
 	output-json-http.h \
 	output-json-ike.h \
 	output-json-metadata.h \
@@ -394,20 +395,20 @@ noinst_HEADERS = \
 	output-json-smtp.h \
 	output-json-stats.h \
 	output-json-tls.h \
-	output-eve-syslog.h \
+	output-json.h \
 	output-lua.h \
 	output-packet.h \
-	output-eve-bindgen.h \
 	output-stats.h \
 	output-streaming.h \
 	output-tx.h \
-	packet.h \
+	output.h \
 	packet-queue.h \
+	packet.h \
 	pkt-var.h \
 	queue.h \
 	reputation.h \
-	respond-reject.h \
 	respond-reject-libnet11.h \
+	respond-reject.h \
 	runmode-af-packet.h \
 	runmode-af-xdp.h \
 	runmode-dpdk.h \
@@ -420,10 +421,10 @@ noinst_HEADERS = \
 	runmode-nfq.h \
 	runmode-pcap-file.h \
 	runmode-pcap.h \
-	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
 	runmode-windivert.h \
+	runmodes.h \
 	rust-context.h \
 	rust.h \
 	source-af-packet.h \
@@ -435,16 +436,14 @@ noinst_HEADERS = \
 	source-lib.h \
 	source-netmap.h \
 	source-nflog.h \
-	source-nfq.h \
 	source-nfq-prototypes.h \
+	source-nfq.h \
 	source-pcap-file-directory-helper.h \
-	source-pcap-file.h \
 	source-pcap-file-helper.h \
+	source-pcap-file.h \
 	source-pcap.h \
-	source-windivert.h \
 	source-windivert-prototypes.h \
-	stream.h \
-	stream-tcp.h \
+	source-windivert.h \
 	stream-tcp-cache.h \
 	stream-tcp-inline.h \
 	stream-tcp-list.h \
@@ -452,26 +451,27 @@ noinst_HEADERS = \
 	stream-tcp-reassemble.h \
 	stream-tcp-sack.h \
 	stream-tcp-util.h \
+	stream-tcp.h \
+	stream.h \
 	suricata-common.h \
-	suricata.h \
 	suricata-plugin.h \
+	suricata.h \
 	thread-callbacks.h \
 	thread-storage.h \
 	threads-debug.h \
-	threads.h \
 	threads-profile.h \
+	threads.h \
 	threadvars.h \
 	tm-modules.h \
-	tmqh-flow.h \
-	tmqh-packetpool.h \
-	tmqh-simple.h \
 	tm-queuehandlers.h \
 	tm-queues.h \
 	tm-threads-common.h \
 	tm-threads.h \
+	tmqh-flow.h \
+	tmqh-packetpool.h \
+	tmqh-simple.h \
 	tree.h \
 	tx-bit.h \
-	interval-tree.h \
 	unix-manager.h \
 	util-action.h \
 	util-affinity.h \
@@ -493,7 +493,6 @@ noinst_HEADERS = \
 	util-debug.h \
 	util-detect.h \
 	util-device.h \
-	util-dpdk.h \
 	util-dpdk-bonding.h \
 	util-dpdk-common.h \
 	util-dpdk-i40e.h \
@@ -501,20 +500,22 @@ noinst_HEADERS = \
 	util-dpdk-ixgbe.h \
 	util-dpdk-mlx5.h \
 	util-dpdk-rss.h \
+	util-dpdk.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
-	util-exception-policy.h \
 	util-exception-policy-types.h \
+	util-exception-policy.h \
 	util-file-decompression.h \
-	util-file.h \
 	util-file-swf-decompression.h \
+	util-file.h \
 	util-fix_checksum.h \
+	util-flow-rate.h \
 	util-fmemopen.h \
-	util-hash.h \
-	util-hashlist.h \
 	util-hash-lookup3.h \
 	util-hash-string.h \
+	util-hash.h \
+	util-hashlist.h \
 	util-host-info.h \
 	util-host-os-info.h \
 	util-hugepages.h \
@@ -524,18 +525,17 @@ noinst_HEADERS = \
 	util-ja3.h \
 	util-ja4.h \
 	util-landlock.h \
-	util-logopenfile.h \
 	util-log-redis.h \
+	util-logopenfile.h \
 	util-lua-base64lib.h \
 	util-lua-builtins.h \
 	util-lua-common.h \
 	util-lua-dataset.h \
-	util-lua-dnp3.h \
 	util-lua-dnp3-objects.h \
+	util-lua-dnp3.h \
 	util-lua-dns.h \
 	util-lua-flowlib.h \
 	util-lua-flowvarlib.h \
-	util-lua.h \
 	util-lua-hashlib.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
@@ -545,32 +545,33 @@ noinst_HEADERS = \
 	util-lua-smtp.h \
 	util-lua-ssh.h \
 	util-lua-tls.h \
-	util-flow-rate.h \
+	util-lua.h \
 	util-macset.h \
 	util-magic.h \
+	util-mem.h \
 	util-memcmp.h \
 	util-memcpy.h \
-	util-mem.h \
 	util-memrchr.h \
 	util-misc.h \
-	util-mpm-ac.h \
 	util-mpm-ac-ks.h \
-	util-mpm.h \
-	util-mpm-hs.h \
+	util-mpm-ac.h \
 	util-mpm-hs-cache.h \
 	util-mpm-hs-core.h \
+	util-mpm-hs.h \
+	util-mpm.h \
 	util-optimize.h \
 	util-pages.h \
 	util-path.h \
 	util-pidfile.h \
 	util-plugin.h \
-	util-pool.h \
 	util-pool-thread.h \
+	util-pool.h \
+	util-port-interval-tree.h \
 	util-prefilter.h \
 	util-print.h \
 	util-privs.h \
-	util-profiling.h \
 	util-profiling-locks.h \
+	util-profiling.h \
 	util-proto-name.h \
 	util-radix-tree-common.h \
 	util-radix4-tree.h \
@@ -583,24 +584,23 @@ noinst_HEADERS = \
 	util-running-modes.h \
 	util-signal.h \
 	util-spm-bm.h \
-	util-spm-bs2bm.h \
 	util-spm-bs.h \
-	util-spm.h \
+	util-spm-bs2bm.h \
 	util-spm-hs.h \
+	util-spm.h \
 	util-storage.h \
 	util-streaming-buffer.h \
-	util-syslog.h \
 	util-sysfs.h \
+	util-syslog.h \
 	util-systemd.h \
 	util-thash.h \
 	util-threshold-config.h \
 	util-time.h \
-	util-unittest.h \
 	util-unittest-helper.h \
+	util-unittest.h \
 	util-validate.h \
-	util-var.h \
 	util-var-name.h \
-	util-port-interval-tree.h \
+	util-var.h \
 	win32-misc.h \
 	win32-service.h \
 	win32-syscall.h \
@@ -610,22 +610,22 @@ libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
 	alert-fastlog.c \
 	alert-syslog.c \
-	app-layer.c \
 	app-layer-detect-proto.c \
-	app-layer-dnp3.c \
 	app-layer-dnp3-objects.c \
+	app-layer-dnp3.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
-	app-layer-ftp.c \
 	app-layer-frames.c \
+	app-layer-ftp.c \
 	app-layer-htp-body.c \
-	app-layer-htp.c \
 	app-layer-htp-file.c \
 	app-layer-htp-mem.c \
 	app-layer-htp-range.c \
 	app-layer-htp-xff.c \
+	app-layer-htp.c \
 	app-layer-http2.c \
 	app-layer-ike.c \
+	app-layer-imap.c \
 	app-layer-modbus.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
@@ -637,17 +637,16 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
-	app-layer-imap.c \
-	conf.c \
+	app-layer.c \
 	conf-yaml-loader.c \
+	conf.c \
 	counters.c \
-	datasets.c \
 	datasets-ipv4.c \
 	datasets-ipv6.c \
 	datasets-md5.c \
 	datasets-sha256.c \
 	datasets-string.c \
-	decode.c \
+	datasets.c \
 	decode-arp.c \
 	decode-chdlc.c \
 	decode-erspan.c \
@@ -675,11 +674,12 @@ libsuricata_c_a_SOURCES = \
 	decode-vlan.c \
 	decode-vntag.c \
 	decode-vxlan.c \
-	defrag.c \
+	decode.c \
 	defrag-config.c \
 	defrag-hash.c \
 	defrag-stack.c \
 	defrag-timeout.c \
+	defrag.c \
 	detect-app-layer-event.c \
 	detect-app-layer-protocol.c \
 	detect-app-layer-state.c \
@@ -688,12 +688,11 @@ libsuricata_c_a_SOURCES = \
 	detect-base64-decode.c \
 	detect-bsize.c \
 	detect-bypass.c \
-	detect-byte.c \
 	detect-byte-extract.c \
+	detect-byte.c \
 	detect-bytejump.c \
 	detect-bytemath.c \
 	detect-bytetest.c \
-	detect.c \
 	detect-classtype.c \
 	detect-config.c \
 	detect-content.c \
@@ -710,14 +709,14 @@ libsuricata_c_a_SOURCES = \
 	detect-dns-name.c \
 	detect-dns-response.c \
 	detect-dsize.c \
-	detect-engine-address.c \
+	detect-email.c \
 	detect-engine-address-ipv4.c \
 	detect-engine-address-ipv6.c \
+	detect-engine-address.c \
 	detect-engine-alert.c \
 	detect-engine-analyzer.c \
-	detect-engine-build.c \
 	detect-engine-buffer.c \
-	detect-engine.c \
+	detect-engine-build.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
 	detect-engine-event.c \
@@ -729,8 +728,8 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-mpm.c \
 	detect-engine-payload.c \
 	detect-engine-port.c \
-	detect-engine-prefilter.c \
 	detect-engine-prefilter-common.c \
+	detect-engine-prefilter.c \
 	detect-engine-profile.c \
 	detect-engine-proto.c \
 	detect-engine-register.c \
@@ -740,6 +739,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
+	detect-engine.c \
 	detect-entropy.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
@@ -751,36 +751,35 @@ libsuricata_c_a_SOURCES = \
 	detect-filesha256.c \
 	detect-filesize.c \
 	detect-filestore.c \
-	detect-flowbits.c \
-	detect-flow.c \
 	detect-flow-age.c \
 	detect-flow-pkts.c \
+	detect-flow.c \
+	detect-flowbits.c \
 	detect-flowint.c \
 	detect-flowvar.c \
 	detect-fragbits.c \
 	detect-fragoffset.c \
 	detect-frame.c \
-	detect-ftpbounce.c \
-	detect-ftpdata.c \
-	detect-ftp-command.c \
 	detect-ftp-command-data.c \
+	detect-ftp-command.c \
 	detect-ftp-dynamic-port.c \
 	detect-ftp-reply.c \
+	detect-ftpbounce.c \
+	detect-ftpdata.c \
 	detect-geoip.c \
 	detect-gid.c \
 	detect-hostbits.c \
-	detect-http2.c \
-	detect-http-accept.c \
 	detect-http-accept-enc.c \
 	detect-http-accept-lang.c \
+	detect-http-accept.c \
 	detect-http-client-body.c \
 	detect-http-connection.c \
 	detect-http-content-len.c \
 	detect-http-content-type.c \
 	detect-http-cookie.c \
-	detect-http-header.c \
 	detect-http-header-common.c \
 	detect-http-header-names.c \
+	detect-http-header.c \
 	detect-http-headers.c \
 	detect-http-host.c \
 	detect-http-location.c \
@@ -797,21 +796,22 @@ libsuricata_c_a_SOURCES = \
 	detect-http-stat-msg.c \
 	detect-http-ua.c \
 	detect-http-uri.c \
+	detect-http2.c \
 	detect-icmp-id.c \
 	detect-icmp-seq.c \
 	detect-icmpv4hdr.c \
-	detect-icmpv6hdr.c \
 	detect-icmpv6-mtu.c \
+	detect-icmpv6hdr.c \
 	detect-icode.c \
 	detect-id.c \
-	detect-ike-exch-type.c \
-	detect-ike-spi.c \
-	detect-ike-vendor.c \
 	detect-ike-chosen-sa.c \
+	detect-ike-exch-type.c \
 	detect-ike-key-exchange-payload-length.c \
+	detect-ike-key-exchange-payload.c \
 	detect-ike-nonce-payload-length.c \
 	detect-ike-nonce-payload.c \
-	detect-ike-key-exchange-payload.c \
+	detect-ike-spi.c \
+	detect-ike-vendor.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -827,16 +827,11 @@ libsuricata_c_a_SOURCES = \
 	detect-krb5-sname.c \
 	detect-krb5-ticket-encryption.c \
 	detect-l3proto.c \
-	detect-lua.c \
 	detect-lua-extensions.c \
+	detect-lua.c \
 	detect-mark.c \
 	detect-metadata.c \
 	detect-modbus.c \
-	detect-quic-sni.c \
-	detect-quic-ua.c \
-	detect-quic-version.c \
-	detect-quic-cyu-hash.c \
-	detect-quic-cyu-string.c \
 	detect-msg.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
@@ -849,6 +844,11 @@ libsuricata_c_a_SOURCES = \
 	detect-pktvar.c \
 	detect-prefilter.c \
 	detect-priority.c \
+	detect-quic-cyu-hash.c \
+	detect-quic-cyu-string.c \
+	detect-quic-sni.c \
+	detect-quic-ua.c \
+	detect-quic-version.c \
 	detect-rawbytes.c \
 	detect-reference.c \
 	detect-replace.c \
@@ -863,14 +863,14 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-share.c \
 	detect-smb-version.c \
 	detect-smtp.c \
-	detect-ssh-hassh.c \
-	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-server-string.c \
+	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-string.c \
-	detect-ssh-proto.c \
+	detect-ssh-hassh.c \
 	detect-ssh-proto-version.c \
-	detect-ssh-software.c \
+	detect-ssh-proto.c \
 	detect-ssh-software-version.c \
+	detect-ssh-software.c \
 	detect-ssl-state.c \
 	detect-ssl-version.c \
 	detect-stream_size.c \
@@ -878,29 +878,29 @@ libsuricata_c_a_SOURCES = \
 	detect-target.c \
 	detect-tcp-ack.c \
 	detect-tcp-flags.c \
-	detect-tcphdr.c \
-	detect-tcpmss.c \
 	detect-tcp-seq.c \
 	detect-tcp-window.c \
-	detect-template2.c \
+	detect-tcphdr.c \
+	detect-tcpmss.c \
 	detect-template.c \
+	detect-template2.c \
 	detect-threshold.c \
-	detect-tls.c \
 	detect-tls-alpn.c \
 	detect-tls-cert-fingerprint.c \
 	detect-tls-cert-issuer.c \
-	detect-tls-certs.c \
 	detect-tls-cert-serial.c \
 	detect-tls-cert-subject.c \
 	detect-tls-cert-validity.c \
-	detect-tls-subjectaltname.c \
+	detect-tls-certs.c \
 	detect-tls-ja3-hash.c \
+	detect-tls-ja3-string.c \
 	detect-tls-ja3s-hash.c \
 	detect-tls-ja3s-string.c \
-	detect-tls-ja3-string.c \
-	detect-tls-sni.c \
-	detect-tls-version.c \
 	detect-tls-random.c \
+	detect-tls-sni.c \
+	detect-tls-subjectaltname.c \
+	detect-tls-version.c \
+	detect-tls.c \
 	detect-tos.c \
 	detect-transform-base64.c \
 	detect-transform-pcrexform.c \
@@ -908,16 +908,15 @@ libsuricata_c_a_SOURCES = \
 	detect-udphdr.c \
 	detect-uricontent.c \
 	detect-urilen.c \
+	detect-vlan.c \
 	detect-within.c \
 	detect-xbits.c \
-	detect-vlan.c \
-	detect-email.c \
+	detect.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
 	flow-bypass.c \
 	flow-callbacks.c \
-	flow.c \
 	flow-hash.c \
 	flow-manager.c \
 	flow-queue.c \
@@ -927,16 +926,17 @@ libsuricata_c_a_SOURCES = \
 	flow-util.c \
 	flow-var.c \
 	flow-worker.c \
+	flow.c \
 	host-bit.c \
-	host.c \
 	host-queue.c \
 	host-storage.c \
 	host-timeout.c \
+	host.c \
 	ippair-bit.c \
-	ippair.c \
 	ippair-queue.c \
 	ippair-storage.c \
 	ippair-timeout.c \
+	ippair.c \
 	log-cf-common.c \
 	log-flush.c \
 	log-httplog.c \
@@ -945,8 +945,10 @@ libsuricata_c_a_SOURCES = \
 	log-tcp-data.c \
 	log-tlslog.c \
 	log-tlsstore.c \
-	output.c \
+	output-eve-null.c \
 	output-eve-stream.c \
+	output-eve-syslog.c \
+	output-eve.c \
 	output-file.c \
 	output-filedata.c \
 	output-filestore.c \
@@ -954,12 +956,11 @@ libsuricata_c_a_SOURCES = \
 	output-json-alert.c \
 	output-json-anomaly.c \
 	output-json-arp.c \
-	output-json.c \
 	output-json-common.c \
 	output-json-dcerpc.c \
 	output-json-dhcp.c \
-	output-json-dnp3.c \
 	output-json-dnp3-objects.c \
+	output-json-dnp3.c \
 	output-json-dns.c \
 	output-json-drop.c \
 	output-json-email-common.c \
@@ -978,20 +979,19 @@ libsuricata_c_a_SOURCES = \
 	output-json-smtp.c \
 	output-json-stats.c \
 	output-json-tls.c \
-	output-eve.c \
-	output-eve-syslog.c \
-	output-eve-null.c \
+	output-json.c \
 	output-lua.c \
 	output-packet.c \
 	output-stats.c \
 	output-streaming.c \
 	output-tx.c \
-	packet.c \
+	output.c \
 	packet-queue.c \
+	packet.c \
 	pkt-var.c \
 	reputation.c \
-	respond-reject.c \
 	respond-reject-libnet11.c \
+	respond-reject.c \
 	runmode-af-packet.c \
 	runmode-af-xdp.c \
 	runmode-dpdk.c \
@@ -1002,12 +1002,12 @@ libsuricata_c_a_SOURCES = \
 	runmode-netmap.c \
 	runmode-nflog.c \
 	runmode-nfq.c \
-	runmode-pcap.c \
 	runmode-pcap-file.c \
-	runmodes.c \
+	runmode-pcap.c \
 	runmode-unittests.c \
 	runmode-unix-socket.c \
 	runmode-windivert.c \
+	runmodes.c \
 	rust-context.c \
 	source-af-packet.c \
 	source-af-xdp.c \
@@ -1019,30 +1019,30 @@ libsuricata_c_a_SOURCES = \
 	source-netmap.c \
 	source-nflog.c \
 	source-nfq.c \
-	source-pcap.c \
-	source-pcap-file.c \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
+	source-pcap-file.c \
+	source-pcap.c \
 	source-windivert.c \
-	stream.c \
-	stream-tcp.c \
 	stream-tcp-cache.c \
 	stream-tcp-inline.c \
 	stream-tcp-list.c \
 	stream-tcp-reassemble.c \
 	stream-tcp-sack.c \
 	stream-tcp-util.c \
+	stream-tcp.c \
+	stream.c \
 	suricata.c \
 	thread-callbacks.c \
 	thread-storage.c \
 	threads.c \
 	tm-modules.c \
-	tmqh-flow.c \
-	tmqh-packetpool.c \
-	tmqh-simple.c \
 	tm-queuehandlers.c \
 	tm-queues.c \
 	tm-threads.c \
+	tmqh-flow.c \
+	tmqh-packetpool.c \
+	tmqh-simple.c \
 	tx-bit.c \
 	unix-manager.c \
 	util-action.c \
@@ -1059,11 +1059,10 @@ libsuricata_c_a_SOURCES = \
 	util-cpu.c \
 	util-daemon.c \
 	util-datalink.c \
-	util-debug.c \
 	util-debug-filters.c \
+	util-debug.c \
 	util-detect.c \
 	util-device.c \
-	util-dpdk.c \
 	util-dpdk-bonding.c \
 	util-dpdk-common.c \
 	util-dpdk-i40e.c \
@@ -1071,19 +1070,21 @@ libsuricata_c_a_SOURCES = \
 	util-dpdk-ixgbe.c \
 	util-dpdk-mlx5.c \
 	util-dpdk-rss.c \
+	util-dpdk.c \
 	util-ebpf.c \
 	util-enum.c \
 	util-error.c \
 	util-exception-policy.c \
-	util-file.c \
 	util-file-decompression.c \
 	util-file-swf-decompression.c \
+	util-file.c \
 	util-fix_checksum.c \
+	util-flow-rate.c \
 	util-fmemopen.c \
-	util-hash.c \
-	util-hashlist.c \
 	util-hash-lookup3.c \
 	util-hash-string.c \
+	util-hash.c \
+	util-hashlist.c \
 	util-host-info.c \
 	util-host-os-info.c \
 	util-hugepages.c \
@@ -1092,15 +1093,14 @@ libsuricata_c_a_SOURCES = \
 	util-ip.c \
 	util-ja3.c \
 	util-landlock.c \
-	util-logopenfile.c \
 	util-log-redis.c \
-	util-lua.c \
+	util-logopenfile.c \
 	util-lua-base64lib.c \
 	util-lua-builtins.c \
 	util-lua-common.c \
 	util-lua-dataset.c \
-	util-lua-dnp3.c \
 	util-lua-dnp3-objects.c \
+	util-lua-dnp3.c \
 	util-lua-dns.c \
 	util-lua-flowlib.c \
 	util-lua-flowvarlib.c \
@@ -1113,35 +1113,36 @@ libsuricata_c_a_SOURCES = \
 	util-lua-smtp.c \
 	util-lua-ssh.c \
 	util-lua-tls.c \
+	util-lua.c \
 	util-macset.c \
-	util-flow-rate.c \
 	util-magic.c \
 	util-mem.c \
 	util-memcmp.c \
 	util-memrchr.c \
 	util-misc.c \
-	util-mpm-ac.c \
-	util-mpm-ac-ks.c \
 	util-mpm-ac-ks-small.c \
-	util-mpm.c \
-	util-mpm-hs.c \
+	util-mpm-ac-ks.c \
+	util-mpm-ac.c \
 	util-mpm-hs-cache.c \
 	util-mpm-hs-core.c \
+	util-mpm-hs.c \
+	util-mpm.c \
 	util-pages.c \
 	util-path.c \
 	util-pidfile.c \
 	util-plugin.c \
-	util-pool.c \
 	util-pool-thread.c \
+	util-pool.c \
+	util-port-interval-tree.c \
 	util-prefilter.c \
 	util-print.c \
 	util-privs.c \
-	util-profiling.c \
 	util-profiling-keywords.c \
 	util-profiling-locks.c \
 	util-profiling-prefilter.c \
 	util-profiling-rulegroups.c \
 	util-profiling-rules.c \
+	util-profiling.c \
 	util-proto-name.c \
 	util-radix4-tree.c \
 	util-radix6-tree.c \
@@ -1153,26 +1154,25 @@ libsuricata_c_a_SOURCES = \
 	util-running-modes.c \
 	util-signal.c \
 	util-spm-bm.c \
-	util-spm-bs2bm.c \
 	util-spm-bs.c \
-	util-spm.c \
+	util-spm-bs2bm.c \
 	util-spm-hs.c \
+	util-spm.c \
 	util-storage.c \
 	util-streaming-buffer.c \
 	util-strlcatu.c \
 	util-strlcpyu.c \
 	util-strptime.c \
-	util-syslog.c \
 	util-sysfs.c \
+	util-syslog.c \
 	util-systemd.c \
 	util-thash.c \
 	util-threshold-config.c \
 	util-time.c \
-	util-unittest.c \
 	util-unittest-helper.c \
-	util-var.c \
+	util-unittest.c \
 	util-var-name.c \
-	util-port-interval-tree.c \
+	util-var.c \
 	win32-misc.c \
 	win32-service.c \
 	win32-syscall.c
