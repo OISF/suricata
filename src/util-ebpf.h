@@ -45,7 +45,6 @@ struct flowv4_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
-    __u16 vlan2;
 };
 
 struct flowv6_keys {
@@ -58,7 +57,6 @@ struct flowv6_keys {
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
-    __u16 vlan2;
 };
 
 struct pair {
