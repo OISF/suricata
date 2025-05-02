@@ -25,7 +25,7 @@
 #include "suricata.h"
 #include "rust.h"
 #include "datasets.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 #include "datasets-ipv4.h"
 #include "datasets-ipv6.h"
 #include "datasets-md5.h"

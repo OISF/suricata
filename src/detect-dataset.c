@@ -28,7 +28,7 @@
 #include "detect.h"
 #include "threads.h"
 #include "datasets.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 #include "detect-dataset.h"
 
 #include "detect-parse.h"

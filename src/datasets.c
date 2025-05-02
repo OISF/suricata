@@ -32,7 +32,7 @@
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 #include "util-conf.h"
 #include "util-mem.h"
 #include "util-thash.h"
