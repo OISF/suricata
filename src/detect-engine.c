@@ -1583,52 +1583,6 @@ void InspectionBufferFree(InspectionBuffer *buffer)
     memset(buffer, 0, sizeof(*buffer));
 }
 
-/**
- * \brief make sure that the buffer has at least 'min_size' bytes
- * Expand the buffer if necessary
- */
-void *InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
-{
-    if (likely(buffer->size >= min_size))
-        return buffer->buf;
-
-    uint32_t new_size = (buffer->size == 0) ? 4096 : buffer->size;
-    while (new_size < min_size) {
-        new_size *= 2;
-    }
-
-    void *ptr = SCRealloc(buffer->buf, new_size);
-    if (ptr != NULL) {
-        buffer->buf = ptr;
-        buffer->size = new_size;
-    } else {
-        return NULL;
-    }
-    return buffer->buf;
-}
-
-void InspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len)
-{
-    DEBUG_VALIDATE_BUG_ON(buffer->buf == NULL);
-    DEBUG_VALIDATE_BUG_ON(buf_len > buffer->size);
-    buffer->inspect = buffer->buf;
-    buffer->inspect_len = buf_len;
-    buffer->initialized = true;
-}
-
-void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len)
-{
-    InspectionBufferCheckAndExpand(buffer, buf_len);
-
-    if (buffer->size) {
-        uint32_t copy_size = MIN(buf_len, buffer->size);
-        memcpy(buffer->buf, buf, copy_size);
-        buffer->inspect = buffer->buf;
-        buffer->inspect_len = copy_size;
-        buffer->initialized = true;
-    }
-}
-
 /** \brief Check content byte array compatibility with transforms
  *
  *  The "content" array is presented to the transforms so that each

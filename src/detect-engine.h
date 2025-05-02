@@ -34,9 +34,6 @@ void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, con
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len,
         const DetectEngineTransforms *transforms);
 void InspectionBufferFree(InspectionBuffer *buffer);
-void *InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
-void InspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len);
-void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);

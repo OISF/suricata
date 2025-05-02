@@ -92,7 +92,5 @@ int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *des
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
-const uint8_t *InspectionBufferPtr(InspectionBuffer *buf);
-uint32_t InspectionBufferLength(InspectionBuffer *buf);
 
 #endif /* SURICATA_DETECT_ENGINE_HELPER_H */

@@ -31,6 +31,7 @@
 #include "detect-reference.h"
 #include "detect-metadata.h"
 #include "detect-engine-register.h"
+#include "detect-engine-inspect-buffer.h"
 
 #include "util-prefilter.h"
 #include "util-mpm.h"
@@ -369,30 +370,6 @@ typedef struct SigMatchData_ {
 } SigMatchData;
 
 struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
-
-/* inspection buffer is a simple structure that is passed between prefilter,
- * transformation functions and inspection functions.
- * Initially setup with 'orig' ptr and len, transformations can then take
- * then and fill the 'buf'. Multiple transformations can update the buffer,
- * both growing and shrinking it.
- * Prefilter and inspection will only deal with 'inspect'. */
-
-typedef struct InspectionBuffer {
-    const uint8_t *inspect; /**< active pointer, points either to ::buf or ::orig */
-    uint64_t inspect_offset;
-    uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */
-    bool initialized; /**< is initialized. ::inspect might be NULL if transform lead to 0 size */
-    uint8_t flags;          /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
-#ifdef DEBUG_VALIDATION
-    bool multi;
-#endif
-    uint32_t len;           /**< how much is in use */
-    uint8_t *buf;
-    uint32_t size;          /**< size of the memory allocation */
-
-    uint32_t orig_len;
-    const uint8_t *orig;
-} InspectionBuffer;
 
 /* inspection buffers are kept per tx (in det_ctx), but some protocols
  * need a bit more. A single TX might have multiple buffers, e.g. files in

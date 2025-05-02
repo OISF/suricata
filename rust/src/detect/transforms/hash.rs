@@ -15,14 +15,11 @@
  * 02110-1301, USA.
  */
 
-use super::{
-    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
-    InspectionBufferTruncate,
-};
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
+    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature, SCInspectionBufferCheckAndExpand,
+    SCInspectionBufferTruncate,
 };
 
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};
@@ -57,14 +54,14 @@ fn md5_transform_do(input: &[u8], output: &mut [u8]) {
 unsafe extern "C" fn md5_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, SC_MD5_LEN as u32);
+    let output = SCInspectionBufferCheckAndExpand(buffer, SC_MD5_LEN as u32);
     if output.is_null() {
         // allocation failure
         return;
@@ -73,7 +70,7 @@ unsafe extern "C" fn md5_transform(
 
     md5_transform_do(input, output);
 
-    InspectionBufferTruncate(buffer, SC_MD5_LEN as u32);
+    SCInspectionBufferTruncate(buffer, SC_MD5_LEN as u32);
 }
 
 #[no_mangle]
@@ -111,14 +108,14 @@ fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
 unsafe extern "C" fn sha1_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, SC_SHA1_LEN as u32);
+    let output = SCInspectionBufferCheckAndExpand(buffer, SC_SHA1_LEN as u32);
     if output.is_null() {
         // allocation failure
         return;
@@ -127,7 +124,7 @@ unsafe extern "C" fn sha1_transform(
 
     sha1_transform_do(input, output);
 
-    InspectionBufferTruncate(buffer, SC_SHA1_LEN as u32);
+    SCInspectionBufferTruncate(buffer, SC_SHA1_LEN as u32);
 }
 
 #[no_mangle]
@@ -165,14 +162,14 @@ fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
 unsafe extern "C" fn sha256_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, SC_SHA256_LEN as u32);
+    let output = SCInspectionBufferCheckAndExpand(buffer, SC_SHA256_LEN as u32);
     if output.is_null() {
         // allocation failure
         return;
@@ -181,7 +178,7 @@ unsafe extern "C" fn sha256_transform(
 
     sha256_transform_do(input, output);
 
-    InspectionBufferTruncate(buffer, SC_SHA256_LEN as u32);
+    SCInspectionBufferTruncate(buffer, SC_SHA256_LEN as u32);
 }
 
 #[no_mangle]
