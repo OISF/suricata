@@ -25,6 +25,7 @@
 #define SURICATA_DETECT_ENGINE_HELPER_H
 
 #include "app-layer-protos.h"
+#include "detect-engine-inspect-buffer.h"
 
 // type from flow.h with only forward declarations for bindgen
 typedef struct Flow_ Flow;
@@ -34,7 +35,6 @@ typedef struct DetectEngineCtx_ DetectEngineCtx;
 typedef struct Signature_ Signature;
 typedef struct SigMatchCtx_ SigMatchCtx;
 typedef struct DetectEngineThreadCtx_ DetectEngineThreadCtx;
-typedef struct InspectionBuffer InspectionBuffer;
 typedef struct DetectEngineTransforms DetectEngineTransforms;
 typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
@@ -92,7 +92,5 @@ int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *des
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
-const uint8_t *InspectionBufferPtr(InspectionBuffer *buf);
-uint32_t InspectionBufferLength(InspectionBuffer *buf);
 
 #endif /* SURICATA_DETECT_ENGINE_HELPER_H */
