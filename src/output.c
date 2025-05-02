@@ -932,8 +932,7 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)rs_template_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)SCRdpToJson, NULL);
     // special case : http2 is logged in http object
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_HTTP2, (EveJsonSimpleTxLogFunc)rs_http2_log_json, "http");
+    RegisterSimpleJsonApplayerLogger(ALPROTO_HTTP2, (EveJsonSimpleTxLogFunc)SCHttp2LogJson, "http");
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(ALPROTO_BITTORRENT_DHT,
             (EveJsonSimpleTxLogFunc)SCBittorrentDhtLogger, "bittorrent_dht");

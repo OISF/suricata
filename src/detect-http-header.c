@@ -152,7 +152,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_http2_tx_get_headers(txv, flow_flags, &b, &b_len) != 1)
+        if (SCHttp2TxGetHeaders(txv, flow_flags, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -592,7 +592,7 @@ void DetectHttpRequestHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, rs_http2_tx_get_header, 2);
+            HTTP2StateOpen, SCHttp2TxGetHeader, 2);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
@@ -625,7 +625,7 @@ void DetectHttpResponseHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, rs_http2_tx_get_header, 2);
+            HTTP2StateOpen, SCHttp2TxGetHeader, 2);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
