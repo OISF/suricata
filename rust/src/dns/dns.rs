@@ -940,13 +940,13 @@ extern "C" fn tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     // This is a stateless parser, just the existence of a transaction
     // means its complete.
-    SCLogDebug!("rs_dns_tx_get_alstate_progress");
+    SCLogDebug!("tx_get_alstate_progress");
     return 1;
 }
 
 unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DNSState);
-    SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
+    SCLogDebug!("state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
@@ -979,7 +979,7 @@ unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut Ap
     return &mut tx.tx_data;
 }
 
-export_state_data_get!(rs_dns_get_state_data, DNSState);
+export_state_data_get!(dns_get_state_data, DNSState);
 
 /// Get the DNS query name at index i.
 #[no_mangle]
@@ -1248,7 +1248,7 @@ pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: state_get_tx_data,
-        get_state_data: rs_dns_get_state_data,
+        get_state_data: dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: 0,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
@@ -1295,7 +1295,7 @@ pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
         get_tx_data: state_get_tx_data,
-        get_state_data: rs_dns_get_state_data,
+        get_state_data: dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(DnsFrameType::ffi_id_from_name),
