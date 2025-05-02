@@ -38,7 +38,6 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-smtp.h"
 #include "util-lua-dnp3.h"
@@ -121,7 +120,6 @@ int LuaRegisterExtensions(lua_State *lua_state)
     lua_setglobal(lua_state, "SCByteVarGet");
 
     LuaRegisterFunctions(lua_state);
-    LuaRegisterJa3Functions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
     LuaRegisterSmtpFunctions(lua_state);
     return 0;
