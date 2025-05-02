@@ -28,7 +28,6 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
-                bindgen \
                 cbindgen \
                 clang-devel \
                 diffutils \
@@ -62,6 +61,7 @@ jobs:
                 zlib-devel
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cargo install bindgen-cli --version 0.66.0
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
