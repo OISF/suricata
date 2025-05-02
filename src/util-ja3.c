@@ -267,7 +267,7 @@ InspectionBuffer *Ja3DetectGetHash(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (SCQuicTxGetJa3(txv, &b, &b_len) != 1)
+        if (!SCQuicTxGetJa3(txv, STREAM_TOSERVER | STREAM_TOCLIENT, &b, &b_len))
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -292,7 +292,7 @@ InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (SCQuicTxGetJa3(txv, &b, &b_len) != 1)
+        if (!SCQuicTxGetJa3(txv, STREAM_TOSERVER | STREAM_TOCLIENT, &b, &b_len))
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
