@@ -78,7 +78,7 @@ static InspectionBuffer *GetKeyExchangeData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_ike_state_get_key_exchange(txv, &b, &b_len) != 1)
+        if (SCIkeStateGetKeyExchange(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

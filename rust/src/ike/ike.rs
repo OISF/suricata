@@ -115,7 +115,6 @@ pub struct IKETransaction {
     /// errors seen during exchange
     pub errors: u32,
 
-    logged: LoggerFlags,
     pub tx_data: applayer::AppLayerTxData,
 }
 
@@ -280,8 +279,7 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> bool {
 // C exports.
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_probing_parser(
+unsafe extern "C" fn ike_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len < 28 {
@@ -298,8 +296,7 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
     return ALPROTO_FAILED;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ike_state_new(
+extern "C" fn ike_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
@@ -307,20 +304,17 @@ pub extern "C" fn rs_ike_state_new(
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
+unsafe extern "C" fn ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(Box::from_raw(state as *mut IKEState));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_request(
+unsafe extern "C" fn ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -328,8 +322,7 @@ pub unsafe extern "C" fn rs_ike_parse_request(
     return state.handle_input(stream_slice.as_slice(), Direction::ToServer);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_response(
+unsafe extern "C" fn ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -337,8 +330,7 @@ pub unsafe extern "C" fn rs_ike_parse_response(
     return state.handle_input(stream_slice.as_slice(), Direction::ToClient);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx(
+unsafe extern "C" fn ike_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, IKEState);
@@ -352,39 +344,15 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
-    // This parser uses 1 to signal transaction completion status.
-    return 1;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ike_tx_get_alstate_progress(
+extern "C" fn ike_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return 1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_get_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
-) -> u32 {
-    let tx = cast_pointer!(tx, IKETransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_set_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
-) {
-    let tx = cast_pointer!(tx, IKETransaction);
-    tx.logged.set(logged);
 }
 
 static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
@@ -403,20 +371,20 @@ pub unsafe extern "C" fn rs_ike_register_parser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: core::IPPROTO_UDP,
-        probe_ts: Some(rs_ike_probing_parser),
-        probe_tc: Some(rs_ike_probing_parser),
+        probe_ts: Some(ike_probing_parser),
+        probe_tc: Some(ike_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_ike_state_new,
-        state_free: rs_ike_state_free,
-        tx_free: rs_ike_state_tx_free,
-        parse_ts: rs_ike_parse_request,
-        parse_tc: rs_ike_parse_response,
-        get_tx_count: rs_ike_state_get_tx_count,
-        get_tx: rs_ike_state_get_tx,
+        state_new: ike_state_new,
+        state_free: ike_state_free,
+        tx_free: ike_state_tx_free,
+        parse_ts: ike_parse_request,
+        parse_tc: ike_parse_response,
+        get_tx_count: ike_state_get_tx_count,
+        get_tx: ike_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_ike_tx_get_alstate_progress,
+        tx_get_progress: ike_tx_get_alstate_progress,
         get_eventinfo: Some(IkeEvent::get_event_info),
         get_eventinfo_byid: Some(IkeEvent::get_event_info_by_id),
         localstorage_new: None,
