@@ -25,7 +25,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_exch_type(tx: &IKETransaction, exch_type: *mut u8) -> u8 {
+pub extern "C" fn SCIkeStateGetExchType(tx: &IKETransaction, exch_type: *mut u8) -> u8 {
     debug_validate_bug_on!(exch_type.is_null());
 
     if tx.ike_version == 1 {
@@ -46,7 +46,7 @@ pub extern "C" fn rs_ike_state_get_exch_type(tx: &IKETransaction, exch_type: *mu
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_spi_initiator(
+pub extern "C" fn SCIkeStateGetSpiInitiator(
     tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -59,7 +59,7 @@ pub extern "C" fn rs_ike_state_get_spi_initiator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_spi_responder(
+pub extern "C" fn SCIkeStateGetSpiResponder(
     tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -72,7 +72,7 @@ pub extern "C" fn rs_ike_state_get_spi_responder(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_nonce(
+pub extern "C" fn SCIkeStateGetNonce(
     tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -95,7 +95,7 @@ pub extern "C" fn rs_ike_state_get_nonce(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_key_exchange(
+pub extern "C" fn SCIkeStateGetKeyExchange(
     tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -118,7 +118,7 @@ pub extern "C" fn rs_ike_state_get_key_exchange(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_get_vendor(
+pub unsafe extern "C" fn SCIkeTxGetVendor(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buf: *mut *const u8,
     len: *mut u32,
 ) -> bool {
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn rs_ike_tx_get_vendor(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_sa_attribute(
+pub extern "C" fn SCIkeStateGetSaAttribute(
     tx: &IKETransaction, sa_type: *const std::os::raw::c_char, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());
@@ -207,7 +207,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
+pub unsafe extern "C" fn SCIkeStateGetKeyExchangePayloadLength(
     tx: &IKETransaction, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_nonce_payload_length(
+pub unsafe extern "C" fn SCIkeStateGetNoncePayloadLength(
     tx: &IKETransaction, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());

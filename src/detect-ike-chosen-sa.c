@@ -105,7 +105,7 @@ static int DetectIkeChosenSaMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8
     const DetectIkeChosenSaData *dd = (const DetectIkeChosenSaData *)ctx;
 
     uint32_t value;
-    if (!rs_ike_state_get_sa_attribute(txv, dd->sa_type, &value))
+    if (!SCIkeStateGetSaAttribute(txv, dd->sa_type, &value))
         SCReturnInt(0);
     if (value == dd->sa_value)
         SCReturnInt(1);
