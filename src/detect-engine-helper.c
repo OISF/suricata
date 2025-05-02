@@ -166,13 +166,3 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
 
     return transform_id;
 }
-
-const uint8_t *InspectionBufferPtr(InspectionBuffer *buf)
-{
-    return buf->inspect;
-}
-
-uint32_t InspectionBufferLength(InspectionBuffer *buf)
-{
-    return buf->inspect_len;
-}

@@ -15,14 +15,11 @@
  * 02110-1301, USA.
  */
 
-use super::{
-    InspectionBufferCheckAndExpand, InspectionBufferLength, InspectionBufferPtr,
-    InspectionBufferTruncate,
-};
 use crate::detect::SIGMATCH_QUOTES_MANDATORY;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
+    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
+    SCTransformTableElmt, Signature,
 };
 
 use std::ffi::CStr;
@@ -87,14 +84,14 @@ fn xor_transform_do(input: &[u8], output: &mut [u8], ctx: &DetectTransformXorDat
 unsafe extern "C" fn xor_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
 ) {
-    let input = InspectionBufferPtr(buffer);
-    let input_len = InspectionBufferLength(buffer);
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
     if input.is_null() || input_len == 0 {
         return;
     }
     let input = build_slice!(input, input_len as usize);
 
-    let output = InspectionBufferCheckAndExpand(buffer, input_len);
+    let output = SCInspectionBufferCheckAndExpand(buffer, input_len);
     if output.is_null() {
         // allocation failure
         return;
@@ -104,7 +101,7 @@ unsafe extern "C" fn xor_transform(
     let ctx = cast_pointer!(ctx, DetectTransformXorData);
     xor_transform_do(input, output, ctx);
 
-    InspectionBufferTruncate(buffer, input_len);
+    SCInspectionBufferTruncate(buffer, input_len);
 }
 
 unsafe extern "C" fn xor_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {

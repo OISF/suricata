@@ -226,11 +226,6 @@ pub struct DetectEngineThreadCtx_ {
     _unused: [u8; 0],
 }
 pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct InspectionBuffer {
-    _unused: [u8; 0],
-}
 #[doc = " App-layer light version of SigTableElmt"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -307,6 +302,35 @@ extern "C" {
     pub fn SCDetectHelperTransformRegister(
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InspectionBuffer {
+    #[doc = "< active pointer, points either to ::buf or ::orig"]
+    pub inspect: *const u8,
+    pub inspect_offset: u64,
+    #[doc = "< size of active data. See to ::len or ::orig_len"]
+    pub inspect_len: u32,
+    #[doc = "< is initialized. ::inspect might be NULL if transform lead to 0 size"]
+    pub initialized: bool,
+    #[doc = "< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection"]
+    pub flags: u8,
+    pub multi: bool,
+    #[doc = "< how much is in use"]
+    pub len: u32,
+    pub buf: *mut u8,
+    #[doc = "< size of the memory allocation"]
+    pub size: u32,
+    pub orig_len: u32,
+    pub orig: *const u8,
+}
+extern "C" {
+    pub fn SCInspectionBufferCheckAndExpand(
+        buffer: *mut InspectionBuffer, min_size: u32,
+    ) -> *mut u8;
+}
+extern "C" {
+    pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
 }
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
