@@ -52,6 +52,7 @@ uint32_t dataset_max_total_hashsize = 16777216;
 uint32_t dataset_used_hashsize = 0;
 
 int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep);
+static void DatasetUpdateHashsize(const char *name, uint32_t hash_size);
 
 static inline void DatasetUnlockData(THashData *d)
 {
@@ -75,10 +76,27 @@ enum DatasetTypes DatasetGetTypeFromString(const char *s)
     return DATASET_TYPE_NOTSET;
 }
 
-void DatasetAppendSet(Dataset *set)
+int DatasetAppendSet(Dataset *set)
 {
+
+    if (set->hash == NULL) {
+        return -1;
+    }
+
+    if (SC_ATOMIC_GET(set->hash->memcap_reached)) {
+        SCLogError("dataset too large for set memcap");
+        return -1;
+    }
+
+    SCLogDebug(
+            "set %p/%s type %u save %s load %s", set, set->name, set->type, set->save, set->load);
+
     set->next = sets;
     sets = set;
+
+    /* hash size accounting */
+    DatasetUpdateHashsize(set->name, set->hash->config.hash_size);
+    return 0;
 }
 
 void DatasetLock(void)
@@ -341,24 +359,31 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
     }
 }
 
-Dataset *DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save,
-        const char *load, uint64_t *memcap, uint32_t *hashsize)
+/**
+ * \return -1 on error
+ * \return 0 on successful creation
+ * \return 1 if the dataset already exists
+ *
+ * dataset global lock is held after return if set is found or created
+ */
+int DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
     if (strlen(name) > DATASET_NAME_MAX_LEN) {
-        return NULL;
+        return -1;
     }
 
-    SCMutexLock(&sets_lock);
+    DatasetLock();
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
             SCLogError("dataset %s already "
                        "exists and is of type %u",
                     set->name, set->type);
-            SCMutexUnlock(&sets_lock);
-            return NULL;
+            DatasetUnlock();
+            return -1;
         }
 
         if ((save == NULL || strlen(save) == 0) &&
@@ -369,24 +394,24 @@ Dataset *DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char
             if ((save == NULL && strlen(set->save) > 0) ||
                     (save != NULL && strcmp(set->save, save) != 0)) {
                 SCLogError("dataset %s save mismatch: %s != %s", set->name, set->save, save);
-                SCMutexUnlock(&sets_lock);
-                return NULL;
+                DatasetUnlock();
+                return -1;
             }
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
                 SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
-                SCMutexUnlock(&sets_lock);
-                return NULL;
+                DatasetUnlock();
+                return -1;
             }
         }
 
-        SCMutexUnlock(&sets_lock);
-        return set;
-    } else {
-        if (type == DATASET_TYPE_NOTSET) {
-            SCLogError("dataset %s not defined", name);
-            goto out_err;
-        }
+        *ret_set = set;
+        return 1;
+    }
+
+    if (type == DATASET_TYPE_NOTSET) {
+        SCLogError("dataset %s not defined", name);
+        goto out_err;
     }
 
     DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
@@ -416,7 +441,9 @@ Dataset *DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char
         strlcpy(set->load, load, sizeof(set->load));
         SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
     }
-    return set;
+
+    *ret_set = set;
+    return 0;
 out_err:
     if (set) {
         if (set->hash) {
@@ -424,17 +451,24 @@ out_err:
         }
         SCFree(set);
     }
-    SCMutexUnlock(&sets_lock);
-    return NULL;
+    DatasetUnlock();
+    return -1;
 }
 
 Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t memcap, uint32_t hashsize)
 {
-    Dataset *set = DatasetCreateOrGet(name, type, save, load, &memcap, &hashsize);
-    if (set == NULL) {
+    Dataset *set = NULL;
+
+    int ret = DatasetCreateOrGet(name, type, save, load, &memcap, &hashsize, &set);
+    if (ret < 0) {
         SCLogError("dataset %s creation failed", name);
         return NULL;
+    }
+    if (ret == 1) {
+        SCLogDebug("dataset %s already exists", name);
+        DatasetUnlock();
+        return set;
     }
 
     char cnf_name[128];
@@ -482,26 +516,13 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
                 goto out_err;
             break;
     }
-    if (set->hash == NULL) {
+
+    if (DatasetAppendSet(set) < 0) {
+        SCLogError("dataset %s append failed", name);
         goto out_err;
     }
 
-    if (SC_ATOMIC_GET(set->hash->memcap_reached)) {
-        SCLogError("dataset too large for set memcap");
-        goto out_err;
-    }
-
-    SCLogDebug("set %p/%s type %u save %s load %s",
-            set, set->name, set->type, set->save, set->load);
-
-    set->next = sets;
-    sets = set;
-
-    /* hash size accounting */
-    DEBUG_VALIDATE_BUG_ON(set->hash->config.hash_size != hashsize);
-    DatasetUpdateHashsize(set->name, set->hash->config.hash_size);
-
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     return set;
 out_err:
     if (set) {
@@ -510,7 +531,7 @@ out_err:
         }
         SCFree(set);
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     return NULL;
 }
 
