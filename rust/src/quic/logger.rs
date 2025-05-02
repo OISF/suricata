@@ -154,7 +154,7 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_to_json(
+pub unsafe extern "C" fn SCQuicLogJson(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, QuicTransaction);
