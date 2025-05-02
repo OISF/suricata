@@ -25,7 +25,7 @@
 #define SURICATA_DETECT_DATASET_H
 
 #include "datasets.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct DetectDatasetData_ {
     Dataset *set;
