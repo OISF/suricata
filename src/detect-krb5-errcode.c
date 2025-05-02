@@ -103,7 +103,7 @@ static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *det_ctx,
 
     SCEnter();
 
-    ret = rs_krb5_tx_get_errcode(txv, &err_code);
+    ret = SCKrb5TxGetErrorCode(txv, &err_code);
     if (ret != 0)
         SCReturnInt(0);
 

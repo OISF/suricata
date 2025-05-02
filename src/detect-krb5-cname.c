@@ -60,7 +60,7 @@ void DetectKrb5CNameRegister(void)
     sigmatch_table[DETECT_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
 
     DetectAppLayerMultiRegister(
-            "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 1, rs_krb5_tx_get_cname, 2);
+            "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 1, SCKrb5TxGetCname, 2);
 
     DetectBufferTypeSetDescriptionByName("krb5_cname",
             "Kerberos 5 ticket client name");

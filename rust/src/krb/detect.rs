@@ -33,14 +33,14 @@ use std::ffi::CStr;
 use std::os::raw::c_void;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx: &KRB5Transaction, ptr: *mut u32) {
+pub unsafe extern "C" fn SCKrb5TxGetMsgType(tx: &KRB5Transaction, ptr: *mut u32) {
     *ptr = tx.msg_type.0;
 }
 
 /// Get error code, if present in transaction
 /// Return 0 if error code was filled, else 1
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &KRB5Transaction, ptr: *mut i32) -> u32 {
+pub unsafe extern "C" fn SCKrb5TxGetErrorCode(tx: &KRB5Transaction, ptr: *mut i32) -> u32 {
     match tx.error_code {
         Some(ref e) => {
             *ptr = e.0;
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx: &KRB5Transaction, ptr: *mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_cname(
+pub unsafe extern "C" fn SCKrb5TxGetCname(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn rs_krb5_tx_get_cname(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_tx_get_sname(
+pub unsafe extern "C" fn SCKrb5TxGetSname(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -218,7 +218,7 @@ pub fn detect_parse_encryption(i: &str) -> IResult<&str, DetectKrb5TicketEncrypt
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_detect_encryption_parse(
+pub unsafe extern "C" fn SCKrb5DetectEncryptionParse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectKrb5TicketEncryptionData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn rs_krb5_detect_encryption_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_detect_encryption_match(
+pub unsafe extern "C" fn SCKrb5DetectEncryptionMatch(
     tx: &KRB5Transaction, ctx: &DetectKrb5TicketEncryptionData,
 ) -> std::os::raw::c_int {
     if let Some(x) = tx.ticket_etype {
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn rs_krb5_detect_encryption_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_krb5_detect_encryption_free(ctx: &mut DetectKrb5TicketEncryptionData) {
+pub unsafe extern "C" fn SCKrb5DetectEncryptionFree(ctx: &mut DetectKrb5TicketEncryptionData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
