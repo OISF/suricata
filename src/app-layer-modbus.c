@@ -48,7 +48,7 @@ void ModbusParserRegisterTests(void);
  */
 void RegisterModbusParsers(void)
 {
-    rs_modbus_register_parser();
+    SCRegisterModbusParser();
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_MODBUS, ModbusParserRegisterTests);
 #endif
@@ -292,18 +292,18 @@ static int ModbusParserTest01(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 1);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_address(&request) == 0x7890);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_quantity(&request) == 19);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 1);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestAddress(&request) == 0x7890);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestQuantity(&request) == 19);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsRsp,
                             sizeof(readCoilsRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -337,14 +337,14 @@ static int ModbusParserTest02(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 16);
-    FAIL_IF_NOT(rs_modbus_message_get_write_multreq_address(&request) == 0x01);
-    FAIL_IF_NOT(rs_modbus_message_get_write_multreq_quantity(&request) == 2);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 16);
+    FAIL_IF_NOT(SCModbusMessageGetWriteMultreqAddress(&request) == 0x01);
+    FAIL_IF_NOT(SCModbusMessageGetWriteMultreqQuantity(&request) == 2);
 
     size_t data_len;
-    const uint8_t *data = rs_modbus_message_get_write_multreq_data(&request, &data_len);
+    const uint8_t *data = SCModbusMessageGetWriteMultreqData(&request, &data_len);
     FAIL_IF_NOT(data_len == 4);
     FAIL_IF_NOT(data[0] == 0x00);
     FAIL_IF_NOT(data[1] == 0x0A);
@@ -356,7 +356,7 @@ static int ModbusParserTest02(void) {
                             sizeof(writeMultipleRegistersRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -418,17 +418,17 @@ static int ModbusParserTest03(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 23);
-    FAIL_IF_NOT(rs_modbus_message_get_rw_multreq_read_address(&request) == 0x03);
-    FAIL_IF_NOT(rs_modbus_message_get_rw_multreq_read_quantity(&request) == 6);
-    FAIL_IF_NOT(rs_modbus_message_get_rw_multreq_write_address(&request) == 0x0E);
-    FAIL_IF_NOT(rs_modbus_message_get_rw_multreq_write_quantity(&request) == 3);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 23);
+    FAIL_IF_NOT(SCModbusMessageGetRwMultreqReadAddress(&request) == 0x03);
+    FAIL_IF_NOT(SCModbusMessageGetRwMultreqReadQuantity(&request) == 6);
+    FAIL_IF_NOT(SCModbusMessageGetRwMultreqWriteAddress(&request) == 0x0E);
+    FAIL_IF_NOT(SCModbusMessageGetRwMultreqWriteQuantity(&request) == 3);
 
     size_t data_len;
-    uint8_t const *data = rs_modbus_message_get_rw_multreq_write_data(&request, &data_len);
+    uint8_t const *data = SCModbusMessageGetRwMultreqWriteData(&request, &data_len);
     FAIL_IF_NOT(data_len == 6);
     FAIL_IF_NOT(data[0] == 0x12);
     FAIL_IF_NOT(data[1] == 0x34);
@@ -442,7 +442,7 @@ static int ModbusParserTest03(void) {
                             sizeof(readWriteMultipleRegistersRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -488,11 +488,11 @@ static int ModbusParserTest04(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 8);
-    FAIL_IF_NOT(rs_modbus_message_get_subfunction(&request) == 4);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 8);
+    FAIL_IF_NOT(SCModbusMessageGetSubfunction(&request) == 4);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -767,19 +767,19 @@ static int ModbusParserTest08(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 1);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_address(&request) == 0x7890);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_quantity(&request) == 19);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 1);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestAddress(&request) == 0x7890);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestQuantity(&request) == 19);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsErrorRsp,
                             sizeof(readCoilsErrorRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -831,12 +831,12 @@ static int ModbusParserTest09(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 1);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_address(&request) == 0x7890);
-    FAIL_IF_NOT(rs_modbus_message_get_read_request_quantity(&request) == 19);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 1);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestAddress(&request) == 0x7890);
+    FAIL_IF_NOT(SCModbusMessageGetReadRequestQuantity(&request) == 19);
 
     input_len = sizeof(readCoilsRsp);
     part2_len = 10;
@@ -850,7 +850,7 @@ static int ModbusParserTest09(void) {
                             STREAM_TOCLIENT, input, input_len);
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -892,17 +892,17 @@ static int ModbusParserTest10(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 2);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 2);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 1);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 1);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 16);
-    FAIL_IF_NOT(rs_modbus_message_get_write_multreq_address(&request) == 0x01);
-    FAIL_IF_NOT(rs_modbus_message_get_write_multreq_quantity(&request) == 2);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 16);
+    FAIL_IF_NOT(SCModbusMessageGetWriteMultreqAddress(&request) == 0x01);
+    FAIL_IF_NOT(SCModbusMessageGetWriteMultreqQuantity(&request) == 2);
 
     size_t data_len;
-    uint8_t const *data = rs_modbus_message_get_write_multreq_data(&request, &data_len);
+    uint8_t const *data = SCModbusMessageGetWriteMultreqData(&request, &data_len);
     FAIL_IF_NOT(data_len == 4);
     FAIL_IF_NOT(data[0] == 0x00);
     FAIL_IF_NOT(data[1] == 0x0A);
@@ -1104,19 +1104,19 @@ static int ModbusParserTest13(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 22);
-    FAIL_IF_NOT(rs_modbus_message_get_and_mask(&request) == 0x00F2);
-    FAIL_IF_NOT(rs_modbus_message_get_or_mask(&request) == 0x0025);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 22);
+    FAIL_IF_NOT(SCModbusMessageGetAndMask(&request) == 0x00F2);
+    FAIL_IF_NOT(SCModbusMessageGetOrMask(&request) == 0x0025);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, maskWriteRegisterRsp,
                             sizeof(maskWriteRegisterRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -1150,19 +1150,19 @@ static int ModbusParserTest14(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 6);
-    FAIL_IF_NOT(rs_modbus_message_get_write_address(&request) == 0x0001);
-    FAIL_IF_NOT(rs_modbus_message_get_write_data(&request) == 0x0003);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 6);
+    FAIL_IF_NOT(SCModbusMessageGetWriteAddress(&request) == 0x0001);
+    FAIL_IF_NOT(SCModbusMessageGetWriteData(&request) == 0x0003);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeSingleRegisterRsp,
                             sizeof(writeSingleRegisterRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -1223,10 +1223,10 @@ static int ModbusParserTest15(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 22);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 22);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -1238,11 +1238,11 @@ static int ModbusParserTest15(void) {
                             sizeof(maskWriteRegisterRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
-    ModbusMessage response = rs_modbus_state_get_tx_response(modbus_state, 0);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
+    ModbusMessage response = SCModbusStateGetTxResponse(modbus_state, 0);
     FAIL_IF_NULL(response._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&response) == 22);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&response) == 22);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -1311,12 +1311,12 @@ static int ModbusParserTest16(void) {
     ModbusState *modbus_state = f.alstate;
     FAIL_IF_NULL(modbus_state);
 
-    ModbusMessage request = rs_modbus_state_get_tx_request(modbus_state, 0);
+    ModbusMessage request = SCModbusStateGetTxRequest(modbus_state, 0);
     FAIL_IF_NULL(request._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&request) == 6);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&request) == 6);
     size_t data_len;
-    const uint8_t *data = rs_modbus_message_get_bytevec_data(&request, &data_len);
+    const uint8_t *data = SCModbusMessageGetBytevecData(&request, &data_len);
     FAIL_IF_NOT(data_len == 2);
     FAIL_IF_NOT(data[0] == 0x00);
     FAIL_IF_NOT(data[1] == 0x01);
@@ -1331,12 +1331,12 @@ static int ModbusParserTest16(void) {
                             sizeof(writeSingleRegisterRsp));
     FAIL_IF_NOT(r == 0);
 
-    FAIL_IF_NOT(rs_modbus_state_get_tx_count(modbus_state) == 1);
-    ModbusMessage response = rs_modbus_state_get_tx_response(modbus_state, 0);
+    FAIL_IF_NOT(SCModbusStateGetTxCount(modbus_state) == 1);
+    ModbusMessage response = SCModbusStateGetTxResponse(modbus_state, 0);
     FAIL_IF_NULL(response._0);
 
-    FAIL_IF_NOT(rs_modbus_message_get_function(&response) == 6);
-    FAIL_IF_NOT(rs_modbus_message_get_write_address(&response) == 0x0001);
+    FAIL_IF_NOT(SCModbusMessageGetFunction(&response) == 6);
+    FAIL_IF_NOT(SCModbusMessageGetWriteAddress(&response) == 0x0001);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
