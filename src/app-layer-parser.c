@@ -1805,7 +1805,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRegisterPop3Parser();
     SCRegisterRdpParser();
     RegisterHTTP2Parsers();
-    rs_telnet_register_parser();
+    SCRegisterTelnetParser();
     RegisterIMAPParsers();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {

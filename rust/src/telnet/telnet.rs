@@ -378,8 +378,7 @@ fn probe(input: &[u8]) -> IResult<&[u8], ()> {
 // C exports.
 
 /// C entry point for a probing parser.
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_probing_parser(
+unsafe extern "C" fn telnet_probing_parser(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -397,20 +396,17 @@ pub unsafe extern "C" fn rs_telnet_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_telnet_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn telnet_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = TelnetState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut std::os::raw::c_void;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_free(state: *mut std::os::raw::c_void) {
+unsafe extern "C" fn telnet_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut TelnetState));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_tx_free(
+unsafe extern "C" fn telnet_state_tx_free(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) {
@@ -418,8 +414,7 @@ pub unsafe extern "C" fn rs_telnet_state_tx_free(
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_parse_request(
+unsafe extern "C" fn telnet_parse_request(
     flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -446,8 +441,7 @@ pub unsafe extern "C" fn rs_telnet_parse_request(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_parse_response(
+unsafe extern "C" fn telnet_parse_response(
     flow: *const Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
@@ -468,8 +462,7 @@ pub unsafe extern "C" fn rs_telnet_parse_response(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_get_tx(
+unsafe extern "C" fn telnet_state_get_tx(
     state: *mut std::os::raw::c_void,
     tx_id: u64,
 ) -> *mut std::os::raw::c_void {
@@ -484,16 +477,14 @@ pub unsafe extern "C" fn rs_telnet_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_state_get_tx_count(
+unsafe extern "C" fn telnet_state_get_tx_count(
     state: *mut std::os::raw::c_void,
 ) -> u64 {
     let state = cast_pointer!(state, TelnetState);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_telnet_tx_get_alstate_progress(
+unsafe extern "C" fn telnet_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
@@ -509,26 +500,26 @@ export_state_data_get!(telnet_get_state_data, TelnetState);
 const PARSER_NAME: &[u8] = b"telnet\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_telnet_register_parser() {
+pub unsafe extern "C" fn SCRegisterTelnetParser() {
     let default_port = CString::new("[23]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_telnet_probing_parser),
-        probe_tc: Some(rs_telnet_probing_parser),
+        probe_ts: Some(telnet_probing_parser),
+        probe_tc: Some(telnet_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_telnet_state_new,
-        state_free: rs_telnet_state_free,
-        tx_free: rs_telnet_state_tx_free,
-        parse_ts: rs_telnet_parse_request,
-        parse_tc: rs_telnet_parse_response,
-        get_tx_count: rs_telnet_state_get_tx_count,
-        get_tx: rs_telnet_state_get_tx,
+        state_new: telnet_state_new,
+        state_free: telnet_state_free,
+        tx_free: telnet_state_tx_free,
+        parse_ts: telnet_parse_request,
+        parse_tc: telnet_parse_response,
+        get_tx_count: telnet_state_get_tx_count,
+        get_tx: telnet_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_telnet_tx_get_alstate_progress,
+        tx_get_progress: telnet_tx_get_alstate_progress,
         get_eventinfo: Some(TelnetEvent::get_event_info),
         get_eventinfo_byid : Some(TelnetEvent::get_event_info_by_id),
         localstorage_new: None,
