@@ -25,7 +25,7 @@
 #define SURICATA_DATASETS_STRING_H
 
 #include "datasets-reputation.h"
-#include "datajson.h"
+#include "datasets-context-json.h"
 
 typedef struct StringType {
     uint32_t len;
