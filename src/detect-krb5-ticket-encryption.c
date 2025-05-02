@@ -27,7 +27,7 @@ static int g_krb5_ticket_encryption_list_id = 0;
 
 static void DetectKrb5TicketEncryptionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    rs_krb5_detect_encryption_free(ptr);
+    SCKrb5DetectEncryptionFree(ptr);
 }
 
 static int DetectKrb5TicketEncryptionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
@@ -37,7 +37,7 @@ static int DetectKrb5TicketEncryptionMatch(DetectEngineThreadCtx *det_ctx, Flow 
 
     SCEnter();
 
-    SCReturnInt(rs_krb5_detect_encryption_match(txv, dd));
+    SCReturnInt(SCKrb5DetectEncryptionMatch(txv, dd));
 }
 
 static int DetectKrb5TicketEncryptionSetup(
@@ -48,7 +48,7 @@ static int DetectKrb5TicketEncryptionSetup(
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
-    krb5d = rs_krb5_detect_encryption_parse(krb5str);
+    krb5d = SCKrb5DetectEncryptionParse(krb5str);
     if (krb5d == NULL)
         goto error;
 

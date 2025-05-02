@@ -102,7 +102,7 @@ static int DetectKrb5MsgTypeMatch (DetectEngineThreadCtx *det_ctx,
 
     SCEnter();
 
-    rs_krb5_tx_get_msgtype(txv, &msg_type);
+    SCKrb5TxGetMsgType(txv, &msg_type);
 
     if (dd->msg_type == msg_type)
         SCReturnInt(1);
