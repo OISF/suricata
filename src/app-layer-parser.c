@@ -1793,7 +1793,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRegisterKrb5Parser();
     SCRegisterDhcpParser();
     SCRegisterSnmpParser();
-    rs_sip_register_parser();
+    SCRegisterSipParser();
     rs_quic_register_parser();
     rs_websocket_register_parser();
     SCRegisterLdapTcpParser();

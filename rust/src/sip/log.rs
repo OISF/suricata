@@ -57,6 +57,6 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_log_json(tx: &SIPTransaction, js: &mut JsonBuilder) -> bool {
+pub extern "C" fn SCSipLogJson(tx: &SIPTransaction, js: &mut JsonBuilder) -> bool {
     log(tx, js).is_ok()
 }
