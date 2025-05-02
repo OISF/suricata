@@ -341,8 +341,8 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
     }
 }
 
-Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
-        uint64_t memcap, uint32_t hashsize)
+Dataset *DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save,
+        const char *load, uint64_t *memcap, uint32_t *hashsize)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
@@ -390,11 +390,14 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     }
 
     DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
-    if (hashsize == 0) {
-        hashsize = default_hashsize;
+    if (*hashsize == 0) {
+        *hashsize = default_hashsize;
+    }
+    if (*memcap == 0) {
+        *memcap = default_memcap;
     }
 
-    if (!DatasetCheckHashsize(name, hashsize)) {
+    if (!DatasetCheckHashsize(name, *hashsize)) {
         goto out_err;
     }
 
@@ -413,15 +416,34 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         strlcpy(set->load, load, sizeof(set->load));
         SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
     }
+    return set;
+out_err:
+    if (set) {
+        if (set->hash) {
+            THashShutdown(set->hash);
+        }
+        SCFree(set);
+    }
+    SCMutexUnlock(&sets_lock);
+    return NULL;
+}
+
+Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t memcap, uint32_t hashsize)
+{
+    Dataset *set = DatasetCreateOrGet(name, type, save, load, &memcap, &hashsize);
+    if (set == NULL) {
+        SCLogError("dataset %s creation failed", name);
+        return NULL;
+    }
 
     char cnf_name[128];
     snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
-
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
                     Md5StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
@@ -430,7 +452,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
                     StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -439,7 +461,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet, Sha256StrFree,
                     Sha256StrHash, Sha256StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
@@ -448,7 +470,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_IPV4:
             set->hash = THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash,
                     IPv4Compare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv4(set) < 0)
@@ -457,7 +479,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         case DATASET_TYPE_IPV6:
             set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash,
                     IPv6Compare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv6(set) < 0)
