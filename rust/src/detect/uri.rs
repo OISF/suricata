@@ -58,7 +58,7 @@ pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_urilen_parse(
+pub unsafe extern "C" fn SCDetectUrilenParse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUrilenData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn rs_detect_urilen_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_urilen_free(ctx: &mut DetectUrilenData) {
+pub unsafe extern "C" fn SCDetectUrilenFree(ctx: &mut DetectUrilenData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
