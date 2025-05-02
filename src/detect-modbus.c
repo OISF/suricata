@@ -66,7 +66,7 @@ static int g_modbus_buffer_id = 0;
 static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
     SCEnter();
     if (ptr != NULL) {
-        rs_modbus_free(ptr);
+        SCModbusFree(ptr);
     }
     SCReturn;
 }
@@ -89,7 +89,7 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
         return -1;
 
-    if ((modbus = rs_modbus_parse(str)) == NULL) {
+    if ((modbus = SCModbusParse(str)) == NULL) {
         SCLogError("invalid modbus option");
         goto error;
     }
@@ -111,7 +111,7 @@ error:
 static int DetectModbusMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
         void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
-    return rs_modbus_inspect(txv, (void *)ctx);
+    return SCModbusInspect(txv, (void *)ctx);
 }
 
 /**
