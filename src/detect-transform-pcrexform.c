@@ -27,7 +27,7 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
+#include "detect-engine-buffer.h"
 #include "detect-transform-pcrexform.h"
 #include "detect-pcre.h"
 
@@ -125,7 +125,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
+    int r = SCDetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
         DetectTransformPcrexformFree(de_ctx, pxd);
     }
