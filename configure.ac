@@ -2152,7 +2152,7 @@ fi
     AC_PATH_PROG([BINDGEN], [bindgen], [no])
     if test "x$BINDGEN" != "xno"; then
       bindgen_version=$($BINDGEN --version 2>&1 | cut -d' ' -f2-)
-      min_bindgen_version="0.66.0"
+      min_bindgen_version="0.71.0"
       AS_VERSION_COMPARE([$bindgen_version], [$min_bindgen_version],
           [bindgen_ok="no"],
           [bindgen_ok="yes"],
