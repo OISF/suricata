@@ -21,7 +21,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_ua(
+pub unsafe extern "C" fn SCQuicTxGetUa(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ua) = &tx.ua {
@@ -36,7 +36,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_ua(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_sni(
+pub unsafe extern "C" fn SCQuicTxGetSni(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(sni) = &tx.sni {
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_sni(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_ja3(
+pub unsafe extern "C" fn SCQuicTxGetJa3(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ja3) = &tx.ja3 {
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_ja3(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_ja4(
+pub unsafe extern "C" fn SCQuicTxGetJa4(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ja4) = &tx.ja4 {
@@ -81,7 +81,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_ja4(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_version(
+pub unsafe extern "C" fn SCQuicTxGetVersion(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if tx.header.flags.is_long {
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_version(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
+pub unsafe extern "C" fn SCQuicTxGetCyuHash(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_cyu_string(
+pub unsafe extern "C" fn SCQuicTxGetCyuString(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {

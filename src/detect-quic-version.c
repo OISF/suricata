@@ -55,7 +55,7 @@ static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_quic_tx_get_version(txv, &b, &b_len) != 1)
+        if (SCQuicTxGetVersion(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

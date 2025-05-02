@@ -69,7 +69,7 @@ void DetectQuicCyuHashRegister(void)
 #endif
 
     DetectAppLayerMultiRegister(
-            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1, rs_quic_tx_get_cyu_hash, 2);
+            BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1, SCQuicTxGetCyuHash, 2);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
