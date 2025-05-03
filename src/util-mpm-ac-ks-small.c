@@ -25,6 +25,17 @@
  *
  */
 
+/* allow cppcheck to inspect this file directly */
+#ifdef CPPCHECK
+#ifndef FUNC_NAME
+#define SINDEX_INTERNAL(y, x, log_mult, width) ((1 << log_mult) * (x & ((1 << width) - 1)))
+#define STYPE                                  int16_t
+#define SLOAD(x)                               *(STYPE *restrict)(x)
+#define FUNC_NAME                              SCACTileSearchSmall256
+#define SINDEX(y, x)                           SINDEX_INTERNAL(y, x, 8, 15)
+#endif
+#endif
+
 /* Only included into util-mpm-ac-ks.c, which defines FUNC_NAME
  *
  */
