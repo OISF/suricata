@@ -107,6 +107,9 @@ static int LuaFlowvarSet(lua_State *L)
     }
 
     uint8_t *buf = SCMalloc(len + 1);
+    if (buf == NULL) {
+        return luaL_error(L, "alloc failure");
+    }
     memcpy(buf, value, len);
     buf[len] = '\0';
     FlowVarAddIdValue(f, *flowvar_id, buf, (uint16_t)len);
