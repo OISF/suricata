@@ -913,6 +913,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
 
     /* see if the bucket already has a flow */
     if (fb->head == NULL) {
+        SCLogNotice("%"PRIu64": empty fb, new flow", p->pcap_cnt);
         f = FlowGetNew(tv, fls, p);
         if (f == NULL) {
             FBLOCK_UNLOCK(fb);
@@ -948,6 +949,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
             FLOWLOCK_WRLOCK(f);
             const bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
             if (timedout) {
+                SCLogNotice("%"PRIu64": flow timed out", p->pcap_cnt);
                 next_f = f->next;
                 MoveToWorkQueue(tv, fls, fb, f, prev_f);
                 FLOWLOCK_UNLOCK(f);
@@ -955,6 +957,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
             } else if (our_flow) {
                 /* found a matching flow that is not timed out */
                 if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx))) {
+                    SCLogNotice("%"PRIu64": tcp reuse", p->pcap_cnt);
                     Flow *new_f = TcpReuseReplace(tv, fls, fb, f, hash, p);
                     if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
                         prev_f = new_f;
@@ -981,6 +984,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
 
 flow_removed:
         if (next_f == NULL) {
+            SCLogNotice("%"PRIu64": not found in fb, new flow", p->pcap_cnt);
             f = FlowGetNew(tv, fls, p);
             if (f == NULL) {
                 FBLOCK_UNLOCK(fb);

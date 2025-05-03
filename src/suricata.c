@@ -2284,16 +2284,25 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
      * threads and the packet threads */
     FlowDisableFlowManagerThread();
     /* disable capture */
+    SCLogNotice("calling TmThreadDisableReceiveThreads");
     TmThreadDisableReceiveThreads();
+    SCLogNotice("ran TmThreadDisableReceiveThreads");
     /* tell packet threads to enter flow timeout loop */
+    SCLogNotice("calling TmThreadDisablePacketThreads(THV_REQ_FLOW_LOOP, THV_FLOW_LOOP)");
     TmThreadDisablePacketThreads(THV_REQ_FLOW_LOOP, THV_FLOW_LOOP);
+    SCLogNotice("ran TmThreadDisablePacketThreads(THV_REQ_FLOW_LOOP, THV_FLOW_LOOP)");
     /* run cleanup on the flow hash */
+    SCLogNotice("calling FlowWorkToDoCleanup");
     FlowWorkToDoCleanup();
+    SCLogNotice("ran FlowWorkToDoCleanup");
     /* gracefully shut down packet threads */
+    SCLogNotice("calling TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE)");
     TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE);
+    SCLogNotice("ran TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE)");
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();
 
+    SCLogNotice("killing threads");
     /* kill the stats threads */
     TmThreadKillThreadsFamily(TVT_MGMT);
     TmThreadClearThreadsFamily(TVT_MGMT);
