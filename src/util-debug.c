@@ -1566,8 +1566,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
     SCLogDebug("sc_lc->log_format: %s", sc_log_config->log_format);
     SCLogDebug("SCLogSetOPFilter: filter: %s", sc_log_config->op_filter);
 
-    if (sc_lid != NULL)
-        SCFree(sc_lid);
+    SCFree(sc_lid);
 }
 
 /**
