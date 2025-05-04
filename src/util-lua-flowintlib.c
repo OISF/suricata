@@ -97,7 +97,7 @@ static int LuaFlowintValue(lua_State *L)
 
 static int LuaFlowintSet(lua_State *L)
 {
-    const int value = luaL_checkinteger(L, 2);
+    const int value = (int)luaL_checkinteger(L, 2);
     uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
