@@ -99,7 +99,7 @@ bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
             if (!reply_truncated && response->truncated) {
                 reply_truncated = true;
             }
-            int code_len = strlen((const char *)response->code);
+            uint32_t code_len = (uint32_t)strlen((const char *)response->code);
             if (code_len > 0) {
                 if (!is_cc_array_open) {
                     SCJbOpenArray(jb, "completion_code");
@@ -108,8 +108,8 @@ bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
                 SCJbAppendStringFromBytes(jb, (const uint8_t *)response->code, code_len);
             }
             if (response->length) {
-                SCJbAppendStringFromBytes(
-                        js_resplist, (const uint8_t *)response->response, response->length);
+                SCJbAppendStringFromBytes(js_resplist, (const uint8_t *)response->response,
+                        (uint32_t)response->length);
                 resp_cnt++;
             }
         }
