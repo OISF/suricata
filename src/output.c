@@ -924,8 +924,7 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_PGSQL, (EveJsonSimpleTxLogFunc)JsonPgsqlAddMetadata, NULL);
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_WEBSOCKET, (EveJsonSimpleTxLogFunc)SCWebSocketLoggerLog, NULL);
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_LDAP, (EveJsonSimpleTxLogFunc)rs_ldap_logger_log, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_LDAP, (EveJsonSimpleTxLogFunc)SCLdapLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, (EveJsonSimpleTxLogFunc)AlertJsonDoh2, NULL);
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)SCTemplateLoggerLog, NULL);

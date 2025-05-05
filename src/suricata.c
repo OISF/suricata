@@ -2879,7 +2879,7 @@ void SuricataMainLoop(void)
 
 int InitGlobal(void)
 {
-    rs_init(&suricata_context);
+    SCRustInit(&suricata_context);
 
     SC_ATOMIC_INIT(engine_stage);
 

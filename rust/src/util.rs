@@ -28,7 +28,7 @@ use nom7::multi::many1_count;
 use nom7::IResult;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_check_utf8(val: *const c_char) -> bool {
+pub unsafe extern "C" fn SCCheckUtf8(val: *const c_char) -> bool {
     CStr::from_ptr(val).to_str().is_ok()
 }
 

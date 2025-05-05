@@ -348,7 +348,7 @@ fn log_controls(controls: &Option<Vec<Control>>, js: &mut JsonBuilder) -> Result
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ldap_logger_log(
+pub unsafe extern "C" fn SCLdapLoggerLog(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, LdapTransaction);

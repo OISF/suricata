@@ -81,7 +81,7 @@ pub fn rust_string_to_c(s: String) -> *mut c_char {
 ///
 /// s must be allocated by rust, using `CString::new`
 #[no_mangle]
-pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
+pub unsafe extern "C" fn SCRustCStringFree(s: *mut c_char) {
     if s.is_null() {
         return;
     }
@@ -102,7 +102,7 @@ pub fn to_hex(input: &[u8]) -> String {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_to_hex(
+pub unsafe extern "C" fn SCToHex(
     output: *mut u8, out_len: usize, input: *const u8, in_len: usize,
 ) {
     if out_len < 2 * in_len + 1 {
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn rs_to_hex(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_to_hex_sep(
+pub unsafe extern "C" fn SCToHex_sep(
     output: *mut u8, out_len: usize, sep: u8, input: *const u8, in_len: usize,
 ) {
     if out_len < 3 * in_len {
