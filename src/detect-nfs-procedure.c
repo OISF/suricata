@@ -111,7 +111,7 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
     uint16_t i;
     for (i = 0; i < 256; i++) {
         uint32_t procedure;
-        if (rs_nfs_tx_get_procedures(txv, i, &procedure) == 1) {
+        if (SCNfsTxGetProcedures(txv, i, &procedure) == 1) {
             SCLogDebug("proc %u mode %u lo %u hi %u", procedure, dd->mode, dd->arg1, dd->arg2);
             if (DetectU32Match(procedure, dd))
                 SCReturnInt(1);
