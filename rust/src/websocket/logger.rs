@@ -48,7 +48,7 @@ fn log_websocket(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_websocket_logger_log(
+pub unsafe extern "C" fn SCWebSocketLoggerLog(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, WebSocketTransaction);
