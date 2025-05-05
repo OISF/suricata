@@ -763,8 +763,7 @@ impl RFBState {
 
 // C exports.
 
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_new(
+extern "C" fn rfb_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = RFBState::new();
@@ -772,20 +771,17 @@ pub extern "C" fn rs_rfb_state_new(
     return Box::into_raw(boxed) as *mut _;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_rfb_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn rfb_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut RFBState) });
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+unsafe extern "C" fn rfb_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RFBState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_parse_request(
+unsafe extern "C" fn rfb_parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -793,8 +789,7 @@ pub unsafe extern "C" fn rs_rfb_parse_request(
     return state.parse_request(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_parse_response(
+unsafe extern "C" fn rfb_parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -802,8 +797,7 @@ pub unsafe extern "C" fn rs_rfb_parse_response(
     return state.parse_response(flow, stream_slice);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_tx(
+unsafe extern "C" fn rfb_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RFBState);
@@ -817,14 +811,12 @@ pub unsafe extern "C" fn rs_rfb_state_get_tx(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+unsafe extern "C" fn rfb_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RFBState);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_rfb_tx_get_alstate_progress(
+unsafe extern "C" fn rfb_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, RFBTransaction);
@@ -850,16 +842,16 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_rfb_state_new,
-        state_free: rs_rfb_state_free,
-        tx_free: rs_rfb_state_tx_free,
-        parse_ts: rs_rfb_parse_request,
-        parse_tc: rs_rfb_parse_response,
-        get_tx_count: rs_rfb_state_get_tx_count,
-        get_tx: rs_rfb_state_get_tx,
+        state_new: rfb_state_new,
+        state_free: rfb_state_free,
+        tx_free: rfb_state_tx_free,
+        parse_ts: rfb_parse_request,
+        parse_tc: rfb_parse_response,
+        get_tx_count: rfb_state_get_tx_count,
+        get_tx: rfb_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_rfb_tx_get_alstate_progress,
+        tx_get_progress: rfb_tx_get_alstate_progress,
         get_eventinfo: Some(RFBEvent::get_event_info),
         get_eventinfo_byid: Some(RFBEvent::get_event_info_by_id),
         localstorage_new: None,
