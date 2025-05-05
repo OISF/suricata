@@ -20,12 +20,12 @@
 use crate::common::nom7::bits;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::take;
-use nom7::combinator::{cond, verify, rest};
-use nom7::multi::length_data;
-use nom7::number::streaming::{be_u32};
-use nom7::sequence::tuple;
+use nom7::combinator::{cond, rest, verify};
 use nom7::error::{make_error, ErrorKind};
-use nom7::{IResult, Err};
+use nom7::multi::length_data;
+use nom7::number::streaming::be_u32;
+use nom7::sequence::tuple;
+use nom7::{Err, IResult};
 
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
 pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
@@ -133,7 +133,7 @@ fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
 }
 
 pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, fraghdr) = verify(parse_bits, |v: &(u8,u32)| v.1 >= 24)(i)?;
+    let (i, fraghdr) = verify(parse_bits, |v: &(u8, u32)| v.1 >= 24)(i)?;
     let (i, xid) = be_u32(i)?;
     let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
@@ -244,7 +244,7 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
         return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
     }
 
-    let data_size : u32 = (rec_size - consumed) as u32;
+    let data_size: u32 = (rec_size - consumed) as u32;
     let (i, prog_data) = if !complete {
         rest(i)?
     } else {
@@ -299,7 +299,7 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
         return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
     }
 
-    let data_size : u32 = (rec_size as usize - consumed) as u32;
+    let data_size: u32 = (rec_size as usize - consumed) as u32;
     let (i, prog_data) = if !complete {
         rest(i)?
     } else {
@@ -355,7 +355,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = take(verifier_len as usize)(i)?;
 
-    let data_size : u32 = i.len() as u32;
+    let data_size: u32 = i.len() as u32;
     let (i, prog_data) = rest(i)?;
     let packet = RpcPacket {
         hdr,
@@ -389,7 +389,7 @@ pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
     let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, accept_state) = be_u32(i)?;
 
-    let data_size : u32 = i.len() as u32;
+    let data_size: u32 = i.len() as u32;
     let (i, prog_data) = rest(i)?;
     let packet = RpcReplyPacket {
         hdr,
@@ -417,13 +417,17 @@ mod tests {
     fn test_partial_input_too_short() {
         let buf: &[u8] = &[
             0x80, 0x00, 0x00, 0x9c, // flags
-            0x8e, 0x28, 0x02, 0x7e  // xid
+            0x8e, 0x28, 0x02, 0x7e, // xid
         ];
 
         let r = parse_rpc_request_partial(buf);
         match r {
-            Err(Incomplete(s)) => { assert_eq!(s, Needed::new(4)); },
-            _ => { panic!("failed {:?}",r); }
+            Err(Incomplete(s)) => {
+                assert_eq!(s, Needed::new(4));
+            }
+            _ => {
+                panic!("failed {:?}", r);
+            }
         }
     }
     #[test]
@@ -439,23 +443,25 @@ mod tests {
         ];
         let expected = RpcRequestPacketPartial {
             hdr: RpcPacketHeader {
-                    frag_is_last: true,
-                    frag_len: 156,
-                    xid: 2384986750,
-                    msgtype: 1
-                },
+                frag_is_last: true,
+                frag_len: 156,
+                xid: 2384986750,
+                msgtype: 1,
+            },
             rpcver: 2,
             program: 3,
             progver: 4,
-            procedure: 5
+            procedure: 5,
         };
         let r = parse_rpc_request_partial(buf);
         match r {
             Ok((rem, hdr)) => {
                 assert_eq!(rem.len(), 0);
                 assert_eq!(hdr, expected);
-            },
-            _ => { panic!("failed {:?}",r); }
+            }
+            _ => {
+                panic!("failed {:?}", r);
+            }
         }
     }
 }
