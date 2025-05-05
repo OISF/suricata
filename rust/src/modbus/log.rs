@@ -21,7 +21,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use sawp_modbus::{Data, Message, Read, Write};
 
 #[no_mangle]
-pub extern "C" fn rs_modbus_to_json(tx: &ModbusTransaction, js: &mut JsonBuilder) -> bool {
+pub extern "C" fn SCModbusToJson(tx: &ModbusTransaction, js: &mut JsonBuilder) -> bool {
     log(tx, js).is_ok()
 }
 

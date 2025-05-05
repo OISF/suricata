@@ -901,8 +901,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, (EveJsonSimpleTxLogFunc)AlertJsonDns, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)SCModbusToJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, (EveJsonSimpleTxLogFunc)SCEnipLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNP3, (EveJsonSimpleTxLogFunc)AlertJsonDnp3, NULL);
     // ALPROTO_NFS special: uses state
