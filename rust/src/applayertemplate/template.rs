@@ -254,7 +254,7 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 // C exports.
 
 /// C entry point for a probing parser.
-unsafe extern "C" fn rs_template_probing_parser(
+unsafe extern "C" fn template_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     // Need at least 2 bytes.
@@ -267,7 +267,7 @@ unsafe extern "C" fn rs_template_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn rs_template_state_new(
+extern "C" fn template_state_new(
     _orig_state: *mut c_void, _orig_proto: AppProto,
 ) -> *mut c_void {
     let state = TemplateState::new();
@@ -275,16 +275,16 @@ extern "C" fn rs_template_state_new(
     return Box::into_raw(boxed) as *mut c_void;
 }
 
-unsafe extern "C" fn rs_template_state_free(state: *mut c_void) {
+unsafe extern "C" fn template_state_free(state: *mut c_void) {
     std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
-unsafe extern "C" fn rs_template_state_tx_free(state: *mut c_void, tx_id: u64) {
+unsafe extern "C" fn template_state_tx_free(state: *mut c_void, tx_id: u64) {
     let state = cast_pointer!(state, TemplateState);
     state.free_tx(tx_id);
 }
 
-unsafe extern "C" fn rs_template_parse_request(
+unsafe extern "C" fn template_parse_request(
     _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -308,7 +308,7 @@ unsafe extern "C" fn rs_template_parse_request(
     }
 }
 
-unsafe extern "C" fn rs_template_parse_response(
+unsafe extern "C" fn template_parse_response(
     _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -326,7 +326,7 @@ unsafe extern "C" fn rs_template_parse_response(
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
+unsafe extern "C" fn template_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -338,12 +338,12 @@ unsafe extern "C" fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) ->
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut c_void) -> u64 {
+unsafe extern "C" fn template_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
 }
 
-unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
+unsafe extern "C" fn template_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
 
     // Transaction is done if we have a response.
@@ -360,7 +360,7 @@ export_state_data_get!(template_get_state_data, TemplateState);
 const PARSER_NAME: &[u8] = b"template\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_register_parser() {
+pub unsafe extern "C" fn SCRegisterTemplateParser() {
     /* TEMPLATE_START_REMOVE */
     if crate::conf::conf_get_node("app-layer.protocols.template").is_none() {
         return;
@@ -372,20 +372,20 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_template_probing_parser),
-        probe_tc: Some(rs_template_probing_parser),
+        probe_ts: Some(template_probing_parser),
+        probe_tc: Some(template_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_template_state_new,
-        state_free: rs_template_state_free,
-        tx_free: rs_template_state_tx_free,
-        parse_ts: rs_template_parse_request,
-        parse_tc: rs_template_parse_response,
-        get_tx_count: rs_template_state_get_tx_count,
-        get_tx: rs_template_state_get_tx,
+        state_new: template_state_new,
+        state_free: template_state_free,
+        tx_free: template_state_tx_free,
+        parse_ts: template_parse_request,
+        parse_tc: template_parse_response,
+        get_tx_count: template_state_get_tx_count,
+        get_tx: template_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_template_tx_get_alstate_progress,
+        tx_get_progress: template_tx_get_alstate_progress,
         get_eventinfo: Some(TemplateEvent::get_event_info),
         get_eventinfo_byid: Some(TemplateEvent::get_event_info_by_id),
         localstorage_new: None,
