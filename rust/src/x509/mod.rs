@@ -67,7 +67,7 @@ impl fmt::Display for SCGeneralName<'_> {
 ///
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_decode(
+pub unsafe extern "C" fn SCX509Decode(
     input: *const u8,
     input_len: u32,
     err_code: *mut u32,
@@ -85,7 +85,7 @@ pub unsafe extern "C" fn rs_x509_decode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn rs_x509_get_subject(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_subjectaltname_len(ptr: *const X509) -> u16 {
+pub unsafe extern "C" fn SCX509GetSubjectAltNameLen(ptr: *const X509) -> u16 {
     if ptr.is_null() {
         return 0;
     }
@@ -111,7 +111,7 @@ pub unsafe extern "C" fn rs_x509_get_subjectaltname_len(ptr: *const X509) -> u16
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_subjectaltname_at(ptr: *const X509, idx: u16) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn rs_x509_get_subjectaltname_at(ptr: *const X509, idx: u1
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn rs_x509_get_issuer(ptr: *const X509) -> *mut c_char {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509) -> *mut c_char {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -151,9 +151,9 @@ pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
 ///
 /// # Safety
 ///
-/// ptr must be a valid object obtained using `rs_x509_decode`
+/// ptr must be a valid object obtained using `SCX509Decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_get_validity(
+pub unsafe extern "C" fn SCX509GetValidity(
     ptr: *const X509,
     not_before: *mut i64,
     not_after: *mut i64,
@@ -173,9 +173,9 @@ pub unsafe extern "C" fn rs_x509_get_validity(
 ///
 /// # Safety
 ///
-/// ptr must be a valid object obtained using `rs_x509_decode`
+/// ptr must be a valid object obtained using `SCX509Decode`
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
+pub unsafe extern "C" fn SCX509Free(ptr: *mut X509) {
     if ptr.is_null() {
         return;
     }

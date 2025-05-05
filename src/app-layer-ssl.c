@@ -572,49 +572,49 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
     /* only store fields from the first certificate in the chain */
     if (certn == 0 && connp->cert0_subject == NULL && connp->cert0_issuerdn == NULL &&
             connp->cert0_serial == NULL) {
-        x509 = rs_x509_decode(input, cert_len, &err_code);
+        x509 = SCX509Decode(input, cert_len, &err_code);
         if (x509 == NULL) {
             TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
             goto next;
         }
 
-        char *str = rs_x509_get_subject(x509);
+        char *str = SCX509GetSubject(x509);
         if (str == NULL) {
             err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
         connp->cert0_subject = str;
 
-        str = rs_x509_get_issuer(x509);
+        str = SCX509GetIssuer(x509);
         if (str == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
         }
         connp->cert0_issuerdn = str;
 
-        connp->cert0_sans_len = rs_x509_get_subjectaltname_len(x509);
+        connp->cert0_sans_len = SCX509GetSubjectAltNameLen(x509);
         char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
         if (sans == NULL) {
             goto error;
         }
         for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
-            sans[i] = rs_x509_get_subjectaltname_at(x509, i);
+            sans[i] = SCX509GetSubjectAltNameAt(x509, i);
         }
         connp->cert0_sans = sans;
-        str = rs_x509_get_serial(x509);
+        str = SCX509GetSerial(x509);
         if (str == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
         }
         connp->cert0_serial = str;
 
-        rc = rs_x509_get_validity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
+        rc = SCX509GetValidity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
         if (rc != 0) {
             err_code = ERR_EXTRACT_VALIDITY;
             goto error;
         }
 
-        rs_x509_free(x509);
+        SCX509Free(x509);
         x509 = NULL;
 
         rc = TlsDecodeHSCertificateFingerprint(connp, input, cert_len);
@@ -638,7 +638,7 @@ error:
     if (err_code != 0)
         TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
     if (x509 != NULL)
-        rs_x509_free(x509);
+        SCX509Free(x509);
 
     SSLStateCertSANFree(connp);
     return -1;
